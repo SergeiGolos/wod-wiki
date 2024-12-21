@@ -27,13 +27,15 @@ jobs:
     - name: Parse coverage report
       id: coverage
       run: |
-        # Assuming lcov-report is generated in coverage/lcov.info
-        COVERAGE=$(grep -A 1 "All files" coverage/lcov-report/index.html)
-        echo "coverage=$COVERAGE" >> $GITHUB_ENV
+        # Extract coverage summary from lcov report
+        COVERAGE=$(grep -A 10 "All files" coverage/lcov-report/index.html | tail -n 10)
+        echo "COVERAGE<<EOF" >> $GITHUB_ENV
+        echo "$COVERAGE" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Comment on PR
       uses: marocchino/sticky-pull-request-comment@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         header: Coverage Report
-        message: ${{ env.coverage }}
+        message: ${{ env.COVERAGE }}
