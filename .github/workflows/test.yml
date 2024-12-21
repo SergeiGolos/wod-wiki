@@ -24,18 +24,23 @@ jobs:
     - name: Run tests
       run: npm test
 
-    - name: Parse coverage report
-      id: coverage
-      run: |
-        # Extract coverage summary from lcov report
-        COVERAGE=$(grep -A 10 "All files" coverage/lcov-report/index.html | tail -n 10)
-        echo "COVERAGE<<EOF" >> $GITHUB_ENV
-        echo "$COVERAGE" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-
-    - name: Comment on PR
-      uses: marocchino/sticky-pull-request-comment@v2
+    - name: Display coverage
+      uses: ewjoachim/coverage-comment-action@v1
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        header: Coverage Report
-        message: ${{ env.COVERAGE }}
+    
+        # Path and filename of the coverage XML file to analyze.
+        COVERAGE_FILE: "coverage.xml"
+    
+        # Whether or not a badge will be generated and stored.
+        BADGE_ENABLED: "true"
+    
+        # Name of the json file containing badge informations stored in the repo wiki.
+        BADGE_FILENAME: coverage-comment-badge.json
+    
+        # If the coverage percentage is above or equal to this value, the badge will be green.
+        MINIMUM_GREEN: 100
+    
+        # Same with orange. Below is red.
+        MINIMUM_ORANGE: 70
+    
