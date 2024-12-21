@@ -5,7 +5,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     coverage: {
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'lcov'],
+      reportsDirectory: './coverage',
     },
   },
 });
