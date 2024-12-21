@@ -20,6 +20,7 @@
   "homepage": "https://github.com/bitcobblers/wod-wiki#readme",
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "chevrotain": "^11.0.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"
