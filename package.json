@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest --coverage"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
   "homepage": "https://github.com/bitcobblers/wod-wiki#readme",
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
     "chevrotain": "^11.0.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
