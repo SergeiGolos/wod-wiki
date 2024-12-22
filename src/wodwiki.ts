@@ -1,17 +1,18 @@
 import * as monaco from 'monaco-editor';
+import { MdTimerRuntime, MdTimeRuntimeResult} from "./lib/md-timer";
 
 export interface WodWikiProps {  
     /** What background color to use */
     code?: string;
     /** Optional value change handler */
-    onValueChange?: (value: string) => void;
+    onValueChange?: (value: MdTimeRuntimeResult) => void;
     /** Optional cursor position handler */
     onCursorMoved?: (position: monaco.Position) => void;
 }
 
 /** Primary UI component for user interaction */
 export const createWodWiki = ({
-    code = "medium",    
+    code = "",    
     onValueChange,
     onCursorMoved,
 }: WodWikiProps) => {
@@ -22,20 +23,22 @@ export const createWodWiki = ({
     document.body.appendChild(container); // Ensure the container is attached to the DOM
 
     const editor = monaco.editor.create(container, {
-      value: code,
+      value: "",
       language: 'javascript',
       theme: 'vs-dark',
     });
 
-    // Subscribe to content change events
-    editor.onDidChangeModelContent((event) => {
-      onValueChange && onValueChange(editor.getValue())
+    let interpreter = new MdTimerRuntime();
+    editor.onDidChangeModelContent((event) => {      
+      let model =interpreter.read(editor.getValue());      
+      onValueChange && onValueChange(model);
     });
 
     // Subscribe to cursor position change events
     editor.onDidChangeCursorPosition((event) => {
       onCursorMoved && onCursorMoved(event.position);
     });
-
+    
+    editor.setValue(code);
     return container;
 }

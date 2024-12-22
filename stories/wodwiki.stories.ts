@@ -1,83 +1,92 @@
-import type { Meta, StoryObj } from '@storybook/html';
-import { action } from '@storybook/addon-actions';
-import type { WodWikiProps } from './wodwiki';
-import { createWodWiki } from './wodwiki';
+import type { Meta, StoryObj } from "@storybook/html";
+import { action } from "@storybook/addon-actions";
+import type { WodWikiProps } from "../src/wodwiki";
+import { createWodWiki } from "../src/wodwiki";
+import '../src/monaco-setup';
 
-// More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
 const meta = {
-  title: 'Example/WodWiki',
-  tags: ['autodocs'],
+  title: "Example/WodWiki",
   render: (args) => {
-    // You can either use a function to create DOM elements or use a plain html string!
-    // return `<div>${label}</div>`;
-    return createWodWiki(args);
+    // Create container for both editor and JSON view
+    const container = document.createElement("div");
+    container.style.display = 'flex';
+    container.style.gap = '1rem';
+    container.style.padding = '1rem';
+    container.style.height = '400px';
+    
+
+    const jsonContainer = document.createElement("div");
+    jsonContainer.style.flex = '1';
+    jsonContainer.style.minWidth = '300px';
+    jsonContainer.style.overflow = 'auto';
+    jsonContainer.style.backgroundColor = '#FEFEFE';
+    jsonContainer.style.color = '#333';
+    jsonContainer.style.padding = '1rem';
+    jsonContainer.style.fontFamily = 'monospace';
+    container.appendChild(jsonContainer);
+
+
+    args.onValueChange = (value) => {
+      jsonContainer.innerHTML = '';
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(value.syntax, null, 2);
+      jsonContainer.appendChild(pre);
+      //console.log('onValueChange', value);
+    };
+    
+    // Create the editor
+    const editorContainer = createWodWiki(args);
+    editorContainer.style.flex = '1';    
+    container.prepend(editorContainer);    //container.appendChild(editorContainer);
+
+
+        // Create JSON view container
+    
+    // Update JSON view when editor changes
+    const originalOnValueChange = args.onValueChange;
+    args.onValueChange = (value) => {
+      jsonContainer.innerHTML = '';
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(value, null, 2);
+      jsonContainer.appendChild(pre);
+      originalOnValueChange?.(value);
+    };
+
+    return container;
   },
   argTypes: {
-    code: { control: 'text' },    
+    code: { control: "text" },
   },
-  // Use `action` to spy on the onClick arg, which will appear in the actions panel once invoked: https://storybook.js.org/docs/essentials/actions#action-args
-  args: { 
-    onValueChange: action('onValueChange'),
-    onCursorMoved: action('onCursorMoved') 
+  args: {
+    onValueChange: action("onValueChange"),
+    onCursorMoved: action("onCursorMoved"),
+  },
+  parameters: {
+    layout: 'fullscreen',
   },
 } satisfies Meta<WodWikiProps>;
 
 export default meta;
 type Story = StoryObj<WodWikiProps>;
 
-
 export const Countdown: Story = {
-  args: {    
-    code: `
-# 30 Min Countwdown
+  args: {
+    code: `# 30 Min Countdown
 
 \`\`\`clock
 -10(ready)
 -30:00(Work)
-\`\`\`
-`,
-  },
-};
-
-// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
-export const Emom: Story = {
-  args: {    
-    code: `
-# 30 Min EMOM
-
-\`\`\`clock
--10(ready)
-[-1:00(Work)](30)
-\`\`\`
-`,
-  },
-};
-
-export const KbAxe: Story = {
-  args: {    
-    code: `
-# Kettlebell Axe
-
-\`\`\`clock
-
--10(ready)
-[1:00(Swings)](20)
-
 \`\`\``,
   },
 };
 
-
-export const Tabata: Story = {
-  args: {    
-    code: `
-# Tabata
+export const Emom: Story = {
+  args: {
+    code: `# 30 Min EMOM
 
 \`\`\`clock
 -10(ready)
-[1:00(Work)](20)
-[1:00(Rest)](10)
-\`\`\`
-`,
+[-1:00(Work)](30)
+\`\`\``,
   },
 };

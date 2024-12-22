@@ -9,12 +9,23 @@ export default defineConfig({
       fileName: (format) => `mylib.${format}.js`
     },
     rollupOptions: {
-      // make sure to externalize deps that shouldn't be bundled
-      // into your library
-      external: [],
+      external: ['monaco-editor'],
       output: {
-        globals: {}
+        globals: {
+          'monaco-editor': 'monaco'
+        }
       }
     }
+  },
+  worker: {
+    format: 'es',    
+  },
+  optimizeDeps: {
+    exclude: ['monaco-editor']
+  },
+  resolve: {
+    alias: {
+      'monaco-editor': 'monaco-editor/esm/vs/editor/editor.api.js',
+    },
   }
 });

@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { MdTimerRuntime } from "./lib/md-timer";
+import { MdTimerRuntime } from "./md-timer";
 
 test(`parsedDirectionUpDefault`, async () => {    
     const runtime = new MdTimerRuntime();
