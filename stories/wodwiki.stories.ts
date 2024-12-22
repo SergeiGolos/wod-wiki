@@ -29,7 +29,7 @@ const meta = {
     args.onValueChange = (value) => {
       jsonContainer.innerHTML = '';
       const pre = document.createElement('pre');
-      pre.textContent = JSON.stringify(value.syntax, null, 2);
+      pre.textContent = JSON.stringify(value.outcome, null, 2);
       jsonContainer.appendChild(pre);
       //console.log('onValueChange', value);
     };
