@@ -18,7 +18,7 @@ env:
 
 jobs:
   calculate-variables:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.calculate-version.outputs.VERSION }}
       package-version: ${{ steps.calculate-version.outputs.PACKAGE_VERSION }}
