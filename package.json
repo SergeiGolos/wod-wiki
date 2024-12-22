@@ -21,7 +21,6 @@
   },
   "homepage": "https://github.com/bitcobblers/wod-wiki#readme",
   "devDependencies": {
-    "@chromatic-com/storybook": "^3.2.3",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",
     "@storybook/addon-onboarding": "^8.4.7",

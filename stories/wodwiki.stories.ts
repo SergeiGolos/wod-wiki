@@ -13,7 +13,7 @@ const meta = {
     return createWodWiki(args);
   },
   argTypes: {
-    code: { control: 'textarea' },    
+    code: { control: 'text' },    
   },
   // Use `action` to spy on the onClick arg, which will appear in the actions panel once invoked: https://storybook.js.org/docs/essentials/actions#action-args
   args: { 
@@ -25,9 +25,59 @@ const meta = {
 export default meta;
 type Story = StoryObj<WodWikiProps>;
 
-// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
-export const Primary: Story = {
+
+export const Countdown: Story = {
   args: {    
-    code: 'Button',
+    code: `
+# 30 Min Countwdown
+
+\`\`\`clock
+-10(ready)
+-30:00(Work)
+\`\`\`
+`,
+  },
+};
+
+// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
+export const Emom: Story = {
+  args: {    
+    code: `
+# 30 Min EMOM
+
+\`\`\`clock
+-10(ready)
+[-1:00(Work)](30)
+\`\`\`
+`,
+  },
+};
+
+export const KbAxe: Story = {
+  args: {    
+    code: `
+# Kettlebell Axe
+
+\`\`\`clock
+
+-10(ready)
+[1:00(Swings)](20)
+
+\`\`\``,
+  },
+};
+
+
+export const Tabata: Story = {
+  args: {    
+    code: `
+# Tabata
+
+\`\`\`clock
+-10(ready)
+[1:00(Work)](20)
+[1:00(Rest)](10)
+\`\`\`
+`,
   },
 };
