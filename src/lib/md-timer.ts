@@ -26,7 +26,7 @@ export class MdTimerRuntime {
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
-    const cst = parser.wodMarkdown();
+    const cst = parser.timerMarkdown();
     const raw = cst != null ? this.visitor.visit(cst) : ([] as MdTimerBlock[]);
     // console.log("Raw: ", raw);
     return {
