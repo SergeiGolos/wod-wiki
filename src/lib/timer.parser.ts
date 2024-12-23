@@ -18,47 +18,44 @@ export class MdTimerParse extends CstParser {
     super(allTokens);
     const $ = this as any;
 
-    $.RULE("wodMarkdown", () => {
+    $.RULE("timerMarkdown", () => {
       $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "markdown" });
+        $.SUBRULE($.timerBlock, { LABEL: "blocks" });
       });
     });
 
-    $.RULE("wodBlock", () => {
-      $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "blocks" });
-      });      
+    $.RULE("timerBlock", () => {
+      $.OR([
+        { ALT: () => $.SUBRULE($.compoundTimer) },
+        { ALT: () => $.SUBRULE($.simpleTimer) },
+      ]);
+      $.OPTION(() => {
+        $.SUBRULE($.timerMultiplier);
+      });
     });
 
-    $.RULE("wodPart", () => {      
-      $.OR([        
-        { ALT: () => $.SUBRULE($.timer) },                
-        { ALT: () => $.SUBRULE($.resistance) },
-        { ALT: () => $.SUBRULE($.repeater) },
-        { ALT: () => $.SUBRULE($.effort) },
-      ]);      
+    $.RULE("compoundTimer", () => {
+      $.CONSUME(GroupOpen);
+      $.MANY(() => {
+        $.SUBRULE($.timerBlock, { LABEL: "blocks" });
+      });
+      $.CONSUME(GroupClose);
     });
-    
-    $.RULE("timer", () => {
+
+    $.RULE("simpleTimer", () => {
       $.OPTION(() => {
         $.CONSUME(CountDirection, { label: "directionValue" });
       });
+      $.SUBRULE($.timerValue);
+    });
+
+    $.RULE("timerValue", () => {
       $.AT_LEAST_ONE_SEP({
         SEP: Colon,
         DEF: () => {
           $.SUBRULE($.numericValue, { LABEL: "segments" });
         },
       });
-    });
-
-
-//
-    $.RULE("repeater", () => {
-      $.CONSUME(GroupOpen);
-      $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "blocks" });
-      });
-      $.CONSUME(GroupClose);
     });
 
     $.RULE("timerMultiplier", () => {
