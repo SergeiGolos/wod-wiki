@@ -1,6 +1,7 @@
 import type { IToken } from "chevrotain";
 import { CstParser } from "chevrotain";
 import {
+  AtResistance,
   Colon,
   Comma,
   CountDirection,
@@ -8,6 +9,7 @@ import {
   GroupOpen,
   Identifier,
   Integer,
+  Kelos,
   LabelClose,
   LabelOpen,
   allTokens,
@@ -51,32 +53,42 @@ export class MdTimerParse extends CstParser {
       });
     });
 
+    $.RULE("resistance", () => {            
+      $.OR([
+        { ALT: () => $.SUBRULE($.resitance_lb) },
+        { ALT: () => $.SUBRULE($.resitance_kg) },
+        { ALT: () => $.SUBRULE($.resitance_default) },
+      ]);            
+    });
 
-//
+    $.RULE("resitance_kg", () => {                
+      $.OPTION(() => {
+        $.CONSUME(AtResistance);
+      });            
+      $.CONSUME(Integer);      
+      $.CONSUME(Kelos);      
+    });
+
+    $.RULE("resitance_lb", () => {                
+      $.OPTION(() => {
+        $.CONSUME(AtResistance);
+      });            
+      $.CONSUME(Integer);      
+      $.CONSUME(Kelos);      
+    });
+  
+    $.RULE("resitance_default", () => {                      
+      $.CONSUME(AtResistance);      
+      $.CONSUME(Integer);      
+    });
+
+
     $.RULE("repeater", () => {
       $.CONSUME(GroupOpen);
       $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "blocks" });
+        $.SUBRULE($.stringValue, { LABEL: "blocks" });
       });
       $.CONSUME(GroupClose);
-    });
-
-    $.RULE("timerMultiplier", () => {
-      $.CONSUME(LabelOpen);
-      $.MANY_SEP({
-        SEP: Comma,
-        DEF: () => {
-          $.SUBRULE($.multiplierValue, { label: "values" });
-        },
-      });
-      $.CONSUME(LabelClose);
-    });
-
-    $.RULE("multiplierValue", () => {
-      $.OR([
-        { ALT: () => $.SUBRULE($.numericValue) },
-        { ALT: () => $.SUBRULE($.stringValue) },
-      ]);
     });
 
     $.RULE("numericValue", () => {
