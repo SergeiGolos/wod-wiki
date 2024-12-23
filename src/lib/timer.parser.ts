@@ -12,6 +12,7 @@ import {
   Kelos,
   LabelClose,
   LabelOpen,
+  Pounds,
   allTokens,
 } from "./timer.tokens";
 
@@ -28,77 +29,77 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("wodBlock", () => {
       $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "blocks" });
+        $.OR([        
+          { ALT: () => $.SUBRULE($.timer) },          
+          { ALT: () => $.SUBRULE($.resistance) },
+          { ALT: () => $.SUBRULE($.repeater) },
+          { ALT: () => $.CONSUME(Identifier), LABEL: "effort" },
+        ]); 
       });      
     });
 
-    $.RULE("wodPart", () => {      
-      $.OR([        
-        { ALT: () => $.SUBRULE($.timer) },                
-        { ALT: () => $.SUBRULE($.resistance) },
-        { ALT: () => $.SUBRULE($.repeater) },
-        { ALT: () => $.SUBRULE($.effort) },
-      ]);      
-    });
-    
     $.RULE("timer", () => {
+      $.OR([
+        { ALT: () => $.SUBRULE($.timerLong) },
+        { ALT: () => $.SUBRULE($.timerShort) },
+      ]);
+    });
+
+    $.RULE("timerLong", () => {            
       $.OPTION(() => {
         $.CONSUME(CountDirection, { label: "directionValue" });
       });
       $.AT_LEAST_ONE_SEP({
         SEP: Colon,
         DEF: () => {
-          $.SUBRULE($.numericValue, { LABEL: "segments" });
+          $.CONSUME(Integer, { LABEL: "segments" });
         },
       });
     });
 
+    $.RULE("timerShort", () => {            
+      $.OPTION(() => {
+        $.CONSUME(CountDirection, { label: "directionValue" });
+      });
+      $.CONSUME(Colon, {LABEL : "colon"});
+      $.CONSUME(Integer, { LABEL: "segments" });            
+    });
+
+
     $.RULE("resistance", () => {            
       $.OR([
-        { ALT: () => $.SUBRULE($.resitance_lb) },
-        { ALT: () => $.SUBRULE($.resitance_kg) },
-        { ALT: () => $.SUBRULE($.resitance_default) },
+        { ALT: () => $.SUBRULE($.resistance_lb) },
+        { ALT: () => $.SUBRULE($.resistance_kg) },
+        { ALT: () => $.SUBRULE($.resistance_default) },
       ]);            
     });
 
-    $.RULE("resitance_kg", () => {                
-      $.OPTION(() => {
-        $.CONSUME(AtResistance);
-      });            
+    $.RULE("resistance_kg", () => {                
+      $.CONSUME(AtResistance);
       $.CONSUME(Integer);      
       $.CONSUME(Kelos);      
     });
 
-    $.RULE("resitance_lb", () => {                
-      $.OPTION(() => {
-        $.CONSUME(AtResistance);
-      });            
+    $.RULE("resistance_lb", () => {                
+      $.CONSUME(AtResistance);
       $.CONSUME(Integer);      
-      $.CONSUME(Kelos);      
+      $.CONSUME(Pounds);      
     });
   
-    $.RULE("resitance_default", () => {                      
+    $.RULE("resistance_default", () => {                      
       $.CONSUME(AtResistance);      
       $.CONSUME(Integer);      
     });
-
+    
 
     $.RULE("repeater", () => {
       $.CONSUME(GroupOpen);
       $.MANY(() => {
-        $.SUBRULE($.stringValue, { LABEL: "blocks" });
+        $.CONSUME(Identifier, { LABEL: "blocks" });
       });
       $.CONSUME(GroupClose);
-    });
-
-    $.RULE("numericValue", () => {
-      $.CONSUME(Integer);
-    });
-
-    $.RULE("stringValue", () => {
-      $.CONSUME(Identifier);
-    });
-
+    });    
+   
     $.performSelfAnalysis();
 
     if (tokens) {

@@ -13,7 +13,7 @@ export const Identifier = createToken({
 
 export const Pounds = createToken({ name: "Pounds", pattern: /lb/i });
 export const Kelos = createToken({ name: "Pounds", pattern: /kg/i });
-export const AtResistance = createToken({  name: "AtResistance",  pattern: /@/ });
+export const AtResistance = createToken({ name: "AtResistance", pattern: /@/ });
 
 export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
 export const Comma = createToken({ name: "Comma", pattern: /,/ });
