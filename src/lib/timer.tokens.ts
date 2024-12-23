@@ -5,7 +5,7 @@ export const WhiteSpace = createToken({
   pattern: /\s+/,
   group: Lexer.SKIPPED,
 });
-export const Return = createToken({ name: "Return", pattern: /[\r\n]+/ });
+export const Return = createToken({ name: "Return", pattern: /\r?\n/ })
 export const Identifier = createToken({
   name: "Identifier",
   pattern: /[a-zA-Z]\w*/,
@@ -41,8 +41,8 @@ export const LabelOpen = createToken({ name: "LabelOpen", pattern: /\(/ });
 export const LabelClose = createToken({ name: "LabelClose", pattern: /\)/ });
 
 export const allTokens = [
-  WhiteSpace,
   Return,
+  WhiteSpace,
   // "keywords" appear before the Identifier
   GroupOpen,
   GroupClose,

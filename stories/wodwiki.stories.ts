@@ -78,7 +78,7 @@ export const Countdown: Story = {
 
 export const Emom: Story = {
   args: {
-    code:`-10(ready)
+    code:`-:10 get ready
 30 -1:00 Work`,
   },
 };

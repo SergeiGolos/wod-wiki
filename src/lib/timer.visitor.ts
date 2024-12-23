@@ -21,35 +21,48 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return result;
   }
 
-  wodBlock(ctx: any) {
-    const blocks = [];
+  wodBlock(ctx: any) {  
+    const statement = {} as any;
     if (ctx.timer) {
-      const outcome = this.visit(ctx.timer[0]).flat(
-        Infinity,
-      );
-      const labels = ctx.timerMultiplier
-        ? this.visit(ctx.timerMultiplier)
-        : [{ round: 1, label: "" }];
-      for (const label of labels) {
-        for (const index of outcome) {
-          if (index != null) {
-            blocks.push({
-              ...index,
-              label: index.label
-                ? label.label + " - " + index.label
-                : label.label,
-            });
-          }
-        }
-      }
+      statement.timer = this.visit(ctx.timer);
     }
 
-    return blocks;
+    if (ctx.resistance) {
+      statement.resistance = this.visit(ctx.resistance);
+    }
+
+    if (ctx.repeater) {
+      statement.repeater = this.visit(ctx.repeater);
+    }
+
+    if (ctx.effort) { 
+      statement.effort = this.visit(ctx.effort);
+    }
+    
+    return statement;
   }
 
   timer(ctx: any) {
-    return ctx.blocks.map((block: any) => this.visit(block));
+    const timer = (ctx.timerLong ?? ctx.timerShort)[0];    
+    const segments = timer.children?.segments?.reverse().map((segment: any) => segment.image * 1) ?? [];
+    const increment = timer.children?.increment?.value ?? "+";
+    while (segments.length < 4) {
+      segments.push(0);
+    }
+
+    const time = {
+      days: segments[3],
+      hours: segments[2],
+      minutes: segments[1],
+      seconds: segments[0],
+    };
+
+    return time.seconds * 1 +
+      time.minutes * 60 +
+      time.hours * 60 * 60 +
+      time.days * 60 * 60 * 24;
   }
+  
 
   timerLong(ctx: any) {
     return ctx.blocks.map((block: any) => this.visit(block));

@@ -23,32 +23,35 @@ export class MdTimerParse extends CstParser {
     const $ = this as any;
 
     $.RULE("wodMarkdown", () => {
-      $.MANY(() => {
-        $.SUBRULE($.wodBlock, { LABEL: "markdown" });
+      $.AT_LEAST_ONE_SEP({
+        SEP: Return, // Separator for entries
+        DEF: () => {
+          $.SUBRULE($.wodBlock, { LABEL: "markdown" });
+        },
       });
     });
 
     $.RULE("wodBlock", () => {
-      $.MANY(() => {
-        $.OR([        
-          { ALT: () => $.SUBRULE($.timer) },          
+      $.AT_LEAST_ONE(() => {
+        $.OR([
+          { ALT: () => $.SUBRULE($.timer) },
           { ALT: () => $.SUBRULE($.resistance) },
           { ALT: () => $.SUBRULE($.repeater) },
           { ALT: () => $.CONSUME(Identifier), LABEL: "effort" },
-        ]); 
-      });      
+        ]);
+      });
     });
 
     $.RULE("timer", () => {
       $.OR([
-        { ALT: () => $.SUBRULE($.timerLong) },
         { ALT: () => $.SUBRULE($.timerShort) },
+        { ALT: () => $.SUBRULE($.timerLong) },        
       ]);
     });
 
-    $.RULE("timerLong", () => {            
+    $.RULE("timerLong", () => {
       $.OPTION(() => {
-        $.CONSUME(CountDirection, { label: "directionValue" });
+        $.CONSUME(CountDirection, { label: "increment" });
       });
       $.AT_LEAST_ONE_SEP({
         SEP: Colon,
@@ -58,40 +61,38 @@ export class MdTimerParse extends CstParser {
       });
     });
 
-    $.RULE("timerShort", () => {            
+    $.RULE("timerShort", () => {
       $.OPTION(() => {
-        $.CONSUME(CountDirection, { label: "directionValue" });
+        $.CONSUME(CountDirection, { label: "increment" });
       });
-      $.CONSUME(Colon, {LABEL : "colon"});
-      $.CONSUME(Integer, { LABEL: "segments" });            
+      $.CONSUME(Colon, { LABEL: "colon" });
+      $.CONSUME(Integer, { LABEL: "segments" });
     });
 
-
-    $.RULE("resistance", () => {            
+    $.RULE("resistance", () => {
       $.OR([
         { ALT: () => $.SUBRULE($.resistance_lb) },
         { ALT: () => $.SUBRULE($.resistance_kg) },
         { ALT: () => $.SUBRULE($.resistance_default) },
-      ]);            
+      ]);
     });
 
-    $.RULE("resistance_kg", () => {                
+    $.RULE("resistance_kg", () => {
       $.CONSUME(AtResistance);
-      $.CONSUME(Integer);      
-      $.CONSUME(Kelos);      
+      $.CONSUME(Integer);
+      $.CONSUME(Kelos);
     });
 
-    $.RULE("resistance_lb", () => {                
+    $.RULE("resistance_lb", () => {
       $.CONSUME(AtResistance);
-      $.CONSUME(Integer);      
-      $.CONSUME(Pounds);      
+      $.CONSUME(Integer);
+      $.CONSUME(Pounds);
     });
-  
-    $.RULE("resistance_default", () => {                      
-      $.CONSUME(AtResistance);      
-      $.CONSUME(Integer);      
+
+    $.RULE("resistance_default", () => {
+      $.CONSUME(AtResistance);
+      $.CONSUME(Integer);
     });
-    
 
     $.RULE("repeater", () => {
       $.CONSUME(GroupOpen);
@@ -99,8 +100,8 @@ export class MdTimerParse extends CstParser {
         $.CONSUME(Identifier, { LABEL: "blocks" });
       });
       $.CONSUME(GroupClose);
-    });    
-   
+    });
+
     $.performSelfAnalysis();
 
     if (tokens) {
