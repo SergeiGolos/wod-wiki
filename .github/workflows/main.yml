@@ -25,8 +25,7 @@ jobs:
     uses: ./.github/workflows/_code_quality.yml
     secrets: inherit
 
-  build:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+  build:    
     needs: [calc-variables]
     uses: ./.github/workflows/_build-qwik.yml
     secrets: inherit
