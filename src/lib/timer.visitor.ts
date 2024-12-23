@@ -35,57 +35,81 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.repeater = this.visit(ctx.repeater);
     }
 
-    if (ctx.effort) { 
-      statement.effort = this.visit(ctx.effort);
+    if (ctx.Identifier) { 
+      statement.effort = ctx.Identifier.map((i: any) => i.image).join(" ");
     }
     
     return statement;
   }
 
   timer(ctx: any) {
-    const timer = (ctx.timerLong ?? ctx.timerShort)[0];    
-    const segments = timer.children?.segments?.reverse().map((segment: any) => segment.image * 1) ?? [];
-    const increment = timer.children?.increment?.value ?? "+";
-    while (segments.length < 4) {
-      segments.push(0);
+    return ctx.timerLong != null 
+      ? this.visit(ctx.timerLong) 
+      : this.visit(ctx.timerShort);        
+  }
+  parseTimer(increment:any, segments: any[]){                    
+    const multiplier = increment!= null && increment[0]?.image == "-" ? -1 : 1;
+    const digits = segments
+      ?.reverse()
+      .map((segment: any) => segment.image * 1) ?? [];
+    
+    while (digits.length < 4) {
+      digits.push(0);
     }
 
     const time = {
-      days: segments[3],
-      hours: segments[2],
-      minutes: segments[1],
-      seconds: segments[0],
+      days: digits[3],
+      hours: digits[2],
+      minutes: digits[1],
+      seconds: digits[0],
     };
 
-    return time.seconds * 1 +
+    return multiplier * (time.seconds * 1 +
       time.minutes * 60 +
       time.hours * 60 * 60 +
-      time.days * 60 * 60 * 24;
+      time.days * 60 * 60 * 24);
   }
-  
 
   timerLong(ctx: any) {
-    return ctx.blocks.map((block: any) => this.visit(block));
+    return this.parseTimer(ctx.CountDirection, ctx.segments);
   }
 
   timerShort(ctx: any) {
-    return ctx.blocks.map((block: any) => this.visit(block));
+    return this.parseTimer(ctx.CountDirection, ctx.segments);
   }
 
   resistance(ctx: any): MdTimerBlock[] {
-    return ctx.blocks.map((block: any) => this.visit(block));
+    if (ctx.resistance_kg) {
+      return this.visit(ctx.resistance_kg);      
+    }
+    if (ctx.resistance_lb) {
+      return this.visit(ctx.resistance_lb);
+    }
+    return this.visit(ctx.resistance_default);
   }
 
-  resistance_kg(ctx: any): MdTimerBlock[] {
-    return ctx.blocks.map((block: any) => this.visit(block));
+  parseWeight(units: string, value: any) {
+    return {
+      unit: units,
+      value: value.Integer[0].image,
+    }
   }
 
-  resistance_lb(ctx: any): MdTimerBlock[] {
-    return ctx.blocks.map((block: any) => this.visit(block));
+  resistance_kg(ctx: any) {
+    return this.parseWeight("kg", ctx.Integer); 
   }
 
-  resistance_default(ctx: any): MdTimerBlock[] {
-    return ctx.blocks.map((block: any) => this.visit(block));
+  resistance_lb(ctx: any) {
+    return this.parseWeight("lb", ctx.Integer); 
+  }
+
+  resistance_default(ctx: any) {
+     // TODO: pull default from config
+    return this.parseWeight("default", ctx.Integer); 
+  }
+
+  effort(ctx: any) {
+    return "test";
   }
 
   repeater(ctx: any) {

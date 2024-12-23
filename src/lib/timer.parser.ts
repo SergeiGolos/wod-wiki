@@ -34,9 +34,9 @@ export class MdTimerParse extends CstParser {
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.SUBRULE($.timer) },
-          { ALT: () => $.SUBRULE($.resistance) },
           { ALT: () => $.SUBRULE($.repeater) },
+          { ALT: () => $.SUBRULE($.resistance) },          
+          { ALT: () => $.SUBRULE($.timer) },          
           { ALT: () => $.CONSUME(Identifier), LABEL: "effort" },
         ]);
       });
