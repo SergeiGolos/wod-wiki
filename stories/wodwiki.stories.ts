@@ -71,22 +71,14 @@ type Story = StoryObj<WodWikiProps>;
 
 export const Countdown: Story = {
   args: {
-    code: `# 30 Min Countdown
-
-\`\`\`clock
--10(ready)
--30:00(Work)
-\`\`\``,
+    code: `-:10 ready
+-20:00 Work`,
   },
 };
 
 export const Emom: Story = {
   args: {
-    code: `# 30 Min EMOM
-
-\`\`\`clock
--10(ready)
-[-1:00(Work)](30)
-\`\`\``,
+    code:`-10(ready)
+30 -1:00 Work`,
   },
 };

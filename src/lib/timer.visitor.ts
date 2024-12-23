@@ -15,7 +15,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   /// High level entry point, contains any number of simple of compound timers.
   wodMarkdown(ctx: any): MdTimerBlock[] {
-    const result = ctx.blocks.flatMap(
+    const result = ctx.markdown.flatMap(
       (block: any) => block && this.visit(block),
     ) as MdTimerBlock[];
     return result;
@@ -23,8 +23,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   wodBlock(ctx: any) {
     const blocks = [];
-    if (ctx.compoundTimer || ctx.simpleTimer) {
-      const outcome = this.visit(ctx.compoundTimer || ctx.simpleTimer).flat(
+    if (ctx.timer) {
+      const outcome = this.visit(ctx.timer[0]).flat(
         Infinity,
       );
       const labels = ctx.timerMultiplier
