@@ -9,7 +9,7 @@ export type MdTimeRuntimeResult = {
   source: string;
   tokens: IToken[];
   parser: any;
-  syntax: CstNode;
+  syntax: CstNode; 
   outcome: MdTimerBlock[];
 };
 

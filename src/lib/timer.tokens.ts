@@ -8,7 +8,7 @@ export const WhiteSpace = createToken({
 export const Return = createToken({ name: "Return", pattern: /[\r\n]+/ });
 export const Identifier = createToken({
   name: "Identifier",
-  pattern: /[a-zA-Z]\w*/,
+  pattern: /[a-zA-Z]\w*/, 
 });
 export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
 export const Comma = createToken({ name: "Comma", pattern: /,/ });

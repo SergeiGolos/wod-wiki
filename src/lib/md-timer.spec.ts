@@ -5,7 +5,7 @@ test(`parsedDirectionUpDefault`, async () => {
     const runtime = new MdTimerRuntime();
     const { outcome } = runtime.read("11");    
     
-    expect(outcome[0].icon).toBe("up");    
+    expect(outcome[0].icon).toBe("up");     
 });
  
 test(`parsedDirectionUpExplicit`, async () => {    

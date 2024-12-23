@@ -28,7 +28,7 @@ export class MdTimerParse extends CstParser {
       $.OR([
         { ALT: () => $.SUBRULE($.compoundTimer) },
         { ALT: () => $.SUBRULE($.simpleTimer) },
-      ]);
+      ]); 
       $.OPTION(() => {
         $.SUBRULE($.timerMultiplier);
       });
