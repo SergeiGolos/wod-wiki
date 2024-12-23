@@ -1,5 +1,7 @@
 import type { StorybookConfig } from "@storybook/html-vite";
 import { mergeConfig } from 'vite';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const config: StorybookConfig = {
   stories: [        
@@ -11,6 +13,7 @@ const config: StorybookConfig = {
     name: "@storybook/html-vite",
     options: {},
   },
+  managerHead: readFileSync(join(__dirname, 'manager-head.html'), 'utf8'),
   viteFinal: async (config) => {
     return mergeConfig(config, {
       build: {
