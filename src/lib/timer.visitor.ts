@@ -14,14 +14,14 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   /// High level entry point, contains any number of simple of compound timers.
-  timerMarkdown(ctx: any): MdTimerBlock[] {
+  wodMarkdown(ctx: any): MdTimerBlock[] {
     const result = ctx.blocks.flatMap(
       (block: any) => block && this.visit(block),
     ) as MdTimerBlock[];
     return result;
   }
 
-  timerBlock(ctx: any) {
+  wodBlock(ctx: any) {
     const blocks = [];
     if (ctx.compoundTimer || ctx.simpleTimer) {
       const outcome = this.visit(ctx.compoundTimer || ctx.simpleTimer).flat(
