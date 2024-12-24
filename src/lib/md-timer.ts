@@ -6,6 +6,7 @@ import type { MdTimerBlock } from "./timer.types";
 import { MdTimerInterpreter } from "./timer.visitor";
 
 export type MdTimeRuntimeResult = {
+  
   source: string;
   tokens: IToken[];
   parser: any;

@@ -79,7 +79,7 @@ export const Countdown: Story = {
 export const Emom: Story = {
   args: {
     code:`-:10 get ready
-    
+
 (30) -1:00 Work`,
   },
 };
@@ -97,8 +97,9 @@ export const Simple: Story = {
 export const IronBlackJack: Story = {
   args: {
     code:`-:10 get ready
--5:00 KB Swings @70lb
--1:00 Rest
--10:00 Turkish Getups 70lb`
+(30) -1:00
+  - 10 Macebell Touchdowns @30lb
+  - 6 KB swings @106lb
+  - 3 Deadlifts @235lb`
   },
 };
