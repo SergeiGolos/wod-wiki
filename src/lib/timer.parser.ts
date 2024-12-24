@@ -1,16 +1,15 @@
 import type { IToken } from "chevrotain";
 import { CstParser } from "chevrotain";
-import {
-  Comma,
+import {  
   CountDirection,
   GroupClose,
   GroupOpen,
   Identifier,
-  Integer,
   Return,
   allTokens,
   Timer,
   Load,
+  Integer,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -47,10 +46,23 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("repeater", () => {
       $.CONSUME(GroupOpen);
-      $.MANY(() => {
-        $.CONSUME(Identifier, { LABEL: "blocks" });
-      });
+      $.OR([
+        { 
+          GATE: () => this.LA(1).tokenType === Identifier,
+          ALT: () => $.SUBRULE($.labels) 
+        },
+        { 
+          GATE: () => this.LA(1).tokenType === Integer,
+          ALT: () => $.CONSUME(Integer)
+        },        
+      ]);
       $.CONSUME(GroupClose);
+    });
+
+    $.RULE("labels", () => {
+      $.MANY(() => {
+        $.CONSUME(Identifier, { LABEL: "label" });
+      });
     });
 
     $.RULE("resistance", () => {

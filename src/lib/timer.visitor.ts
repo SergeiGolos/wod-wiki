@@ -1,5 +1,5 @@
+import { loadEnvFile } from "process";
 import { MdTimerParse } from "./timer.parser";
-import { Minus } from "./timer.tokens";
 import type { MdTimerBlock } from "./timer.types";
 
 const parser = new MdTimerParse() as any;
@@ -23,8 +23,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   wodBlock(ctx: any) {  
     const statement = {} as any;
-    if (ctx.timer) {
-      statement.timer = this.visit(ctx.timer);
+    if (ctx.duration) {
+      statement.duration = this.visit(ctx.duration);
     }
 
     if (ctx.resistance) {
@@ -35,23 +35,20 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.repeater = this.visit(ctx.repeater);
     }
 
-    if (ctx.Identifier) { 
-      statement.effort = ctx.Identifier.map((i: any) => i.image).join(" ");
+    if (ctx.effort) { 
+      statement.effort = this.visit(ctx.effort);
     }
     
     return statement;
   }
 
   duration(ctx: any) {
-    return ctx.timerLong != null 
-      ? this.visit(ctx.timerLong) 
-      : this.visit(ctx.timerShort);        
-  }
-  parseTimer(increment:any, segments: any[]){                    
-    const multiplier = increment!= null && increment[0]?.image == "-" ? -1 : 1;
-    const digits = segments
-      ?.reverse()
-      .map((segment: any) => segment.image * 1) ?? [];
+    const increment =  ctx.CountDirection && ctx.CountDirection[0]?.image || "+";
+    const multiplier = increment == "-" ? -1 : 1;
+
+    const digits = ctx.Timer[0].image.split(":")
+      .map((segment : any) => 1 * (segment == "" ? 0 : segment))
+      .reverse();
     
     while (digits.length < 4) {
       digits.push(0);
@@ -64,57 +61,53 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       seconds: digits[0],
     };
 
-    return multiplier * (time.seconds * 1 +
+    return multiplier * (time.seconds +
       time.minutes * 60 +
       time.hours * 60 * 60 +
       time.days * 60 * 60 * 24);
   }
 
-  timerLong(ctx: any) {
-    return this.parseTimer(ctx.CountDirection, ctx.segments);
-  }
-
-  timerShort(ctx: any) {
-    return this.parseTimer(ctx.CountDirection, ctx.segments);
-  }
-
-  resistance(ctx: any): MdTimerBlock[] {
-    if (ctx.resistance_kg) {
-      return this.visit(ctx.resistance_kg);      
+  resistance(ctx: any) {
+    let load = ctx.Load[0].image.replace("@", "");    
+    let units = "default";
+    if (load.includes("kg")) {
+      load = load.replace("kg", "");
+      units = "kg";
     }
-    if (ctx.resistance_lb) {
-      return this.visit(ctx.resistance_lb);
-    }
-    return this.visit(ctx.resistance_default);
-  }
 
-  parseWeight(units: string, value: any) {
+    if (load.includes("lb")) {
+      load = load.replace("lb", "");
+      units = "lb";
+    }
+
     return {
-      unit: units,
-      value: value.Integer[0].image,
+      "units": units,
+      "value": load
     }
   }
 
-  resistance_kg(ctx: any) {
-    return this.parseWeight("kg", ctx.Integer); 
+  labels(ctx: any) {
+    return ctx.label.Map((identifier: any) => identifier.image)
   }
 
-  resistance_lb(ctx: any) {
-    return this.parseWeight("lb", ctx.Integer); 
-  }
-
-  resistance_default(ctx: any) {
-     // TODO: pull default from config
-    return this.parseWeight("default", ctx.Integer); 
-  }
-
+ 
   effort(ctx: any) {
-    return "test";
+      return ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
   }
 
   repeater(ctx: any) {
-    return (
-      ctx.multiplierValue?.flatMap((value: any) => this.visit(value)) || []
-    );
+    if (ctx.Integer != null) {
+          return { count: ctx.Integer[0].image * 1, labels: [] };
+    }
+
+    if (ctx.labels == null) {
+      return { count: 1, labels: [] };      
+    }
+
+    var labels = this.visit(ctx.labels[0]);    
+    return  {
+      count: labels.length,
+      labels: labels
+    }    
   }  
 }
