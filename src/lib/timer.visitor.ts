@@ -1,5 +1,5 @@
+import { loadEnvFile } from "process";
 import { MdTimerParse } from "./timer.parser";
-import { Minus } from "./timer.tokens";
 import type { MdTimerBlock } from "./timer.types";
 
 const parser = new MdTimerParse() as any;
@@ -14,114 +14,100 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   /// High level entry point, contains any number of simple of compound timers.
-  timerMarkdown(ctx: any): MdTimerBlock[] {
-    const result = ctx.blocks.flatMap(
+  wodMarkdown(ctx: any): MdTimerBlock[] {
+    const result = ctx.markdown.flatMap(
       (block: any) => block && this.visit(block),
     ) as MdTimerBlock[];
     return result;
   }
 
-  timerBlock(ctx: any) {
-    const blocks = [];
-    if (ctx.compoundTimer || ctx.simpleTimer) {
-      const outcome = this.visit(ctx.compoundTimer || ctx.simpleTimer).flat(
-        Infinity,
-      );
-      const labels = ctx.timerMultiplier
-        ? this.visit(ctx.timerMultiplier)
-        : [{ round: 1, label: "" }];
-      for (const label of labels) {
-        for (const index of outcome) {
-          if (index != null) {
-            blocks.push({
-              ...index,
-              label: index.label
-                ? label.label + " - " + index.label
-                : label.label,
-            });
-          }
-        }
-      }
+  wodBlock(ctx: any) {  
+    const statement = {} as any;
+    if (ctx.duration) {
+      statement.duration = this.visit(ctx.duration);
     }
 
-    return blocks;
-  }
-
-  compoundTimer(ctx: any) {
-    return ctx.blocks.map((block: any) => this.visit(block));
-  }
-
-  simpleTimer(ctx: any): MdTimerBlock[] {
-    const type =
-      ctx.CountDirection && ctx.CountDirection[0].tokenType == Minus
-        ? "down"
-        : "up";
-    const sources = [];
-    if (ctx.CountDirection) {
-      sources.push(ctx.CountDirection[0]);
+    if (ctx.resistance) {
+      statement.resistance = this.visit(ctx.resistance);
     }
-    for (const segment of ctx.timerValue[0].children.segments) {
-      sources.push(segment.children.Integer[0]);
+
+    if (ctx.repeater) {
+      statement.repeater = this.visit(ctx.repeater);
     }
-    return [
-      {
-        icon : type,
-        timer: (this.visit(ctx.timerValue) as number),
-        sources,
-      },
-    ];
+
+    if (ctx.effort) { 
+      statement.effort = this.visit(ctx.effort);
+    }
+    
+    return statement;
   }
 
-  timerValue(cxt: any): any {
-    const segments =
-      cxt.segments != null
-        ? cxt.segments.map((block: any) => this.visit(block)).reverse()
-        : [];
+  duration(ctx: any) {
+    const increment =  ctx.CountDirection && ctx.CountDirection[0]?.image || "+";
+    const multiplier = increment == "-" ? -1 : 1;
 
-    while (segments.length < 4) {
-      segments.push(0);
+    const digits = ctx.Timer[0].image.split(":")
+      .map((segment : any) => 1 * (segment == "" ? 0 : segment))
+      .reverse();
+    
+    while (digits.length < 4) {
+      digits.push(0);
     }
 
     const time = {
-      days: segments[3],
-      hours: segments[2],
-      minutes: segments[1],
-      seconds: segments[0],
+      days: digits[3],
+      hours: digits[2],
+      minutes: digits[1],
+      seconds: digits[0],
     };
 
-    return time.seconds * 1 +
+    return multiplier * (time.seconds +
       time.minutes * 60 +
       time.hours * 60 * 60 +
-      time.days * 60 * 60 * 24;
+      time.days * 60 * 60 * 24);
   }
 
-  timerMultiplier(ctx: any) {
-    return (
-      ctx.multiplierValue?.flatMap((value: any) => this.visit(value)) || []
-    );
-  }
-  multiplierValue(ctx: any) {
-    const outcome = [];
-    if (ctx.numericValue) {
-      const count = this.visit(ctx.numericValue);
-      for (let index = 0; index < count; index++) {
-        outcome.push({ label: "Round " + (index + 1), index: index });
-      }
+  resistance(ctx: any) {
+    let load = ctx.Load[0].image.replace("@", "");    
+    let units = "default";
+    if (load.includes("kg")) {
+      load = load.replace("kg", "");
+      units = "kg";
     }
 
-    if (ctx.stringValue) {
-      const label = this.visit(ctx.stringValue);
-      outcome.push({ label: label });
+    if (load.includes("lb")) {
+      load = load.replace("lb", "");
+      units = "lb";
     }
-    return outcome;
+
+    return {
+      "units": units,
+      "value": load
+    }
   }
 
-  numericValue(ctx: any): number {
-    const value = ctx.Integer[0].image;
-    return Number(value);
+  labels(ctx: any) {
+    return ctx.label.Map((identifier: any) => identifier.image)
   }
 
-  stringValue(ctx: any): string {
-    return ctx.Identifier[0].image;
+ 
+  effort(ctx: any) {
+      return ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
   }
+
+  repeater(ctx: any) {
+    if (ctx.Integer != null) {
+          return { count: ctx.Integer[0].image * 1, labels: [] };
+    }
+
+    if (ctx.labels == null) {
+      return { count: 1, labels: [] };      
+    }
+
+    var labels = this.visit(ctx.labels[0]);    
+    return  {
+      count: labels.length,
+      labels: labels
+    }    
+  }  
 }

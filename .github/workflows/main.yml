@@ -15,8 +15,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  calc-variables:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+  calc-variables:    
     uses: ./.github/workflows/_calc-variables.yml
 
   # This workflow contains a single job called "build"
@@ -25,8 +24,7 @@ jobs:
     uses: ./.github/workflows/_code_quality.yml
     secrets: inherit
 
-  build:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+  build:    
     needs: [calc-variables]
     uses: ./.github/workflows/_build-qwik.yml
     secrets: inherit

@@ -93,11 +93,10 @@ export class MdTimerFromSeconds implements MdTimerValue {
 }
 
 export type MdTimerBlock = {
-  timer: number;
-  icon: string;  
-  round?: number;
-  label?: string;
-  sources: IToken[];
+  duration?: number;  
+  effort?: string;
+  resistance?: any;  
+  repeater?: any;
 };
 
 export type TimerInstance = {

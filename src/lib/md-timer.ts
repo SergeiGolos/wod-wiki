@@ -6,6 +6,7 @@ import type { MdTimerBlock } from "./timer.types";
 import { MdTimerInterpreter } from "./timer.visitor";
 
 export type MdTimeRuntimeResult = {
+  
   source: string;
   tokens: IToken[];
   parser: any;
@@ -26,7 +27,7 @@ export class MdTimerRuntime {
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
-    const cst = parser.timerMarkdown();
+    const cst = parser.wodMarkdown();
     const raw = cst != null ? this.visitor.visit(cst) : ([] as MdTimerBlock[]);
     // console.log("Raw: ", raw);
     return {

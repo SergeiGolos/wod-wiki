@@ -30,6 +30,7 @@ jobs:
         run: npm run build-storybook
 
       - uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
           path: storybook-static
