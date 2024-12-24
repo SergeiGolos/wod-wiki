@@ -6,18 +6,18 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 });
 export const Return = createToken({ name: "Return", pattern: /\r?\n/ })
+
+export const Timer = createToken({ name: "Timer", pattern: /(?::\d+|(?:\d+:){1,3}\d+)/ });
+
+export const Load = createToken({ name: "Load", pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/ });
+
+export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
 export const Identifier = createToken({
   name: "Identifier",
   pattern: /[a-zA-Z]\w*/,
 });
 
-export const Pounds = createToken({ name: "Pounds", pattern: /lb/i });
-export const Kelos = createToken({ name: "Pounds", pattern: /kg/i });
-export const AtResistance = createToken({ name: "AtResistance", pattern: /@/ });
-
-export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
 export const Comma = createToken({ name: "Comma", pattern: /,/ });
-export const Colon = createToken({ name: "Colon", pattern: /:/ });
 
 export const CountDirection = createToken({
   name: "CountDirection",
@@ -34,11 +34,8 @@ export const Plus = createToken({
   categories: CountDirection,
 });
 
-export const GroupOpen = createToken({ name: "LabelOpen", pattern: /\[/ });
-export const GroupClose = createToken({ name: "LabelClose", pattern: /\]/ });
-
-export const LabelOpen = createToken({ name: "LabelOpen", pattern: /\(/ });
-export const LabelClose = createToken({ name: "LabelClose", pattern: /\)/ });
+export const GroupOpen = createToken({ name: "LabelOpen", pattern: /\(/ });
+export const GroupClose = createToken({ name: "LabelClose", pattern: /\)/ });
 
 export const allTokens = [
   Return,
@@ -47,14 +44,15 @@ export const allTokens = [
   GroupOpen,
   GroupClose,
 
-  LabelOpen,
-  LabelClose,
-  Colon,
+  Timer,
+
   CountDirection,
   Minus,
   Plus,
   Comma,
 
+  Timer,
+  Load,
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
   Identifier,
   Integer,

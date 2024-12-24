@@ -42,7 +42,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return statement;
   }
 
-  timer(ctx: any) {
+  duration(ctx: any) {
     return ctx.timerLong != null 
       ? this.visit(ctx.timerLong) 
       : this.visit(ctx.timerShort);        
