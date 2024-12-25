@@ -5,7 +5,18 @@ export const WhiteSpace = createToken({
   pattern: /\s+/,
   group: Lexer.SKIPPED,
 });
-export const Return = createToken({ name: "Return", pattern: /\r?\n/ })
+
+export const Heading = createToken({
+  name: "Heading",
+  pattern: /#{1,3}/,  
+});
+
+export const Paragraph = createToken({
+  name: "Paragraph",
+  pattern: />/,  
+});
+
+export const Return = createToken({ name: "Return", pattern: /\s*\r?\n/ })
 
 export const Timer = createToken({ name: "Timer", pattern: /(?::\d+|(?:\d+:){1,3}\d+)/ });
 
@@ -38,6 +49,8 @@ export const GroupOpen = createToken({ name: "LabelOpen", pattern: /\(/ });
 export const GroupClose = createToken({ name: "LabelClose", pattern: /\)/ });
 
 export const allTokens = [
+  Heading,
+  Paragraph,
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier

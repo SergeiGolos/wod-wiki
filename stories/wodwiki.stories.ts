@@ -11,9 +11,7 @@ const meta = {
     const container = document.createElement("div");
     container.style.display = 'flex';
     container.style.gap = '1rem';
-    container.style.padding = '1rem';
-    container.style.height = '400px';
-    
+    container.style.padding = '1rem';        
 
     const jsonContainer = document.createElement("div");
     jsonContainer.style.flex = '1';
@@ -71,21 +69,27 @@ type Story = StoryObj<WodWikiProps>;
 
 export const Countdown: Story = {
   args: {
-    code: `-:10 ready
--20:00 Work`,
+    code: `# Countdown
+  -:10 ready
+  -20:00 Work`,
   },
-};
+};  
 
 export const Emom: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# EMOM 
+-:10 get ready
 (30) -1:00 Work`,
   },
 };
 
 export const Simple: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# Simple & Sinister
+> Never contest for space with a kettlebell.
+
+-:10 Get Ready
+
 -5:00 KB Swings @70lb
 -1:00 Rest
 -10:00 Turkish Getups 70lb`
@@ -94,7 +98,8 @@ export const Simple: Story = {
 
 export const IronBlackJack: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# Iron Black Jack 
+-:10 get ready
 (30) -1:00
   - 10 Macebell Touchdowns @30lb
   - 6 KB swings @106lb

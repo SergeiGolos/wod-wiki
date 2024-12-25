@@ -10,6 +10,8 @@ import {
   Timer,
   Load,
   Integer,
+  Heading,
+  Paragraph,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -21,14 +23,16 @@ export class MdTimerParse extends CstParser {
       $.AT_LEAST_ONE_SEP({
         SEP: Return, // Separator for entries
         DEF: () => {
-          $.SUBRULE($.wodBlock, { LABEL: "markdown" });
-        },
+            $.SUBRULE($.wodBlock, { LABEL: "markdown" });
+        }
       });
     });
-
+    
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
+          { ALT: () => $.SUBRULE($.heading) },
+          { ALT: () => $.SUBRULE($.paragraph) },
           { ALT: () => $.SUBRULE($.repeater) },
           { ALT: () => $.SUBRULE($.duration) },          
           { ALT: () => $.SUBRULE($.effort) },
@@ -37,6 +41,21 @@ export class MdTimerParse extends CstParser {
       });
     });
   
+    $.RULE("heading", () => {
+      $.CONSUME(Heading);
+      $.AT_LEAST_ONE(() => {
+        $.CONSUME(Identifier);
+      });
+    })
+
+    $.RULE("paragraph", () => {
+      $.CONSUME(Paragraph);
+      $.AT_LEAST_ONE(() => {
+        $.CONSUME(Identifier);
+      });
+    })
+
+
     $.RULE("duration", () => {
       $.OPTION(() => {
         $.CONSUME(CountDirection);
