@@ -9,12 +9,57 @@ const meta = {
   render: (args) => {
     var parserInstance = new MdTimerParse()
     var serialziedGrammar = parserInstance.getSerializedGastProductions()    
-    var htmlText = createSyntaxDiagramsCode(serialziedGrammar)    
-    const container = document.createElement("iframe") as HTMLIFrameElement;    
-    container.src = 'data:text/html;charset=utf-8,' + encodeURI(htmlText);
+    console.log('Serialized Grammar:', serialziedGrammar)
+    var diagramsCode = createSyntaxDiagramsCode(serialziedGrammar)    
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { margin: 0; padding: 20px; }
+            .railroad-diagram {
+              margin: 10px;
+              background: white;
+            }
+            .railroad-diagram path {
+              stroke-width: 2;
+              stroke: black;
+              fill: rgba(0,0,0,0);
+            }
+            .railroad-diagram text {
+              font: bold 14px monospace;
+              text-anchor: middle;
+            }
+            .railroad-diagram rect {
+              stroke-width: 2;
+              stroke: black;
+              fill: white;
+            }
+          </style>
+        </head>
+        <body>
+          ${diagramsCode}
+        </body>
+      </html>
+    `;
+    
+    const container = document.createElement("iframe");
     container.style.width = '100%';
     container.style.height = '1000px';
-    container.frameBorder = '0';
+    container.style.border = 'none';
+    
+    // Important: Wait for the iframe to load before setting content
+    container.onload = () => {
+      const doc = container.contentDocument || container.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+      }
+    };
+    
     return container;   
   },
 } satisfies Meta;
