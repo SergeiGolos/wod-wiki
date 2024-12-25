@@ -79,12 +79,13 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         length: 0
       }
     }
-    const columnEnd = meta[meta.length - 1].columnEnd;
-    const columnStart = meta[0].columnStart;
+    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
+    const columnEnd = sorted[sorted.length - 1].columnEnd;
+    const columnStart = sorted[0].columnStart;
     return {
-      line: meta[0].line,
-      startOffset: meta[0].startOffset,  
-      endOffset: meta[meta.length - 1].endOffset,
+      line: sorted[0].line,
+      startOffset: sorted[0].startOffset,  
+      endOffset: sorted[sorted.length - 1].endOffset,
       columnStart: columnStart,
       columnEnd: columnEnd,
       length: columnEnd - columnStart
@@ -171,7 +172,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   repeater(ctx: any) {
-    var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
+    var meta = this.getMeta([ctx.LabelOpen[0], ctx.LabelClose[0]]);
     if (ctx.Integer != null) {
           return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];
     }

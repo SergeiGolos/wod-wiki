@@ -69,14 +69,16 @@ type Story = StoryObj<WodWikiProps>;
 
 export const Countdown: Story = {
   args: {
-    code: `-:10 ready
--20:00 Work`,
+    code: `# Countdown
+  -:10 ready
+  -20:00 Work`,
   },
 };  
 
 export const Emom: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# EMOM 
+-:10 get ready
 (30) -1:00 Work`,
   },
 };
@@ -96,7 +98,8 @@ export const Simple: Story = {
 
 export const IronBlackJack: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# Iron Black Jack 
+-:10 get ready
 (30) -1:00
   - 10 Macebell Touchdowns @30lb
   - 6 KB swings @106lb
