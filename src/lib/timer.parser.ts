@@ -12,6 +12,7 @@ import {
   Integer,
   Heading,
   Paragraph,
+  AnySymbol,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -44,14 +45,22 @@ export class MdTimerParse extends CstParser {
     $.RULE("heading", () => {
       $.CONSUME(Heading);
       $.AT_LEAST_ONE(() => {
-        $.CONSUME(Identifier);
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(AnySymbol, { LABEL: "text" }) },          
+        ]);
       });
     })
 
     $.RULE("paragraph", () => {
       $.CONSUME(Paragraph);
       $.AT_LEAST_ONE(() => {
-        $.CONSUME(Identifier);
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(AnySymbol, { LABEL: "text" }) }
+        ]);
       });
     })
 

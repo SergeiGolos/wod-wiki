@@ -62,8 +62,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   heading(ctx: any) {    
     const outcome = { 
       level: ctx.Heading[0].image,
-      text: ctx.Identifier.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Heading[0], ...ctx.Identifier]),
+      text: ctx.text.map((identifier: any) => identifier.image).join(" "),
+      meta: this.getMeta([ctx.Heading[0], ...ctx.text]),
     };
      
     return outcome;
@@ -107,8 +107,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   
   paragraph(ctx: any) {      
     return { 
-      text: ctx.Identifier.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Paragraph[0], ...ctx.Identifier]),
+      text: ctx.text.map((identifier: any) => identifier.image).join(" "),
+      meta: this.getMeta([ctx.Paragraph[0], ...ctx.text]),
     };
   }
 
@@ -172,7 +172,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   repeater(ctx: any) {
-    var meta = this.getMeta([ctx.LabelOpen[0], ctx.LabelClose[0]]);
+    var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     if (ctx.Integer != null) {
           return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];
     }
