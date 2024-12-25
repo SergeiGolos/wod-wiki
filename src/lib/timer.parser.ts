@@ -12,7 +12,8 @@ import {
   Integer,
   Heading,
   Paragraph,
-  AnySymbol,
+  AllowedSymbol,
+  QuestionSymbol,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -48,7 +49,8 @@ export class MdTimerParse extends CstParser {
         $.OR([
           { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
           { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AnySymbol, { LABEL: "text" }) },          
+          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },  
+          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },                    
         ]);
       });
     })
@@ -59,7 +61,8 @@ export class MdTimerParse extends CstParser {
         $.OR([
           { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
           { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AnySymbol, { LABEL: "text" }) }
+        { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },        
         ]);
       });
     })

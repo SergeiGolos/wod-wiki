@@ -22,10 +22,12 @@ export const Timer = createToken({ name: "Timer", pattern: /(?::\d+|(?:\d+:){1,3
 
 export const Load = createToken({ name: "Load", pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/ });
 
-export const AnySymbol = createToken({
-  name: "AnySymbol",
-  pattern: /[\\\/:,@!$%^*=&]+/, // pick up anything that isn't whitespace, a digit, or a "special" character
+export const AllowedSymbol = createToken({
+  name: "AllowedSymbol",
+  pattern: /[\\\/.,@!$%^*=&]+/, // pick up anything that isn't whitespace, a digit, or a "special" character
 });
+
+export const QuestionSymbol = createToken({ name: "QuestionSymbol", pattern: /\?/ });
 
 export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
 
@@ -71,8 +73,8 @@ export const allTokens = [
   Plus,
       
   Load,  
-  
-  AnySymbol,
+  QuestionSymbol,
+  AllowedSymbol,
   Identifier,
   Integer,  
 ];
