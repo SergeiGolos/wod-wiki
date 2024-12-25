@@ -11,9 +11,7 @@ const meta = {
     const container = document.createElement("div");
     container.style.display = 'flex';
     container.style.gap = '1rem';
-    container.style.padding = '1rem';
-    container.style.height = '400px';
-    
+    container.style.padding = '1rem';        
 
     const jsonContainer = document.createElement("div");
     jsonContainer.style.flex = '1';
@@ -74,7 +72,7 @@ export const Countdown: Story = {
     code: `-:10 ready
 -20:00 Work`,
   },
-};
+};  
 
 export const Emom: Story = {
   args: {
@@ -85,7 +83,11 @@ export const Emom: Story = {
 
 export const Simple: Story = {
   args: {
-    code:`-:10 get ready
+    code:`# Simple & Sinister
+> Never contest for space with a kettlebell.
+
+-:10 Get Ready
+
 -5:00 KB Swings @70lb
 -1:00 Rest
 -10:00 Turkish Getups 70lb`
