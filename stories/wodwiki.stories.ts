@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from "@storybook/html";
 import { action } from "@storybook/addon-actions";
 import type { WodWikiProps } from "../src/wodwiki";
 import { createWodWiki } from "../src/wodwiki";
+import { WodSteps } from '../src/wodsteps'; // Import WodSteps component
 import '../src/monaco-setup';
+import * as monaco from 'monaco-editor';
 
 const meta = {
   title: "Example/WodWiki",
@@ -24,12 +26,39 @@ const meta = {
     container.appendChild(jsonContainer);
 
 
-    args.onValueChange = (value) => {
+    args.onValueChange = (value, editor) => {
       jsonContainer.innerHTML = '';
-      const pre = document.createElement('pre');
-      pre.textContent = JSON.stringify(value.outcome, null, 2);
-      jsonContainer.appendChild(pre);
-      //console.log('onValueChange', value);
+      
+      // Create WodSteps component for the outcome
+      if (value.outcome) {
+        const wodSteps = WodSteps({ blocks: value.outcome });
+        jsonContainer.appendChild(wodSteps);
+      }
+      
+      if (value.parser && value.parser._errors) {
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(value.parser._errors, null, 2);
+        jsonContainer.appendChild(pre);
+
+        const markers = value.parser._errors.map((er: any) => ({
+          severity: monaco.MarkerSeverity.Error,
+          message: er.message || 'Syntax error',
+          startLineNumber: er.token.startLine,
+          startColumn: er.token.startColumn,
+          endLineNumber: er.token.endLine,
+          endColumn: er.token.endColumn
+        }));
+
+        // Set markers on the model
+        monaco.editor.setModelMarkers(
+          editor.getModel(),
+          'syntax',
+          markers
+        );      
+      } else {
+        // Clear markers when there are no errors
+        monaco.editor.setModelMarkers(editor.getModel(), 'syntax', []);
+      }          
     };
     
     // Create the editor
@@ -42,12 +71,21 @@ const meta = {
     
     // Update JSON view when editor changes
     const originalOnValueChange = args.onValueChange;
-    args.onValueChange = (value) => {
+    args.onValueChange = (value, editor) => {
       jsonContainer.innerHTML = '';
+      
+      // Create WodSteps component for the outcome
+      if (value.outcome) {
+        const wodSteps = WodSteps({ blocks: value.outcome });
+        jsonContainer.appendChild(wodSteps);
+      }
+      
+      // Add parser debug info in pre element
       const pre = document.createElement('pre');
-      pre.textContent = JSON.stringify(value, null, 2);
+      pre.textContent = JSON.stringify(value.parser, null, 2);
       jsonContainer.appendChild(pre);
-      originalOnValueChange?.(value);
+      
+      originalOnValueChange?.(value, editor);
     };
 
     return container;
@@ -101,8 +139,8 @@ export const IronBlackJack: Story = {
     code:`# Iron Black Jack 
 -:10 Get Ready
 (30) -1:00
-  - 10 Macebell Touchdowns @30lb
-  - 6 KB swings @106lb
-  - 3 Deadlifts @235lb`
+  10 Macebell Touchdowns @30lb
+  6 KB swings @106lb
+  3 Deadlifts @235lb`
   },
 };

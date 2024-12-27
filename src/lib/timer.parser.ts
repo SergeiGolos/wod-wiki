@@ -1,7 +1,7 @@
 import type { IToken } from "chevrotain";
 import { CstParser } from "chevrotain";
 import {  
-  CountDirection,
+  Trend,
   GroupClose,
   GroupOpen,
   Identifier,
@@ -36,6 +36,7 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.SUBRULE($.heading) },
           { ALT: () => $.SUBRULE($.paragraph) },
           { ALT: () => $.SUBRULE($.repeater) },
+          { ALT: () => $.SUBRULE($.rounds) },
           { ALT: () => $.SUBRULE($.duration) },          
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
@@ -43,6 +44,10 @@ export class MdTimerParse extends CstParser {
       });
     });
   
+    $.RULE("rounds", () => {
+      $.CONSUME(Integer);
+    });
+
     $.RULE("heading", () => {
       $.CONSUME(Heading);
       $.AT_LEAST_ONE(() => {
@@ -70,7 +75,7 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("duration", () => {
       $.OPTION(() => {
-        $.CONSUME(CountDirection);
+        $.CONSUME(Trend);
       });
       $.CONSUME(Timer);
     });

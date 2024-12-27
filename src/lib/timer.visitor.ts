@@ -13,22 +13,72 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   /// High level entry point, contains any number of simple of compound timers.
-  wodMarkdown(ctx: any): MdTimerBlock[] {
-    const result = ctx.markdown.flatMap(
-      (block: any) => block && this.visit(block),
-    ) as MdTimerBlock[];
-    return result;
+  wodMarkdown(ctx: any) {
+    try {
+      if (!ctx || !Array.isArray(ctx.markdown)) {
+        return [{ SyntaxError: "Invalid context: markdown array is required" }];
+      }
+
+      let result = [] as any[];
+      let blocks = ctx.markdown
+        .filter((block: any) => block !== null && block !== undefined)
+        .flatMap((block: any) => {
+          try {
+            return this.visit(block) || [];
+          } catch (blockError) {
+            return [
+              { SyntaxError: "Error processing markdown block:", blockError },
+            ];
+          }
+        });
+
+      let stack = [{ blocks: result, level: -1 }]; // Root level container
+
+      for (var block of blocks) {
+        const currentLevel = block.meta.columnStart;
+
+        // Find the appropriate parent by walking up the stack
+        while (
+          stack.length > 1 &&
+          stack[stack.length - 1].level >= currentLevel
+        ) {
+          stack.pop();
+        }
+
+        // Get current parent from top of stack
+        const parent = stack[stack.length - 1];
+
+        // Add block to parent's blocks array
+        parent.blocks.push(block);
+
+        // If this block can have children, push it onto the stack
+        if (!block.blocks) {
+          block.blocks = [];
+        }
+        stack.push({ blocks: block.blocks, level: currentLevel });
+      }
+
+      return result;
+    } catch (error) {
+      return [
+        {
+          SyntaxError: `Error in wodMarkdown: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        },
+      ];
+    }
   }
 
-  wodBlock(ctx: any) {      
-    if (ctx.heading)  {
+  wodBlock(ctx: any) {
+    if (ctx.heading) {
       return this.visit(ctx.heading);
     }
 
     if (ctx.paragraph) {
       return this.visit(ctx.paragraph);
     }
-    let meta = [];    
+    let meta = [];
     let statement = {} as any;
     if (ctx.duration) {
       const [durationValue, durationMeta] = this.visit(ctx.duration);
@@ -48,24 +98,33 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       meta.push(repeaterMeta);
     }
 
-    if (ctx.effort) { 
+    if (ctx.rounds) {
+      const [rounds, roundsMeta] = this.visit(ctx.rounds);
+      statement.rounds = rounds;
+      meta.push(roundsMeta);
+    }
+
+    if (ctx.effort) {
       const [effort, effortMeta] = this.visit(ctx.effort);
       statement.effort = effort;
       meta.push(effortMeta);
     }
-    
+
     statement.meta = this.combineMeta(meta.filter((meta: any) => meta != null));
     return statement;
-    
   }
 
-  heading(ctx: any) {    
-    const outcome = { 
+  rounds(ctx: any) {
+    return [ctx.Integer[0].image * 1, this.getMeta([ctx.Integer[0]])];
+  }
+
+  heading(ctx: any) {
+    const outcome = {
       level: ctx.Heading[0].image,
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
       meta: this.getMeta([ctx.Heading[0], ...ctx.text]),
     };
-     
+
     return outcome;
   }
   combineMeta(meta: any[]) {
@@ -76,60 +135,60 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         endOffset: 0,
         columnStart: 0,
         columnEnd: 0,
-        length: 0
-      }
+        length: 0,
+      };
     }
     const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
     const columnEnd = sorted[sorted.length - 1].columnEnd;
     const columnStart = sorted[0].columnStart;
     return {
       line: sorted[0].line,
-      startOffset: sorted[0].startOffset,  
+      startOffset: sorted[0].startOffset,
       endOffset: sorted[sorted.length - 1].endOffset,
       columnStart: columnStart,
       columnEnd: columnEnd,
-      length: columnEnd - columnStart
-    }
-  };
+      length: columnEnd - columnStart,
+    };
+  }
 
-  getMeta(tokens:any[]) {        
-    const endToken = tokens[tokens.length-1];    
+  getMeta(tokens: any[]) {
+    const endToken = tokens[tokens.length - 1];
     return {
-        line: tokens[0].startLine,
-        startOffset: tokens[0].startOffset,  
-        endOffset: endToken.endOffset,
-        columnStart: tokens[0].startColumn,  
-        columnEnd: endToken.endColumn,
-        length: endToken.endColumn - tokens[0].startColumn
-      }
-    };        
+      line: tokens[0].startLine,
+      startOffset: tokens[0].startOffset,
+      endOffset: endToken.endOffset,
+      columnStart: tokens[0].startColumn,
+      columnEnd: endToken.endColumn,
+      length: endToken.endColumn - tokens[0].startColumn,
+    };
+  }
 
-  
-  paragraph(ctx: any) {      
-    return { 
+  paragraph(ctx: any) {
+    return {
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
       meta: this.getMeta([ctx.Paragraph[0], ...ctx.text]),
     };
   }
 
-  duration(ctx: any) {                
+  duration(ctx: any) {
     const tokens = [];
     let multiplier = 1;
-    if (ctx.CountDirection) {
-      tokens.push(ctx.CountDirection[0]);
-      multiplier = ctx.CountDirection[0]?.image == "-" ? -1 : 1;    
-    }          
+    if (ctx.Trend) {
+      tokens.push(ctx.Trend[0]);
+      multiplier = ctx.Trend[0]?.image == "-" ? -1 : 1;
+    }
 
-    const digits = ctx.Timer[0].image.split(":")
-      .map((segment : any) => 1 * (segment == "" ? 0 : segment))
+    const digits = ctx.Timer[0].image
+      .split(":")
+      .map((segment: any) => 1 * (segment == "" ? 0 : segment))
       .reverse();
-    
+
     tokens.push(ctx.Timer[0]);
 
     while (digits.length < 4) {
       digits.push(0);
     }
-    
+
     const time = {
       days: digits[3],
       hours: digits[2],
@@ -137,14 +196,18 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       seconds: digits[0],
     };
 
-    return [multiplier * (time.seconds +
-      time.minutes * 60 +
-      time.hours * 60 * 60 +
-      time.days * 60 * 60 * 24), this.getMeta(tokens)];
+    return [
+      multiplier *
+        (time.seconds +
+          time.minutes * 60 +
+          time.hours * 60 * 60 +
+          time.days * 60 * 60 * 24),
+      this.getMeta(tokens),
+    ];
   }
 
   resistance(ctx: any) {
-    let load = ctx.Load[0].image.replace("@", "");    
+    let load = ctx.Load[0].image.replace("@", "");
     let units = "default";
     if (load.includes("kg")) {
       load = load.replace("kg", "");
@@ -156,35 +219,43 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       units = "lb";
     }
 
-    return [{
-      "units": units,
-      "value": load
-    }, this.getMeta([ctx.Load[0]])];
+    return [
+      {
+        units: units,
+        value: load,
+      },
+      this.getMeta([ctx.Load[0]]),
+    ];
   }
 
   labels(ctx: any) {
     return [ctx.label.Map((identifier: any) => identifier.image), ctx.label];
   }
 
- 
   effort(ctx: any) {
-      return [ctx.Identifier.map((identifier: any) => identifier.image).join(" "), this.getMeta(ctx.Identifier)];
+    return [
+      ctx.Identifier.map((identifier: any) => identifier.image).join(" "),
+      this.getMeta(ctx.Identifier),
+    ];
   }
 
   repeater(ctx: any) {
     var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     if (ctx.Integer != null) {
-          return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];
+      return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];
     }
 
     if (ctx.labels == null) {
-      return [{ count: 1, labels: [] }, meta];      
+      return [{ count: 1, labels: [] }, meta];
     }
 
-    var [labels, tokens] = this.visit(ctx.labels[0]);    
-    return  [{
-      count: labels.length,
-      labels: labels
-    }, meta];
-  }  
+    var [labels, tokens] = this.visit(ctx.labels[0]);
+    return [
+      {
+        count: labels.length,
+        labels: labels,
+      },
+      meta,
+    ];
+  }
 }
