@@ -79,7 +79,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return this.visit(ctx.paragraph);
     }
     let meta = [];
-    let statement = {} as any;
+    let statement = { type: "block" } as any;
     if (ctx.duration) {
       const [durationValue, durationMeta] = this.visit(ctx.duration);
       statement.duration = durationValue;
@@ -120,6 +120,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   heading(ctx: any) {
     const outcome = {
+      type: "header",
       level: ctx.Heading[0].image,
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
       meta: this.getMeta([ctx.Heading[0], ...ctx.text]),
@@ -165,6 +166,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   paragraph(ctx: any) {
     return {
+      type: "paragraph",
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
       meta: this.getMeta([ctx.Paragraph[0], ...ctx.text]),
     };
