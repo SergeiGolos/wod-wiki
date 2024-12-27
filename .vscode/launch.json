@@ -19,10 +19,10 @@
       "url": "http://localhost:6006",
       "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
-        "webpack:///./*": "${webRoot}/*",
-        "webpack:///src/*": "${webRoot}/src/*",
-        "webpack:///*": "*",
-        "webpack:///./~/*": "${webRoot}/node_modules/*"
+        "/@fs/*": "${webRoot}/*",
+        "/src/*": "${webRoot}/src/*",
+        "/*": "*",
+        "/node_modules/*": "${webRoot}/node_modules/*"
       },
       "preLaunchTask": "storybook"
     }

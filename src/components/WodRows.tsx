@@ -135,8 +135,7 @@ const Block: React.FC<BlockProps> = ({
         {currentRowIndex === current && (
           <tr>
             <td colSpan={2} className="px-6 py-2">
-              <WodTimer 
-                time="00:00" 
+              <WodTimer                 
                 status="idle"
                 onStart={() => {}}
                 onPause={() => {}}

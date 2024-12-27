@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodWiki } from '../src/components/WodWiki';
-import React, { useState } from 'react';
-import { WodRows } from '../src/components/WodRows';
+import { WodRunner } from '../src/components/WodRunner';
+import React from 'react';
 
 // Initialize Monaco editor
 if (typeof window !== 'undefined') {
@@ -16,51 +15,23 @@ if (typeof window !== 'undefined') {
   };
 }
 
-
-const WodWikiWrapper = ({ args }: { args: any }) => {
-  const [outcome, setOutcome] = useState<any[]>([]);
-
-  const handleValueChange = (value: any) => {
-    if (value?.outcome) {
-      // If we get an empty outcome array, show empty state
-      if (value.outcome.length === 0) {
-        setOutcome([]);
-        return;
-      }
-      
-      // Only update if we're getting real parsed data, not just the compiling status
-      if (!(value.outcome.length === 1 && value.outcome[0].type === 'notification')) {
-        setOutcome(value.outcome);
-      }
-    }
-  };
-
-  console.log('Current outcome:', outcome); // Add this for debugging
-
-  return (
-    <div className="flex flex-col gap-4 min-h-[600px] w-[800px] p-4">
-      <WodWiki {...args} onValueChange={handleValueChange} />
-      <WodRows data={outcome} current={args.current} />
-    </div>
-  );
-};
-
-const meta: Meta<typeof WodWiki> = {
+const meta: Meta<typeof WodRunner> = {
   title: 'Components/WodWiki',
-  component: WodWiki,
+  component: WodRunner,
   parameters: {
     layout: 'centered',
-    backgrounds: {
-      default: 'light',
-    }
   },
   decorators: [
-    (Story, context) => <WodWikiWrapper args={context.args} />
-  ],  
+    (Story) => (
+      <div style={{ minHeight: '600px', width: '800px' }}>
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export default meta;
-type Story = StoryObj<typeof WodWiki>;
+type Story = StoryObj<typeof WodRunner>;
 
 export const Empty: Story = {
   args: {
@@ -71,7 +42,6 @@ export const Empty: Story = {
 
 export const Countdown: Story = {
   args: {
-    current: 1,
     code: `# Countdown
   -:10 Get Ready
   -20:00 Work`,
@@ -80,7 +50,6 @@ export const Countdown: Story = {
 
 export const Emom: Story = {
   args: {
-    current: 1,
     code:`# EMOM 
 -:10 Get Ready
 (30) -1:00 Work`,
@@ -89,7 +58,6 @@ export const Emom: Story = {
 
 export const Simple: Story = {
   args: {
-    current: 1,
     code:`# Simple & Sinister
 > Never contest for space with a kettlebell.
 
@@ -103,7 +71,6 @@ export const Simple: Story = {
 
 export const IronBlackJack: Story = {
   args: {
-    current: 1,
     code:`# Iron Black Jack 
 -:10 Get Ready
 (30) -1:00
