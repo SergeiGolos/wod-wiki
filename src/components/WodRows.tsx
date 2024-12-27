@@ -1,5 +1,10 @@
 import React from "react";
 import { WodBlock } from "../lib/timer.types";
+import { WodRowClassifier } from "../lib/WodRowClassifier";
+import { NotificationRow } from "./rows/NotificationRow";
+import { HeaderRow } from "./rows/HeaderRow";
+import { ParagraphRow } from "./rows/ParagraphRow";
+import { ExerciseRow } from "./rows/ExerciseRow";
 import { WodTimer } from './WodTimer';
 
 interface BlockProps {
@@ -8,6 +13,7 @@ interface BlockProps {
   nextBlock?: WodBlock;
   rowIndex: number;
   current?: number;
+  timestamps: any[];
   onRowRendered: () => number;
 }
 
@@ -16,109 +22,41 @@ const Block: React.FC<BlockProps> = ({
   depth = 0, 
   nextBlock, 
   current,
+  timestamps,
   onRowRendered 
 }) => {
   const getNextBlockDepth = (block: WodBlock): number => {
     if (block.blocks && block.blocks.length > 0) {
-      return depth + 1; // Next visible block would be a child
+      return depth + 1;
     }
-    return nextBlock ? depth : depth - 1; // If no children, use next sibling's depth or assume we're returning to parent
+    return nextBlock ? depth : depth - 1;
   };
 
   const nextDepth = getNextBlockDepth(block);
+  const currentRowIndex = onRowRendered();
 
-  // Render the content of a block
+  // Render the appropriate row component based on block type
   const renderContent = () => {
-    const currentRowIndex = onRowRendered();
-
-    if (block.type === 'notification') {
-      return (
-        <tr>
-          <td colSpan={2} className="text-center p-8 bg-gray-50">
-            <p className="text-gray-500">Parsing workout...</p>
-          </td>
-        </tr>
-      );
+    if (WodRowClassifier.isNotification(block)) {
+      return <NotificationRow block={block} />;
     }
 
-    if (block.level === '#' || block.type === 'header') {
-      return (
-        <tr>
-          <td colSpan={2} className="px-6 py-3 border-b border-gray-200">
-            <h1 className="text-2xl font-bold mb-4">
-              {block.text}
-            </h1>
-          </td>
-        </tr>
-      );
+    if (WodRowClassifier.isHeader(block)) {
+      return <HeaderRow block={block} />;
     }
 
-    if (block.type === 'paragraph') {
-      return (
-        <tr>
-          <td colSpan={2} className="px-6 py-2 text-gray-600" style={{ paddingLeft: `${depth * 20 + 24}px` }}>
-            <p className="text-base leading-relaxed">{block.text}</p>
-          </td>
-        </tr>
-      );
+    if (WodRowClassifier.isParagraph(block)) {
+      return <ParagraphRow block={block} depth={depth} />;
     }
 
-    const parts: string[] = [];
-    
-    if (block.duration) {
-      parts.push(`${Math.abs(block.duration)}s`);
-    }
-    
-    if (block.rounds) {
-      parts.push(`${block.rounds.count}x`);
-    }
-    
-    if (block.reps) {
-      parts.push(`${block.reps} reps`);
-    }
-    
-    if (block.resistance) {
-      parts.push(`${block.resistance.value}${block.resistance.units}`);
-    }
-    
-    if (block.effort) {
-      parts.push(block.effort);
-    }
-
-    let start = new Date();
     return (
-      <>
-        <tr>
-          <td 
-            className="px-6 py-2 whitespace-nowrap"
-            style={{ paddingLeft: `${depth * 20 + 24}px` }}
-          >
-            {parts.length > 0 && (
-              <div className="flex gap-2 items-center text-gray-700 font-mono">
-                {parts.map((part, index) => (
-                  <React.Fragment key={index}>
-                    <span>{part}</span>
-                    {index < parts.length - 1 && <span className="text-gray-400">•</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-          </td>
-          <td className="px-6 py-2 text-gray-900">
-            {block.text}
-          </td>
-        </tr>
-        {currentRowIndex === current && (
-          <tr>
-            <td colSpan={2} className="px-6 py-2">
-              <WodTimer                                 
-                onTimerUpdate={() => { } }
-                onTimerEvent={() => { } }
-                timestamps={timestamps} />
-            </td>
-          </tr>
-        )}
-      </>
+      <ExerciseRow 
+        block={block} 
+        depth={depth} 
+        current={current} 
+        currentRowIndex={currentRowIndex}
+        timestamps={timestamps}
+      />
     );
   };
 
@@ -133,14 +71,36 @@ const Block: React.FC<BlockProps> = ({
             depth={depth + 1}
             nextBlock={index < block.blocks.length - 1 ? block.blocks[index + 1] : undefined}
             current={current}
-            onRowRendered={onRowRendered} rowIndex={0}          />
+            timestamps={timestamps}
+            onRowRendered={onRowRendered}
+            rowIndex={0}
+          />
         ))
+      )}
+      {currentRowIndex === current && (
+        <tr>
+          <td colSpan={2} className="px-6 py-2">
+            <WodTimer                                 
+              onTimerUpdate={() => { } }
+              onTimerEvent={() => { } }
+              timestamps={timestamps} 
+              block={block} />
+          </td>
+        </tr>
       )}
     </>
   );
 };
 
-export const WodRuntime: React.FC<{ data?: WodBlock[], current?: number }> = ({ data = [], current }) => {
+export const WodRuntime: React.FC<{ 
+  data?: WodBlock[];
+  current?: number;
+  timestamps?: any[];
+}> = ({ 
+  data = [], 
+  current,
+  timestamps = []
+}) => {
   let rowCounter = 0;
   const getNextRowIndex = () => rowCounter++;
 
@@ -151,7 +111,7 @@ export const WodRuntime: React.FC<{ data?: WodBlock[], current?: number }> = ({ 
           <tbody className="bg-white divide-y divide-gray-200">
             <tr>
               <td colSpan={2} className="text-center p-8">
-                <p className="text-gray-500">Type your workout to see it parsed here...</p>
+                <p className="text-gray-500">No workout data available</p>
               </td>
             </tr>
           </tbody>
@@ -170,7 +130,10 @@ export const WodRuntime: React.FC<{ data?: WodBlock[], current?: number }> = ({ 
               block={block}
               nextBlock={index < data.length - 1 ? data[index + 1] : undefined}
               current={current}
-              onRowRendered={getNextRowIndex} rowIndex={0}            />
+              timestamps={timestamps}
+              onRowRendered={getNextRowIndex}
+              rowIndex={0}
+            />
           ))}
         </tbody>
       </table>
