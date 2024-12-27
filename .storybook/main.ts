@@ -15,15 +15,19 @@ const config: StorybookConfig = {
   docs: {
     autodocs: "tag",
   },
-  viteFinal: async (config) => {
+  core: {
+    builder: "@storybook/builder-vite",
+  },
+  async viteFinal(config) {
     return {
       ...config,
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: undefined,
-          },
-        },
+      define: { 
+        ...config.define,
+        global: "window"
+      },
+      optimizeDeps: {
+        ...config.optimizeDeps,
+        include: ['storybook-dark-mode'],
       },
     };
   },

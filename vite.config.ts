@@ -1,31 +1,33 @@
 import { defineConfig } from 'vite';
-import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import react from '@vitejs/plugin-react';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
+  plugins: [react()],
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/index.ts'),
+      entry: resolve(__dirname, 'src/index.ts'),
       name: 'MyLib',
       fileName: (format) => `mylib.${format}.js`
     },
     rollupOptions: {
-      external: ['monaco-editor'],
+      external: ['react', 'react-dom', 'monaco-editor'],
       output: {
         globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
           'monaco-editor': 'monaco'
         }
       }
     }
   },
-  worker: {
-    format: 'es',    
-  },
-  optimizeDeps: {
-    exclude: ['monaco-editor']
-  },
   resolve: {
     alias: {
-      'monaco-editor': 'monaco-editor/esm/vs/editor/editor.api.js',
-    },
+      '@': resolve(__dirname, './src')
+    }
   }
 });
