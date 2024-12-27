@@ -1,6 +1,6 @@
 import type { IToken } from "chevrotain";
 import { CstParser } from "chevrotain";
-import {  
+import {
   Trend,
   GroupClose,
   GroupOpen,
@@ -25,26 +25,26 @@ export class MdTimerParse extends CstParser {
       $.AT_LEAST_ONE_SEP({
         SEP: Return, // Separator for entries
         DEF: () => {
-            $.SUBRULE($.wodBlock, { LABEL: "markdown" });
-        }
+          $.SUBRULE($.wodBlock, { LABEL: "markdown" });
+        },
       });
     });
-    
+
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
           { ALT: () => $.SUBRULE($.heading) },
           { ALT: () => $.SUBRULE($.paragraph) },
-          { ALT: () => $.SUBRULE($.repeater) },
           { ALT: () => $.SUBRULE($.rounds) },
-          { ALT: () => $.SUBRULE($.duration) },          
+          { ALT: () => $.SUBRULE($.reps) },
+          { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
         ]);
       });
     });
-  
-    $.RULE("rounds", () => {
+
+    $.RULE("reps", () => {
       $.CONSUME(Integer);
     });
 
@@ -54,11 +54,11 @@ export class MdTimerParse extends CstParser {
         $.OR([
           { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
           { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },  
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },                    
+          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
         ]);
       });
-    })
+    });
 
     $.RULE("paragraph", () => {
       $.CONSUME(Paragraph);
@@ -66,12 +66,11 @@ export class MdTimerParse extends CstParser {
         $.OR([
           { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
           { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-        { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },        
+          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
+          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
         ]);
       });
-    })
-
+    });
 
     $.RULE("duration", () => {
       $.OPTION(() => {
@@ -80,17 +79,17 @@ export class MdTimerParse extends CstParser {
       $.CONSUME(Timer);
     });
 
-    $.RULE("repeater", () => {
+    $.RULE("rounds", () => {
       $.CONSUME(GroupOpen);
       $.OR([
-        { 
+        {
           GATE: () => this.LA(1).tokenType === Identifier,
-          ALT: () => $.SUBRULE($.labels) 
+          ALT: () => $.SUBRULE($.labels),
         },
-        { 
+        {
           GATE: () => this.LA(1).tokenType === Integer,
-          ALT: () => $.CONSUME(Integer)
-        },        
+          ALT: () => $.CONSUME(Integer),
+        },
       ]);
       $.CONSUME(GroupClose);
     });

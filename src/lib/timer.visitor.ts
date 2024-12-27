@@ -92,15 +92,15 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       meta.push(resistanceMeta);
     }
 
-    if (ctx.repeater) {
-      const [repeater, repeaterMeta] = this.visit(ctx.repeater);
-      statement.repeater = repeater;
+    if (ctx.rounds) {
+      const [rounds, repeaterMeta] = this.visit(ctx.rounds);
+      statement.rounds = rounds;
       meta.push(repeaterMeta);
     }
 
-    if (ctx.rounds) {
-      const [rounds, roundsMeta] = this.visit(ctx.rounds);
-      statement.rounds = rounds;
+    if (ctx.reps) {
+      const [reps, roundsMeta] = this.visit(ctx.reps);
+      statement.reps = reps;
       meta.push(roundsMeta);
     }
 
@@ -114,7 +114,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return statement;
   }
 
-  rounds(ctx: any) {
+  reps(ctx: any) {
     return [ctx.Integer[0].image * 1, this.getMeta([ctx.Integer[0]])];
   }
 
@@ -241,7 +241,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     ];
   }
 
-  repeater(ctx: any) {
+  rounds(ctx: any) {
     var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     if (ctx.Integer != null) {
       return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];

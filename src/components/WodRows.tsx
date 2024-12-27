@@ -1,136 +1,174 @@
 import React from 'react';
 
-// Row type components
-const HeaderRow: React.FC<{ 
-  title: string;
-  level: number;
-}> = ({ title, level }) => {
-  const styles = {
-    1: "text-2xl font-bold text-gray-900 mb-4",
-    2: "text-xl font-semibold text-gray-800 mb-3",
-    3: "text-lg font-medium text-gray-700 mb-2"
-  }[level];
-
-  return (
-    <div className={`px-6 py-3 ${level === 1 ? 'border-b border-gray-200' : ''}`}>
-      <h1 className={styles}>{title}</h1>
-    </div>
-  );
-};
-
-const ParagraphRow: React.FC<{ 
-  text: string;
-  depth?: number;
-}> = ({ text, depth = 0 }) => (
-  <div 
-    className="px-6 py-2 text-gray-600"
-    style={{ marginLeft: `${depth * 1.5}rem` }}
-  >
-    <p className="text-base leading-relaxed">{text}</p>
-  </div>
-);
-
-const BlockRow: React.FC<{
-  duration?: string;
-  reps?: number;
+interface WodBlock {
+  level?: string;
+  text?: string;
+  duration?: number;
   effort?: string;
+  rounds?: {
+    count: number;
+    labels: string[];
+  };
+  resistance?: {
+    units: string;
+    value: string;
+  };
+  reps?: number;
+  meta: {
+    line: number;
+    startOffset: number;
+    endOffset: number;
+    columnStart: number;
+    columnEnd: number;
+    length: number;
+  };
+  blocks: WodBlock[];
+  type?: string;
+}
+
+interface BlockProps {
+  block: WodBlock;
   depth?: number;
-}> = ({ duration, reps, effort, depth = 0 }) => {
+  nextBlock?: WodBlock;
+}
+
+const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
+  const getNextBlockDepth = (block: WodBlock): number => {
+    if (block.blocks && block.blocks.length > 0) {
+      return depth + 1; // Next visible block would be a child
+    }
+    return nextBlock ? depth : depth - 1; // If no children, use next sibling's depth or assume we're returning to parent
+  };
+
+  const nextDepth = getNextBlockDepth(block);
+
+  // Render the content of a block
+  const renderContent = () => {
+    if (block.type === 'notification') {
+      return (
+        <tr>
+          <td colSpan={2} className="text-center p-8 bg-gray-50">
+            <p className="text-gray-500">Parsing workout...</p>
+          </td>
+        </tr>
+      );
+    }
+
+    if (block.level === '#' || block.type === 'header') {
+      return (
+        <tr>
+          <td colSpan={2} className="px-6 py-3 border-b border-gray-200">
+            <h1 className="text-2xl font-bold mb-4">
+              {block.text}
+            </h1>
+          </td>
+        </tr>
+      );
+    }
+
+    if (block.type === 'paragraph') {
+      return (
+        <tr>
+          <td colSpan={2} className="px-6 py-2 text-gray-600" style={{ paddingLeft: `${depth * 20 + 24}px` }}>
+            <p className="text-base leading-relaxed">{block.text}</p>
+          </td>
+        </tr>
+      );
+    }
+
+    const parts: string[] = [];
+    
+    if (block.duration) {
+      parts.push(`${Math.abs(block.duration)}s`);
+    }
+    
+    if (block.rounds) {
+      parts.push(`${block.rounds.count}x`);
+    }
+    
+    if (block.reps) {
+      parts.push(`${block.reps} reps`);
+    }
+    
+    if (block.resistance) {
+      parts.push(`${block.resistance.value}${block.resistance.units}`);
+    }
+    
+    if (block.effort) {
+      parts.push(block.effort);
+    }
+
+    return (
+      <tr>
+        <td 
+          className="px-6 py-2 whitespace-nowrap"
+          style={{ paddingLeft: `${depth * 20 + 24}px` }}
+        >
+          {parts.length > 0 && (
+            <div className="flex gap-2 items-center text-gray-700 font-mono">
+              {parts.map((part, index) => (
+                <React.Fragment key={index}>
+                  <span>{part}</span>
+                  {index < parts.length - 1 && <span className="text-gray-400">•</span>}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </td>
+        <td className="px-6 py-2 text-gray-900">
+          {block.text}
+        </td>
+      </tr>
+    );
+  };
+
   return (
-    <div 
-      className="px-6 py-3 bg-gray-50 rounded-lg border border-gray-200"
-      style={{ marginLeft: `${depth * 1.5}rem` }}
-    >
-      <div className="flex items-center gap-2">
-        {duration && (
-          <span className="font-mono text-gray-500 min-w-[4rem]">
-            {duration}
-          </span>
-        )}
-        {reps && (
-          <span className="font-medium text-gray-700">
-            {reps}×
-          </span>
-        )}
-        {effort && (
-          <span className="text-gray-600">
-            {effort}
-          </span>
-        )}
-      </div>
-    </div>
+    <>
+      {renderContent()}
+      {block.blocks && block.blocks.length > 0 && (
+        block.blocks.map((child, index) => (
+          <Block
+            key={index}
+            block={child}
+            depth={depth + 1}
+            nextBlock={index < block.blocks.length - 1 ? block.blocks[index + 1] : undefined}
+          />
+        ))
+      )}
+    </>
   );
 };
 
-const NotificationRow: React.FC<{
-  status: string;
-}> = ({ status }) => {
-  if (status === 'compiling') {
+export const WodRows: React.FC<{ data?: WodBlock[] }> = ({ data = [] }) => {
+  if (!data || data.length === 0) {
     return (
-      <div className="text-center p-8 bg-gray-50 rounded-lg border border-gray-200 animate-pulse">
-        <p className="text-gray-500">Parsing workout...</p>
+      <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
+            <tr>
+              <td colSpan={2} className="text-center p-8">
+                <p className="text-gray-500">Type your workout to see it parsed here...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   }
-  return null;
-};
-
-const EmptyRow: React.FC = () => (
-  <div className="text-center p-8 bg-gray-50 rounded-lg border border-gray-200">
-    <p className="text-gray-500">Type your workout to see it parsed here...</p>
-  </div>
-);
-
-// Main row renderer
-const RowRenderer: React.FC<{
-  data: any;
-  depth: number;
-}> = ({ data, depth }) => {
-  console.log('Rendering row:', data);
-
-  switch (data.type) {
-    case 'header':
-      return <HeaderRow title={data.text} level={data.level?.length || 1} />;
-    
-    case 'paragraph':
-      return <ParagraphRow text={data.text} depth={depth} />;
-    
-    case 'block':
-      return (
-        <BlockRow 
-          duration={data.duration}
-          reps={data.reps}
-          description={data.description}
-          children={data.children}
-          depth={depth}
-        />
-      );
-
-    case 'notification':
-      return <NotificationRow status={data.status} />;
-    
-    default:
-      console.warn('Unknown row type:', data.type);
-      return null;
-  }
-};
-
-interface WodRowsProps {
-  data: any[];
-}
-
-export const WodRows: React.FC<WodRowsProps> = ({ data }) => {
-  console.log('WodRows received data:', data);
-
-  if (!data || data.length === 0) {
-    return <EmptyRow />;
-  }
 
   return (
-    <div className="flex flex-col gap-2 bg-white rounded-lg border border-gray-200 overflow-hidden p-4 min-h-[200px]">
-      {data.map((item, index) => (
-        <RowRenderer key={index} data={item} depth={0} />
-      ))}
+    <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
+      <table className="min-w-full divide-y divide-gray-200">
+        <tbody className="bg-white divide-y divide-gray-200">
+          {data.map((block, index) => (
+            <Block
+              key={index}
+              block={block}
+              nextBlock={index < data.length - 1 ? data[index + 1] : undefined}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

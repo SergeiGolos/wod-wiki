@@ -101,20 +101,14 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   useEffect(() => {
     if (editorRef.current && code !== editorRef.current.getValue()) {
       editorRef.current.setValue(code);
-      parseContent(code);
     }
   }, [code]);
 
   return (
     <div 
       ref={containerRef} 
-      style={{ 
-        height: '300px', 
-        width: '600px',
-        border: '1px solid #e2e8f0',
-        borderRadius: '6px',
-        overflow: 'hidden'
-      }} 
+      className="w-full border border-gray-200 rounded-lg overflow-hidden"
+      style={{ height: '300px' }}
     />
   );
 };
