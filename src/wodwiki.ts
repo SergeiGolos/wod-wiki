@@ -5,7 +5,7 @@ export interface WodWikiProps {
     /** What background color to use */
     code?: string;
     /** Optional value change handler */
-    onValueChange?: (value: MdTimeRuntimeResult) => void;
+    onValueChange?: (value: any, editor: any) => void;
     /** Optional cursor position handler */
     onCursorMoved?: (position: monaco.Position) => void;
 }
@@ -29,9 +29,28 @@ export const createWodWiki = ({
     });
 
     let interpreter = new MdTimerRuntime();
+    
+    // Debounce function
+    function debounce<T extends (...args: any[]) => any>(
+      func: T,
+      wait: number
+    ): (...args: Parameters<T>) => void {
+      let timeout: ReturnType<typeof setTimeout>;
+      return (...args: Parameters<T>) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+      };
+    }
+
+    // Debounced handler
+    const debouncedUpdate = debounce((content: string) => {
+      let model = interpreter.read(content);      
+      onValueChange && onValueChange(model, editor);
+    }, 600);
+
     editor.onDidChangeModelContent((event) => {      
-      let model =interpreter.read(editor.getValue());      
-      onValueChange && onValueChange(model);
+      onValueChange && onValueChange({ outcome: [ { status : "compiling" } ] }, editor);
+      debouncedUpdate(editor.getValue());
     });
 
     // Subscribe to cursor position change events

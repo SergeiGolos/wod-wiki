@@ -38,19 +38,19 @@ export const Identifier = createToken({
 
 export const Comma = createToken({ name: "Comma", pattern: /,/ });
 
-export const CountDirection = createToken({
-  name: "CountDirection",
+export const Trend = createToken({
+  name: "Trend",
   pattern: Lexer.NA,
 });
 export const Minus = createToken({
   name: "Minus",
   pattern: /-/,
-  categories: CountDirection,
+  categories: Trend,
 });
 export const Plus = createToken({
   name: "Plus",
   pattern: /\+/,
-  categories: CountDirection,
+  categories: Trend,
 });
 
 export const GroupOpen = createToken({ name: "GroupOpen", pattern: /\(/ });
@@ -68,7 +68,7 @@ export const allTokens = [
 
   Timer,
   
-  CountDirection,
+  Trend,
   Minus,
   Plus,
       
