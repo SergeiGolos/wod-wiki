@@ -1,41 +1,31 @@
-import type { StorybookConfig } from "@storybook/html-vite";
-import { mergeConfig } from 'vite';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: [        
-    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../stories/**/*.mdx"
+  stories: ["../stories/**/*.mdx", "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  addons: [
+    "@storybook/addon-links",
+    "@storybook/addon-essentials",
+    "@storybook/addon-onboarding",
+    "@storybook/addon-interactions",
   ],
-  addons: ["@storybook/addon-essentials", "@storybook/addon-interactions"],
   framework: {
-    name: "@storybook/html-vite",
+    name: "@storybook/react-vite",
     options: {},
   },
-  managerHead: readFileSync(join(__dirname, 'manager-head.html'), 'utf8'),
+  docs: {
+    autodocs: "tag",
+  },
   viteFinal: async (config) => {
-    return mergeConfig(config, {
+    return {
+      ...config,
       build: {
         rollupOptions: {
           output: {
-            format: 'es'
-          }
-        }
-      },
-      resolve: {
-        alias: {
-          'monaco-editor': 'monaco-editor/esm/vs/editor/editor.api.js',
+            manualChunks: undefined,
+          },
         },
       },
-      optimizeDeps: {
-        include: [
-          'monaco-editor/esm/vs/editor/editor.worker',
-          'monaco-editor/esm/vs/language/json/json.worker',
-          'monaco-editor/esm/vs/language/typescript/ts.worker'
-        ]
-      }
-    });
+    };
   },
 };
 

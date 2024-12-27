@@ -3,7 +3,7 @@ interface WodBlock {
   text?: string;
   duration?: number;
   effort?: string;
-  repeater?: {
+  rounds?: {
     count: number;
     labels: string[];
   };
@@ -11,7 +11,7 @@ interface WodBlock {
     units: string;
     value: string;
   };
-  rounds?: number;
+  reps?: number;
   meta: {
     line: number;
     startOffset: number;
@@ -58,12 +58,12 @@ export const WodSteps = ({ blocks }: { blocks: WodBlock[] }): HTMLElement => {
         parts.push(`${Math.abs(block.duration)}s`);
       }
       
-      if (block.repeater) {
-        parts.push(`${block.repeater.count}x`);
+      if (block.rounds) {
+        parts.push(`${block.rounds.count}x`);
       }
       
-      if (block.rounds) {
-        parts.push(`${block.rounds} rounds`);
+      if (block.reps) {
+        parts.push(`${block.reps} reps`);
       }
       
       if (block.resistance) {

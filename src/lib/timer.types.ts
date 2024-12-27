@@ -96,7 +96,7 @@ export type MdTimerBlock = {
   duration?: number;  
   effort?: string;
   resistance?: any;  
-  repeater?: any;
+  rounds?: any;
 };
 
 export type TimerInstance = {
