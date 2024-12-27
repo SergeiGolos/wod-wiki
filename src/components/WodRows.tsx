@@ -160,8 +160,7 @@ const Block: React.FC<BlockProps> = ({
             depth={depth + 1}
             nextBlock={index < block.blocks.length - 1 ? block.blocks[index + 1] : undefined}
             current={current}
-            onRowRendered={onRowRendered}
-          />
+            onRowRendered={onRowRendered} rowIndex={0}          />
         ))
       )}
     </>
@@ -198,8 +197,7 @@ export const WodRows: React.FC<{ data?: WodBlock[], current?: number }> = ({ dat
               block={block}
               nextBlock={index < data.length - 1 ? data[index + 1] : undefined}
               current={current}
-              onRowRendered={getNextRowIndex}
-            />
+              onRowRendered={getNextRowIndex} rowIndex={0}            />
           ))}
         </tbody>
       </table>
