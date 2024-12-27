@@ -35,41 +35,47 @@ type Story = StoryObj<typeof WodRunner>;
 
 export const Empty: Story = {
   args: {
-    initialContent: '',    
+    code: '',    
     current: 0
   },
 };
 
-export const WithContent: Story = {
+export const Countdown: Story = {
   args: {
-    initialContent: `# 24.1
-For Time
-Complete the following complex:
-* 10 Hang Power Snatch (75/55 lb)
-* 10 Overhead Squats
-* 10 Thrusters
+    code: `# Countdown
+  -:10 Get Ready
+  -20:00 Work`,
+  },
+};  
 
-Then, 3 rounds of:
-* 10 Pull-Ups
-* 10 Push-Ups
-* 10 Air Squats`,
-    current: 0
+export const Emom: Story = {
+  args: {
+    code:`# EMOM 
+-:10 Get Ready
+(30) -1:00 Work`,
   },
 };
 
-export const WithCurrentIndex: Story = {
+export const Simple: Story = {
   args: {
-    initialContent: `# 24.1
-For Time
-Complete the following complex:
-* 10 Hang Power Snatch (75/55 lb)
-* 10 Overhead Squats
-* 10 Thrusters
+    code:`# Simple & Sinister
+> Never contest for space with a kettlebell.
 
-Then, 3 rounds of:
-* 10 Pull-Ups
-* 10 Push-Ups
-* 10 Air Squats`,
-    current: 3
+-:10 Get Ready
+
+-5:00 KB Swings @70lb
+-1:00 Rest
+-10:00 Turkish Getups 70lb`
+  },
+};
+
+export const IronBlackJack: Story = {
+  args: {
+    code:`# Iron Black Jack 
+-:10 Get Ready
+(30) -1:00
+  10 Macebell Touchdowns @30lb
+  6 KB swings @106lb
+  3 Deadlifts @235lb`
   },
 };
