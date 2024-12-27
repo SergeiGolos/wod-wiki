@@ -40,7 +40,7 @@ const WodWikiWrapper = ({ args }: { args: any }) => {
   return (
     <div className="flex flex-col gap-4 min-h-[600px] w-[800px] p-4">
       <WodWiki {...args} onValueChange={handleValueChange} />
-      <WodRows data={outcome} />
+      <WodRows data={outcome} current={args.current} />
     </div>
   );
 };
@@ -64,12 +64,14 @@ type Story = StoryObj<typeof WodWiki>;
 
 export const Empty: Story = {
   args: {
-    code: '',
+    code: '',    
+    current: 0
   },
 };
 
 export const Countdown: Story = {
   args: {
+    current: 1,
     code: `# Countdown
   -:10 Get Ready
   -20:00 Work`,
@@ -78,6 +80,7 @@ export const Countdown: Story = {
 
 export const Emom: Story = {
   args: {
+    current: 1,
     code:`# EMOM 
 -:10 Get Ready
 (30) -1:00 Work`,
@@ -86,6 +89,7 @@ export const Emom: Story = {
 
 export const Simple: Story = {
   args: {
+    current: 1,
     code:`# Simple & Sinister
 > Never contest for space with a kettlebell.
 
@@ -99,6 +103,7 @@ export const Simple: Story = {
 
 export const IronBlackJack: Story = {
   args: {
+    current: 1,
     code:`# Iron Black Jack 
 -:10 Get Ready
 (30) -1:00

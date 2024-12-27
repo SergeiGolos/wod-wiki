@@ -4,6 +4,7 @@ import { MdTimerRuntime } from "../lib/md-timer";
 
 interface WodWikiProps {
   /** Initial code content */
+  current?: number;
   code?: string;
   /** Optional value change handler */
   onValueChange?: (value: any, editor: monaco.editor.IStandaloneCodeEditor) => void;

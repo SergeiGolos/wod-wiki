@@ -1,4 +1,5 @@
 import React from 'react';
+import { WodTimer } from './WodTimer';
 
 interface WodBlock {
   level?: string;
@@ -30,9 +31,18 @@ interface BlockProps {
   block: WodBlock;
   depth?: number;
   nextBlock?: WodBlock;
+  rowIndex: number;
+  current?: number;
+  onRowRendered: () => number;
 }
 
-const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
+const Block: React.FC<BlockProps> = ({ 
+  block, 
+  depth = 0, 
+  nextBlock, 
+  current,
+  onRowRendered 
+}) => {
   const getNextBlockDepth = (block: WodBlock): number => {
     if (block.blocks && block.blocks.length > 0) {
       return depth + 1; // Next visible block would be a child
@@ -44,6 +54,8 @@ const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
 
   // Render the content of a block
   const renderContent = () => {
+    const currentRowIndex = onRowRendered();
+
     if (block.type === 'notification') {
       return (
         <tr>
@@ -99,26 +111,41 @@ const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
     }
 
     return (
-      <tr>
-        <td 
-          className="px-6 py-2 whitespace-nowrap"
-          style={{ paddingLeft: `${depth * 20 + 24}px` }}
-        >
-          {parts.length > 0 && (
-            <div className="flex gap-2 items-center text-gray-700 font-mono">
-              {parts.map((part, index) => (
-                <React.Fragment key={index}>
-                  <span>{part}</span>
-                  {index < parts.length - 1 && <span className="text-gray-400">•</span>}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </td>
-        <td className="px-6 py-2 text-gray-900">
-          {block.text}
-        </td>
-      </tr>
+      <>
+        <tr>
+          <td 
+            className="px-6 py-2 whitespace-nowrap"
+            style={{ paddingLeft: `${depth * 20 + 24}px` }}
+          >
+            {parts.length > 0 && (
+              <div className="flex gap-2 items-center text-gray-700 font-mono">
+                {parts.map((part, index) => (
+                  <React.Fragment key={index}>
+                    <span>{part}</span>
+                    {index < parts.length - 1 && <span className="text-gray-400">•</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </td>
+          <td className="px-6 py-2 text-gray-900">
+            {block.text}
+          </td>
+        </tr>
+        {currentRowIndex === current && (
+          <tr>
+            <td colSpan={2} className="px-6 py-2">
+              <WodTimer 
+                time="00:00" 
+                status="idle"
+                onStart={() => {}}
+                onPause={() => {}}
+                onReset={() => {}}
+              />
+            </td>
+          </tr>
+        )}
+      </>
     );
   };
 
@@ -132,6 +159,8 @@ const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
             block={child}
             depth={depth + 1}
             nextBlock={index < block.blocks.length - 1 ? block.blocks[index + 1] : undefined}
+            current={current}
+            onRowRendered={onRowRendered}
           />
         ))
       )}
@@ -139,7 +168,10 @@ const Block: React.FC<BlockProps> = ({ block, depth = 0, nextBlock }) => {
   );
 };
 
-export const WodRows: React.FC<{ data?: WodBlock[] }> = ({ data = [] }) => {
+export const WodRows: React.FC<{ data?: WodBlock[], current?: number }> = ({ data = [], current }) => {
+  let rowCounter = 0;
+  const getNextRowIndex = () => rowCounter++;
+
   if (!data || data.length === 0) {
     return (
       <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
@@ -165,6 +197,8 @@ export const WodRows: React.FC<{ data?: WodBlock[] }> = ({ data = [] }) => {
               key={index}
               block={block}
               nextBlock={index < data.length - 1 ? data[index + 1] : undefined}
+              current={current}
+              onRowRendered={getNextRowIndex}
             />
           ))}
         </tbody>
