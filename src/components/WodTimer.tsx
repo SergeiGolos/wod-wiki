@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { MdTimerFromSeconds } from "../lib/timer.types";
+import { DisplayBlock, TimerFromSeconds } from "../lib/timer.types";
+import { Timestamp } from "../lib/timer.types";
 
-interface Timestamp {
-  start: Date;
-  stop: Date;
-  label?: string;
-}
-
-interface WodTimerProps {
+export interface WodTimerProps {
   timestamps: Timestamp[];
-  block: any;
+  block: DisplayBlock;
   onTimerUpdate?: (elapsedTime: number) => void;
   onTimerEvent?: (event: string, data?: any) => void;
   elapsedTime?: number;
@@ -35,7 +30,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
         return acc + (stopTime.getTime() - timestamp.start.getTime());
       }, 0) / 1000 || 0;
       
-      const time = new MdTimerFromSeconds(diffInSeconds).toClock();
+      const time = new TimerFromSeconds(diffInSeconds).toClock();
       setElapsedTime(time[0] + "." + time[1]);
       onTimerUpdate?.(diffInSeconds);
     };
@@ -53,9 +48,9 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-lg space-y-6 min-w-[300px]">
       <div>
-      {block?.effort ? (
+      {block.block?.effort ? (
         <div className="flex items-center justify-center space-x-2">          
-          <span className="text-gray-800 font-semibold">{block.effort}</span>
+          <span className="text-gray-800 font-semibold">{block.block.effort}</span> 
         </div>
       ) : null}
       </div>

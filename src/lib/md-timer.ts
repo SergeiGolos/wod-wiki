@@ -2,15 +2,15 @@ import type { IToken, CstNode } from "chevrotain";
 import { Lexer } from "chevrotain";
 import { allTokens } from "./timer.tokens";
 import { MdTimerParse } from "./timer.parser";
-import type { MdTimerBlock } from "./timer.types";
+import type { StatementBlock } from "./timer.types";
 import { MdTimerInterpreter } from "./timer.visitor";
 
-export type MdTimeRuntimeResult = {
+export type WodRuntimeScript = {
   source: string;
   tokens: IToken[];
   parser: any;
   syntax: CstNode;
-  outcome: any[];
+  outcome: StatementBlock[];
 };
 
 export class MdTimerRuntime {
@@ -21,13 +21,13 @@ export class MdTimerRuntime {
     this.visitor = new MdTimerInterpreter();
   }
 
-  read(inputText: string): MdTimeRuntimeResult {
+  read(inputText: string): WodRuntimeScript {
     // console.log("INPUT: ", inputText);
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
     const cst = parser.wodMarkdown();    
-    const raw = cst != null ? this.visitor.visit(cst) : ([] as MdTimerBlock[]);
+    const raw = cst != null ? this.visitor.visit(cst) : ([] as StatementBlock[]);
     // console.log("Raw: ", raw);
     return {
       source: inputText,

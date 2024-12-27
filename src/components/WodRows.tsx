@@ -1,106 +1,66 @@
 import React from "react";
-import { WodBlock } from "../lib/timer.types";
+import { DisplayBlock, StatementBlock } from "../lib/timer.types";
 import { WodRowClassifier } from "../lib/WodRowClassifier";
 import { NotificationRow } from "./rows/NotificationRow";
 import { HeaderRow } from "./rows/HeaderRow";
 import { ParagraphRow } from "./rows/ParagraphRow";
 import { ExerciseRow } from "./rows/ExerciseRow";
-import { WodTimer } from './WodTimer';
+import { WodTimer } from "./WodTimer";
 
 interface BlockProps {
-  block: WodBlock;
-  depth?: number;
-  nextBlock?: WodBlock;
-  rowIndex: number;
-  current?: number;
   timestamps: any[];
-  onRowRendered: () => number;
+  block: DisplayBlock;  
 }
 
-const Block: React.FC<BlockProps> = ({ 
-  block, 
-  depth = 0, 
-  nextBlock, 
-  current,
-  timestamps,
-  onRowRendered 
-}) => {
-  const getNextBlockDepth = (block: WodBlock): number => {
-    if (block.blocks && block.blocks.length > 0) {
-      return depth + 1;
-    }
-    return nextBlock ? depth : depth - 1;
-  };
-
-  const nextDepth = getNextBlockDepth(block);
-  const currentRowIndex = onRowRendered();
-
+const Block: React.FC<BlockProps> = ({ block, timestamps }) => {  
   // Render the appropriate row component based on block type
   const renderContent = () => {
-    if (WodRowClassifier.isNotification(block)) {
-      return <NotificationRow block={block} />;
+    if (WodRowClassifier.isNotification(block.block)) {
+      return <NotificationRow block={block.block} />;
     }
 
-    if (WodRowClassifier.isHeader(block)) {
-      return <HeaderRow block={block} />;
+    if (WodRowClassifier.isHeader(block.block)) {
+      return <HeaderRow block={block.block} />;
     }
 
-    if (WodRowClassifier.isParagraph(block)) {
-      return <ParagraphRow block={block} depth={depth} />;
+    if (WodRowClassifier.isParagraph(block.block)) {
+      return <ParagraphRow block={block} />;
     }
 
-    return (
-      <ExerciseRow 
-        block={block} 
-        depth={depth} 
-        current={current} 
-        currentRowIndex={currentRowIndex}
-        timestamps={timestamps}
-      />
-    );
+    return <ExerciseRow block={block} timestamps={timestamps} />;
   };
 
   return (
     <>
       {renderContent()}
-      {block.blocks && block.blocks.length > 0 && (
-        block.blocks.map((child, index) => (
+      {block.block.blocks &&
+        block.block.blocks.length > 0 &&
+        block.block.blocks.map((child: any, index: number) => (
           <Block
             key={index}
             block={child}
-            depth={depth + 1}
-            nextBlock={index < block.blocks.length - 1 ? block.blocks[index + 1] : undefined}
-            current={current}
-            timestamps={timestamps}
-            onRowRendered={onRowRendered}
-            rowIndex={0}
+            timestamps={timestamps}            
           />
-        ))
-      )}
-      {currentRowIndex === current && (
-        <tr>
-          <td colSpan={2} className="px-6 py-2">
-            <WodTimer                                 
-              onTimerUpdate={() => { } }
-              onTimerEvent={() => { } }
-              timestamps={timestamps} 
-              block={block} />
-          </td>
-        </tr>
-      )}
+        ))}
+      <tr>
+        <td colSpan={2} className="px-6 py-2">
+          <WodTimer
+            onTimerUpdate={() => {}}
+            onTimerEvent={() => {}}
+            timestamps={timestamps}
+            block={block}
+          />
+        </td>
+      </tr>
     </>
   );
 };
 
-export const WodRuntime: React.FC<{ 
-  data?: WodBlock[];
+export const WodRuntime: React.FC<{
+  data?: DisplayBlock[];
   current?: number;
   timestamps?: any[];
-}> = ({ 
-  data = [], 
-  current,
-  timestamps = []
-}) => {
+}> = ({ data = [], current, timestamps = [] }) => {
   let rowCounter = 0;
   const getNextRowIndex = () => rowCounter++;
 
@@ -126,13 +86,9 @@ export const WodRuntime: React.FC<{
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((block, index) => (
             <Block
+              block={block}   
               key={index}
-              block={block}
-              nextBlock={index < data.length - 1 ? data[index + 1] : undefined}
-              current={current}
               timestamps={timestamps}
-              onRowRendered={getNextRowIndex}
-              rowIndex={0}
             />
           ))}
         </tbody>

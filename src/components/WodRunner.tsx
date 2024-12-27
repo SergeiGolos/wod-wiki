@@ -3,6 +3,8 @@ import { WodWiki } from "./WodWiki";
 import { WodRuntime } from "./WodRows";
 import { WodControl } from "./WodControl";
 import type { editor } from "monaco-editor";
+import { DisplayBlock, StatementBlock } from "../lib/timer.types";
+import { WodRuntimeScript } from "../lib/md-timer";
 
 interface WodRunnerProps {
   code?: string;
@@ -15,7 +17,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   current = -1,
   onCurrentChange,
 }) => {
-  const [outcome, setOutcome] = useState<any[]>([]);
+  const [outcome, setOutcome] = useState<DisplayBlock[]>([]);
   const [runnerIndex, setRunnerIndex] = useState(current);
   const [isRunning, setIsRunning] = useState(false);
   const [showEditor, setShowEditor] = useState(true);
@@ -35,7 +37,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   }, [showEditor]);
 
   const handleValueChange = (
-    value: any,
+    value: WodRuntimeScript | undefined,
     editor: editor.IStandaloneCodeEditor
   ) => {
     if (editor && !editorRef.current) {
@@ -51,13 +53,23 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         return;
       }
 
+      
+
       // Only update if we're getting real parsed data, not just the compiling status
       if (
         !(
-          value.outcome.length === 1 && value.outcome[0].type === "notification"
+          value.outcome.length >0 && value.outcome[0].type === "notification"
         )
       ) {
-        setOutcome(value.outcome);
+        const script = value.outcome.map((block: StatementBlock) : DisplayBlock => {
+          return {
+            block : block,
+            depth : 0,
+            parent : undefined,
+            index : 0
+          };
+        });
+        setOutcome(script);
       }
     }
   };

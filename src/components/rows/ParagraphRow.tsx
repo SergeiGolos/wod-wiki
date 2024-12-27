@@ -1,16 +1,15 @@
 import React from "react";
-import { WodBlock } from "../../lib/timer.types";
+import { DisplayBlock } from "../../lib/timer.types";
 
 interface ParagraphRowProps {
-  block: WodBlock;
-  depth: number;
+  block: DisplayBlock;  
 }
 
-export const ParagraphRow: React.FC<ParagraphRowProps> = ({ block, depth }) => {
+export const ParagraphRow: React.FC<ParagraphRowProps> = ({ block }) => {
   return (
     <tr>
-      <td colSpan={2} className="px-6 py-2 text-gray-600" style={{ paddingLeft: `${depth * 20 + 24}px` }}>
-        <p className="text-base leading-relaxed">{block.text}</p>
+      <td colSpan={2} className="px-6 py-2 text-gray-600" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
+        <p className="text-base leading-relaxed">{block.block.text}</p>
       </td>
     </tr>
   );

@@ -1,130 +1,47 @@
-import type { IToken } from "chevrotain";
+export interface SourceCodeMetadata {
+  line: number;
+  startOffset: number;
+  endOffset: number;
+  columnStart: number;
+  columnEnd: number;
+  length: number;
+}
 
-/*
- 
- 
+export interface StatementResistance {
+  units: string;
+  value: string;
+}
 
- 
+export interface StatementRounds {
+  count: number;
+  labels: string[];
+}
 
-*/
+export interface DisplayBlock {
+  block: StatementBlock; 
+  parent?: StatementBlock;
+  index: number;
+  depth: number;
+}
 
-export interface WodBlock {
+export interface StatementBlock {
+  type: string;
+  meta: SourceCodeMetadata;
+  blocks?: StatementBlock[];
+
   level?: string;
   text?: string;
   duration?: number;
   effort?: string;
-  rounds?: {
-    count: number;
-    labels: string[];
-  };
-  resistance?: {
-    units: string;
-    value: string;
-  };
   reps?: number;
-  meta: {
-    line: number;
-    startOffset: number;
-    endOffset: number;
-    columnStart: number;
-    columnEnd: number;
-    length: number;
-  };
-  blocks: WodBlock[];
-  type?: string;
+  rounds?: StatementRounds;
+  resistance?: StatementResistance;    
 }
 
-export type MdTimerStack = {  
-  blocks: MdTimerBlock[];  
+export interface Timestamp {
+  start: Date;
+  stop: Date;
+  label?: string;
 }
 
-export type MdTimerTrace = {
-  events: MdTimerBlockEvent[];
-}
-
-export type MdTimerBlockEvent = {
-  eventId: number;
-  timestamp: Date;
-  type: string;
-  metadata : any;
-}
-
-export type MdTimerOptional = {
-  years?: number;
-  months?: number;
-  days?: number;
-  hours?: number;
-  minutes?: number;
-  seconds?: number;
-};
-
-export type MdTimerValue = {
-  days?: number;
-  hours?: number;
-  minutes?: number;
-  seconds?: number;
-  milliseconds? : number;
-};
-
-export class MdTimerFromSeconds implements MdTimerValue {
-  constructor(miliseconds: number) {    
-    const multiplier = 10 ** 3;
-    let remaining = miliseconds;
-
-    this.days = Math.floor(remaining  / 86400); 
-    remaining  %= 86400;
-
-    this.hours = Math.floor(remaining  / 3600);   
-    remaining %= 3600;
-
-    this.minutes = Math.floor(remaining / 60);    
-    remaining %= 60;
-
-    this.seconds = Math.floor(remaining)
-    
-    this.milliseconds = Math.round((remaining - this.seconds) * multiplier);
-  }
-
-  days?: number | undefined;
-  hours?: number | undefined;
-  minutes?: number | undefined;
-  seconds?: number | undefined;
-  milliseconds?: number | undefined;
-
-  toClock(): [string, string] { 
-    const result = [];
-    if (this.days != null && this.days != 0) {
-      result.push(this.days.toString())
-    }
-    if (this.hours != null && this.hours != 0) {
-      result.push(this.hours.toString())
-    }
-    if (this.minutes != null && this.minutes != 0) {
-      result.push(this.minutes.toString())
-    }    
-    let sec = this.seconds?.toString() || "0";
-    if (sec.length == 1) {
-      sec = "0" + sec;
-    }
-    
-    result.push(sec);
-    
-    let mill = this.milliseconds?.toString() || "0";
-    while (mill.length < 3) {
-      mill = mill + "0";
-    }             
-    return [result.join(":"),  mill];
-  }
-}
-
-export type MdTimerBlock = {
-  duration?: number;  
-  effort?: string;
-  resistance?: any;  
-  rounds?: any;
-};
-
-export type TimerInstance = {
-  direction: string;
-  timer: number;
-};
+export { TimerFromSeconds } from './TimerFromSeconds';

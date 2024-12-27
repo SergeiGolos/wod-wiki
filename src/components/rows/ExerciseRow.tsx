@@ -1,31 +1,25 @@
 import React from "react";
-import { WodBlock } from "../../lib/timer.types";
+import { DisplayBlock, StatementBlock } from "../../lib/timer.types";
 import { WodTimer } from "../WodTimer";
 import { WodRowClassifier } from "../../lib/WodRowClassifier";
 
 interface ExerciseRowProps {
-  block: WodBlock;
-  depth: number;
-  current: number;
-  currentRowIndex: number;
+  block: DisplayBlock;
   timestamps: any[];
 }
 
 export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 
   block, 
-  depth, 
-  current, 
-  currentRowIndex,
   timestamps 
 }) => {
-  const parts = WodRowClassifier.getExerciseParts(block);
+  const parts = WodRowClassifier.getExerciseParts(block.block);
 
   return (
     <>
       <tr>
         <td 
           className="px-6 py-2 whitespace-nowrap"
-          style={{ paddingLeft: `${depth * 20 + 24}px` }}
+          style={{ paddingLeft: `${block.depth * 20 + 24}px` }}
         >
           {parts.length > 0 && (
             <div className="flex gap-2 items-center text-gray-700 font-mono">
@@ -39,10 +33,10 @@ export const ExerciseRow: React.FC<ExerciseRowProps> = ({
           )}
         </td>
         <td className="px-6 py-2 text-gray-900">
-          {block.text}
+          {block.block.text}
         </td>
       </tr>
-      {currentRowIndex === current && (
+      {/* {currentRowIndex === current && ( */}
         <tr>
           <td colSpan={2} className="px-6 py-2">
             <WodTimer                                 
@@ -52,7 +46,7 @@ export const ExerciseRow: React.FC<ExerciseRowProps> = ({
               block={block} />
           </td>
         </tr>
-      )}
+      {/* )} */}
     </>
   );
 };

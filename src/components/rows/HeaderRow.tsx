@@ -1,8 +1,8 @@
 import React from "react";
-import { WodBlock } from "../../lib/timer.types";
+import { StatementBlock } from "../../lib/timer.types";
 
 interface HeaderRowProps {
-  block: WodBlock;
+  block: StatementBlock;
 }
 
 export const HeaderRow: React.FC<HeaderRowProps> = ({ block }) => {

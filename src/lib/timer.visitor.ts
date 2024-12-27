@@ -1,5 +1,5 @@
 import { MdTimerParse } from "./timer.parser";
-import type { MdTimerBlock } from "./timer.types";
+import type { StatementBlock } from "./timer.types";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -70,7 +70,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  wodBlock(ctx: any) {
+  wodBlock(ctx: any) : StatementBlock {
     if (ctx.heading) {
       return this.visit(ctx.heading);
     }
@@ -118,7 +118,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [ctx.Integer[0].image * 1, this.getMeta([ctx.Integer[0]])];
   }
 
-  heading(ctx: any) {
+  heading(ctx: any) : StatementBlock {
     const outcome = {
       type: "header",
       level: ctx.Heading[0].image,
@@ -128,43 +128,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     return outcome;
   }
-  combineMeta(meta: any[]) {
-    if (meta.length == 0) {
-      return {
-        line: 0,
-        startOffset: 0,
-        endOffset: 0,
-        columnStart: 0,
-        columnEnd: 0,
-        length: 0,
-      };
-    }
-    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
-    const columnEnd = sorted[sorted.length - 1].columnEnd;
-    const columnStart = sorted[0].columnStart;
-    return {
-      line: sorted[0].line,
-      startOffset: sorted[0].startOffset,
-      endOffset: sorted[sorted.length - 1].endOffset,
-      columnStart: columnStart,
-      columnEnd: columnEnd,
-      length: columnEnd - columnStart,
-    };
-  }
+  
 
-  getMeta(tokens: any[]) {
-    const endToken = tokens[tokens.length - 1];
-    return {
-      line: tokens[0].startLine,
-      startOffset: tokens[0].startOffset,
-      endOffset: endToken.endOffset,
-      columnStart: tokens[0].startColumn,
-      columnEnd: endToken.endColumn,
-      length: endToken.endColumn - tokens[0].startColumn,
-    };
-  }
-
-  paragraph(ctx: any) {
+  paragraph(ctx: any) : StatementBlock {
     return {
       type: "paragraph",
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
@@ -259,5 +225,41 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       },
       meta,
     ];
+  }
+
+  combineMeta(meta: any[]) {
+    if (meta.length == 0) {
+      return {
+        line: 0,
+        startOffset: 0,
+        endOffset: 0,
+        columnStart: 0,
+        columnEnd: 0,
+        length: 0,
+      };
+    }
+    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
+    const columnEnd = sorted[sorted.length - 1].columnEnd;
+    const columnStart = sorted[0].columnStart;
+    return {
+      line: sorted[0].line,
+      startOffset: sorted[0].startOffset,
+      endOffset: sorted[sorted.length - 1].endOffset,
+      columnStart: columnStart,
+      columnEnd: columnEnd,
+      length: columnEnd - columnStart,
+    };
+  }
+
+  getMeta(tokens: any[]) {
+    const endToken = tokens[tokens.length - 1];
+    return {
+      line: tokens[0].startLine,
+      startOffset: tokens[0].startOffset,
+      endOffset: endToken.endOffset,
+      columnStart: tokens[0].startColumn,
+      columnEnd: endToken.endColumn,
+      length: endToken.endColumn - tokens[0].startColumn,
+    };
   }
 }
