@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { WodWiki } from './WodWiki';
-import { WodRows } from './WodRows';
-import type { editor } from 'monaco-editor';
-import type { MdTimerStack } from '../lib/timer.types';
+import React, { useState, useRef, useEffect } from "react";
+import { WodWiki } from "./WodWiki";
+import { WodRuntime } from "./WodRows";
+import { WodControl } from "./WodControl";
+import type { editor } from "monaco-editor";
 
 interface WodRunnerProps {
   code?: string;
@@ -10,10 +10,10 @@ interface WodRunnerProps {
   onCurrentChange?: (current: number) => void;
 }
 
-export const WodRunner: React.FC<WodRunnerProps> = ({ 
-  code = '',
-  current = 0,
-  onCurrentChange
+export const WodRunner: React.FC<WodRunnerProps> = ({
+  code = "",
+  current = -1,
+  onCurrentChange,
 }) => {
   const [outcome, setOutcome] = useState<any[]>([]);
   const [runnerIndex, setRunnerIndex] = useState(current);
@@ -34,22 +34,29 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
     }
   }, [showEditor]);
 
-  const handleValueChange = (value: any, editor: editor.IStandaloneCodeEditor) => {
+  const handleValueChange = (
+    value: any,
+    editor: editor.IStandaloneCodeEditor
+  ) => {
     if (editor && !editorRef.current) {
       editorRef.current = editor;
       // Focus editor on initial mount
       editor.focus();
     }
-    
+
     if (value?.outcome) {
       // If we get an empty outcome array, show empty state
       if (value.outcome.length === 0) {
         setOutcome([]);
         return;
       }
-      
+
       // Only update if we're getting real parsed data, not just the compiling status
-      if (!(value.outcome.length === 1 && value.outcome[0].type === 'notification')) {
+      if (
+        !(
+          value.outcome.length === 1 && value.outcome[0].type === "notification"
+        )
+      ) {
         setOutcome(value.outcome);
       }
     }
@@ -60,7 +67,9 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
     setShowEditor(false);
 
     // Find the first block with a duration
-    const firstBlockIndex = outcome.findIndex((block: any) => block.duration !== undefined);    
+    const firstBlockIndex = outcome.findIndex(
+      (block: any) => block.duration !== undefined
+    );
     if (firstBlockIndex !== -1) {
       setRunnerIndex(firstBlockIndex);
       onCurrentChange?.(firstBlockIndex);
@@ -71,41 +80,30 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
     setIsRunning(false);
     setShowEditor(true);
     // Reset both indices to 0
-    setRunnerIndex(0);
+    setRunnerIndex(-1);
     onCurrentChange?.(0);
   };
 
   const hasBlocks = outcome.length > 0;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {showEditor && (
-        <WodWiki 
-          code={code}
-          current={current}
-          onValueChange={handleValueChange}
-        />
-      )}
-      <div className="relative">
-        <WodRows 
-          data={outcome}
-          current={runnerIndex}
-        />
-        <div className="absolute top-2 right-2">
-          {hasBlocks && (
-            <button 
-              onClick={isRunning ? resetTimer : startTimer}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                isRunning 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'bg-green-500 hover:bg-green-600 text-white'
-              }`}
-            >
-              {isRunning ? 'Rest' : 'Start'}
-            </button>
-          )}
-        </div>
+    <div className="relative">
+      <div className="flex flex-col gap-4 p-4">
+        {showEditor && (
+          <WodWiki
+            code={code}
+            current={current}
+            onValueChange={handleValueChange}
+          />
+        )}
+        <WodRuntime data={outcome} current={runnerIndex} />
       </div>
+      <WodControl
+        isRunning={isRunning}
+        hasBlocks={hasBlocks}
+        onStart={startTimer}
+        onReset={resetTimer}
+      />
     </div>
   );
 };

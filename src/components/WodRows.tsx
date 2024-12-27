@@ -1,31 +1,6 @@
-import React from 'react';
+import React from "react";
+import { WodBlock } from "../lib/timer.types";
 import { WodTimer } from './WodTimer';
-
-interface WodBlock {
-  level?: string;
-  text?: string;
-  duration?: number;
-  effort?: string;
-  rounds?: {
-    count: number;
-    labels: string[];
-  };
-  resistance?: {
-    units: string;
-    value: string;
-  };
-  reps?: number;
-  meta: {
-    line: number;
-    startOffset: number;
-    endOffset: number;
-    columnStart: number;
-    columnEnd: number;
-    length: number;
-  };
-  blocks: WodBlock[];
-  type?: string;
-}
 
 interface BlockProps {
   block: WodBlock;
@@ -110,6 +85,7 @@ const Block: React.FC<BlockProps> = ({
       parts.push(block.effort);
     }
 
+    let start = new Date();
     return (
       <>
         <tr>
@@ -135,12 +111,10 @@ const Block: React.FC<BlockProps> = ({
         {currentRowIndex === current && (
           <tr>
             <td colSpan={2} className="px-6 py-2">
-              <WodTimer                 
-                status="idle"
-                onStart={() => {}}
-                onPause={() => {}}
-                onReset={() => {}}
-              />
+              <WodTimer                                 
+                onTimerUpdate={() => { } }
+                onTimerEvent={() => { } }
+                timestamps={timestamps} />
             </td>
           </tr>
         )}
@@ -166,7 +140,7 @@ const Block: React.FC<BlockProps> = ({
   );
 };
 
-export const WodRows: React.FC<{ data?: WodBlock[], current?: number }> = ({ data = [], current }) => {
+export const WodRuntime: React.FC<{ data?: WodBlock[], current?: number }> = ({ data = [], current }) => {
   let rowCounter = 0;
   const getNextRowIndex = () => rowCounter++;
 

@@ -8,8 +8,33 @@ import type { IToken } from "chevrotain";
 
 */
 
+export interface WodBlock {
+  level?: string;
+  text?: string;
+  duration?: number;
+  effort?: string;
+  rounds?: {
+    count: number;
+    labels: string[];
+  };
+  resistance?: {
+    units: string;
+    value: string;
+  };
+  reps?: number;
+  meta: {
+    line: number;
+    startOffset: number;
+    endOffset: number;
+    columnStart: number;
+    columnEnd: number;
+    length: number;
+  };
+  blocks: WodBlock[];
+  type?: string;
+}
+
 export type MdTimerStack = {  
-  
   blocks: MdTimerBlock[];  
 }
 
