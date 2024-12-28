@@ -23,7 +23,7 @@ const meta: Meta<typeof WodRunner> = {
   },
   decorators: [
     (Story) => (
-      <div style={{ minHeight: '600px', width: '800px' }}>
+      <div style={{ minHeight: '400px', width: '800px' }}>
         <Story />
       </div>
     ),

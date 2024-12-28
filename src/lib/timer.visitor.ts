@@ -1,5 +1,5 @@
 import { MdTimerParse } from "./timer.parser";
-import type { MdTimerBlock } from "./timer.types";
+import type { StatementBlock } from "./timer.types";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -8,7 +8,6 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   constructor() {
     super();
     // This helper will detect any missing or redundant methods on this visitor
-
     this.validateVisitor();
   }
 
@@ -18,8 +17,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       if (!ctx || !Array.isArray(ctx.markdown)) {
         return [{ SyntaxError: "Invalid context: markdown array is required" }];
       }
-
-      let result = [] as any[];
+      
       let blocks = ctx.markdown
         .filter((block: any) => block !== null && block !== undefined)
         .flatMap((block: any) => {
@@ -30,35 +28,35 @@ export class MdTimerInterpreter extends BaseCstVisitor {
               { SyntaxError: "Error processing markdown block:", blockError },
             ];
           }
-        });
+        }) as StatementBlock[];
+        
 
-      let stack = [{ blocks: result, level: -1 }]; // Root level container
-
-      for (var block of blocks) {
-        const currentLevel = block.meta.columnStart;
-
-        // Find the appropriate parent by walking up the stack
-        while (
-          stack.length > 1 &&
-          stack[stack.length - 1].level >= currentLevel
-        ) {
-          stack.pop();
+      let stack = [] as any[];
+      for (var block of blocks) {        
+        stack = stack.filter((item: any) => item.columnStart < block.meta.columnStart);        
+        if (block.parents == undefined) {
+          block.parents = [];
+        }
+        block.id = block.meta.startOffset;
+        if (block.children == undefined) {
+          block.children = [];
         }
 
-        // Get current parent from top of stack
-        const parent = stack[stack.length - 1];
-
-        // Add block to parent's blocks array
-        parent.blocks.push(block);
-
-        // If this block can have children, push it onto the stack
-        if (!block.blocks) {
-          block.blocks = [];
+        if (block.type === "header" || block.type === "paragraph") {
+          continue;
         }
-        stack.push({ blocks: block.blocks, level: currentLevel });
+
+        if (stack.length > 0) {
+          for (let parent of stack) {
+            parent.block.children.push(block.id);
+            block.parents.push(parent.block.id);
+          }          
+        }
+
+        stack.push({ columnStart: block.meta.columnStart, block });
       }
 
-      return result;
+      return blocks;
     } catch (error) {
       return [
         {
@@ -70,7 +68,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  wodBlock(ctx: any) {
+  wodBlock(ctx: any) : StatementBlock {
     if (ctx.heading) {
       return this.visit(ctx.heading);
     }
@@ -79,7 +77,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return this.visit(ctx.paragraph);
     }
     let meta = [];
-    let statement = { type: "block" } as any;
+    let statement = { type: "block" } as StatementBlock;
     if (ctx.duration) {
       const [durationValue, durationMeta] = this.visit(ctx.duration);
       statement.duration = durationValue;
@@ -118,57 +116,31 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [ctx.Integer[0].image * 1, this.getMeta([ctx.Integer[0]])];
   }
 
-  heading(ctx: any) {
-    const outcome = {
+  heading(ctx: any) : StatementBlock {
+    const meta = this.getMeta([ctx.Heading[0], ...ctx.text]);
+    const outcome = {      
+      id :meta.startOffset,
+      parents: [],
+      children: [], 
       type: "header",
       level: ctx.Heading[0].image,
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Heading[0], ...ctx.text]),
+      meta: meta,
     };
 
     return outcome;
   }
-  combineMeta(meta: any[]) {
-    if (meta.length == 0) {
-      return {
-        line: 0,
-        startOffset: 0,
-        endOffset: 0,
-        columnStart: 0,
-        columnEnd: 0,
-        length: 0,
-      };
-    }
-    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
-    const columnEnd = sorted[sorted.length - 1].columnEnd;
-    const columnStart = sorted[0].columnStart;
-    return {
-      line: sorted[0].line,
-      startOffset: sorted[0].startOffset,
-      endOffset: sorted[sorted.length - 1].endOffset,
-      columnStart: columnStart,
-      columnEnd: columnEnd,
-      length: columnEnd - columnStart,
-    };
-  }
+  
 
-  getMeta(tokens: any[]) {
-    const endToken = tokens[tokens.length - 1];
+  paragraph(ctx: any) : StatementBlock {   
+    const meta = this.getMeta([ctx.Paragraph[0], ...ctx.text]);
     return {
-      line: tokens[0].startLine,
-      startOffset: tokens[0].startOffset,
-      endOffset: endToken.endOffset,
-      columnStart: tokens[0].startColumn,
-      columnEnd: endToken.endColumn,
-      length: endToken.endColumn - tokens[0].startColumn,
-    };
-  }
-
-  paragraph(ctx: any) {
-    return {
+      id : meta.startOffset,
+      parents: [],
+      children: [],
       type: "paragraph",
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Paragraph[0], ...ctx.text]),
+      meta: meta,
     };
   }
 
@@ -259,5 +231,41 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       },
       meta,
     ];
+  }
+
+  combineMeta(meta: any[])  {
+    if (meta.length == 0) {
+      return {
+        line: 0,
+        startOffset: 0,
+        endOffset: 0,
+        columnStart: 0,
+        columnEnd: 0,
+        length: 0,
+      };
+    }
+    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
+    const columnEnd = sorted[sorted.length - 1].columnEnd;
+    const columnStart = sorted[0].columnStart;
+    return {
+      line: sorted[0].line,
+      startOffset: sorted[0].startOffset,
+      endOffset: sorted[sorted.length - 1].endOffset,
+      columnStart: columnStart,
+      columnEnd: columnEnd,
+      length: columnEnd - columnStart,
+    };
+  }
+
+  getMeta(tokens: any[]) {
+    const endToken = tokens[tokens.length - 1];
+    return {
+      line: tokens[0].startLine,
+      startOffset: tokens[0].startOffset,
+      endOffset: endToken.endOffset,
+      columnStart: tokens[0].startColumn,
+      columnEnd: endToken.endColumn,
+      length: endToken.endColumn - tokens[0].startColumn,
+    };
   }
 }

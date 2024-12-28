@@ -92,7 +92,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       contentChangeDisposable.dispose();
       cursorChangeDisposable.dispose();
       if (editorRef.current) {
-        editorRef.current.dispose();
+        editorRef.current?.dispose();
         editorRef.current = null;
       }
     };

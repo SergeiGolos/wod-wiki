@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { MdTimerRuntime, MdTimeRuntimeResult} from "./lib/md-timer";
+import { MdTimerRuntime, WodRuntimeScript} from "./lib/md-timer";
 
 export interface WodWikiProps {  
     /** What background color to use */

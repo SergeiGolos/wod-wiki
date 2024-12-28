@@ -8,35 +8,54 @@ export const WhiteSpace = createToken({
 
 export const Heading = createToken({
   name: "Heading",
-  pattern: /#{1,3}/,  
+  pattern: /#{1,3}/,
 });
 
 export const Paragraph = createToken({
   name: "Paragraph",
-  pattern: />/,  
+  pattern: />/,
 });
 
-export const Return = createToken({ name: "Return", pattern: /\s*\r?\n/ })
+export const Return = createToken({
+  name: "Return",
+  pattern: /\s*\r?\n/,
+});
 
-export const Timer = createToken({ name: "Timer", pattern: /(?::\d+|(?:\d+:){1,3}\d+)/ });
+export const Timer = createToken({
+  name: "Timer",
+  pattern: /(?::\d+|(?:\d+:){1,3}\d+)/,
+});
 
-export const Load = createToken({ name: "Load", pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/ });
+export const Load = createToken({
+  name: "Load",
+  pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/,
+});
 
 export const AllowedSymbol = createToken({
   name: "AllowedSymbol",
-  pattern: /[\\\/.,@!$%^*=&]+/, // pick up anything that isn't whitespace, a digit, or a "special" character
+  pattern: /[\\\/.,@!$%^*=&]+/,
+  // pick up anything that isn't whitespace, a digit, or a "special" character
 });
 
-export const QuestionSymbol = createToken({ name: "QuestionSymbol", pattern: /\?/ });
+export const QuestionSymbol = createToken({
+  name: "QuestionSymbol",
+  pattern: /\?/,
+});
 
-export const Integer = createToken({ name: "Integer", pattern: /\d+/ });
+export const Integer = createToken({
+  name: "Integer",
+  pattern: /\d+/,
+});
 
 export const Identifier = createToken({
   name: "Identifier",
   pattern: /[a-zA-Z]\w*/,
 });
 
-export const Comma = createToken({ name: "Comma", pattern: /,/ });
+export const Comma = createToken({
+  name: "Comma",
+  pattern: /,/,
+});
 
 export const Trend = createToken({
   name: "Trend",
@@ -53,8 +72,14 @@ export const Plus = createToken({
   categories: Trend,
 });
 
-export const GroupOpen = createToken({ name: "GroupOpen", pattern: /\(/ });
-export const GroupClose = createToken({ name: "GroupClose", pattern: /\)/ });
+export const GroupOpen = createToken({
+  name: "GroupOpen",
+  pattern: /\(/,
+});
+export const GroupClose = createToken({
+  name: "GroupClose",
+  pattern: /\)/,
+});
 
 export const allTokens = [
   Heading,
@@ -67,14 +92,14 @@ export const allTokens = [
   Comma,
 
   Timer,
-  
+
   Trend,
   Minus,
   Plus,
-      
-  Load,  
+
+  Load,
   QuestionSymbol,
   AllowedSymbol,
   Identifier,
-  Integer,  
+  Integer,
 ];
