@@ -159,9 +159,11 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
     }
   };
 
+
   const hasBlocks = outcome.length > 0;
 
   return (
+
     <div className="relative">
       <div className="space-y-4">
         {showEditor && (

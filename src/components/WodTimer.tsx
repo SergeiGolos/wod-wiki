@@ -41,6 +41,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   };
 
   // Handle status changes from parent
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -112,7 +113,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
             onClick={handleStart}
             className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-opacity-50"
           >
-            Start
+            Lap
           </button>
         )}
         {isRunning && (
