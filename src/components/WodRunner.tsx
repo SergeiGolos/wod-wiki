@@ -5,6 +5,7 @@ import { WodControl } from "./WodControl";
 import type { editor } from "monaco-editor";
 import { DisplayBlock, StatementBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
+import { v4 as uuidv4 } from "uuid";
 
 interface WodRunnerProps {
   code?: string;
@@ -51,11 +52,10 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
       if (value.outcome.length === 0) {
         setOutcome([]);
         return;
-      }
-
-      
+      }      
 
       // Only update if we're getting real parsed data, not just the compiling status
+      // TODO: this needs to be redone later.
       if (
         !(
           value.outcome.length >0 && value.outcome[0].type === "notification"
@@ -63,12 +63,15 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
       ) {
         const script = value.outcome.map((block: StatementBlock) : DisplayBlock => {
           return {
+            id: uuidv4(),
             block : block,
             depth : 0,
             parent : undefined,
-            index : 0
+            index : 0,
+            timestamps : []
           };
         });
+
         setOutcome(script);
       }
     }

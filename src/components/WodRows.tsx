@@ -5,7 +5,6 @@ import { NotificationRow } from "./rows/NotificationRow";
 import { HeaderRow } from "./rows/HeaderRow";
 import { ParagraphRow } from "./rows/ParagraphRow";
 import { ExerciseRow } from "./rows/ExerciseRow";
-import { WodTimer } from "./WodTimer";
 
 interface BlockProps {
   timestamps: any[];
@@ -33,25 +32,14 @@ const Block: React.FC<BlockProps> = ({ block, timestamps }) => {
   return (
     <>
       {renderContent()}
-      {block.block.blocks &&
-        block.block.blocks.length > 0 &&
-        block.block.blocks.map((child: any, index: number) => (
+      {(block.block?.blocks?.length || 0) > 0 &&
+        block.block?.blocks?.map((child: any, index: number) => (
           <Block
             key={index}
             block={child}
             timestamps={timestamps}            
           />
-        ))}
-      <tr>
-        <td colSpan={2} className="px-6 py-2">
-          <WodTimer
-            onTimerUpdate={() => {}}
-            onTimerEvent={() => {}}
-            timestamps={timestamps}
-            block={block}
-          />
-        </td>
-      </tr>
+        ))}      
     </>
   );
 };

@@ -14,7 +14,7 @@ const meta: Meta<typeof SyntaxDiagram> = {
     (Story) => (
       <div style={{ 
         margin: '2em', 
-        minHeight: '480px',
+        // minHeight: '480px',
         minWidth: '600px',
         background: 'white',
         padding: '20px',

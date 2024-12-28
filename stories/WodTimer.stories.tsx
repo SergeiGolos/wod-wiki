@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { WodTimer } from '../src/components/WodTimer';
 import React from 'react';
+import { DisplayBlock } from '../src/lib/timer.types';
 
 const meta: Meta<typeof WodTimer> = {
   title: 'Components/WodTimer',
@@ -21,23 +22,65 @@ const meta: Meta<typeof WodTimer> = {
 export default meta;
 type Story = StoryObj<typeof WodTimer>;
 
+const baseBlock: DisplayBlock = {
+  block: { effort: "For Time" }
+  timmestamps: [],
+  index: 0
+};
+
 export const Idle: Story = {
   args: {
-    time: '00:00:00',
-    status: 'idle',
+    timestamps: [],
+    block: baseBlock,
   },
 };
 
 export const Running: Story = {
   args: {
-    time: '01:30:45',
-    status: 'running',
+    timestamps: [{
+      start: new Date(Date.now()),
+      stop: undefined
+    }],
+    block: baseBlock,
   },
 };
 
-export const Paused: Story = {
+export const StoppedSeconds: Story = {
   args: {
-    time: '00:45:30',
-    status: 'paused',
+    timestamps: [{
+      start: new Date(Date.now() - 45 * 1000),  // 45 seconds ago
+      stop: new Date(Date.now())
+    }],
+    block: baseBlock,
+  },
+};
+
+export const StoppedMinutesSeconds: Story = {
+  args: {
+    timestamps: [{
+      start: new Date(Date.now() - 5 * 60 * 1000),  // 5 minutes ago
+      stop: new Date(Date.now())
+    }],
+    block: baseBlock,
+  },
+};
+
+export const StoppedHoursMinutesSeconds: Story = {
+  args: {
+    timestamps: [{
+      start: new Date(Date.now() - 2 * 60 * 60 * 1000),  // 2 hours ago
+      stop: new Date(Date.now())
+    }],
+    block: baseBlock,
+  },
+};
+
+export const StoppedMultipleDays: Story = {
+  args: {
+    timestamps: [{
+      start: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),  // 5 days ago
+      stop: new Date(Date.now())
+    }],
+    block: baseBlock,
   },
 };

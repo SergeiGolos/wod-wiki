@@ -26,13 +26,27 @@ export class TimerFromSeconds {
   toClock(): [string, string] {
     const pad = (n: number) => n.toString().padStart(2, '0');
     
-    const minutes = (this.hours || 0) * 60 + (this.minutes || 0);
+    const days = this.days || 0;
+    const hours = this.hours || 0;
+    const minutes = this.minutes || 0;
     const seconds = this.seconds || 0;
     const milliseconds = this.milliseconds || 0;
+    
+    const clock = [];
+    if (days && days > 0) {
+      clock.push(`${days}`);
+    }
 
-    return [
-      `${pad(minutes)}:${pad(seconds)}`,
-      pad(Math.floor(milliseconds / 10))
-    ];
+    if (clock.length > 0 || hours && hours > 0) {
+      clock.push(`${pad(hours)}`);
+    }
+
+    if (clock.length > 0 || minutes && minutes > 0) {
+      clock.push(`${pad(minutes)}`);
+    }
+
+    clock.push(`${pad(seconds)}`);
+    
+    return [clock.join(':'), milliseconds.toString()];  
   }
 }

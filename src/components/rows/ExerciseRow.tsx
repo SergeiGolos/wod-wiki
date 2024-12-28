@@ -1,11 +1,10 @@
 import React from "react";
-import { DisplayBlock, StatementBlock } from "../../lib/timer.types";
-import { WodTimer } from "../WodTimer";
+import { DisplayBlock, Timestamp } from "../../lib/timer.types";
 import { WodRowClassifier } from "../../lib/WodRowClassifier";
 
 interface ExerciseRowProps {
   block: DisplayBlock;
-  timestamps: any[];
+  timestamps: Timestamp[];
 }
 
 export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 
@@ -33,20 +32,9 @@ export const ExerciseRow: React.FC<ExerciseRowProps> = ({
           )}
         </td>
         <td className="px-6 py-2 text-gray-900">
-          {block.block.text}
+          {block.block?.text}
         </td>
-      </tr>
-      {/* {currentRowIndex === current && ( */}
-        <tr>
-          <td colSpan={2} className="px-6 py-2">
-            <WodTimer                                 
-              onTimerUpdate={() => { } }
-              onTimerEvent={() => { } }
-              timestamps={timestamps} 
-              block={block} />
-          </td>
-        </tr>
-      {/* )} */}
+      </tr>              
     </>
   );
 };

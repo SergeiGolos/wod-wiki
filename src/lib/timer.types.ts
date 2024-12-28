@@ -18,7 +18,8 @@ export interface StatementRounds {
 }
 
 export interface DisplayBlock {
-  block: StatementBlock; 
+  block: StatementBlock;   
+  timestamps: Timestamp[];
   parent?: StatementBlock;
   index: number;
   depth: number;
@@ -40,7 +41,7 @@ export interface StatementBlock {
 
 export interface Timestamp {
   start: Date;
-  stop: Date;
+  stop?: Date;
   label?: string;
 }
 
