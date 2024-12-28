@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { WodTimer } from '../src/components/WodTimer';
 import React from 'react';
-import { DisplayBlock } from '../src/lib/timer.types';
+import { DisplayBlock, Timestamp } from '../src/lib/timer.types';
 
 const meta: Meta<typeof WodTimer> = {
   title: 'Components/WodTimer',
@@ -23,9 +23,10 @@ export default meta;
 type Story = StoryObj<typeof WodTimer>;
 
 const baseBlock: DisplayBlock = {
-  block: { effort: "For Time", id : -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 } },
-  timmestamps: [],
-  index: 0
+  block: { effort: "For Time", id: -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 } },
+  timestamps: [] as Timestamp[],
+  id: 0,
+  depth: 0
 };
 
 export const Idle: Story = {

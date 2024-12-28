@@ -8,7 +8,6 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   constructor() {
     super();
     // This helper will detect any missing or redundant methods on this visitor
-
     this.validateVisitor();
   }
 
@@ -34,23 +33,27 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
       let stack = [] as any[];
       for (var block of blocks) {        
-        stack = stack.filter((item: any) => item.level >= block.meta.columnStart);
+        stack = stack.filter((item: any) => item.columnStart < block.meta.columnStart);        
         if (block.parents == undefined) {
           block.parents = [];
         }
-
+        block.id = block.meta.startOffset;
         if (block.children == undefined) {
           block.children = [];
+        }
+
+        if (block.type === "header" || block.type === "paragraph") {
+          continue;
         }
 
         if (stack.length > 0) {
           for (let parent of stack) {
             parent.block.children.push(block.id);
-            block.parents.push(parent.id);
+            block.parents.push(parent.block.id);
           }          
         }
 
-        stack.push({ id: block.id, level: block.meta.columnStart, block });
+        stack.push({ columnStart: block.meta.columnStart, block });
       }
 
       return blocks;

@@ -18,28 +18,18 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   onTimerEvent,
 }) => {
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["*","*"]);
-  const [laps, setLaps] = useState<number>(0);
-  // const [currentStartTime, setCurrentStartTime] =
-  //   useState<Timestamp[]>(timestamps);
   const [isRunning, setIsRunning] = useState(false);
 
   const handleStop = () => {
     const last = timestamps?.length && timestamps[timestamps.length - 1];
     if (last && last.stop === undefined) {
-      last.stop = new Date();
-    }
-    onTimerEvent?.("stop");
+      onTimerEvent?.("stop", block.id);
+    }    
   };
 
   const handleStart = () => {    
     const last = timestamps?.length && timestamps[timestamps.length - 1];
-    if (last && last.stop !== undefined) {
-      timestamps.push({
-        start: new Date(),
-        stop: undefined
-      })
-    }
-    onTimerEvent?.("started");
+    onTimerEvent?.("started", block.id);
   };
 
   const handleLap = () => {
@@ -47,15 +37,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     if (last && last.stop !== undefined) {
       return;
     }
-    setLaps(laps + 1);
-    last.stop = new Date();
-    last.label = `Lap ${laps}`;
-    timestamps.push({
-      start: new Date(),
-      stop: undefined
-    })
-    
-    onTimerEvent?.("lap");
+    onTimerEvent?.("lap", block.id);
   };
 
   // Handle status changes from parent
@@ -63,24 +45,31 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     let intervalId: NodeJS.Timeout;
 
     const updateTimer = () => {
-      setIsRunning(
-        (timestamps?.length || 0) > 0 &&
-          timestamps[timestamps.length - 1].stop === undefined
-      );
+        const running = (timestamps?.length || 0) > 0 &&
+        timestamps[timestamps.length - 1].stop === undefined;
+      setIsRunning(running);
 
       if (!isRunning && elapsedTime[0] !== "*") {
         return;
       }
 
-      const diffInSeconds =
+      let diffInSeconds =
         timestamps?.reduce((acc, timestamp) => {
           const stopTime = timestamp.stop || new Date();
           return acc + (stopTime.getTime() - timestamp.start.getTime());
         }, 0) / 1000 || 0;
 
-      const time = new TimerFromSeconds(diffInSeconds).toClock();
-      setElapsedTime([time[0], time[1][0]]);
+      if (block?.duration && diffInSeconds > Math.abs(block.duration) || block.duration === 0) {
+        onTimerEvent?.("complete", block.id);
+      }
       onTimerUpdate?.(diffInSeconds);
+
+      if (block?.duration && block?.duration < 0) {
+        diffInSeconds += block?.duration;        
+      }
+
+      const time = new TimerFromSeconds(Math.abs(diffInSeconds)).toClock();
+      setElapsedTime([time[0], time[1][0]]);    
     };
 
     updateTimer();
@@ -94,7 +83,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   });
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-lg space-y-6 min-w-[300px]">
+    <div className="w-full flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-lg space-y-6">
       <div>
         {block.block?.effort ? (
           <div className="flex items-center justify-center space-x-2">

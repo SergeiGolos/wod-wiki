@@ -45,17 +45,20 @@ export const WodTable: React.FC<WodTableProps> = ({ data }) => {
     
     // Add the current row
     rows.push(
-      <tr key={`${depth}-${JSON.stringify(item)}`} className="hover:bg-gray-50">
+      <div 
+        key={`${depth}-${JSON.stringify(item)}`} 
+        className="flex hover:bg-gray-50"
+      >
         {keys.map(key => (
-          <td 
+          <div 
             key={key}
-            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+            className="flex-1 px-6 py-4 whitespace-nowrap text-sm text-gray-900"
             style={{ paddingLeft: `${depth * 2 + 1.5}rem` }}
           >
             {renderValue(item[key])}
-          </td>
+          </div>
         ))}
-      </tr>
+      </div>
     );
 
     // Add child rows if they exist
@@ -71,24 +74,25 @@ export const WodTable: React.FC<WodTableProps> = ({ data }) => {
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
+        <div className="min-w-full">
+          {/* Header */}
+          <div className="bg-gray-50">
+            <div className="flex">
               {keys.map(key => (
-                <th 
+                <div 
                   key={key}
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="flex-1 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   {key}
-                </th>
+                </div>
               ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+            </div>
+          </div>
+          {/* Body */}
+          <div className="bg-white divide-y divide-gray-200">
             {data.map(item => renderRow(item))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export interface StatementRounds {
 export interface DisplayBlock {
   block: StatementBlock;   
   timestamps: Timestamp[];
+  duration: number;
   parent?: StatementBlock;
   id: number;
   depth: number;

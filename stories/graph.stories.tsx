@@ -5,7 +5,7 @@ import { SyntaxDiagram } from '../src/components/SyntaxDiagram';
 import React from 'react';
 
 const meta: Meta<typeof SyntaxDiagram> = {
-  title: 'Language/SyntaxDiagram',
+  title: 'Syntax/Diagram',
   component: SyntaxDiagram,
   parameters: {
     layout: 'centered',
