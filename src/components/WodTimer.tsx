@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { DisplayBlock, TimerFromSeconds } from "../lib/timer.types";
+import { DisplayBlock } from "../lib/timer.types";
 import { Timestamp } from "../lib/timer.types";
+import { TimerFromSeconds } from "../lib/TimerFromSeconds";
 
 export interface WodTimerProps {
   timestamps: Timestamp[];

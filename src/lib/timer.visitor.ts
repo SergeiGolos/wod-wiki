@@ -18,8 +18,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       if (!ctx || !Array.isArray(ctx.markdown)) {
         return [{ SyntaxError: "Invalid context: markdown array is required" }];
       }
-
-      let result = [] as any[];
+      
       let blocks = ctx.markdown
         .filter((block: any) => block !== null && block !== undefined)
         .flatMap((block: any) => {
@@ -30,35 +29,31 @@ export class MdTimerInterpreter extends BaseCstVisitor {
               { SyntaxError: "Error processing markdown block:", blockError },
             ];
           }
-        });
+        }) as StatementBlock[];
+        
 
-      let stack = [{ blocks: result, level: -1 }]; // Root level container
-
-      for (var block of blocks) {
-        const currentLevel = block.meta.columnStart;
-
-        // Find the appropriate parent by walking up the stack
-        while (
-          stack.length > 1 &&
-          stack[stack.length - 1].level >= currentLevel
-        ) {
-          stack.pop();
+      let stack = [] as any[];
+      for (var block of blocks) {        
+        stack = stack.filter((item: any) => item.level >= block.meta.columnStart);
+        if (block.parents == undefined) {
+          block.parents = [];
         }
 
-        // Get current parent from top of stack
-        const parent = stack[stack.length - 1];
-
-        // Add block to parent's blocks array
-        parent.blocks.push(block);
-
-        // If this block can have children, push it onto the stack
-        if (!block.blocks) {
-          block.blocks = [];
+        if (block.children == undefined) {
+          block.children = [];
         }
-        stack.push({ blocks: block.blocks, level: currentLevel });
+
+        if (stack.length > 0) {
+          for (let parent of stack) {
+            parent.block.children.push(block.id);
+            block.parents.push(parent.id);
+          }          
+        }
+
+        stack.push({ id: block.id, level: block.meta.columnStart, block });
       }
 
-      return result;
+      return blocks;
     } catch (error) {
       return [
         {
@@ -79,7 +74,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return this.visit(ctx.paragraph);
     }
     let meta = [];
-    let statement = { type: "block" } as any;
+    let statement = { type: "block" } as StatementBlock;
     if (ctx.duration) {
       const [durationValue, durationMeta] = this.visit(ctx.duration);
       statement.duration = durationValue;
@@ -119,22 +114,30 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   heading(ctx: any) : StatementBlock {
-    const outcome = {
+    const meta = this.getMeta([ctx.Heading[0], ...ctx.text]);
+    const outcome = {      
+      id :meta.startOffset,
+      parents: [],
+      children: [], 
       type: "header",
       level: ctx.Heading[0].image,
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Heading[0], ...ctx.text]),
+      meta: meta,
     };
 
     return outcome;
   }
   
 
-  paragraph(ctx: any) : StatementBlock {
+  paragraph(ctx: any) : StatementBlock {   
+    const meta = this.getMeta([ctx.Paragraph[0], ...ctx.text]);
     return {
+      id : meta.startOffset,
+      parents: [],
+      children: [],
       type: "paragraph",
       text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-      meta: this.getMeta([ctx.Paragraph[0], ...ctx.text]),
+      meta: meta,
     };
   }
 
@@ -227,7 +230,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     ];
   }
 
-  combineMeta(meta: any[]) {
+  combineMeta(meta: any[])  {
     if (meta.length == 0) {
       return {
         line: 0,

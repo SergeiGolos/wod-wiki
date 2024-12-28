@@ -23,7 +23,7 @@ export default meta;
 type Story = StoryObj<typeof WodTimer>;
 
 const baseBlock: DisplayBlock = {
-  block: { effort: "For Time" }
+  block: { effort: "For Time", id : -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 } },
   timmestamps: [],
   index: 0
 };

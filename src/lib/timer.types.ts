@@ -21,14 +21,17 @@ export interface DisplayBlock {
   block: StatementBlock;   
   timestamps: Timestamp[];
   parent?: StatementBlock;
-  index: number;
+  id: number;
   depth: number;
 }
 
 export interface StatementBlock {
-  type: string;
+  id: number;
+  parents: number[];
+  children: number[];
+
+  type: string;  
   meta: SourceCodeMetadata;
-  blocks?: StatementBlock[];
 
   level?: string;
   text?: string;
@@ -44,5 +47,3 @@ export interface Timestamp {
   stop?: Date;
   label?: string;
 }
-
-export { TimerFromSeconds } from './TimerFromSeconds';

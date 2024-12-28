@@ -1,15 +1,13 @@
 import React from "react";
-import { DisplayBlock, Timestamp } from "../../lib/timer.types";
+import { DisplayBlock } from "../../lib/timer.types";
 import { WodRowClassifier } from "../../lib/WodRowClassifier";
 
 interface ExerciseRowProps {
   block: DisplayBlock;
-  timestamps: Timestamp[];
 }
 
 export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 
-  block, 
-  timestamps 
+  block 
 }) => {
   const parts = WodRowClassifier.getExerciseParts(block.block);
 
