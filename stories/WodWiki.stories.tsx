@@ -16,7 +16,7 @@ if (typeof window !== 'undefined') {
 }
 
 const meta: Meta<typeof WodRunner> = {
-  title: 'Components/WodWiki',
+  title: 'Components/Wiki',
   component: WodRunner,
   parameters: {
     layout: 'centered',
@@ -31,16 +31,16 @@ const meta: Meta<typeof WodRunner> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof WodRunner>;
+export type WodStory = StoryObj<typeof WodRunner>;
 
-export const Empty: Story = {
+export const Empty: WodStory = {
   args: {
     code: '',    
     current: 0
   },
 };
 
-export const Countdown: Story = {
+export const Countdown: WodStory = {
   args: {
     code: `# Countdown
   -:10 Get Ready
@@ -48,7 +48,7 @@ export const Countdown: Story = {
   },
 };  
 
-export const Emom: Story = {
+export const Emom: WodStory = {
   args: {
     code:`# EMOM 
 -:10 Get Ready
@@ -56,20 +56,8 @@ export const Emom: Story = {
   },
 };
 
-export const Simple: Story = {
-  args: {
-    code:`# Simple & Sinister
-> Never contest for space with a kettlebell.
 
--:10 Get Ready
-
--5:00 KB Swings @70lb
--1:00 Rest
--10:00 Turkish Getups 70lb`
-  },
-};
-
-export const IronBlackJack: Story = {
+export const IronBlackJack: WodStory = {
   args: {
     code:`# Iron Black Jack 
 -:10 Get Ready

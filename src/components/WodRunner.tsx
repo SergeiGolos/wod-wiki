@@ -3,7 +3,7 @@ import { WodWiki } from "./WodWiki";
 import { Block } from "./WodRows";
 import { WodControl } from "./WodControl";
 import type { editor } from "monaco-editor";
-import { DisplayBlock, StatementBlock } from "../lib/timer.types";
+import { DisplayBlock, SourceDisplayBlock, StatementBlock, TimerFragment } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { EmptyWod } from "./EmptyWod";
 import { WodTimer } from "./WodTimer";
@@ -49,44 +49,12 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         return;
       }      
       
-      const getById = (id: number) => value?.outcome?.find((block: StatementBlock) => { 
+      const getById = (id: number) : StatementBlock  => value?.outcome?.find((block: StatementBlock) => { 
         return block.id === id;
-      });
+      }) as StatementBlock;
 
       const script = value?.outcome?.map(
-        (block: StatementBlock): DisplayBlock => {                            
-          // If this block has children, its duration is 0 regardless of its own duration
-          if (block.children?.length > 0) {
-            return {
-              id: block.id,
-              block: block,
-              depth: block.parents?.length || 0,
-              timestamps: [],
-              duration: 0
-            };
-          }
-
-          // Walk up the parent chain starting with current block
-          const blockChain = [block.id, ...(block?.parents || [])];
-          let inheritedDuration = 0;
-          
-          for (const id of blockChain) {
-            const currentBlock = getById(id);
-            if (Math.abs(currentBlock?.duration || 0) > 0) {
-              inheritedDuration = currentBlock?.duration || 0;
-              break;
-            }
-          }
-
-          return {
-            id: block.id,
-            block: block,
-            depth: block.parents?.length || 0,
-            timestamps: [],
-            duration: inheritedDuration
-          };
-        }
-      );
+        (block: StatementBlock): DisplayBlock => new SourceDisplayBlock(block, getById) as DisplayBlock);
 
       setOutcome(script);
     }
@@ -99,7 +67,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
     const firstBlockIndex = outcome.findIndex(
       (block: any) => block.duration !== undefined || block.duration === 0
     );
-        
+    outcome[firstBlockIndex].round += 1; 
     outcome[firstBlockIndex].timestamps.push({
       start: new Date(),
       stop: undefined
@@ -143,6 +111,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         timestamps[timestamps.length - 1].stop = now;
         break;
       case 'started':        
+        outcome[runnerIndex].round += 1;
         timestamps.push({
           start: now,
           stop: undefined

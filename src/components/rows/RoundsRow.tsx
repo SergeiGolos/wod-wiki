@@ -1,12 +1,12 @@
 import React from "react";
-import { DisplayBlock, StatementFragment } from "../../lib/timer.types";
+import { DisplayBlock, RoundsFragment, StatementFragment } from "../../lib/timer.types";
 
 
-interface ExerciseRowProps {
+interface RoundsRowProps {
   block: DisplayBlock;
 }
 
-export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 
+export const RoundsRow: React.FC<RoundsRowProps> = ({ 
   block 
 }) => {
   const parts = block.block?.fragments
@@ -15,6 +15,16 @@ export const ExerciseRow: React.FC<ExerciseRowProps> = ({
       return fragment.toPart();      
     });
 
+    const roundsFragment = block.block?.fragments.find((fragment: StatementFragment) => fragment.type === 'rounds') as RoundsFragment;
+    const getBadgeColor = () => {
+      if (block.round && block.round > roundsFragment.count) {
+        return "bg-red-100 text-red-800";
+      } else if (block.round && block.round === roundsFragment.count) {
+        return "bg-yellow-100 text-yellow-800";
+      } else {
+        return "bg-green-100 text-green-800";
+      }
+    };
   return (
     <div className="w-full flex px-6 py-2" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
       <div className="flex-1 flex justify-between items-center">
@@ -29,8 +39,11 @@ export const ExerciseRow: React.FC<ExerciseRowProps> = ({
               ))}
             </div>
           )}
-        </div>
-      </div>              
+      </div>
+      <div className={`px-3 py-1 rounded-full text-sm font-medium ${getBadgeColor()}`}>
+        {block.round || 0}/{roundsFragment.count}
+      </div>
+    </div>
     </div>
   );
 };
