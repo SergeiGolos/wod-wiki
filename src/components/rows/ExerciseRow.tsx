@@ -8,14 +8,9 @@ interface ExerciseRowProps {
 
 export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 
   block 
-}) => {
-  const parts = block.block?.fragments
-  .filter((fragment: StatementFragment) => fragment.toPart !== undefined)  
-  .map((fragment: StatementFragment) => {
-      return fragment.toPart();      
-    });
-
-  return (
+}) => {  
+  const parts = block.getParts();
+  return (    
     <div className="w-full flex px-6 py-2" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
       <div className="flex-1 flex justify-between items-center">
         <div>

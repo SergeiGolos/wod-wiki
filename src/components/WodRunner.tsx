@@ -111,7 +111,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         timestamps[timestamps.length - 1].stop = now;
         break;
       case 'started':        
-        outcome[runnerIndex].round += 1;
+        outcome[runnerIndex].startRound();
         timestamps.push({
           start: now,
           stop: undefined

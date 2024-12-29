@@ -45,6 +45,13 @@ export class SourceDisplayBlock implements DisplayBlock {
   round: number;
   status?: string | undefined;
 
+  startRound() {
+    this.round += 1;
+    
+    //if this.parents?.length > 0 {
+    //  foreach
+  }
+
   getFragment(type: string) : StatementFragment | undefined {
     return this.block?.fragments.find((fragment: StatementFragment) =>
         fragment.type === type
@@ -72,7 +79,8 @@ export interface DisplayBlock {
   depth: number;
   round: number;
   status?: string;
-
+  
+  startRound : () => void;
   getFragment : (type: string) => StatementFragment | undefined;
   getParts: (filter?: string[]) => string[];
 } 
