@@ -37,6 +37,9 @@ const baseBlock: DisplayBlock = {
   },
   getParts: function (filter?: string[]): string[] {
     throw new Error('Function not implemented.');
+  },
+  startRound: function (): void {
+    throw new Error('Function not implemented.');
   }
 };
 
