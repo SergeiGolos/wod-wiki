@@ -1,18 +1,19 @@
 import React from "react";
-import { StatementBlock } from "../../lib/timer.types";
+import { StatementBlock, TextFragment } from "../../lib/timer.types";
 
 interface HeaderRowProps {
   block: StatementBlock;
 }
 
 export const HeaderRow: React.FC<HeaderRowProps> = ({ block }) => {
+  const fragment = block.fragments.find(f => f.type === 'text') as TextFragment;
   return (
-    <tr>
-      <td colSpan={2} className="px-6 py-3 border-b border-gray-200">
-        <h1 className="text-2xl font-bold mb-4">
-          {block.text}
+    <div className="w-full px-6 py-3 border-b border-gray-200">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">
+          {fragment?.text}
         </h1>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 };

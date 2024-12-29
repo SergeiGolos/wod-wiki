@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { WodTimer } from '../src/components/WodTimer';
 import React from 'react';
-import { DisplayBlock, Timestamp } from '../src/lib/timer.types';
+import { DisplayBlock, EffortFragment, StatementFragment, Timestamp } from '../src/lib/timer.types';
 
 const meta: Meta<typeof WodTimer> = {
-  title: 'Components/WodTimer',
+  title: 'Components/Timer',
   component: WodTimer,
   parameters: {
     layout: 'centered',
@@ -15,18 +15,32 @@ const meta: Meta<typeof WodTimer> = {
         <Story />
       </div>
     ),
-  ],
-  tags: ['autodocs'],
+  ]
 };
 
 export default meta;
 type Story = StoryObj<typeof WodTimer>;
 
 const baseBlock: DisplayBlock = {
-  block: { effort: "For Time", id: -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 } },
+  block: {
+    fragments: [
+      { type: "effort", effort: "For Time", } as EffortFragment
+    ], id: -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 }
+  },
   timestamps: [] as Timestamp[],
   id: 0,
-  depth: 0
+  depth: 0,
+  duration: 0,
+  round: 0,
+  getFragment: function (type: string): StatementFragment | undefined {
+    throw new Error('Function not implemented.');
+  },
+  getParts: function (filter?: string[]): string[] {
+    throw new Error('Function not implemented.');
+  },
+  startRound: function (): void {
+    throw new Error('Function not implemented.');
+  }
 };
 
 export const Idle: Story = {

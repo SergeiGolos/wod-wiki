@@ -1,5 +1,5 @@
 import { MdTimerParse } from "./timer.parser";
-import type { StatementBlock } from "./timer.types";
+import type { EffortFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment, TimerFragment } from "./timer.types";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -75,45 +75,29 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     if (ctx.paragraph) {
       return this.visit(ctx.paragraph);
-    }
-    let meta = [];
-    let statement = { type: "block" } as StatementBlock;
-    if (ctx.duration) {
-      const [durationValue, durationMeta] = this.visit(ctx.duration);
-      statement.duration = durationValue;
-      meta.push(durationMeta);
-    }
-
-    if (ctx.resistance) {
-      const [resistance, resistanceMeta] = this.visit(ctx.resistance);
-      statement.resistance = resistance;
-      meta.push(resistanceMeta);
-    }
-
+    }    
+    let statement = { type: "block", fragments: [] as StatementFragment[] } as StatementBlock;
+    
     if (ctx.rounds) {
-      const [rounds, repeaterMeta] = this.visit(ctx.rounds);
-      statement.rounds = rounds;
-      meta.push(repeaterMeta);
+     statement.fragments.push(this.visit(ctx.rounds));   
+     statement.type = "rounds";
     }
+    ctx.duration && statement.fragments.push( this.visit(ctx.duration));         
+    ctx.reps && statement.fragments.push( this.visit(ctx.reps));      
+    ctx.effort && statement.fragments.push( this.visit(ctx.effort));         
+    ctx.resistance && statement.fragments.push( this.visit(ctx.resistance));      
 
-    if (ctx.reps) {
-      const [reps, roundsMeta] = this.visit(ctx.reps);
-      statement.reps = reps;
-      meta.push(roundsMeta);
-    }
-
-    if (ctx.effort) {
-      const [effort, effortMeta] = this.visit(ctx.effort);
-      statement.effort = effort;
-      meta.push(effortMeta);
-    }
-
-    statement.meta = this.combineMeta(meta.filter((meta: any) => meta != null));
+    statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
     return statement;
   }
 
-  reps(ctx: any) {
-    return [ctx.Integer[0].image * 1, this.getMeta([ctx.Integer[0]])];
+  reps(ctx: any) : RepFragment {
+    return {
+      type: "reps",      
+      reps: ctx.Integer[0].image * 1,        
+      meta: this.getMeta([ctx.Integer[0]]),
+      toPart: () => `${ctx.Integer[0].image}`
+    };
   }
 
   heading(ctx: any) : StatementBlock {
@@ -123,14 +107,18 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       parents: [],
       children: [], 
       type: "header",
-      level: ctx.Heading[0].image,
-      text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-      meta: meta,
+      fragments: [{
+        type: "text",
+        level: ctx.Heading[0].image,
+        text: ctx.text.map((identifier: any) => identifier.image).join(" "),
+        toPart: () => "",
+        meta: meta
+      }],
+      meta: meta,      
     };
 
     return outcome;
-  }
-  
+  }  
 
   paragraph(ctx: any) : StatementBlock {   
     const meta = this.getMeta([ctx.Paragraph[0], ...ctx.text]);
@@ -139,12 +127,16 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       parents: [],
       children: [],
       type: "paragraph",
-      text: ctx.text.map((identifier: any) => identifier.image).join(" "),
+      fragments: [{  
+        type: "text",
+        text: ctx.text.map((identifier: any) => identifier.image).join(" "),
+        meta: meta
+      } as TextFragment],
       meta: meta,
     };
   }
 
-  duration(ctx: any) {
+  duration(ctx: any) : TimerFragment {
     const tokens = [];
     let multiplier = 1;
     if (ctx.Trend) {
@@ -169,18 +161,21 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       minutes: digits[1],
       seconds: digits[0],
     };
+    const duration = multiplier *
+    (time.seconds +
+      time.minutes * 60 +
+      time.hours * 60 * 60 +
+      time.days * 60 * 60 * 24);
 
-    return [
-      multiplier *
-        (time.seconds +
-          time.minutes * 60 +
-          time.hours * 60 * 60 +
-          time.days * 60 * 60 * 24),
-      this.getMeta(tokens),
-    ];
+    return {
+      type: "duration",      
+      duration: duration,   
+      meta: this.getMeta(tokens),
+      toPart: () => `${duration}s`
+    };
   }
 
-  resistance(ctx: any) {
+  resistance(ctx: any): ResistanceFragment { 
     let load = ctx.Load[0].image.replace("@", "");
     let units = "default";
     if (load.includes("kg")) {
@@ -193,44 +188,46 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       units = "lb";
     }
 
-    return [
-      {
-        units: units,
-        value: load,
-      },
-      this.getMeta([ctx.Load[0]]),
-    ];
+    return {
+      type: "resistance",      
+      units: units,
+      value: load,      
+      meta: this.getMeta([ctx.Load[0]]),
+      toPart: () => `${units}:${load}`
+    };
   }
 
   labels(ctx: any) {
     return [ctx.label.Map((identifier: any) => identifier.image), ctx.label];
   }
 
-  effort(ctx: any) {
-    return [
-      ctx.Identifier.map((identifier: any) => identifier.image).join(" "),
-      this.getMeta(ctx.Identifier),
-    ];
+  effort(ctx: any): EffortFragment {
+    var effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
+    return {
+      type: "effort",
+      effort: effort,
+      meta: this.getMeta(ctx.Identifier),
+      toPart: () => effort
+    };
   }
 
-  rounds(ctx: any) {
+  rounds(ctx: any) : RoundsFragment { 
     var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     if (ctx.Integer != null) {
-      return [{ count: ctx.Integer[0].image * 1, labels: [] }, meta];
+      return {
+        type: "rounds",
+        count: ctx.Integer[0].image * 1,        
+        meta: meta,
+        toPart: () => `${ctx.Integer[0].image}x`
+      };
     }
-
-    if (ctx.labels == null) {
-      return [{ count: 1, labels: [] }, meta];
-    }
-
-    var [labels, tokens] = this.visit(ctx.labels[0]);
-    return [
-      {
-        count: labels.length,
-        labels: labels,
-      },
-      meta,
-    ];
+    
+    return {
+      type: "rounds",
+      count: 1,        
+      meta: meta,
+      toPart: () => `1x`
+    };      
   }
 
   combineMeta(meta: any[])  {

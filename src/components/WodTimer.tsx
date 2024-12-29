@@ -41,7 +41,6 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   };
 
   // Handle status changes from parent
-
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -82,17 +81,15 @@ export const WodTimer: React.FC<WodTimerProps> = ({
       }
     };
   });
-
+  
   return (
-    <div className="w-full flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-lg space-y-6">
-      <div>
-        {block.block?.effort ? (
+    <div className="w-full flex flex-col items-center justify-center p-6 bg-white rounded-sm shadow-lg space-y-6">
+      <div>        
           <div className="flex items-center justify-center space-x-2">
-            <span className="text-gray-800 font-semibold">
-              {block.block.effort}
+            <span className="text-gray-800 font-semibold text-2xl">
+              {block.getParts().join(" ")}
             </span>
-          </div>
-        ) : null}
+          </div>        
       </div>
 
       <div className="text-6xl font-mono font-bold text-gray-800 tracking-wider">
@@ -113,7 +110,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
             onClick={handleStart}
             className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-opacity-50"
           >
-            Lap
+            Start
           </button>
         )}
         {isRunning && (

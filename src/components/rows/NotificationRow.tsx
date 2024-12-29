@@ -1,16 +1,14 @@
 import React from "react";
-import { StatementBlock } from "../../lib/timer.types";
+import { DisplayBlock, StatementBlock } from "../../lib/timer.types";
 
 interface NotificationRowProps {
-  block: StatementBlock;
+  block: DisplayBlock;
 }
 
-export const NotificationRow: React.FC<NotificationRowProps> = () => {
+export const NotificationRow: React.FC<NotificationRowProps> = ({ block }) => {
   return (
-    <tr>
-      <td colSpan={2} className="text-center p-8 bg-gray-50">
-        <p className="text-gray-500">Parsing workout...</p>
-      </td>
-    </tr>
+    <div className="w-full text-center p-8 bg-gray-50">
+      <p className="text-gray-500">Parsing workout...</p>
+    </div>
   );
 };
