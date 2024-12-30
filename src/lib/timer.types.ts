@@ -52,10 +52,15 @@ export class SourceDisplayBlock implements DisplayBlock {
     //  foreach
   }
 
-  getFragment(type: string) : StatementFragment | undefined {
+  getDuration() :TimerFragment | undefined {
+    return this.getFragment<TimerFragment>("duration");
+  }
+
+
+  getFragment<T extends StatementFragment>(type: string) : T | undefined {
     return this.block?.fragments.find((fragment: StatementFragment) =>
         fragment.type === type
-    );
+    ) as T;
   }
 
   getParts(filter: string[] = []) {
