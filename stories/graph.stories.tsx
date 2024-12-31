@@ -5,10 +5,8 @@ const meta: Meta<typeof SyntaxDiagram> = {
   title: 'Components/Syntax Diagram',
   component: SyntaxDiagram,  
   parameters: {
-    controls: { hideNoControlsWarning: true },
-    options: {
-      showPanel: false,
-    },
+    controls: { hideNoControlsWarning: true },    
+    showPanel: false
   }
 };
 
