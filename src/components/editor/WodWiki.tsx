@@ -45,7 +45,6 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   const debouncedParse = debounce(parseContent, 600);
 
   const [editorHeight, setEditorHeight] = useState(lineHeight * 3);
-
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -101,7 +100,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     }
     const lineCount = code.split('\n').length + 1;
     setEditorHeight(lineCount * lineHeight);
-    
+
     // Cleanup function
     return () => {
       contentChangeDisposable.dispose();
