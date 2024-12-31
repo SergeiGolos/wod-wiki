@@ -12,10 +12,10 @@ export const WodControl: React.FC<RuntimeControlProps> = ({
   onReset,
 }) => {
   return (
-    <div className="absolute top-2 right-2">
+    <div className="absolute top-1.5 right-1.5">
       <button
         onClick={isRunning ? onReset : onStart}        
-        className={`px-6 my-3 mx-5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        className={`px-4 my-1 mx-3 py-1 rounded-full text-sm font-medium transition-colors ${
           isRunning
             ? "bg-red-500 hover:bg-red-600 text-white"
             : "bg-green-500 hover:bg-green-600 text-white"
