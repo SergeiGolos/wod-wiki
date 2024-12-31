@@ -40,7 +40,9 @@ export const WodTimer: React.FC<WodTimerProps> = ({
       for (let ts of timestamps) {
         if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop === undefined)) {
             running = true;                  
-            spans.push({ start: ts } as TimeSpan);
+            const span = new TimeSpan();
+            span.start = ts;
+            spans.push(span);
         } else if (ts.type === "stop") {
           running = false;
           spans[spans.length - 1].stop = ts;

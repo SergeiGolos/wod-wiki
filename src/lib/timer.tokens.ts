@@ -11,10 +11,10 @@ export const Heading = createToken({
   pattern: /#{1,3}/,
 });
 
-export const Paragraph = createToken({
-  name: "Paragraph",
-  pattern: />/,
-});
+// export const Paragraph = createToken({
+//   name: "Paragraph",
+//   pattern: />/,
+// });
 
 export const Return = createToken({
   name: "Return",
@@ -82,7 +82,6 @@ export const GroupClose = createToken({
 
 export const allTokens = [
   Heading,
-  Paragraph,
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier

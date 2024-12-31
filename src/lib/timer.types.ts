@@ -97,7 +97,7 @@ export interface DisplayBlock {
 
 export interface StatementFragment {
   type: string;
-  meta: SourceCodeMetadata;
+  meta?: SourceCodeMetadata;
   toPart: () => string;
 }
 
@@ -124,7 +124,7 @@ export interface TextFragment extends StatementFragment {
 }
 
 export class IncrementFragment implements StatementFragment {  
-  constructor(public image: string, public meta: SourceCodeMetadata) {
+  constructor(public image: string, public meta?: SourceCodeMetadata) {
     this.increment = image == "^" ? 1 : -1;
   }  
   type: string = "increment";

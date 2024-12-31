@@ -73,7 +73,6 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     // Subscribe to content change events
     const contentChangeDisposable = editorRef.current.onDidChangeModelContent(() => {
       if (!editorRef.current) return;
-      onValueChange?.({ outcome: [{ type: "notification", status: "compiling" }] }, editorRef.current);
       debouncedParse(editorRef.current.getValue());
     });
 

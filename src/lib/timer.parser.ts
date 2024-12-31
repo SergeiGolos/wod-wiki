@@ -11,7 +11,6 @@ import {
   Load,
   Integer,
   Heading,
-  Paragraph,
   AllowedSymbol,
   QuestionSymbol,
 } from "./timer.tokens";
@@ -33,8 +32,7 @@ export class MdTimerParse extends CstParser {
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.SUBRULE($.heading) },
-          { ALT: () => $.SUBRULE($.paragraph) },
+          { ALT: () => $.SUBRULE($.heading) },          
           { ALT: () => $.SUBRULE($.rounds) },
           { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.reps) },
@@ -55,18 +53,6 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("heading", () => {
       $.CONSUME(Heading);
-      $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
-        ]);
-      });
-    });
-
-    $.RULE("paragraph", () => {
-      $.CONSUME(Paragraph);
       $.AT_LEAST_ONE(() => {
         $.OR([
           { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },

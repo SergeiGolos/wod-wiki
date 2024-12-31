@@ -56,6 +56,13 @@ export const WodRunner: React.FC<WodRunnerProps> = ({ blocks }) => {
         }
         break;
       case "started":
+        if (runnerIndex === -1 && blocks.length > 0) {
+          setRunnerIndex(0);
+          const currentBlock = blocks[0];
+          if (!currentBlock.timestamps) {
+            currentBlock.timestamps = [];
+          }
+        }
         currentBlock.startRound?.();
         timestamps.push({
           type: "start",

@@ -86,7 +86,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
     // Trend Parsing
     ctx.trend && statement.fragments.push( this.visit(ctx.trend));    
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("", this.getMeta([ctx.duration[0]])));
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment(""));
 
     // Duration Parsing
     ctx.duration && statement.fragments.push(this.visit(ctx.duration));         
@@ -95,6 +95,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     ctx.resistance && statement.fragments.push( this.visit(ctx.resistance));      
 
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
+    statement.id = statement.meta.startOffset;
     return statement;
   }
 
@@ -126,22 +127,6 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     return outcome;
   }  
-
-  paragraph(ctx: any) : StatementBlock {   
-    const meta = this.getMeta([ctx.Paragraph[0], ...ctx.text]);
-    return {
-      id : meta.startOffset,
-      parents: [],
-      children: [],
-      type: "paragraph",
-      fragments: [{  
-        type: "text",
-        text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-        meta: meta
-      } as TextFragment],
-      meta: meta,
-    };
-  }
 
   duration(ctx: any) : TimerFragment {    
     const meta = this.getMeta([ctx.Timer[0]]);
@@ -215,7 +200,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         length: 0,
       };
     }
-    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
+    const sorted = meta.filter((item:any) => item != undefined).map((item: any) => ({ ...item, ...item.meta })).sort((a: any, b: any) => a.startOffset - b.startOffset);
     const columnEnd = sorted[sorted.length - 1].columnEnd;
     const columnStart = sorted[0].columnStart;
     return {
