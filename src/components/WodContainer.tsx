@@ -4,21 +4,19 @@ import { WodRunner } from "./runtime/WodRunner";
 import { DisplayBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/WodCompiler";
-import { WodControl } from "./runtime/WodControl";
 import * as monaco from 'monaco-editor';
 
 interface WodContainerProps {
-  code?: string;
+  code: string;
 }
 
 export const WodContainer: React.FC<WodContainerProps> = ({
   code = "",
 }) => {  
-  const [blocks, setBlocks] = useState<DisplayBlock[]>([]);
-  const [currentBlock, setCurrentBlock] = useState(-1);
+  const [blocks, setBlocks] = useState<DisplayBlock[]>([]);  
   const [showEditor, setShowEditor] = useState(true);
 
-  const handleEditorChange = (
+  const handleEditorCompile = (
     value: WodRuntimeScript | undefined,
     editor: monaco.editor.IStandaloneCodeEditor
   ) => {
@@ -28,50 +26,27 @@ export const WodContainer: React.FC<WodContainerProps> = ({
       setBlocks(compiledBlocks);      
     }
   };
-
-  const startTimer = () => {
-    setShowEditor(false);
-    // Find the first block with a duration
-    const firstBlockIndex = blocks.findIndex(
-      (block: any) => block.duration !== undefined || block.duration === 0
-    );
-    if (firstBlockIndex !== -1) {
-      const firstBlock = blocks[firstBlockIndex];
-      if (!firstBlock.timestamps) {
-        firstBlock.timestamps = [];
-      }
-      firstBlock.round = (firstBlock.round || 0) + 1;
-      firstBlock.timestamps.push({
-        type: "start", time: new Date(),        
-      });
-      setCurrentBlock(firstBlockIndex);
+  
+  const stateChangeHandler = (state: any) => {
+    if (state === "running") {
+      setShowEditor(false);      
+    } else {
+      setShowEditor(true);      
     }
-  };
-
-  const resetTimer = () => {
-    setCurrentBlock(-1);
-    setShowEditor(true);
-  };
-
-  const hasBlocks = blocks.length > 0;
+  };  
 
   return (
     <div className="space-y-4">
       {showEditor && (
         <WodWiki
           code={code}
-          onValueChange={handleEditorChange}
+          onValueChange={handleEditorCompile}
         />
-      )}
-      <div className="relative">
-      {showEditor && hasBlocks && (
-        <WodControl onStart={startTimer} onReset={resetTimer} isRunning={false} />
-      )}
-
+      )}      
       <WodRunner
-        blocks={blocks}        
-      />
-    </div>
+        blocks={blocks}    
+        onStateChange={stateChangeHandler}
+      />    
     </div>
   );
 };
