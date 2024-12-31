@@ -1,10 +1,10 @@
 import React from "react";
-import { DisplayBlock } from "../lib/timer.types";
-import { NotificationRow } from "./rows/NotificationRow";
-import { HeaderRow } from "./rows/HeaderRow";
-import { ParagraphRow } from "./rows/ParagraphRow";
-import { ExerciseRow } from "./rows/ExerciseRow";
-import { RoundsRow } from "./rows/RoundsRow";
+import { DisplayBlock } from "../../lib/timer.types";
+import { NotificationRow } from "../rows/NotificationRow";
+import { HeaderRow } from "../rows/HeaderRow";
+import { ParagraphRow } from "../rows/ParagraphRow";
+import { ExerciseRow } from "../rows/ExerciseRow";
+import { RoundsRow } from "../rows/RoundsRow";
 
 export interface BlockProps {  
   block: DisplayBlock;  
@@ -31,5 +31,13 @@ export const Block: React.FC<BlockProps> = ({ block }) => {
     <>
       {renderContent()}      
     </>
+  );
+};
+
+export const CurrentBlock: React.FC<BlockProps> = ({ block }) => {  
+  return (
+    <div className="border-2 border-blue-500 rounded-lg p-2 bg-blue-50">      
+      <Block block={block} />
+    </div>
   );
 };

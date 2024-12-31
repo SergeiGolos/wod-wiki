@@ -11,7 +11,6 @@ import {
   Load,
   Integer,
   Heading,
-  Paragraph,
   AllowedSymbol,
   QuestionSymbol,
 } from "./timer.tokens";
@@ -33,15 +32,19 @@ export class MdTimerParse extends CstParser {
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.SUBRULE($.heading) },
-          { ALT: () => $.SUBRULE($.paragraph) },
+          { ALT: () => $.SUBRULE($.heading) },          
           { ALT: () => $.SUBRULE($.rounds) },
+          { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.reps) },
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
         ]);
       });
+    });
+
+    $.RULE("trend", () => {
+      $.CONSUME(Trend);
     });
 
     $.RULE("reps", () => {
@@ -60,22 +63,7 @@ export class MdTimerParse extends CstParser {
       });
     });
 
-    $.RULE("paragraph", () => {
-      $.CONSUME(Paragraph);
-      $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
-        ]);
-      });
-    });
-
     $.RULE("duration", () => {
-      $.OPTION(() => {
-        $.CONSUME(Trend);
-      });
       $.CONSUME(Timer);
     });
 

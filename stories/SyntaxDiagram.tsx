@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { MdTimerParse } from "../lib/timer.parser";
+import { MdTimerParse } from "../src/lib/timer.parser";
 import { createSyntaxDiagramsCode } from "chevrotain";
 
 interface SyntaxDiagramProps {
@@ -63,7 +63,8 @@ export const SyntaxDiagram: React.FC<SyntaxDiagramProps> = ({ className }) => {
       ref={iframeRef}
       style={{
         width: '100%',
-        height: '1000px',
+        height: '100%',
+        minHeight: '700px',
         border: 'none',
         background: 'transparent'
       }}

@@ -1,5 +1,6 @@
 import { MdTimerParse } from "./timer.parser";
-import type { EffortFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment, TimerFragment } from "./timer.types";
+import { EffortFragment, IncrementFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
+import { TimerFragment } from "./fragments/TimerFragment";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -68,26 +69,33 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
+  trend(ctx: any) : IncrementFragment {
+    return new IncrementFragment(ctx.Trend[0].image, this.getMeta([ctx.Trend[0]]));
+  }
+
   wodBlock(ctx: any) : StatementBlock {
     if (ctx.heading) {
       return this.visit(ctx.heading);
     }
 
-    if (ctx.paragraph) {
-      return this.visit(ctx.paragraph);
-    }    
     let statement = { type: "block", fragments: [] as StatementFragment[] } as StatementBlock;
     
     if (ctx.rounds) {
      statement.fragments.push(this.visit(ctx.rounds));   
      statement.type = "rounds";
     }
-    ctx.duration && statement.fragments.push( this.visit(ctx.duration));         
+    // Trend Parsing
+    ctx.trend && statement.fragments.push( this.visit(ctx.trend));    
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment(""));
+
+    // Duration Parsing
+    ctx.duration && statement.fragments.push(this.visit(ctx.duration));         
     ctx.reps && statement.fragments.push( this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push( this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push( this.visit(ctx.resistance));      
 
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
+    statement.id = statement.meta.startOffset;
     return statement;
   }
 
@@ -120,59 +128,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return outcome;
   }  
 
-  paragraph(ctx: any) : StatementBlock {   
-    const meta = this.getMeta([ctx.Paragraph[0], ...ctx.text]);
-    return {
-      id : meta.startOffset,
-      parents: [],
-      children: [],
-      type: "paragraph",
-      fragments: [{  
-        type: "text",
-        text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-        meta: meta
-      } as TextFragment],
-      meta: meta,
-    };
-  }
-
-  duration(ctx: any) : TimerFragment {
-    const tokens = [];
-    let multiplier = 1;
-    if (ctx.Trend) {
-      tokens.push(ctx.Trend[0]);
-      multiplier = ctx.Trend[0]?.image == "-" ? -1 : 1;
-    }
-
-    const digits = ctx.Timer[0].image
-      .split(":")
-      .map((segment: any) => 1 * (segment == "" ? 0 : segment))
-      .reverse();
-
-    tokens.push(ctx.Timer[0]);
-
-    while (digits.length < 4) {
-      digits.push(0);
-    }
-
-    const time = {
-      days: digits[3],
-      hours: digits[2],
-      minutes: digits[1],
-      seconds: digits[0],
-    };
-    const duration = multiplier *
-    (time.seconds +
-      time.minutes * 60 +
-      time.hours * 60 * 60 +
-      time.days * 60 * 60 * 24);
-
-    return {
-      type: "duration",      
-      duration: duration,   
-      meta: this.getMeta(tokens),
-      toPart: () => `${duration}s`
-    };
+  duration(ctx: any) : TimerFragment {    
+    const meta = this.getMeta([ctx.Timer[0]]);
+    const outcome = new TimerFragment(ctx.Timer[0].image, meta);    
+    return outcome;
   }
 
   resistance(ctx: any): ResistanceFragment { 
@@ -241,7 +200,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         length: 0,
       };
     }
-    const sorted = meta.sort((a: any, b: any) => a.startOffset - b.startOffset);
+    const sorted = meta.filter((item:any) => item != undefined).map((item: any) => ({ ...item, ...item.meta })).sort((a: any, b: any) => a.startOffset - b.startOffset);
     const columnEnd = sorted[sorted.length - 1].columnEnd;
     const columnStart = sorted[0].columnStart;
     return {

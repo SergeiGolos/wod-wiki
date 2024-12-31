@@ -1,10 +1,10 @@
+import '../../monaco-setup';
 import React, { useEffect, useRef } from 'react';
 import * as monaco from 'monaco-editor';
-import { MdTimerRuntime } from "../lib/md-timer";
+import { MdTimerRuntime } from "../../lib/md-timer";
 
 interface WodWikiProps {
   /** Initial code content */
-  current?: number;
   code?: string;
   /** Optional value change handler */
   onValueChange?: (value: any, editor: monaco.editor.IStandaloneCodeEditor) => void;
@@ -73,7 +73,6 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     // Subscribe to content change events
     const contentChangeDisposable = editorRef.current.onDidChangeModelContent(() => {
       if (!editorRef.current) return;
-      onValueChange?.({ outcome: [{ type: "notification", status: "compiling" }] }, editorRef.current);
       debouncedParse(editorRef.current.getValue());
     });
 

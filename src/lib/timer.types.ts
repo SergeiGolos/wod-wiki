@@ -1,3 +1,5 @@
+import { TimerFragment } from "./fragments/TimerFragment";
+
 export interface SourceCodeMetadata {
   line: number;
   startOffset: number;
@@ -14,7 +16,8 @@ export class SourceDisplayBlock implements DisplayBlock {
   ) {
     this.id = internal.id;
     this.depth = internal.parents?.length || 0;
-    this.block = internal;
+    this.block = internal;    
+    this.increment = this.getFragment<IncrementFragment>("increment", internal)?.increment || -1;
     this.round = 0;
     this.timestamps = [];
     this.duration = 0;
@@ -38,6 +41,7 @@ export class SourceDisplayBlock implements DisplayBlock {
 
   timestamps: Timestamp[];
   duration: number;
+  increment: number;
   parent?: StatementBlock | undefined;
   id: number;
   depth: number;
@@ -51,11 +55,19 @@ export class SourceDisplayBlock implements DisplayBlock {
     //if this.parents?.length > 0 {
     //  foreach
   }
+  getIncrement() :IncrementFragment | undefined {
+    return this.getFragment<IncrementFragment>("increment");
+  }
 
-  getFragment(type: string) : StatementFragment | undefined {
-    return this.block?.fragments.find((fragment: StatementFragment) =>
+  getDuration() :TimerFragment | undefined {
+    return this.getFragment<TimerFragment>("duration");
+  }
+
+
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) : T | undefined {
+    return (block || this.block)?.fragments?.find((fragment: StatementFragment) =>
         fragment.type === type
-    );
+    ) as T;
   }
 
   getParts(filter: string[] = []) {
@@ -74,6 +86,7 @@ export interface DisplayBlock {
   block: StatementBlock;
   timestamps: Timestamp[];
   duration: number;
+  increment: number;
   parent?: StatementBlock;
   id: number;
   depth: number;
@@ -81,18 +94,14 @@ export interface DisplayBlock {
   status?: string;
   
   startRound : () => void;
-  getFragment : (type: string) => StatementFragment | undefined;
+  getFragment<T extends StatementFragment>(type: string) : T | undefined;
   getParts: (filter?: string[]) => string[];
 } 
 
 export interface StatementFragment {
   type: string;
-  meta: SourceCodeMetadata;
+  meta?: SourceCodeMetadata;
   toPart: () => string;
-}
-
-export interface TimerFragment extends StatementFragment {
-  duration: number;
 }
 
 export interface RoundsFragment extends StatementFragment {
@@ -117,6 +126,15 @@ export interface TextFragment extends StatementFragment {
   level?: string;
 }
 
+export class IncrementFragment implements StatementFragment {  
+  constructor(public image: string, public meta?: SourceCodeMetadata) {
+    this.increment = image == "^" ? 1 : -1;
+  }  
+  type: string = "increment";
+  increment: number;
+  toPart: () => string = () => this.increment == 1 ? "⬆️" : "⬇️";
+}
+
 export interface StatementBlock {
   id: number;
   parents: number[];
@@ -126,8 +144,17 @@ export interface StatementBlock {
   fragments: StatementFragment[];
 }
 
+export class TimeSpan {  
+  start?: Timestamp;
+  stop?: Timestamp;
+  duration(): number {
+    let now = new Date();
+    return ((this.stop?.time ?? now).getTime() || 0) - (this.start?.time.getTime() || 0);
+  }
+}
+
 export interface Timestamp {
-  start: Date;
-  stop?: Date;
+  type: string;
+  time: Date;
   label?: string;
 }

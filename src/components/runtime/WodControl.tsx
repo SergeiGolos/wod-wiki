@@ -6,8 +6,8 @@ interface RuntimeControlProps {
   onReset: () => void;
 }
 
-export const WodControl: React.FC<RuntimeControlProps> = ({
-  isRunning,  
+export const WodControl: React.FC<RuntimeControlProps> = ({  
+  isRunning,
   onStart,
   onReset,
 }) => {

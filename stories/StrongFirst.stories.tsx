@@ -1,35 +1,25 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodRunner } from '../src/components/WodRunner';
+import { WodContainer } from '../src/components/WodContainer';
 import React from 'react';
 
-const meta: Meta<typeof WodRunner> = {
+const meta: Meta<typeof WodContainer> = {
   title: 'Workouts/StrongFirst',
-  component: WodRunner,
+  component: WodContainer,
   parameters: {
-    layout: 'centered',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '800px' }}>
-        <Story />
-      </div>
-    ),
-  ]
+    controls: { hideNoControlsWarning: true },
+    showPanel: false
+  }
 };
 
 export default meta;
-export type WodStory = StoryObj<typeof WodRunner>;
+export type WodStory = StoryObj<typeof WodContainer>;
 
 export const SimpleAndSinister: WodStory = {
   args: {
-    code:`# Simple & Sinister
-> Never contest for space with a kettlebell.
+    code:`:10 Get Ready
 
--:10 Get Ready
-
--5:00 100 KB Swings @70lb
--1:00 Rest
--10:00 10 Turkish Getups 70lb`
+5:00 100 KB Swings @70lb
+1:00 Rest
+10:00 10 Turkish Getups 70lb`
   },
 };
-

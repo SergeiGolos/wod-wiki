@@ -1,3 +1,4 @@
+import './monaco-setup';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime, WodRuntimeScript} from "./lib/md-timer";
 
@@ -23,7 +24,7 @@ export const createWodWiki = ({
     document.body.appendChild(container); // Ensure the container is attached to the DOM
 
     const editor = monaco.editor.create(container, {
-      value: "",
+      value: code,
       language: 'javascript',
       theme: 'vs-dark',
     });
@@ -58,6 +59,5 @@ export const createWodWiki = ({
       onCursorMoved && onCursorMoved(event.position);
     });
     
-    editor.setValue(code);
     return container;
 }

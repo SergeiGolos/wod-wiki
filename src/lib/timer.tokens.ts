@@ -11,10 +11,10 @@ export const Heading = createToken({
   pattern: /#{1,3}/,
 });
 
-export const Paragraph = createToken({
-  name: "Paragraph",
-  pattern: />/,
-});
+// export const Paragraph = createToken({
+//   name: "Paragraph",
+//   pattern: />/,
+// });
 
 export const Return = createToken({
   name: "Return",
@@ -61,14 +61,13 @@ export const Trend = createToken({
   name: "Trend",
   pattern: Lexer.NA,
 });
-export const Minus = createToken({
-  name: "Minus",
+export const ListItem = createToken({
+  name: "ListItem",
   pattern: /-/,
-  categories: Trend,
 });
 export const Plus = createToken({
   name: "Plus",
-  pattern: /\+/,
+  pattern: /\^/,
   categories: Trend,
 });
 
@@ -83,7 +82,6 @@ export const GroupClose = createToken({
 
 export const allTokens = [
   Heading,
-  Paragraph,
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier
@@ -94,7 +92,7 @@ export const allTokens = [
   Timer,
 
   Trend,
-  Minus,
+  ListItem,
   Plus,
 
   Load,
