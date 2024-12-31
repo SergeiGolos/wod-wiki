@@ -55,6 +55,9 @@ export class SourceDisplayBlock implements DisplayBlock {
     //if this.parents?.length > 0 {
     //  foreach
   }
+  getIncrement() :IncrementFragment | undefined {
+    return this.getFragment<IncrementFragment>("increment");
+  }
 
   getDuration() :TimerFragment | undefined {
     return this.getFragment<TimerFragment>("duration");
