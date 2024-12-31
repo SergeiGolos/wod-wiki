@@ -4,92 +4,122 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 
 <Meta title="Getting Started" />
 
-- TODO Insparaional brackground Images
+<div style={{ marginBottom: '2rem', height: '350px', overflow: 'hidden', position: 'relative' }}>
+  <img 
+    src="/stories/assets/Designer.png" 
+    alt="WOD Wiki Designer" 
+    style={{ 
+      position: 'absolute',
+      width: '100%',
+      height: 'auto',
+      top: '60%',
+      transform: 'translateY(-60%)'
+    }} 
+  />
+</div>
 
-Supercharge your markdown with WOD Wiki! Build actionable timers and track your progress all with a dazzle free, our of your way, text based wiki interface. 
+<div className="prose prose-slate max-w-none">
+  <p className="text-lg leading-relaxed">
+    Supercharge your markdown with WOD Wiki! Build actionable timers and track your progress all with a dazzle free, our of your way, text based wiki interface. 
+  </p>
 
-## Basic Syntax Guide
+  <h2 className="text-3xl font-bold mt-8 mb-4">Basic Syntax Guide</h2>
 
-### Timers
+  <h3 className="text-2xl font-semibold mt-6 mb-3">Timers</h3>
 
-Primary reason for WOD Wiki, timers to track your workouts, that requires [[timers]].  Lets put 30 seconds on the clock:
-<DemoWodContainer>
-<pre>:30</pre>
-</DemoWodContainer>
+  <p className="mb-4">
+    Primary reason for WOD Wiki, timers to track your workouts, that requires [[timers]]. Lets put 30 seconds on the clock:
+  </p>
 
-Some key features:
- - Time format is `days:hours:minutes:seconds` with a minimal of `:seconds`
- - Timers by default count down
+  <div className="my-4">
+    <DemoWodContainer>
+      <pre>:30</pre>
+    </DemoWodContainer>
+  </div>
 
-### Stopwatch
+  <div className="mb-4">
+    <p className="font-semibold mb-2">Some key features:</p>
+    <ul className="list-disc list-inside space-y-1">
+      <li>Time format is `days:hours:minutes:seconds` with a minimal of `:seconds`</li>
+      <li>Timers by default count down</li>
+    </ul>
+  </div>
 
-Countdowns are great, but workouts often call for a stopwatch instead, which starts from 0 and counts up indefinitely.
+  <h3 className="text-2xl font-semibold mt-6 mb-3">Stopwatch</h3>
 
-<DemoWodContainer>
-<pre>^</pre>
-</DemoWodContainer>
+  <p className="mb-4">
+    Countdowns are great, but workouts often call for a stopwatch instead, which starts from 0 and counts up indefinitely.
+  </p>
 
-### Bounded Stopwatch
+  <div className="my-4">
+    <DemoWodContainer>
+      <pre>^</pre>
+    </DemoWodContainer>
+  </div>
 
-Combining the a timer with a stopwatch creates a countup timer.
+  <h3 className="text-2xl font-semibold mt-6 mb-3">Bounded Stopwatch</h3>
 
-<DemoWodContainer>
-<pre>^:30</pre>
-</DemoWodContainer>
+  <p className="mb-4">
+    Combining the a timer with a stopwatch creates a countup timer.
+  </p>
 
+  <div className="my-4">
+    <DemoWodContainer>
+      <pre>^:30</pre>
+    </DemoWodContainer>
+  </div>
 
-## Timer Language Features
+  <h2 className="text-3xl font-bold mt-8 mb-4">Timer Language Features</h2>
 
-- **Headings**: Use `#`, `##`, or `###` for different heading levels
+  <ul className="list-disc list-inside space-y-2 mb-6">
+    <li><strong>Headings</strong>: Use `#`, `##`, or `###` for different heading levels</li>
+    <li><strong>Rounds</strong>: Use (n) where n is the number of rounds</li>
+    <li><strong>Durations</strong>: Use standard time format `mm:ss` or `hh:mm:ss`</li>
+    <li><strong>Weights</strong>: Use `@` followed by weight and optional unit (kg/lb)</li>
+    <li><strong>Effort</strong>: Simply describe what you are doing in text (e.g., "Push ups", "Deadlifts", "Sun Saluations", etc.)</li>
+  </ul>
 
-- **Rounds**: Use (n) where n is the number of rounds
-- **Durations**: Use standard time format `mm:ss` or `hh:mm:ss`
-- **Weights**: Use `@` followed by weight and optional unit (kg/lb)
-- **Effort **: Simply describe what you are doing in text (e.g., "Push ups", "Deadlifts", "Sun Saluations", etc.)
+  <h3 className="text-2xl font-semibold mt-6 mb-3">Tips for Writing Workouts</h3>
 
-### Tips for Writing Workouts
+  <ol className="list-decimal list-inside space-y-2 mb-6">
+    <li>Start with a clear heading describing the workout type</li>
+    <li>Specify rounds or time domains upfront</li>
+    <li>List movements with specific rep schemes</li>
+    <li>Include weight/loading information where relevant</li>
+    <li>Add notes about movement standards or scaling options</li>
+  </ol>
 
-1. Start with a clear heading describing the workout type
-2. Specify rounds or time domains upfront
-3. List movements with specific rep schemes
-4. Include weight/loading information where relevant
-5. Add notes about movement standards or scaling options
+  <h2 className="text-3xl font-bold mt-8 mb-4">Example Workouts</h2>
 
+  <h3 className="text-2xl font-semibold mt-6 mb-3">EMOM (Every Minute On the Minute)</h3>
 
-## Efforts
+  <p className="mb-4">
+    The expectation is that a countdown timer is running for a mintute during which the 10 push ups and 15 airs squats are performed.
+    Hitting the `Lap` button afre compleeting the set will results in a better tracking of work effort and rest timers. The results tracker 
+    will allow for cleanup and repetition tracking updates.
+  </p>
 
-TODO: Docs on effort tracking.
-
-## Rounds 
-
-
-# Loading/Weights**: Use @ notation
-
-<DemoWodContainer>
-<pre>@75kg
-  @150lb
-  @50</pre>
-</DemoWodContainer>
-
-### Example Workouts
-
-Here's a simple EMOM (Every Minute On the Minute) workout:
-
-<WodContainer>
-<pre># EMOM 10:00
+  <div className="my-4">
+    <DemoWodContainer>
+      <pre># 10 min EMOM
+(10) 1:00
 10 pushups
 15 air squats</pre>
-</WodContainer>
+    </DemoWodContainer>
+  </div>
 
-A more complex workout with rounds and weights:
+  <h3 className="text-2xl font-semibold mt-6 mb-3">Simple & Sinister</h3>
 
-<WodContainer>
-<pre># For Time (3)
-15 deadlifts @225lb
-12 burpees
-9 pull-ups</pre>
-</WodContainer>
+  <p className="mb-4">
+    A common workout format, often referred to as "Simple and Sinister." This workout calls fora minute of rest between a set of 
+    100 KB Swings and 10 Turkish Getups. Here the prescribed `Simple` standard weight is defined.
+  </p>
 
-
-
-The parser will automatically recognize and format your workout appropriately based on these syntax rules.
+  <div className="my-4">
+    <DemoWodContainer>
+      <pre>5:00 100 KB Swings @70lb
+1:00 Rest
+10:00 10 Turkish Getups 70lb</pre>
+    </DemoWodContainer>
+  </div>
+</div>
