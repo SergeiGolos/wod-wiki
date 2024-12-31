@@ -1,4 +1,3 @@
-import { editor } from "monaco-editor";
 import { WodRuntimeScript } from "./md-timer";
 import { DisplayBlock, SourceDisplayBlock, StatementBlock } from "./timer.types";
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Block } from "./WodRows";
 import { DisplayBlock } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
@@ -18,19 +18,37 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
 }) => {
   const [runnerIndex, setRunnerIndex] = useState<number>(current);
 
+  // Keep runnerIndex in sync with current prop
+  useEffect(() => {
+    setRunnerIndex(current);
+  }, [current]);
+
   const handleTimerEvent = (event: string) => {    
     const now = new Date();
-    const timestamps = blocks[runnerIndex].timestamps;
+    if (runnerIndex < 0 || runnerIndex >= blocks.length) return;
+    
+    const currentBlock = blocks[runnerIndex];
+    if (!currentBlock.timestamps) {
+      currentBlock.timestamps = [];
+    }
+    const timestamps = currentBlock.timestamps;
     
     switch (event) {
       case 'complete':      
-        timestamps[timestamps.length - 1].stop = now;
+        if (timestamps.length > 0) {
+          timestamps[timestamps.length - 1].stop = now;
+        }
+        
         const nextBlockIndex = blocks.findIndex(
           (block, idx) => idx > runnerIndex && block.duration !== undefined
         );
         
         if (nextBlockIndex !== -1) {
-          blocks[nextBlockIndex].timestamps.push({
+          const nextBlock = blocks[nextBlockIndex];
+          if (!nextBlock.timestamps) {
+            nextBlock.timestamps = [];
+          }
+          nextBlock.timestamps.push({
             start: now,
             stop: undefined
           });
@@ -42,17 +60,21 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         }
         break;
       case 'stop':        
-        timestamps[timestamps.length - 1].stop = now;
+        if (timestamps.length > 0) {
+          timestamps[timestamps.length - 1].stop = now;
+        }
         break;
       case 'started':        
-        blocks[runnerIndex].startRound();
+        currentBlock.startRound?.();
         timestamps.push({
           start: now,
           stop: undefined
         });
         break;
       case 'lap':
-        timestamps[timestamps.length - 1].stop = now;
+        if (timestamps.length > 0) {
+          timestamps[timestamps.length - 1].stop = now;
+        }
         timestamps.push({
           start: now,
           stop: undefined

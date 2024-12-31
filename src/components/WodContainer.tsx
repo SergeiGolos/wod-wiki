@@ -5,7 +5,7 @@ import { DisplayBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/WodCompiler";
 import { WodControl } from "./runtime/WodControl";
-import type { editor } from "monaco-editor";
+import * as monaco from 'monaco-editor';
 
 interface WodContainerProps {
   initialCode?: string;
@@ -21,7 +21,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({
 
   const handleEditorChange = (
     value: WodRuntimeScript | undefined,
-    editor: editor.IStandaloneCodeEditor
+    editor: monaco.editor.IStandaloneCodeEditor
   ) => {
     if (value) {
       const compiledBlocks = WodCompiler.compileCode(value);
@@ -36,8 +36,12 @@ export const WodContainer: React.FC<WodContainerProps> = ({
       (block: any) => block.duration !== undefined || block.duration === 0
     );
     if (firstBlockIndex !== -1) {
-      blocks[firstBlockIndex].round += 1;
-      blocks[firstBlockIndex].timestamps.push({
+      const firstBlock = blocks[firstBlockIndex];
+      if (!firstBlock.timestamps) {
+        firstBlock.timestamps = [];
+      }
+      firstBlock.round = (firstBlock.round || 0) + 1;
+      firstBlock.timestamps.push({
         start: new Date(),
         stop: undefined
       });

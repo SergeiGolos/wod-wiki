@@ -1,3 +1,4 @@
+import '../../monaco-setup';
 import React, { useEffect, useRef } from 'react';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime } from "../../lib/md-timer";

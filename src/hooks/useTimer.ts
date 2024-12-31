@@ -13,21 +13,38 @@ export const useTimer = ({ timestamps, block, onTimerUpdate, onTimerEvent }: Use
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["*","*"]);
   const [isRunning, setIsRunning] = useState(false);
 
+  // Ensure timestamps array is initialized
+  useEffect(() => {
+    if (!timestamps) {
+      console.warn('Timestamps array is undefined');
+      return;
+    }
+  }, [timestamps]);
+
   const handleStop = () => {
-    const last = timestamps?.length && timestamps[timestamps.length - 1];
+    if (!timestamps?.length) return;
+    
+    const last = timestamps[timestamps.length - 1];
     if (last && last.stop === undefined) {
       onTimerEvent?.("stop", block.id);
     }    
   };
 
   const handleStart = () => {    
-    const last = timestamps?.length && timestamps[timestamps.length - 1];
-    onTimerEvent?.("started", block.id);
+    if (!timestamps) return;
+    
+    const last = timestamps[timestamps.length - 1];
+    // Only start if there's no active timer
+    if (!last || last.stop !== undefined) {
+      onTimerEvent?.("started", block.id);
+    }
   };
 
   const handleLap = () => {
-    const last = (timestamps?.length && timestamps[timestamps.length - 1]) as Timestamp;
-    if (last && last.stop !== undefined) {
+    if (!timestamps?.length) return;
+
+    const last = timestamps[timestamps.length - 1];
+    if (last?.stop !== undefined) {
       return;
     }
     onTimerEvent?.("lap", block.id);
@@ -37,21 +54,22 @@ export const useTimer = ({ timestamps, block, onTimerUpdate, onTimerEvent }: Use
     let intervalId: NodeJS.Timeout;
 
     const updateTimer = () => {
-      const running = (timestamps?.length || 0) > 0 &&
-        timestamps[timestamps.length - 1].stop === undefined;
-      setIsRunning(running);
-
-      if (!isRunning && elapsedTime[0] !== "*") {
+      if (!timestamps?.length) {
+        setElapsedTime(["0", "0"]);
+        setIsRunning(false);
         return;
       }
 
-      let diffInSeconds =
-        timestamps?.reduce((acc, timestamp) => {
-          const stopTime = timestamp.stop || new Date();
-          return acc + (stopTime.getTime() - timestamp.start.getTime());
-        }, 0) / 1000 || 0;
+      const lastTimestamp = timestamps[timestamps.length - 1];
+      const running = lastTimestamp.stop === undefined;
 
-      if (block?.duration && diffInSeconds > block.duration || block.duration === 0) {
+      let diffInSeconds = timestamps.reduce((acc, timestamp) => {
+        if (!timestamp.start) return acc;
+        const stopTime = timestamp.stop || new Date();
+        return acc + (stopTime.getTime() - timestamp.start.getTime());
+      }, 0) / 1000;
+
+      if ((block?.duration && diffInSeconds > block.duration) || block.duration === 0) {
         onTimerEvent?.("complete", block.id);
       }
       onTimerUpdate?.(diffInSeconds);
@@ -60,16 +78,15 @@ export const useTimer = ({ timestamps, block, onTimerUpdate, onTimerEvent }: Use
       let displayTime = diffInSeconds;
       if (block?.increment) {
         if (block.increment > 0) {
-          // Count up from 0 to duration
           displayTime = diffInSeconds;
         } else if (block.increment < 0 && block.duration) {
-          // Count down from duration to 0
-          displayTime = block.duration - diffInSeconds;
+          displayTime = Math.max(0, block.duration - diffInSeconds);
         }
       }
 
       const time = new TimerFromSeconds(Math.abs(displayTime)).toClock();
-      setElapsedTime([time[0], time[1][0]]);    
+      setElapsedTime([time[0], time[1][0]]);
+      setIsRunning(running);
     };
 
     updateTimer();
@@ -80,7 +97,7 @@ export const useTimer = ({ timestamps, block, onTimerUpdate, onTimerEvent }: Use
         clearInterval(intervalId);
       }
     };
-  });
+  }, [timestamps, block, onTimerUpdate, onTimerEvent]);
 
   return {
     elapsedTime,
