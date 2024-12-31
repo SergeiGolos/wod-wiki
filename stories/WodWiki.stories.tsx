@@ -19,15 +19,9 @@ const meta: Meta<typeof WodContainer> = {
   title: 'Components/Wiki',
   component: WodContainer,
   parameters: {
-    layout: 'centered',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ minHeight: '400px', width: '800px' }}>
-        <Story />
-      </div>
-    ),
-  ],
+    controls: { hideNoControlsWarning: true },
+    showPanel: false
+  }
 };
 
 export default meta;

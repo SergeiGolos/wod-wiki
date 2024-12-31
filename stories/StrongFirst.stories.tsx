@@ -6,15 +6,9 @@ const meta: Meta<typeof WodContainer> = {
   title: 'Workouts/StrongFirst',
   component: WodContainer,
   parameters: {
-    layout: 'centered',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '800px' }}>
-        <Story />
-      </div>
-    ),
-  ]
+    controls: { hideNoControlsWarning: true },
+    showPanel: false
+  }
 };
 
 export default meta;
@@ -29,4 +23,3 @@ export const SimpleAndSinister: WodStory = {
 10:00 10 Turkish Getups 70lb`
   },
 };
-

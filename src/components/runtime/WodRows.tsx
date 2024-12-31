@@ -33,3 +33,11 @@ export const Block: React.FC<BlockProps> = ({ block }) => {
     </>
   );
 };
+
+export const CurrentBlock: React.FC<BlockProps> = ({ block }) => {  
+  return (
+    <div className="border-2 border-blue-500 rounded-lg p-2 bg-blue-50">      
+      <Block block={block} />
+    </div>
+  );
+};

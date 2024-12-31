@@ -4,17 +4,11 @@ import React from 'react';
 
 const meta: Meta<typeof WodContainer> = {
   title: 'Workouts/CrossfitLadies',
-  component: WodContainer,
+  component: WodContainer,  
   parameters: {
-    layout: 'centered',
-  },
-  decorators: [
-    (Story) => (
-      <div style={{ width: '800px' }}>
-        <Story />
-      </div>
-    ),
-  ]
+    controls: { hideNoControlsWarning: true },
+    showPanel: false
+  }
 };
 
 export default meta;

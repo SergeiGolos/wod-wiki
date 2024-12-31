@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Block } from "./WodRows";
+import { Block, CurrentBlock } from "./WodRows";
 import { DisplayBlock, Timestamp } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
@@ -79,6 +79,9 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
 
   function resetTimer(): void {
     handleTimerEvent("stopped");
+    for (let block of blocks) {
+      block.timestamps = [];
+    }
     setRunnerIndex(-1);
   }
 
@@ -102,13 +105,41 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
                     <Block block={block} key={block.id} />
                   ) : (
                     <>
-                      <Block block={block} key={block.id} />
+                      <CurrentBlock block={block} key={block.id} />
                       <WodTimer
                         key={block.id + "-timer"}
                         duration={currentDuration}
                         timestamps={currentTimestamps}
                         onTimerEvent={handleTimerEvent}
                       />
+                      {currentTimestamps.filter(ts => ts.type === "lap").length > 0 && (
+                        <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-2 font-semibold">Lap Times</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {currentTimestamps
+                              .filter(ts => ts.type === "lap")
+                              .map((lap, index) => {
+                                const startTime = currentTimestamps.find(ts => ts.type === "start")?.time;
+                                const lapTime = lap.time;
+                                const timeStr = startTime && lapTime
+                                  ? (() => {
+                                      const time = (lapTime.getTime() - startTime.getTime()) / 1000;
+                                      const minutes = Math.floor(time / 60);
+                                      const seconds = Math.floor(time % 60);
+                                      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                    })()
+                                  : "--:--";
+                                
+                                return (
+                                  <div key={index} className="bg-white px-3 py-2 rounded shadow-sm">
+                                    <div className="text-xs text-gray-500">Lap {index + 1}</div>
+                                    <div className="font-medium">{timeStr}</div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )
                 )}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, createContext } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { WodRunner } from "./runtime/WodRunner";
 import { DisplayBlock } from "../lib/timer.types";
@@ -10,12 +10,22 @@ interface WodContainerProps {
   code: string;
 }
 
+export const TimerContext = createContext<Date>(new Date());
+
 export const WodContainer: React.FC<WodContainerProps> = ({
   code = "",
 }) => {  
   const [blocks, setBlocks] = useState<DisplayBlock[]>([]);  
-  const [showEditor, setShowEditor] = useState(true);
+  const [showEditor, setShowEditor] = useState(true);  
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {    
+    const intervalId = setInterval(() => {
+      setTime(new Date());
+    }, 100);
 
+    return () => clearInterval(intervalId);
+  }, []);
+  
   const handleEditorCompile = (
     value: WodRuntimeScript | undefined,
     editor: monaco.editor.IStandaloneCodeEditor
@@ -35,18 +45,20 @@ export const WodContainer: React.FC<WodContainerProps> = ({
     }
   };  
 
-  return (
-    <div className="space-y-4">
-      {showEditor && (
-        <WodWiki
-          code={code}
-          onValueChange={handleEditorCompile}
-        />
-      )}      
-      <WodRunner
-        blocks={blocks}    
-        onStateChange={stateChangeHandler}
-      />    
-    </div>
+  return (    
+    <TimerContext.Provider value={ time }>
+      <div className="space-y-2">
+        {showEditor && (
+          <WodWiki
+            code={code}
+            onValueChange={handleEditorCompile}
+          />
+        )}      
+        <WodRunner
+          blocks={blocks}    
+          onStateChange={stateChangeHandler}
+        />    
+      </div>
+    </TimerContext.Provider>
   );
 };
