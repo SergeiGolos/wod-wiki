@@ -22,7 +22,7 @@ export type WodStory = StoryObj<typeof WodContainer>;
 
 export const Fran: WodStory = {
   args: {
-    initialCode:`# Fran
+    code:`# Fran
 
 :10 Get Ready
 
@@ -34,7 +34,7 @@ export const Fran: WodStory = {
 
 export const Annie: WodStory = {
   args: {
-    initialCode: `# Annie
+    code: `# Annie
 
 :10 Get Ready
 
@@ -46,7 +46,7 @@ export const Annie: WodStory = {
 
 export const Barbara: WodStory = {
   args: {
-    initialCode: `# Barbara
+    code: `# Barbara
 
 :10 Get Ready
 
@@ -61,7 +61,7 @@ export const Barbara: WodStory = {
 
 export const Chelsea: WodStory = {
   args: {
-    initialCode: `# Chelsea
+    code: `# Chelsea
 
 :10 Get Ready
 
@@ -74,7 +74,7 @@ export const Chelsea: WodStory = {
 
 export const Cindy: WodStory = {
   args: {
-    initialCode: `# Cindy
+    code: `# Cindy
 
 :10 Get Ready
 
@@ -87,7 +87,7 @@ export const Cindy: WodStory = {
 
 export const Diane: WodStory = {
   args: {
-    initialCode: `# Diane
+    code: `# Diane
 
 :10 Get Ready
 
@@ -99,7 +99,7 @@ export const Diane: WodStory = {
 
 export const Elizabeth: WodStory = {
   args: {
-    initialCode: `# Elizabeth
+    code: `# Elizabeth
 
 :10 Get Ready
 
@@ -111,7 +111,7 @@ export const Elizabeth: WodStory = {
 
 export const Grace: WodStory = {
   args: {
-    initialCode: `# Grace
+    code: `# Grace
 
 :10 Get Ready
 
@@ -121,7 +121,7 @@ export const Grace: WodStory = {
 
 export const Helen: WodStory = {
   args: {
-    initialCode: `# Helen
+    code: `# Helen
 
 :10 Get Ready
 
@@ -134,7 +134,7 @@ export const Helen: WodStory = {
 
 export const Isabel: WodStory = {
   args: {
-    initialCode: `# Isabel
+    code: `# Isabel
 
 :10 Get Ready
 
@@ -144,7 +144,7 @@ export const Isabel: WodStory = {
 
 export const Jackie: WodStory = {
   args: {
-    initialCode: `# Jackie
+    code: `# Jackie
 
 :10 Get Ready
 
@@ -156,7 +156,7 @@ export const Jackie: WodStory = {
 
 export const Karen: WodStory = {
   args: {
-    initialCode: `# Karen
+    code: `# Karen
 
 :10 Get Ready
 
@@ -166,7 +166,7 @@ export const Karen: WodStory = {
 
 export const Linda: WodStory = {
   args: {
-    initialCode: `# Linda (The Three Bars of Death)
+    code: `# Linda (The Three Bars of Death)
 
 :10 Get Ready
 
@@ -179,7 +179,7 @@ export const Linda: WodStory = {
 
 export const Mary: WodStory = {
   args: {
-    initialCode: `# Mary
+    code: `# Mary
 
 :10 Get Ready
 
@@ -192,7 +192,7 @@ export const Mary: WodStory = {
 
 export const Nancy: WodStory = {
   args: {
-    initialCode: `# Nancy
+    code: `# Nancy
 
 :10 Get Ready
 

@@ -8,13 +8,12 @@ import { WodControl } from "./runtime/WodControl";
 import * as monaco from 'monaco-editor';
 
 interface WodContainerProps {
-  initialCode?: string;
+  code?: string;
 }
 
 export const WodContainer: React.FC<WodContainerProps> = ({
-  initialCode = "",
-}) => {
-  const [code, setCode] = useState(initialCode);
+  code = "",
+}) => {  
   const [blocks, setBlocks] = useState<DisplayBlock[]>([]);
   const [currentBlock, setCurrentBlock] = useState(-1);
   const [showEditor, setShowEditor] = useState(true);
@@ -25,7 +24,8 @@ export const WodContainer: React.FC<WodContainerProps> = ({
   ) => {
     if (value) {
       const compiledBlocks = WodCompiler.compileCode(value);
-      setBlocks(compiledBlocks);
+      // TODO COMPILE eerors can feed back to the editor.
+      setBlocks(compiledBlocks);      
     }
   };
 
@@ -42,8 +42,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({
       }
       firstBlock.round = (firstBlock.round || 0) + 1;
       firstBlock.timestamps.push({
-        start: new Date(),
-        stop: undefined
+        type: "start", time: new Date(),        
       });
       setCurrentBlock(firstBlockIndex);
     }
@@ -70,10 +69,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({
       )}
 
       <WodRunner
-        blocks={blocks}
-        current={currentBlock}
-        onCurrentChange={setCurrentBlock}
-        showEditor={showEditor}
+        blocks={blocks}        
       />
     </div>
     </div>

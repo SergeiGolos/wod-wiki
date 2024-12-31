@@ -78,23 +78,21 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return this.visit(ctx.heading);
     }
 
-    if (ctx.paragraph) {
-      return this.visit(ctx.paragraph);
-    }    
     let statement = { type: "block", fragments: [] as StatementFragment[] } as StatementBlock;
     
     if (ctx.rounds) {
      statement.fragments.push(this.visit(ctx.rounds));   
      statement.type = "rounds";
     }
+    // Trend Parsing
     ctx.trend && statement.fragments.push( this.visit(ctx.trend));    
     (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("", this.getMeta([ctx.duration[0]])));
-    ctx.duration && statement.fragments.push( this.visit(ctx.duration));         
+
+    // Duration Parsing
+    ctx.duration && statement.fragments.push(this.visit(ctx.duration));         
     ctx.reps && statement.fragments.push( this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push( this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push( this.visit(ctx.resistance));      
-
-    
 
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
     return statement;

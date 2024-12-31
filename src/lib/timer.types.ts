@@ -141,8 +141,17 @@ export interface StatementBlock {
   fragments: StatementFragment[];
 }
 
+export class TimeSpan {  
+  start?: Timestamp;
+  stop?: Timestamp;
+  duration(): number {
+    let now = new Date();
+    return ((this.stop?.time ?? now).getTime() || 0) - (this.start?.time.getTime() || 0);
+  }
+}
+
 export interface Timestamp {
-  start: Date;
-  stop?: Date;
+  type: string;
+  time: Date;
   label?: string;
 }

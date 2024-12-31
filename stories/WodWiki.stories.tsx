@@ -35,13 +35,13 @@ export type WodStory = StoryObj<typeof WodContainer>;
 
 export const Empty: WodStory = {
   args: {
-    initialCode: '',        
+    code: '',        
   },
 };
 
 export const Countdown: WodStory = {
   args: {
-    initialCode: `# Countdown
+    code: `# Countdown
   :10 Get Ready
   20:00 Work`,
   },
@@ -49,7 +49,7 @@ export const Countdown: WodStory = {
 
 export const Emom: WodStory = {
   args: {
-    initialCode: `# EMOM 
+    code: `# EMOM 
 :10 Get Ready
 (30) 1:00 Work`,
   },
@@ -58,7 +58,7 @@ export const Emom: WodStory = {
 
 export const IronBlackJack: WodStory = {
   args: {
-    initialCode:`# Iron Black Jack 
+    code:`# Iron Black Jack 
 :10 Get Ready
 (30) 1:00
   10 Macebell Touchdowns @30lb
