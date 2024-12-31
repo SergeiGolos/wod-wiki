@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import { MdTimerRuntime } from "./md-timer";
-import { SourceDisplayBlock, TimerFragment } from "./timer.types";
+import { SourceDisplayBlock } from "./timer.types";
 
 test(`parsedDirectionUpDefault`, async () => {    
     const runtime = new MdTimerRuntime();

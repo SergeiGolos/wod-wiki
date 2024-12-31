@@ -1,156 +1,83 @@
-import React, { useState, useRef, useEffect } from "react";
-import { WodWiki } from "../editor/WodWiki";
+import React, { useState } from "react";
 import { Block } from "./WodRows";
-import { WodControl } from "./WodControl";
-import type { editor } from "monaco-editor";
-import { DisplayBlock, SourceDisplayBlock, StatementBlock, TimerFragment } from "../../lib/timer.types";
-import { WodRuntimeScript } from "../../lib/md-timer";
+import { DisplayBlock } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 
 interface WodRunnerProps {
-  code?: string;
-  current?: number;
+  blocks: DisplayBlock[];
+  current: number;
+  showEditor: boolean;
   onCurrentChange?: (current: number) => void;
 }
 
 export const WodRunner: React.FC<WodRunnerProps> = ({
-  code = "",
-  current = -1,
+  blocks,
+  current = -1,  
   onCurrentChange,
 }) => {
-  const [outcome, setOutcome] = useState<DisplayBlock[]>([]);
   const [runnerIndex, setRunnerIndex] = useState<number>(current);
-  const [showEditor, setShowEditor] = useState(true);
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  useEffect(() => {
-    if (showEditor && editorRef.current) {
-      setTimeout(() => {
-        editorRef.current?.focus();
-      }, 100);
-    }
-  }, [showEditor]);
-
-  const handleValueChange = (
-    value: WodRuntimeScript | undefined,
-    editor: editor.IStandaloneCodeEditor
-  ) => {
-    if (editor && !editorRef.current) {
-      editorRef.current = editor;
-      // Focus editor on initial mount
-      editor.focus();
-    }
-
-    if (value?.outcome) {
-      // If we get an empty outcome array, show empty state
-      if (value.outcome.length === 0) {
-        setOutcome([]);
-        return;
-      }      
-      
-      const getById = (id: number) : StatementBlock  => value?.outcome?.find((block: StatementBlock) => { 
-        return block.id === id;
-      }) as StatementBlock;
-
-      const script = value?.outcome?.map(
-        (block: StatementBlock): DisplayBlock => new SourceDisplayBlock(block, getById) as DisplayBlock);
-
-      setOutcome(script);
-    }
-  };
-
-  const startTimer = () => {    
-    setShowEditor(false);
-
-    // Find the first block with a duration
-    const firstBlockIndex = outcome.findIndex(
-      (block: any) => block.duration !== undefined || block.duration === 0
-    );
-    outcome[firstBlockIndex].round += 1; 
-    outcome[firstBlockIndex].timestamps.push({
-      start: new Date(),
-      stop: undefined
-    });
-    setRunnerIndex(firstBlockIndex);
-    onCurrentChange?.(firstBlockIndex);
-  };
-
-  const resetTimer = () => {
-    setRunnerIndex(-1);
-    setShowEditor(true);
-    // Reset both indices to 0
-    onCurrentChange?.(0);
-  };
-  
-  const handleTimerEvent = (event: string, data?: any) => {    
+  const handleTimerEvent = (event: string) => {    
     const now = new Date();
-    var timestamps = outcome[runnerIndex].timestamps;
+    const timestamps = blocks[runnerIndex].timestamps;
+    
     switch (event) {
       case 'complete':      
-        // Move to next block with duration
-        // will need to be handled somewhere else.
         timestamps[timestamps.length - 1].stop = now;
-        const nextBlockIndex = outcome.findIndex(
+        const nextBlockIndex = blocks.findIndex(
           (block, idx) => idx > runnerIndex && block.duration !== undefined
         );
         
         if (nextBlockIndex !== -1) {
-          outcome[nextBlockIndex].timestamps.push({
+          blocks[nextBlockIndex].timestamps.push({
             start: now,
             stop: undefined
           });
-
           setRunnerIndex(nextBlockIndex);
           onCurrentChange?.(nextBlockIndex);
         } else {
-          resetTimer();
+          setRunnerIndex(-1);
+          onCurrentChange?.(-1);
         }
         break;
       case 'stop':        
         timestamps[timestamps.length - 1].stop = now;
         break;
       case 'started':        
-        outcome[runnerIndex].startRound();
+        blocks[runnerIndex].startRound();
         timestamps.push({
           start: now,
           stop: undefined
         });
         break;
       case 'lap':
-        var time = now;
-        timestamps[timestamps.length - 1].stop = time;  // Handle lap timing if needed
+        timestamps[timestamps.length - 1].stop = now;
         timestamps.push({
-          start: time,
+          start: now,
           stop: undefined
         });
         break;
     }
   };
 
-  const hasBlocks = outcome.length > 0;
+  const hasBlocks = blocks.length > 0;
 
-  return (
-    <div className="relative">
+  return (    
       <div className="space-y-4">
-        {showEditor && (
-          <WodWiki
-            code={code}            
-            onValueChange={handleValueChange}
-          />
-        )}
-        {(!outcome || outcome.length === 0) && <EmptyWod />}            
+        {(!blocks || blocks.length === 0) && <EmptyWod />}            
         {hasBlocks && (
           <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
             <div className="min-w-full divide-y divide-gray-200">
               <div className="bg-white divide-y divide-gray-200">
-                {outcome.map((block, index) =>
+                {blocks.map((block, index) =>
                   runnerIndex !== index 
                   ? <Block block={block} key={block.id} />                  
                   : <WodTimer 
-                      block={block} 
-                      key={block.id} 
+                      key={block.id}
+                      block={block}
                       timestamps={block.timestamps}
+                      onTimerUpdate={() => {}}
                       onTimerEvent={handleTimerEvent}
                     />
                 )}
@@ -158,12 +85,6 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
             </div>
           </div>
         )}
-      </div>
-      <WodControl
-        isRunning={runnerIndex > -1}
-        onStart={startTimer}
-        onReset={resetTimer}
-      />
-    </div>
+      </div>    
   );
 };

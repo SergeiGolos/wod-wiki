@@ -1,3 +1,5 @@
+import { TimerFragment } from "./fragments/TimerFragment";
+
 export interface SourceCodeMetadata {
   line: number;
   startOffset: number;
@@ -99,10 +101,6 @@ export interface StatementFragment {
   toPart: () => string;
 }
 
-export interface TimerFragment extends StatementFragment {
-  duration: number;
-}
-
 export interface RoundsFragment extends StatementFragment {
   count: number;
 }
@@ -125,8 +123,13 @@ export interface TextFragment extends StatementFragment {
   level?: string;
 }
 
-export interface IncrementFragment extends StatementFragment {
+export class IncrementFragment implements StatementFragment {  
+  constructor(public image: string, public meta: SourceCodeMetadata) {
+    this.increment = image == "^" ? 1 : -1;
+  }  
+  type: string = "increment";
   increment: number;
+  toPart: () => string = () => this.increment == 1 ? "⬆️" : "⬇️";
 }
 
 export interface StatementBlock {

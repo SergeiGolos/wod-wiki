@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodRunner } from '../src/components/runtime/WodRunner';
+import { WodContainer } from '../src/components/WodContainer';
 import React from 'react';
 
-const meta: Meta<typeof WodRunner> = {
+const meta: Meta<typeof WodContainer> = {
   title: 'Workouts/StrongFirst',
-  component: WodRunner,
+  component: WodContainer,
   parameters: {
     layout: 'centered',
   },
@@ -18,11 +18,11 @@ const meta: Meta<typeof WodRunner> = {
 };
 
 export default meta;
-export type WodStory = StoryObj<typeof WodRunner>;
+export type WodStory = StoryObj<typeof WodContainer>;
 
 export const SimpleAndSinister: WodStory = {
   args: {
-    code:`# Simple & Sinister
+    initialCode:`# Simple & Sinister
 > Never contest for space with a kettlebell.
 
 :10 Get Ready

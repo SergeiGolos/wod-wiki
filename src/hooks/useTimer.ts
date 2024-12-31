@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DisplayBlock, Timestamp } from "../lib/timer.types";
-import { TimerFromSeconds } from "../lib/TimerFromSeconds";
+import { TimerFromSeconds } from "../lib/fragments/TimerFromSeconds";
 
 interface UseTimerProps {
   timestamps: Timestamp[];

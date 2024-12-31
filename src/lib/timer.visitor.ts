@@ -1,5 +1,6 @@
 import { MdTimerParse } from "./timer.parser";
-import type { EffortFragment, IncrementFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment, TimerFragment } from "./timer.types";
+import { EffortFragment, IncrementFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
+import { TimerFragment } from "./fragments/TimerFragment";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -69,12 +70,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   trend(ctx: any) : IncrementFragment {
-    return {
-      type: "increment",
-      increment: ctx.Trend[0].image == "^" ? 1 : -1,
-      meta: this.getMeta([ctx.Trend[0]]),
-      toPart: () => ctx.Trend[0].image == "^" ? "⬆️" : "⬇️"
-    };
+    return new IncrementFragment(ctx.Trend[0].image, this.getMeta([ctx.Trend[0]]));
   }
 
   wodBlock(ctx: any) : StatementBlock {
@@ -92,12 +88,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
      statement.type = "rounds";
     }
     ctx.trend && statement.fragments.push( this.visit(ctx.trend));    
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push({
-      type: "increment",
-      increment: -1,
-      meta: this.getMeta([ctx.duration[0]]),
-      toPart: () => "⬇️"
-    } as IncrementFragment);
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("", this.getMeta([ctx.duration[0]])));
     ctx.duration && statement.fragments.push( this.visit(ctx.duration));         
     ctx.reps && statement.fragments.push( this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push( this.visit(ctx.effort));         
@@ -154,43 +145,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     };
   }
 
-  duration(ctx: any) : TimerFragment {
-    const tokens = [];
-    let multiplier = 1;
-    if (ctx.Trend) {
-      tokens.push(ctx.Trend[0]);
-      multiplier = ctx.Trend[0]?.image == "-" ? -1 : 1;
-    }
-
-    const digits = ctx.Timer[0].image
-      .split(":")
-      .map((segment: any) => 1 * (segment == "" ? 0 : segment))
-      .reverse();
-
-    tokens.push(ctx.Timer[0]);
-
-    while (digits.length < 4) {
-      digits.push(0);
-    }
-
-    const time = {
-      days: digits[3],
-      hours: digits[2],
-      minutes: digits[1],
-      seconds: digits[0],
-    };
-    const duration = multiplier *
-    (time.seconds +
-      time.minutes * 60 +
-      time.hours * 60 * 60 +
-      time.days * 60 * 60 * 24);
-
-    return {
-      type: "duration",      
-      duration: duration,   
-      meta: this.getMeta(tokens),
-      toPart: () => `${duration}s`
-    };
+  duration(ctx: any) : TimerFragment {    
+    const meta = this.getMeta([ctx.Timer[0]]);
+    const outcome = new TimerFragment(ctx.Timer[0].image, meta);    
+    return outcome;
   }
 
   resistance(ctx: any): ResistanceFragment { 

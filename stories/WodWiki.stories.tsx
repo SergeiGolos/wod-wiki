@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodRunner } from '../src/components/runtime/WodRunner';
+import { WodContainer } from '../src/components/WodContainer';
 import React from 'react';
 
 // Initialize Monaco editor
@@ -15,9 +15,9 @@ if (typeof window !== 'undefined') {
   };
 }
 
-const meta: Meta<typeof WodRunner> = {
+const meta: Meta<typeof WodContainer> = {
   title: 'Components/Wiki',
-  component: WodRunner,
+  component: WodContainer,
   parameters: {
     layout: 'centered',
   },
@@ -31,18 +31,17 @@ const meta: Meta<typeof WodRunner> = {
 };
 
 export default meta;
-export type WodStory = StoryObj<typeof WodRunner>;
+export type WodStory = StoryObj<typeof WodContainer>;
 
 export const Empty: WodStory = {
   args: {
-    code: '',    
-    current: 0
+    initialCode: '',        
   },
 };
 
 export const Countdown: WodStory = {
   args: {
-    code: `# Countdown
+    initialCode: `# Countdown
   :10 Get Ready
   20:00 Work`,
   },
@@ -50,7 +49,7 @@ export const Countdown: WodStory = {
 
 export const Emom: WodStory = {
   args: {
-    code:`# EMOM 
+    initialCode: `# EMOM 
 :10 Get Ready
 (30) 1:00 Work`,
   },
@@ -59,7 +58,7 @@ export const Emom: WodStory = {
 
 export const IronBlackJack: WodStory = {
   args: {
-    code:`# Iron Black Jack 
+    initialCode:`# Iron Black Jack 
 :10 Get Ready
 (30) 1:00
   10 Macebell Touchdowns @30lb
