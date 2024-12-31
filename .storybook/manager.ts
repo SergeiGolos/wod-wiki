@@ -3,7 +3,7 @@ import wodTheme from './wodTheme';
 
 addons.setConfig({
   theme: wodTheme,
-  brandTitle: 'WOD Wiki',
+  brandImage: '/stories/assets/wod-wiki.png',
   brandUrl: 'https://wodwiki.com',
   brandTarget: '_self',
 });

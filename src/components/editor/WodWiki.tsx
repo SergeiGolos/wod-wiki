@@ -1,5 +1,5 @@
 import '../../monaco-setup';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime } from "../../lib/md-timer";
 
@@ -17,6 +17,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   onValueChange,
   onCursorMoved,
 }) => {
+  const lineHeight = 21; // pixels per line
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const interpreterRef = useRef(new MdTimerRuntime());
@@ -43,6 +44,8 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   // Debounced version of parseContent
   const debouncedParse = debounce(parseContent, 600);
 
+  const [editorHeight, setEditorHeight] = useState(lineHeight * 3);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -59,7 +62,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       renderLineHighlight: 'line',
       scrollBeyondLastLine: false,
       fontSize: 14,
-      lineHeight: 21,
+      lineHeight: lineHeight,
       padding: {
         top: 12,
         bottom: 12
@@ -69,6 +72,17 @@ export const WodWiki: React.FC<WodWikiProps> = ({
         horizontalScrollbarSize: 10
       }
     });
+
+    if (editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        // Update height when content changes
+        model.onDidChangeContent(() => {
+          const lineCount = model.getLineCount() + 1;
+          setEditorHeight(lineCount * lineHeight);
+        });
+      }
+    }
 
     // Subscribe to content change events
     const contentChangeDisposable = editorRef.current.onDidChangeModelContent(() => {
@@ -85,7 +99,9 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     if (code) {
       parseContent(code);
     }
-
+    const lineCount = code.split('\n').length + 1;
+    setEditorHeight(lineCount * lineHeight);
+    
     // Cleanup function
     return () => {
       contentChangeDisposable.dispose();
@@ -108,7 +124,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     <div 
       ref={containerRef} 
       className="w-full border border-gray-200 rounded-lg overflow-hidden"
-      style={{ height: '300px' }}
+      style={{ height: `${editorHeight}px` }}
     />
   );
 };
