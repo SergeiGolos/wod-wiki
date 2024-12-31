@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodRunner } from '../src/components/WodRunner';
+import { WodRunner } from '../src/components/runtime/WodRunner';
 import React from 'react';
 
 const meta: Meta<typeof WodRunner> = {
@@ -25,11 +25,11 @@ export const SimpleAndSinister: WodStory = {
     code:`# Simple & Sinister
 > Never contest for space with a kettlebell.
 
--:10 Get Ready
+:10 Get Ready
 
--5:00 100 KB Swings @70lb
--1:00 Rest
--10:00 10 Turkish Getups 70lb`
+5:00 100 KB Swings @70lb
+1:00 Rest
+10:00 10 Turkish Getups 70lb`
   },
 };
 

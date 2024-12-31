@@ -14,7 +14,8 @@ export class SourceDisplayBlock implements DisplayBlock {
   ) {
     this.id = internal.id;
     this.depth = internal.parents?.length || 0;
-    this.block = internal;
+    this.block = internal;    
+    this.increment = this.getFragment<IncrementFragment>("increment", internal)?.increment || -1;
     this.round = 0;
     this.timestamps = [];
     this.duration = 0;
@@ -38,6 +39,7 @@ export class SourceDisplayBlock implements DisplayBlock {
 
   timestamps: Timestamp[];
   duration: number;
+  increment: number;
   parent?: StatementBlock | undefined;
   id: number;
   depth: number;
@@ -57,8 +59,8 @@ export class SourceDisplayBlock implements DisplayBlock {
   }
 
 
-  getFragment<T extends StatementFragment>(type: string) : T | undefined {
-    return this.block?.fragments.find((fragment: StatementFragment) =>
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) : T | undefined {
+    return (block || this.block)?.fragments?.find((fragment: StatementFragment) =>
         fragment.type === type
     ) as T;
   }
@@ -79,6 +81,7 @@ export interface DisplayBlock {
   block: StatementBlock;
   timestamps: Timestamp[];
   duration: number;
+  increment: number;
   parent?: StatementBlock;
   id: number;
   depth: number;
@@ -86,7 +89,7 @@ export interface DisplayBlock {
   status?: string;
   
   startRound : () => void;
-  getFragment : (type: string) => StatementFragment | undefined;
+  getFragment<T extends StatementFragment>(type: string) : T | undefined;
   getParts: (filter?: string[]) => string[];
 } 
 
@@ -120,6 +123,10 @@ export interface RepFragment extends StatementFragment {
 export interface TextFragment extends StatementFragment {
   text: string;
   level?: string;
+}
+
+export interface IncrementFragment extends StatementFragment {
+  increment: number;
 }
 
 export interface StatementBlock {

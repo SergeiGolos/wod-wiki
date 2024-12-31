@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { MdTimerParse } from "../lib/timer.parser";
+import { MdTimerParse } from "../src/lib/timer.parser";
 import { createSyntaxDiagramsCode } from "chevrotain";
 
 interface SyntaxDiagramProps {

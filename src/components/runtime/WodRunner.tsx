@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { WodWiki } from "./WodWiki";
+import { WodWiki } from "../editor/WodWiki";
 import { Block } from "./WodRows";
 import { WodControl } from "./WodControl";
 import type { editor } from "monaco-editor";
-import { DisplayBlock, SourceDisplayBlock, StatementBlock, TimerFragment } from "../lib/timer.types";
-import { WodRuntimeScript } from "../lib/md-timer";
-import { EmptyWod } from "./EmptyWod";
-import { WodTimer } from "./WodTimer";
+import { DisplayBlock, SourceDisplayBlock, StatementBlock, TimerFragment } from "../../lib/timer.types";
+import { WodRuntimeScript } from "../../lib/md-timer";
+import { EmptyWod } from "../rows/EmptyWod";
+import { WodTimer } from "../timer/WodTimer";
 
 interface WodRunnerProps {
   code?: string;

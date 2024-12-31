@@ -26,7 +26,6 @@ test(`parsedDirectionDownExplicit`, async () => {
     expect(result.getDuration()?.duration).toBe(-11);    
 });
 
-
 test(`parsedMinutes`, async () => {    
     const runtime = new MdTimerRuntime();
     const { outcome } = runtime.read("11:00");
@@ -52,7 +51,6 @@ test(`parsedDays`, async () => {
     const timer = result.getDuration()?.duration as number
     expect(timer).toBe(11 * 60 * 60 * 24);
 });
-
 
 test(`parseMultipleLines`, async () => {    
     const runtime = new MdTimerRuntime();

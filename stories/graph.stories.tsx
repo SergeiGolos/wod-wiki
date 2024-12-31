@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { MdTimerParse } from "../src/lib/timer.parser";
 import { createSyntaxDiagramsCode } from "chevrotain";
-import { SyntaxDiagram } from '../src/components/SyntaxDiagram';
+import { SyntaxDiagram } from './SyntaxDiagram';
 import React from 'react';
 
 const meta: Meta<typeof SyntaxDiagram> = {

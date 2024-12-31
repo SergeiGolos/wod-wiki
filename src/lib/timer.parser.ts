@@ -36,12 +36,17 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.SUBRULE($.heading) },
           { ALT: () => $.SUBRULE($.paragraph) },
           { ALT: () => $.SUBRULE($.rounds) },
+          { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.reps) },
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
         ]);
       });
+    });
+
+    $.RULE("trend", () => {
+      $.CONSUME(Trend);
     });
 
     $.RULE("reps", () => {
@@ -73,9 +78,6 @@ export class MdTimerParse extends CstParser {
     });
 
     $.RULE("duration", () => {
-      $.OPTION(() => {
-        $.CONSUME(Trend);
-      });
       $.CONSUME(Timer);
     });
 

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodTimer } from '../src/components/WodTimer';
+import { WodTimer } from '../src/components/timer/WodTimer';
 import React from 'react';
-import { DisplayBlock, EffortFragment, StatementFragment, Timestamp } from '../src/lib/timer.types';
+import { DisplayBlock, EffortFragment, StatementFragment, StatementBlock, Timestamp } from '../src/lib/timer.types';
 
 const meta: Meta<typeof WodTimer> = {
   title: 'Components/Timer',
@@ -24,7 +24,20 @@ type Story = StoryObj<typeof WodTimer>;
 const baseBlock: DisplayBlock = {
   block: {
     fragments: [
-      { type: "effort", effort: "For Time", } as EffortFragment
+      { type: "effort", effort: "For Time", } as EffortFragment,
+      { 
+        type: "increment", 
+        increment: -1,
+        meta: { 
+          line: 0, 
+          startOffset: 0, 
+          endOffset: 0, 
+          columnStart: 0, 
+          columnEnd: 0, 
+          length: 0 
+        },
+        toPart: () => `increment ${-1}`
+      } as StatementFragment
     ], id: -1, parents: [], children: [], type: "block", meta: { line: 0, startOffset: 0, endOffset: 0, columnStart: 0, columnEnd: 0, length: 0 }
   },
   timestamps: [] as Timestamp[],
@@ -32,8 +45,11 @@ const baseBlock: DisplayBlock = {
   depth: 0,
   duration: 0,
   round: 0,
-  getFragment: function (type: string): StatementFragment | undefined {
-    throw new Error('Function not implemented.');
+  increment: -1,
+  getFragment: function <T extends StatementFragment>(type: string, block?: StatementBlock): T | undefined {
+    return (block || this.block)?.fragments?.find((fragment: StatementFragment) =>
+        fragment.type === type
+    ) as T;
   },
   getParts: function (filter?: string[]): string[] {
     throw new Error('Function not implemented.');
