@@ -16,8 +16,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   onStateChange,
 }) => {
   const [runnerIndex, setRunnerIndex] = useState<number>(-1);
-  const [currentDuration, setCurrentDuration] = useState<number>(0);
-  const [currentTimestamps, setCurrentTimestamps] = useState<Timestamp[]>([]);
+  const [currentBlock, setCurrentBlock] = useState<DisplayBlock>();
   const sequencer = new BlockSequencer(blocks);
   // Keep runnerIndex in sync with current prop
   useEffect(() => {
@@ -36,7 +35,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         if (index !== -1) {
           blocks[index].timestamps.push({ type: "start", time: now });
           setRunnerIndex(index);
-          setCurrentDuration(blocks[index]!.duration);
+          setCurrentBlock(blocks[index]);
         } else {
           setRunnerIndex(-1);
         }
@@ -51,15 +50,19 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         break;
       case "started":
         if (index === -1 && blocks.length > 0) {
-          index= 0;
+          index = 0;
           setRunnerIndex(index);
+        }
+        if (!blocks[index].timestamps) {
+          blocks[index].timestamps = [];
         }
         blocks[index]!.startRound();
         blocks[index]!.timestamps.push({
           type: "start",
           time: now,
         });
-        setCurrentDuration(blocks[index]!.duration);
+        setCurrentBlock(blocks[index]);
+        onStateChange("running");
         break;
       case "lap":
         blocks[index]!.timestamps.push({
@@ -67,8 +70,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
           time: now,
         });
         break;        
-    }
-    setCurrentTimestamps(index > -1 && index < blocks.length ? blocks[index]!.timestamps : []);
+    }    
   };
 
   const hasBlocks = blocks.length > 0;
@@ -107,19 +109,18 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
                     <>
                       <CurrentBlock block={block} key={block.id} />
                       <WodTimer
-                        key={block.id + "-timer"}
-                        duration={currentDuration}
-                        timestamps={currentTimestamps}
+                        key={block.id + "-timer"}                        
+                        block={currentBlock}
                         onTimerEvent={handleTimerEvent}
                       />
-                      {currentTimestamps.filter(ts => ts.type === "lap").length > 0 && (
-                        <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                      {block.timestamps.filter(ts => ts.type === "lap").length > 0 && (
+                        <div key={block.id + "-laps"} className="mt-2 p-4 bg-gray-50 rounded-lg">
                           <div className="text-sm text-gray-600 mb-2 font-semibold">Lap Times</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {currentTimestamps
+                            {block!.timestamps
                               .filter(ts => ts.type === "lap")
                               .map((lap, index) => {
-                                const startTime = currentTimestamps.find(ts => ts.type === "start")?.time;
+                                const startTime = block!.timestamps.find(ts => ts.type === "start")?.time;
                                 const lapTime = lap.time;
                                 const timeStr = startTime && lapTime
                                   ? (() => {
