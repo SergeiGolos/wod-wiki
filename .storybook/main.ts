@@ -6,46 +6,20 @@ const config: StorybookConfig = {
   addons: [
     "@storybook/addon-essentials",
     "@storybook/addon-links",
-    "@storybook/addon-interactions",
-    "@storybook/addon-mdx-gfm"
+    "@storybook/addon-interactions"
   ],
 
   framework: {
     name: "@storybook/react-vite",
-    options: {},
+    options: {}
   },
 
   docs: {
-    defaultName: 'Documentation',
-    docsMode: false,
     autodocs: false
   },
 
   core: {
     disableTelemetry: true
-  },
-
-  async viteFinal(config) {
-    return {
-      ...config,
-      define: { 
-        ...config.define,
-        global: "window"
-      },
-      optimizeDeps: {
-        ...config.optimizeDeps,
-        include: ['storybook-dark-mode', '@storybook/blocks'],
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: {
-              'storybook': ['@storybook/blocks']
-            }
-          }
-        }
-      }
-    };
   },
 
   typescript: {
