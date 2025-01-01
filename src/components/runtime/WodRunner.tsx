@@ -4,7 +4,7 @@ import { DisplayBlock, Timestamp } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 import { WodControl } from "./WodControl";
-import { BlockSequencer } from "../../lib/BlockSequencer";
+import { BlockSequencer } from "../../lib/timer.runtime";
 
 interface WodRunnerProps {
   blocks: DisplayBlock[];

@@ -3,7 +3,7 @@ import { WodWiki } from "./editor/WodWiki";
 import { WodRunner } from "./runtime/WodRunner";
 import { DisplayBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
-import { WodCompiler } from "../lib/WodCompiler";
+import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from 'monaco-editor';
 
 interface WodContainerProps {

@@ -2,35 +2,29 @@ import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
   stories: ["../stories/**/*.mdx", "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+
   addons: [
     "@storybook/addon-essentials",
     "@storybook/addon-links",
-    "@storybook/addon-interactions",    
+    "@storybook/addon-interactions"
   ],
+
   framework: {
     name: "@storybook/react-vite",
-    options: {},
+    options: {}
   },
+
   docs: {
-    autodocs: "tag",
+    autodocs: false
   },
+
   core: {
-    builder: "@storybook/builder-vite",
-    disableTelemetry: true,
+    disableTelemetry: true
   },
-  async viteFinal(config) {
-    return {
-      ...config,
-      define: { 
-        ...config.define,
-        global: "window"
-      },
-      optimizeDeps: {
-        ...config.optimizeDeps,
-        include: ['storybook-dark-mode'],
-      },
-    };
-  },
+
+  typescript: {
+    reactDocgen: "react-docgen-typescript"
+  }
 };
 
 export default config;
