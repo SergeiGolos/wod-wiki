@@ -2,22 +2,28 @@ import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
   stories: ["../stories/**/*.mdx", "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+
   addons: [
     "@storybook/addon-essentials",
     "@storybook/addon-links",
-    "@storybook/addon-interactions",    
+    "@storybook/addon-interactions",
+    "@storybook/addon-mdx-gfm"
   ],
+
   framework: {
     name: "@storybook/react-vite",
     options: {},
   },
+
   docs: {
-    autodocs: "tag",
+    defaultName: 'Documentation',
+    docsMode: true
   },
+
   core: {
-    builder: "@storybook/builder-vite",
-    disableTelemetry: true,
+    disableTelemetry: true
   },
+
   async viteFinal(config) {
     return {
       ...config,
@@ -27,10 +33,23 @@ const config: StorybookConfig = {
       },
       optimizeDeps: {
         ...config.optimizeDeps,
-        include: ['storybook-dark-mode'],
+        include: ['storybook-dark-mode', '@storybook/blocks'],
       },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'storybook': ['@storybook/blocks']
+            }
+          }
+        }
+      }
     };
   },
+
+  typescript: {
+    reactDocgen: "react-docgen-typescript"
+  }
 };
 
 export default config;
