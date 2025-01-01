@@ -19,17 +19,17 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 </div>
 
 <div className="prose prose-slate max-w-none">
-  <p className="text-lg leading-relaxed">
+  <div className="text-lg leading-relaxed">
     Supercharge your markdown with WOD Wiki! Build actionable timers and track your progress all with a dazzle free, our of your way, text based wiki interface. 
-  </p>
+  </div>
 
   <h2 className="text-3xl font-bold mt-8 mb-4">Basic Syntax Guide</h2>
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Timers</h3>
 
-  <p className="mb-4">
+  <div className="mb-4">
     Primary reason for WOD Wiki, timers to track your workouts, that requires [[timers]]. Lets put 30 seconds on the clock:
-  </p>
+  </div>
 
   <div className="my-4">
     <DemoWodContainer>
@@ -38,7 +38,7 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
   </div>
 
   <div className="mb-4">
-    <p className="font-semibold mb-2">Some key features:</p>
+    <div className="font-semibold mb-2">Some key features:</div>
     <ul className="list-disc list-inside space-y-1">
       <li>Time format is `days:hours:minutes:seconds` with a minimal of `:seconds`</li>
       <li>Timers by default count down</li>
@@ -47,9 +47,9 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Stopwatch</h3>
 
-  <p className="mb-4">
+  <div className="mb-4">
     Countdowns are great, but workouts often call for a stopwatch instead, which starts from 0 and counts up indefinitely.
-  </p>
+  </div>
 
   <div className="my-4">
     <DemoWodContainer>
@@ -59,9 +59,9 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Bounded Stopwatch</h3>
 
-  <p className="mb-4">
+  <div className="mb-4">
     Combining the a timer with a stopwatch creates a countup timer.
-  </p>
+  </div>
 
   <div className="my-4">
     <DemoWodContainer>
@@ -93,11 +93,11 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">EMOM (Every Minute On the Minute)</h3>
 
-  <p className="mb-4">
+  <div className="mb-4">
     The expectation is that a countdown timer is running for a mintute during which the 10 push ups and 15 airs squats are performed.
     Hitting the `Lap` button afre compleeting the set will results in a better tracking of work effort and rest timers. The results tracker 
     will allow for cleanup and repetition tracking updates.
-  </p>
+  </div>
 
   <div className="my-4">
     <DemoWodContainer>
@@ -110,10 +110,10 @@ import { DemoWodContainer } from "../src/components/DemoWodContainer";
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Simple & Sinister</h3>
 
-  <p className="mb-4">
+  <div className="mb-4">
     A common workout format, often referred to as "Simple and Sinister." This workout calls fora minute of rest between a set of 
     100 KB Swings and 10 Turkish Getups. Here the prescribed `Simple` standard weight is defined.
-  </p>
+  </div>
 
   <div className="my-4">
     <DemoWodContainer>

@@ -1,30 +1,28 @@
 import React, { useState, useEffect, useContext } from "react";
-import { TimeSpan, Timestamp } from "../../lib/timer.types";
+import { DisplayBlock, TimeSpan, Timestamp } from "../../lib/timer.types";
 import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 import { TimerContext } from "../WodContainer";
 
 export interface WodTimerProps {
-  timestamps: Timestamp[];
-  duration: number;
+  block?: DisplayBlock;  
   onTimerEvent?: (event: string, data?: any) => void;  
 }
 
 export const WodTimer: React.FC<WodTimerProps> = ({
-  timestamps,
-  duration,
+  block,  
   onTimerEvent,
 }) => {
+  const time = useContext(TimerContext);
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);  
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const time = useContext(TimerContext);
-
-  
-  // Ensure timestamps array is initialized
+      
   useEffect(() => {
-        
-    if (!timestamps?.length) {
+    if (!block) {
+      return;
+    }
+    if (!block.timestamps?.length) {
       setElapsedTime(["0", "00"]);
       setIsRunning(false);
       return;
@@ -33,7 +31,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     const spans = [] as TimeSpan[];
     let running = false;
     let timerSum = 0;
-    for (let ts of timestamps) {
+    for (let ts of block.timestamps) {
       if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop === undefined)) {
           running = true;                  
           const span = new TimeSpan();
@@ -52,20 +50,22 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 
     const diffInSeconds = timerSum / 1000;
 
-
-
-    if (diffInSeconds > duration) {
+    if (diffInSeconds > block.duration) {
       onTimerEvent?.("completed");
     }
 
+    const elapsed = block.increment > 0
+      ? Math.abs(diffInSeconds)  
+      : block.duration - Math.abs(diffInSeconds);
 
-    const time = new TimerFromSeconds(Math.abs(diffInSeconds)).toClock();
+      
+    const time = new TimerFromSeconds(elapsed).toClock();
     setElapsedTime([time[0], time[1][0]]);
     setIsRunning(running);  
 
     return () => {
     };
-  }, [timestamps, time]);
+  }, [block, time]);
 
   return (
     <div className="w-full flex flex-col items-center justify-center p-6 bg-white rounded-sm shadow-lg space-y-6">
