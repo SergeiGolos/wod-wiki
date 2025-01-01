@@ -22,7 +22,7 @@ jobs:
 
       - name: Update version
         run: |
-          npm version ${{ inputs.version }} -m "Bump version to %s"
+          node -e "const pkg=require('./package.json'); pkg.version='${{ inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))"
 
       - name: Install dependencies
         run: npm install
