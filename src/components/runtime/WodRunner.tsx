@@ -50,8 +50,11 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         break;
       case "started":
         if (index === -1 && blocks.length > 0) {
-          index= 0;
+          index = 0;
           setRunnerIndex(index);
+        }
+        if (!blocks[index].timestamps) {
+          blocks[index].timestamps = [];
         }
         blocks[index]!.startRound();
         blocks[index]!.timestamps.push({
@@ -59,6 +62,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
           time: now,
         });
         setCurrentBlock(blocks[index]);
+        onStateChange("running");
         break;
       case "lap":
         blocks[index]!.timestamps.push({

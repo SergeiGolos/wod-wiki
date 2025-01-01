@@ -20,9 +20,17 @@ export const WodTimer: React.FC<WodTimerProps> = ({
       
   useEffect(() => {
     if (!block) {
+      setElapsedTime(["0", "00"]);
+      setIsRunning(false);
       return;
     }
-    if (!block.timestamps?.length) {
+    
+    // Initialize with default values if no timestamps
+    if (!block.timestamps) {
+      block.timestamps = [];
+    }
+
+    if (!block.timestamps.length) {
       setElapsedTime(["0", "00"]);
       setIsRunning(false);
       return;
@@ -32,7 +40,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     let running = false;
     let timerSum = 0;
     for (let ts of block.timestamps) {
-      if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop === undefined)) {
+      if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop !== undefined)) {
           running = true;                  
           const span = new TimeSpan();
           span.start = ts;
@@ -50,7 +58,8 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 
     const diffInSeconds = timerSum / 1000;
 
-    if (diffInSeconds > block.duration) {
+    // Only complete if we're in countdown mode and reached duration
+    if (block.increment < 0 && diffInSeconds >= block.duration) {
       onTimerEvent?.("completed");
     }
 
