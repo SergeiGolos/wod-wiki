@@ -20,6 +20,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Update version
+        run: |
+          npm version ${{ inputs.version }} -m "Bump version to %s"
+
       - name: Install dependencies
         run: npm install
 
