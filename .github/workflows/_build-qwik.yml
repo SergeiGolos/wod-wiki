@@ -8,7 +8,7 @@ on:
         type: string
 jobs:
   create-release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04  
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -19,6 +19,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Update version
+        run: |
+          npm version ${{ inputs.version }} -m "Bump version to %s"
 
       - name: Install dependencies
         run: npm install

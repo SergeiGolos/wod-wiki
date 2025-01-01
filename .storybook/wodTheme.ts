@@ -1,10 +1,11 @@
 import { create } from '@storybook/theming/create';
+import { version } from '../package.json';
 
 export default create({
   base: 'light',
   
   // Brand
-  brandTitle: 'WOD.Wiki',
+  brandTitle: `WOD.Wiki - ${version}`,
   brandUrl: 'https://wod.wiki',
   brandTarget: '_self',
   // brandImage: '/stories/assets/wod-wiki.png', // Comment out or remove this line to show text
