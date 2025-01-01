@@ -67,8 +67,11 @@ export const WodWiki: React.FC<WodWikiProps> = ({
         bottom: 12
       },
       scrollbar: {
-        verticalScrollbarSize: 10,
-        horizontalScrollbarSize: 10
+        vertical: 'hidden',
+        horizontal: 'hidden',
+        verticalScrollbarSize: 0,
+        horizontalScrollbarSize: 0,
+        alwaysConsumeMouseWheel: false
       }
     });
 
@@ -78,7 +81,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
         // Update height when content changes
         model.onDidChangeContent(() => {
           const lineCount = model.getLineCount() + 1;
-          setEditorHeight(lineCount * lineHeight);
+          setEditorHeight(lineCount * lineHeight + 5);
         });
       }
     }
@@ -86,7 +89,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     // Subscribe to content change events
     const contentChangeDisposable = editorRef.current.onDidChangeModelContent(() => {
       if (!editorRef.current) return;
-      debouncedParse(editorRef.current.getValue());
+      debouncedParse(editorRef.current.getValue().trimEnd());
     });
 
     // Subscribe to cursor position change events
@@ -99,7 +102,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       parseContent(code);
     }
     const lineCount = code.split('\n').length + 1;
-    setEditorHeight(lineCount * lineHeight);
+    setEditorHeight(lineCount * lineHeight + 5) 
 
     // Cleanup function
     return () => {
