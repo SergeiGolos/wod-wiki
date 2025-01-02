@@ -2,17 +2,18 @@ import { Meta } from "@storybook/blocks";
 import { WodContainer } from "../src/components/WodContainer";
 import { DemoWodContainer } from "../src/components/DemoWodContainer";
 import { BuyMeACoffee } from "../src/components/BuyMeACoffee";
+import designerImage from './assets/Designer.png';
 
 <Meta title="Getting Started" />
 
-<div style={{ marginBottom: '2rem', height: '350px', overflow: 'hidden', position: 'relative' }}>
+<div style={{ marginBottom: '2rem', height: '250px', overflow: 'hidden', position: 'relative' }}>
   <img 
-    src="/stories/assets/Designer.png" 
+    src={designerImage} 
     alt="WOD Wiki Designer" 
     style={{ 
       position: 'absolute',
       width: '100%',
-      height: 'auto',
+      height: 'auto',      
       top: '60%',
       transform: 'translateY(-60%)'
     }} 

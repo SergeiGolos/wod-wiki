@@ -3,7 +3,6 @@ import { DisplayBlock, TimeSpan, Timestamp } from "../../lib/timer.types";
 import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
-import { TimerContext } from "../WodContainer";
 
 export interface WodTimerProps {
   block?: DisplayBlock;  
@@ -14,10 +13,19 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   block,  
   onTimerEvent,
 }) => {
-  const time = useContext(TimerContext);
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);  
   const [isRunning, setIsRunning] = useState<boolean>(false);
       
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {    
+    const intervalId = setInterval(() => {
+      setTime(new Date());
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, []);
+  
+
   useEffect(() => {
     if (!block) {
       setElapsedTime(["0", "00"]);
@@ -46,9 +54,11 @@ export const WodTimer: React.FC<WodTimerProps> = ({
           span.start = ts;
           spans.push(span);
       } else if (ts.type === "stop") {
-        running = false;
-        spans[spans.length - 1].stop = ts;
-        timerSum += spans[spans.length - 1].duration();
+        if (spans.length > 0 && !spans[spans.length - 1].stop) {
+          running = false;
+          spans[spans.length - 1].stop = ts;
+          timerSum += spans[spans.length - 1].duration();
+        }
       }
     }
     
@@ -58,8 +68,8 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 
     const diffInSeconds = timerSum / 1000;
 
-    // Only complete if we're in countdown mode and reached duration
-    if (block.increment < 0 && diffInSeconds >= block.duration) {
+    // Only complete if we're running, in countdown mode and reached duration
+    if (running && block.increment < 0 && diffInSeconds >= block.duration) {
       onTimerEvent?.("completed");
     }
 

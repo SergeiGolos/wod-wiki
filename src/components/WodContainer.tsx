@@ -10,21 +10,11 @@ interface WodContainerProps {
   code: string;
 }
 
-export const TimerContext = createContext<Date>(new Date());
-
 export const WodContainer: React.FC<WodContainerProps> = ({
   code = "",
 }) => {  
   const [blocks, setBlocks] = useState<DisplayBlock[]>([]);  
   const [showEditor, setShowEditor] = useState(true);  
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {    
-    const intervalId = setInterval(() => {
-      setTime(new Date());
-    }, 100);
-
-    return () => clearInterval(intervalId);
-  }, []);
   
   const handleEditorCompile = (
     value: WodRuntimeScript | undefined,
@@ -40,13 +30,12 @@ export const WodContainer: React.FC<WodContainerProps> = ({
   const stateChangeHandler = (state: any) => {
     if (state === "running") {
       setShowEditor(false);      
-    } else {
+    } else if (state === "idle"){
       setShowEditor(true);      
     }
   };  
 
-  return (    
-    <TimerContext.Provider value={ time }>
+  return (        
       <div className="space-y-2">
         {showEditor && (
           <WodWiki
@@ -58,7 +47,6 @@ export const WodContainer: React.FC<WodContainerProps> = ({
           blocks={blocks}    
           onStateChange={stateChangeHandler}
         />    
-      </div>
-    </TimerContext.Provider>
+      </div>    
   );
 };
