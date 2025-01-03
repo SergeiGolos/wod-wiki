@@ -80,22 +80,29 @@ export class SourceDisplayBlock implements DisplayBlock {
         return fragment.toPart();
       });
   }
+
+  isRunnable(): boolean {
+    return this.duration !== undefined && this.duration >= 0;
+  }
 }
 
 export interface DisplayBlock {
+  id: number;  
   block: StatementBlock;
-  timestamps: Timestamp[];
-  duration: number;
+  
+  status?: string;  
   increment: number;
-  parent?: StatementBlock;
-  id: number;
-  depth: number;
-  round: number;
-  status?: string;
+  duration: number;
+  timestamps: Timestamp[];
+  depth: number;    
+  
+  round: number;  
   
   startRound : () => void;
+
   getFragment<T extends StatementFragment>(type: string) : T | undefined;
   getParts: (filter?: string[]) => string[];
+  isRunnable: () => boolean;
 } 
 
 export interface StatementFragment {

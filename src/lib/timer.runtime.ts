@@ -1,77 +1,116 @@
 import { DisplayBlock } from "./timer.types";
 
-export class BlockSequencer {
-  constructor(private blocks: DisplayBlock[]) {}
+export class TimerSequencer {
+  private current:  [DisplayBlock | undefined, number]  = [undefined, -1];
+  private blockMap: { [key: number]: [DisplayBlock, number] } = {};
 
+  constructor(private blocks: DisplayBlock[]) {
+    // Create lookup map for blocks by ID
+    blocks.forEach((block, index) => {
+      this.blockMap[block.id] = [ block, index ] ;
+    });
+  }
+
+  // Allow accessing blocks by ID
+  [key: number]: [DisplayBlock | undefined, number] | undefined;
+  get(id: number): [DisplayBlock | undefined, number] | undefined {
+    return this.blockMap[id];
+  }
+
+  start(): [DisplayBlock | undefined, number] {
+    this.current = this.getNextBlock();
+    return this.current;
+  };
   /**
-   * Gets the next block that should run based on the current index
-   * @param currentIndex The current block index (-1 if no block is running)
-   * @returns The index of the next block to run, or -1 if no more blocks should run
+   * Resets all block timestamps
    */
-  getNextBlockIndex(currentIndex: number): number {
-    // If no blocks, can't run anything
+  reset(): void {
+    for (const block of this.blocks) {
+      block.timestamps = [];
+    }
+    this.current = [undefined, -1];
+  }  
+
+  getNextBlock(): [DisplayBlock | undefined, number] {
     if (!this.blocks || this.blocks.length === 0) {
-      return -1;
+      return [undefined, -1];
     }
 
-    // If no current block running, find first runnable block
-    if (currentIndex === -1) {
-      return this.findNextRunnableBlock(0);
-    }
-
-    // Find next block after current
-    return this.findNextRunnableBlock(currentIndex + 1);
+    const nextIndex = this.findNextRunnableBlock(this.current[1] + 1);
+    /// 
+    return nextIndex === -1 ? [undefined, -1] : [this.blocks[nextIndex], nextIndex];
   }
-
-  /**
-   * Determines if a block is runnable (has a duration)
-   */
-  private isBlockRunnable(block: DisplayBlock): boolean {
-    return block.duration !== undefined && block.duration >= 0;
-  }
-
+ 
   /**
    * Finds the next runnable block starting from the given index
    */
-  private findNextRunnableBlock(startIndex: number): number {
+  private findNextRunnableBlock(startIndex: number): number {            
     for (let i = startIndex; i < this.blocks.length; i++) {
-      if (this.isBlockRunnable(this.blocks[i])) {
+      if (this.blocks[i].isRunnable()) {
         return i;
       }
     }
     return -1;
   }
-
+  
   /**
-   * Gets the initial block that should run
-   * @returns The index of the first block that should run, or -1 if no blocks should run
+   * Handles timer events and manages block state transitions
    */
-  getInitialBlockIndex(): number {
-    return this.getNextBlockIndex(-1);
-  }
-
-  /**
-   * Checks if there are more blocks to run after the current index
-   * @param currentIndex The current block index
-   * @returns True if there are more blocks to run
-   */
-  hasMoreBlocks(currentIndex: number): boolean {
-    return this.getNextBlockIndex(currentIndex) !== -1;
-  }
-
-  /**
-   * Gets all blocks that should run in sequence
-   * @returns Array of block indices that will run in order
-   */
-  getFullSequence(): number[] {
-    const sequence: number[] = [];
-    let currentIndex = this.getInitialBlockIndex();
+  handleTimerEvent(event: 'completed' | 'stop' | 'started' | 'lap'): [ DisplayBlock | undefined, number ] {
+    const now = new Date();
     
-    while (currentIndex !== -1) {
-      sequence.push(currentIndex);
-      currentIndex = this.getNextBlockIndex(currentIndex);
+    switch (event) {
+      case 'completed':
+        this.handleBlockCompletion(now);
+        break;
+      case 'stop':
+        this.handleBlockStop(now);
+        break;
+      case 'started':
+        this.handleBlockStart(now);
+        break;
+      case 'lap':
+        this.handleLap(now);
+        break;
     }
 
-    return sequence;
+    return this.current;
   }
+
+  private handleBlockCompletion(timestamp: Date): void {    
+    if (this.current[0] && this.current[1] !== -1) {      
+      this.current[0].timestamps.push({ type: 'stop', time: timestamp });
+    }
+    
+    this.current = this.getNextBlock();
+    if (this.current[0] && this.current[1] !== -1) {
+      this.current[0].timestamps.push({ type: 'start', time: timestamp });
+    }  
+  }
+
+
+  private handleBlockStop(timestamp: Date): void {
+    if (this.current[0] && this.current[1] !== -1) {
+      this.current[0].timestamps.push({ type: 'stop', time: timestamp });
+    }
+  }
+
+  private handleBlockStart(timestamp: Date): void {
+    if (this.current[0] && this.current[1] !== -1) {            
+      if (!this.current[0].timestamps) {
+        this.current[0].timestamps = [];
+      }
+
+      this.current[0].startRound();
+      this.current[0].timestamps.push({ type: 'start', time: timestamp });
+    }
+  }
+
+  private handleLap(timestamp: Date): void {
+    if (this.current[0] && this.current[1] !== -1) {
+      this.current[0].timestamps.push({ type: 'lap', time: timestamp });
+    }
+  }
+
+  
 }
