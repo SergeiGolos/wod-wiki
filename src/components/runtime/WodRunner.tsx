@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Block, CurrentBlock } from "./WodRows";
-import { DisplayBlock } from "../../lib/timer.types";
+import { DisplayBlock, Timestamp } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 import { WodControl } from "./WodControl";
 import { TimerSequencer } from "../../lib/timer.runtime";
+import { LapTimes } from "../timer/LapTimes";
 
 export interface WodRunnerProps {
   blocks: DisplayBlock[];
@@ -23,6 +24,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   const [sequence, setSequence] = useState<TimerSequencer>(new TimerSequencer(blocks));
   const [currentBlock, setCurrentBlock] = useState<DisplayBlock>();
   const [currentIndex, setCurrentIndex] = useState(-1);    
+  const [currentTimestamp, setCurrentTimestamp] = useState<Timestamp[]>();
 
   const handleTimerEvent = (event: string) => {
     const nextBlock = sequence.handleTimerEvent(
@@ -33,6 +35,8 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
       setCurrentBlock(nextBlock[0]);
       setCurrentIndex(nextBlock[1]);
     }    
+
+    setCurrentTimestamp([...(nextBlock[0]?.timestamps || [])]);
 
     if (event !== state)
     {
@@ -81,58 +85,12 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
                   ) : (
                     <>
                       <CurrentBlock block={block} key={block.id} />
+                      {currentTimestamp && <LapTimes timestamps={currentTimestamp} />}
                       <WodTimer
                         key={block.id + "-timer"}
                         block={currentBlock}
                         onTimerEvent={handleTimerEvent}
                       />
-                      {block.timestamps.filter((ts) => ts.type === "lap")
-                        .length > 0 && (
-                        <div
-                          key={block.id + "-laps"}
-                          className="mt-2 p-4 bg-gray-50 rounded-lg"
-                        >
-                          <div className="text-sm text-gray-600 mb-2 font-semibold">
-                            Lap Times
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {block!.timestamps
-                              .filter((ts) => ts.type === "lap")
-                              .map((lap, index) => {
-                                const startTime = block!.timestamps.find(
-                                  (ts) => ts.type === "start"
-                                )?.time;
-                                const lapTime = lap.time;
-                                const timeStr =
-                                  startTime && lapTime
-                                    ? (() => {
-                                        const time =
-                                          (lapTime.getTime() -
-                                            startTime.getTime()) /
-                                          1000;
-                                        const minutes = Math.floor(time / 60);
-                                        const seconds = Math.floor(time % 60);
-                                        return `${minutes}:${seconds
-                                          .toString()
-                                          .padStart(2, "0")}`;
-                                      })()
-                                    : "--:--";
-
-                                return (
-                                  <div
-                                    key={index}
-                                    className="bg-white px-3 py-2 rounded shadow-sm"
-                                  >
-                                    <div className="text-xs text-gray-500">
-                                      Lap {index + 1}
-                                    </div>
-                                    <div className="font-medium">{timeStr}</div>
-                                  </div>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      )}
                     </>
                   )
                 )}
