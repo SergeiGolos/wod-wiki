@@ -85,6 +85,7 @@ export class TimerSequencer {
     this.current = this.getNextBlock();
     if (this.current[0] && this.current[1] !== -1) {
       this.current[0].timestamps.push({ type: 'start', time: timestamp });
+      this.current[0].laps += 1;;
     }  
   }
 
@@ -100,8 +101,7 @@ export class TimerSequencer {
       if (!this.current[0].timestamps) {
         this.current[0].timestamps = [];
       }
-
-      this.current[0].startRound();
+      
       this.current[0].timestamps.push({ type: 'start', time: timestamp });
     }
   }
@@ -109,6 +109,11 @@ export class TimerSequencer {
   private handleLap(timestamp: Date): void {
     if (this.current[0] && this.current[1] !== -1) {
       this.current[0].timestamps.push({ type: 'lap', time: timestamp });
+  
+          
+      if (this.current[0].round <=  this.current[0].laps) {
+        this.handleBlockCompletion(timestamp);
+      }
     }
   }
 

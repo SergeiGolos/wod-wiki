@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Timestamp } from "../../lib/timer.types";
+import { Timestamp, RuntimeBlock } from "../../lib/timer.types";
 
 interface LapTime {
   lapNumber: number;
   timeStr: string;
+  childIndex: number;
 }
 
 interface LapTimesProps {
   timestamps: Timestamp[];
+  block?: RuntimeBlock;
 }
 
-export const LapTimes: React.FC<LapTimesProps> = ({ timestamps }) => {
+export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block }) => {
   const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
 
   useEffect(() => {
     const laps = timestamps.filter((ts) => ts.type === "lap");
     const startTime = timestamps.find((ts) => ts.type === "start")?.time;
+    const blockChildren = block?.block?.children?.length || 1;
 
     const calculatedLaps = laps.map((lap, index) => {
       const lapTime = lap.time;
@@ -35,23 +38,24 @@ export const LapTimes: React.FC<LapTimesProps> = ({ timestamps }) => {
 
       return {
         lapNumber: index + 1,
-        timeStr
+        timeStr,
+        childIndex: blockChildren > 0 ? (index % blockChildren) + 1 : index + 1
       };
     });
 
     setLapTimes(calculatedLaps);
-  }, [timestamps]);
+  }, [timestamps, block]);
 
   return (
     <div className="mt-2">      
-      <div className="grid grid-cols-4 gap-2">
+      <div className="flex flex-col space-y-2">
         {lapTimes.map((lap) => (
           <div
             key={lap.lapNumber}
-            className="bg-white px-3 py-2 rounded shadow-sm"
+            className="bg-white px-3 py-2 rounded shadow-sm flex justify-between items-center"
           >
-            <div className="text-xs text-gray-500">
-              Lap {lap.lapNumber}
+            <div className="text-sm text-gray-500">
+              {block ? `Block ${lap.childIndex} - ` : ''}Lap {lap.lapNumber}
             </div>
             <div className="font-medium">{lap.timeStr}</div>
           </div>

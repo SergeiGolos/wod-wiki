@@ -13,7 +13,7 @@ export interface BlockProps {
 export const Block: React.FC<BlockProps> = ({ block }) => {  
   // Render the appropriate row component based on block type
   const renderContent = () => {
-    switch (block.block.type) {
+    switch (block.type) {
       case "notification":
         return <NotificationRow block={block} />;
       case "header":
