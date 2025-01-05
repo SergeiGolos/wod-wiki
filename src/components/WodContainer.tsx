@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext } from "react";
 import { WodWiki } from "./editor/WodWiki";
-import { WodRunner } from "./runtime/WodRunner";
+import { WodRunner, WodRuntimeState } from "./runtime/WodRunner";
 import { DisplayBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/timer.compiler";
@@ -28,9 +28,9 @@ export const WodContainer: React.FC<WodContainerProps> = ({
   };
   
   const stateChangeHandler = (state: any) => {
-    if (state === "running") {
+    if (state === WodRuntimeState.runner) {
       setShowEditor(false);      
-    } else if (state === "idle"){
+    } else {
       setShowEditor(true);      
     }
   };  

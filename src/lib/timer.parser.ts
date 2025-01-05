@@ -32,7 +32,7 @@ export class MdTimerParse extends CstParser {
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.SUBRULE($.heading) },          
+          { ALT: () => $.SUBRULE($.heading) },
           { ALT: () => $.SUBRULE($.rounds) },
           { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.reps) },
@@ -69,16 +69,18 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("rounds", () => {
       $.CONSUME(GroupOpen);
-      $.OR([
-        {
-          GATE: () => this.LA(1).tokenType === Identifier,
-          ALT: () => $.SUBRULE($.labels),
-        },
-        {
-          GATE: () => this.LA(1).tokenType === Integer,
-          ALT: () => $.CONSUME(Integer),
-        },
-      ]);
+      $.AT_LEAST_ONE(() => {
+        $.OR([
+          {
+            GATE: () => this.LA(1).tokenType === Identifier,
+            ALT: () => $.SUBRULE($.labels),
+          },
+          {
+            GATE: () => this.LA(1).tokenType === Integer,
+            ALT: () => $.CONSUME(Integer),
+          },
+        ]);
+      });
       $.CONSUME(GroupClose);
     });
 
