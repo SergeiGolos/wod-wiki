@@ -36,7 +36,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({
   };  
 
   return (        
-      <div className="space-y-2">
+      <div className="bg-gray-50 border-x border-gray-200 rounded-lg">
         {showEditor && (
           <WodWiki
             code={code}

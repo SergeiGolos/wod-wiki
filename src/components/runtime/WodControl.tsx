@@ -13,7 +13,7 @@ export const WodControl: React.FC<RuntimeControlProps> = ({
   onReset,
 }) => {
   return (
-    <div className="flex justify-end py-2 px-4 bg-gray-50 border-b">
+    <div className="flex justify-end py-2 px-4">
       <button
         onClick={
           runtimeState === WodRuntimeState.runner ? onReset : onStart
