@@ -14,6 +14,7 @@ import {
   AllowedSymbol,
   Distance,
   AtSign,
+  Plus,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -31,6 +32,7 @@ export class MdTimerParse extends CstParser {
     });
 
     $.RULE("wodBlock", () => {
+      $.OPTION(() => $.SUBRULE($.lap));
       $.AT_LEAST_ONE(() => {
         $.OR([          
           { ALT: () => $.SUBRULE($.rounds) },
@@ -41,6 +43,13 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.SUBRULE($.reps) },
         ]);
       });
+    });
+
+    $.RULE("lap", () => {
+      $.OR([
+        { ALT: () => $.CONSUME(Minus) },
+        { ALT: () => $.CONSUME(Plus) },
+      ]);
     });
 
     $.RULE("trend", () => {

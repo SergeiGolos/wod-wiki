@@ -1,5 +1,5 @@
 import { MdTimerParse } from "./timer.parser";
-import { EffortFragment, IncrementFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
+import { EffortFragment, IncrementFragment, LapFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
 import { TimerFragment } from "./fragments/TimerFragment";
 
 const parser = new MdTimerParse() as any;
@@ -86,6 +86,11 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
     statement.id = statement.meta.startOffset;
     return statement;
+  }
+
+  lap(ctx: any) : IncrementFragment[] {
+    const meta = this.getMeta([ctx.Lap[0]]);
+    return [new LapFragment(ctx.Lap[0].image, meta)];
   }
 
   trend(ctx: any) : IncrementFragment[] {
