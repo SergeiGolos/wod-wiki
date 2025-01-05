@@ -14,7 +14,7 @@ export class TimerSequencer {
   // Allow accessing blocks by ID
   [key: number]: [RuntimeBlock | undefined, number] | undefined;
   get(id: number): [RuntimeBlock | undefined, number] | undefined {
-    return this.blockMap[id];
+    return this?.blockMap[id];
   }
 
   start(): [RuntimeBlock | undefined, number] {
@@ -84,8 +84,7 @@ export class TimerSequencer {
     
     this.current = this.getNextBlock();
     if (this.current[0] && this.current[1] !== -1) {
-      this.current[0].timestamps.push({ type: 'start', time: timestamp });
-      this.current[0].laps += 1;;
+      this.current[0].timestamps.push({ type: 'start', time: timestamp });      
     }  
   }
 
@@ -110,7 +109,7 @@ export class TimerSequencer {
     if (this.current[0] && this.current[1] !== -1) {
       this.current[0].timestamps.push({ type: 'lap', time: timestamp });
   
-          
+      this.current[0].laps += 1;          
       if (this.current[0].round <=  this.current[0].laps) {
         this.handleBlockCompletion(timestamp);
       }

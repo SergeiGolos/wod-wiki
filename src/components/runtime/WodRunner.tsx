@@ -93,13 +93,13 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
                 currentIndex !== index ? (<>
                   <Block block={block} key={block.id} />
                   {block.timestamps && (
-                    <LapTimes timestamps={block.timestamps} block={block} />
+                    <LapTimes timestamps={block.timestamps} block={block} lookup={sequence.get} />
                  )}
                 </>) : (
                   <>
                     <CurrentBlock block={block} key={block.id} />
                     {currentTimestamp && (
-                      <LapTimes timestamps={currentTimestamp} block={block} />
+                      <LapTimes timestamps={currentTimestamp} block={block} lookup={sequence.get} />
                     )}
                     <WodTimer
                       key={block.id + "-timer"}

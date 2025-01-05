@@ -19,7 +19,7 @@ export class SourceDisplayBlock implements RuntimeBlock {
     this.depth = internal.parents?.length || 0;
     this.block = internal;    
     this.increment = increments.length > 0 ? increments[0]?.increment || -1 : -1;
-    this.round = 0;
+    this.round = this.getFragment<RoundsFragment>("rounds", internal)[0]?.count || 0;
     this.timestamps = [];
     this.duration = 0;
     if (internal.children?.length == 0) {

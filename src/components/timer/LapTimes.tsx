@@ -8,11 +8,12 @@ interface LapTime {
 }
 
 interface LapTimesProps {
+  lookup: (id: number) => [RuntimeBlock | undefined, number] | undefined;
   timestamps: Timestamp[];
   block?: RuntimeBlock;
 }
 
-export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block }) => {
+export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block, lookup }) => {
   const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
 
   useEffect(() => {
@@ -55,7 +56,10 @@ export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block }) => {
             className="bg-white px-3 py-2 rounded shadow-sm flex justify-between items-center"
           >
             <div className="text-sm text-gray-500">
-              {block ? `Block ${lap.childIndex} - ` : ''}Lap {lap.lapNumber}
+              {block && block.block && block.block.children && block.block.children.length > 0
+                ? `Block ${lookup(block.block.children[lap.childIndex - 1])?.[0]?.id} - `
+                : ''}
+              Lap {lap.lapNumber}
             </div>
             <div className="font-medium">{lap.timeStr}</div>
           </div>
