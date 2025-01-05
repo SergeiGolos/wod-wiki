@@ -74,7 +74,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
     // Trend Parsing
     ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("^"));
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("-"));
 
     // Duration Parsing
     ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
