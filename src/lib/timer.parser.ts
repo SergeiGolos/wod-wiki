@@ -15,6 +15,7 @@ import {
   Distance,
   AtSign,
   Plus,
+  Up,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {

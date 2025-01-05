@@ -16,6 +16,11 @@ export const Minus = createToken({
   pattern: /\-/,
 });
 
+export const Plus = createToken({
+  name: "Plus",
+  pattern: /\+/,
+});
+
 export const Timer = createToken({
   name: "Timer",
   pattern: /(?::\d+|(?:\d+:){1,3}\d+)/,
@@ -66,8 +71,8 @@ export const Trend = createToken({
   pattern: Lexer.NA,
 });
 
-export const Plus = createToken({
-  name: "Plus",
+export const Up = createToken({
+  name: "Up",
   pattern: /\^/,
   categories: Trend,
 });
@@ -91,8 +96,9 @@ export const allTokens = [
   AtSign,
   Timer,
   Trend,    
-  Plus,
+  Up,
   Minus,
+  Plus,
   Weight,
   Distance,
   QuestionSymbol,
