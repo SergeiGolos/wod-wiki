@@ -87,8 +87,8 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
       <div className="space-y-4">
         {(!blocks || blocks.length === 0) && <EmptyWod />}
         <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
-          <div className="min-w-full divide-y divide-gray-200">
-            <div className="bg-white divide-y divide-gray-200">
+          <div className="min-w-full">
+            <div className="bg-white">
               {blocks.map((block, index) =>
                 currentIndex !== index ? (<>
                   <Block block={block} key={block.id} />

@@ -19,11 +19,11 @@ export const RoundsRow: React.FC<RoundsRowProps> = ({
       }
     };
   return (
-    <div className="w-full flex px-6 py-2" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
+    <div className="w-full flex px-6 py-1" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
       <div className="flex-1 flex justify-between items-center">
         <div>
           {parts.length > 0 && (
-            <div className="flex gap-2 items-center text-gray-700 font-mono mb-1">
+            <div className="flex gap-2 items-center text-gray-700 font-mono">
               {parts.map((part, index) => (
                 <React.Fragment key={index}>
                   <span>{part}</span>
