@@ -111,26 +111,34 @@ export interface StatementFragment {
   toPart: () => string;
 }
 
-export interface RoundsFragment extends StatementFragment {
-  count: number;
+export class RoundsFragment implements StatementFragment {
+  constructor(public count: number, public meta?: SourceCodeMetadata) {}
+  type: string = "rounds";
+  toPart: () => string = () => `${this.count}x`;
 }
 
-export interface ResistanceFragment extends StatementFragment {
-  units: string;
-  value: string;
+export class ResistanceFragment implements StatementFragment {
+  constructor(public value: string, public units: string, public meta?: SourceCodeMetadata) {}
+  type: string = "resistance";
+  toPart: () => string = () => `${this.value}${this.units}`;
 }
 
-export interface EffortFragment extends StatementFragment {
-  effort: string;
+export class EffortFragment implements StatementFragment {
+  constructor(public effort: string, public meta?: SourceCodeMetadata) {}
+  type: string = "effort";
+  toPart: () => string = () => this.effort;
 }
 
-export interface RepFragment extends StatementFragment {
-  reps?: number;
+export class RepFragment implements StatementFragment {
+  constructor(public reps?: number, public meta?: SourceCodeMetadata) {}
+  type: string = "rep";
+  toPart: () => string = () => this.reps ? `x${this.reps}` : "";
 }
 
-export interface TextFragment extends StatementFragment {
-  text: string;
-  level?: string;
+export class TextFragment implements StatementFragment {
+  constructor(public text: string, public level?: string, public meta?: SourceCodeMetadata) {}
+  type: string = "text";
+  toPart: () => string = () => this.text;
 }
 
 export class IncrementFragment implements StatementFragment {  
@@ -145,15 +153,15 @@ export class IncrementFragment implements StatementFragment {
 export interface StatementBlock {
   id: number;
   parents: number[];
-  children: number[];
-  type: string;
+  children: number[];  
   meta: SourceCodeMetadata;
   fragments: StatementFragment[];
 }
 
-export class TimeSpan {  
+export class Timespan {  
   start?: Timestamp;
   stop?: Timestamp;
+  label?: string;
   duration(): number {
     let now = new Date();
     return ((this.stop?.time ?? now).getTime() || 0) - (this.start?.time.getTime() || 0);

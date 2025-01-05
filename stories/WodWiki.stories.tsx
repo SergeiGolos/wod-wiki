@@ -35,16 +35,14 @@ export const Empty: WodStory = {
 
 export const Countdown: WodStory = {
   args: {
-    code: `# Countdown
-  :10 Get Ready
+    code: `:10 Get Ready
   20:00 Work`,
   },
 };  
 
 export const Emom: WodStory = {
   args: {
-    code: `# EMOM 
-:10 Get Ready
+    code: `:10 Get Ready
 (30) 1:00 Work`,
   },
 };
@@ -52,8 +50,7 @@ export const Emom: WodStory = {
 
 export const IronBlackJack: WodStory = {
   args: {
-    code:`# Iron Black Jack 
-:10 Get Ready
+    code:`:10 Get Ready
 (30) 1:00
   10 Macebell Touchdowns @30lb
   6 KB swings @106lb

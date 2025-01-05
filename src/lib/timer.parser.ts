@@ -9,10 +9,8 @@ import {
   allTokens,
   Timer,
   Load,
-  Integer,
-  Heading,
-  AllowedSymbol,
-  QuestionSymbol,
+  Integer,  
+  Minus,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -31,8 +29,7 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.SUBRULE($.heading) },
+        $.OR([          
           { ALT: () => $.SUBRULE($.rounds) },
           { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.reps) },
@@ -50,19 +47,7 @@ export class MdTimerParse extends CstParser {
     $.RULE("reps", () => {
       $.CONSUME(Integer);
     });
-
-    $.RULE("heading", () => {
-      $.CONSUME(Heading);
-      $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
-        ]);
-      });
-    });
-
+    
     $.RULE("duration", () => {
       $.CONSUME(Timer);
     });
@@ -71,24 +56,22 @@ export class MdTimerParse extends CstParser {
       $.CONSUME(GroupOpen);
       $.AT_LEAST_ONE(() => {
         $.OR([
-          {
-            GATE: () => this.LA(1).tokenType === Identifier,
-            ALT: () => $.SUBRULE($.labels),
-          },
-          {
-            GATE: () => this.LA(1).tokenType === Integer,
-            ALT: () => $.CONSUME(Integer),
-          },
+          { ALT: () => $.CONSUME(Identifier, { LABEL: "label" }) },          
+          { ALT: () => $.SUBRULE($.sequence) },
         ]);
       });
       $.CONSUME(GroupClose);
-    });
+    });    
 
-    $.RULE("labels", () => {
-      $.MANY(() => {
-        $.CONSUME(Identifier, { LABEL: "label" });
+    $.RULE("sequence", () => {
+      $.AT_LEAST_ONE_SEP({
+        SEP: Minus,
+        DEF: () => {
+          $.CONSUME(Integer);
+        },
       });
     });
+
 
     $.RULE("resistance", () => {
       $.CONSUME(Load);
