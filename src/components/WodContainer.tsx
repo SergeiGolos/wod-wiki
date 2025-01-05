@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { WodRunner, WodRuntimeState } from "./runtime/WodRunner";
-import { DisplayBlock } from "../lib/timer.types";
+import { RuntimeBlock } from "../lib/timer.types";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from 'monaco-editor';
@@ -13,7 +13,7 @@ interface WodContainerProps {
 export const WodContainer: React.FC<WodContainerProps> = ({
   code = "",
 }) => {  
-  const [blocks, setBlocks] = useState<DisplayBlock[]>([]);  
+  const [blocks, setBlocks] = useState<RuntimeBlock[]>([]);  
   const [showEditor, setShowEditor] = useState(true);  
   
   const handleEditorCompile = (

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
-import { DisplayBlock, Timespan, Timestamp } from "../../lib/timer.types";
+import { RuntimeBlock, Timespan, Timestamp } from "../../lib/timer.types";
 import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 
 export interface WodTimerProps {
-  block?: DisplayBlock;  
+  block?: RuntimeBlock;  
   onTimerEvent?: (event: string, data?: any) => void;  
 }
 
@@ -69,7 +69,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     const diffInSeconds = timerSum / 1000;
 
     // Only complete if we're running, in countdown mode and reached duration
-    if (running && (diffInSeconds >= block.duration || (block.increment > 0 && block.duration  == 0))) {
+    if (running && (diffInSeconds >= block.duration && !(block.increment > 0 && block.duration  == 0))) {
       onTimerEvent?.("completed");
     }
 

@@ -1,10 +1,10 @@
-import { DisplayBlock } from "./timer.types";
+import { RuntimeBlock } from "./timer.types";
 
 export class TimerSequencer {
-  private current:  [DisplayBlock | undefined, number]  = [undefined, -1];
-  private blockMap: { [key: number]: [DisplayBlock, number] } = {};
+  private current:  [RuntimeBlock | undefined, number]  = [undefined, -1];
+  private blockMap: { [key: number]: [RuntimeBlock, number] } = {};
 
-  constructor(private blocks: DisplayBlock[]) {
+  constructor(private blocks: RuntimeBlock[]) {
     // Create lookup map for blocks by ID
     blocks.forEach((block, index) => {
       this.blockMap[block.id] = [ block, index ] ;
@@ -12,12 +12,12 @@ export class TimerSequencer {
   }
 
   // Allow accessing blocks by ID
-  [key: number]: [DisplayBlock | undefined, number] | undefined;
-  get(id: number): [DisplayBlock | undefined, number] | undefined {
+  [key: number]: [RuntimeBlock | undefined, number] | undefined;
+  get(id: number): [RuntimeBlock | undefined, number] | undefined {
     return this.blockMap[id];
   }
 
-  start(): [DisplayBlock | undefined, number] {
+  start(): [RuntimeBlock | undefined, number] {
     this.current = this.getNextBlock();
     return this.current;
   };
@@ -31,7 +31,7 @@ export class TimerSequencer {
     this.current = [undefined, -1];
   }  
 
-  getNextBlock(): [DisplayBlock | undefined, number] {
+  getNextBlock(): [RuntimeBlock | undefined, number] {
     if (!this.blocks || this.blocks.length === 0) {
       return [undefined, -1];
     }
@@ -56,7 +56,7 @@ export class TimerSequencer {
   /**
    * Handles timer events and manages block state transitions
    */
-  handleTimerEvent(event: 'completed' | 'stop' | 'started' | 'lap'): [ DisplayBlock | undefined, number ] {
+  handleTimerEvent(event: 'completed' | 'stop' | 'started' | 'lap'): [ RuntimeBlock | undefined, number ] {
     const now = new Date();
     
     switch (event) {

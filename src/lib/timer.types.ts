@@ -9,7 +9,7 @@ export interface SourceCodeMetadata {
   length: number;
 }
 
-export class SourceDisplayBlock implements DisplayBlock {
+export class SourceDisplayBlock implements RuntimeBlock {
   constructor(
     internal: StatementBlock,
     public lookup: (id: number) => StatementBlock
@@ -86,7 +86,14 @@ export class SourceDisplayBlock implements DisplayBlock {
   }
 }
 
-export interface DisplayBlock {
+export interface RuntimeResult {
+  id: number;  
+  round: number;  
+  block: StatementBlock;
+  timestamps: Timestamp[];  
+}
+
+export interface RuntimeBlock {
   id: number;  
   block: StatementBlock;
   

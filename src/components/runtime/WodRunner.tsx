@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Block, CurrentBlock } from "./WodRows";
-import { DisplayBlock, Timestamp } from "../../lib/timer.types";
+import { RuntimeBlock, Timestamp } from "../../lib/timer.types";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 import { WodControl } from "./WodControl";
@@ -8,7 +8,7 @@ import { TimerSequencer } from "../../lib/timer.runtime";
 import { LapTimes } from "../timer/LapTimes";
 
 export interface WodRunnerProps {
-  blocks: DisplayBlock[];
+  blocks: RuntimeBlock[];
   onStateChange: (state: string) => void;
 }
 
@@ -30,7 +30,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   const [sequence, setSequence] = useState<TimerSequencer>(
     new TimerSequencer(blocks)
   );
-  const [currentBlock, setCurrentBlock] = useState<DisplayBlock>();
+  const [currentBlock, setCurrentBlock] = useState<RuntimeBlock>();
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTimestamp, setCurrentTimestamp] = useState<Timestamp[]>();
   const [runtimeState, setRuntimeState] = useState<string>(WodRuntimeState.builder);

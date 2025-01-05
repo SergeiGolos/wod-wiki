@@ -1,9 +1,9 @@
 import React from "react";
-import { DisplayBlock, StatementFragment } from "../../lib/timer.types";
+import { RuntimeBlock, StatementFragment } from "../../lib/timer.types";
 
 
 interface ExerciseRowProps {
-  block: DisplayBlock;
+  block: RuntimeBlock;
 }
 
 export const ExerciseRow: React.FC<ExerciseRowProps> = ({ 

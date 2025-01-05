@@ -16,9 +16,7 @@ export type WodStory = StoryObj<typeof WodContainer>;
 
 export const SimpleAndSinister: WodStory = {
   args: {
-    code:`:10 Get Ready
-
-5:00 100 KB Swings @70lb
+    code:`5:00 100 KB Swings @70lb
 1:00 Rest
 10:00 10 Turkish Getups 70lb`
   },

@@ -73,11 +73,12 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.push(...this.visit(ctx.rounds));        
     }
     // Trend Parsing
-    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));    
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment(""));
+    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("^"));
 
     // Duration Parsing
     ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
+    ctx.duration == undefined && ctx.trend == undefined && statement.fragments.push(new IncrementFragment("^"));         
     ctx.reps && statement.fragments.push(...this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push(...this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));      
@@ -118,12 +119,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   effort(ctx: any): EffortFragment[] {
     var effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
-    return [{
-      type: "effort",
-      effort: effort,
-      meta: this.getMeta(ctx.Identifier),
-      toPart: () => effort
-    }];
+    return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
   
   rounds(ctx: any) : StatementFragment[] { 
