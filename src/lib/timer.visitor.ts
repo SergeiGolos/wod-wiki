@@ -1,5 +1,13 @@
 import { MdTimerParse } from "./timer.parser";
-import { EffortFragment, IncrementFragment, LapFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
+import { StatementBlock } from "./timer.types";
+import { IncrementFragment } from "./fragments/IncrementFragment";
+import { LapFragment } from "./fragments/LapFragment";
+import { TextFragment } from "./fragments/TextFragment";
+import { RepFragment } from "./fragments/RepFragment";
+import { EffortFragment } from "./fragments/EffortFragment";
+import { ResistanceFragment } from "./fragments/ResistanceFragment";
+import { RoundsFragment } from "./fragments/RoundsFragment";
+import { StatementFragment } from "./StatementFragment";
 import { TimerFragment } from "./fragments/TimerFragment";
 
 const parser = new MdTimerParse() as any;
@@ -73,12 +81,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.push(...this.visit(ctx.rounds));        
     }
     // Trend Parsing
-    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("-"));
-
-    // Duration Parsing
-    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
-    ctx.duration == undefined && ctx.trend == undefined && statement.fragments.push(new IncrementFragment("^"));         
+    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));      
+    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));             
     ctx.reps && statement.fragments.push(...this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push(...this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));      

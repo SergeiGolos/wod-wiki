@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { WodRunner } from "./runtime/WodRunner";
-import { RuntimeBlock } from "../lib/timer.types";
+import { RuntimeBlock } from "../lib/RuntimeBlock";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from 'monaco-editor';

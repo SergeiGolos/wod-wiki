@@ -1,5 +1,5 @@
 import React from "react";
-import { RuntimeBlock } from "../../lib/timer.types";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { NotificationRow } from "../rows/NotificationRow";
 import { HeaderRow } from "../rows/HeaderRow";
 import { ParagraphRow } from "../rows/ParagraphRow";

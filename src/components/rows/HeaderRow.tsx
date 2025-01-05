@@ -1,5 +1,6 @@
 import React from "react";
-import { StatementBlock, TextFragment } from "../../lib/timer.types";
+import { StatementBlock } from "../../lib/timer.types";
+import { TextFragment } from "../../lib/fragments/TextFragment";
 
 interface HeaderRowProps {
   block: StatementBlock;

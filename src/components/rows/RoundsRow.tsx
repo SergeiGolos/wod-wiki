@@ -1,5 +1,7 @@
 import React from "react";
-import { RuntimeBlock, RoundsFragment, StatementFragment } from "../../lib/timer.types";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
+import { RoundsFragment } from "../../lib/fragments/RoundsFragment";
+import { StatementFragment } from "../../lib/StatementFragment";
 
 
 interface RoundsRowProps {

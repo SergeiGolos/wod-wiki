@@ -1,5 +1,6 @@
 import React from "react";
-import { RuntimeBlock, StatementFragment } from "../../lib/timer.types";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
+import { StatementFragment } from "../../lib/StatementFragment";
 
 
 interface ExerciseRowProps {

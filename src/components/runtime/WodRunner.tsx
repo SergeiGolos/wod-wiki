@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Block, CurrentBlock } from "./WodRows";
-import { RuntimeBlock, Timestamp } from "../../lib/timer.types";
+import { Timestamp } from "../../lib/Timestamp";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 import { WodControl } from "./WodControl";

@@ -1,5 +1,6 @@
 import React from "react";
-import { RuntimeBlock, TextFragment } from "../../lib/timer.types";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
+import { TextFragment } from "../../lib/fragments/TextFragment";
 
 interface ParagraphRowProps {
   block: RuntimeBlock;  

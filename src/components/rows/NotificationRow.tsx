@@ -1,5 +1,6 @@
 import React from "react";
-import { RuntimeBlock, StatementBlock } from "../../lib/timer.types";
+import { StatementBlock } from "../../lib/timer.types";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 
 interface NotificationRowProps {
   block: RuntimeBlock;

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
-import { RuntimeBlock, Timespan, Timestamp } from "../../lib/timer.types";
+import { Timestamp } from "../../lib/Timestamp";
+import { ResultSpan } from "../../lib/Timespan";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
@@ -44,13 +46,13 @@ export const WodTimer: React.FC<WodTimerProps> = ({
       return;
     }
 
-    const spans = [] as Timespan[];
+    const spans = [] as ResultSpan[];
     let running = false;
     let timerSum = 0;
     for (let ts of block.timestamps) {
       if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop !== undefined)) {
           running = true;                  
-          const span = new Timespan();
+          const span = new ResultSpan();
           span.start = ts;
           spans.push(span);
       } else if (ts.type === "stop") {

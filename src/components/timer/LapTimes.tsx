@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Timestamp, RuntimeBlock } from "../../lib/timer.types";
+import { Timestamp } from "../../lib/Timestamp";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 
 interface LapTime {
   lapNumber: number;

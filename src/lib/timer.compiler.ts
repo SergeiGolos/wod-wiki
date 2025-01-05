@@ -1,5 +1,7 @@
 import { WodRuntimeScript } from "./md-timer";
-import { RuntimeBlock, SourceDisplayBlock, StatementBlock } from "./timer.types";
+import { IRuntimeHandler, StatementBlock } from "./timer.types";
+import { RuntimeBlock } from "./RuntimeBlock";
+import { SourceDisplayBlock } from "./SourceDisplayBlock";
 
 export class WodCompiler {
   static compileCode(
@@ -14,9 +16,10 @@ export class WodCompiler {
         return block.id === id;
       }) as StatementBlock;
 
+    const handler = {} as IRuntimeHandler;
     return value?.outcome?.map(
       (block: StatementBlock): RuntimeBlock =>
-        new SourceDisplayBlock(block, getById) as RuntimeBlock
+        new SourceDisplayBlock(block, handler, getById) as RuntimeBlock
     );
   }
 }
