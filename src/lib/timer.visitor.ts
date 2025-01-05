@@ -102,26 +102,14 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [new TimerFragment(ctx.Timer[0].image, meta)];    
   }
 
-  resistance(ctx: any): ResistanceFragment[] { 
-    let load = ctx.Load[0].image.replace("@", "");
-    let units = "default";
-    if (load.includes("kg")) {
-      load = load.replace("kg", "");
-      units = "kg";
-    }
-
-    if (load.includes("lb")) {
-      load = load.replace("lb", "");
-      units = "lb";
-    }
-
-    return [{
-      type: "resistance",      
-      units: units,
-      value: load,      
-      meta: this.getMeta([ctx.Load[0]]),
-      toPart: () => `${units}:${load}`
-    }];
+  resistance(ctx: any): ResistanceFragment[] {     
+    let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
+    let units = 
+      ctx.Weight && (ctx.Weight[0].image) || 
+      ctx.Distance && (ctx.Distance[0].image) ||    
+      "";
+    
+    return [ new ResistanceFragment(load, units)];
   }
 
   labels(ctx: any) {

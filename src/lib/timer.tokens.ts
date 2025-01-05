@@ -21,15 +21,23 @@ export const Timer = createToken({
   pattern: /(?::\d+|(?:\d+:){1,3}\d+)/,
 });
 
-export const Load = createToken({
-  name: "Load",
-  pattern: /(?:@\s*)?\d*\.?\d+\s*(?:kg|lb|BW)|@\s*\d+/,
+export const Distance = createToken({
+  name: "Distance",
+  pattern: /m|ft|mile/i,
+});
+export const Weight = createToken({
+  name: "Weight",
+  pattern: /(kg|lb|bw)/i,
 });
 
 export const AllowedSymbol = createToken({
   name: "AllowedSymbol",
   pattern: /[\\\/.,@!$%^*=&]+/,
   // pick up anything that isn't whitespace, a digit, or a "special" character
+});
+export const AtSign = createToken({
+  name: "AtSign",
+  pattern: /@/,
 });
 
 export const QuestionSymbol = createToken({
@@ -48,6 +56,7 @@ export const Identifier = createToken({
 });
 
 export const Comma = createToken({
+  
   name: "Comma",
   pattern: /,/,
 });
@@ -79,12 +88,13 @@ export const allTokens = [
   GroupOpen,
   GroupClose,
   Comma,
-
+  AtSign,
   Timer,
   Trend,    
   Plus,
   Minus,
-  Load,
+  Weight,
+  Distance,
   QuestionSymbol,
   AllowedSymbol,
   Identifier,

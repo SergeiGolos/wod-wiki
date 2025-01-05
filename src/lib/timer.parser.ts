@@ -8,10 +8,12 @@ import {
   Return,
   allTokens,
   Timer,
-  Load,
+  Weight,
   Number,  
   Minus,
   AllowedSymbol,
+  Distance,
+  AtSign,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -32,11 +34,11 @@ export class MdTimerParse extends CstParser {
       $.AT_LEAST_ONE(() => {
         $.OR([          
           { ALT: () => $.SUBRULE($.rounds) },
-          { ALT: () => $.SUBRULE($.trend) },
-          { ALT: () => $.SUBRULE($.reps) },
+          { ALT: () => $.SUBRULE($.trend) },          
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
+          { ALT: () => $.SUBRULE($.reps) },
         ]);
       });
     });
@@ -74,8 +76,14 @@ export class MdTimerParse extends CstParser {
     });
 
 
-    $.RULE("resistance", () => {
-      $.CONSUME(Load);
+    $.RULE("resistance", () => {            
+      $.OPTION1(() => $.CONSUME(AtSign));
+      $.OPTION(() => $.CONSUME(Number));
+      $.OR(
+        [
+          { ALT: () => $.CONSUME(Weight) },
+          { ALT: () => $.CONSUME(Distance) },
+        ]);        
     });
 
     $.RULE("effort", () => {
