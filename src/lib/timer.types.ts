@@ -19,7 +19,7 @@ export class SourceDisplayBlock implements RuntimeBlock {
     this.depth = internal.parents?.length || 0;
     this.block = internal;    
     this.increment = increments.length > 0 ? increments[0]?.increment || -1 : -1;
-    this.round = 0;
+    this.round = this.getFragment<RoundsFragment>("rounds", internal)[0]?.count || 0;
     this.timestamps = [];
     this.duration = 0;
     if (internal.children?.length == 0) {
@@ -39,6 +39,7 @@ export class SourceDisplayBlock implements RuntimeBlock {
       this.duration = inheritedDuration;
     }
   }
+  type: string = "block";
 
   timestamps: Timestamp[];
   duration: number;
@@ -48,6 +49,7 @@ export class SourceDisplayBlock implements RuntimeBlock {
   depth: number;
   block: StatementBlock;
   round: number;
+  laps: number = 0;
   status?: string | undefined;
 
   startRound() {
@@ -96,17 +98,17 @@ export interface RuntimeResult {
 export interface RuntimeBlock {
   id: number;  
   block: StatementBlock;
+  type: string;
   
-  status?: string;  
   increment: number;
   duration: number;
-  timestamps: Timestamp[];
-  depth: number;    
-  
-  round: number;  
-  
-  startRound : () => void;
 
+  timestamps: Timestamp[];
+  
+  depth: number;      
+  round: number; 
+  laps: number; 
+    
   getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) :  T[]
   getParts: (filter?: string[]) => string[];
   isRunnable: () => boolean;

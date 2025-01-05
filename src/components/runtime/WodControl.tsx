@@ -13,12 +13,12 @@ export const WodControl: React.FC<RuntimeControlProps> = ({
   onReset,
 }) => {
   return (
-    <div className="absolute top-1.5 right-1.5">
+    <div className="flex justify-end py-2 px-4 bg-gray-50 border-b">
       <button
         onClick={
           runtimeState === WodRuntimeState.runner ? onReset : onStart
         }        
-        className={`px-4 my-1 mx-3 py-1 rounded-full text-sm font-medium transition-colors ${
+        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
           runtimeState === WodRuntimeState.runner
             ? "bg-red-500 hover:bg-red-600 text-white"
             : "bg-green-500 hover:bg-green-600 text-white"

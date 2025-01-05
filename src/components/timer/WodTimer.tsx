@@ -70,7 +70,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 
     // Only complete if we're running, in countdown mode and reached duration
     if (running && (diffInSeconds >= block.duration && !(block.increment > 0 && block.duration  == 0))) {
-      onTimerEvent?.("completed");
+      onTimerEvent?.("lap");
     }
 
     const elapsed = block.increment > 0

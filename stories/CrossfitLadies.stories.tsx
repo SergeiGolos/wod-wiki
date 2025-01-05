@@ -33,10 +33,10 @@ export const Annie: WodStory = {
 export const Barbara: WodStory = {
   args: {
     code: `(5) Rounds
-  20 Pullups
-  30 Pushups
-  40 Situps
-  50 Air Squats
+  + 20 Pullups
+  + 30 Pushups
+  + 40 Situps
+  + 50 Air Squats
   :180 Rest`
   }
 };

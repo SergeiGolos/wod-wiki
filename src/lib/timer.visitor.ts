@@ -68,13 +68,13 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   wodBlock(ctx: any) : StatementBlock {
     
     let statement = { fragments: [] as StatementFragment[] } as StatementBlock;
-    
+    ctx.lap && statement.fragments.push(...this.visit(ctx.lap));
     if (ctx.rounds) {
       statement.fragments.push(...this.visit(ctx.rounds));        
     }
     // Trend Parsing
     ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("^"));
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("-"));
 
     // Duration Parsing
     ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
@@ -89,8 +89,17 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   lap(ctx: any) : IncrementFragment[] {
-    const meta = this.getMeta([ctx.Lap[0]]);
-    return [new LapFragment(ctx.Lap[0].image, meta)];
+    if (ctx.Plus) {
+      const meta = this.getMeta([ctx.Plus[0]]);
+      return [new LapFragment("+", meta)];
+    }
+
+    if (ctx.Minus) {
+      const meta = this.getMeta([ctx.Minus[0]]);
+      return [new LapFragment("-", meta)];
+    }
+
+    return [];    
   }
 
   trend(ctx: any) : IncrementFragment[] {
