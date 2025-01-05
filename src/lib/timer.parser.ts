@@ -9,8 +9,9 @@ import {
   allTokens,
   Timer,
   Load,
-  Integer,  
+  Number,  
   Minus,
+  AllowedSymbol,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -45,7 +46,7 @@ export class MdTimerParse extends CstParser {
     });
 
     $.RULE("reps", () => {
-      $.CONSUME(Integer);
+      $.CONSUME(Number);
     });
     
     $.RULE("duration", () => {
@@ -67,7 +68,7 @@ export class MdTimerParse extends CstParser {
       $.AT_LEAST_ONE_SEP({
         SEP: Minus,
         DEF: () => {
-          $.CONSUME(Integer);
+          $.CONSUME(Number);
         },
       });
     });
@@ -79,7 +80,11 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("effort", () => {
       $.AT_LEAST_ONE(() => {
-        $.CONSUME(Identifier);
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier) },
+          { ALT: () => $.CONSUME(AllowedSymbol) },
+          { ALT: () => $.CONSUME(Minus) },
+        ]);
       });
     });
 

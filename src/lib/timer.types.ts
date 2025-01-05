@@ -14,10 +14,11 @@ export class SourceDisplayBlock implements DisplayBlock {
     internal: StatementBlock,
     public lookup: (id: number) => StatementBlock
   ) {
+    const increments = this.getFragment<IncrementFragment>("increment", internal);
     this.id = internal.id;
     this.depth = internal.parents?.length || 0;
     this.block = internal;    
-    this.increment = this.getFragment<IncrementFragment>("increment", internal)?.increment || -1;
+    this.increment = increments.length > 0 ? increments[0]?.increment || -1 : -1;
     this.round = 0;
     this.timestamps = [];
     this.duration = 0;
@@ -55,19 +56,18 @@ export class SourceDisplayBlock implements DisplayBlock {
     //if this.parents?.length > 0 {
     //  foreach
   }
-  getIncrement() :IncrementFragment | undefined {
+  getIncrement() :IncrementFragment[] | undefined {
     return this.getFragment<IncrementFragment>("increment");
   }
 
-  getDuration() :TimerFragment | undefined {
+  getDuration() :TimerFragment[] | undefined {
     return this.getFragment<TimerFragment>("duration");
   }
 
-
-  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) : T | undefined {
-    return (block || this.block)?.fragments?.find((fragment: StatementFragment) =>
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) :  T[] {
+    return (block || this.block)?.fragments?.filter((fragment: StatementFragment) =>
         fragment.type === type
-    ) as T;
+    ) as T[];
   }
 
   getParts(filter: string[] = []) {
@@ -100,7 +100,7 @@ export interface DisplayBlock {
   
   startRound : () => void;
 
-  getFragment<T extends StatementFragment>(type: string) : T | undefined;
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) :  T[]
   getParts: (filter?: string[]) => string[];
   isRunnable: () => boolean;
 } 

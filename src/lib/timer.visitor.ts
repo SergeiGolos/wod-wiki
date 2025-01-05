@@ -93,8 +93,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   reps(ctx: any) : RepFragment[] {
-    const meta = this.getMeta([ctx.Integer[0]]);
-    return [ new RepFragment(ctx.Integer[0].image * 1, meta)];
+    const meta = this.getMeta([ctx.Number[0]]);
+    return [ new RepFragment(ctx.Number[0].image * 1, meta)];
   }
 
   duration(ctx: any) : TimerFragment[] {    
@@ -152,7 +152,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   sequence(ctx: any) : number[]{
-    return ctx.Integer.map((identifier: any) => identifier.image * 1);
+    return ctx.Number.map((identifier: any) => identifier.image * 1);
   }
 
 

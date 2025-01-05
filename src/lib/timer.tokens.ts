@@ -23,7 +23,7 @@ export const Timer = createToken({
 
 export const Load = createToken({
   name: "Load",
-  pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/,
+  pattern: /(?:@\s*)?\d*\.?\d+\s*(?:kg|lb|BW)|@\s*\d+/,
 });
 
 export const AllowedSymbol = createToken({
@@ -37,9 +37,9 @@ export const QuestionSymbol = createToken({
   pattern: /\?/,
 });
 
-export const Integer = createToken({
-  name: "Integer",
-  pattern: /\d+/,
+export const Number = createToken({
+  name: "Number",
+  pattern: /\d*\.?\d+/,
 });
 
 export const Identifier = createToken({
@@ -56,10 +56,7 @@ export const Trend = createToken({
   name: "Trend",
   pattern: Lexer.NA,
 });
-export const ListItem = createToken({
-  name: "ListItem",
-  pattern: /-/,
-});
+
 export const Plus = createToken({
   name: "Plus",
   pattern: /\^/,
@@ -91,5 +88,5 @@ export const allTokens = [
   QuestionSymbol,
   AllowedSymbol,
   Identifier,
-  Integer,
+  Number,
 ];

@@ -149,7 +149,7 @@ export const Mary: WodStory = {
   args: {
     code: `:10 Get Ready
 
-(20:00 AMRAP)
+20:00 AMRAP
   5 Handstand Pushups
   10 Single-leg Squats
   15 Pullups`
