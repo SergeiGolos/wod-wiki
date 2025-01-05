@@ -87,7 +87,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   }, [block, time]);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-6 bg-white rounded-sm shadow-lg space-y-6">
+    <div className="w-full flex flex-col items-center justify-center p-2 bg-white shadow-lg space-y-6">
       <TimerDisplay elapsedTime={elapsedTime} />
       <TimerControls
         isRunning={isRunning}
