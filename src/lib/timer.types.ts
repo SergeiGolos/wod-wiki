@@ -9,15 +9,16 @@ export interface SourceCodeMetadata {
   length: number;
 }
 
-export class SourceDisplayBlock implements DisplayBlock {
+export class SourceDisplayBlock implements RuntimeBlock {
   constructor(
     internal: StatementBlock,
     public lookup: (id: number) => StatementBlock
   ) {
+    const increments = this.getFragment<IncrementFragment>("increment", internal);
     this.id = internal.id;
     this.depth = internal.parents?.length || 0;
     this.block = internal;    
-    this.increment = this.getFragment<IncrementFragment>("increment", internal)?.increment || -1;
+    this.increment = increments.length > 0 ? increments[0]?.increment || -1 : -1;
     this.round = 0;
     this.timestamps = [];
     this.duration = 0;
@@ -55,19 +56,18 @@ export class SourceDisplayBlock implements DisplayBlock {
     //if this.parents?.length > 0 {
     //  foreach
   }
-  getIncrement() :IncrementFragment | undefined {
+  getIncrement() :IncrementFragment[] | undefined {
     return this.getFragment<IncrementFragment>("increment");
   }
 
-  getDuration() :TimerFragment | undefined {
+  getDuration() :TimerFragment[] | undefined {
     return this.getFragment<TimerFragment>("duration");
   }
 
-
-  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) : T | undefined {
-    return (block || this.block)?.fragments?.find((fragment: StatementFragment) =>
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) :  T[] {
+    return (block || this.block)?.fragments?.filter((fragment: StatementFragment) =>
         fragment.type === type
-    ) as T;
+    ) as T[];
   }
 
   getParts(filter: string[] = []) {
@@ -86,7 +86,14 @@ export class SourceDisplayBlock implements DisplayBlock {
   }
 }
 
-export interface DisplayBlock {
+export interface RuntimeResult {
+  id: number;  
+  round: number;  
+  block: StatementBlock;
+  timestamps: Timestamp[];  
+}
+
+export interface RuntimeBlock {
   id: number;  
   block: StatementBlock;
   
@@ -100,7 +107,7 @@ export interface DisplayBlock {
   
   startRound : () => void;
 
-  getFragment<T extends StatementFragment>(type: string) : T | undefined;
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock) :  T[]
   getParts: (filter?: string[]) => string[];
   isRunnable: () => boolean;
 } 
@@ -111,26 +118,34 @@ export interface StatementFragment {
   toPart: () => string;
 }
 
-export interface RoundsFragment extends StatementFragment {
-  count: number;
+export class RoundsFragment implements StatementFragment {
+  constructor(public count: number, public meta?: SourceCodeMetadata) {}
+  type: string = "rounds";
+  toPart: () => string = () => `${this.count}x`;
 }
 
-export interface ResistanceFragment extends StatementFragment {
-  units: string;
-  value: string;
+export class ResistanceFragment implements StatementFragment {
+  constructor(public value: string, public units: string, public meta?: SourceCodeMetadata) {}
+  type: string = "resistance";
+  toPart: () => string = () => `${this.value}${this.units}`;
 }
 
-export interface EffortFragment extends StatementFragment {
-  effort: string;
+export class EffortFragment implements StatementFragment {
+  constructor(public effort: string, public meta?: SourceCodeMetadata) {}
+  type: string = "effort";
+  toPart: () => string = () => this.effort;
 }
 
-export interface RepFragment extends StatementFragment {
-  reps?: number;
+export class RepFragment implements StatementFragment {
+  constructor(public reps?: number, public meta?: SourceCodeMetadata) {}
+  type: string = "rep";
+  toPart: () => string = () => this.reps ? `x${this.reps}` : "";
 }
 
-export interface TextFragment extends StatementFragment {
-  text: string;
-  level?: string;
+export class TextFragment implements StatementFragment {
+  constructor(public text: string, public level?: string, public meta?: SourceCodeMetadata) {}
+  type: string = "text";
+  toPart: () => string = () => this.text;
 }
 
 export class IncrementFragment implements StatementFragment {  
@@ -145,15 +160,15 @@ export class IncrementFragment implements StatementFragment {
 export interface StatementBlock {
   id: number;
   parents: number[];
-  children: number[];
-  type: string;
+  children: number[];  
   meta: SourceCodeMetadata;
   fragments: StatementFragment[];
 }
 
-export class TimeSpan {  
+export class Timespan {  
   start?: Timestamp;
   stop?: Timestamp;
+  label?: string;
   duration(): number {
     let now = new Date();
     return ((this.stop?.time ?? now).getTime() || 0) - (this.start?.time.getTime() || 0);

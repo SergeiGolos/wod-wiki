@@ -1,8 +1,8 @@
 import React from "react";
-import { DisplayBlock, TextFragment } from "../../lib/timer.types";
+import { RuntimeBlock, TextFragment } from "../../lib/timer.types";
 
 interface ParagraphRowProps {
-  block: DisplayBlock;  
+  block: RuntimeBlock;  
 }
 
 export const ParagraphRow: React.FC<ParagraphRowProps> = ({ block }) => {

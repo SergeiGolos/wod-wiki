@@ -1,8 +1,8 @@
 import React from "react";
-import { DisplayBlock, StatementBlock } from "../../lib/timer.types";
+import { RuntimeBlock, StatementBlock } from "../../lib/timer.types";
 
 interface NotificationRowProps {
-  block: DisplayBlock;
+  block: RuntimeBlock;
 }
 
 export const NotificationRow: React.FC<NotificationRowProps> = ({ block }) => {

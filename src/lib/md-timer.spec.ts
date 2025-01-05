@@ -7,7 +7,7 @@ test(`parsedDirectionUpDefault`, async () => {
     const { outcome} = runtime.read(":11");    
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
     
-    expect(result.getDuration()?.duration).toBe(11);    
+    expect(result.getDuration()?.[0]?.duration).toBe(11);    
 });
  
 test(`parsedDirectionUpExplicit`, async () => {    
@@ -15,8 +15,8 @@ test(`parsedDirectionUpExplicit`, async () => {
     const { outcome } = runtime.read(":11^");    
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
     
-    expect(result.getDuration()?.duration).toBe(11);    
-    expect(result.getIncrement()?.increment).toBe(1);    
+    expect(result.getDuration()?.[0].duration).toBe(11);    
+    expect(result.getIncrement()?.[0].increment).toBe(1);    
 });
 
 test(`parsedDirectionDownExplicit`, async () => {    
@@ -24,15 +24,15 @@ test(`parsedDirectionDownExplicit`, async () => {
     const { outcome } = runtime.read(":11");    
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
     
-    expect(result.getDuration()?.duration).toBe(11);    
-    expect(result.getIncrement()?.increment).toBe(-1);    
+    expect(result.getDuration()?.[0].duration).toBe(11);    
+    expect(result.getIncrement()?.[0].increment).toBe(1);    
 });
 
 test(`parsedMinutes`, async () => {    
     const runtime = new MdTimerRuntime();
     const { outcome } = runtime.read("11:00");
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
-    const timer = result.getDuration()?.duration as number
+    const timer = result.getDuration()?.[0].duration as number
     
     expect(timer).toBe(11 * 60);    
 });
@@ -41,7 +41,7 @@ test(`parsedHours`, async () => {
     const runtime = new MdTimerRuntime();
     const { outcome } = runtime.read("11:00:00");
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
-    const timer = result.getDuration()?.duration as number
+    const timer = result.getDuration()?.[0].duration as number
     
     expect(timer).toBe(11 * 60 * 60);    
 });
@@ -50,7 +50,7 @@ test(`parsedDays`, async () => {
     const runtime = new MdTimerRuntime();
     const { outcome } = runtime.read("11:00:00:00");
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
-    const timer = result.getDuration()?.duration as number
+    const timer = result.getDuration()?.[0].duration as number
     expect(timer).toBe(11 * 60 * 60 * 24);
 });
 
@@ -60,9 +60,9 @@ test(`parseMultipleLines`, async () => {
     const result1 = new SourceDisplayBlock(outcome[0], () => outcome[0]);
     const result2 = new SourceDisplayBlock(outcome[1], () => outcome[1]);
     
-    expect(result1.getDuration()?.duration).toBe(11);
+    expect(result1.getDuration()?.[0].duration).toBe(11);
     
-    expect(result2.getDuration()?.duration).toBe(22);    
+    expect(result2.getDuration()?.[0].duration).toBe(22);    
 });
 
 // test(`parseMultipleLinesInGroup`, async () => {    

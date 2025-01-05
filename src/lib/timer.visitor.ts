@@ -42,11 +42,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         if (block.children == undefined) {
           block.children = [];
         }
-
-        if (block.type === "header" || block.type === "paragraph") {
-          continue;
-        }
-
+        
         if (stack.length > 0) {
           for (let parent of stack) {
             parent.block.children.push(block.id);
@@ -69,125 +65,80 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  trend(ctx: any) : IncrementFragment {
-    return new IncrementFragment(ctx.Trend[0].image, this.getMeta([ctx.Trend[0]]));
-  }
-
   wodBlock(ctx: any) : StatementBlock {
-    if (ctx.heading) {
-      return this.visit(ctx.heading);
-    }
-
-    let statement = { type: "block", fragments: [] as StatementFragment[] } as StatementBlock;
+    
+    let statement = { fragments: [] as StatementFragment[] } as StatementBlock;
     
     if (ctx.rounds) {
-     statement.fragments.push(this.visit(ctx.rounds));   
-     statement.type = "rounds";
+      statement.fragments.push(...this.visit(ctx.rounds));        
     }
     // Trend Parsing
-    ctx.trend && statement.fragments.push( this.visit(ctx.trend));    
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment(""));
+    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
+    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("^"));
 
     // Duration Parsing
-    ctx.duration && statement.fragments.push(this.visit(ctx.duration));         
-    ctx.reps && statement.fragments.push( this.visit(ctx.reps));      
-    ctx.effort && statement.fragments.push( this.visit(ctx.effort));         
-    ctx.resistance && statement.fragments.push( this.visit(ctx.resistance));      
+    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
+    ctx.duration == undefined && ctx.trend == undefined && statement.fragments.push(new IncrementFragment("^"));         
+    ctx.reps && statement.fragments.push(...this.visit(ctx.reps));      
+    ctx.effort && statement.fragments.push(...this.visit(ctx.effort));         
+    ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));      
 
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
     statement.id = statement.meta.startOffset;
     return statement;
   }
 
-  reps(ctx: any) : RepFragment {
-    return {
-      type: "reps",      
-      reps: ctx.Integer[0].image * 1,        
-      meta: this.getMeta([ctx.Integer[0]]),
-      toPart: () => `${ctx.Integer[0].image}`
-    };
+  trend(ctx: any) : IncrementFragment[] {
+    const meta = this.getMeta([ctx.Trend[0]]);
+    return [new IncrementFragment(ctx.Trend[0].image, meta)];
   }
 
-  heading(ctx: any) : StatementBlock {
-    const meta = this.getMeta([ctx.Heading[0], ...ctx.text]);
-    const outcome = {      
-      id :meta.startOffset,
-      parents: [],
-      children: [], 
-      type: "header",
-      fragments: [{
-        type: "text",
-        level: ctx.Heading[0].image,
-        text: ctx.text.map((identifier: any) => identifier.image).join(" "),
-        toPart: () => "",
-        meta: meta
-      }],
-      meta: meta,      
-    };
+  reps(ctx: any) : RepFragment[] {
+    const meta = this.getMeta([ctx.Number[0]]);
+    return [ new RepFragment(ctx.Number[0].image * 1, meta)];
+  }
 
-    return outcome;
-  }  
-
-  duration(ctx: any) : TimerFragment {    
+  duration(ctx: any) : TimerFragment[] {    
     const meta = this.getMeta([ctx.Timer[0]]);
-    const outcome = new TimerFragment(ctx.Timer[0].image, meta);    
-    return outcome;
+    return [new TimerFragment(ctx.Timer[0].image, meta)];    
   }
 
-  resistance(ctx: any): ResistanceFragment { 
-    let load = ctx.Load[0].image.replace("@", "");
-    let units = "default";
-    if (load.includes("kg")) {
-      load = load.replace("kg", "");
-      units = "kg";
-    }
-
-    if (load.includes("lb")) {
-      load = load.replace("lb", "");
-      units = "lb";
-    }
-
-    return {
-      type: "resistance",      
-      units: units,
-      value: load,      
-      meta: this.getMeta([ctx.Load[0]]),
-      toPart: () => `${units}:${load}`
-    };
+  resistance(ctx: any): ResistanceFragment[] {     
+    let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
+    let units = 
+      ctx.Weight && (ctx.Weight[0].image) || 
+      ctx.Distance && (ctx.Distance[0].image) ||    
+      "";
+    
+    return [ new ResistanceFragment(load, units)];
   }
 
   labels(ctx: any) {
     return [ctx.label.Map((identifier: any) => identifier.image), ctx.label];
   }
 
-  effort(ctx: any): EffortFragment {
+  effort(ctx: any): EffortFragment[] {
     var effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
-    return {
-      type: "effort",
-      effort: effort,
-      meta: this.getMeta(ctx.Identifier),
-      toPart: () => effort
-    };
+    return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
-
-  rounds(ctx: any) : RoundsFragment { 
+  
+  rounds(ctx: any) : StatementFragment[] { 
     var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
-    if (ctx.Integer != null) {
-      return {
-        type: "rounds",
-        count: ctx.Integer[0].image * 1,        
-        meta: meta,
-        toPart: () => `${ctx.Integer[0].image}x`
-      };
+    var groups = this.visit(ctx.sequence[0]);
+    var labels = ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
+
+    if (groups.length == 1) {
+      return [ new RoundsFragment(groups[0], meta)];
     }
     
-    return {
-      type: "rounds",
-      count: 1,        
-      meta: meta,
-      toPart: () => `1x`
-    };      
+    return [ new RoundsFragment(groups.length, meta), 
+      ...groups.map((group: any) => new RoundsFragment(group, meta))];  
   }
+
+  sequence(ctx: any) : number[]{
+    return ctx.Number.map((identifier: any) => identifier.image * 1);
+  }
+
 
   combineMeta(meta: any[])  {
     if (meta.length == 0) {

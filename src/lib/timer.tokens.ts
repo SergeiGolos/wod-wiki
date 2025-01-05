@@ -6,19 +6,14 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 });
 
-export const Heading = createToken({
-  name: "Heading",
-  pattern: /#{1,3}/,
-});
-
-// export const Paragraph = createToken({
-//   name: "Paragraph",
-//   pattern: />/,
-// });
-
 export const Return = createToken({
   name: "Return",
   pattern: /\s*\r?\n/,
+});
+
+export const Minus = createToken({
+  name: "Minus",
+  pattern: /\-/,
 });
 
 export const Timer = createToken({
@@ -26,9 +21,13 @@ export const Timer = createToken({
   pattern: /(?::\d+|(?:\d+:){1,3}\d+)/,
 });
 
-export const Load = createToken({
-  name: "Load",
-  pattern: /(?:@\s*)?\d+\s*(?:kg|lb)|@\s*\d+/,
+export const Distance = createToken({
+  name: "Distance",
+  pattern: /(m|ft|mile)\b/i,
+});
+export const Weight = createToken({
+  name: "Weight",
+  pattern: /(kg|lb|bw)\b/i,
 });
 
 export const AllowedSymbol = createToken({
@@ -36,15 +35,19 @@ export const AllowedSymbol = createToken({
   pattern: /[\\\/.,@!$%^*=&]+/,
   // pick up anything that isn't whitespace, a digit, or a "special" character
 });
+export const AtSign = createToken({
+  name: "AtSign",
+  pattern: /@/,
+});
 
 export const QuestionSymbol = createToken({
   name: "QuestionSymbol",
   pattern: /\?/,
 });
 
-export const Integer = createToken({
-  name: "Integer",
-  pattern: /\d+/,
+export const Number = createToken({
+  name: "Number",
+  pattern: /\d*\.?\d+/,
 });
 
 export const Identifier = createToken({
@@ -53,6 +56,7 @@ export const Identifier = createToken({
 });
 
 export const Comma = createToken({
+  
   name: "Comma",
   pattern: /,/,
 });
@@ -61,10 +65,7 @@ export const Trend = createToken({
   name: "Trend",
   pattern: Lexer.NA,
 });
-export const ListItem = createToken({
-  name: "ListItem",
-  pattern: /-/,
-});
+
 export const Plus = createToken({
   name: "Plus",
   pattern: /\^/,
@@ -80,24 +81,22 @@ export const GroupClose = createToken({
   pattern: /\)/,
 });
 
-export const allTokens = [
-  Heading,
+export const allTokens = [  
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier
   GroupOpen,
   GroupClose,
   Comma,
-
+  AtSign,
   Timer,
-
-  Trend,
-  ListItem,
+  Trend,    
   Plus,
-
-  Load,
+  Minus,
+  Weight,
+  Distance,
   QuestionSymbol,
   AllowedSymbol,
   Identifier,
-  Integer,
+  Number,
 ];

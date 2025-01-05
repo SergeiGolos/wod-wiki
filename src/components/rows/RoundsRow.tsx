@@ -1,9 +1,9 @@
 import React from "react";
-import { DisplayBlock, RoundsFragment, StatementFragment } from "../../lib/timer.types";
+import { RuntimeBlock, RoundsFragment, StatementFragment } from "../../lib/timer.types";
 
 
 interface RoundsRowProps {
-  block: DisplayBlock;
+  block: RuntimeBlock;
 }
 
 export const RoundsRow: React.FC<RoundsRowProps> = ({ 

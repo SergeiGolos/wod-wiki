@@ -8,11 +8,12 @@ import {
   Return,
   allTokens,
   Timer,
-  Load,
-  Integer,
-  Heading,
+  Weight,
+  Number,  
+  Minus,
   AllowedSymbol,
-  QuestionSymbol,
+  Distance,
+  AtSign,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -31,14 +32,13 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("wodBlock", () => {
       $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.SUBRULE($.heading) },          
+        $.OR([          
           { ALT: () => $.SUBRULE($.rounds) },
-          { ALT: () => $.SUBRULE($.trend) },
-          { ALT: () => $.SUBRULE($.reps) },
+          { ALT: () => $.SUBRULE($.trend) },          
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
+          { ALT: () => $.SUBRULE($.reps) },
         ]);
       });
     });
@@ -48,53 +48,51 @@ export class MdTimerParse extends CstParser {
     });
 
     $.RULE("reps", () => {
-      $.CONSUME(Integer);
+      $.CONSUME(Number);
     });
-
-    $.RULE("heading", () => {
-      $.CONSUME(Heading);
-      $.AT_LEAST_ONE(() => {
-        $.OR([
-          { ALT: () => $.CONSUME(Identifier, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(Integer, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(AllowedSymbol, { LABEL: "text" }) },
-          { ALT: () => $.CONSUME(QuestionSymbol, { LABEL: "text" }) },
-        ]);
-      });
-    });
-
+    
     $.RULE("duration", () => {
       $.CONSUME(Timer);
     });
 
     $.RULE("rounds", () => {
       $.CONSUME(GroupOpen);
-      $.OR([
-        {
-          GATE: () => this.LA(1).tokenType === Identifier,
-          ALT: () => $.SUBRULE($.labels),
-        },
-        {
-          GATE: () => this.LA(1).tokenType === Integer,
-          ALT: () => $.CONSUME(Integer),
-        },
-      ]);
+      $.AT_LEAST_ONE(() => {
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier, { LABEL: "label" }) },          
+          { ALT: () => $.SUBRULE($.sequence) },
+        ]);
+      });
       $.CONSUME(GroupClose);
-    });
+    });    
 
-    $.RULE("labels", () => {
-      $.MANY(() => {
-        $.CONSUME(Identifier, { LABEL: "label" });
+    $.RULE("sequence", () => {
+      $.AT_LEAST_ONE_SEP({
+        SEP: Minus,
+        DEF: () => {
+          $.CONSUME(Number);
+        },
       });
     });
 
-    $.RULE("resistance", () => {
-      $.CONSUME(Load);
+
+    $.RULE("resistance", () => {            
+      $.OPTION1(() => $.CONSUME(AtSign));
+      $.OPTION(() => $.CONSUME(Number));
+      $.OR(
+        [
+          { ALT: () => $.CONSUME(Weight) },
+          { ALT: () => $.CONSUME(Distance) },
+        ]);        
     });
 
     $.RULE("effort", () => {
       $.AT_LEAST_ONE(() => {
-        $.CONSUME(Identifier);
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier) },
+          { ALT: () => $.CONSUME(AllowedSymbol) },
+          { ALT: () => $.CONSUME(Minus) },
+        ]);
       });
     });
 
