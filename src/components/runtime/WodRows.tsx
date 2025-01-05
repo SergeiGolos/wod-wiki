@@ -1,43 +1,34 @@
 import React from "react";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
-import { NotificationRow } from "../rows/NotificationRow";
-import { HeaderRow } from "../rows/HeaderRow";
-import { ParagraphRow } from "../rows/ParagraphRow";
 import { ExerciseRow } from "../rows/ExerciseRow";
 import { RoundsRow } from "../rows/RoundsRow";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
 
 export interface BlockProps {  
   block: RuntimeBlock;  
 }
 
-export const Block: React.FC<BlockProps> = ({ block }) => {  
-  // Render the appropriate row component based on block type
-  const renderContent = () => {
-    switch (block.type) {
-      case "notification":
-        return <NotificationRow block={block} />;
-      case "header":
-        return <HeaderRow block={block.block} />;
-      case "paragraph":
-        return <ParagraphRow block={block} />;      
-      case "rounds":
-        return <RoundsRow block={block} />;      
-      default:
-        return <ExerciseRow block={block} />;
-    }    
-  };
+const renderContent = (block: RuntimeBlock) : any => {
+  switch (block.runtimeHandler.type) {
+    case "rounds":
+      return <RoundsRow block={block} />;      
+    default:
+      return <ExerciseRow block={block} />;
+  }   
+}
 
+export const Block: React.FC<BlockProps> = ({ block }) => {  
+  // Render the appropriate row component based on block type  
   return (
     <>
-      {renderContent()}      
+      {renderContent(block)}      
     </>
   );
 };
 
 export const CurrentBlock: React.FC<BlockProps> = ({ block }) => {  
   return (
-    <div className="border-2 border-blue-500 rounded-lg p-2 bg-blue-50">      
-      <Block block={block} />
+    <div className="border-t-2 border-x-2 border-blue-500/50 rounded-t-lg p-2 bg-blue-50/50">      
+      {renderContent(block)}      
     </div>
   );
 };

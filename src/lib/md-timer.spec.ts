@@ -7,7 +7,7 @@ test(`parsedDirectionUpDefault`, async () => {
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome} = runtime.read(":11");    
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     
     expect(result.getDuration()?.[0]?.duration).toBe(11);    
 });
@@ -16,27 +16,25 @@ test(`parsedDirectionUpExplicit`, async () => {
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read(":11^");    
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     
     expect(result.getDuration()?.[0].duration).toBe(11);    
-    expect(result.getIncrement()?.[0].increment).toBe(1);    
 });
 
 test(`parsedDirectionDownExplicit`, async () => {    
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read(":11");    
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     
-    expect(result.getDuration()?.[0].duration).toBe(11);    
-    expect(result.getIncrement()?.[0].increment).toBe(-1);    
+    expect(result.getDuration()?.[0].duration).toBe(11);        
 });
 
 test(`parsedMinutes`, async () => {    
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read("11:00");
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     const timer = result.getDuration()?.[0].duration as number
     
     expect(timer).toBe(11 * 60);    
@@ -46,7 +44,7 @@ test(`parsedHours`, async () => {
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read("11:00:00");
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     const timer = result.getDuration()?.[0].duration as number
     
     expect(timer).toBe(11 * 60 * 60);    
@@ -56,7 +54,7 @@ test(`parsedDays`, async () => {
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read("11:00:00:00");
-    const result = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
+    const result = new SourceDisplayBlock(outcome[0], handler);
     const timer = result.getDuration()?.[0].duration as number
     expect(timer).toBe(11 * 60 * 60 * 24);
 });
@@ -65,8 +63,8 @@ test(`parseMultipleLines`, async () => {
     const runtime = new MdTimerRuntime();
     const handler = {} as IRuntimeHandler;
     const { outcome } = runtime.read(`:11\r\n:22`);
-    const result1 = new SourceDisplayBlock(outcome[0], handler, () => outcome[0]);
-    const result2 = new SourceDisplayBlock(outcome[1], handler, () => outcome[1]);
+    const result1 = new SourceDisplayBlock(outcome[0], handler);
+    const result2 = new SourceDisplayBlock(outcome[1], handler);
     
     expect(result1.getDuration()?.[0].duration).toBe(11);
     

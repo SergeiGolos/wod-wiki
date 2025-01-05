@@ -2,7 +2,6 @@ import { MdTimerParse } from "./timer.parser";
 import { StatementBlock } from "./timer.types";
 import { IncrementFragment } from "./fragments/IncrementFragment";
 import { LapFragment } from "./fragments/LapFragment";
-import { TextFragment } from "./fragments/TextFragment";
 import { RepFragment } from "./fragments/RepFragment";
 import { EffortFragment } from "./fragments/EffortFragment";
 import { ResistanceFragment } from "./fragments/ResistanceFragment";

@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
-import { Timestamp } from "../../lib/Timestamp";
+import React, { useState, useEffect } from "react";
 import { ResultSpan } from "../../lib/Timespan";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
@@ -89,7 +88,8 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   }, [block, time]);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-2 bg-white shadow-lg space-y-6">
+    <div className="w-full flex flex-col items-center justify-center p-2 bg-white shadow-lg space-y-6
+    border-b-2 border-x-2 border-blue-500/50 rounded-b-lg bg-blue-50">
       <TimerDisplay elapsedTime={elapsedTime} />
       <TimerControls
         isRunning={isRunning}

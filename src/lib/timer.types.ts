@@ -11,6 +11,7 @@ export interface RuntimeResult {
 }
 
 export interface IRuntimeHandler {
+  type: string;
   onTick(timestamp: Date, block: RuntimeBlock): void;
   onStart(timestamp: Date, block: RuntimeBlock): void;
   onStop(timestamp: Date, block: RuntimeBlock): void;

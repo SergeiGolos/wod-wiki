@@ -5,6 +5,7 @@ import { RuntimeBlock } from "../lib/RuntimeBlock";
 import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from 'monaco-editor';
+import { TimerRuntime } from "../lib/timer.runtime";
 
 interface WodContainerProps {
   code: string;
@@ -13,7 +14,7 @@ interface WodContainerProps {
 export const WodContainer: React.FC<WodContainerProps> = ({
   code = "",
 }) => {  
-  const [blocks, setBlocks] = useState<RuntimeBlock[]>([]);  
+  const [blocks, setBlocks] = useState<TimerRuntime>(new TimerRuntime([]));  
   const [showEditor, setShowEditor] = useState(true);  
   
   const handleEditorCompile = (

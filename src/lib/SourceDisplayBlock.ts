@@ -6,6 +6,57 @@ import { IncrementFragment } from "./fragments/IncrementFragment";
 import { RoundsFragment } from "./fragments/RoundsFragment";
 import { StatementFragment } from "./StatementFragment";
 
+export class RepeatingRuntimeHandler implements IRuntimeHandler {
+  increment: number;
+  duration: number;
+  rounds: number;
+
+  constructor(increment: number, duration: number, rounds: number) {
+    this.increment = increment;
+    this.duration = duration;
+    this.rounds = rounds;
+  }
+  type: string= "rounds";
+  onTick(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onStart(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onStop(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onLap(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+}
+
+export class SkippedRuntimeHandler implements IRuntimeHandler {
+  increment: number;
+  duration: number;
+  rounds: number;
+
+  constructor(increment: number, duration: number, rounds: number) {
+    this.increment = increment;
+    this.duration = duration;
+    this.rounds = rounds;
+  }
+  type: string= "statement";
+  onTick(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onStart(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onStop(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+  onLap(timestamp: Date, block: RuntimeBlock): void {
+    throw new Error("Method not implemented.");
+  }
+}
+
+
 export interface SourceCodeMetadata {
   line: number;
   startOffset: number;
@@ -18,56 +69,30 @@ export interface SourceCodeMetadata {
 export class SourceDisplayBlock implements RuntimeBlock {
   constructor(
     internal: StatementBlock,
-    runtimeHandler: IRuntimeHandler,
-    public lookup: (id: number) => StatementBlock
-  ) {
-    const increments = this.getFragment<IncrementFragment>("increment", internal);
+    runtimeHandler: IRuntimeHandler
+  ) {    
     this.id = internal.id;
     this.depth = internal.parents?.length || 0;
     this.block = internal;
-    this.runtimeHandler = runtimeHandler;
-    this.increment = increments.length > 0 ? increments[0]?.increment || -1 : -1;
-    this.round = this.getFragment<RoundsFragment>("rounds", internal)[0]?.count || 0;
-    this.timestamps = [];
-    this.duration = 0;
-    if (internal.children?.length == 0) {
-      const blockChain = [internal.id, ...(internal?.parents || [])];
-      let inheritedDuration = 0;
-
-      for (const id of blockChain) {
-        const currentBlock = lookup(id);
-        const fragment = currentBlock?.fragments?.find(
-          (f) => f.type === "duration"
-        ) as TimerFragment;
-        if (Math.abs(fragment?.duration || 0) > 0) {
-          inheritedDuration = fragment?.duration || 0;
-          break;
-        }
-      }
-      this.duration = inheritedDuration;
-    }
+    this.runtimeHandler = runtimeHandler;        
+    this.timestamps = [];          
+    this.round = this.getFragment<RoundsFragment>("rounds", internal)[0]?.count || 0;  
   }
-  type: string = "block";
+  
   runtimeHandler: IRuntimeHandler;
   timestamps: Timestamp[];
-  duration: number;
-  increment: number;
   parent?: StatementBlock | undefined;
   id: number;
   depth: number;
   block: StatementBlock;
   round: number;
-  laps: number = 0;
-  status?: string | undefined;
+  lap: number = 0;
 
   startRound() {
     this.round += 1;
 
     //if this.parents?.length > 0 {
     //  foreach
-  }
-  getIncrement(): IncrementFragment[] | undefined {
-    return this.getFragment<IncrementFragment>("increment");
   }
 
   getDuration(): TimerFragment[] | undefined {
@@ -87,9 +112,5 @@ export class SourceDisplayBlock implements RuntimeBlock {
       .map((fragment: StatementFragment) => {
         return fragment.toPart();
       });
-  }
-
-  isRunnable(): boolean {
-    return this.duration !== undefined && this.duration >= 0;
-  }
+  }  
 }

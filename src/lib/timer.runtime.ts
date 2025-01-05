@@ -1,10 +1,11 @@
-import { RuntimeBlock } from "./timer.types";
+import { RuntimeBlock } from "./RuntimeBlock";
 
-export class TimerSequencer {
+
+export class TimerRuntime {
   private current:  [RuntimeBlock | undefined, number]  = [undefined, -1];
   private blockMap: { [key: number]: [RuntimeBlock, number] } = {};
 
-  constructor(private blocks: RuntimeBlock[]) {
+  constructor(public blocks: RuntimeBlock[]) {
     // Create lookup map for blocks by ID
     blocks.forEach((block, index) => {
       this.blockMap[block.id] = [ block, index ] ;
@@ -45,10 +46,8 @@ export class TimerSequencer {
    * Finds the next runnable block starting from the given index
    */
   private findNextRunnableBlock(startIndex: number): number {            
-    for (let i = startIndex; i < this.blocks.length; i++) {
-      if (this.blocks[i].isRunnable()) {
-        return i;
-      }
+    for (let i = startIndex; i < this.blocks.length; i++) {      
+        return i;      
     }
     return -1;
   }
@@ -108,13 +107,10 @@ export class TimerSequencer {
   private handleLap(timestamp: Date): void {
     if (this.current[0] && this.current[1] !== -1) {
       this.current[0].timestamps.push({ type: 'lap', time: timestamp });
-  
-      this.current[0].laps += 1;          
-      if (this.current[0].round <=  this.current[0].laps) {
-        this.handleBlockCompletion(timestamp);
-      }
+      this.current[0].lap += 1;          
+      // if (this.current[0].round <=  this.current[0].laps) {
+      //   this.handleBlockCompletion(timestamp);
+      // }
     }
   }
-
-  
 }

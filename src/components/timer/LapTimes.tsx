@@ -49,7 +49,7 @@ export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block, lookup })
   }, [timestamps, block]);
 
   return (
-    <div className="mt-2">      
+    <div className="border-x-2 border-green-500/50">      
       <div className="flex flex-col space-y-2">
         {lapTimes.map((lap) => (
           <div

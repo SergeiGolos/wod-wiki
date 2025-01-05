@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Block, CurrentBlock } from "./WodRows";
 import { Timestamp } from "../../lib/Timestamp";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
 import { WodControl } from "./WodControl";
-import { TimerSequencer } from "../../lib/timer.runtime";
+import { TimerRuntime } from "../../lib/timer.runtime";
 import { LapTimes } from "../timer/LapTimes";
 
 export interface WodRunnerProps {
-  blocks: RuntimeBlock[];
+  blocks: TimerRuntime;
   onStateChange: (state: string) => void;
 }
 
@@ -24,20 +24,14 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   onStateChange,
 }) => {
   let state = "";
-  useEffect(() => {
-    setSequence(new TimerSequencer(blocks));
-  }, [blocks]);
 
-  const [sequence, setSequence] = useState<TimerSequencer>(
-    new TimerSequencer(blocks)
-  );
   const [currentBlock, setCurrentBlock] = useState<RuntimeBlock>();
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTimestamp, setCurrentTimestamp] = useState<Timestamp[]>();
   const [runtimeState, setRuntimeState] = useState<string>(WodRuntimeState.builder);
 
   const handleTimerEvent = (event: string) => {
-    const nextBlock = sequence.handleTimerEvent(
+    const nextBlock = blocks.handleTimerEvent(
       event as "completed" | "stop" | "started" | "lap"
     );
 
@@ -55,7 +49,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   };
 
   function startTimer(): void {
-    const block = sequence.start();
+    const block = blocks.start();
 
     setCurrentIndex(block[1]);
     setCurrentBlock(block[0]);
@@ -67,7 +61,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
 
   function resetTimer(): void {
     handleTimerEvent("stop");
-    sequence.reset();
+    blocks.reset();
 
     setCurrentIndex(-1);
     setCurrentBlock(undefined);
@@ -86,21 +80,21 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         />
       }
       <div className="space-y-4">
-        {(!blocks || blocks.length === 0) && <EmptyWod />}
+        {(!blocks || blocks.blocks.length === 0) && <EmptyWod />}
         <div className="w-full overflow-hidden border border-gray-200 rounded-lg">
           <div className="min-w-full">
             <div className="bg-white">
-              {blocks.map((block, index) =>
+              {blocks.blocks.map((block, index) =>
                 currentIndex !== index ? (<>
                   <Block block={block} key={block.id} />
                   {block.timestamps && (
-                    <LapTimes timestamps={block.timestamps} block={block} lookup={sequence.get} />
+                    <LapTimes timestamps={block.timestamps} block={block} lookup={blocks.get} />
                  )}
                 </>) : (
                   <>
                     <CurrentBlock block={block} key={block.id} />
                     {currentTimestamp && (
-                      <LapTimes timestamps={currentTimestamp} block={block} lookup={sequence.get} />
+                      <LapTimes timestamps={currentTimestamp} block={block} lookup={blocks.get} />
                     )}
                     <WodTimer
                       key={block.id + "-timer"}
