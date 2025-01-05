@@ -25,7 +25,7 @@ test(`parsedDirectionDownExplicit`, async () => {
     const result = new SourceDisplayBlock(outcome[0], () => outcome[0]);
     
     expect(result.getDuration()?.[0].duration).toBe(11);    
-    expect(result.getIncrement()?.[0].increment).toBe(1);    
+    expect(result.getIncrement()?.[0].increment).toBe(-1);    
 });
 
 test(`parsedMinutes`, async () => {    
