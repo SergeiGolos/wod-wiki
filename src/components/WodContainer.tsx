@@ -6,6 +6,7 @@ import { WodRuntimeScript } from "../lib/md-timer";
 import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from 'monaco-editor';
 import { TimerRuntime } from "../lib/timer.runtime";
+import { TimerProvider } from "./timer/TimerContext";
 
 interface WodContainerProps {
   code: string;
@@ -37,6 +38,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({
   };  
 
   return (        
+    <TimerProvider>
       <div className="bg-gray-50 border-x border-gray-200 rounded-lg">
         {showEditor && (
           <WodWiki
@@ -49,5 +51,6 @@ export const WodContainer: React.FC<WodContainerProps> = ({
           onStateChange={stateChangeHandler}
         />    
       </div>    
+    </TimerProvider>
   );
 };

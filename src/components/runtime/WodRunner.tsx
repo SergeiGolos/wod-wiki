@@ -23,8 +23,6 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   blocks,
   onStateChange,
 }) => {
-  let state = "";
-
   const [currentBlock, setCurrentBlock] = useState<RuntimeBlock>();
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [currentTimestamp, setCurrentTimestamp] = useState<Timestamp[]>();
@@ -83,7 +81,7 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
         <WodControl
           onStart={startTimer}
           onReset={resetTimer}
-          runtimeState={runtimeState as keyof typeof WodRuntimeState}
+          runtimeState={runtimeState}
         />
       }
       <div className="space-y-4">

@@ -2,7 +2,7 @@ import React from "react";
 import { WodRuntimeState } from "./WodRunner";
 
 interface RuntimeControlProps {
-  runtimeState: keyof typeof WodRuntimeState;  
+  runtimeState: string;  
   onStart: () => void;
   onReset: () => void;
 }

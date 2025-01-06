@@ -51,7 +51,7 @@ export class RepeatingRuntimeHandler implements IRuntimeHandler {
     switch (event) {
       case "lap":     
         block.timestamps.push({ time: timestamp, type: "lap" });
-        return [new NextChildAction(block.id)];
+        return [new NextStatementAction(block.id)];
 
       case "completed":     
         block.timestamps.push({ time: timestamp, type: "stop" });

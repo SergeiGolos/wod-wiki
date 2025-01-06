@@ -11,10 +11,10 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   onStart,
   onStop,
   onLap
-}) => {
+}) => {  
   const { state } = useTimer();
   const { isRunning } = state;
-
+  
   return (
     <div className="flex space-x-4 justify-center">
       {!isRunning ? (
