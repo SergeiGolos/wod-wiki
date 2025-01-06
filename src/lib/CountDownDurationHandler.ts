@@ -12,7 +12,7 @@ export class CountDownDurationHandler extends DurationHandler implements IDurati
     return {
       state: totals[1],
       duration: duration,
-      elapsed: totals[0],
+      elapsed: duration - totals[0],
       spans: totals[2],
       remaining: duration - totals[0]
     };

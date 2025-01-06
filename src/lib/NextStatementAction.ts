@@ -5,7 +5,7 @@ import { TimerRuntime } from "./timer.runtime";
 export class RefreshStatementAction implements IRuntimeAction {
   constructor(public sourceId: number) { }
   apply(blocks: TimerRuntime): [RuntimeBlock | undefined, number] {    
-    return blocks[this.sourceId] || [undefined, -1];    
+    return blocks.get(this.sourceId) || [undefined, -1];    
   }
 }
 

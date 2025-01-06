@@ -29,50 +29,49 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   const [runtimeState, setRuntimeState] = useState<string>(WodRuntimeState.builder);
 
   const handleTimerEvent = (event: string, block?: RuntimeBlock) => {
+    console.log('Timer Event:', event, 'Block:', block?.id);
     const current = (block ||currentBlock);
     const actions = current?.runtimeHandler?.onTimerEvent(new Date(), event, current);
+    console.log('Actions:', actions?.length);
     if (!actions || actions.length === 0) {
       return;
     }
     let nextBlock: [RuntimeBlock | undefined, number] = [undefined, -1];  
     for (let action of actions) {      
        nextBlock = action.apply(blocks);
-    }
-      
-    if (event === "completed" && nextBlock[1] === -1) {
-      setCurrentIndex(-1);
-      setRuntimeState(WodRuntimeState.review);
-      onStateChange(WodRuntimeState.review);
-    }
-    
-    if (currentIndex !== nextBlock[1]) {
-      setCurrentBlock(nextBlock[0]);
-      setCurrentIndex(nextBlock[1]);
-    }
-
+    }    
+    console.log('Next Block:', nextBlock[0]?.id, 'Index:', nextBlock[1]);
+    setCurrentBlock(nextBlock[0]);
+    setCurrentIndex(nextBlock[1]);
     setCurrentTimestamp([...(nextBlock[0]?.timestamps || [])]);
   };
 
   function startTimer(): void {
+    console.log('Starting timer...');
     const block = blocks.start();
+    console.log('Got block:', block[0]?.id, 'Index:', block[1]);
 
     setCurrentIndex(block[1]);
     setCurrentBlock(block[0]);
-        
-    handleTimerEvent("started", block[0]);
     setRuntimeState(WodRuntimeState.runner);
     onStateChange(WodRuntimeState.runner);
+    
+    // Initialize the timer after setting the state
+    if (block[0]) {
+      console.log('Initializing timer with block:', block[0].id);
+      handleTimerEvent("started", block[0]);
+    }
   }
 
   function resetTimer(): void {
+    setRuntimeState(WodRuntimeState.builder);
+    onStateChange(WodRuntimeState.builder);
+    
     handleTimerEvent("stop");
     blocks.reset();
 
     setCurrentIndex(-1);
     setCurrentBlock(undefined);
-
-    setRuntimeState(WodRuntimeState.builder);
-    onStateChange(WodRuntimeState.builder);
   }
 
   return (
@@ -100,12 +99,14 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
                     <CurrentBlock block={block} key={block.id} />
                     {currentTimestamp && (
                       <LapTimes timestamps={currentTimestamp} block={block} lookup={blocks.get} />
+                    )}                    
+                    {runtimeState === WodRuntimeState.runner && currentBlock && (
+                      <WodTimer
+                        key={currentBlock.id + "-timer"}
+                        block={currentBlock}
+                        onTimerEvent={handleTimerEvent}
+                      />
                     )}
-                    <WodTimer
-                      key={block.id + "-timer"}
-                      block={currentBlock}
-                      onTimerEvent={handleTimerEvent}
-                    />
                   </>
                 )
               )}

@@ -7,7 +7,6 @@ import { Timestamp } from "./Timestamp";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { RoundsFragment } from "./fragments/RoundsFragment";
 import { StatementFragment } from "./StatementFragment";
-import { NextChildAction } from "./NextChildAction";
 
 export class StopwatchRuntimeHandler implements IRuntimeHandler {
   constructor() {
@@ -21,11 +20,18 @@ export class StopwatchRuntimeHandler implements IRuntimeHandler {
       case "started":
         block.timestamps.push({ time: timestamp, type: "start" });
         return [new RefreshStatementAction(block.id)];
+      
       case "lap":
         block.timestamps.push({ time: timestamp, type: "lap" });        
-      case "completed":
-        block.timestamps.push({ time: timestamp, type: "stop" });
+        return [new RefreshStatementAction(block.id)];
+
+      case "stop":
+        block.timestamps.push({ time: timestamp, type: "stop" });        
+        return [new RefreshStatementAction(block.id)];
+
+      case "completed":        
         return [new NextStatementAction(block.id)];
+        
       default:
         return [];
     }    

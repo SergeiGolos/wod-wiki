@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
@@ -17,6 +17,7 @@ const TimerContent: React.FC<WodTimerProps> = ({
   const { state, dispatch } = useTimer();
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);
   const [time, setTime] = useState(new Date());
+  const lastRunningState = useRef(false);
       
   useEffect(() => {    
     if (state.isRunning) {
@@ -31,7 +32,10 @@ const TimerContent: React.FC<WodTimerProps> = ({
   useEffect(() => {
     if (!block) {
       setElapsedTime(["0", "00"]);
-      dispatch({ type: 'SET_RUNNING', payload: false });
+      if (lastRunningState.current) {
+        lastRunningState.current = false;
+        dispatch({ type: 'SET_RUNNING', payload: false });
+      }
       return;
     }
     
@@ -42,7 +46,10 @@ const TimerContent: React.FC<WodTimerProps> = ({
 
     if (!block.timestamps.length) {
       setElapsedTime(["0", "00"]);
-      dispatch({ type: 'SET_RUNNING', payload: false });
+      if (lastRunningState.current) {
+        lastRunningState.current = false;
+        dispatch({ type: 'SET_RUNNING', payload: false });
+      }
       return;
     }
     
@@ -53,7 +60,11 @@ const TimerContent: React.FC<WodTimerProps> = ({
     const elapsed = block.durationHandler?.elapsed(now, block)?.elapsed || 0;      
     const timeArr = new TimerFromSeconds(elapsed).toClock();
     setElapsedTime([timeArr[0], timeArr[1][0]]);
-    dispatch({ type: 'SET_RUNNING', payload: running });  
+    
+    if (running !== lastRunningState.current) {
+      lastRunningState.current = running;
+      dispatch({ type: 'SET_RUNNING', payload: running });
+    }
 
   }, [block, time]);
 
