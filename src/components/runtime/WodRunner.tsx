@@ -30,16 +30,23 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
   const [currentTimestamp, setCurrentTimestamp] = useState<Timestamp[]>();
   const [runtimeState, setRuntimeState] = useState<string>(WodRuntimeState.builder);
 
-  const handleTimerEvent = (event: string) => {
-    const nextBlock = blocks.handleTimerEvent(
-      event as "completed" | "stop" | "started" | "lap"
-    );
-
+  const handleTimerEvent = (event: string, block?: RuntimeBlock) => {
+    const current = (block ||currentBlock);
+    const actions = current?.runtimeHandler?.onTimerEvent(new Date(), event, current);
+    if (!actions || actions.length === 0) {
+      return;
+    }
+    let nextBlock: [RuntimeBlock | undefined, number] = [undefined, -1];  
+    for (let action of actions) {      
+       nextBlock = action.apply(blocks);
+    }
+      
     if (event === "completed" && nextBlock[1] === -1) {
       setCurrentIndex(-1);
       setRuntimeState(WodRuntimeState.review);
       onStateChange(WodRuntimeState.review);
     }
+    
     if (currentIndex !== nextBlock[1]) {
       setCurrentBlock(nextBlock[0]);
       setCurrentIndex(nextBlock[1]);
@@ -53,8 +60,8 @@ export const WodRunner: React.FC<WodRunnerProps> = ({
 
     setCurrentIndex(block[1]);
     setCurrentBlock(block[0]);
-
-    handleTimerEvent("started");
+        
+    handleTimerEvent("started", block[0]);
     setRuntimeState(WodRuntimeState.runner);
     onStateChange(WodRuntimeState.runner);
   }

@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTimer } from './TimerContext';
 
 interface TimerDisplayProps {  
-  elapsedTime: [string, string];
 }
 
-export const TimerDisplay: React.FC<TimerDisplayProps> = ({ elapsedTime }) => {
+export const TimerDisplay: React.FC<TimerDisplayProps> = () => {
+  const { state } = useTimer();
+  const { elapsedTime } = state;
+
   return (
     <>      
       <div className="text-6xl font-mono font-bold text-gray-800 tracking-wider">

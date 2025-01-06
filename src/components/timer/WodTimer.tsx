@@ -1,102 +1,80 @@
-import React, { useState, useEffect } from "react";
-import { ResultSpan } from "../../lib/Timespan";
+import React, { useEffect } from "react";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
-import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
+import { TimerProvider, useTimer } from "./TimerContext";
+import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
 
 export interface WodTimerProps {
   block?: RuntimeBlock;  
   onTimerEvent?: (event: string, data?: any) => void;  
 }
 
-export const WodTimer: React.FC<WodTimerProps> = ({
+const TimerContent: React.FC<WodTimerProps> = ({
   block,  
   onTimerEvent,
 }) => {
-  const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);  
-  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const { state, dispatch } = useTimer();
       
-  const [time, setTime] = useState(new Date());
   useEffect(() => {    
     const intervalId = setInterval(() => {
-      setTime(new Date());
+      dispatch({ type: 'UPDATE_TIME', payload: new Date() });
     }, 100);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [dispatch]);
   
-
   useEffect(() => {
     if (!block) {
-      setElapsedTime(["0", "00"]);
-      setIsRunning(false);
+      dispatch({ type: 'SET_ELAPSED_TIME', payload: ['0', '00'] });
+      dispatch({ type: 'SET_RUNNING', payload: false });
       return;
     }
+    
+    dispatch({ type: 'SET_BLOCK', payload: block });
     
     // Initialize with default values if no timestamps
     if (!block.timestamps) {
       block.timestamps = [];
     }
 
+    dispatch({ type: 'SET_TIMESTAMPS', payload: block.timestamps });
+
     if (!block.timestamps.length) {
-      setElapsedTime(["0", "00"]);
-      setIsRunning(false);
+      dispatch({ type: 'SET_ELAPSED_TIME', payload: ['0', '00'] });
+      dispatch({ type: 'SET_RUNNING', payload: false });
       return;
     }
-
-    const spans = [] as ResultSpan[];
-    let running = false;
-    let timerSum = 0;
-    for (let ts of block.timestamps) {
-      if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop !== undefined)) {
-          running = true;                  
-          const span = new ResultSpan();
-          span.start = ts;
-          spans.push(span);
-      } else if (ts.type === "stop") {
-        if (spans.length > 0 && !spans[spans.length - 1].stop) {
-          running = false;
-          spans[spans.length - 1].stop = ts;
-          timerSum += spans[spans.length - 1].duration();
-        }
-      }
-    }
     
-    if (running) {      
-      timerSum += spans[spans.length - 1].duration();
-    }
-
-    const diffInSeconds = timerSum / 1000;
-
-    // Only complete if we're running, in countdown mode and reached duration
-    if (running && (diffInSeconds >= block.duration && !(block.increment > 0 && block.duration  == 0))) {
-      onTimerEvent?.("lap");
-    }
-
-    const elapsed = block.increment > 0
-      ? Math.abs(diffInSeconds)  
-      : block.duration - Math.abs(diffInSeconds);
-
-      
+    let running = false;    
+    let now = new Date();
+        
+    const elapsed = block.durationHandler?.elapsed(now, block)?.elapsed || 0;      
     const time = new TimerFromSeconds(elapsed).toClock();
-    setElapsedTime([time[0], time[1][0]]);
-    setIsRunning(running);  
+    dispatch({ type: 'SET_ELAPSED_TIME', payload: [time[0], time[1][0]] });
+    dispatch({ type: 'SET_RUNNING', payload: running });  
 
     return () => {
     };
-  }, [block, time]);
+  }, [block, dispatch]);
 
   return (
     <div className="w-full flex flex-col items-center justify-center p-2 bg-white shadow-lg space-y-6
     border-b-2 border-x-2 border-blue-500/50 rounded-b-lg bg-blue-50">
-      <TimerDisplay elapsedTime={elapsedTime} />
+      <TimerDisplay />
       <TimerControls
-        isRunning={isRunning}
         onStart={() => onTimerEvent?.("started")}
         onStop={() => onTimerEvent?.("stop")}
         onLap={()=> onTimerEvent?.("lap")}
       />
     </div>
+  );
+};
+
+export const WodTimer: React.FC<WodTimerProps> = (props) => {
+  return (
+    <TimerProvider>
+      <TimerContent {...props} />
+    </TimerProvider>
   );
 };

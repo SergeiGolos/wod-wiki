@@ -1,5 +1,5 @@
 import { MdTimerParse } from "./timer.parser";
-import { StatementBlock } from "./timer.types";
+import { StatementBlock } from "./StatementBlock";
 import { IncrementFragment } from "./fragments/IncrementFragment";
 import { LapFragment } from "./fragments/LapFragment";
 import { RepFragment } from "./fragments/RepFragment";

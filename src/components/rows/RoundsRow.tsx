@@ -13,13 +13,7 @@ export const RoundsRow: React.FC<RoundsRowProps> = ({
 }) => {
     const parts = block.getParts(['rounds']);
     const roundsFragment = block.block?.fragments.find((fragment: StatementFragment) => fragment.type === 'rounds') as RoundsFragment;
-    const getBadgeColor = () => {
-      if (block.round && block.round === roundsFragment.count) {
-        return "bg-green-100 text-green-800";
-      } else {
-        return "bg-yellow-100 text-green-800";
-      }
-    };
+    
   return (
     <div className="w-full flex px-6 py-1" style={{ paddingLeft: `${block.depth * 20 + 24}px` }}>
       <div className="flex-1 flex justify-between items-center">
@@ -35,8 +29,8 @@ export const RoundsRow: React.FC<RoundsRowProps> = ({
             </div>
           )}
       </div>
-      <div className={`px-3 py-1 rounded-full text-sm font-medium ${getBadgeColor()}`}>
-        {block.round || 0}/{roundsFragment.count}
+      <div className={`px-3 py-1 rounded-full text-sm font-medium`}>
+        {block.lap}/{roundsFragment.count}
       </div>
     </div>
     </div>

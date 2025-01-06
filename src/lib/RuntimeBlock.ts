@@ -1,17 +1,20 @@
 import { StatementFragment } from "./StatementFragment";
-import { StatementBlock, IRuntimeHandler } from "./timer.types";
+import { StatementBlock } from "./StatementBlock";
+import { IDurationHandler } from "./IDurationHandler";
+import { IRuntimeHandler } from "./IRuntimeHandler";
 import { Timestamp } from "./Timestamp";
 
 
-export interface RuntimeBlock {
+export interface RuntimeBlock {  
+  id: number;  
+  depth: number; 
   lap: number;
-  id: number;
   block: StatementBlock;
-  depth: number;  
-
-  runtimeHandler: IRuntimeHandler;
-  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock): T[];
+ 
+  durationHandler?: IDurationHandler;
+  runtimeHandler?: IRuntimeHandler;
+   
   timestamps: Timestamp[];
-
   getParts: (filter?: string[]) => string[];
+  getFragment<T extends StatementFragment>(type: string, block?: StatementBlock): T[];
 }

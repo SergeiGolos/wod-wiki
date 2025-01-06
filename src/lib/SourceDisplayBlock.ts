@@ -1,10 +1,36 @@
-import { TimerFragment } from "./fragments/TimerFragment";
-import { IRuntimeHandler, StatementBlock } from "./timer.types";
+import { StatementBlock } from "./StatementBlock";
+import { IDurationHandler } from "./IDurationHandler";
+import { NextStatementAction, RefreshStatementAction } from "./NextStatementAction";
+import { IRuntimeHandler } from "./IRuntimeHandler";
+import { IRuntimeAction } from "./IRuntimeAction";
 import { Timestamp } from "./Timestamp";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { IncrementFragment } from "./fragments/IncrementFragment";
 import { RoundsFragment } from "./fragments/RoundsFragment";
 import { StatementFragment } from "./StatementFragment";
+import { NextChildAction } from "./NextChildAction";
+
+export class StopwatchRuntimeHandler implements IRuntimeHandler {
+  constructor() {
+  }
+  type: string = "statement";
+  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+    if (!block) {
+      throw new Error("Method not implemented.");
+    }
+    switch (event) {
+      case "started":
+        block.timestamps.push({ time: timestamp, type: "start" });
+        return [new RefreshStatementAction(block.id)];
+      case "lap":
+        block.timestamps.push({ time: timestamp, type: "lap" });        
+      case "completed":
+        block.timestamps.push({ time: timestamp, type: "stop" });
+        return [new NextStatementAction(block.id)];
+      default:
+        return [];
+    }    
+  }  
+}
 
 export class RepeatingRuntimeHandler implements IRuntimeHandler {
   increment: number;
@@ -17,45 +43,35 @@ export class RepeatingRuntimeHandler implements IRuntimeHandler {
     this.rounds = rounds;
   }
   type: string= "rounds";
-  onTick(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onStart(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onStop(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onLap(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
+  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+    if (!block) {
+      throw new Error("Method not implemented.");
+    }
+
+    switch (event) {
+      case "lap":     
+        block.timestamps.push({ time: timestamp, type: "lap" });
+        return [new NextChildAction(block.id)];
+
+      case "completed":     
+        block.timestamps.push({ time: timestamp, type: "stop" });
+        return [new NextStatementAction(block.id)];        
+
+      default:        
+        return [];
+    }    
+  }  
 }
 
 export class SkippedRuntimeHandler implements IRuntimeHandler {
-  increment: number;
-  duration: number;
-  rounds: number;
-
-  constructor(increment: number, duration: number, rounds: number) {
-    this.increment = increment;
-    this.duration = duration;
-    this.rounds = rounds;
+  
+  constructor() {
   }
   type: string= "statement";
-  onTick(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onStart(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onStop(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
-  onLap(timestamp: Date, block: RuntimeBlock): void {
-    throw new Error("Method not implemented.");
-  }
+  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+    return [];
+  }  
 }
-
 
 export interface SourceCodeMetadata {
   line: number;
@@ -66,37 +82,38 @@ export interface SourceCodeMetadata {
   length: number;
 }
 
-export class SourceDisplayBlock implements RuntimeBlock {
+export class SourceDisplayBlock implements RuntimeBlock {  
   constructor(
-    internal: StatementBlock,
-    runtimeHandler: IRuntimeHandler
+    public block: StatementBlock,
+    runtimeHandler?: IRuntimeHandler,
+    durationHandler?: IDurationHandler
   ) {    
-    this.id = internal.id;
-    this.depth = internal.parents?.length || 0;
-    this.block = internal;
-    this.runtimeHandler = runtimeHandler;        
+    this.id = block.id;
+    this.depth = block.parents?.length || 0;    
     this.timestamps = [];          
-    this.round = this.getFragment<RoundsFragment>("rounds", internal)[0]?.count || 0;  
+    this.durationHandler = durationHandler;
+    this.runtimeHandler = runtimeHandler;
+    this.round = this.getFragment<RoundsFragment>("rounds", block)[0]?.count || 0;  
   }
+
+  id: number;
   
-  runtimeHandler: IRuntimeHandler;
   timestamps: Timestamp[];
   parent?: StatementBlock | undefined;
-  id: number;
-  depth: number;
-  block: StatementBlock;
+  
+  durationHandler: IDurationHandler | undefined;
+  runtimeHandler: IRuntimeHandler | undefined;
+
+  depth: number;  
   round: number;
   lap: number = 0;
 
   startRound() {
     this.round += 1;
-
-    //if this.parents?.length > 0 {
-    //  foreach
   }
-
-  getDuration(): TimerFragment[] | undefined {
-    return this.getFragment<TimerFragment>("duration");
+ 
+  getDuration() {
+    return this.durationHandler?.getDuration(this) || 0;
   }
 
   getFragment<T extends StatementFragment>(type: string, block?: StatementBlock): T[] {

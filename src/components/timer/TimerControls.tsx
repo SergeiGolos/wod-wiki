@@ -1,18 +1,20 @@
 import React from 'react';
+import { useTimer } from './TimerContext';
 
 interface TimerControlsProps {
-  isRunning: boolean;
   onStart: () => void;
   onStop: () => void;
   onLap: () => void;
 }
 
 export const TimerControls: React.FC<TimerControlsProps> = ({
-  isRunning,  
   onStart,
   onStop,
   onLap
 }) => {
+  const { state } = useTimer();
+  const { isRunning } = state;
+
   return (
     <div className="flex space-x-4 justify-center">
       {!isRunning ? (
