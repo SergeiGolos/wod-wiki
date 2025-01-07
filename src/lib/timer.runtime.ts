@@ -25,12 +25,18 @@ export class TimerRuntime {
   /**
    * Resets all block timestamps
    */
-  reset(): void {
+  reset(): [RuntimeBlock | undefined, number] {
     for (const block of this.blocks) {
       block.timestamps = [];
     }
     this.current = [undefined, -1];
+    return this.current;
   }  
+
+  complete(): [RuntimeBlock | undefined, number] {
+    this.current = [undefined, -1];
+    return this.current;
+  }
 
   getNextBlock(): [RuntimeBlock | undefined, number] {
     if (!this.blocks || this.blocks.length === 0) {

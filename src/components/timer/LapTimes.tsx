@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { Timestamp } from "../../lib/Timestamp";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 
@@ -15,14 +15,12 @@ interface LapTimesProps {
 }
 
 export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block, lookup }) => {
-  const [lapTimes, setLapTimes] = useState<LapTime[]>([]);
-
-  useEffect(() => {
+  const lapTimes = useMemo(() => {
     const laps = timestamps.filter((ts) => ts.type === "lap");
     const startTime = timestamps.find((ts) => ts.type === "start")?.time;
     const blockChildren = block?.block?.children?.length || 1;
 
-    const calculatedLaps = laps.map((lap, index) => {
+    return laps.map((lap, index) => {
       const lapTime = lap.time;
       const previousTime = index === 0 
         ? startTime 
@@ -44,9 +42,9 @@ export const LapTimes: React.FC<LapTimesProps> = ({ timestamps, block, lookup })
         childIndex: blockChildren > 0 ? (index % blockChildren) + 1 : index + 1
       };
     });
-
-    setLapTimes(calculatedLaps);
   }, [timestamps, block]);
+
+  if (!lapTimes.length) return null;
 
   return (
     <div className="border-x-2 border-green-500/50">      

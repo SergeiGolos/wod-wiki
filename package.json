@@ -21,6 +21,8 @@
   },
   "homepage": "https://github.com/bitcobblers/wod-wiki#readme",
   "devDependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",
     "@storybook/addon-links": "^8.4.7",
