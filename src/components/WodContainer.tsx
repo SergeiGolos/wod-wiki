@@ -47,7 +47,9 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
       setTimerBlock(blocks.reset());
     }
     if (index === 1) { // Running
-      setTimerBlock(blocks.start());
+      if (selectedIndex == 0) {
+        setTimerBlock(blocks.start());
+      }
     }
     if (index === 2) { // Paused
       // setTimerBlock(blocks.pause());
@@ -114,7 +116,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
           </button>
         )}
 
-        {(selectedIndex !== 3) && ( // Show Complete button during run/pause
+        {(selectedIndex !== 0) && ( // Show Complete button during run/pause
           <button
             onClick={() => handleSelectedIndexChange(3)}
             className="flex items-center px-4 py-2 rounded-full transition-all bg-green-600 text-white hover:bg-green-700 shadow-lg"
@@ -128,7 +130,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
       <div className="mt-2">
         <WodWiki code={code} onValueChange={handleEditorCompile} />
       </div>)}
-      {(selectedIndex === 1 || selectedIndex === 2) && (
+      {(selectedIndex !== 3) && (
         <div className="mt-2">
         <WodRunner
           blocks={blocks}
@@ -136,8 +138,9 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
           onBlockEvent={handleBlockEvent}
         />
       </div>)}
-      {selectedIndex === 3 && (<div className="mt-2">
-        <div>results</div>
+      {selectedIndex !== 0 && (<div className="mt-2">        
+        <h2>Leaderboard</h2>
+        
       </div>)}
     </>
   );

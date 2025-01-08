@@ -20,6 +20,7 @@ export class TimerRuntime {
 
   start(): [RuntimeBlock | undefined, number] {
     this.current = this.getNextBlock();
+    this.current[0]?.runtimeHandler?.onTimerEvent(new Date(), 'started', this.current[0]);
     return this.current;
   };
   /**
