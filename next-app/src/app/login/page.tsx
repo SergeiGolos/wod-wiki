@@ -28,6 +28,11 @@ export default function LoginPage() {
       ),
       label: "GitHub",
     },
+    {
+      provider: "google",
+      icon: <div>test</div>,
+      label: "Google",
+    }
   ];
 
   return (

@@ -1,10 +1,7 @@
+"use client";
 import { createClient } from '@/utils/supabase/client'
 import { Provider } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
-
-export async function getUser() {
-    return await createClient().auth.getUser();
-}
 
 export async function login(provider: Provider) {
     await createClient().auth.signInWithOAuth({
