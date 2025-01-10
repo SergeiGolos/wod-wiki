@@ -2,6 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Next.js: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "pattern": "- Local:.+(https?://.+)",
+        "uriFormat": "http://localhost:3000",
+        "action": "debugWithChrome"
+      }
+    },
+    {
+      "name": "Next.js: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000"
+    },
+    {
       "type": "node",
       "request": "launch",
       "name": "Debug Vitest Tests",
@@ -25,6 +43,6 @@
         "/node_modules/*": "${webRoot}/node_modules/*"
       },
       "preLaunchTask": "storybook"
-    }
+    }    
   ]
 }

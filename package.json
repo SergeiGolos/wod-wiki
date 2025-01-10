@@ -1,56 +1,31 @@
 {
-  "name": "wod-wiki",
-  "version": "0.0.1",
-  "description": "",
-  "main": "dist/index.js",
-  "type": "module",
+  "name": "next-app",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "test": "vitest --coverage",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bitcobblers/wod-wiki.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/bitcobblers/wod-wiki/issues"
-  },
-  "homepage": "https://github.com/bitcobblers/wod-wiki#readme",
-  "devDependencies": {
-    "@headlessui/react": "^2.2.0",
-    "@heroicons/react": "^2.2.0",
-    "@storybook/addon-essentials": "^8.4.7",
-    "@storybook/addon-interactions": "^8.4.7",
-    "@storybook/addon-links": "^8.4.7",
-    "@storybook/addon-onboarding": "^8.4.7",
-    "@storybook/blocks": "^8.4.7",
-    "@storybook/manager-api": "^8.4.7",
-    "@storybook/react": "^8.4.7",
-    "@storybook/react-vite": "^8.4.7",
-    "@storybook/test": "^8.4.7",
-    "@storybook/theming": "^8.4.7",
-    "@tailwindcss/typography": "^0.5.15",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/coverage-v8": "^2.1.8",
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.12",
+    "@tailwindcss/typography": "^0.5.16",
     "autoprefixer": "^10.4.20",
-    "chevrotain": "^11.0.3",
-    "monaco-editor": "^0.52.2",
-    "postcss": "^8.4.49",
+    "next": "15.1.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "storybook": "^8.4.7",
-    "storybook-dark-mode": "^4.0.2",
-    "supabase": "^2.2.1",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.4",
+    "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.5",
-    "vitest": "^2.1.8"
+    "typescript": "^5"
   }
 }
