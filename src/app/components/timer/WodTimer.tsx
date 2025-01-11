@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
+
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
-import { TimerFromSeconds } from "../../lib/fragments/TimerFromSeconds";
+import { RuntimeBlock } from "../../../lib/RuntimeBlock";
+import { TimerFromSeconds } from "../../../lib/fragments/TimerFromSeconds";
+
 
 export interface WodTimerProps {
   block?: RuntimeBlock;  

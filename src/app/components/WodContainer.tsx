@@ -1,11 +1,8 @@
+"use client";
 import React, { useState, useRef } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { WodRunner, WodRuntimeState } from "./runtime/WodRunner";
-import { RuntimeBlock } from "../lib/RuntimeBlock";
-import { WodRuntimeScript } from "../lib/md-timer";
-import { WodCompiler } from "../lib/timer.compiler";
 import * as monaco from "monaco-editor";
-import { TimerRuntime } from "../lib/timer.runtime";
 import {
   PencilSquareIcon,
   PlayIcon,
@@ -13,6 +10,10 @@ import {
   ArrowPathIcon,
   StopIcon,
 } from "@heroicons/react/24/outline";
+import { TimerRuntime } from "../../lib/timer.runtime";
+import { RuntimeBlock } from "../../lib/RuntimeBlock";
+import { WodRuntimeScript } from "../../lib/md-timer";
+import { WodCompiler } from "../../lib/timer.compiler";
 
 interface WodContainerProps {
   code: string;

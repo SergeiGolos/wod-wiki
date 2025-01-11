@@ -1,7 +1,7 @@
-import '../../monaco-setup';
 import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
-import { MdTimerRuntime } from "../../lib/md-timer";
+import { MdTimerRuntime } from '../../../lib/md-timer';
+
 
 interface WodWikiProps {
   /** Initial code content */
