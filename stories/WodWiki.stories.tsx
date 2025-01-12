@@ -2,18 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { WodContainer } from '../src/components/WodContainer';
 import React from 'react';
 
-// Initialize Monaco editor
-if (typeof window !== 'undefined') {
-  self.MonacoEnvironment = {
-    getWorkerUrl: function (_moduleId: string, label: string) {
-      const workers: { [key: string]: string } = {
-        editorWorkerService: 'monaco-editor/esm/vs/editor/editor.worker?worker',
-        markdown: 'monaco-editor/esm/vs/basic-languages/markdown/markdown.js'
-      };
-      return workers[label] || workers.editorWorkerService;
-    }
-  };
-}
 
 const meta: Meta<typeof WodContainer> = {
   title: 'Components/Wiki',

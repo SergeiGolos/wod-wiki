@@ -9,6 +9,7 @@ export default async function Page() {
   if (!user) {    
     redirect('/login');
   }
+
   
-  return <Home user={user} />;
+  return <Home user={user} content={undefined} />;
 }

@@ -6,15 +6,14 @@ import { useState } from 'react';
 import { Header } from './Header';
 import { MobileMenu } from './MobileMenu';
 import { WodContainer } from '../components/WodContainer';
-import dynamic from 'next/dynamic';
-
-const MonacoEditor = dynamic(import('react-monaco-editor'), { ssr: false });
+import { WodRow } from '../../supabase-types';
 
 interface HomeProps {
   user: User;
+  content: WodRow | undefined;
 }
 
-export function Home({ user }: HomeProps) {
+export function Home({ user, content }: HomeProps) {
   function handleSignOut(): void {
     createClient().auth.signOut();
     redirect('/');
@@ -26,15 +25,9 @@ export function Home({ user }: HomeProps) {
     <>
       <Header handleSignOut={handleSignOut} setMobileMenuOpen={setMobileMenuOpen} />
       <MobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} handleSignOut={handleSignOut} />
-      <WodContainer code={''} />
-      <MonacoEditor
-        width="800"
-        height="600"
-        language="javascript"
-        theme="vs-dark"
-        value="// type your code..."
-        options={{ selectOnLineNumbers: true }}
-      />
+      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8'>
+        <WodContainer code={content?.wod || ""} />      
+      </div>
     </>
   );
 }

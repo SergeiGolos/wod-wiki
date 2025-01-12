@@ -34,18 +34,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      countries: {
+      wods: {
         Row: {
+          created_at: string
           id: number
           name: string
+          slug: string
+          wod: string | null
         }
         Insert: {
-          id?: never
+          created_at?: string
+          id?: number
           name: string
+          slug: string
+          wod?: string | null
         }
         Update: {
-          id?: never
+          created_at?: string
+          id?: number
           name?: string
+          slug?: string
+          wod?: string | null
         }
         Relationships: []
       }
