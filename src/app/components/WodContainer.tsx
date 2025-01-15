@@ -61,6 +61,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
   ) => {
     if (value) {
       const compiledBlocks = WodCompiler.compileCode(value);
+      
       setBlocks(compiledBlocks);
 
       // editor.

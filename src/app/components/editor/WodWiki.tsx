@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime } from '../../../lib/md-timer';
-import { allTokens } from '@/lib/timer.tokens';
-import { TokenType } from 'chevrotain';
 
 interface WodWikiProps {
   /** Initial code content */
@@ -49,32 +47,82 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // 1. Register the language
     monaco.languages.register({ id: "wod-wiki-syntax" });
 
-    const wodTokens = allTokens.map((token:  TokenType) => { return [ token.PATTERN as RegExp,  token.name.toLowerCase() ] }) as [RegExp, string][];
-    // Register a tokens provider for the language
-    console.log(wodTokens);
-    monaco.languages.setMonarchTokensProvider("wod-wiki-syntax", {
-      tokenizer: {
-        root: wodTokens
-      }
+    // 2. Define token types and legend first
+    const tokenTypes = ['rounds', 'duration', 'distance', 'resistance', 'rep', 'effort'];
+    const legend = {
+      tokenTypes,
+      tokenModifiers: []
+    };
+    function getType(type: string) {
+      return legend.tokenTypes.indexOf(type);
+    }
+    // 3. Create runtime instance
+    const runtime = new MdTimerRuntime();
+
+    // Add debug logging for provider registration
+    console.log("Registering semantic tokens provider");
+    // 4. Register semantic tokens provider
+    monaco.languages.registerDocumentSemanticTokensProvider("wod-wiki-syntax", {
+      getLegend: () => legend,
+      provideDocumentSemanticTokens: (model) => {
+        const code = model.getValue().trim();
+        const { outcome } = runtime.read(code);
+        // Flatten and sort fragments
+        const fragments = outcome
+          .flatMap(row => row.fragments)
+          .filter(f => f.meta);
+
+        // Track 'previous' positions for delta calculations
+        let prevLine = 0;
+        let prevCol = 0;
+        const data: number[] = [];
+
+        for (const fragment of fragments) {
+          
+          const zeroBasedLine = fragment.meta!.line - 1;
+          const zeroBasedCol = fragment.meta!.columnStart-1;
+
+          // Calculate deltas
+          const deltaLine = zeroBasedLine - prevLine;
+          const deltaCol = zeroBasedLine === prevLine
+            ? zeroBasedCol - prevCol
+            : zeroBasedCol;
+
+          const type = getType(fragment.type);
+          console.log(fragment.type, type);          
+          data.push(
+            deltaLine,
+            deltaCol,
+            fragment.meta!.length+1,
+            type,
+            0
+          );
+
+          prevLine = zeroBasedLine;
+          prevCol = zeroBasedCol;
+        }
+        console.log(data);
+        return {
+          data: new Uint32Array(data),
+          resultId: null
+        };
+      },
+      releaseDocumentSemanticTokens: function (resultId) {},
     });
 
-    // Define theme with explicit rules for each token type
+    // 5. Define theme (using the same token types)
     monaco.editor.defineTheme("wod-wiki-theme", {
       base: "vs",
-      inherit: true,
+      inherit: false,
       rules: [
-        { token: "timer", foreground: "FFA500", fontStyle: "bold" },
-        { token: "distance", foreground: "008800", fontStyle: "bold" },
-        { token: "weight", foreground: "008800", fontStyle: "bold" },
-        { token: "identifier", foreground: "000000" },
-        { token: "number", foreground: "098658" },
-        { token: "symbol", foreground: "666666" },
-        { token: "operator", foreground: "666666" },
-        { token: "parenthesis", foreground: "666666" },
-        { token: "trend", foreground: "FF0000" },
-        { token: "at", foreground: "0000FF" },
+        { token: "duration", foreground: "FFA500", fontStyle: "bold" },
+        { token: "rep", foreground: "008800", fontStyle: "bold" },
+        { token: "resistance", foreground: "008800", fontStyle: "bold" },
+        { token: "effort", foreground: "000000" },
+        { token: "rounds", foreground: "098658" },
       ],
       colors: {
         "editor.foreground": "#000000",
@@ -85,6 +133,32 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       }
     });
 
+    // Update editor options to enable semantic tokens
+    editorRef.current = monaco.editor.create(containerRef.current, {
+      value: code,
+      language: 'wod-wiki-syntax',
+      theme: 'wod-wiki-theme',
+      automaticLayout: true,
+      lineNumbers: 'on',
+      renderLineHighlight: 'line',
+      scrollBeyondLastLine: false,
+      fontSize: 14,
+      lineHeight: lineHeight,
+      padding: {
+        top: 12,
+        bottom: 12
+      },
+      inlayHints: { enabled: true },
+      // Add these options to enable semantic tokens
+      "semanticHighlighting.enabled": true,
+      scrollbar: {
+        vertical: 'hidden',
+        horizontal: 'hidden',
+        verticalScrollbarSize: 0,
+        horizontalScrollbarSize: 0,
+        alwaysConsumeMouseWheel: false
+      }
+    });
 
     // Register a completion item provider for the new language
     monaco.languages.registerCompletionItemProvider("wod-wiki-syntax", {
@@ -105,63 +179,36 @@ export const WodWiki: React.FC<WodWikiProps> = ({
               monaco.languages.CompletionItemInsertTextRule
                 .InsertAsSnippet,
             range: range,
-          },          
+          },
         ];
         return { suggestions: suggestions };
       },
-    });
-
-    // Initialize editor
-    editorRef.current = monaco.editor.create(containerRef.current, {
-      value: code,
-      language: 'wod-wiki-syntax',
-      theme: 'wod-wiki-theme',
-      automaticLayout: true,
-      minimap: {
-        enabled: false
-      },
-      lineNumbers: 'on',
-      renderLineHighlight: 'line',
-      scrollBeyondLastLine: false,
-      fontSize: 14,
-      lineHeight: lineHeight,
-      padding: {
-        top: 12,
-        bottom: 12
-      },
-      inlayHints: { enabled: true },
-      scrollbar: {
-        vertical: 'hidden',
-        horizontal: 'hidden',
-        verticalScrollbarSize: 0,
-        horizontalScrollbarSize: 0,
-        alwaysConsumeMouseWheel: false
-      }
     });
 
     // Update the inlay hints provider
     monaco.languages.registerInlayHintsProvider("wod-wiki-syntax", {
       provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {
         const hints: monaco.languages.InlayHint[] = [];
-        
+
         // Get all lines in range
         for (let lineNumber = range.startLineNumber; lineNumber <= range.endLineNumber; lineNumber++) {
           // Get line tokens
           const lineTokens = model.getLineTokens(lineNumber);
-          console.log(model)
+          console.log(lineTokens)
           if (!lineTokens) continue;
 
           // Iterate through tokens in the line
           for (let i = 0; i < lineTokens.getCount(); i++) {
             const token = lineTokens.getClassName(i);
+            console.log(token);
             const tokenStartOffset = lineTokens.getStartOffset(i);
             const tokenEndOffset = lineTokens.getEndOffset(i);
-            
+
             // Add hint based on token type
             if (token.includes('timer')) {
               hints.push({
                 kind: monaco.languages.InlayHintKind.Type,
-                position: { 
+                position: {
                   lineNumber: lineNumber,
                   column: tokenEndOffset + 1
                 },
@@ -171,7 +218,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
             else if (token.includes('weight')) {
               hints.push({
                 kind: monaco.languages.InlayHintKind.Parameter,
-                position: { 
+                position: {
                   lineNumber: lineNumber,
                   column: tokenEndOffset + 1
                 },
@@ -181,7 +228,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
             else if (token.includes('distance')) {
               hints.push({
                 kind: monaco.languages.InlayHintKind.Parameter,
-                position: { 
+                position: {
                   lineNumber: lineNumber,
                   column: tokenEndOffset + 1
                 },
@@ -196,7 +243,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     });
 
     // Add this after editor initialization
-  
+
     if (editorRef.current) {
       const model = editorRef.current.getModel();
       if (model) {
@@ -224,7 +271,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       parseContent(code);
     }
     const lineCount = code.split('\n').length + 1;
-    setEditorHeight(lineCount * lineHeight + 5) 
+    setEditorHeight(lineCount * lineHeight + 5)
 
     // Cleanup function
     return () => {
@@ -245,8 +292,8 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   }, [code]);
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className="w-full border border-gray-200 rounded-lg overflow-hidden"
       style={{ height: `${editorHeight}px` }}
     />

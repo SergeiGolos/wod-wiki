@@ -127,7 +127,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       ctx.Distance && (ctx.Distance[0].image) ||    
       "";
     
-    return [ new ResistanceFragment(load, units)];
+    return [ new ResistanceFragment(load, units,  this.getMeta([ctx.Number[0], ctx.Weight[0] || ctx.Distance[0]]))];
   }
 
   labels(ctx: any) {
