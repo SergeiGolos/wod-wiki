@@ -19,6 +19,36 @@ interface WodContainerProps {
   code: string;
 }
 
+export class SyntaxMarker {
+  private _markers: monaco.IDisposable[] = [];
+
+  constructor(private lineNumber: number, private message: string) {}
+
+  public markLine(editor: monaco.editor.IStandaloneCodeEditor) {
+    this._markers.push(      
+      // monaco.editor.createDecorations(
+      //   editor,
+      //   [
+      //     {
+      //       range: new monaco.Range(this.lineNumber, 1, this.lineNumber, 1),
+      //       options: {
+      //         isWholeLine: true,
+      //         className: "myContentClass",
+      //         hoverMessage: { value: this.message },
+      //       },
+      //     },
+      //   ]
+      // )
+    );
+  }
+
+  public dispose() {
+    for (const marker of this._markers) {
+      marker.dispose();
+    }
+  }
+}
+
 export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [blocks, setBlocks] = useState<TimerRuntime>(new TimerRuntime([]));
@@ -32,6 +62,8 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     if (value) {
       const compiledBlocks = WodCompiler.compileCode(value);
       setBlocks(compiledBlocks);
+
+      // editor.
     }
   };
 

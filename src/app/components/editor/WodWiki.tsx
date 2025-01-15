@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime } from '../../../lib/md-timer';
-
+import { allTokens } from '@/lib/timer.tokens';
+import { TokenType } from 'chevrotain';
 
 interface WodWikiProps {
   /** Initial code content */
@@ -48,11 +49,73 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    monaco.languages.register({ id: "wod-wiki-syntax" });
+
+    const wodTokens = allTokens.map((token:  TokenType) => { return [ token.PATTERN as RegExp,  token.name.toLowerCase() ] }) as [RegExp, string][];
+    // Register a tokens provider for the language
+    console.log(wodTokens);
+    monaco.languages.setMonarchTokensProvider("wod-wiki-syntax", {
+      tokenizer: {
+        root: wodTokens
+      }
+    });
+
+    // Define theme with explicit rules for each token type
+    monaco.editor.defineTheme("wod-wiki-theme", {
+      base: "vs",
+      inherit: true,
+      rules: [
+        { token: "timer", foreground: "FFA500", fontStyle: "bold" },
+        { token: "distance", foreground: "008800", fontStyle: "bold" },
+        { token: "weight", foreground: "008800", fontStyle: "bold" },
+        { token: "identifier", foreground: "000000" },
+        { token: "number", foreground: "098658" },
+        { token: "symbol", foreground: "666666" },
+        { token: "operator", foreground: "666666" },
+        { token: "parenthesis", foreground: "666666" },
+        { token: "trend", foreground: "FF0000" },
+        { token: "at", foreground: "0000FF" },
+      ],
+      colors: {
+        "editor.foreground": "#000000",
+        "editor.background": "#FFFFFF",
+        "editor.lineHighlightBackground": "#F0F0F0",
+        "editorCursor.foreground": "#000000",
+        "editor.selectionBackground": "#ADD6FF80",
+      }
+    });
+
+
+    // Register a completion item provider for the new language
+    monaco.languages.registerCompletionItemProvider("wod-wiki-syntax", {
+      provideCompletionItems: (model, position) => {
+        var word = model.getWordUntilPosition(position);
+        var range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        var suggestions = [
+          {
+            label: "EMOM",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: "(${1:rounds}) 1:00",
+            insertTextRules:
+              monaco.languages.CompletionItemInsertTextRule
+                .InsertAsSnippet,
+            range: range,
+          },          
+        ];
+        return { suggestions: suggestions };
+      },
+    });
+
     // Initialize editor
     editorRef.current = monaco.editor.create(containerRef.current, {
       value: code,
-      language: 'markdown',
-      theme: 'vs',
+      language: 'wod-wiki-syntax',
+      theme: 'wod-wiki-theme',
       automaticLayout: true,
       minimap: {
         enabled: false
@@ -66,6 +129,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
         top: 12,
         bottom: 12
       },
+      inlayHints: { enabled: true },
       scrollbar: {
         vertical: 'hidden',
         horizontal: 'hidden',
@@ -75,6 +139,64 @@ export const WodWiki: React.FC<WodWikiProps> = ({
       }
     });
 
+    // Update the inlay hints provider
+    monaco.languages.registerInlayHintsProvider("wod-wiki-syntax", {
+      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {
+        const hints: monaco.languages.InlayHint[] = [];
+        
+        // Get all lines in range
+        for (let lineNumber = range.startLineNumber; lineNumber <= range.endLineNumber; lineNumber++) {
+          // Get line tokens
+          const lineTokens = model.getLineTokens(lineNumber);
+          console.log(model)
+          if (!lineTokens) continue;
+
+          // Iterate through tokens in the line
+          for (let i = 0; i < lineTokens.getCount(); i++) {
+            const token = lineTokens.getClassName(i);
+            const tokenStartOffset = lineTokens.getStartOffset(i);
+            const tokenEndOffset = lineTokens.getEndOffset(i);
+            
+            // Add hint based on token type
+            if (token.includes('timer')) {
+              hints.push({
+                kind: monaco.languages.InlayHintKind.Type,
+                position: { 
+                  lineNumber: lineNumber,
+                  column: tokenEndOffset + 1
+                },
+                text: '⏱️'
+              });
+            }
+            else if (token.includes('weight')) {
+              hints.push({
+                kind: monaco.languages.InlayHintKind.Parameter,
+                position: { 
+                  lineNumber: lineNumber,
+                  column: tokenEndOffset + 1
+                },
+                text: '⚖️'
+              });
+            }
+            else if (token.includes('distance')) {
+              hints.push({
+                kind: monaco.languages.InlayHintKind.Parameter,
+                position: { 
+                  lineNumber: lineNumber,
+                  column: tokenEndOffset + 1
+                },
+                text: '📏'
+              });
+            }
+          }
+        }
+
+        return hints;
+      }
+    });
+
+    // Add this after editor initialization
+  
     if (editorRef.current) {
       const model = editorRef.current.getModel();
       if (model) {
