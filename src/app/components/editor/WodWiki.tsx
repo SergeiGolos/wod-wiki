@@ -105,6 +105,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
           prevCol = zeroBasedCol;
         }
         console.log(data);
+        (model as any)._parsedOutcome = outcome;
         return {
           data: new Uint32Array(data),
           resultId: null
@@ -189,53 +190,21 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     monaco.languages.registerInlayHintsProvider("wod-wiki-syntax", {
       provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {
         const hints: monaco.languages.InlayHint[] = [];
-
+        const outcome = ((model as any)._parsedOutcome || []).flatMap((row : any) => row.fragments);        
         // Get all lines in range
-        for (let lineNumber = range.startLineNumber; lineNumber <= range.endLineNumber; lineNumber++) {
-          // Get line tokens
-          const lineTokens = model.getLineTokens(lineNumber);
-          console.log(lineTokens)
-          if (!lineTokens) continue;
-
-          // Iterate through tokens in the line
-          for (let i = 0; i < lineTokens.getCount(); i++) {
-            const token = lineTokens.getClassName(i);
-            console.log(token);
-            const tokenStartOffset = lineTokens.getStartOffset(i);
-            const tokenEndOffset = lineTokens.getEndOffset(i);
-
+        for (let fragment of outcome) {
+            console.log(fragment);
             // Add hint based on token type
-            if (token.includes('timer')) {
+            if (fragment.type == 'duration') {
               hints.push({
                 kind: monaco.languages.InlayHintKind.Type,
                 position: {
-                  lineNumber: lineNumber,
-                  column: tokenEndOffset + 1
+                  lineNumber: fragment.meta.line,
+                  column: fragment.meta.columnStart
                 },
                 text: '⏱️'
               });
-            }
-            else if (token.includes('weight')) {
-              hints.push({
-                kind: monaco.languages.InlayHintKind.Parameter,
-                position: {
-                  lineNumber: lineNumber,
-                  column: tokenEndOffset + 1
-                },
-                text: '⚖️'
-              });
-            }
-            else if (token.includes('distance')) {
-              hints.push({
-                kind: monaco.languages.InlayHintKind.Parameter,
-                position: {
-                  lineNumber: lineNumber,
-                  column: tokenEndOffset + 1
-                },
-                text: '📏'
-              });
-            }
-          }
+            }          
         }
 
         return hints;
