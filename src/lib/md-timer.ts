@@ -13,6 +13,24 @@ export type WodRuntimeScript = {
   outcome: StatementBlock[];
 };
 
+export interface WodWikiInitializer {
+  code?: string;
+  syntax: string;
+}
+
+export interface WodWikiToken {
+  token: string;
+  foreground: string;
+  fontStyle?: string;
+  hints: WodWikiTokenHint[];
+}
+
+export interface WodWikiTokenHint {
+  hint: string;
+  position: "after" | "before";
+}
+
+
 export class MdTimerRuntime {
   lexer: Lexer;
   visitor: MdTimerInterpreter;

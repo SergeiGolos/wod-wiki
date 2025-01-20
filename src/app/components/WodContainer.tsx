@@ -2,7 +2,6 @@
 import React, { useState, useRef } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { WodRunner, WodRuntimeState } from "./runtime/WodRunner";
-import * as monaco from "monaco-editor";
 import {
   PencilSquareIcon,
   PlayIcon,
@@ -14,60 +13,17 @@ import { TimerRuntime } from "../../lib/timer.runtime";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { WodRuntimeScript } from "../../lib/md-timer";
 import { WodCompiler } from "../../lib/timer.compiler";
+import { editor } from "monaco-editor";
 
 interface WodContainerProps {
   code: string;
 }
 
-export class SyntaxMarker {
-  private _markers: monaco.IDisposable[] = [];
-
-  constructor(private lineNumber: number, private message: string) {}
-
-  public markLine(editor: monaco.editor.IStandaloneCodeEditor) {
-    this._markers.push(      
-      // monaco.editor.createDecorations(
-      //   editor,
-      //   [
-      //     {
-      //       range: new monaco.Range(this.lineNumber, 1, this.lineNumber, 1),
-      //       options: {
-      //         isWholeLine: true,
-      //         className: "myContentClass",
-      //         hoverMessage: { value: this.message },
-      //       },
-      //     },
-      //   ]
-      // )
-    );
-  }
-
-  public dispose() {
-    for (const marker of this._markers) {
-      marker.dispose();
-    }
-  }
-}
-
 export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [blocks, setBlocks] = useState<TimerRuntime>(new TimerRuntime([]));
-  const [timerBlock, setTimerBlock] =
-    useState<[RuntimeBlock | undefined, number]>();
-
-  const handleEditorCompile = (
-    value: WodRuntimeScript | undefined,
-    editor: monaco.editor.IStandaloneCodeEditor
-  ) => {
-    if (value) {
-      const compiledBlocks = WodCompiler.compileCode(value);
-      
-      setBlocks(compiledBlocks);
-
-      // editor.
-    }
-  };
-
+  const [timerBlock, setTimerBlock] = useState<[RuntimeBlock | undefined, number]>();
+  
   const handleBlockEvent = (
     event: any,
     block: RuntimeBlock | undefined,
@@ -93,6 +49,17 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     }
     setSelectedIndex(index);
   };
+
+  function cursorMovedHandler(editor: editor.IStandaloneCodeEditor, event: editor.ICursorPositionChangedEvent, classObject?: WodRuntimeScript | undefined): void {
+    // throw new Error("Function not implemented.");
+    console.log("Cursor moved: ", event);
+  }
+
+  function valueChangedHandler(editor: editor.IStandaloneCodeEditor, event: editor.IModelContentChangedEvent, classObject?: WodRuntimeScript | undefined): void {
+    console.log("Value changed: ", event);
+    const compiledBlocks = WodCompiler.compileCode(classObject);      
+    setBlocks(compiledBlocks);
+  }
 
   return (
     <>
@@ -162,7 +129,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
       </div>
       {selectedIndex === 0 && (
       <div className="mt-2">
-        <WodWiki code={code} onValueChange={handleEditorCompile} />
+        <WodWiki code={code} onCursorMoved={cursorMovedHandler} onValueChange={valueChangedHandler} />
       </div>)}
       {(selectedIndex !== 3) && (
         <div className="mt-2">
