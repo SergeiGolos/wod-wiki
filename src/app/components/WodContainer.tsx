@@ -113,81 +113,15 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     console.log("Cursor moved: ", event);
   }
 
-  
-  
-
-  
-
-
-
-
-  // const buttons = useMemo((): ButtonConfig[] => {
-  //   if (selectedIndex === 1) {
-  //     return [
-  //       {
-  //         icon: ArrowPathIcon,
-  //         onClick: () => setSelectedIndex(0)
-  //       },
-  //       {
-  //         label: "Pause",
-  //         icon: StopIcon,
-  //         onClick: () => setSelectedIndex(2)
-  //       },
-  //       {
-  //         label: "Complete",
-  //         icon: TableCellsIcon,
-  //         onClick: () => setSelectedIndex(3),
-  //         variant: 'success'
-  //       }
-  //     ];
-  //   }
-
-  //   if (selectedIndex === 2) {
-  //     return [
-  //       {
-  //         icon: ArrowPathIcon,
-  //         onClick: () => setSelectedIndex(0)
-  //       },
-  //       {
-  //         label: "Run",
-  //         icon: PlayIcon,
-  //         onClick: () => setSelectedIndex(1)
-  //       },
-  //       {
-  //         label: "Complete",
-  //         icon: TableCellsIcon,
-  //         onClick: () => setSelectedIndex(3),
-  //         variant: 'success'
-  //       }
-  //     ];
-  //   }
-
-  //   if (selectedIndex === 0) {
-  //     return [
-  //       {
-  //         label: "Editor",
-  //         icon: PencilSquareIcon,
-  //         onClick: () => setSelectedIndex(0),
-  //         isActive: true
-  //       },
-  //       {
-  //         label: "Run",
-  //         icon: PlayIcon,
-  //         onClick: () => setSelectedIndex(1)
-  //       }
-  //     ];
-  //   }
-
-  //   return [];
-  // }, [selectedIndex]);
-
+    
   function valueChangedHandler(editor: editor.IStandaloneCodeEditor, event: editor.IModelContentChangedEvent, classObject?: WodRuntimeScript | undefined): void {    
-    const compiledBlocks = WodCompiler.compileCode(classObject);      
-    console.log("Set blocks:", compiledBlocks.blocks.length);
+    const compiledBlocks = WodCompiler.compileCode(classObject);       
     setBlocks(compiledBlocks);
+    setTimerBlock([undefined, -1]);
   }
 
   function handleTimerEvent(event: string, data?: any): void {
+    
     //throw new Error("Function not implemented.");
   }
 
@@ -195,7 +129,10 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     <div className="border border-gray-200 rounded-lg divide-y">
       <ButtonRibbon buttons={buttons} />
       {timerBlock && timerBlock[1] > -1 && (<WodTimer
+        index={timerBlock[1]}
         key={(timerBlock?.[0]?.id || -1) + "-timer"}
+        stack={blocks.blocks}
+        totalTime="0:00"
         block={timerBlock![0]}        
         onTimerEvent={handleTimerEvent} />)}      
       <WodWiki code={code} onCursorMoved={cursorMovedHandler} onValueChange={valueChangedHandler} />                    
