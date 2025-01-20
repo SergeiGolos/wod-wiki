@@ -9,6 +9,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";
   theme: string = "wod-wiki-theme";
   objectCode: WodRuntimeScript | undefined;
+  hints: monaco.languages.InlayHint[] = [];
   runtime = new MdTimerRuntime();
   constructor(private tokenEngine: SemantcTokenEngine, private suggestionEngine: SuggestionEngine, public code?: string) {
     monaco.languages.register({ id: this.syntax });
@@ -26,7 +27,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
     });
 
     monaco.languages.registerCompletionItemProvider(this.syntax, {
-      provideCompletionItems: (model, position) => {
+      provideCompletionItems: (model, position, token) => {
         var word = model.getWordUntilPosition(position);
         return suggestionEngine.suggest(word, model, position);
       },
@@ -36,23 +37,24 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
       getLegend: () => tokenEngine,
       provideDocumentSemanticTokens: (model) => {
         const code = model.getValue().trim();
-        if (!this.objectCode) return;
+        if (!this.objectCode) return ;
         return tokenEngine.write(code, this.objectCode);
       },
       releaseDocumentSemanticTokens: function (resultId) { },
     });
 
     monaco.languages.registerInlayHintsProvider(this.syntax, {
-      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {
-        const hints: monaco.languages.InlayHint[] = [];
+      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {        
+        this.hints = this.objectCode?.outcome 
+        ? [] :
+        this.hints;
+
         const outcome = (this.objectCode?.outcome || []).flatMap((row: any) => row.fragments);
         // Get all lines in range
         for (let fragment of outcome) {
-          console.log(fragment);
-
           const hint = tokenEngine.tokens.find(token => token.token == fragment.type);
           for (let apply of hint?.hints || []) {
-            hints.push({
+            this.hints.push({
               kind: monaco.languages.InlayHintKind.Other,
               position: {
                 lineNumber: fragment.meta.line,
@@ -62,7 +64,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
             });
           }
         }
-        return hints;
+        return this.hints;
       }
     });
 

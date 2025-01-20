@@ -20,7 +20,7 @@ export class SemantcTokenEngine {
     if (!objectCode || !objectCode.outcome) {
       return this.cache;
     }
-    
+
     // Flatten and sort fragments
     const fragments = (objectCode?.outcome || [])
       .flatMap(row => row.fragments)
@@ -54,7 +54,6 @@ export class SemantcTokenEngine {
       prevLine = zeroBasedLine;
       prevCol = zeroBasedCol;
     }
-    console.log(data);
     this.cache = {
       data: new Uint32Array(data),
       resultId: null

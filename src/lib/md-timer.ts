@@ -39,14 +39,12 @@ export class MdTimerRuntime {
     this.visitor = new MdTimerInterpreter();
   }
 
-  read(inputText: string): WodRuntimeScript {
-    // console.log("INPUT: ", inputText);
+  read(inputText: string): WodRuntimeScript {    
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
     const cst = parser.wodMarkdown();    
-    const raw = cst != null ? this.visitor.visit(cst) : ([] as StatementBlock[]);
-    // console.log("Raw: ", raw);
+    const raw = cst != null ? this.visitor.visit(cst) : ([] as StatementBlock[]);    
     return {
       source: inputText,
       tokens,

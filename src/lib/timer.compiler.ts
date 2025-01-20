@@ -1,7 +1,6 @@
 import { WodRuntimeScript } from "./md-timer";
-import { IRuntimeHandler } from "./IRuntimeHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { RepeatingRuntimeHandler, SkippedRuntimeHandler, SourceDisplayBlock, StopwatchRuntimeHandler } from "./SourceDisplayBlock";
+import { RepeatingRuntimeHandler, SourceDisplayBlock, StopwatchRuntimeHandler } from "./SourceDisplayBlock";
 import { CountDownDurationHandler } from "./CountDownDurationHandler";
 import { StopwatchDurationHandler } from "./StopwatchDurationHandler";
 import { TimerRuntime } from "./timer.runtime";
@@ -25,7 +24,6 @@ export class WodCompiler {
       const runtimeBlock = new SourceDisplayBlock(block, handler);      
       const increment = runtimeBlock.getFragment<IncrementFragment>("increment");
       const duration = runtimeBlock.getFragment<TimerFragment>("duration");
-
 
       
       if (duration.length > 0 && increment.length == 0) {

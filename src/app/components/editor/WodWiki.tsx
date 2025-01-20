@@ -24,6 +24,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
 }) => {  
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);  
+  
   const tokens: WodWikiToken[] = [
     { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
     { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: ' x', position: "after" }] },

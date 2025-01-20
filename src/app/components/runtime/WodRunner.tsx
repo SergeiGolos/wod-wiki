@@ -1,11 +1,9 @@
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { Block, CurrentBlock } from "./WodRows";
-import { Timestamp } from "../../lib/Timestamp";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { EmptyWod } from "../rows/EmptyWod";
 import { WodTimer } from "../timer/WodTimer";
-import { TimerRuntime } from "../../lib/timer.runtime";
-import { LapTimes } from "../timer/LapTimes";
+import { TimerRuntime } from "@/lib/timer.runtime";
+import { RuntimeBlock } from "@/lib/RuntimeBlock";
 
 export interface WodRunnerProps {
   blocks: TimerRuntime;
