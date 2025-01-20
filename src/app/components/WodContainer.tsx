@@ -17,6 +17,7 @@ import { WodTimer } from "./timer/WodTimer";
 import { WodTable } from "./runtime/WodTable";
 import { WodResults } from "./runtime/WodResults";
 import { TimerFromSeconds } from "@/lib/fragments/TimerFromSeconds";
+import { StopwatchDurationHandler, TotalDurationHandler } from "@/lib/StopwatchDurationHandler";
 
 interface WodContainerProps {
   code: string;
@@ -113,48 +114,34 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     setTimerBlock([undefined, -1]);
   }
   const emptyTimer = ["", ""] as [string, string];
-  function handleTimerEvent(event: string, data?: any): [string, string] {        
+  const totalActive = new StopwatchDurationHandler();
+  const totalTimer = new TotalDurationHandler()
+  function handleTimerEvent(timestamp: Date): [string, string][] {        
     const [block, index] = blocks.current;    
-    if (!block) return emptyTimer;
+      
+    if (!block) return [emptyTimer, emptyTimer, emptyTimer];
+    
+    const activeTime = new TimerFromSeconds(totalActive.getTotal(blocks.events, timestamp)?.[0] || 0).toClock();
+    const totalTime = new TimerFromSeconds(totalTimer.getTotal(blocks.events, timestamp)?.[0] || 0).toClock();
 
     const events = blocks.events.filter((e) => e.blockId === block.id);        
-    const elapsed = block.durationHandler!.elapsed(new Date(), block, events);
-    const time = new TimerFromSeconds(elapsed.elapsed);
+    const elapsed = block.durationHandler?.elapsed(timestamp, block, events) 
+            || { elapsed: 0, remaining: 0 }; 
 
+    const time = new TimerFromSeconds(elapsed?.elapsed || 0);
+        
     if (elapsed.remaining! <= 0) {
-      blocks.push('complete');
-      const nextBlock = blocks.goToNext();
-      if  (nextBlock) {
-        blocks.push('start');
+      const actions = block.runtimeHandler?.onTimerEvent(timestamp, 'completed', blocks);
+      let nextBlock : [RuntimeBlock | undefined, number] = [undefined, -1];
+      for (let action of actions || []) {        
+        nextBlock = action.apply(blocks);  
       }
+      
       setTimerBlock(nextBlock);
-      return emptyTimer;
+      return [emptyTimer, activeTime, totalTime];
     }
 
-    return time.toClock();
-
-    
-    // switch (event) {
-    //   case 'started':
-    //     blocks.push('start');
-    //     break;
-    //   case 'lap':
-    //     blocks.push('lap');
-    //     break;
-    //   case 'stop':
-    //     blocks.push('stop');
-    //     break;
-    //   case 'completed':
-    //     blocks.push('completed');
-    //     break;
-    // }
-    // const onBlockEvent = (event: string, block: RuntimeBlock, index: number) => {
-    //   if (event === 'completed') {
-    //     const nextBlock = blocks.goToNext();
-    //     setTimerBlock(nextBlock);
-    //   }    
-    
-    // //throw new Error("Function not implemented.");
+    return [time.toClock(), activeTime, totalTime];    
   }
 
   return (
@@ -169,7 +156,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         onTimerEvent={handleTimerEvent} />)}      
       <WodWiki code={code} onCursorMoved={cursorMovedHandler} onValueChange={valueChangedHandler} />                    
       {blocks.events && blocks.events.length > -1 && (<div className="mb-4">
-        <WodResults  runtime={blocks} results={blocks?.events} />
+        <WodResults runtime={blocks} results={blocks?.events} />
       </div>)}
       { blocks && (<div className="">
       <WodTable runtime={blocks} />

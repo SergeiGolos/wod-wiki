@@ -5,7 +5,7 @@ import { ResultSpan } from "./Timespan";
 
 
 export class DurationHandler {
-  getTotal(block: RuntimeBlock, events: TimerEvent[], timestamp: Date): [number, string, ResultSpan[]] {
+  getTotal(events: TimerEvent[], timestamp: Date): [number, string, ResultSpan[]] {
     const spans = [] as ResultSpan[];
     let state = "stopped";
     let timerSum = 0;    

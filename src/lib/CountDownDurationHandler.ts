@@ -4,10 +4,9 @@ import { ElapsedState } from "./ElapsedState";
 import { IDurationHandler } from "./IDurationHandler";
 import { TimerEvent } from "./timer.runtime";
 
-
 export class CountDownDurationHandler extends DurationHandler implements IDurationHandler {
-  elapsed(timestamp: Date,  block: RuntimeBlock, events: TimerEvent[]): ElapsedState {
-    const totals = this.getTotal(block, events, timestamp);
+  elapsed(timestamp: Date, block: RuntimeBlock, events: TimerEvent[]): ElapsedState {
+    const totals = this.getTotal(events, timestamp);
     const duration = this.getDuration(block);
     return {
       state: totals[1],

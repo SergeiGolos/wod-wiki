@@ -3,6 +3,6 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { TimerRuntime } from "./timer.runtime";
 
 export interface IRuntimeHandler {
-  type: string;
+  type: string;  
   onTimerEvent(timestamp: Date, event: string, blocks?: TimerRuntime): IRuntimeAction[];
 }

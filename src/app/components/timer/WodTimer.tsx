@@ -10,23 +10,27 @@ export interface WodTimerProps {
   results?: TimerEvent[];
   stack?: RuntimeBlock[];
   totalTime: string;
-  onTimerEvent?: (timeStamp: Date, blockId: number) => [string, string];  
+  onTimerEvent?: (timeStamp: Date) => [string, string][];  
 }
 
 export const WodTimer: React.FC<WodTimerProps> = ({
   block,  
   index,  
   results,
-  stack,
-  totalTime,
+  stack,  
   onTimerEvent,
 }) => {  
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);
+  const [activeTime, setActiveTime] = useState<[string, string]>(["0", "00"]);
+  const [totalTime, setTotalTime] = useState<[string, string]>(["0", "00"]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const updateElapsedTime = useCallback(() => {            
-    if (onTimerEvent !== undefined) {
-      setElapsedTime(onTimerEvent(new Date(), block?.id || -1));   
+    if (onTimerEvent !== undefined) {      
+      const timers = onTimerEvent(new Date());
+      setElapsedTime(timers[0]);   
+      setActiveTime(timers[1]);   
+      setTotalTime(timers[2]);   
     }
   }, [block]);
   
@@ -52,10 +56,16 @@ export const WodTimer: React.FC<WodTimerProps> = ({
               <div className="text-2xl font-semibold text-gray-700">
                 Round {index + 1}/{stack?.length || 0}
               </div>
-              <div className="text-gray-600">
-                <div className="text-sm uppercase tracking-wide">Total Time</div>
-                <div className="text-xl font-mono">{totalTime}</div>
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                <div className="text-gray-600">
+                  <div className="text-sm uppercase tracking-wide">Total Time</div>
+                  <div className="text-xl font-mono">{totalTime[0]}</div>
+                </div>
+                <div className="text-gray-600">
+                  <div className="text-sm uppercase tracking-wide">Active Time</div>
+                  <div className="text-xl font-mono">{activeTime[0]}</div>
+                </div>
+                </div>
             </div>
           </div>
 

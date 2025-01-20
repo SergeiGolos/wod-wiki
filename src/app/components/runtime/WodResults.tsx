@@ -20,11 +20,6 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime}) => {
       return resultMap;
     }, new Map<string, TimerEvent[]>()));
  
-  let handler = new CountDownDurationHandler();
-  let totals = handler.getTotal({} as RuntimeBlock , results, new Date());    
-        
-  console.log("TIME", totals, groupedResults)  
-
   return (
     <div className="overflow-x-auto px-3 py-1">
       <table className="min-w-full">
