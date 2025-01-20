@@ -10,7 +10,7 @@ export interface WodTimerProps {
   results?: TimerEvent[];
   stack?: RuntimeBlock[];
   totalTime: string;
-  onTimerEvent?: (event: string, data?: any) => void;  
+  onTimerEvent?: (timeStamp: Date, blockId: number) => [string, string];  
 }
 
 export const WodTimer: React.FC<WodTimerProps> = ({
@@ -24,18 +24,10 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   const [elapsedTime, setElapsedTime] = useState<[string, string]>(["0", "00"]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  const updateElapsedTime = useCallback(() => {
-    if (!block || !results) return;
-    
-    const now = new Date();
-    const elapsed = block.durationHandler?.elapsed(now, block)?.elapsed || 0;      
-    
-    const timeArr = new TimerFromSeconds(elapsed).toClock();
-    
-    console.log('Elapsed:',elapsed, timeArr, results);
-    setElapsedTime([timeArr[0], timeArr[1][0]]);
-    onTimerEvent?.('elapsed', { elapsed, time: timeArr });   
-
+  const updateElapsedTime = useCallback(() => {            
+    if (onTimerEvent !== undefined) {
+      setElapsedTime(onTimerEvent(new Date(), block?.id || -1));   
+    }
   }, [block]);
   
   useEffect(() => {
@@ -72,7 +64,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
             <div className="text-6xl font-mono font-bold text-gray-800 tracking-wider">        
               <div className='mx-auto'>
                 {elapsedTime[0]}
-                <span className="text-gray-600 text-4xl">.{elapsedTime[1]}</span>
+                <span className="text-gray-600 text-4xl">.{elapsedTime[1].substring(0,1)}</span>
               </div>
               <div className='text-2xl'>Macebell Touchdowns</div>
             </div>

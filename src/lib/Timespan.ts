@@ -1,12 +1,11 @@
-import { Timestamp } from "./Timestamp";
-
+import { TimerEvent } from "./timer.runtime";
 
 export class ResultSpan {
-  start?: Timestamp;
-  stop?: Timestamp;
+  start?: TimerEvent;
+  stop?: TimerEvent;
   label?: string;
   duration(timestamp?: Date): number {
     let now = timestamp ?? new Date();
-    return ((this.stop?.time ?? now).getTime() || 0) - (this.start?.time.getTime() || 0);
+    return ((this.stop?.timestamp ?? now).getTime() || 0) - (this.start?.timestamp.getTime() || 0);
   }
 }

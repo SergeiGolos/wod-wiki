@@ -3,30 +3,31 @@ import { IDurationHandler } from "./IDurationHandler";
 import { NextStatementAction, RefreshStatementAction } from "./NextStatementAction";
 import { IRuntimeHandler } from "./IRuntimeHandler";
 import { IRuntimeAction } from "./IRuntimeAction";
-import { Timestamp } from "./Timestamp";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { RoundsFragment } from "./fragments/RoundsFragment";
 import { StatementFragment } from "./StatementFragment";
+import { TimerRuntime } from "./timer.runtime";
 
 export class StopwatchRuntimeHandler implements IRuntimeHandler {
   constructor() {
   }
   type: string = "statement";
-  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+  onTimerEvent(timestamp: Date, event: string, blocks?: TimerRuntime): IRuntimeAction[] {
+    const block = blocks?.current[0];
     if (!block) {
       throw new Error("Method not implemented.");
     }
     switch (event) {
       case "started":
-        block.timestamps.push({ time: timestamp, type: "start" });
+        blocks.push("start");
         return [new RefreshStatementAction(block.id)];
       
       case "lap":
-        block.timestamps.push({ time: timestamp, type: "lap" });        
+        blocks.push("lap");        
         return [new RefreshStatementAction(block.id)];
 
       case "stop":
-        block.timestamps.push({ time: timestamp, type: "stop" });        
+        blocks.push("stop");        
         return [new RefreshStatementAction(block.id)];
 
       case "completed":        
@@ -49,18 +50,19 @@ export class RepeatingRuntimeHandler implements IRuntimeHandler {
     this.rounds = rounds;
   }
   type: string= "rounds";
-  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+  onTimerEvent(timestamp: Date, event: string, blocks?: TimerRuntime): IRuntimeAction[] {
+      const block = blocks?.current[0];
     if (!block) {
       throw new Error("Method not implemented.");
     }
 
     switch (event) {
       case "lap":     
-        block.timestamps.push({ time: timestamp, type: "lap" });
+        blocks.push( "lap");
         return [new NextStatementAction(block.id)];
 
       case "completed":     
-        block.timestamps.push({ time: timestamp, type: "stop" });
+        blocks.push( "stop");
         return [new NextStatementAction(block.id)];        
 
       default:        
@@ -74,7 +76,8 @@ export class SkippedRuntimeHandler implements IRuntimeHandler {
   constructor() {
   }
   type: string= "statement";
-  onTimerEvent(timestamp: Date, event: string, block?: RuntimeBlock): IRuntimeAction[] {
+  onTimerEvent(timestamp: Date, event: string, blocks?: TimerRuntime): IRuntimeAction[] {
+      const block = blocks?.current[0];
     return [];
   }  
 }
@@ -95,16 +98,14 @@ export class SourceDisplayBlock implements RuntimeBlock {
     durationHandler?: IDurationHandler
   ) {    
     this.id = block.id;
-    this.depth = block.parents?.length || 0;    
-    this.timestamps = [];          
+    this.depth = block.parents?.length || 0;      
     this.durationHandler = durationHandler;
     this.runtimeHandler = runtimeHandler;
     this.round = this.getFragment<RoundsFragment>("rounds", block)[0]?.count || 0;  
   }
 
   id: number;
-  
-  timestamps: Timestamp[];
+    
   parent?: StatementBlock | undefined;
   
   durationHandler: IDurationHandler | undefined;

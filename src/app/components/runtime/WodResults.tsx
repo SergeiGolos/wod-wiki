@@ -1,22 +1,29 @@
-import React from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { RuntimeBlock } from '../../../lib/RuntimeBlock';
 import { RuntimeResult } from '@/lib/RuntimeResult';
-import { TimerEvent } from '@/lib/timer.runtime';
+import { TimerEvent, TimerRuntime } from '@/lib/timer.runtime';
+import { CountDownDurationHandler } from '@/lib/CountDownDurationHandler';
 
 interface WodResultsProps {
   results: TimerEvent[];
+  runtime: TimerRuntime;
 }
 
-export const WodResults: React.FC<WodResultsProps> = ({ results }) => {
+export const WodResults: React.FC<WodResultsProps> = ({ results, runtime}) => {
   // Group results by blockId
-  const groupedResults = results.reduce((acc, result) => {
-    const blockId = result.blockId || 'unknown';
-    if (!acc[blockId]) {
-      acc[blockId] = [];
-    }
-    acc[blockId].push(result);
-    return acc;
-  }, {} as Record<string, TimerEvent[]>);
+  let groupedResults = Array.from(results.reduce((resultMap, item : TimerEvent) => {      
+    const key = `${item.blockId}|${item.index}`;  
+      if (!resultMap.has(key)) {
+        resultMap.set(key, []);
+      }  
+      resultMap.get(key)!.push(item);  
+      return resultMap;
+    }, new Map<string, TimerEvent[]>()));
+ 
+  let handler = new CountDownDurationHandler();
+  let totals = handler.getTotal({} as RuntimeBlock , results, new Date());    
+        
+  console.log("TIME", totals, groupedResults)  
 
   return (
     <div className="overflow-x-auto px-3 py-1">
@@ -38,19 +45,23 @@ export const WodResults: React.FC<WodResultsProps> = ({ results }) => {
           </tr>
         </thead>
         <tbody className="bg-white">
-          {Object.entries(groupedResults).map(([blockId, blockResults], blockIndex) => (
-            <React.Fragment key={blockId}>
-              {/* Section row */}
+          {groupedResults?.map(([groupId, group], groupIndex) => {
+            console.log("MAP", groupId, group);
+            const blockId = (groupId.split('|')[0] as any as number) * 1;
+            const block = runtime[blockId];
+            console.log("MAP2", groupId, group, block);
+            //const parts = block?.[0]?.getParts() || [];
+
+            return (<React.Fragment key={groupId}>              
               <tr className="bg-gray-100">
                 <td colSpan={4} className="px-3 py-2 text-sm font-semibold text-gray-700">
-                  Block {blockId}
+                  Block {JSON.stringify(block)}
                 </td>
-              </tr>
-              {/* Result rows */}
-              {blockResults.map((result, index) => (
-                <tr key={`${blockId}-${index}`}
+              </tr>              
+              {group.map((result, index) => (
+                <tr key={`${groupId}-${index}`}
                     className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
-                      index < blockResults.length - 1 ? 'border-b border-gray-200' : ''
+                      index < group.length - 1 ? 'border-b border-gray-200' : ''
                     }`}>
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
                     {result.index}
@@ -61,12 +72,13 @@ export const WodResults: React.FC<WodResultsProps> = ({ results }) => {
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
                     {result.type}
                   </td>
-                  <td className="px-3 py-2 text-sm text-gray-500">                  
+                  <td className="px-3 py-2 text-sm text-gray-500">  
+                    {result.blockId}
                   </td>
                 </tr>
               ))}
             </React.Fragment>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>

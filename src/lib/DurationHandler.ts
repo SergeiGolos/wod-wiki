@@ -1,15 +1,15 @@
 import { TimerFragment } from "./fragments/TimerFragment";
 import { RuntimeBlock } from "./RuntimeBlock";
+import { TimerEvent } from "./timer.runtime";
 import { ResultSpan } from "./Timespan";
 
 
 export class DurationHandler {
-  getTotal(block: RuntimeBlock, timestamp: Date): [number, string, ResultSpan[]] {
+  getTotal(block: RuntimeBlock, events: TimerEvent[], timestamp: Date): [number, string, ResultSpan[]] {
     const spans = [] as ResultSpan[];
     let state = "stopped";
-    let timerSum = 0;
-
-    for (let ts of block.timestamps) {
+    let timerSum = 0;    
+    for (let ts of events || []) {
       if (ts.type === "start" && (spans.length === 0 || spans[spans.length - 1].stop !== undefined)) {
         state = "running";
         const span = new ResultSpan();

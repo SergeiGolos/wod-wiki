@@ -1,7 +1,6 @@
 "use client";
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  PencilSquareIcon,
   PlayIcon,
   TableCellsIcon,
   ArrowPathIcon,
@@ -9,7 +8,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { ButtonRibbon, ButtonConfig } from "./ButtonRibbon";
 import { WodWiki } from "./editor/WodWiki";
-import { WodRunner, WodRuntimeState } from "./runtime/WodRunner";
 import { TimerRuntime } from "../../lib/timer.runtime";
 import { RuntimeBlock } from "../../lib/RuntimeBlock";
 import { WodRuntimeScript } from "../../lib/md-timer";
@@ -18,7 +16,7 @@ import { editor } from "monaco-editor";
 import { WodTimer } from "./timer/WodTimer";
 import { WodTable } from "./runtime/WodTable";
 import { WodResults } from "./runtime/WodResults";
-import { RuntimeResult } from "@/lib/RuntimeResult";
+import { TimerFromSeconds } from "@/lib/fragments/TimerFromSeconds";
 
 interface WodContainerProps {
   code: string;
@@ -29,8 +27,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
   const [timerBlock, setTimerBlock] = useState<[RuntimeBlock | undefined, number]>();    
   const [buttons, setButtons] = useState<ButtonConfig[]>([]);
 
-  useEffect(() => {    
-    console.log('Code:effect');
+  useEffect(() => {        
     setTimerBlock([undefined, -1]);    
     setButtons([        
       {
@@ -79,7 +76,6 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         onClick: () => complete()
       }
     ]);
-    console.log('Stop:', block[0]?.id, block[1], timerBlock);
   }
 
   function complete() {
@@ -92,8 +88,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         icon: ArrowPathIcon,
         onClick: () => reset()
       }
-    ]);
-    console.log('Complete:', block[0]?.id, block[1], timerBlock);
+    ]);    
   }
 
   function reset() {
@@ -105,24 +100,61 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         onClick: () => start()
       }
     ]);
-    console.log('Reset');
   }
 
   function cursorMovedHandler(editor: editor.IStandaloneCodeEditor, event: editor.ICursorPositionChangedEvent, classObject?: WodRuntimeScript | undefined): void {
     // throw new Error("Function not implemented.");
     console.log("Cursor moved: ", event);
   }
-
     
   function valueChangedHandler(editor: editor.IStandaloneCodeEditor, event: editor.IModelContentChangedEvent, classObject?: WodRuntimeScript | undefined): void {    
     const compiledBlocks = WodCompiler.compileCode(classObject);       
     setBlocks(compiledBlocks);
     setTimerBlock([undefined, -1]);
   }
+  const emptyTimer = ["", ""] as [string, string];
+  function handleTimerEvent(event: string, data?: any): [string, string] {        
+    const [block, index] = blocks.current;    
+    if (!block) return emptyTimer;
 
-  function handleTimerEvent(event: string, data?: any): void {
+    const events = blocks.events.filter((e) => e.blockId === block.id);        
+    const elapsed = block.durationHandler!.elapsed(new Date(), block, events);
+    const time = new TimerFromSeconds(elapsed.elapsed);
+
+    if (elapsed.remaining! <= 0) {
+      blocks.push('complete');
+      const nextBlock = blocks.goToNext();
+      if  (nextBlock) {
+        blocks.push('start');
+      }
+      setTimerBlock(nextBlock);
+      return emptyTimer;
+    }
+
+    return time.toClock();
+
     
-    //throw new Error("Function not implemented.");
+    // switch (event) {
+    //   case 'started':
+    //     blocks.push('start');
+    //     break;
+    //   case 'lap':
+    //     blocks.push('lap');
+    //     break;
+    //   case 'stop':
+    //     blocks.push('stop');
+    //     break;
+    //   case 'completed':
+    //     blocks.push('completed');
+    //     break;
+    // }
+    // const onBlockEvent = (event: string, block: RuntimeBlock, index: number) => {
+    //   if (event === 'completed') {
+    //     const nextBlock = blocks.goToNext();
+    //     setTimerBlock(nextBlock);
+    //   }    
+    
+    // //throw new Error("Function not implemented.");
   }
 
   return (
@@ -137,7 +169,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         onTimerEvent={handleTimerEvent} />)}      
       <WodWiki code={code} onCursorMoved={cursorMovedHandler} onValueChange={valueChangedHandler} />                    
       {blocks.events && blocks.events.length > -1 && (<div className="mb-4">
-        <WodResults results={blocks?.events} />
+        <WodResults  runtime={blocks} results={blocks?.events} />
       </div>)}
       { blocks && (<div className="">
       <WodTable runtime={blocks} />

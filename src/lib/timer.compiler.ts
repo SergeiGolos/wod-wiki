@@ -20,8 +20,7 @@ export class WodCompiler {
     const handler = new StopwatchRuntimeHandler(); 
     const lookup = {} as { [key: number]: RuntimeBlock };        
 
-    for (const block of value.outcome) {            
-      console.log('Block:', block.id, block);
+    for (const block of value.outcome) {                  
       const runtimeBlock = new SourceDisplayBlock(block, handler);      
       const increment = runtimeBlock.getFragment<IncrementFragment>("increment");
       const duration = runtimeBlock.getFragment<TimerFragment>("duration");
