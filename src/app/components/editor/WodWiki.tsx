@@ -29,6 +29,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
     { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: ' x', position: "after" }] },
     { token: "resistance", foreground: "008800", fontStyle: "bold", hints: [] },
+    { token: "distance", foreground: "008800", fontStyle: "bold", hints: [] },
     { token: "effort", foreground: "000000", hints: [] },
     { token: "rounds", foreground: "AA8658", hints: [{ hint: ':rounds', position: "after" }] },
   ]
@@ -69,7 +70,7 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full border border-gray-200 rounded-lg overflow-hidden"
+      className="w-full overflow-hidden"
       style={{ height: `200px` }}
     />
   );
