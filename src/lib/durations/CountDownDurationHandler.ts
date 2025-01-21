@@ -1,8 +1,8 @@
-import { DurationHandler } from "./DurationHandler";
-import { RuntimeBlock } from "./RuntimeBlock";
-import { ElapsedState } from "./ElapsedState";
-import { IDurationHandler } from "./IDurationHandler";
-import { TimerEvent } from "./timer.runtime";
+import { DurationHandler } from "../DurationHandler";
+import { RuntimeBlock } from "../RuntimeBlock";
+import { ElapsedState } from "../ElapsedState";
+import { IDurationHandler } from "../IDurationHandler";
+import { TimerEvent } from "../timer.runtime";
 
 export class CountDownDurationHandler extends DurationHandler implements IDurationHandler {
   elapsed(timestamp: Date, block: RuntimeBlock, events: TimerEvent[]): ElapsedState {

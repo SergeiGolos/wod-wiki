@@ -2,7 +2,7 @@ import React, { use, useEffect, useState } from 'react';
 import { RuntimeBlock } from '../../../lib/RuntimeBlock';
 import { RuntimeResult } from '@/lib/RuntimeResult';
 import { TimerEvent, TimerRuntime } from '@/lib/timer.runtime';
-import { CountDownDurationHandler } from '@/lib/CountDownDurationHandler';
+import { CountDownDurationHandler } from '@/lib/durations/CountDownDurationHandler';
 
 interface WodResultsProps {
   results: TimerEvent[];

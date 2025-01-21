@@ -17,7 +17,8 @@ import { WodTimer } from "./timer/WodTimer";
 import { WodTable } from "./runtime/WodTable";
 import { WodResults } from "./runtime/WodResults";
 import { TimerFromSeconds } from "@/lib/fragments/TimerFromSeconds";
-import { StopwatchDurationHandler, TotalDurationHandler } from "@/lib/StopwatchDurationHandler";
+import { StopwatchDurationHandler } from "@/lib/durations/StopwatchDurationHandler";
+import { TotalDurationHandler } from "@/lib/durations/TotalDurationHandler";
 
 interface WodContainerProps {
   code: string;
@@ -128,11 +129,11 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     const elapsed = block.durationHandler?.elapsed(timestamp, block, events) 
             || { elapsed: 0, remaining: 0 }; 
 
-    const time = new TimerFromSeconds(elapsed?.elapsed || 0);
-        
+    const time = new TimerFromSeconds(elapsed?.elapsed || 0);        
     if (elapsed.remaining! <= 0) {
       const actions = block.runtimeHandler?.onTimerEvent(timestamp, 'completed', blocks);
-      let nextBlock : [RuntimeBlock | undefined, number] = [undefined, -1];
+      let nextBlock = blocks.current;
+      
       for (let action of actions || []) {        
         nextBlock = action.apply(blocks);  
       }

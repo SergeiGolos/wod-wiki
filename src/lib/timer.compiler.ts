@@ -1,8 +1,10 @@
 import { WodRuntimeScript } from "./md-timer";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { RepeatingRuntimeHandler, SourceDisplayBlock, StopwatchRuntimeHandler } from "./SourceDisplayBlock";
-import { CountDownDurationHandler } from "./CountDownDurationHandler";
-import { StopwatchDurationHandler } from "./StopwatchDurationHandler";
+import { SourceDisplayBlock } from "./SourceDisplayBlock";
+import { StopwatchRuntimeHandler } from "./runtimes/StopwatchRuntimeHandler";
+import { RepeatingRuntimeHandler } from "./runtimes/RepeatingRuntimeHandler";
+import { CountDownDurationHandler } from "./durations/CountDownDurationHandler";
+import { StopwatchDurationHandler } from "./durations/StopwatchDurationHandler";
 import { TimerRuntime } from "./timer.runtime";
 import { IncrementFragment } from "./fragments/IncrementFragment";
 import { RoundsFragment } from "./fragments/RoundsFragment";
