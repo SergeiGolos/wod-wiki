@@ -43,6 +43,7 @@ export default function CommandPalette() {
           return person.name.toLowerCase().includes(query.toLowerCase())
         })
 
+        
   return (
     <>    
     <div className={classNames('max-w-2xl mx-auto transform transition-all duration-200 ease-in-out', open ? 'scale-95 opacity-0 hidden' : 'scale-100 opacity-100')}>

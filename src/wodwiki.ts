@@ -1,4 +1,3 @@
-import './monaco-setup';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime, WodRuntimeScript} from "./lib/md-timer";
 

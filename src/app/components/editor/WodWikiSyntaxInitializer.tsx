@@ -4,6 +4,9 @@ import { editor } from 'monaco-editor';
 import React from 'react';
 import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
+import { loadMonaco } from '@/monaco-setup';
+const monacoEditor = loadMonaco();
+
 
 export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";
@@ -12,8 +15,8 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   hints: monaco.languages.InlayHint[] = [];
   runtime = new MdTimerRuntime();
   constructor(private tokenEngine: SemantcTokenEngine, private suggestionEngine: SuggestionEngine, public code?: string) {
-    monaco.languages.register({ id: this.syntax });
-    monaco.editor.defineTheme(this.theme, {
+    monacoEditor.languages.register({ id: this.syntax });
+    monacoEditor.editor.defineTheme(this.theme, {
       base: "vs",
       inherit: false,
       rules: tokenEngine.tokens,
@@ -26,14 +29,14 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
       }
     });
 
-    monaco.languages.registerCompletionItemProvider(this.syntax, {
+    monacoEditor.languages.registerCompletionItemProvider(this.syntax, {
       provideCompletionItems: (model, position, token) => {
         var word = model.getWordUntilPosition(position);
         return suggestionEngine.suggest(word, model, position);
       },
     });
 
-    monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
+    monacoEditor.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => tokenEngine,
       provideDocumentSemanticTokens: (model) => {
         const code = model.getValue().trim();
@@ -43,8 +46,8 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
       releaseDocumentSemanticTokens: function (resultId) { },
     });
 
-    monaco.languages.registerInlayHintsProvider(this.syntax, {
-      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHint[]> => {        
+    monacoEditor.languages.registerInlayHintsProvider(this.syntax, {
+      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {        
         this.hints = this.objectCode?.outcome 
         ? [] :
         this.hints;
@@ -55,16 +58,16 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
           const hint = tokenEngine.tokens.find(token => token.token == fragment.type);
           for (let apply of hint?.hints || []) {
             this.hints.push({
-              kind: monaco.languages.InlayHintKind.Other,
+              kind: monaco.languages.InlayHintKind.Parameter,
               position: {
                 lineNumber: fragment.meta.line,
                 column: fragment.meta.columnStart,
               },
-              text: apply.hint,
+              label: apply.hint,
             });
           }
         }
-        return this.hints;
+        return { hints: this.hints, dispose: () => { } };
       }
     });
 
@@ -77,7 +80,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
     onCursorMoved?: (event: editor.ICursorPositionChangedEvent, classObject?: WodRuntimeScript) => void
 
   ): [editor.IStandaloneCodeEditor | null, monaco.IDisposable, monaco.IDisposable] {
-    const result = monaco.editor.create(containerRef.current!, {
+    const result = monacoEditor.editor.create(containerRef.current!, {
       value: "",
       language: this.syntax,
       theme: this.theme,
@@ -91,7 +94,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         top: 12,
         bottom: 12
       },
-      inlayHints: { enabled: true },
+      inlayHints: { enabled: "on" },
       // Add these options to enable semantic tokens
       "semanticHighlighting.enabled": true,
       scrollbar: {
@@ -102,7 +105,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         alwaysConsumeMouseWheel: false
       }
     });
-
+    
     const contentChangeDisposable = result.onDidChangeModelContent((event) => {
       this.objectCode = this.runtime.read(result.getValue().trimEnd());
       onValueChange?.(event, this.objectCode);
