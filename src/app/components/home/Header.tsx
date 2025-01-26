@@ -1,10 +1,7 @@
 'use client';
 import Image from 'next/image'
-import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from '@headlessui/react';
-import { Bars3Icon, ChevronDownIcon } from '@heroicons/react/20/solid';
-import { callsToAction, products } from './data';
-import logo from '../../../public/logo.png';
-import CommandPalette from '../components/pallet/command-palette';
+import logo from '@/../public/logo.png';
+import CommandPalette from '../palette/command-palette';
 
 interface HeaderProps {
   handleSignOut: () => void;
@@ -24,6 +21,9 @@ export function Header({ handleSignOut, setMobileMenuOpen }: HeaderProps) {
               className="h-8 w-auto"
             />
           </a>
+          <h2 className="text-center text-2xl font-bold tracking-tight text-gray-900 rotate-2">
+            <span className='text-black/70'>Wod</span><span className="text-blue-900/70">.wiki</span>
+          </h2>
         </div>
         <div className="px-3 w-[260px]">
           <CommandPalette />
@@ -33,7 +33,7 @@ export function Header({ handleSignOut, setMobileMenuOpen }: HeaderProps) {
             onClick={handleSignOut}
             className="flex items-center px-3 py-1 rounded-full transition-all bg-white text-blue-600 hover:bg-blue-50 border border-blue-200"
             >
-            <span className="mx-1">Log out</span>            
+            <span className="mx-">Log out</span>            
             </button>
         </div>
       </nav>

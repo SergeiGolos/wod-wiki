@@ -1,12 +1,12 @@
 'use client';
 import { User } from '@supabase/supabase-js';
-import { createClient } from '../../utils/supabase/client';
+import { createClient } from '../../../utils/supabase/client';
 import { redirect } from 'next/navigation';
 import { useState } from 'react';
 import { Header } from './Header';
 import { MobileMenu } from './MobileMenu';
-import { WodContainer } from '../components/WodContainer';
-import { WodRow } from '../../supabase-types';
+import { WodContainer } from '../WodContainer';
+import { WodRow } from '../../../supabase-types';
 
 interface HomeProps {
   user: User;

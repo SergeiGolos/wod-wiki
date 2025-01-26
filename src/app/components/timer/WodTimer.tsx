@@ -46,37 +46,38 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     };
   }, []);
   return (
-    <div className="w-full flex flex-col items-center justify-center py-4 pb-2 px-1 bg-white space-y-3
-    border-y-2">
+    <div className="w-full flex flex-col items-center justify-center py-4 pb-2 px-1 bg-white space-y-3 border-y-2">
       <div className="w-full shadow-xl">
         <div className="grid md:grid-cols-3 gap-4">
-          {/* Left section - 1/3 width on desktop */}
+          {/* Left section - Rounds */}
           <div className="bg-gray-50/20 p-4">
-            <div className="space-y-4">
-              <div className="text-2xl font-semibold text-gray-700">
-                Round {index + 1}/{stack?.length || 0}
-              </div>
-                <div className="grid grid-cols-2 gap-4">
-                <div className="text-gray-600">
-                  <div className="text-sm uppercase tracking-wide">Total Time</div>
-                  <div className="text-xl font-mono">{totalTime[0]}</div>
-                </div>
-                <div className="text-gray-600">
-                  <div className="text-sm uppercase tracking-wide">Active Time</div>
-                  <div className="text-xl font-mono">{activeTime[0]}</div>
-                </div>
-                </div>
+            <div className="text-2xl font-semibold text-gray-700">
+              Round {index + 1}/{stack?.length || 0}
             </div>
+            <div className="text-2xl">Macebell Touchdowns</div>
           </div>
 
-          {/* Right section - 2/3 width on desktop */}
-          <div className="md:col-span-2 bg-white p-4 rounded-lg">
+          {/* Middle section - Main Timer */}
+          <div className="bg-white p-4 rounded-lg flex items-center justify-center">
             <div className="text-6xl font-mono font-bold text-gray-800 tracking-wider">        
               <div className='mx-auto'>
                 {elapsedTime[0]}
                 <span className="text-gray-600 text-4xl">.{elapsedTime[1].substring(0,1)}</span>
               </div>
-              <div className='text-2xl'>Macebell Touchdowns</div>
+            </div>
+          </div>
+
+          {/* Right section - Elapsed and Total Times */}
+          <div className="bg-gray-50/20 p-4">
+            <div className="space-y-4">
+              <div className="text-gray-600">
+                <div className="text-sm uppercase tracking-wide">Total Time</div>
+                <div className="text-xl font-mono">{totalTime[0]}</div>
+              </div>
+              <div className="text-gray-600">
+                <div className="text-sm uppercase tracking-wide">Active Time</div>
+                <div className="text-xl font-mono">{activeTime[0]}</div>
+              </div>
             </div>
           </div>
         </div>

@@ -27,7 +27,7 @@ export class StopwatchRuntimeHandler implements IRuntimeHandler {
         return [];
 
       case "completed":
-        return [new NextStatementAction(block.id)];
+        return [ new NextStatementAction(block.id) ];
 
       default:
         return [];

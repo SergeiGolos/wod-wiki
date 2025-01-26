@@ -45,9 +45,15 @@ export default function CommandPalette() {
 
   return (
     <>    
-    <div className={classNames(open ? 'hidden' : 'block', 'max-w-2xl mx-auto')}>
-        <div onClick={() => setOpen(true)} className="cursor-pointer relative flex items-center h-8 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-4 size-5 text-gray-400" aria-hidden="true" />
+    <div className={classNames('max-w-2xl mx-auto transform transition-all duration-200 ease-in-out', open ? 'scale-95 opacity-0 hidden' : 'scale-100 opacity-100')}>
+        <div 
+            onClick={() => setOpen(true)} 
+            className="cursor-pointer relative flex items-center h-8 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+        >
+            <MagnifyingGlassIcon 
+          className="pointer-events-none absolute left-4 size-5 text-gray-400" 
+          aria-hidden="true" 
+            />
             <div className="ml-11 text-sm text-gray-500">Search... (Ctrl + k)</div>
         </div>
     </div>

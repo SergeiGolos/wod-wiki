@@ -7,10 +7,11 @@ import { TimerEvent } from "./timer.runtime";
 
 export interface RuntimeBlock {  
   id: number;  
-  depth: number; 
   lap: number;
+  
   block: StatementBlock;
- 
+  depth: number; 
+
   durationHandler?: IDurationHandler;
   runtimeHandler?: IRuntimeHandler;
      

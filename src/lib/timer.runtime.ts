@@ -47,12 +47,13 @@ export class TimerRuntime {
     } 
     return [this.blocks[index], index];    
   }
+
   goTo(index: number): [RuntimeBlock | undefined, number] {        
     this.current = this.get(index);
     console.log('Go to:', index, this.current);
     return this.current;
   }
- 
+  
   goToNext(): [RuntimeBlock | undefined, number] {    
     let index = -1;    
     let startIndex = this.current[1] + 1;

@@ -1,8 +1,6 @@
 import React, { use, useEffect, useState } from 'react';
-import { RuntimeBlock } from '../../../lib/RuntimeBlock';
-import { RuntimeResult } from '@/lib/RuntimeResult';
 import { TimerEvent, TimerRuntime } from '@/lib/timer.runtime';
-import { CountDownDurationHandler } from '@/lib/durations/CountDownDurationHandler';
+
 
 interface WodResultsProps {
   results: TimerEvent[];
@@ -41,19 +39,16 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime}) => {
         </thead>
         <tbody className="bg-white">
           {groupedResults?.map(([groupId, group], groupIndex) => {
-            console.log("MAP", groupId, group);
             const blockId = (groupId.split('|')[0] as any as number) * 1;
             const block = runtime[blockId];
-            console.log("MAP2", groupId, group, block);
-            //const parts = block?.[0]?.getParts() || [];
-
-            return (<React.Fragment key={groupId}>              
-              <tr className="bg-gray-100">
+            
+            return [
+              <tr key={`${groupId}-header`} className="bg-gray-100">
                 <td colSpan={4} className="px-3 py-2 text-sm font-semibold text-gray-700">
                   Block {JSON.stringify(block)}
                 </td>
-              </tr>              
-              {group.map((result, index) => (
+              </tr>,              
+              ...group.map((result, index) => (
                 <tr key={`${groupId}-${index}`}
                     className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
                       index < group.length - 1 ? 'border-b border-gray-200' : ''
@@ -71,9 +66,9 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime}) => {
                     {result.blockId}
                   </td>
                 </tr>
-              ))}
-            </React.Fragment>
-          )})}
+              ))
+            ];
+          })}
         </tbody>
       </table>
     </div>
