@@ -6,6 +6,7 @@ import CommandPalette from '../palette/command-palette';
 interface HeaderProps {
   handleSignOut: () => void;
   setMobileMenuOpen: (open: boolean) => void;
+  user: string;
 }
 
 export function Header({ handleSignOut, setMobileMenuOpen }: HeaderProps) {

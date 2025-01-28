@@ -1,8 +1,8 @@
-import React from "react";
+import React, { ExoticComponent } from "react";
 
 export interface ButtonConfig {
   label?: string;
-  icon: React.ForwardRefExoticComponent<any>;
+  icon: React.ForwardRefExoticComponent<ExoticComponent>;
   onClick: () => void;
   isActive?: boolean;
   variant?: 'primary' | 'secondary' | 'success';

@@ -2,6 +2,7 @@
 import { Dialog, DialogPanel, Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { XMarkIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
 import { products, callsToAction } from './data';
+import Image from 'next/image';
 
 interface MobileMenuProps {
   mobileMenuOpen: boolean;
@@ -17,7 +18,7 @@ export function MobileMenu({ mobileMenuOpen, setMobileMenuOpen, handleSignOut }:
         <div className="flex items-center justify-between">
           <a href="#" className="-m-1.5 p-1.5">
             <span className="sr-only">Your Company</span>
-            <img
+            <Image
               alt=""
               src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600"
               className="h-8 w-auto"

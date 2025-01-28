@@ -23,7 +23,7 @@ export function Home({ user, content }: HomeProps) {
 
   return (
     <>
-      <Header handleSignOut={handleSignOut} setMobileMenuOpen={setMobileMenuOpen} />
+      <Header user={user.email!} handleSignOut={handleSignOut} setMobileMenuOpen={setMobileMenuOpen} />
       <MobileMenu mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} handleSignOut={handleSignOut} />
       <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8'>
         <WodContainer code={content?.wod || ""} />      

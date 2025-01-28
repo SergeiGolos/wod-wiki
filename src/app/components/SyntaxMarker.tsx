@@ -9,19 +9,19 @@ export class SyntaxMarker {
 
   public markLine(editor: monaco.editor.IStandaloneCodeEditor) {
     this._markers.push(
-      // monaco.editor.createDecorations(
-      //   editor,
-      //   [
-      //     {
-      //       range: new monaco.Range(this.lineNumber, 1, this.lineNumber, 1),
-      //       options: {
-      //         isWholeLine: true,
-      //         className: "myContentClass",
-      //         hoverMessage: { value: this.message },
-      //       },
-      //     },
-      //   ]
-      // )
+      monaco.editor.createDecorations(
+        editor,
+        [
+          {
+            range: new monaco.Range(this.lineNumber, 1, this.lineNumber, 1),
+            options: {
+              isWholeLine: true,
+              className: "myContentClass",
+              hoverMessage: { value: this.message },
+            },
+          },
+        ]
+      )
     );
   }
 

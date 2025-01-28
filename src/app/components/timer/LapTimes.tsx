@@ -1,6 +1,5 @@
+import { RuntimeBlock } from "@/lib/RuntimeBlock";
 import React, { useMemo } from "react";
-import { Timestamp } from "../../lib/Timestamp";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
 
 interface LapTime {
   lapNumber: number;

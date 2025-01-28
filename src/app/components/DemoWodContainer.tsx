@@ -1,7 +1,4 @@
-import React, { useState, useEffect, createContext } from "react";
-import { WodWiki } from "./editor/WodWiki";
-import { WodRunner } from "./runtime/WodRunner";
-import * as monaco from 'monaco-editor';
+import React, {  } from "react";
 import { WodContainer } from "./WodContainer";
 
 interface WodContainerProps {

@@ -13,6 +13,7 @@ import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid
 import { UsersIcon } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 import { people, Person } from './people'
+import Image from 'next/image'
 
 const recent = [people[5], people[4], people[2], people[10], people[16]]
 
@@ -132,7 +133,7 @@ export default function CommandPalette() {
                     </div>
                     {activeOption && (<div className="hidden h-96 w-1/2 flex-none flex-col divide-y divide-gray-100 overflow-y-auto sm:flex">
                         <div className="flex-none p-6 text-center">
-                          <img src={activeOption.imageUrl} alt="" className="mx-auto size-16 rounded-full" />
+                          <Image src={activeOption.imageUrl} alt="" className="mx-auto size-16 rounded-full" />
                           <h2 className="mt-3 font-semibold text-gray-900">{activeOption.name}</h2>
                           <p className="text-sm/6 text-gray-500">{activeOption.role}</p>
                         </div>
