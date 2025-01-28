@@ -4,7 +4,8 @@ import { editor } from 'monaco-editor';
 import React from 'react';
 import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
-import { loadMonaco } from '@/monaco-setup';
+import { initMonaco } from '@/monaco-setup';
+
 
 export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";
@@ -12,18 +13,17 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   objectCode: WodRuntimeScript | undefined;
   hints: monaco.languages.InlayHint[] = [];
   runtime = new MdTimerRuntime();
-  private monacoInstance: typeof import('monaco-editor') | null = null;
+  
 
-  constructor(private tokenEngine: SemantcTokenEngine, private suggestionEngine: SuggestionEngine, public code?: string) {
+  constructor(private tokenEngine: SemantcTokenEngine, private suggestionEngine: SuggestionEngine,private monacoInstance: typeof monaco, public code?: string) {
     if (typeof window !== 'undefined') {
       this.initializeMonaco();
     }
   }
 
-  private async initializeMonaco() {
-    this.monacoInstance = await loadMonaco();
-    if (!this.monacoInstance) return;
-
+  private async initializeMonaco() {    
+    
+    this.monacoInstance = await initMonaco();
     this.monacoInstance.languages.register({ id: this.syntax });
     this.monacoInstance.editor.defineTheme(this.theme, {
       base: "vs",

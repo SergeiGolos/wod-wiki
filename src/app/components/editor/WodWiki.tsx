@@ -5,7 +5,7 @@ import { editor } from 'monaco-editor';
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
-
+import { configureMonaco } from '@/utils/configureMonaco';
 
 interface WodWikiProps {
   code?: string;
@@ -21,10 +21,12 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   code = "",
   onValueChange,
   onCursorMoved,
-}) => {  
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);  
-  
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const contentChangeDisposableRef = useRef<monaco.IDisposable | null>(null);
+  const cursorChangeDisposableRef = useRef<monaco.IDisposable | null>(null);
+
   const tokens: WodWikiToken[] = [
     { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
     { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: ' x', position: "after" }] },
@@ -34,44 +36,46 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     { token: "rounds", foreground: "AA8658", hints: [{ hint: ':rounds', position: "after" }] },
   ]
 
-  const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), code);  
- 
+  const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), code);
+  editor
   useEffect(() => {
-    if (!containerRef.current) return;
+    configureMonaco();
     const [editor, contentChangeDisposable, cursorChangeDisposable] = initializer.createEditor(
-      containerRef, 
+      containerRef,
       (event: editor.IModelContentChangedEvent, objectClass?: WodRuntimeScript) => { onValueChange?.(editorRef.current!, event, objectClass); },
       (event: editor.ICursorPositionChangedEvent, objectClass?: WodRuntimeScript) => { onCursorMoved?.(editorRef.current!, event, objectClass); });
 
     editorRef.current = editor;
+    contentChangeDisposableRef.current = contentChangeDisposable;
+    cursorChangeDisposableRef.current = cursorChangeDisposable;
+
+    editorRef.current = editor;
     if (code != "") {
-      editorRef.current?.setValue(code); 
+      editorRef.current?.setValue(code);
     }
 
-    // Subscribe to content change events
-    // Cleanup function
     return () => {
-      contentChangeDisposable.dispose();
-      cursorChangeDisposable.dispose();
+      contentChangeDisposableRef.current?.dispose();
+      cursorChangeDisposableRef.current?.dispose();
       if (editorRef.current) {
         editorRef.current?.dispose();
         editorRef.current = null;
       }
-    };
+    };   
   }, []); // Empty dependency array since we only want to initialize once
 
-  // Update editor content when code prop changes
-  useEffect(() => {
-    if (editorRef.current && code !== editorRef.current.getValue()) {
-      editorRef.current.setValue(code);
-    }
-  }, [code]);
+// Update editor content when code prop changes
+useEffect(() => {
+  if (editorRef.current && code !== editorRef.current.getValue()) {
+    editorRef.current.setValue(code);
+  }
+}, [code]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="w-full overflow-hidden"
-      style={{ height: `200px` }}
-    />
-  );
+return (
+  <div
+    ref={containerRef}
+    className="w-full overflow-hidden"
+    style={{ height: `200px` }}
+  />
+);
 };
