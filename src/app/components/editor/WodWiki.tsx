@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as monaco from 'monaco-editor';
 import { WodRuntimeScript, WodWikiToken } from '../../../lib/md-timer';
+import { editor } from 'monaco-editor';
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
+
 
 interface WodWikiProps {
   code?: string;
@@ -23,7 +25,6 @@ export const WodWiki: React.FC<WodWikiProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);  
   
-  
   const tokens: WodWikiToken[] = [
     { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
     { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: ' x', position: "after" }] },
@@ -39,8 +40,8 @@ export const WodWiki: React.FC<WodWikiProps> = ({
     if (!containerRef.current) return;
     const [editor, contentChangeDisposable, cursorChangeDisposable] = initializer.createEditor(
       containerRef, 
-      (event: monaco.editor.IModelContentChangedEvent, objectClass?: WodRuntimeScript) => { onValueChange?.(editorRef.current!, event, objectClass); },
-      (event: monaco.editor.ICursorPositionChangedEvent, objectClass?: WodRuntimeScript) => { onCursorMoved?.(editorRef.current!, event, objectClass); });
+      (event: editor.IModelContentChangedEvent, objectClass?: WodRuntimeScript) => { onValueChange?.(editorRef.current!, event, objectClass); },
+      (event: editor.ICursorPositionChangedEvent, objectClass?: WodRuntimeScript) => { onCursorMoved?.(editorRef.current!, event, objectClass); });
 
     editorRef.current = editor;
     if (code != "") {
