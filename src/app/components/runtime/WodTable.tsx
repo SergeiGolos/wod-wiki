@@ -8,8 +8,7 @@ interface WodTableProps {
 export const WodTable: React.FC<WodTableProps> = ({ runtime }) => {
   // Extract the main workout parameters
   const blocks = runtime.blocks;  
-  const exercises = blocks.filter(x => x.block.children.length == 0); // Skip the first block which contains round info
-  console.log("filter", blocks);
+  const exercises = blocks.filter(x => x.block.children.length == 0); // Skip the first block which contains round info  
   return (
     <div className="overflow-x-auto px-3 py-1">
       <div className='text-lg font-semibold text-gray-700 mb-3'>

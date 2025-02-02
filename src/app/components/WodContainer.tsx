@@ -109,7 +109,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
     console.log("Cursor moved: ", event);
   }
     
-  function valueChangedHandler(editor: editor.IStandaloneCodeEditor, event: editor.IModelContentChangedEvent, classObject?: WodRuntimeScript | undefined): void {    
+  function valueChangedHandler(classObject?: WodRuntimeScript | undefined): void {    
     const compiledBlocks = WodCompiler.compileCode(classObject);       
     setBlocks(compiledBlocks);
     setTimerBlock([undefined, -1]);
@@ -155,7 +155,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         totalTime="0:00"
         block={timerBlock![0]}        
         onTimerEvent={handleTimerEvent} />)}      
-      <WodWiki code={code} onCursorMoved={cursorMovedHandler} onValueChange={valueChangedHandler} />                    
+      <WodWiki code={code} onValueChange={valueChangedHandler} />                    
       {blocks.events && blocks.events.length > -1 && (<div className="mb-4">
         <WodResults runtime={blocks} results={blocks?.events} />
       </div>)}

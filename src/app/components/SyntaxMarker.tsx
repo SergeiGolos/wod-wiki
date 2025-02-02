@@ -1,5 +1,5 @@
 "use client";
-import * as monaco from "monaco-editor";
+
 
 
 export class SyntaxMarker {

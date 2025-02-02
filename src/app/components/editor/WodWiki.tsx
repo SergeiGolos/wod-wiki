@@ -1,20 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import * as monaco from 'monaco-editor';
+import Editor, { OnMount, MonacoDiffEditor }  from '@monaco-editor/react';
+
 import { WodRuntimeScript, WodWikiToken } from '../../../lib/md-timer';
-import { editor } from 'monaco-editor';
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
-import dynamic from 'next/dynamic';
 
 interface WodWikiProps {
-  code?: string;
-  /** Initial code content */
-  initializer?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
+  code?: string;  
   /** Optional value change handler */
-  onValueChange?: (editor: monaco.editor.IStandaloneCodeEditor, event: editor.IModelContentChangedEvent, classObject?: WodRuntimeScript) => void;
-  /** Optional cursor position handler */
-  onCursorMoved?: (editor: monaco.editor.IStandaloneCodeEditor, event: editor.ICursorPositionChangedEvent, classObject?: WodRuntimeScript) => void;
+  onValueChange?: (classObject?: WodRuntimeScript) => void;    
 }
 
 const tokens: WodWikiToken[] = [
@@ -26,60 +20,24 @@ const tokens: WodWikiToken[] = [
   { token: "rounds", foreground: "AA8658", hints: [{ hint: ':rounds', position: "after" }] },
 ]
 
-export const WodWiki = dynamic(() =>
-  Promise.resolve((
-    { code = "",
-      onValueChange,
-      onCursorMoved,
-    }: WodWikiProps) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-    const contentChangeDisposableRef = useRef<monaco.IDisposable | null>(null);
-    const cursorChangeDisposableRef = useRef<monaco.IDisposable | null>(null);
-
-
-    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), code);
-    editor
-    useEffect(() => {
-
-      const [editor, contentChangeDisposable, cursorChangeDisposable] = initializer.createEditor(
-        containerRef,
-        (event: editor.IModelContentChangedEvent, objectClass?: WodRuntimeScript) => { onValueChange?.(editorRef.current!, event, objectClass); },
-        (event: editor.ICursorPositionChangedEvent, objectClass?: WodRuntimeScript) => { onCursorMoved?.(editorRef.current!, event, objectClass); });
-
-      editorRef.current = editor;
-      contentChangeDisposableRef.current = contentChangeDisposable;
-      cursorChangeDisposableRef.current = cursorChangeDisposable;
-
-      editorRef.current = editor;
-      if (code != "") {
-        editorRef.current?.setValue(code);
-      }
-
-      return () => {
-        contentChangeDisposableRef.current?.dispose();
-        cursorChangeDisposableRef.current?.dispose();
-        if (editorRef.current) {
-          editorRef.current?.dispose();
-          editorRef.current = null;
-        }
-      };
-    }, []); // Empty dependency array since we only want to initialize once
-
-    // Update editor content when code prop changes
-    useEffect(() => {
-      if (editorRef.current && code !== editorRef.current.getValue()) {
-        editorRef.current.setValue(code);
-      }
-    }, [code]);
-
+export const WodWiki = ({ code = "", onValueChange }: WodWikiProps) => {        
+    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), onValueChange);      
+    function handleMount(editor: any, monaco: any) {
+      initializer.handleMount(editor, monaco);
+    }
+    function handleBeforeMount(monaco: any) {
+      initializer.handleBeforeMount(monaco);
+    }
+        
     return (
-      <div
-        ref={containerRef}
-        className="w-full overflow-hidden"
-        style={{ height: `200px` }}
-      />
+      <Editor
+        height="30vh"    
+        language={initializer.syntax} 
+        theme={initializer.theme}
+        defaultValue={code}
+        beforeMount={handleBeforeMount}
+        onMount={handleMount}
+        options={initializer.options}        
+    />
     )
-  }),
-  { ssr: true }
-);   
+  };   

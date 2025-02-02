@@ -1,7 +1,7 @@
 import React from "react";
 import { ExerciseRow } from "../rows/ExerciseRow";
 import { RoundsRow } from "../rows/RoundsRow";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
+import { RuntimeBlock } from "@/lib/RuntimeBlock";
 
 export interface BlockProps {  
   block: RuntimeBlock;  
