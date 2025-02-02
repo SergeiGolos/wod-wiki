@@ -46,7 +46,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   }
 
   public handleBeforeMount(monaco: Monaco) {        
-    var tokens = this.tokenEngine?.tokens ?? [];
+    const tokens = this.tokenEngine?.tokens ?? [];
     console.log("Before mounting editor", tokens);
     monaco.languages.register({ id: this.syntax });    
     monaco.editor.defineTheme(this.theme, {
@@ -64,7 +64,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
 
     monaco.languages.registerCompletionItemProvider(this.syntax, {
       provideCompletionItems: (model, position, token) => {
-        var word = model.getWordUntilPosition(position);
+        const word = model.getWordUntilPosition(position);
         return this.suggestionEngine.suggest(word, model, position);
       },
     });
@@ -76,11 +76,12 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         if (!this.objectCode) return ;
         return this.tokenEngine.write(code, this.objectCode);
       },
-      releaseDocumentSemanticTokens: function (resultId) { },
+      releaseDocumentSemanticTokens: function () { },
     });
 
     monaco.languages.registerInlayHintsProvider(this.syntax, {
       provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {        
+        console.log(model, range, token);
         this.hints = this.objectCode?.outcome 
         ? [] :
         this.hints;

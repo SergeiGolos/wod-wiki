@@ -1,9 +1,11 @@
-import Editor, { OnMount, MonacoDiffEditor }  from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
 
 import { WodRuntimeScript, WodWikiToken } from '../../../lib/md-timer';
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
+import { Monaco } from '@monaco-editor/react';
+import { editor } from 'monaco-editor';
 
 interface WodWikiProps {
   code?: string;  
@@ -22,10 +24,10 @@ const tokens: WodWikiToken[] = [
 
 export const WodWiki = ({ code = "", onValueChange }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), onValueChange);      
-    function handleMount(editor: any, monaco: any) {
+    function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
       initializer.handleMount(editor, monaco);
     }
-    function handleBeforeMount(monaco: any) {
+    function handleBeforeMount(monaco: Monaco) {
       initializer.handleBeforeMount(monaco);
     }
         

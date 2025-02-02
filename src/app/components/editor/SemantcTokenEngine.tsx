@@ -11,7 +11,10 @@ export class SemantcTokenEngine {
 
   tokenTypes: string[] = [];
   tokenModifiers = [];
-  cache: any = {};
+  cache: {
+    data?: Uint32Array,
+    resultId?: number | null
+  } = {};
   getType(type: string) {
     return this.tokenTypes.indexOf(type);
   }

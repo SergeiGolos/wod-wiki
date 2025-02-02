@@ -3,7 +3,7 @@ import { editor, languages } from 'monaco-editor';
 
 export class SuggestionEngine {
   suggest(word: editor.IWordAtPosition, model: editor.ITextModel, position: monaco.Position) : languages.ProviderResult<languages.CompletionList> {
-    var range = {
+    const range = {
       startLineNumber: position.lineNumber,
       endLineNumber: position.lineNumber,
       startColumn: word.startColumn,
