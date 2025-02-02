@@ -1,120 +1,67 @@
-import { RuntimeBlock } from "./timer.types";
+import { RuntimeBlock } from "./RuntimeBlock";
+export type TimerEventType = 'complete' | 'stop' | 'start' | 'lap';
+export type TimerEvent = {
+  index: number;  
+  blockId: number;  
+  timestamp: Date;
+  type: TimerEventType;
+}
 
-export class TimerSequencer {
-  private current:  [RuntimeBlock | undefined, number]  = [undefined, -1];
-  private blockMap: { [key: number]: [RuntimeBlock, number] } = {};
+export class TimerRuntime {
+  public round: number = 0;
+  public current:  [RuntimeBlock | undefined, number]  = [undefined, -1];  
+  public events: TimerEvent[] = [];
 
-  constructor(private blocks: RuntimeBlock[]) {
+  constructor(public blocks: RuntimeBlock[]) {
     // Create lookup map for blocks by ID
     blocks.forEach((block, index) => {
-      this.blockMap[block.id] = [ block, index ] ;
+      this[block.id] = [ block, index ] ;
     });
   }
 
   // Allow accessing blocks by ID
-  [key: number]: [RuntimeBlock | undefined, number] | undefined;
-  get(id: number): [RuntimeBlock | undefined, number] | undefined {
-    return this?.blockMap[id];
+  [key: number]: [RuntimeBlock | undefined, number] | undefined;    
+  push(type: TimerEventType): TimerEvent[] {
+    if (this.current && this.current[0]) {      
+      this.events.push({ index: this.round, blockId : this.current![0]!.id, timestamp: new Date(), type });
+    }
+    return this.events;
   }
 
-  start(): [RuntimeBlock | undefined, number] {
-    this.current = this.getNextBlock();
-    return this.current;
-  };
-  /**
-   * Resets all block timestamps
-   */
-  reset(): void {
-    for (const block of this.blocks) {
-      block.timestamps = [];
+  resest(): [RuntimeBlock | undefined, number] { 
+    this.events = [];
+    return this.goTo(-1);
+  }
+  
+  complete(): [RuntimeBlock | undefined, number] {    
+    while (this.goToNext()[1] != -1) {
+      this.push('start');
+      this.push('complete');    
     }
-    this.current = [undefined, -1];
-  }  
+    return this.current;
+  }
 
-  getNextBlock(): [RuntimeBlock | undefined, number] {
-    if (!this.blocks || this.blocks.length === 0) {
+  get(index: number): [RuntimeBlock | undefined, number] {    
+    if (!this.blocks || this.blocks.length === 0 || index >= this.blocks.length) {
       return [undefined, -1];
-    }
-
-    const nextIndex = this.findNextRunnableBlock(this.current[1] + 1);
-    /// 
-    return nextIndex === -1 ? [undefined, -1] : [this.blocks[nextIndex], nextIndex];
+    } 
+    return [this.blocks[index], index];    
   }
- 
-  /**
-   * Finds the next runnable block starting from the given index
-   */
-  private findNextRunnableBlock(startIndex: number): number {            
-    for (let i = startIndex; i < this.blocks.length; i++) {
-      if (this.blocks[i].isRunnable()) {
-        return i;
-      }
-    }
-    return -1;
-  }
-  
-  /**
-   * Handles timer events and manages block state transitions
-   */
-  handleTimerEvent(event: 'completed' | 'stop' | 'started' | 'lap'): [ RuntimeBlock | undefined, number ] {
-    const now = new Date();
-    
-    switch (event) {
-      case 'completed':
-        this.handleBlockCompletion(now);
-        break;
-      case 'stop':
-        this.handleBlockStop(now);
-        break;
-      case 'started':
-        this.handleBlockStart(now);
-        break;
-      case 'lap':
-        this.handleLap(now);
-        break;
-    }
 
+  goTo(index: number): [RuntimeBlock | undefined, number] {        
+    this.current = this.get(index);
+    console.log('Go to:', index, this.current);
     return this.current;
   }
-
-  private handleBlockCompletion(timestamp: Date): void {    
-    if (this.current[0] && this.current[1] !== -1) {      
-      this.current[0].timestamps.push({ type: 'stop', time: timestamp });
-    }
-    
-    this.current = this.getNextBlock();
-    if (this.current[0] && this.current[1] !== -1) {
-      this.current[0].timestamps.push({ type: 'start', time: timestamp });      
-    }  
-  }
-
-
-  private handleBlockStop(timestamp: Date): void {
-    if (this.current[0] && this.current[1] !== -1) {
-      this.current[0].timestamps.push({ type: 'stop', time: timestamp });
-    }
-  }
-
-  private handleBlockStart(timestamp: Date): void {
-    if (this.current[0] && this.current[1] !== -1) {            
-      if (!this.current[0].timestamps) {
-        this.current[0].timestamps = [];
-      }
-      
-      this.current[0].timestamps.push({ type: 'start', time: timestamp });
-    }
-  }
-
-  private handleLap(timestamp: Date): void {
-    if (this.current[0] && this.current[1] !== -1) {
-      this.current[0].timestamps.push({ type: 'lap', time: timestamp });
   
-      this.current[0].laps += 1;          
-      if (this.current[0].round <=  this.current[0].laps) {
-        this.handleBlockCompletion(timestamp);
-      }
-    }
+  goToNext(): [RuntimeBlock | undefined, number] {    
+    let index = -1;    
+    let startIndex = this.current[1] + 1;
+    for (let i = startIndex; i < this.blocks.length; i++) {      
+        index = i;      
+        break;
+    }    
+    this.round += 1;
+    return this.goTo(index);
   }
-
-  
 }

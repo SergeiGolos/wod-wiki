@@ -1,6 +1,6 @@
-import { StatementFragment, SourceCodeMetadata } from "../timer.types";
+import { SourceCodeMetadata } from "../SourceDisplayBlock";
+import { StatementFragment } from "../StatementFragment";
 import { TimerFromSeconds } from "./TimerFromSeconds";
-
 
 export class TimerFragment implements StatementFragment {
   constructor(public image: string, public meta: SourceCodeMetadata) {

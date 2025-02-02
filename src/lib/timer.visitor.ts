@@ -1,5 +1,12 @@
 import { MdTimerParse } from "./timer.parser";
-import { EffortFragment, IncrementFragment, LapFragment, RepFragment, ResistanceFragment, RoundsFragment, StatementBlock, StatementFragment, TextFragment } from "./timer.types";
+import { StatementBlock } from "./StatementBlock";
+import { IncrementFragment } from "./fragments/IncrementFragment";
+import { LapFragment } from "./fragments/LapFragment";
+import { RepFragment } from "./fragments/RepFragment";
+import { EffortFragment } from "./fragments/EffortFragment";
+import { ResistanceFragment } from "./fragments/ResistanceFragment";
+import { RoundsFragment } from "./fragments/RoundsFragment";
+import { StatementFragment } from "./StatementFragment";
 import { TimerFragment } from "./fragments/TimerFragment";
 
 const parser = new MdTimerParse() as any;
@@ -33,7 +40,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         
 
       let stack = [] as any[];
-      for (var block of blocks) {        
+      for (let  block of blocks) {        
         stack = stack.filter((item: any) => item.columnStart < block.meta.columnStart);        
         if (block.parents == undefined) {
           block.parents = [];
@@ -73,12 +80,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.push(...this.visit(ctx.rounds));        
     }
     // Trend Parsing
-    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));
-    (ctx.trend == undefined) && ctx.duration && statement.fragments.push(new IncrementFragment("-"));
-
-    // Duration Parsing
-    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));         
-    ctx.duration == undefined && ctx.trend == undefined && statement.fragments.push(new IncrementFragment("^"));         
+    ctx.trend && statement.fragments.push(...this.visit(ctx.trend));      
+    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));             
     ctx.reps && statement.fragments.push(...this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push(...this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));      
@@ -124,7 +127,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       ctx.Distance && (ctx.Distance[0].image) ||    
       "";
     
-    return [ new ResistanceFragment(load, units)];
+      
+      let meta= [ctx.Number[0], ctx.Weight[0] || ctx.Distance[0]].filter((item: any) => item != undefined);
+      console.log("Meta", meta);
+      return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
   }
 
   labels(ctx: any) {
@@ -132,14 +138,14 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   effort(ctx: any): EffortFragment[] {
-    var effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
+    const effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
     return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
   
   rounds(ctx: any) : StatementFragment[] { 
-    var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
-    var groups = this.visit(ctx.sequence[0]);
-    var labels = ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
+    const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
+    const groups = this.visit(ctx.sequence[0]);
+    const labels = ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
 
     if (groups.length == 1) {
       return [ new RoundsFragment(groups[0], meta)];

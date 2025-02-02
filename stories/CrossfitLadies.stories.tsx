@@ -1,5 +1,5 @@
+import { WodContainer } from '@/app/components/editor/WodContainer';
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodContainer } from '../src/components/WodContainer';
 import React from 'react';
 
 const meta: Meta<typeof WodContainer> = {

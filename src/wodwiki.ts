@@ -1,4 +1,3 @@
-import './monaco-setup';
 import * as monaco from 'monaco-editor';
 import { MdTimerRuntime, WodRuntimeScript} from "./lib/md-timer";
 
@@ -50,6 +49,7 @@ export const createWodWiki = ({
     }, 600);
 
     editor.onDidChangeModelContent((event) => {      
+      console.log("onDidChangeModelContent", event);
       onValueChange && onValueChange({ outcome: [ { status : "compiling" } ] }, editor);
       debouncedUpdate(editor.getValue());
     });
