@@ -68,7 +68,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         return this.suggestionEngine.suggest(word, model, position);
       },
     });
-
+        
     monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => this.tokenEngine,
       provideDocumentSemanticTokens: (model) => {
@@ -77,7 +77,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         return this.tokenEngine.write(code, this.objectCode);
       },
       releaseDocumentSemanticTokens: function () { },
-    });
+    })
 
     monaco.languages.registerInlayHintsProvider(this.syntax, {
       provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {        

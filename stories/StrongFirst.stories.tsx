@@ -1,4 +1,4 @@
-import { WodContainer } from '@/app/components/WodContainer';
+import { WodContainer } from '@/app/components/editor/WodContainer';
 import type { Meta, StoryObj } from '@storybook/react';
 
 

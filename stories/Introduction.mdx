@@ -1,6 +1,5 @@
 import { Meta } from "@storybook/blocks";
-import { WodContainer } from "../src/app/components/WodContainer";
-import { DemoWodContainer } from "../src/app/components/DemoWodContainer";
+import { WodContainer } from "../src/app/components/editor/WodContainer";
 import { BuyMeACoffee } from "../src/app/components/BuyMeACoffee";
 import designerImage from './assets/Designer.png';
 
@@ -34,9 +33,7 @@ import designerImage from './assets/Designer.png';
   </div>
 
   <div className="my-4">
-    <DemoWodContainer>
-      <pre>:30</pre>
-    </DemoWodContainer>
+    <WodContainer code=":30"></WodContainer>    
   </div>
 
   <div className="mb-4">
@@ -54,9 +51,7 @@ import designerImage from './assets/Designer.png';
   </div>
 
   <div className="my-4">
-    <DemoWodContainer>
-      <pre>^</pre>
-    </DemoWodContainer>
+    <WodContainer code="^"></WodContainer>          
   </div>
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Bounded Stopwatch</h3>
@@ -66,9 +61,7 @@ import designerImage from './assets/Designer.png';
   </div>
 
   <div className="my-4">
-    <DemoWodContainer>
-      <pre>^:30</pre>
-    </DemoWodContainer>
+    <WodContainer code="^:30"></WodContainer>      
   </div>
 
   <h2 className="text-3xl font-bold mt-8 mb-4">Timer Language Features</h2>
@@ -101,13 +94,13 @@ import designerImage from './assets/Designer.png';
     will allow for cleanup and repetition tracking updates.
   </div>
 
-  <div className="my-4">
+  {/* <div className="my-4">
     <DemoWodContainer>
       <pre>(10) 1:00
 10 pushups
 15 air squats</pre>
     </DemoWodContainer>
-  </div>
+  </div> */}
 
   <h3 className="text-2xl font-semibold mt-6 mb-3">Simple & Sinister</h3>
 
@@ -116,14 +109,14 @@ import designerImage from './assets/Designer.png';
     100 KB Swings and 10 Turkish Getups. Here the prescribed `Simple` standard weight is defined.
   </div>
 
-  <div className="my-4">
+  {/* <div className="my-4">
     <DemoWodContainer>
       <pre>5:00 100 KB Swings @70lb
 1:00 Rest
 10:00 10 Turkish Getups 70lb</pre>
     </DemoWodContainer>
-  </div>
-</div>
+  </div>*/}
+</div> 
 
 <div style={{ marginTop: '2rem', textAlign: 'center' }}>
   <div style={{ marginBottom: '1rem' }}>Find WOD.wiki useful?</div>
