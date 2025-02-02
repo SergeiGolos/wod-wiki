@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { useState } from 'react';
 import { Header } from './Header';
 import { MobileMenu } from './MobileMenu';
-import { WodContainer } from '../WodContainer';
+import { WodContainer } from '../editor/WodContainer';
 import { WodRow } from '../../../supabase-types';
 
 interface HomeProps {

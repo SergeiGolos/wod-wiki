@@ -6,19 +6,20 @@ import {
   ArrowPathIcon,
   StopIcon,
 } from "@heroicons/react/24/outline";
-import { ButtonRibbon, ButtonConfig } from "./ButtonRibbon";
-import { WodWiki } from "./editor/WodWiki";
-import { TimerRuntime } from "../../lib/timer.runtime";
-import { RuntimeBlock } from "../../lib/RuntimeBlock";
-import { WodRuntimeScript } from "../../lib/md-timer";
-import { WodCompiler } from "../../lib/timer.compiler";
+
+import { WodWiki } from "./WodWiki";
+import { TimerRuntime } from "@/lib/timer.runtime";
+import { RuntimeBlock } from "@/lib/RuntimeBlock";
+import { WodRuntimeScript } from "@/lib/md-timer";
+import { WodCompiler } from "@/lib/timer.compiler";
 import { editor } from "monaco-editor";
-import { WodTimer } from "./timer/WodTimer";
-import { WodTable } from "./runtime/WodTable";
-import { WodResults } from "./runtime/WodResults";
+import { WodTimer } from "../timer/WodTimer";
+import { WodTable } from "./WodTable";
+import { WodResults } from "./WodResults";
 import { TimerFromSeconds } from "@/lib/fragments/TimerFromSeconds";
 import { StopwatchDurationHandler } from "@/lib/durations/StopwatchDurationHandler";
 import { TotalDurationHandler } from "@/lib/durations/TotalDurationHandler";
+import { ButtonConfig, ButtonRibbon } from "./ButtonRibbon";
 
 interface WodContainerProps {
   code: string;

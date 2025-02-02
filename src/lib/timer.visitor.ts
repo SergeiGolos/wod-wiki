@@ -40,7 +40,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         
 
       let stack = [] as any[];
-      for (var block of blocks) {        
+      for (let  block of blocks) {        
         stack = stack.filter((item: any) => item.columnStart < block.meta.columnStart);        
         if (block.parents == undefined) {
           block.parents = [];
@@ -138,14 +138,14 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   effort(ctx: any): EffortFragment[] {
-    var effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
+    const effort = ctx.Identifier.map((identifier: any) => identifier.image).join(" ");
     return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
   
   rounds(ctx: any) : StatementFragment[] { 
-    var meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
-    var groups = this.visit(ctx.sequence[0]);
-    var labels = ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
+    const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
+    const groups = this.visit(ctx.sequence[0]);
+    const labels = ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
 
     if (groups.length == 1) {
       return [ new RoundsFragment(groups[0], meta)];
