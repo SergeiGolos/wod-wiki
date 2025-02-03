@@ -15,7 +15,7 @@ interface WodWikiProps {
 
 const tokens: WodWikiToken[] = [
   { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
-  { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: ' x', position: "after" }] },
+  { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: 'x', position: "after" }] },
   { token: "resistance", foreground: "008800", fontStyle: "bold", hints: [] },
   { token: "distance", foreground: "008800", fontStyle: "bold", hints: [] },
   { token: "effort", foreground: "000000", hints: [] },
