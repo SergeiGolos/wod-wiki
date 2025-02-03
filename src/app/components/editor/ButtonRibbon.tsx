@@ -2,7 +2,7 @@ import React, { ExoticComponent } from "react";
 
 export interface ButtonConfig {
   label?: string;
-  icon: React.ForwardRefExoticComponent<ExoticComponent>;
+  icon: React.ForwardRefExoticComponent<React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & { title?: string, titleId?: string } & React.RefAttributes<SVGSVGElement>>;
   onClick: () => void;
   isActive?: boolean;
   variant?: 'primary' | 'secondary' | 'success';

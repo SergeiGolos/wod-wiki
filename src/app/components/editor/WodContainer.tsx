@@ -22,10 +22,11 @@ import { TotalDurationHandler } from "@/lib/durations/TotalDurationHandler";
 import { ButtonConfig, ButtonRibbon } from "./ButtonRibbon";
 
 interface WodContainerProps {
+  id: string;
   code: string;
 }
 
-export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {    
+export const WodContainer: React.FC<WodContainerProps> = ({id, code = "" }) => {    
   const [blocks, setBlocks] = useState<TimerRuntime>(new TimerRuntime([]));  
   const [timerBlock, setTimerBlock] = useState<[RuntimeBlock | undefined, number]>();    
   const [buttons, setButtons] = useState<ButtonConfig[]>([]);
@@ -156,7 +157,7 @@ export const WodContainer: React.FC<WodContainerProps> = ({ code = "" }) => {
         totalTime="0:00"
         block={timerBlock![0]}        
         onTimerEvent={handleTimerEvent} />)}      
-      <WodWiki code={code} onValueChange={valueChangedHandler} />                    
+      <WodWiki id={id} code={code} onValueChange={valueChangedHandler} />                    
       {blocks.events && blocks.events.length > -1 && (<div className="mb-4">
         <WodResults runtime={blocks} results={blocks?.events} />
       </div>)}

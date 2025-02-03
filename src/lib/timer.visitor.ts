@@ -85,6 +85,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     ctx.reps && statement.fragments.push(...this.visit(ctx.reps));      
     ctx.effort && statement.fragments.push(...this.visit(ctx.effort));         
     ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));      
+    ctx.distance && statement.fragments.push(...this.visit(ctx.distance));  
 
     statement.meta = this.combineMeta(statement.fragments.map((fragment: any) => fragment.meta));
     statement.id = statement.meta.startOffset;
@@ -120,17 +121,21 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [new TimerFragment(ctx.Timer[0].image, meta)];    
   }
 
+  distance(ctx: any) { 
+    let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
+    let units = ctx.Distance && (ctx.Distance[0].image) || "";          
+    let meta= [ctx.Number[0], ctx.Distance[0]];
+    console.log("Distance:", meta);
+    return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
+  }
+
   resistance(ctx: any): ResistanceFragment[] {     
     let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
-    let units = 
-      ctx.Weight && (ctx.Weight[0].image) || 
-      ctx.Distance && (ctx.Distance[0].image) ||    
-      "";
+    let units = ctx.Weight && (ctx.Weight[0].image) || "";
     
-      
-      let meta= [ctx.Number[0], ctx.Weight[0] || ctx.Distance[0]].filter((item: any) => item != undefined);
-      console.log("Meta", meta);
-      return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
+    let meta= [ctx.Number[0], ctx.Weight[0]];
+    console.log("Resistance", meta);
+    return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
   }
 
   labels(ctx: any) {

@@ -41,6 +41,7 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
+          { ALT: () => $.SUBRULE($.distance) },
           { ALT: () => $.SUBRULE($.reps) },
         ]);
       });
@@ -85,15 +86,16 @@ export class MdTimerParse extends CstParser {
       });
     });
 
+    $.RULE("distance", () => {                  
+      $.OPTION(() => $.CONSUME(Number));      
+      $.CONSUME(Distance);        
+    });
+
 
     $.RULE("resistance", () => {            
       $.OPTION1(() => $.CONSUME(AtSign));
-      $.OPTION(() => $.CONSUME(Number));
-      $.OR(
-        [
-          { ALT: () => $.CONSUME(Weight) },
-          { ALT: () => $.CONSUME(Distance) },
-        ]);        
+      $.OPTION(() => $.CONSUME(Number));      
+      $.CONSUME(Weight);
     });
 
     $.RULE("effort", () => {

@@ -4,6 +4,7 @@ import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
+import { Maname } from 'next/font/google';
 
 export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";
@@ -12,7 +13,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   hints: monaco.languages.InlayHint[] = [];
   runtime = new MdTimerRuntime();
   monacoInstance: typeof monaco | undefined;
-  contentChangeDisposable: monaco.IDisposable | undefined;
+  contentChangeDisposable: monaco.IDisposable[] = [];
 
   constructor(
     private tokenEngine: SemantcTokenEngine, 
@@ -46,8 +47,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   }
 
   public handleBeforeMount(monaco: Monaco) {        
-    const tokens = this.tokenEngine?.tokens ?? [];
-    console.log("Before mounting editor", tokens);
+    const tokens = this.tokenEngine?.tokens ?? [];        
     monaco.languages.register({ id: this.syntax });    
     monaco.editor.defineTheme(this.theme, {
       base: "vs",
@@ -62,14 +62,14 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
       }
     });
 
-    monaco.languages.registerCompletionItemProvider(this.syntax, {
+    this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
       provideCompletionItems: (model, position, token) => {
         const word = model.getWordUntilPosition(position);
         return this.suggestionEngine.suggest(word, model, position);
       },
-    });
+    }));
         
-    monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
+    this.contentChangeDisposable.push(monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => this.tokenEngine,
       provideDocumentSemanticTokens: (model) => {
         const code = model.getValue().trim();
@@ -77,9 +77,9 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         return this.tokenEngine.write(code, this.objectCode);
       },
       releaseDocumentSemanticTokens: function () { },
-    })
-
-    monaco.languages.registerInlayHintsProvider(this.syntax, {
+    }))
+    
+    this.contentChangeDisposable.push(monaco.languages.registerInlayHintsProvider(this.syntax, {
       provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {        
         console.log(model, range, token);
         this.hints = this.objectCode?.outcome 
@@ -102,22 +102,31 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
         }
         return { hints: this.hints, dispose: () => { } };
       }
-    });
+    }));
   }
 
   handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) { 
     console.log("Mounting editor", editor);    
-    const parse = () => {
+    const model = editor.getModel();
+    editor.setModel(null); // Unset the model
+    editor.setModel(model); //
+    const parse = () => {          
       this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
       this.onChange?.(this.objectCode);
     }        
-    this.contentChangeDisposable = editor.onDidChangeModelContent((event) => {
+
+    
+    this.contentChangeDisposable.push(editor.onDidChangeModelContent((event) => {
       parse();
-    });    
-    parse();   
+    }));        
+    parse();
+    var decorations = editor.getDecorationsInRange(editor.getVisibleRanges()[0])?.map((d) => d.id);      
+    editor.removeDecorations(decorations || []);   
   }
 
   handleUnmount() {
-    this.contentChangeDisposable?.dispose();
+    for(var handler of this.contentChangeDisposable) {
+      handler.dispose();
+    };
   }
 }
