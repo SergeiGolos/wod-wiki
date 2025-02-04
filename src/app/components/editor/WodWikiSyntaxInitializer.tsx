@@ -4,7 +4,6 @@ import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { Maname } from 'next/font/google';
 
 export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";
@@ -94,7 +93,9 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
               kind: monaco!.languages.InlayHintKind.Parameter,
               position: {
                 lineNumber: fragment.meta.line,
-                column: fragment.meta.columnStart,
+                column: (apply.offSet || 0) + (apply.position == "before" 
+                  ? fragment.meta.columnStart
+                  : fragment.meta.columnStart +  fragment.meta.length + 1)
               },
               label: apply.hint,
             });
@@ -105,16 +106,11 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
     }));
   }
 
-  handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) { 
-    console.log("Mounting editor", editor);    
-    const model = editor.getModel();
-    editor.setModel(null); // Unset the model
-    editor.setModel(model); //
+  handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {         
     const parse = () => {          
       this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
       this.onChange?.(this.objectCode);
     }        
-
     
     this.contentChangeDisposable.push(editor.onDidChangeModelContent((event) => {
       parse();

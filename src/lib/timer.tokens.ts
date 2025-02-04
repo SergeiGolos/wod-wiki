@@ -28,7 +28,7 @@ export const Timer = createToken({
 
 export const Distance = createToken({
   name: "Distance",
-  pattern: /(m|ft|mile)\b/i,
+  pattern: /(m|ft|mile|km|miles)\b/i,
 });
 export const Weight = createToken({
   name: "Weight",

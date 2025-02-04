@@ -17,10 +17,10 @@ interface WodWikiProps {
 const tokens: WodWikiToken[] = [
   { token: "duration", foreground: "FFA500", fontStyle: "bold", hints: [{ hint: '⏱️', position: "before" }] },
   { token: "rep", foreground: "008800", fontStyle: "bold", hints: [{ hint: 'x', position: "after" }] },
-  { token: "resistance", foreground: "008800", fontStyle: "bold", hints: [] },
-  { token: "distance", foreground: "008800", fontStyle: "bold", hints: [] },
+  { token: "resistance", foreground: "008800", fontStyle: "bold", hints: [{ hint: '💪', position: "before" }] },
+  { token: "distance", foreground: "008800", fontStyle: "bold", hints: []},
   { token: "effort", foreground: "000000", hints: [] },
-  { token: "rounds", foreground: "AA8658", hints: [{ hint: ':rounds', position: "after" }] },
+  { token: "rounds", foreground: "AA8658", hints: [{ hint: ':rounds', position: "after", offSet: -1 }] },
 ]
 
 export const WodWiki = ({ id, code = "", onValueChange }: WodWikiProps) => {        

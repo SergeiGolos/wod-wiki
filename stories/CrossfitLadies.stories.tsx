@@ -17,7 +17,7 @@ export type WodStory = StoryObj<typeof WodContainer>;
 export const Fran: WodStory = {
   args: {
     code:`(21-15-9) 
-  Thursters @96lb
+  Thursters 95lb
   Pullups`
   },
 };
@@ -32,12 +32,12 @@ export const Annie: WodStory = {
 
 export const Barbara: WodStory = {
   args: {
-    code: `(5) Rounds
+    code: `(5)
   + 20 Pullups
   + 30 Pushups
   + 40 Situps
   + 50 Air Squats
-  :180 Rest`
+  3:00 Rest`
   }
 };
 
@@ -62,7 +62,7 @@ export const Cindy: WodStory = {
 export const Diane: WodStory = {
   args: {
     code: `(21-15-9)
-  Deadlift @225lb
+  Deadlift 225lb
   Handstand Pushups`
   }
 };
@@ -70,52 +70,52 @@ export const Diane: WodStory = {
 export const Elizabeth: WodStory = {
   args: {
     code: `(21-15-9)
-  Clean @135lb
+  Clean 135lb
   Ring Dips`
   }
 };
 
 export const Grace: WodStory = {
   args: {
-    code: `30 Clean & Jerk @135lb`
+    code: `30 Clean & Jerk 135lb`
   }
 };
 
 export const Helen: WodStory = {
   args: {
-    code: `(3) Rounds
+    code: `(3)
   400m Run
-  21 KB Swings @53lb
+  21 KB Swings 53lb
   12 Pullups`
   }
 };
 
 export const Isabel: WodStory = {
   args: {
-    code: `30 Snatch @135lb`
+    code: `30 Snatch 135lb`
   }
 };
 
 export const Jackie: WodStory = {
   args: {
     code: `1000m Row
-50 Thrusters @45lb
+50 Thrusters 45lb
 30 Pullups`
   }
 };
 
 export const Karen: WodStory = {
   args: {
-    code: `150 Wall Ball Shots @20lb`
+    code: `150 Wall Ball Shots 20lb`
   }
 };
 
 export const Linda: WodStory = {
   args: {
     code: `(10-9-8-7-6-5-4-3-2-1)
-  Deadlift @1.5BW
-  Bench Press @BW
-  Clean @0.75BW`
+  Deadlift 1.5BW
+  Bench Press BW
+  Clean 0.75BW`
   }
 };
 
@@ -130,8 +130,8 @@ export const Mary: WodStory = {
 
 export const Nancy: WodStory = {
   args: {
-    code: `(5 Rounds)
+    code: `(5)
   400m Run
-  15 Overhead Squats @95lb`
+  15 Overhead Squats 95lb`
   }
 };
