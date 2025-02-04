@@ -23,6 +23,7 @@ export class WodCompiler {
     const lookup = {} as { [key: number]: RuntimeBlock };        
 
     for (const block of value.outcome) {                  
+      console.log('Block:', block);
       const runtimeBlock = new SourceDisplayBlock(block, handler);      
       const increment = runtimeBlock.getFragment<IncrementFragment>("increment");
       const duration = runtimeBlock.getFragment<TimerFragment>("duration");

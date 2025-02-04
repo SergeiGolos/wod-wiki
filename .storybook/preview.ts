@@ -10,6 +10,11 @@ const preview: Preview = {
         date: /Date$/,
       },
     },
+    settings: {
+      "storybook.preview.importMap": {
+        "@heroicons/react/20/solid": "@heroicons/react/20/solid"
+      }
+    }
   },
 };
 

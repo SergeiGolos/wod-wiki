@@ -7,6 +7,10 @@ interface WodBlock {
     count: number;
     labels: string[];
   };
+  distance?: {
+    units: string;
+    value: string;
+  },
   resistance?: {
     units: string;
     value: string;
@@ -68,6 +72,10 @@ export const WodSteps = ({ blocks }: { blocks: WodBlock[] }): HTMLElement => {
       
       if (block.resistance) {
         parts.push(`${block.resistance.value}${block.resistance.units}`);
+      }
+
+      if (block.distance) {
+        parts.push(`${block.distance.value}${block.distance.units}`);
       }
       
       if (block.effort) {

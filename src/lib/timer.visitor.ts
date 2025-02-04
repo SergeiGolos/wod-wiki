@@ -4,7 +4,7 @@ import { IncrementFragment } from "./fragments/IncrementFragment";
 import { LapFragment } from "./fragments/LapFragment";
 import { RepFragment } from "./fragments/RepFragment";
 import { EffortFragment } from "./fragments/EffortFragment";
-import { ResistanceFragment } from "./fragments/ResistanceFragment";
+import { DistanceFragment, ResistanceFragment } from "./fragments/ResistanceFragment";
 import { RoundsFragment } from "./fragments/RoundsFragment";
 import { StatementFragment } from "./StatementFragment";
 import { TimerFragment } from "./fragments/TimerFragment";
@@ -124,17 +124,15 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   distance(ctx: any) { 
     let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
     let units = ctx.Distance && (ctx.Distance[0].image) || "";          
-    let meta= [ctx.Number[0], ctx.Distance[0]];
-    console.log("Distance:", meta);
-    return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
+    let meta= [ctx.Number[0], ctx.Distance[0]];    
+    return [ new DistanceFragment(load, units,  this.getMeta(meta))];
   }
 
   resistance(ctx: any): ResistanceFragment[] {     
     let load = ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image || "1";
     let units = ctx.Weight && (ctx.Weight[0].image) || "";
     
-    let meta= [ctx.Number[0], ctx.Weight[0]];
-    console.log("Resistance", meta);
+    let meta= [ctx.Number[0], ctx.Weight[0]];    
     return [ new ResistanceFragment(load, units,  this.getMeta(meta))];
   }
 

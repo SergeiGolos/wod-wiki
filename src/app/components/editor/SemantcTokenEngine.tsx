@@ -1,7 +1,5 @@
 import { WodWikiToken, WodRuntimeScript } from '@/lib/md-timer';
 
-
-
 export class SemantcTokenEngine {
   constructor(public tokens: WodWikiToken[]) {
     for (let token of tokens) {
@@ -26,7 +24,7 @@ export class SemantcTokenEngine {
 
     // Flatten and sort fragments
     const fragments = (objectCode?.outcome || [])
-      .flatMap(row => row.fragments)
+      .flatMap(row => row.fragments.sort((a, b) => a.meta!.columnStart - b.meta!.columnStart))
       .filter(f => f.meta);
 
     // Track 'previous' positions for delta calculations
@@ -46,6 +44,7 @@ export class SemantcTokenEngine {
         : zeroBasedCol;
 
       const type = this.getType(fragment.type);
+      console.log('Fragment', fragment, type);
       data.push(
         deltaLine,
         deltaCol,

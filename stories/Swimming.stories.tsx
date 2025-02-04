@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 
 const meta: Meta<typeof WodContainer> = {
-  title: 'Workouts/StrongFirst',
+  title: 'Workouts/Swimming',
   component: WodContainer,
   parameters: {
     controls: { hideNoControlsWarning: true },
@@ -14,10 +14,24 @@ const meta: Meta<typeof WodContainer> = {
 export default meta;
 export type WodStory = StoryObj<typeof WodContainer>;
 
-export const SimpleAndSinister: WodStory = {
+export const BeginnerFriendltySwimming: WodStory = {
   args: {
-    code:`5:00 100 KB Swings 70lb
-1:00 Rest
-10:00 10 Turkish Getups 70lb`
+    code:`(6) Warmup
+  25m Swim
+  :20 Rest
+
+100m Kick
+
+(6) Warmup
+  25m Swim
+  :20 Rest
+
+100m Kick
+
+(6) Warmup
+  25m Swim
+  :20 Rest
+  
+100m Cooldown`
   },
 };

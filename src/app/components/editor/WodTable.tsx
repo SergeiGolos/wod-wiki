@@ -34,9 +34,9 @@ export const WodTable: React.FC<WodTableProps> = ({ runtime }) => {
         <tbody className="bg-white">
           {exercises.map((exercise, index) => {
             const fragments = exercise.block.fragments;
-            const reps = fragments.find(f => f.type === 'rep')?.reps || '';
+            const reps = fragments.find(f => f.type === 'rep')?.reps || '1';
             const effort = fragments.find(f => f.type === 'effort')?.effort || '';
-            const resistance = fragments.find(f => f.type === 'resistance');
+            const resistance = fragments.find(f => f.type === 'resistance') ||  fragments.find(f => f.type === 'distance'); ;
             const weight = resistance ? `${resistance.value}${resistance.units}` : '';
             
             return (

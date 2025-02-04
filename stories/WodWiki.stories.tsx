@@ -40,8 +40,8 @@ export const IronBlackJack: WodStory = {
   args: {
     id: "IronBlackJack",
     code:`(30) 1:00
-  10 Macebell Touchdowns @30lb
-  6 KB swings @106lb
-  3 Deadlifts @235lb`
+  10 Macebell Touchdowns 30lb
+  6 KB swings 106lb
+  3 Deadlifts 235lb`
   },
 };
