@@ -24,15 +24,11 @@ const tokens: WodWikiToken[] = [
 ]
 
 export const WodWiki = ({ id, code = "", onValueChange }: WodWikiProps) => {        
-    let _monaco: Monaco | undefined;
-    let _editor: editor.IStandaloneCodeEditor | undefined;
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(), onValueChange);      
     function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
-      _editor = editor;
       initializer.handleMount(editor, monaco);
     }
     function handleBeforeMount(monaco: Monaco) {
-      _monaco = monaco;
       initializer.handleBeforeMount(monaco);
     }
     function handleEditorValidation(markers: editor.IMarker[]) {
@@ -42,7 +38,6 @@ export const WodWiki = ({ id, code = "", onValueChange }: WodWikiProps) => {
         
   useEffect(() => {
     // This code runs when the component mounts (first render)
-    console.log('Mount', _editor?.getModel());
     // Return a cleanup function
     return () => {
       initializer.handleUnmount();

@@ -108,6 +108,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
 
   handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {         
     const parse = () => {          
+      console.log("Parsing");
       this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
       this.onChange?.(this.objectCode);
     }        
@@ -115,9 +116,7 @@ export class WodWikiSyntaxInitializer implements WodWikiInitializer {
     this.contentChangeDisposable.push(editor.onDidChangeModelContent((event) => {
       parse();
     }));        
-    parse();
-    var decorations = editor.getDecorationsInRange(editor.getVisibleRanges()[0])?.map((d) => d.id);      
-    editor.removeDecorations(decorations || []);   
+    parse();    
   }
 
   handleUnmount() {
