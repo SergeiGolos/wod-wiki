@@ -154,8 +154,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return [ new RoundsFragment(groups[0], meta)];
     }
     
-    return [ new RoundsFragment(groups.length, meta), 
-      ...groups.map((group: any) => new RoundsFragment(group, meta))];  
+    return [...groups.map((group: any) => new RoundsFragment(group, meta))];  
   }
 
   sequence(ctx: any) : number[]{
