@@ -1,0 +1,68 @@
+import type { Meta, StoryObj } from '@storybook/react';
+import '../index.css';
+import { EditorWithState } from './components/EditorWithState';
+
+const meta: Meta<typeof EditorWithState> = {
+  title: 'Components/Wiki',
+  component: EditorWithState,
+  parameters: {
+    controls: { hideNoControlsWarning: true },
+    layout: 'fullscreen',
+    showPanel: false
+  }
+};
+
+export default meta;
+export type WodStory = StoryObj<typeof EditorWithState>;
+
+export const Empty: WodStory = {
+  args: {
+    id: "Empty",
+    code: '',        
+  },
+};
+
+export const Countdown: WodStory = {
+  args: {
+    id: "Countdown",
+    code: `20:00 Work`,
+  },
+};  
+
+export const Emom: WodStory = {
+  args: {
+    id: "Emom",
+    code: `(30) 1:00 Work`,
+  },
+};
+
+export const IronBlackJack: WodStory = {
+  args: {
+    id: "IronBlackJack",
+    code:`(30) 1:00
+  10 Macebell Touchdowns 30lb
+  6 KB swings 106lb
+  3 Deadlifts 235lb`
+  },
+};
+
+export const AMRAP: WodStory = {
+  args: {
+    id: "AMRAP",
+    code: `AMRAP 20:00
+  10 Burpees
+  15 Pull-ups
+  20 Box jumps`
+  },
+};
+
+export const ForTime: WodStory = {
+  args: {
+    id: "ForTime",
+    code: `For Time (20:00 cap)
+  5 Rounds:
+    20 Wall balls
+    15 Kettlebell swings
+    10 Toes to bar`
+  }
+};
