@@ -1,51 +1,118 @@
-# WoD Wiki
+# WOD Wiki Library
 
-A comprehensive wiki and companion tools for World of Darkness, built with modern web technologies.
+A React component library featuring specialized components, including a Monaco Editor integration, styled with Tailwind CSS.
 
-## Features
+## Project Goal
 
-- Interactive Storybook components
-- Comprehensive test coverage
-- Modern development workflow with GitHub Actions
+- Build an NPM module for reusable UI components.
+- Utilize Tailwind CSS for styling.
+- Develop components within a Storybook environment.
+- Include a component embedding the Monaco Editor.
+- Use Vite for building the library and Vitest for testing.
+
+## Project Structure
+
+```
+x:/wod-wiki-libary
+├── .storybook/         # Storybook configuration files
+├── dist/               # Build output directory (library and styles)
+├── node_modules/       # Project dependencies (ignored by git)
+├── src/
+│   ├── components/     # React components
+│   │   └── MonacoEditorComponent.tsx
+│   ├── stories/        # Storybook stories for components
+│   │   └── MonacoEditorComponent.stories.tsx
+│   ├── index.css       # Main CSS entry point (Tailwind directives)
+│   └── index.ts        # Library entry point (exports components)
+├── .gitignore          # Specifies intentionally untracked files that Git should ignore
+├── package.json        # Project metadata, dependencies, and scripts
+├── postcss.config.js   # PostCSS configuration (for Tailwind)
+├── README.md           # This file
+├── tailwind.config.js  # Tailwind CSS configuration
+├── tsconfig.json       # TypeScript configuration for the library source
+├── tsconfig.node.json  # TypeScript configuration for config files (Vite, Storybook)
+├── vite.config.ts      # Vite configuration for building the library
+└── tsconfig.tsbuildinfo # TypeScript incremental build info (ignored by git)
+```
 
 ## Development
 
-### Prerequisites
+This project uses Storybook for component development and visualization.
 
-- Node.js 20.x
-- npm
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+2.  **Run Storybook:**
+    ```bash
+    npm run dev
+    ```
+    This will start the Storybook development server, typically on `http://localhost:6006`.
 
-### Getting Started
+## Building the Library
 
-1. Clone the repository:
+To build the library for publishing or use in other projects:
+
 ```bash
-git clone https://github.com/bitcobblers/wod-wiki.git
+npm run build
 ```
 
-2. Install dependencies:
+This command will:
+1.  Compile TypeScript types (`tsc`).
+2.  Bundle the library code using Vite into the `dist` folder (creating ES and UMD formats).
+3.  Process and output the Tailwind CSS into `dist/style.css`.
+
+## Building Storybook
+
+To build a static version of the Storybook application (e.g., for deployment):
+
 ```bash
-npm install
+npm run build-storybook
 ```
 
-3. Run tests:
+This will output the static Storybook site to the `storybook-static` directory.
+
+## Consuming the Package
+
+1.  **Install the package:**
+    ```bash
+    npm install wod-wiki-library
+    ```
+    *Note: Replace `wod-wiki-library` with the actual package name if published to npm, or use a local path/link during development.* 
+
+2.  **Install Peer Dependencies:** Ensure your project has the required peer dependencies installed:
+    ```bash
+    npm install react react-dom monaco-editor
+    ```
+
+3.  **Import the component and styles:**
+    ```jsx
+    import React from 'react';
+    import { MonacoEditorComponent } from 'wod-wiki-library';
+    import 'wod-wiki-library/dist/style.css'; // Import the necessary CSS
+
+    function App() {
+      return (
+        <div>
+          <h1>My App</h1>
+          <MonacoEditorComponent 
+            language="javascript" 
+            initialValue="console.log('Hello from Monaco!');" 
+          />
+        </div>
+      );
+    }
+
+    export default App;
+    ```
+
+    *Important:* Ensure your application's build process can handle CSS imports and that Tailwind CSS (if used directly in the consuming application) doesn't conflict. The provided `style.css` contains the necessary Tailwind styles for the components.
+
+## Testing
+
+Run tests using Vitest:
+
 ```bash
-npm test
+npm run test
 ```
-
-4. Start Storybook for component development:
-```bash
-npm run storybook
-```
-
-## CI/CD
-
-The project uses GitHub Actions for:
-- Automated testing
-- Storybook builds
-- Release management
-- Code quality checks
-- Automated deployments
-
-## License
-
-ISC License - See [LICENSE](LICENSE) for details
+_(Test files need to be created within the `src` directory)._

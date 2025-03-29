@@ -1,20 +1,14 @@
 import type { Preview } from "@storybook/react";
-import '../src/app/globals.css';
+import '../src/index.css'; // Import Tailwind CSS
 
 const preview: Preview = {
   parameters: {
-    actions: { argTypesRegex: "^on[A-Z].*" },
     controls: {
       matchers: {
         color: /(background|color)$/i,
-        date: /Date$/,
+        date: /Date$/i,
       },
     },
-    settings: {
-      "storybook.preview.importMap": {
-        "@heroicons/react/20/solid": "@heroicons/react/20/solid"
-      }
-    }
   },
 };
 
