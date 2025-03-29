@@ -1,6 +1,6 @@
-# WOD Wiki Library
+# WOD Wiki
 
-A React component library featuring specialized components, including a Monaco Editor integration, styled with Tailwind CSS.
+A React component library for parsing, displaying, and executing workout definitions using a specialized syntax. Features include a Monaco Editor integration for editing workout scripts, a runtime engine for execution, and components styled with Tailwind CSS.
 
 ## Project Goal
 
@@ -13,7 +13,7 @@ A React component library featuring specialized components, including a Monaco E
 ## Project Structure
 
 ```
-x:/wod-wiki-libary
+x:/wod-wiki
 ├── .storybook/         # Storybook configuration files
 ├── dist/               # Build output directory (library and styles)
 ├── node_modules/       # Project dependencies (ignored by git)
@@ -34,6 +34,12 @@ x:/wod-wiki-libary
 ├── vite.config.ts      # Vite configuration for building the library
 └── tsconfig.tsbuildinfo # TypeScript incremental build info (ignored by git)
 ```
+
+## Documentation
+
+Detailed documentation for the components, architecture, and workout syntax can be found in the `docs` directory:
+
+[Project Documentation](./docs/README.md)
 
 ## Development
 
@@ -76,9 +82,9 @@ This will output the static Storybook site to the `storybook-static` directory.
 
 1.  **Install the package:**
     ```bash
-    npm install wod-wiki-library
+    npm install wod-wiki
     ```
-    *Note: Replace `wod-wiki-library` with the actual package name if published to npm, or use a local path/link during development.* 
+    *Note: Replace `wod-wiki` with the actual package name if published to npm, or use a local path/link during development.* 
 
 2.  **Install Peer Dependencies:** Ensure your project has the required peer dependencies installed:
     ```bash
@@ -88,14 +94,14 @@ This will output the static Storybook site to the `storybook-static` directory.
 3.  **Import the component and styles:**
     ```jsx
     import React from 'react';
-    import { MonacoEditorComponent } from 'wod-wiki-library';
-    import 'wod-wiki-library/dist/style.css'; // Import the necessary CSS
+    import { WodWikiEditor } from 'wod-wiki'; // Example component import
+    import 'wod-wiki/dist/style.css'; // Import the necessary CSS
 
     function App() {
       return (
         <div>
           <h1>My App</h1>
-          <MonacoEditorComponent 
+          <WodWikiEditor 
             language="javascript" 
             initialValue="console.log('Hello from Monaco!');" 
           />
