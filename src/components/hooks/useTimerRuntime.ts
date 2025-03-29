@@ -8,8 +8,7 @@ import { SingleUnitHandler } from "../core/parser/handlers/SingleUnitHandler";
 import { IStatementHandler } from "../core/parser/handlers/StatementHandler";
 import { RuntimeStack } from "../core/parser/RuntimeStack";
 import { startButton } from "../core/runtime/EventAction";
-import { TimerRuntime } from "../core/runtime/timer.runtime";
-import { RuntimeEvent } from "../core/runtime/types";
+import { RuntimeEvent, TimerRuntime } from "../core/runtime/timer.runtime";
 import { WodResultBlock, TimerDisplay, ButtonConfig } from "../core/timer.types";
 
 /**
@@ -139,16 +138,7 @@ export function useTimerRuntime({
     };
   }, [script]);
 
-  // Initialize the runtime with the script
-  function init() {
-    if (!script?.statements) {
-      console.error("No script available to initialize");
-      return;
-    }
-
-    loadScript({ ...script });
-  }
-
+  
   return {
     loadScript: handleLoadScript,
     runtimeRef,

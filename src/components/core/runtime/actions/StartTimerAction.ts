@@ -1,7 +1,7 @@
-import { TimerDisplay, ButtonConfig, WodResultBlock } from "@/types/timer.types";
+import { TimerDisplay, ButtonConfig, WodResultBlock } from "../../timer.types";
 import { EventAction } from "../EventAction";
-import { TimerRuntime } from "../timer.runtime";
-import { RuntimeEvent } from "../types";
+import { RuntimeEvent, TimerRuntime } from "../timer.runtime";
+
 
 /**
  * Action to handle block started events

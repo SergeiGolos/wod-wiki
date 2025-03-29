@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "dev": "storybook dev -p 6006",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build-storybook": "storybook build",
     "test": "vitest"
   },

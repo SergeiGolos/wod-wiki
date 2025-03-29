@@ -1,6 +1,6 @@
-import { TimerDisplay, IRuntimeAction, ButtonConfig, WodResultBlock } from "@/types/timer.types";
+import { TimerDisplay, ButtonConfig, WodResultBlock } from "../../timer.types";
+import { IRuntimeAction } from "../EventAction";
 import { TimerRuntime } from "../timer.runtime";
-import { EventAction } from "../EventAction";
 
 export class NextChildStatementAction implements IRuntimeAction {
   constructor(public blockId: number) { }

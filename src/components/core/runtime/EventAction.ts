@@ -1,6 +1,5 @@
 
-import { RuntimeEvent } from "./timer.runtime";
-import { TimerRuntime } from "./timer.runtime";
+import { RuntimeEvent, TimerRuntime } from "./timer.runtime";
 import { ButtonConfig, TimerDisplay, WodResultBlock } from "../timer.types";
 import { PlayIcon, StopIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
 
