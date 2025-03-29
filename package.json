@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@rollup/rollup-win32-x64-msvc": "^4.38.0",
     "chevrotain": "^11.0.3"
   }
 }
