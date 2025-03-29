@@ -1,7 +1,6 @@
 import { test, expect, describe, beforeEach, vi } from "vitest";
 import { RuntimeStack } from "./RuntimeStack";
-import { StatementNode } from "../runtime/types";
-import { SourceCodeMetadata, StatementFragment } from "../timer.types";
+import { SourceCodeMetadata, StatementFragment, StatementNode } from "../timer.types";
 
 // Mock implementation of StatementFragment for testing
 class TestFragment implements StatementFragment {

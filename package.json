@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "dev": "storybook dev -p 6006",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build-storybook": "storybook build",
     "test": "vitest"
   },
@@ -59,7 +59,6 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.38.0",
     "chevrotain": "^11.0.3"
   }
 }

@@ -1,7 +1,4 @@
-import { IRuntimeAction } from "./runtime/EventAction";
-import { RuntimeEvent, TimerRuntime } from "./runtime/timer.runtime";
-
-
+import { RuntimeEvent } from "./runtime/timer.runtime";
 
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplay {

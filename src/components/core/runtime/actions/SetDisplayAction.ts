@@ -1,14 +1,12 @@
-import { RuntimeEvent } from "../types";
-import { TimerDisplay, EnhancedTimerDisplay, ButtonConfig, WodResultBlock } from "../../../types/timer.types";
+import { ButtonConfig, TimerDisplay, WodResultBlock } from "../../timer.types";
 import { EventAction } from "../EventAction";
-import { TimerRuntime } from "../timer.runtime";
+import { RuntimeEvent, TimerRuntime } from "../timer.runtime";
 
 /**
  * Action to update the timer display
- * Handles both basic TimerDisplay and EnhancedTimerDisplay interfaces
  */
 export class SetDisplayAction extends EventAction {
-    private display: TimerDisplay | EnhancedTimerDisplay;
+    private display: TimerDisplay 
 
     /**
      * Creates a new SetDisplayAction
@@ -17,7 +15,7 @@ export class SetDisplayAction extends EventAction {
      */
     constructor(
         event: RuntimeEvent,
-        display: TimerDisplay | EnhancedTimerDisplay
+        display: TimerDisplay
     ) {
         super(event);
         this.display = display;
@@ -31,7 +29,7 @@ export class SetDisplayAction extends EventAction {
      */
     apply(
         runtime: TimerRuntime,
-        setDisplay: (display: TimerDisplay | EnhancedTimerDisplay) => void,
+        setDisplay: (display: TimerDisplay) => void,
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void {

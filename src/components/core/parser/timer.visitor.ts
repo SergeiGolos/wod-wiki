@@ -1,4 +1,4 @@
-import { StatementFragment } from "../timer.types";
+import { StatementFragment, StatementNode } from "../timer.types";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
 import { LapFragment } from "../fragments/LapFragment";
@@ -6,7 +6,6 @@ import { RepFragment } from "../fragments/RepFragment";
 import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
-import { StatementNode } from "../runtime/types";
 import { MdTimerParse } from "./timer.parser";
 
 const parser = new MdTimerParse() as any;
