@@ -4,7 +4,7 @@ import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { MdTimerRuntime, WodRuntimeScript, WodWikiInitializer } from '../../core/md-timer';
+import { MdTimerRuntime, WodRuntimeScript, WodWikiInitializer } from '@/core/md-timer';
 
 export class WodWikiSyntaxInitializer implements WodWikiInitializer {
   syntax: string = "wod-wiki-syntax";

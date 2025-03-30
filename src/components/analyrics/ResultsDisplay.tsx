@@ -1,8 +1,8 @@
 import React, { MutableRefObject, useEffect, useState } from 'react';
 
 import { WodResults } from './WodResults';
-import { WodResultBlock } from '../../core/timer.types';
-import { TimerRuntime } from '../../core/runtime/timer.runtime';
+import { WodResultBlock } from '@/core/timer.types';
+import { TimerRuntime } from '@/core/runtime/timer.runtime';
 
 
 

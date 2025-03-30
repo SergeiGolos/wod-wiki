@@ -1,6 +1,6 @@
-import { RuntimeEvent, TimerRuntime } from "../timer.runtime";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { EventAction } from "../EventAction";
-import { ButtonConfig, TimerDisplay, WodResultBlock } from "../../timer.types";
+import { ButtonConfig, RuntimeEvent, TimerDisplay, WodResultBlock } from "@/core/timer.types";
 
 export class SetButtonAction extends EventAction {
     constructor(

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { WodRuntimeScript } from '../../core/md-timer';
-import { WodResultBlock } from '../../core/timer.types';
-import { EditorContainer } from '../../components/editor/EditorContainer';
+import { WodRuntimeScript } from '@/core/md-timer';
+import { WodResultBlock } from '@/core/timer.types';
+import { EditorContainer } from '@/components/editor/EditorContainer'
 
 
 /**

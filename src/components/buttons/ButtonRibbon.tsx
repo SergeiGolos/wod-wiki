@@ -1,7 +1,7 @@
 
 import React, { Dispatch, SetStateAction } from "react";
-import { ButtonConfig } from "../../core/timer.types";
-import { RuntimeEvent } from "../../core/runtime/types";
+import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+
 
 interface ButtonRibbonProps {
   buttons: ButtonConfig[];

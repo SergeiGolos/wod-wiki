@@ -1,7 +1,7 @@
 
-import { TimerEvent } from "../../timer.types";
-import { IRuntimeAction } from "../EventAction";
-import { IRuntimeBlock, RuntimeBlockHandler, RuntimeEvent, RuntimeMetric, TimerRuntime } from "../timer.runtime";
+import { IRuntimeAction, TimerEvent } from "@/core/timer.types";
+import { IRuntimeBlock, RuntimeBlockHandler, RuntimeEvent, RuntimeMetric, TimerRuntime } from "@/core/timer.runtime";
+
 
 
 /**

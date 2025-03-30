@@ -1,9 +1,9 @@
-import { RuntimeBlock } from "@/core/runtime/parser/timer.runtime";
-import { RuntimeStack } from "../RuntimeStack";
-import { StatementNode, IRuntimeAction } from "../../runtime/types";
-import { fragmentToPart } from "../../utils";
+import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
+import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { StatementNode, IRuntimeAction } from "@/core/timer.types";
+import { fragmentToPart } from "@/core/utils";
 import { ICompilerStrategy } from "./CompoundStrategy";
-import { SetDisplayAction } from "@/core/runtime/actions";
+import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";
 
 export class RepeatingStatementStrategy implements ICompilerStrategy {
   apply(stack: StatementNode[], runtime: RuntimeStack): IRuntimeAction[] {

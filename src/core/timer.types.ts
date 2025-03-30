@@ -1,5 +1,3 @@
-import { RuntimeEvent } from "./runtime/timer.runtime";
-
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplay {
     elapsed: number;
@@ -45,6 +43,20 @@ export interface TimerDisplay {
 // For backwards compatibility, we'll keep this as a type alias to the main TimerDisplay
 export type EnhancedTimerDisplay = TimerDisplay;
 
+export interface IRuntimeAction {
+    apply(
+        runtime: ITimerRuntime,
+        setDisplay: (display: TimerDisplay) => void,
+        setButtons: (buttons: ButtonConfig[]) => void,
+        setResults: (results: WodResultBlock[]) => void
+    ): void;
+  }
+
+
+export interface ITimerRuntime {
+    tick(events: RuntimeEvent[]): IRuntimeAction[];
+    gotoBlock(node: StatementNode): IRuntimeBlock;
+  }
 
 /**
  * Returns all fragments of a specific type from an array of StatementFragments
@@ -69,6 +81,60 @@ export interface StatementNode {
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];
 }
+
+
+export interface RuntimeResult {    
+    round: number;
+    stack: number[];
+    timestamps: TimerEvent[];
+  }
+  
+  export interface RuntimeState {
+    isRunning: boolean;
+    isPaused: boolean;
+    isComplete: boolean;
+    currentBlockId?: number;
+    elapsedTime: number;
+    remainingTime?: number;
+  }
+  
+  export type RuntimeMetric = {
+    name: string;
+    unit: string;
+    value: number;
+  }
+  
+  export interface IRuntimeBlock {    
+    blockId: number;
+    blockIndex: number;
+  
+    label?: string;
+  
+    parent?: IRuntimeBlock;        
+    round?: [number, number];
+  
+  
+    metrics: RuntimeMetric[];
+    events: TimerEvent[]; 
+    onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
+  }
+  
+  
+  export interface IRuntimeHandler {
+    type: string;    
+    onTimerEvent(timestamp: Date, event: string, blocks?: IRuntimeBlock[]): IRuntimeAction[];
+  }
+  
+  
+  export type RuntimeEvent = { 
+    timestamp: Date, 
+    name: string    
+  }
+  
+  export interface RuntimeBlockHandler {
+    apply: (event: RuntimeEvent, runtime: ITimerRuntime) => IRuntimeAction[];
+  }
+
 
 export interface ButtonConfig {
   label?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { IRuntimeBlock } from "../../core/runtime/timer.runtime";
-import { TimerEvent } from "../../core/timer.types";
+
+import { TimerEvent, IRuntimeBlock } from "@/core/timer.types";
 
 
 export interface WodTimerProps {

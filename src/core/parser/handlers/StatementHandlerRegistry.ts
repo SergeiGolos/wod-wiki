@@ -1,5 +1,4 @@
-import { IRuntimeBlock } from "../../runtime/timer.runtime";
-import { StatementNode } from "../../timer.types";
+import { IRuntimeBlock, StatementNode } from "@/core/timer.types";
 import { IStatementHandler } from "./StatementHandler";
 
 /**

@@ -1,5 +1,4 @@
-import { IRuntimeAction } from "../../runtime/EventAction";
-import { IRuntimeBlock } from "../../runtime/timer.runtime";
+import { IRuntimeBlock, IRuntimeAction } from "@/core/timer.types";
 
 /**
  * Interface for runtime handlers that process timer events and produce runtime actions

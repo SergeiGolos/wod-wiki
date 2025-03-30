@@ -1,60 +1,8 @@
-import { StatementNode, TimerEvent } from "../timer.types";
+import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerEvent } from "../timer.types";
 import { RuntimeStack } from "../parser/RuntimeStack";
 import { IdelRuntimeBlock } from "./blocks/IdelRuntimeBlock";
-import { IRuntimeAction } from "./EventAction";
 
 
-export interface RuntimeResult {    
-  round: number;
-  stack: number[];
-  timestamps: TimerEvent[];
-}
-
-export interface RuntimeState {
-  isRunning: boolean;
-  isPaused: boolean;
-  isComplete: boolean;
-  currentBlockId?: number;
-  elapsedTime: number;
-  remainingTime?: number;
-}
-
-export type RuntimeMetric = {
-  name: string;
-  unit: string;
-  value: number;
-}
-
-export interface IRuntimeBlock {    
-  blockId: number;
-  blockIndex: number;
-
-  label?: string;
-
-  parent?: IRuntimeBlock;        
-  round?: [number, number];
-
-
-  metrics: RuntimeMetric[];
-  events: TimerEvent[]; 
-  onEvent(event: RuntimeEvent, runtime: TimerRuntime): IRuntimeAction[];
-}
-
-
-export interface IRuntimeHandler {
-  type: string;    
-  onTimerEvent(timestamp: Date, event: string, blocks?: IRuntimeBlock[]): IRuntimeAction[];
-}
-
-
-export type RuntimeEvent = { 
-  timestamp: Date, 
-  name: string    
-}
-
-export interface RuntimeBlockHandler {
-  apply: (event: RuntimeEvent, runtime: TimerRuntime) => IRuntimeAction[];
-}
 /**
  * Runtime engine that processes workout scripts
  * 
@@ -63,7 +11,10 @@ export interface RuntimeBlockHandler {
  * - Processing timer events
  * - Delegating to the compiled runtime for node-specific processing
  */
-export class TimerRuntime {
+
+
+
+export class TimerRuntime implements ITimerRuntime {
   private blockTracker: Map<string, number> 
   public current?: IRuntimeBlock;
   private idel: IdelRuntimeBlock;

@@ -1,9 +1,9 @@
-import { IRuntimeBlock, RuntimeEvent, RuntimeMetric, TimerRuntime } from "../timer.runtime";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { NextChildStatementAction } from "../actions/NextChildStatementAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
-import { IRuntimeAction, stopButton } from "../EventAction";
+import { stopButton } from "../EventAction";
 import { SetButtonAction } from "../actions/SetButtonAction";
-import { TimerEvent } from "../../timer.types";
+import { IRuntimeAction, IRuntimeBlock, RuntimeEvent, RuntimeMetric, TimerEvent } from "@/core/timer.types";
 
 export class IdelRuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */

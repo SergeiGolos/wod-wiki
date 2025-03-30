@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
-import { fragmentToPart } from "./utils";
-import { MdTimerRuntime } from "./md-timer";
+import { fragmentToPart } from "@/core/utils";
+import { MdTimerRuntime } from "@/core/md-timer";
 
 
 test(`parsedDirectionUpDefault`, async () => {    

@@ -1,10 +1,10 @@
-import { IRuntimeAction, IRuntimeBlock, RuntimeEvent, StatementNode, TimerDisplay } from "@/types/timer.types";
+import { IRuntimeAction, IRuntimeBlock, RuntimeEvent, StatementNode, TimerDisplay } from "@/core/timer.types";
 import { IStatementHandler } from "./StatementHandler";
 import { IRuntimeHandler } from "./RuntimeHandler";
-import { fragmentToPart } from "../../utils";
-import { SetButtonAction } from "../../runtime/actions/SetButtonAction";
-import { SetDisplayAction } from "../../runtime/actions/SetDisplayAction";
-import { TimerRuntime } from "../../runtime/timer.runtime";
+import { fragmentToPart } from "@/core/utils";
+import { SetButtonAction } from "@/core/runtime/actions/SetButtonAction";
+import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 /**
  * Handler for repeating group workout statements

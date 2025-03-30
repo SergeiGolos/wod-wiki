@@ -1,8 +1,8 @@
 import { IStatementHandler } from "./StatementHandler";
 import { IRuntimeHandler } from "./RuntimeHandler";
-import { IRuntimeBlock, TimerRuntime } from "../../runtime/timer.runtime";
-import { fragmentToPart } from "../../utils";
-import { StatementNode } from "../../timer.types";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
+import { fragmentToPart } from "@/core/utils";
+import { StatementNode, IRuntimeBlock } from "@/core/timer.types";
 
 /**
  * Handler for repeating statement workout nodes

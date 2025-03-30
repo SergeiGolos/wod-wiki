@@ -1,10 +1,10 @@
-import { RuntimeBlock } from "@/core/runtime/parser/timer.runtime";
-import { RuntimeStack } from "../RuntimeStack";
-import { StatementNode, IRuntimeAction } from "../../runtime/types";
+import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
+import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { StatementNode, IRuntimeAction } from "@/core/timer.types";
 import { ICompilerStrategy } from "./CompoundStrategy";
-import { SetDisplayAction } from "@/core/runtime/actions";
+import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";
 
-export class StatementStrategy implements ICompilerStrategy {
+export class SingleUnitStrategy implements ICompilerStrategy {
   apply(stack: StatementNode[], runtime: RuntimeStack): IRuntimeAction[] {
     // Safety check: Make sure we have a current node
     if (!stack || stack.length === 0) {
@@ -13,12 +13,12 @@ export class StatementStrategy implements ICompilerStrategy {
 
     const current = stack[0];
     
-    // Safety check: Make sure current has fragments
-    if (!current || !current.fragments) {
+    // Safety check: Make sure current exists
+    if (!current) {
       return [];
     }
     
-    if (current.fragments.length === 0 || current.children.length > 0) {
+    if (current.children.length > 0) {
       return [];
     }
     
@@ -29,7 +29,7 @@ export class StatementStrategy implements ICompilerStrategy {
     const display = {
       elapsed: 0,
       state: "ready",
-      label: current.type || "Exercise",
+      label: current.type || "Single Unit",
       round: block.currentRound,
       totalRounds: block.totalRounds
     };

@@ -1,15 +1,15 @@
 import { useRef, useState, useEffect } from "react";
-import { WodRuntimeScript } from "../../core/md-timer";
-import { AMRAPHandler } from "../../core/parser/handlers/AMRAPHandler";
-import { BasicStatementHandler } from "../../core/parser/handlers/BasicStatementHandler";
-import { RepeatingGroupHandler } from "../../core/parser/handlers/RepeatingGroupHandler";
-import { RepeatingStatementHandler } from "../../core/parser/handlers/RepeatingStatementHandler";
-import { SingleUnitHandler } from "../../core/parser/handlers/SingleUnitHandler";
-import { IStatementHandler } from "../../core/parser/handlers/StatementHandler";
-import { RuntimeStack } from "../../core/parser/RuntimeStack";
-import { startButton } from "../../core/runtime/EventAction";
-import { RuntimeEvent, TimerRuntime } from "../../core/runtime/timer.runtime";
-import { WodResultBlock, TimerDisplay, ButtonConfig } from "../../core/timer.types";
+import { WodRuntimeScript } from "@/core/md-timer";
+import { AMRAPHandler } from "@/core/parser/handlers/AMRAPHandler";
+import { BasicStatementHandler } from "@/core/parser/handlers/BasicStatementHandler";
+import { RepeatingGroupHandler } from "@/core/parser/handlers/RepeatingGroupHandler";
+import { RepeatingStatementHandler } from "@/core/parser/handlers/RepeatingStatementHandler";
+import { SingleUnitHandler } from "@/core/parser/handlers/SingleUnitHandler";
+import { IStatementHandler } from "@/core/parser/handlers/StatementHandler";
+import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { startButton } from "@/core/runtime/EventAction";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
+import { WodResultBlock, TimerDisplay, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
 
 /**
  * Hook props for useTimerRuntime

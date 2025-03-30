@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { RuntimeBlock } from "../../core/runtime/blocks/RuntimeBlock";
-import { TimerEvent } from "../../core/timer.types";
+import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
+import { TimerEvent } from "@/core/timer.types";
 
 
 interface LapTime {

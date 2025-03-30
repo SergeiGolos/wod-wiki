@@ -1,5 +1,5 @@
 import { PlayIcon, StopIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
-import { ButtonConfig } from "../../core/timer.types";
+import { ButtonConfig } from "@/core/timer.types";
 
 export const startButton: ButtonConfig = {
     label: "Run",

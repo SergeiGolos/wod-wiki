@@ -1,6 +1,6 @@
 import React, { MutableRefObject } from 'react';
-import { WodResultBlock } from '../../core/timer.types';
-import { TimerRuntime } from '../../core/runtime/timer.runtime';
+import { WodResultBlock } from '@/core/timer.types';
+import { TimerRuntime } from '@/core/runtime/timer.runtime';
 
 
 interface WodResultsProps {

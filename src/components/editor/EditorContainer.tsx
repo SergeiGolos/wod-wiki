@@ -2,8 +2,8 @@
 import React from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { WodRuntimeScript } from "../../core/md-timer";
-import { WodResultBlock } from "../../core/timer.types";
+import { WodRuntimeScript } from "@/core/md-timer";
+import { WodResultBlock } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";

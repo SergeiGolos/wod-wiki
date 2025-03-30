@@ -1,10 +1,10 @@
 
-import { StatementNode, TimerDisplay } from "../../timer.types";
+import { StatementNode, TimerDisplay, IRuntimeBlock } from "@/core/timer.types";
 import { IStatementHandler } from "./StatementHandler";
 import { IRuntimeHandler } from "./RuntimeHandler";
-import { SetButtonAction } from "../../runtime/actions/SetButtonAction";
-import { SetDisplayAction } from "../../runtime/actions/SetDisplayAction";
-import { IRuntimeBlock, TimerRuntime } from "../../runtime/timer.runtime";
+import { SetButtonAction } from "@/core/runtime/actions/SetButtonAction";
+import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 
 /**

@@ -1,11 +1,12 @@
-import { RuntimeBlock } from "@/core/runtime/parser/timer.runtime";
-import { RuntimeStack } from "../RuntimeStack";
-import { StatementNode, IRuntimeAction } from "../../runtime/types";
-import { fragmentToPart } from "../../utils";
+import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { fragmentToPart } from "@/core/utils";
 import { ICompilerStrategy } from "./CompoundStrategy";
-import { SetDisplayAction } from "@/core/runtime/actions";
+import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";
+import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
+import { StatementNode, IRuntimeAction } from "@/core/timer.types";
 
-export class RepeatingGroupStrategy implements ICompilerStrategy {
+
+export class AMRAPStrategy implements ICompilerStrategy {
   apply(stack: StatementNode[], runtime: RuntimeStack): IRuntimeAction[] {
     // Safety check: Make sure we have a current node
     if (!stack || stack.length === 0) {
@@ -19,8 +20,8 @@ export class RepeatingGroupStrategy implements ICompilerStrategy {
       return [];
     }
     
-    const rounds = fragmentToPart(current.fragments, "rounds");
-    if (!rounds || current.children.length === 0) {
+    const amrap = fragmentToPart(current.fragments, "effort");
+    if (!amrap || current.children.length === 0) {
       return [];
     }
 
@@ -38,7 +39,7 @@ export class RepeatingGroupStrategy implements ICompilerStrategy {
     const display = {
       elapsed: 0,
       state: "ready",
-      label: block.label,
+      label: `AMRAP ${amrap}`,
       round: block.currentRound,
       totalRounds: block.totalRounds
     };

@@ -1,6 +1,5 @@
-import { TimerDisplay, ButtonConfig,  TimerEventType, TimerEvent } from "../../timer.types";
-import { IRuntimeAction } from "../EventAction";
-import { TimerRuntime } from "../timer.runtime";
+import { TimerDisplay, ButtonConfig,  TimerEventType, TimerEvent, IRuntimeAction } from "@/core/timer.types";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 /**
  * Action to handle block stopped events

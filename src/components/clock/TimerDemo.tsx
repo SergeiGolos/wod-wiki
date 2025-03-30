@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UnifiedTimerDisplay from './UnifiedTimerDisplay';
-import { TimerDisplay } from '../../core/timer.types';
+import { TimerDisplay } from '@/core/timer.types';
 
 /**
  * Timer demonstration component to showcase different timer states and displays
@@ -185,9 +184,7 @@ export const TimerDemo: React.FC = () => {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Timer Demo - Mode: {getCurrentDisplay().displayMode}</h2>
-      <div className="mb-4">
-        <UnifiedTimerDisplay display={getCurrentDisplay()} />
-      </div>
+
       
       <div className="mt-8">
         <h3 className="text-lg font-semibold mb-2">Manual Demo Selection</h3>

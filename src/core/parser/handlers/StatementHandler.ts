@@ -1,5 +1,4 @@
-import { IRuntimeBlock } from "../../runtime/timer.runtime";
-import { StatementNode } from "../../runtime/types";
+import { IRuntimeBlock, StatementNode } from "@/core/timer.types";
 
 /**
  * Interface for statement handlers that evaluate if they can process a node

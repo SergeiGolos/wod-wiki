@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimerDisplay as TimerDisplayType } from '../../core/timer.types';
+import { TimerDisplay as TimerDisplayType } from '@/core/timer.types';
 
 
 interface TimerDisplayProps {

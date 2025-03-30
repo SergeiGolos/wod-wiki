@@ -1,6 +1,6 @@
-import { TimerDisplay, ButtonConfig, WodResultBlock } from "../../timer.types";
+import { TimerDisplay, ButtonConfig, WodResultBlock, RuntimeEvent } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
-import { RuntimeEvent, TimerRuntime } from "../timer.runtime";
+import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 
 /**

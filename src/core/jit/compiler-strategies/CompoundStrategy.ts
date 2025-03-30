@@ -1,5 +1,5 @@
-import { RuntimeStack } from "../RuntimeStack";
-import { StatementNode, IRuntimeAction } from "../../runtime/types";
+import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { StatementNode, IRuntimeAction } from "@/core/timer.types";
 
 export interface ICompilerStrategy {
   apply(stack: StatementNode[], runtime: RuntimeStack): IRuntimeAction[];
