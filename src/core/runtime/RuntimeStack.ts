@@ -1,8 +1,8 @@
 
 import { StatementNode, IRuntimeBlock } from "../timer.types";
-import { RuntimeBlock } from "../runtime/blocks/RuntimeBlock";
-import { IStatementHandler } from "./handlers/StatementHandler";
-import { StatementHandlerRegistry } from "./handlers/StatementHandlerRegistry";
+import { RuntimeBlock } from "./blocks/RuntimeBlock";
+import { IStatementHandler } from "../parser/handlers/StatementHandler";
+import { StatementHandlerRegistry } from "../parser/handlers/StatementHandlerRegistry";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers

@@ -6,7 +6,7 @@ import { RepeatingGroupHandler } from "@/core/parser/handlers/RepeatingGroupHand
 import { RepeatingStatementHandler } from "@/core/parser/handlers/RepeatingStatementHandler";
 import { SingleUnitHandler } from "@/core/parser/handlers/SingleUnitHandler";
 import { IStatementHandler } from "@/core/parser/handlers/StatementHandler";
-import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { startButton } from "@/core/runtime/EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { WodResultBlock, TimerDisplay, ButtonConfig, RuntimeEvent } from "@/core/timer.types";

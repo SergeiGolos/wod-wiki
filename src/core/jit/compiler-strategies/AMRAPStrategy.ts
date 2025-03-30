@@ -1,4 +1,4 @@
-import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { fragmentToPart } from "@/core/utils";
 import { ICompilerStrategy } from "./CompoundStrategy";
 import { SetDisplayAction } from "@/core/runtime/actions/SetDisplayAction";

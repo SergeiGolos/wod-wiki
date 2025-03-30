@@ -1,5 +1,5 @@
 import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
-import { RuntimeStack } from "@/core/parser/RuntimeStack";
+import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { StatementNode, IRuntimeAction } from "@/core/timer.types";
 import { fragmentToPart } from "@/core/utils";
 import { ICompilerStrategy } from "./CompoundStrategy";
