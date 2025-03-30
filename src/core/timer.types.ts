@@ -111,7 +111,7 @@ export interface RuntimeResult {
   export interface IRuntimeBlock {    
     blockId: number;
     blockKey: string;
-  
+    events : RuntimeEvent[];
     statements?: StatementNode[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
   }

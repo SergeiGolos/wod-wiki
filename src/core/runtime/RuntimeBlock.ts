@@ -16,6 +16,8 @@ export class RuntimeBlock implements IRuntimeBlock {
     public handlers: EventHandler[] = []
   ) { }
     
+public events: RuntimeEvent[] = [];
+  
   onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     return this.handlers
       .map(handler => handler.apply(event, this.stack, runtime))

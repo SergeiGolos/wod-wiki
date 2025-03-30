@@ -29,7 +29,7 @@ export class TimerRuntime implements ITimerRuntime {
     this.idel = new IdelRuntimeBlock();
     this.current = undefined;
   }
-  
+  public events: RuntimeEvent[] = [];
   /**
    * Processes timer events and produces actions
    * @param events Array of runtime events to process

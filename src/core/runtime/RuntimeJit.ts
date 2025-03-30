@@ -21,7 +21,6 @@ export class RuntimeJit {
   
   
   compile(key: string, nodes: StatementNode[]): IRuntimeBlock {        
-    console.log("Compiling", key, nodes)
     const blockId = nodes[0].id;    
     return new RuntimeBlock(blockId, key, nodes, this.handlers);
   }

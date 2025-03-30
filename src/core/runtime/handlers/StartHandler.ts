@@ -1,6 +1,7 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode } from "@/core/timer.types";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, TimerDisplay } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
+import { SetDisplayAction } from "../actions/SetDisplayAction";
 
 export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
@@ -9,7 +10,10 @@ export class StartHandler extends EventHandler {
     // TODO: Implement start logic
     console.log('StartHandler handleEvent triggered for event:', event);
     if (!runtime.current) {
-      return [new StartTimerAction(event)]; 
+      return [
+        new StartTimerAction(event),
+        new SetDisplayAction(event,  {} as TimerDisplay)];
+
     }
     return [];
   }
