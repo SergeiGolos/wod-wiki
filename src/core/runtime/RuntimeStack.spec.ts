@@ -1,6 +1,7 @@
 import { test, expect, describe, beforeEach, vi } from "vitest";
 import { RuntimeStack } from "../runtime/RuntimeStack";
 import { SourceCodeMetadata, StatementFragment, StatementNode } from "../timer.types";
+import { RuntimeJit } from "./RuntimeJit";
 
 // Mock implementation of StatementFragment for testing
 class TestFragment implements StatementFragment {
@@ -81,7 +82,7 @@ describe('RuntimeStack', () => {
     ];
     
     // Initialize RuntimeStack with mock data and no handlers
-    runtimeStack = new RuntimeStack(mockNodes, []);
+    runtimeStack = new RuntimeStack(mockNodes, new RuntimeJit());
   });
   
   test('constructor initializes leafs correctly', () => {

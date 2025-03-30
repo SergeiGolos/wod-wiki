@@ -27,6 +27,7 @@ export const startButton: ButtonConfig = {
     },
   };
 
+
 /**
  * Base class for action-event based state changes
  */

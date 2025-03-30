@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { WodRuntimeScript } from '@/core/md-timer';
 import { WodResultBlock } from '@/core/timer.types';
 import { EditorContainer } from '@/components/editor/EditorContainer'
-
+import { JsonViewer } from '@textea/json-viewer';
 
 /**
  * A wrapper component for EditorContainer that displays JSON state for debugging
@@ -32,10 +32,8 @@ export const EditorWithState: React.FC<React.ComponentProps<typeof EditorContain
               {compiledScript ? `${compiledScript.statements.length} statements` : 'No script'}
             </span>
           </div>
-          <div className="overflow-auto max-h-64 bg-white p-3 rounded border border-gray-300 text-sm font-mono">
-            <pre className="whitespace-pre-wrap">
-              {compiledScript ? JSON.stringify(compiledScript, null, 2) : 'Script not compiled yet'}
-            </pre>
+          <div className="overflow-auto max-h-64 bg-white p-3 rounded border border-gray-300 text-sm font-mono">            
+            <JsonViewer value={compiledScript} />            
           </div>
         </div>
         
@@ -48,9 +46,7 @@ export const EditorWithState: React.FC<React.ComponentProps<typeof EditorContain
             </span>
           </div>
           <div className="overflow-auto max-h-64 bg-white p-3 rounded border border-gray-300 text-sm font-mono">
-            <pre className="whitespace-pre-wrap">
-              {results.length > 0 ? JSON.stringify(results, null, 2) : 'No results available'}
-            </pre>
+            <JsonViewer value={results} />
           </div>
         </div>
       </div>

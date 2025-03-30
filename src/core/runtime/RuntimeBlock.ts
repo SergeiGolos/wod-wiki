@@ -1,8 +1,7 @@
 
 import { IRuntimeAction, TimerEvent } from "@/core/timer.types";
-import { IRuntimeBlock, RuntimeBlockHandler, RuntimeEvent, RuntimeMetric, ITimerRuntime } from "@/core/timer.types";
-
-
+import { IRuntimeBlock, RuntimeEvent, RuntimeMetric, ITimerRuntime } from "@/core/timer.types";
+import { EventHandler } from "./EventHandler";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -14,13 +13,14 @@ export class RuntimeBlock implements IRuntimeBlock {
     public blockId: number,
     public blockIndex: number,
     public parent?: IRuntimeBlock,
-    
+    public handlers: EventHandler[] = []
   ) { }
   
   metrics: RuntimeMetric[] = [];
   events: TimerEvent[] = [];
-  handlers: RuntimeBlockHandler[] = [];
   onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
-    return this.handlers.map(handler => handler.apply(event, runtime)).flat();
+    return this.handlers
+      .map(handler => handler.apply(event, runtime))
+      .flat();
   }
 }

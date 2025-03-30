@@ -60,6 +60,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3"
   }
 }

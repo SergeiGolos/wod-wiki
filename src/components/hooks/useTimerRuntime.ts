@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { WodRuntimeScript } from "@/core/md-timer";
-import { RuntimeJit, RuntimeStack } from "@/core/runtime/RuntimeStack";
+import { RuntimeStack } from "@/core/runtime/RuntimeStack";
+import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { startButton } from "@/core/runtime/EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { WodResultBlock, TimerDisplay, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
@@ -105,9 +106,6 @@ export function useTimerRuntime({
       // Create the timer runtime
       const timer = new TimerRuntime(compiled);
 
-      console.log(
-        `Runtime initialized with ${script.statements.length} statements and ${handlers.length} handlers.`
-      );
       runtimeRef.current = timer;
 
       // Reset state
