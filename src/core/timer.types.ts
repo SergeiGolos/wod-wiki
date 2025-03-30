@@ -108,8 +108,6 @@ export interface RuntimeResult {
     blockId: number;
     blockIndex: number;
   
-    label?: string;
-  
     parent?: IRuntimeBlock;        
     round?: [number, number];
   
@@ -118,14 +116,7 @@ export interface RuntimeResult {
     events: TimerEvent[]; 
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
   }
-  
-  
-  export interface IRuntimeHandler {
-    type: string;    
-    onTimerEvent(timestamp: Date, event: string, blocks?: IRuntimeBlock[]): IRuntimeAction[];
-  }
-  
-  
+   
   export type RuntimeEvent = { 
     timestamp: Date, 
     name: string    

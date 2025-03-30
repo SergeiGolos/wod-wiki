@@ -13,20 +13,19 @@ export abstract class SetResultAction implements IRuntimeAction {
       setDisplay: (display: TimerDisplay) => void,
       setButtons: (buttons: ButtonConfig[]) => void,
       setResults: (results:   []) => void
-    ): void {        
-      const currentIndex = runtime.currentBlockIndex;
-      const block = currentIndex !== undefined ? runtime.current?.[currentIndex] : undefined;
-      
+    ): void {              
+      const block =  runtime.current!;
+      const blockId = block.blockId;
       if (block) {
         const newEvent: TimerEvent = { 
-          index: currentIndex as number, 
-          blockId: block.stack[0].id, 
+          index: blockId, 
+          blockId: blockId, 
           timestamp: new Date(), 
           type: this.type 
         };
         
         // Add the event to the runtime results
-        runtime.results = [...runtime.results, newEvent];
+        setResults([...runtime.results, newEvent]);
         
         // Also add the event to the block's events array
         block.events = [...(block.events || []), newEvent];

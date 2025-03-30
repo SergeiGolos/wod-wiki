@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { RuntimeBlock } from "@/core/runtime/blocks/RuntimeBlock";
+import { RuntimeBlock } from "@/core/runtime/RuntimeBlock";
 import { TimerEvent } from "@/core/timer.types";
 
 

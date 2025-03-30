@@ -1,12 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { WodRuntimeScript } from "@/core/md-timer";
-import { AMRAPHandler } from "@/core/parser/handlers/AMRAPHandler";
-import { BasicStatementHandler } from "@/core/parser/handlers/BasicStatementHandler";
-import { RepeatingGroupHandler } from "@/core/parser/handlers/RepeatingGroupHandler";
-import { RepeatingStatementHandler } from "@/core/parser/handlers/RepeatingStatementHandler";
-import { SingleUnitHandler } from "@/core/parser/handlers/SingleUnitHandler";
-import { IStatementHandler } from "@/core/parser/handlers/StatementHandler";
-import { RuntimeStack } from "@/core/runtime/RuntimeStack";
+import { RuntimeJit, RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { startButton } from "@/core/runtime/EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { WodResultBlock, TimerDisplay, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
@@ -104,19 +98,9 @@ export function useTimerRuntime({
     }
 
     try {
-      // Create handlers for different statement types
-      const handlers: IStatementHandler[] = [
-        // Order is important - more specific handlers should be checked first
-        new AMRAPHandler(),
-        new RepeatingGroupHandler(),
-        new RepeatingStatementHandler(),
-        new BasicStatementHandler(),
-        // SingleUnitHandler is our fallback and should be last
-        new SingleUnitHandler(),
-      ];
-      
+      const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
-      const compiled = new RuntimeStack(script.statements, handlers);
+      const compiled = new RuntimeStack(script.statements, jit);
       
       // Create the timer runtime
       const timer = new TimerRuntime(compiled);

@@ -1,6 +1,4 @@
 
-import { StatementNode, IRuntimeBlock } from "../timer.types";
-
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
  *
@@ -10,23 +8,25 @@ import { StatementNode, IRuntimeBlock } from "../timer.types";
  * - Processing timer events and delegating to appropriate handlers
  */
 
-export class RuntimeJit{
-  compile(node: StatementNode, stack: RuntimeStack): IRuntimeBlock {
-    throw new Error("Method not implemented.");
-  }
-}
+import { IStatementHandler } from "../../../core/parser/handlers/StatementHandler";
+import { RuntimeBlock } from "../../../core/runtime/RuntimeBlock";
+import { StatementNode, IRuntimeBlock } from "../../../core/timer.types";
+import { StatementHandlerRegistry } from "./handlers/StatementHandlerRegistry";
 
 export class RuntimeStack {
   private lookupIndex: { [key: number]: number; } = {};
-  public trace: string[] = [];
   public leafs: StatementNode[] = [];
+  private currentPointer: number = -1;
+  private handlerRegistry: StatementHandlerRegistry;
 
   /**
    * Creates a new CompiledRuntime instance
    * @param nodes Array of statement nodes from the parser
-   * @param jit RuntimeJit instance for just-in-time compilation
+   * @param handlers Array of statement handlers to use for processing nodes
    */
-  constructor(nodes: StatementNode[], public jit: RuntimeJit) {
+  constructor(nodes: StatementNode[], handlers: IStatementHandler[] = []) {
+    this.handlerRegistry = new StatementHandlerRegistry(handlers);
+
     // Initialize the lookup index and identify leaf nodes
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
@@ -76,12 +76,26 @@ export class RuntimeStack {
    */
   public goto(blockId: number): IRuntimeBlock {            
     // Check if this is a leaf node (executable block)
-    const isLeaf = this.leafs.some(leaf => leaf.id === blockId);    
+    const isLeaf = this.leafs.some(leaf => leaf.id === blockId);
     if (!isLeaf) {
       throw new Error(`Block with ID ${blockId} is not a leaf node and cannot be executed directly`);
     }
 
-    const node = this.leafs[blockId];
-    return this.jit.compile(node, this);  
+    // Initialize a new runtime block
+    let block: IRuntimeBlock =new RuntimeBlock(
+      blockId,
+      this.getId(blockId) ?? -1,
+      "",
+      undefined,
+      [0,0]);
+
+    // Process the node through all statement handlers and apply them up the parent stack
+    // block = this.handlerRegistry.processWithParents(
+    //   block,
+    // this.getIndex(this.getId(blockId) ?? -1)    ?? -1,
+    //   (parentId) => this.getIndex(this.getId(parentId) ?? -1) ?? -1
+    // );
+
+    return block;
   }
 }

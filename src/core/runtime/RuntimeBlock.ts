@@ -13,11 +13,10 @@ export class RuntimeBlock implements IRuntimeBlock {
   constructor(
     public blockId: number,
     public blockIndex: number,
-    public label?: string,
     public parent?: IRuntimeBlock,
-    public round?: [number, number]
+    
   ) { }
-
+  
   metrics: RuntimeMetric[] = [];
   events: TimerEvent[] = [];
   handlers: RuntimeBlockHandler[] = [];

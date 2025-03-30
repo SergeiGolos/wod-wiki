@@ -1,7 +1,7 @@
 import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
-import { TimerRuntime } from '../timer.runtime';
-import { SetButtonAction } from '../actions/SetButtonAction';
-import { NextChildStatementAction } from '../actions/NextChildStatementAction';
+import { TimerRuntime } from './timer.runtime';
+import { SetButtonAction } from './actions/SetButtonAction';
+import { NextChildStatementAction } from './actions/NextChildStatementAction';
 import { test, expect, describe, beforeEach, vi } from "vitest";
 import { RuntimeEvent } from "@/core/timer.types";
 
