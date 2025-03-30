@@ -1,8 +1,9 @@
 import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
-import { RuntimeEvent, TimerRuntime } from '../timer.runtime';
+import { TimerRuntime } from '../timer.runtime';
 import { SetButtonAction } from '../actions/SetButtonAction';
 import { NextChildStatementAction } from '../actions/NextChildStatementAction';
 import { test, expect, describe, beforeEach, vi } from "vitest";
+import { RuntimeEvent } from "@/core/timer.types";
 
 // Mock dependencies
 vi.mock('../parser/timer.runtime');
