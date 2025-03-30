@@ -53,8 +53,8 @@ export interface IRuntimeAction {
   }
 
 
-export interface ITimerRuntime {
-  current: IRuntimeBlock | undefined;
+export interface ITimerRuntime {  
+  current: IRuntimeBlock | undefined;  
   tick(events: RuntimeEvent[]): IRuntimeAction[];
   gotoBlock(node: StatementNode): IRuntimeBlock;
 }
@@ -87,7 +87,7 @@ export interface StatementNode {
 export interface RuntimeResult {    
     round: number;
     stack: number[];
-    timestamps: TimerEvent[];
+    timestamps: RuntimeEvent[];
   }
   
   export interface RuntimeState {
@@ -107,14 +107,9 @@ export interface RuntimeResult {
   
   export interface IRuntimeBlock {    
     blockId: number;
-    blockIndex: number;
+    blockKey: string;
   
-    parent?: IRuntimeBlock;        
-    round?: [number, number];
-  
-  
-    metrics: RuntimeMetric[];
-    events: TimerEvent[]; 
+    statements?: StatementNode[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
   }
    
@@ -145,18 +140,9 @@ export interface SourceCodeMetadata {
     length: number;
 }
 
-export type TimerEventType = 'complete' | 'stop' | 'start' | 'lap';
-export type TimerEvent = {
-    index: number;
-    blockId: number;
-    timestamp: Date;
-    type: TimerEventType;
-}
-
-
 export class ResultSpan {
-    start?: TimerEvent;
-    stop?: TimerEvent;
+    start?: RuntimeEvent;
+    stop?: RuntimeEvent;
     label?: string;
     duration(timestamp?: Date): number {
         let now = timestamp ?? new Date();
@@ -210,7 +196,7 @@ export type WodResultBlock = {
    */
   export interface WodMetricCalculator {
     /** Add a timer event to the calculation */
-    push(event: TimerEvent): void;
+    push(event: RuntimeEvent): void;
     /** Get the calculated metrics */
     results: WodMetric[];
   }

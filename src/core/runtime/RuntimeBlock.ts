@@ -1,6 +1,6 @@
 
-import { IRuntimeAction, TimerEvent } from "@/core/timer.types";
-import { IRuntimeBlock, RuntimeEvent, RuntimeMetric, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction, StatementNode } from "@/core/timer.types";
+import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "./EventHandler";
 
 /**
@@ -10,14 +10,12 @@ import { EventHandler } from "./EventHandler";
 
 export class RuntimeBlock implements IRuntimeBlock {
   constructor(
-    public blockId: number,
-    public blockIndex: number,
-    public parent?: IRuntimeBlock,
+    public blockId: number,    
+    public blockKey: string,
+    public stack: StatementNode[],
     public handlers: EventHandler[] = []
   ) { }
-  
-  metrics: RuntimeMetric[] = [];
-  events: TimerEvent[] = [];
+    
   onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     return this.handlers
       .map(handler => handler.apply(event, runtime))

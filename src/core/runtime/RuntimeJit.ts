@@ -1,5 +1,8 @@
 import { StatementNode, IRuntimeBlock } from "../timer.types";
-import { RuntimeStack } from "./RuntimeStack";
+import { RuntimeBlock } from "./RuntimeBlock";
+import { EventHandler } from "./EventHandler";
+import { StartHandler } from "./handlers/StartHandler";
+import { TickHandler } from "./handlers/TickHandler";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -11,7 +14,14 @@ import { RuntimeStack } from "./RuntimeStack";
  */
 
 export class RuntimeJit {
-  compile(node: StatementNode, stack: RuntimeStack): IRuntimeBlock {
-    throw new Error("Method not implemented.");
+  handlers: EventHandler[] | undefined = [
+    new StartHandler(),
+    new TickHandler()
+  ]
+  
+  
+  compile(key: string, nodes: StatementNode[]): IRuntimeBlock {    
+    const blockId = nodes[0].id;    
+    return new RuntimeBlock(blockId, key, nodes, this.handlers);
   }
 }
