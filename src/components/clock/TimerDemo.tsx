@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UnifiedTimerDisplay from './UnifiedTimerDisplay';
-import { TimerDisplay } from '../core/timer.types';
+import { TimerDisplay } from '../../core/timer.types';
 
 /**
  * Timer demonstration component to showcase different timer states and displays
