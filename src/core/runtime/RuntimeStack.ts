@@ -12,7 +12,7 @@ export class RuntimeStack {
    * @param nodes Array of statement nodes from the parser
    * @param jit RuntimeJit instance for just-in-time compilation
    */
-  constructor(nodes: StatementNode[], public jit: RuntimeJit) {
+  constructor(private nodes: StatementNode[], public jit: RuntimeJit) {
     // Initialize the lookup index and identify leaf nodes
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
@@ -45,13 +45,13 @@ export class RuntimeStack {
    * @param id ID of the node to look up
    * @returns The index of the node, or undefined if not found
    */
-  public getId(id: number): number | undefined {
+  public getId(id: number): StatementNode | undefined {
     const index = this.lookupIndex[id];
     if (index === undefined) {
       return undefined;
     }
 
-    return index;
+    return this.nodes[index];
   }
 
   /**
@@ -66,8 +66,20 @@ export class RuntimeStack {
     if (!isLeaf) {
       throw new Error(`Block with ID ${blockId} is not a leaf node and cannot be executed directly`);
     }
+    const stack = [];        
+    let node: StatementNode | undefined = this.getId(blockId)    
+    while (node !== undefined) {
+      stack.push(node);      
+      if (node.parent === undefined) {
+        node = undefined;
+        continue;
+      }
 
-    const node = this.leafs[blockId];
-    return this.jit.compile(node, this);  
+      node = this.getId(node.parent);
+    }
+
+    let key = stack.map(node => node.id).join("|");
+    key += "|" + 1;
+    return this.jit.compile(key, stack);  
   }
 }

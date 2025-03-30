@@ -51,15 +51,7 @@ export class TimerRuntime implements ITimerRuntime {
    * @returns The runtime block that was navigated to
    */
   public gotoBlock(node: StatementNode): IRuntimeBlock {    
-    let parent: IRuntimeBlock | undefined = this.current = this.script.goto(node.id);  
-    while (parent != undefined)  
-    {
-      // TODO Build Proper key from parent relationship
-      const key = `${parent.blockId}`;  
-      this.blockTracker.set(key, (this.blockTracker.get(key) ?? 0) + 1);
-      parent = parent.parent;
-    }
-
+    this.current = this.script.goto(node.id);  
     return this.current!;
   }
 }

@@ -1,3 +1,5 @@
+import { RuntimeStack } from "./runtime/RuntimeStack";
+
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplay {
     elapsed: number;
@@ -54,6 +56,7 @@ export interface IRuntimeAction {
 
 
 export interface ITimerRuntime {  
+  script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
   tick(events: RuntimeEvent[]): IRuntimeAction[];
   gotoBlock(node: StatementNode): IRuntimeBlock;

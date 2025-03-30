@@ -18,7 +18,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     
   onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     return this.handlers
-      .map(handler => handler.apply(event, runtime))
+      .map(handler => handler.apply(event, this.stack, runtime))
       .flat();
   }
 }

@@ -20,5 +20,7 @@ export class StartTimerAction extends EventAction {
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void {        
+        const first = runtime.script.leafs[0];
+        runtime.gotoBlock(first);
     }
 }
