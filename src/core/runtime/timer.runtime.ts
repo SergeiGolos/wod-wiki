@@ -16,7 +16,7 @@ import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
 
 export class TimerRuntime implements ITimerRuntime {
   private blockTracker: Map<string, number> 
-  public current?: IRuntimeBlock;
+  public current: IRuntimeBlock | undefined;
   private idel: IdelRuntimeBlock;
   
   /**

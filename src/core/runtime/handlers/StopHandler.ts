@@ -1,10 +1,12 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "../timer.types";
-import { EventHandler } from "../EventHandler";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { EventHandler } from "@/core/runtime/EventHandler";
 
 export class StopHandler extends EventHandler {
-  apply(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+  protected eventType: string = 'stop';
+
+  protected handleEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement stop logic
-    console.log('StopHandler apply triggered for event:', event);
+    console.log('StopHandler handleEvent triggered for event:', event);
     return [];
   }
 }

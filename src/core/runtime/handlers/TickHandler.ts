@@ -1,14 +1,14 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "../timer.types";
-import { EventHandler } from "../EventHandler";
-import { StartTimerAction } from "../actions/StartTimerAction";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { EventHandler } from "@/core/runtime/EventHandler";
+import { StartTimerAction } from "@/core/runtime/actions/StartTimerAction";
 
 export class TickHandler extends EventHandler {
-  apply(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
-    if (event.type === 'Tick') {
-      // TODO: Implement actual timer logic for setting the time display
-      // For now, just creating the action
-      return [new StartTimerAction(event)];
-    }
-    return [];
+  protected eventType: string = 'tick';
+
+  protected handleEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+    // No need to check event.type here, base class handles it
+    // TODO: Implement actual timer logic for setting the time display
+    // For now, just creating the action
+    return [new StartTimerAction(event)];
   }
 }

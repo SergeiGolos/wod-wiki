@@ -1,10 +1,12 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "../timer.types";
-import { EventHandler } from "../EventHandler";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { EventHandler } from "@/core/runtime/EventHandler";
 
 export class ResumeHandler extends EventHandler {
-  apply(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+  protected eventType: string = 'resume';
+
+  protected handleEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement resume logic
-    console.log('ResumeHandler apply triggered for event:', event);
+    console.log('ResumeHandler handleEvent triggered for event:', event);
     return [];
   }
 }

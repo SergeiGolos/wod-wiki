@@ -54,9 +54,10 @@ export interface IRuntimeAction {
 
 
 export interface ITimerRuntime {
-    tick(events: RuntimeEvent[]): IRuntimeAction[];
-    gotoBlock(node: StatementNode): IRuntimeBlock;
-  }
+  current: IRuntimeBlock | undefined;
+  tick(events: RuntimeEvent[]): IRuntimeAction[];
+  gotoBlock(node: StatementNode): IRuntimeBlock;
+}
 
 /**
  * Returns all fragments of a specific type from an array of StatementFragments
