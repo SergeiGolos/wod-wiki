@@ -1,4 +1,4 @@
-import { IRuntimeAction, TimerDisplay, ButtonConfig, WodResultBlock } from "@/core/timer.types";
+import { IRuntimeAction, TimerDisplayBag, ButtonConfig, WodResultBlock } from "@/core/timer.types";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 export class NextChildStatementAction implements IRuntimeAction {
@@ -6,7 +6,7 @@ export class NextChildStatementAction implements IRuntimeAction {
   
   apply(
     runtime: TimerRuntime,
-    setDisplay: (display: TimerDisplay) => void,
+    setDisplay: (display: TimerDisplayBag) => void,
     setButtons: (buttons: ButtonConfig[]) => void,
     setResults: (results: WodResultBlock[]) => void
   ): void {    

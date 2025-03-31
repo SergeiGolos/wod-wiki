@@ -1,4 +1,4 @@
-import { TimerDisplay, ButtonConfig,  TimerEventType, TimerEvent, IRuntimeAction } from "@/core/timer.types";
+import { TimerDisplayBag, ButtonConfig,  TimerEventType, TimerEvent, IRuntimeAction } from "@/core/timer.types";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
 /**
@@ -10,7 +10,7 @@ export abstract class SetResultAction implements IRuntimeAction {
     
     apply(
       runtime: TimerRuntime,
-      setDisplay: (display: TimerDisplay) => void,
+      setDisplay: (display: TimerDisplayBag) => void,
       setButtons: (buttons: ButtonConfig[]) => void,
       setResults: (results:   []) => void
     ): void {              

@@ -1,4 +1,4 @@
-import { ButtonConfig, RuntimeEvent, TimerDisplay, WodResultBlock } from "@/core/timer.types";
+import { ButtonConfig, RuntimeEvent, TimerDisplayBag, WodResultBlock } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
@@ -6,7 +6,7 @@ import { TimerRuntime } from "@/core/runtime/timer.runtime";
  * Action to update the timer display
  */
 export class SetDisplayAction extends EventAction {
-    private display: TimerDisplay 
+    private display: TimerDisplayBag 
 
     /**
      * Creates a new SetDisplayAction
@@ -15,7 +15,7 @@ export class SetDisplayAction extends EventAction {
      */
     constructor(
         event: RuntimeEvent,
-        display: TimerDisplay
+        display: TimerDisplayBag
     ) {
         super(event);
         this.display = display;
@@ -29,13 +29,11 @@ export class SetDisplayAction extends EventAction {
      */
     apply(
         runtime: TimerRuntime,
-        setDisplay: (display: TimerDisplay) => void,
+        setDisplay: (display: TimerDisplayBag) => void,
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void {
-        // Log the display update before applying it
-        console.log(`Updating display: elapsed=${this.display.elapsed}ms, state=${this.display.state}, round=${this.display.round || 0}/${this.display.totalRounds || 0}`);
-        
+        // Log the display update before applying it                
         // Update the display        
         setDisplay(this.display);                
     }

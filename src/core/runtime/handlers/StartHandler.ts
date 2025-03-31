@@ -1,4 +1,4 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, TimerDisplay } from "@/core/timer.types";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, TimerDisplayBag } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetDisplayAction } from "../actions/SetDisplayAction";
@@ -12,7 +12,7 @@ export class StartHandler extends EventHandler {
     if (!runtime.current) {
       return [
         new StartTimerAction(event),
-        new SetDisplayAction(event,  {} as TimerDisplay)];
+        new SetDisplayAction(event,  {} as TimerDisplayBag)];
 
     }
     return [];

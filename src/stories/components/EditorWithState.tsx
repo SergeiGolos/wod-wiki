@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { WodRuntimeScript } from '@/core/parser/md-timer';
-import { WodResultBlock } from '@/core/timer.types';
+import { WodResultBlock, WodRuntimeScript } from '@/core/timer.types';
 import { EditorContainer } from '@/components/editor/EditorContainer'
 import { JsonViewer } from '@textea/json-viewer';
 

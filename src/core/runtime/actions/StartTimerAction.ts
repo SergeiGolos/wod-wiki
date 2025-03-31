@@ -1,4 +1,4 @@
-import { TimerDisplay, ButtonConfig, WodResultBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { TimerDisplayBag, ButtonConfig, WodResultBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 
@@ -16,7 +16,7 @@ export class StartTimerAction extends EventAction {
 
     apply(
         runtime: ITimerRuntime,
-        setDisplay: (display: TimerDisplay) => void,
+        setDisplay: (display: TimerDisplayBag) => void,
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void {        

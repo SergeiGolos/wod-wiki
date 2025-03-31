@@ -1,10 +1,10 @@
 import { useRef, useState, useEffect } from "react";
-import { WodRuntimeScript } from "@/core/parser/md-timer";
+import { WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { startButton } from "@/core/runtime/EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
-import { WodResultBlock, TimerDisplay, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { WodResultBlock, TimerDisplayBag, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
 
 /**
  * Hook props for useTimerRuntime
@@ -40,7 +40,7 @@ export function useTimerRuntime({
 
   const [stack, setStack] = useState<RuntimeEvent[]>([]);
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
-  const [display, setDisplay] = useState<TimerDisplay | undefined>();
+  const [display, setDisplay] = useState<TimerDisplayBag | undefined>();
 
   const [buttons, setButtons] = useState<ButtonConfig[]>([startButton]);
   const [results, setResults] = useState<WodResultBlock[]>([]);

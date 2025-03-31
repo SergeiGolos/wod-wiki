@@ -1,7 +1,7 @@
 import { RuntimeStack } from "./runtime/RuntimeStack";
 
 // TimerDisplay interface to represent the timer's visual state
-export interface TimerDisplay {
+export interface TimerDisplayBag {
     elapsed: number;
     remaining?: number;
     
@@ -11,50 +11,74 @@ export interface TimerDisplay {
     
     round?: number;
     totalRounds?: number;
-
-    // Display mode flag to determine whether to render in basic or enhanced mode
-    displayMode?: 'basic' | 'enhanced';
-    
-    // Enhanced display properties (optional)
-    // Current movement details
-    currentMovement?: string;        // Active movement (e.g., "Push-ups")
-    targetReps?: number;             // Target repetitions for current movement
-    completedReps?: number;          // Completed repetitions
-    
-    // Visual indicators
-    intensity?: "low" | "medium" | "high";  // Workout intensity level
-    
-    // Timing segments
-    workInterval?: number;           // Duration of work interval (seconds)
-    restInterval?: number;           // Duration of rest interval (seconds)
-    isRestPeriod?: boolean;          // Whether in rest or work period
-    
-    // Additional workout metrics
-    caloriesBurned?: number;         // Estimated calories burned
-    movementEfficiency?: number;     // Efficiency measure (0-100%)
-    
-    // Competition specific
-    heatNumber?: number;             // Competition heat number
-    laneNumber?: number;             // Athlete lane assignment
-    athleteName?: string;            // Athlete name
-    
-    // Audio cues
-    audioAlert?: "start" | "halfway" | "timeWarning" | "finish"; // Audio notification type
 }
 
-// For backwards compatibility, we'll keep this as a type alias to the main TimerDisplay
-export type EnhancedTimerDisplay = TimerDisplay;
 
+export class TimerFromSeconds {
+  days?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+  milliseconds?: number;
+
+  constructor(miliseconds: number) {    
+    const multiplier = 10 ** 3;
+    let remaining = miliseconds;
+
+    this.days = Math.floor(remaining / 86400); 
+    remaining %= 86400;
+
+    this.hours = Math.floor(remaining / 3600);   
+    remaining %= 3600;
+
+    this.minutes = Math.floor(remaining / 60);    
+    remaining %= 60;
+
+    this.seconds = Math.floor(remaining);
+    
+    this.milliseconds = Math.round((remaining - this.seconds) * multiplier);
+  }
+
+  toClock(): [string, string] {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    
+    const days = this.days || 0;
+    const hours = this.hours || 0;
+    const minutes = this.minutes || 0;
+    const seconds = this.seconds || 0;
+    const milliseconds = this.milliseconds || 0;
+    
+    const clock = [];
+
+    if (days && days > 0) {
+      clock.push(`${days}`);
+    }
+
+    if ((hours && hours > 0) || clock.length > 0) {
+      clock.push(`${pad(hours)}`);
+    }
+
+    if (clock.length > 0) {
+      clock.push(`${pad(minutes)}`);
+    }
+    else
+    {
+      clock.push(`${minutes}`)
+    }
+
+    clock.push(`${pad(seconds)}`);
+    
+    return [clock.join(':'), milliseconds.toString()];  
+  }
+}
 export interface IRuntimeAction {
     apply(
         runtime: ITimerRuntime,
-        setDisplay: (display: TimerDisplay) => void,
+        setDisplay: (display: TimerDisplayBag) => void,
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void;
   }
-
-
 
   export type WodRuntimeScript = {
     source: string;

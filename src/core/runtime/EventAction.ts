@@ -1,6 +1,6 @@
 
 import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "../timer.types";
-import { ButtonConfig, TimerDisplay, WodResultBlock } from "../timer.types";
+import { ButtonConfig, TimerDisplayBag, WodResultBlock } from "../timer.types";
 import { PlayIcon, StopIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
 
 export const startButton: ButtonConfig = {
@@ -36,7 +36,7 @@ export abstract class EventAction implements IRuntimeAction {
 
     abstract apply(   
         runtime: ITimerRuntime,     
-        setDisplay: (display: TimerDisplay) => void,
+        setDisplay: (display: TimerDisplayBag) => void,
         setButtons: (buttons: ButtonConfig[]) => void,
         setResults: (results: WodResultBlock[]) => void
     ): void;
