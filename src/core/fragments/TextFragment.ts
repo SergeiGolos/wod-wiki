@@ -1,4 +1,4 @@
-import { SourceCodeMetadata, StatementFragment } from "../wod-lang/timer.types";
+import { SourceCodeMetadata, StatementFragment } from "../timer.types";
 
 export class TextFragment implements StatementFragment {
   constructor(public text: string, public level?: string, public meta?: SourceCodeMetadata) { }

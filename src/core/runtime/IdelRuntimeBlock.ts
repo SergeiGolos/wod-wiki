@@ -5,7 +5,7 @@ import { TickHandler } from "./handlers/TickHandler";
 export class IdelRuntimeBlock extends RuntimeBlock {
   /** Unique identifier for this block */
   constructor() {    
-    super(-1, -1, undefined, [
+    super(-1, "idel", [], [
       new StartHandler(),      
       new TickHandler()
     ]);

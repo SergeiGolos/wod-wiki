@@ -55,6 +55,32 @@ export interface IRuntimeAction {
   }
 
 
+
+  export type WodRuntimeScript = {
+    source: string;
+    statements: StatementNode[];  
+  };
+  
+  export interface WodWikiInitializer {
+    code?: string;
+    syntax: string;
+  }
+  
+  export interface WodWikiToken {
+    token: string;
+    foreground: string;
+    fontStyle?: string;
+    hints: WodWikiTokenHint[];
+  }
+  
+  export interface WodWikiTokenHint {
+    hint: string;
+    position: "after" | "before";
+    offSet?: number | undefined;
+  }
+  
+
+
 export interface ITimerRuntime {  
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  

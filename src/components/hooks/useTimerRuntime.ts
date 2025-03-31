@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { WodRuntimeScript } from "@/core/md-timer";
+import { WodRuntimeScript } from "@/core/parser/md-timer";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { startButton } from "@/core/runtime/EventAction";
@@ -101,10 +101,10 @@ export function useTimerRuntime({
     try {
       const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
-      const compiled = new RuntimeStack(script.statements, jit);
+      const stack = new RuntimeStack(script.statements, jit);
       
       // Create the timer runtime
-      const timer = new TimerRuntime(compiled);
+      const timer = new TimerRuntime(stack);
 
       runtimeRef.current = timer;
 

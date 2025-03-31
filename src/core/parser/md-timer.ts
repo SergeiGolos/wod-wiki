@@ -1,33 +1,9 @@
 // import type { IToken, CstNode } from "chevrotain";
 import { Lexer } from "chevrotain";
-import { MdTimerInterpreter } from "./parser/timer.visitor";
-import { MdTimerParse } from "./parser/timer.parser";
-import { allTokens } from "./parser/timer.tokens";
-import { StatementNode } from "./timer.types";
-
-
-export type WodRuntimeScript = {
-  source: string;
-  statements: StatementNode[];  
-};
-
-export interface WodWikiInitializer {
-  code?: string;
-  syntax: string;
-}
-
-export interface WodWikiToken {
-  token: string;
-  foreground: string;
-  fontStyle?: string;
-  hints: WodWikiTokenHint[];
-}
-
-export interface WodWikiTokenHint {
-  hint: string;
-  position: "after" | "before";
-  offSet?: number | undefined;
-}
+import { MdTimerInterpreter } from "./timer.visitor";
+import { MdTimerParse } from "./timer.parser";
+import { allTokens } from "./timer.tokens";
+import { StatementNode, WodRuntimeScript } from "../timer.types";
 
 
 export class MdTimerRuntime {

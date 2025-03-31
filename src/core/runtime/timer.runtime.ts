@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerEvent } from "../timer.types";
+import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
 

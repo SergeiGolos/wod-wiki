@@ -1,4 +1,4 @@
-import { SourceCodeMetadata, StatementFragment } from "@/types/timer.types";
+import { SourceCodeMetadata, StatementFragment } from "../timer.types";
 
 export class RoundsFragment implements StatementFragment {
   constructor(public count: number, public meta?: SourceCodeMetadata) { }
