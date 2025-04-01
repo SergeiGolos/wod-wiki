@@ -25,7 +25,13 @@
     "declarationMap": false,
     "outDir": "dist",
     "rootDir": "src",
-    "composite": true
+    "composite": true,
+
+    /* Alias imports */
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

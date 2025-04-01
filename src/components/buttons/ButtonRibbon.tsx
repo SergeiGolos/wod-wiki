@@ -1,7 +1,7 @@
 
 import React, { Dispatch, SetStateAction } from "react";
-import { ButtonConfig } from "../core/timer.types";
-import { RuntimeEvent } from "../core/runtime/types";
+import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+
 
 interface ButtonRibbonProps {
   buttons: ButtonConfig[];
@@ -28,6 +28,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
 
   const clickEvent = (button: ButtonConfig) => {
     const events = button.onClick();
+    console.log("Button clicked:", events);
     setEvents(events);
   }
 

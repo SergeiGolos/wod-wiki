@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { IRuntimeBlock } from '../core/runtime/timer.runtime';
+import { IRuntimeBlock } from '@/core/timer.types';
 
 interface WodTableProps {
   runtime: IRuntimeBlock[];

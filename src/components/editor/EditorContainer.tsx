@@ -2,8 +2,7 @@
 import React from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { WodRuntimeScript } from "../core/md-timer";
-import { WodResultBlock } from "../core/timer.types";
+import { WodResultBlock, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
@@ -46,7 +45,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         <ButtonRibbon buttons={buttons} setEvents={setStack} />
         {display && (
           <div className="border rounded-md p-4 bg-white shadow">
-            <WodTimer totalTime={""} {...display} index={0} />
+            <WodTimer display={display} />
           </div>
         )}
       </div>

@@ -1,11 +1,8 @@
-
-import { StatementNode, TimerDisplay } from "../../timer.types";
-import { IStatementHandler } from "./StatementHandler";
-import { IRuntimeHandler } from "./RuntimeHandler";
-import { SetButtonAction } from "../../runtime/actions/SetButtonAction";
-import { SetDisplayAction } from "../../runtime/actions/SetDisplayAction";
-import { IRuntimeBlock, TimerRuntime } from "../../runtime/timer.runtime";
-
+import { IStatementHandler } from "../../../../core/parser/handlers/StatementHandler";
+import { SetButtonAction } from "../../../../core/runtime/actions/SetButtonAction";
+import { SetDisplayAction } from "../../../../core/runtime/actions/SetDisplayAction";
+import { TimerRuntime } from "../../../../core/runtime/timer.runtime";
+import { StatementNode, IRuntimeHandler, IRuntimeBlock, RuntimeEvent, IRuntimeAction, TimerDisplayBag } from "../../../../core/timer.types";
 
 /**
  * Handler for single unit workout statements
@@ -157,7 +154,7 @@ class SingleUnitRuntimeHandler implements IRuntimeHandler {
    * @param state The current state ("ready", "active", "complete", etc.)
    * @returns A timer display object
    */
-  private createDisplayState(elapsed: number, state: string): TimerDisplay {
+  private createDisplayState(elapsed: number, state: string): TimerDisplayBag {
     return {
       elapsed,
       state,
