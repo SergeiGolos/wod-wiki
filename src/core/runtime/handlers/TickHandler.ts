@@ -9,11 +9,15 @@ export class TickHandler extends EventHandler {
     let running = false;
     let elapsed = 0;
     let currentTime: Date| undefined;
+    let initialTime: Date| undefined = runtime.results?.[0]?.startDateTime;
     
     for (const evnt  of runtime.current?.events || []) {      
       if (evnt.name === 'start') {
         running = true;
         currentTime = evnt.timestamp;
+        if (!initialTime) {
+            initialTime = evnt.timestamp;
+        }
       }
 
       if (evnt.name === 'stop') {
@@ -23,15 +27,20 @@ export class TickHandler extends EventHandler {
       }
     }
 
+    if (!initialTime) {
+      initialTime = event.timestamp;
+    }
+
     if (currentTime != undefined) {
       elapsed += (event.timestamp.getTime() - currentTime.getTime()) / 1000;
     }
 
     const display: TimerDisplayBag = {
       elapsed: elapsed,
-      state: running ? 'running' : 'stopped',
-      round: 0,
-      totalRounds: 0,
+      label: "test",
+      bag: {
+        totalTime: (event.timestamp.getTime() - initialTime.getTime()) / 1000
+      }
     };    
     return [new SetDisplayAction(event, display)];
   }

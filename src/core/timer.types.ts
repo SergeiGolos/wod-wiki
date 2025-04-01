@@ -3,14 +3,9 @@ import { RuntimeStack } from "./runtime/RuntimeStack";
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplayBag {
     elapsed: number;
-    remaining?: number;
-    
-    state: string;
-    
+    remaining?: number;        
     label?: string;
-    
-    round?: number;
-    totalRounds?: number;
+    bag: { [key: string]: any }    
 }
 
 

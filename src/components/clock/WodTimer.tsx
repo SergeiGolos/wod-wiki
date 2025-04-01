@@ -11,11 +11,14 @@ export interface WodTimerProps {
 export const WodTimer: React.FC<WodTimerProps> = ({
   display  
 }) => {    
-  
   const [clock, setClock] = useState<[string,string]>(["",""]);
+  const [total, setTotal] = useState<[string,string]>(["",""]);
 useEffect(() => {
   let time = new TimerFromSeconds(display.elapsed);
+  let total = new TimerFromSeconds(display.bag.totalTime);
+  
   setClock(time.toClock());
+  setTotal(total.toClock());
 }, [display]);
 
   // This effect runs whenever the block or block.events changes  
@@ -26,9 +29,8 @@ useEffect(() => {
           {/* Left section - Rounds */}
           <div className="bg-gray-50/20 p-4">
             <div className="text-2xl font-semibold text-gray-700">
-              Round {(display?.round || 0) + 1}
-            </div>
-            <div className="text-2xl">{display?.label}</div>
+              {display?.label}
+            </div>            
           </div>
 
           {/* Middle section - Main Timer */}
@@ -41,19 +43,16 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Right section - Elapsed and Total Times */}
-          {/* <div className="bg-gray-50/20 p-4">
+        
+          <div className="bg-gray-50/20 p-4">
             <div className="space-y-4">
               <div className="text-gray-600">
                 <div className="text-sm uppercase tracking-wide">Total Time</div>
-                <div className="text-xl font-mono">{display.totalTime}</div>
-              </div>
-              <div className="text-gray-600">
-                <div className="text-sm uppercase tracking-wide">Active Time</div>
-                <div className="text-xl font-mono">{display?.activeTime}</div>
+                <div className="text-xl font-mono">{total[0]}</div>
+
               </div>
             </div>
-          </div> */}
+          </div> 
         </div>
       </div>
     </div>
