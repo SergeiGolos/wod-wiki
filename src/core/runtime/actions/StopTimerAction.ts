@@ -3,10 +3,10 @@ import { EventAction } from "../EventAction";
 
 
 /**
- * Action to handle block started events
+ * Action to handle block stopped events
  */
 
-export class StartTimerAction extends EventAction {
+export class StopTimerAction extends EventAction {
     constructor(
         event: RuntimeEvent
     ) {
@@ -15,8 +15,7 @@ export class StartTimerAction extends EventAction {
 
     apply(runtime: ITimerRuntime): void {        
         if (!runtime.current) {
-            const first = runtime.script.leafs[0];
-        runtime.gotoBlock(first);
+            return;
         }
 
         runtime.current?.events.push(this.event);

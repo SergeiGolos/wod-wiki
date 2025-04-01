@@ -72,12 +72,7 @@ export class TimerFromSeconds {
   }
 }
 export interface IRuntimeAction {
-    apply(
-        runtime: ITimerRuntime,
-        setDisplay: (display: TimerDisplayBag) => void,
-        setButtons: (buttons: ButtonConfig[]) => void,
-        setResults: (results: WodResultBlock[]) => void
-    ): void;
+    apply(runtime: ITimerRuntime): void;
   }
 
   export type WodRuntimeScript = {
@@ -106,9 +101,18 @@ export interface IRuntimeAction {
 
 
 export interface ITimerRuntime {  
+  
+  setDisplay: (display: TimerDisplayBag) => void,
+  setButtons: (buttons: ButtonConfig[]) => void,
+  setResults: (results: WodResultBlock[]) => void
+  
+  buttons: ButtonConfig[];
+  results: WodResultBlock[];
+  display: TimerDisplayBag;
+
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
-  tick(events: RuntimeEvent[]): IRuntimeAction[];
+  tick(events: RuntimeEvent[]): void;
   gotoBlock(node: StatementNode): IRuntimeBlock;
 }
 

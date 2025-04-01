@@ -17,14 +17,14 @@ export class TickHandler extends EventHandler {
       }
 
       if (evnt.name === 'stop') {
-        elapsed = (evnt.timestamp.getTime() - currentTime!.getTime()) / 1000;
+        elapsed += (evnt.timestamp.getTime() - currentTime!.getTime()) / 1000;
         currentTime = undefined;
         running = false;
       }
     }
 
     if (currentTime != undefined) {
-      elapsed = (event.timestamp.getTime() - currentTime.getTime()) / 1000;
+      elapsed += (event.timestamp.getTime() - currentTime.getTime()) / 1000;
     }
 
     const display: TimerDisplayBag = {

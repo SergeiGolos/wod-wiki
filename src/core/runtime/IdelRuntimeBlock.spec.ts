@@ -1,7 +1,7 @@
 import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
 import { TimerRuntime } from './timer.runtime';
 import { SetButtonAction } from './actions/SetButtonAction';
-import { NextChildStatementAction } from './actions/NextChildStatementAction';
+import { NextStatementAction } from "./actions/NextStatementAction";
 import { test, expect, describe, beforeEach, vi } from "vitest";
 import { RuntimeEvent } from "@/core/timer.types";
 
@@ -17,7 +17,7 @@ describe('IdelRuntimeBlock', () => {
   beforeEach(() => {
     // Create a new block for each test
     block = new IdelRuntimeBlock();
-    mockRuntime = new TimerRuntime(null as any);
+    mockRuntime = new TimerRuntime(null as any, () => {}, () => {}, () => {});
     mockRuntime.current = undefined;
   });
 
@@ -35,7 +35,7 @@ describe('IdelRuntimeBlock', () => {
       // Assert
       expect(actions).toHaveLength(3);
       expect(actions[2]).toBeInstanceOf(SetButtonAction);
-      expect(actions[0]).toBeInstanceOf(NextChildStatementAction);
+      expect(actions[0]).toBeInstanceOf(NextStatementAction);
     });
 
     test('should handle stop event correctly', () => {

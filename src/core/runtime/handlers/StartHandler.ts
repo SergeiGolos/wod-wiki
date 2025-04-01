@@ -1,7 +1,22 @@
 import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, TimerDisplayBag } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
-import { SetDisplayAction } from "../actions/SetDisplayAction";
+import { SetButtonAction } from "../actions/SetButtonAction";
+import { stopButton, completeButton } from "@/components/buttons/timerButtons";
+import { FirstStatementAction } from "../actions/FirstStatementAction";
+
+export class BeginHandler extends EventHandler {
+  protected eventType: string = 'begin';
+
+  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
+    // TODO: Implement start logic
+    console.log('BeginHandler handleEvent triggered for event:', event);
+    if (!runtime.current) {
+      return [new FirstStatementAction()];
+    }
+    return [];
+  }
+}
 
 export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
@@ -9,11 +24,14 @@ export class StartHandler extends EventHandler {
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement start logic
     console.log('StartHandler handleEvent triggered for event:', event);
-    if (!runtime.current) {
+    if (runtime.current) {
       return [
         new StartTimerAction(event),
-        new SetDisplayAction(event,  {} as TimerDisplayBag)];
-
+        new SetButtonAction(event, [
+          stopButton,
+          completeButton
+        ])
+      ];
     }
     return [];
   }

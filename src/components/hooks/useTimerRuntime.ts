@@ -2,9 +2,9 @@ import { useRef, useState, useEffect } from "react";
 import { WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
-import { startButton } from "@/core/runtime/EventAction";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { WodResultBlock, TimerDisplayBag, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { startButton } from "../buttons/timerButtons";
 
 /**
  * Hook props for useTimerRuntime
@@ -60,19 +60,12 @@ export function useTimerRuntime({
       if (runtimeRef.current) {
         // Create the tick event
         const tick = { name: "tick", timestamp: new Date() };  
-        // Process all events and get resulting actions
-        const actions = runtimeRef.current.tick([...stack, tick]);
-        // Clear the event stack after processing
+        // Process all events and get resulting actions               
+        runtimeRef.current.tick([...stack, tick]);        
         
-        if (stack.length > 0) {
-          console.log("clear")
+        if (stack.length > 0) {          
           setStack([]);
-        }
-
-        // Apply each action to update the UI state
-        for (const action of actions) {
-          action.apply(runtimeRef.current, setDisplay, setButtons, setResults);
-        }
+        }       
       }
     }, 100);
 
@@ -103,15 +96,8 @@ export function useTimerRuntime({
       // Create the compiled runtime with handlers
       const stack = new RuntimeStack(script.statements, jit);
       
-      // Create the timer runtime
-      const timer = new TimerRuntime(stack);
-
-      runtimeRef.current = timer;
-
-      // Reset state
-      setDisplay(undefined);
-      setButtons([startButton]);
-      setResults([]);
+      // Create the timer runtime      
+      runtimeRef.current = new TimerRuntime(stack, setDisplay, setButtons, setResults); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }

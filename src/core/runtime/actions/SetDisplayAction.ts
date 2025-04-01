@@ -1,6 +1,6 @@
-import { ButtonConfig, RuntimeEvent, TimerDisplayBag, WodResultBlock } from "@/core/timer.types";
+import { RuntimeEvent, TimerDisplayBag } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
-import { TimerRuntime } from "@/core/runtime/timer.runtime";
+import { ITimerRuntime } from "@/core/timer.types";
 
 /**
  * Action to update the timer display
@@ -22,19 +22,10 @@ export class SetDisplayAction extends EventAction {
     }
 
     /**
-     * Applies the display update to the UI
-     * @param setDisplay Callback to update the display
-     * @param setButtons Callback to update the buttons
-     * @param setResults Callback to update the results
+     * Applies the display update to the runtime
      */
-    apply(
-        runtime: TimerRuntime,
-        setDisplay: (display: TimerDisplayBag) => void,
-        setButtons: (buttons: ButtonConfig[]) => void,
-        setResults: (results: WodResultBlock[]) => void
-    ): void {
-        // Log the display update before applying it                
+    apply(runtime: ITimerRuntime): void {                
         // Update the display        
-        setDisplay(this.display);                
+        runtime.setDisplay(this.display);                
     }
 }

@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode } from "../timer.types";
+import { ButtonConfig, IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
 
@@ -23,26 +23,48 @@ export class TimerRuntime implements ITimerRuntime {
    * Creates a new TimerRuntime instance
    * @param script The compiled runtime to execute
    */
-  constructor(public script: RuntimeStack) {
+  constructor(public script: RuntimeStack,
+    private onSetDisplay: (display: TimerDisplayBag) => void,
+    private onSetButtons: (buttons: ButtonConfig[]) => void,
+    private onSetResults: (results: WodResultBlock[]) => void
+  ) {
     // Initialize block tracker with all nodes from the script
     this.blockTracker = new Map();
     this.idel = new IdelRuntimeBlock();
     this.current = undefined;
   }
+  setDisplay: (display: TimerDisplayBag) => void = (display) => {
+    this.display = display;
+    this.onSetDisplay(display);
+  };
+ 
+  setButtons: (buttons: ButtonConfig[]) => void = (buttons) => {
+    this.buttons = buttons;
+    this.onSetButtons(buttons);
+  };
+  setResults: (results: WodResultBlock[]) => void = (results) => {
+    this.results = results;
+    this.onSetResults(results);
+  };
+
+  buttons: ButtonConfig[] = [];
+  results: WodResultBlock[] = [];
+  display: TimerDisplayBag = { elapsed: 0, state: "idel" };
+  
   public events: RuntimeEvent[] = [];
   /**
    * Processes timer events and produces actions
    * @param events Array of runtime events to process
    * @returns Array of runtime actions to apply
    */
-  public tick(events: RuntimeEvent[]): IRuntimeAction[] {
-    var current = this.current ?? this.idel;
-    let actions: IRuntimeAction[] = [];
-    for (const event of [...events, { name: "tick", timestamp: new Date() }] ) {
-      actions = [...actions, ...current.onEvent(event, this) ?? []];
+  public tick(events: RuntimeEvent[]): void {    
+    for (const event of events) {            
+      const current = this.current ?? this.idel;          
+      const actions = current.onEvent(event, this) ?? [];
+      for (const action of actions) {
+        action.apply(this);
+      }      
     }
-
-    return actions;
   }
 
   /**

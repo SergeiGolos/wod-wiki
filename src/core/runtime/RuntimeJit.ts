@@ -3,6 +3,8 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";
 import { TickHandler } from "./handlers/TickHandler";
+import { StopHandler } from "./handlers/StopHandler";
+import { ResetHandler } from "./handlers/ResetHandler";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -16,7 +18,9 @@ import { TickHandler } from "./handlers/TickHandler";
 export class RuntimeJit {
   handlers: EventHandler[] | undefined = [
     new StartHandler(),
-    new TickHandler()
+    new TickHandler(),
+    new StopHandler(),
+    new ResetHandler()    
   ]
   
   
