@@ -11,7 +11,6 @@ export interface WodTimerProps {
 export const WodTimer: React.FC<WodTimerProps> = ({
   display  
 }) => {    
-  
   const [clock, setClock] = useState<[string,string]>(["",""]);
   const [total, setTotal] = useState<[string,string]>(["",""]);
 useEffect(() => {
@@ -44,15 +43,16 @@ useEffect(() => {
             </div>
           </div>
 
-          
+        
           <div className="bg-gray-50/20 p-4">
             <div className="space-y-4">
               <div className="text-gray-600">
                 <div className="text-sm uppercase tracking-wide">Total Time</div>
-                <div className="text-xl font-mono">{total[0]} test</div>
+                <div className="text-xl font-mono">{total[0]}</div>
+
               </div>
             </div>
-          </div>
+          </div> 
         </div>
       </div>
     </div>

@@ -22,6 +22,7 @@ export class CompleteHandler extends EventHandler {
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement complete logic
     console.log('CompleteHandler handleEvent triggered for event:', event);
+
     return [new NextStatementAction()];
   }
 }
