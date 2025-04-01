@@ -5,7 +5,7 @@ import { StartHandler } from "./handlers/StartHandler";
 import { TickHandler } from "./handlers/TickHandler";
 import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
-import { CompleteHandler } from "./handlers/CompleteHandler";
+import { CompleteHandler, EndHandler } from "./handlers/CompleteHandler";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -22,7 +22,8 @@ export class RuntimeJit {
     new TickHandler(),
     new StopHandler(),
     new ResetHandler(),
-    new CompleteHandler()  
+    new CompleteHandler(),
+    new EndHandler() 
   ]
   
   

@@ -56,11 +56,9 @@ export class TimerRuntime implements ITimerRuntime {
    * @returns Array of runtime actions to apply
    */
   public tick(events: RuntimeEvent[]): void {    
-    for (const event of events) {                  
-      
+    for (const event of events) {                        
       const actions = this.current?.onEvent(event, this) ?? [];
       for (const action of actions) {
-        console.log('Applying action:', action);  
         action.apply(this);
       }      
     }
