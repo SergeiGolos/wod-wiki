@@ -1,4 +1,4 @@
-import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
+import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { TimerRuntime } from './timer.runtime';
 import { SetButtonAction } from './actions/SetButtonAction';
 import { NextStatementAction } from "./actions/NextStatementAction";
@@ -10,15 +10,14 @@ vi.mock('../parser/timer.runtime');
 vi.mock('../actions/SetButtonAction');
 vi.mock('../actions/NextChildStatementAction');
 
-describe('IdelRuntimeBlock', () => {
-  let block: IdelRuntimeBlock;
+describe('IdleRuntimeBlock', () => {
+  let block: IdleRuntimeBlock;
   let mockRuntime: TimerRuntime;
 
   beforeEach(() => {
     // Create a new block for each test
-    block = new IdelRuntimeBlock();
-    mockRuntime = new TimerRuntime(null as any, () => {}, () => {}, () => {});
-    mockRuntime.current = undefined;
+    block = new IdleRuntimeBlock();
+    mockRuntime = new TimerRuntime(null as any, () => {}, () => {}, () => {});    
   });
 
   describe('onEvent', () => {

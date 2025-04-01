@@ -1,5 +1,12 @@
 import { IRuntimeAction, ITimerRuntime } from "@/core/timer.types";
 
+export class IdleStatementAction implements IRuntimeAction {
+  constructor() { }
+
+  apply(runtime: ITimerRuntime): void {
+    runtime.gotoBlock(undefined);
+  }
+}
 
 export class NextStatementAction implements IRuntimeAction {
   constructor(public blockId: number) { }

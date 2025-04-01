@@ -1,6 +1,6 @@
-import { ButtonConfig, IRuntimeAction, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
-import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
+import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 
 
 /**
@@ -16,8 +16,7 @@ import { IdelRuntimeBlock } from "./IdelRuntimeBlock";
 
 export class TimerRuntime implements ITimerRuntime {
   private blockTracker: Map<string, number> 
-  public current: IRuntimeBlock | undefined;
-  private idel: IdelRuntimeBlock;
+  public current: IRuntimeBlock;
   
   /**
    * Creates a new TimerRuntime instance
@@ -29,9 +28,8 @@ export class TimerRuntime implements ITimerRuntime {
     private onSetResults: (results: WodResultBlock[]) => void
   ) {
     // Initialize block tracker with all nodes from the script
-    this.blockTracker = new Map();
-    this.idel = new IdelRuntimeBlock();
-    this.current = undefined;
+    this.blockTracker = new Map();  
+    this.current = this.gotoBlock(undefined);
   }
   setDisplay: (display: TimerDisplayBag) => void = (display) => {
     this.display = display;
@@ -58,10 +56,11 @@ export class TimerRuntime implements ITimerRuntime {
    * @returns Array of runtime actions to apply
    */
   public tick(events: RuntimeEvent[]): void {    
-    for (const event of events) {            
-      const current = this.current ?? this.idel;          
-      const actions = current.onEvent(event, this) ?? [];
+    for (const event of events) {                  
+      
+      const actions = this.current?.onEvent(event, this) ?? [];
       for (const action of actions) {
+        console.log('Applying action:', action);  
         action.apply(this);
       }      
     }
@@ -72,8 +71,9 @@ export class TimerRuntime implements ITimerRuntime {
    * @param blockId ID of the block to navigate to
    * @returns The runtime block that was navigated to
    */
-  public gotoBlock(node: StatementNode): IRuntimeBlock {    
-    this.current = this.script.goto(node.id);  
-    return this.current!;
+  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {        
+    return this.current = node !== undefined 
+      ? this.script.goto(node.id) 
+      : new IdleRuntimeBlock();
   }
 }

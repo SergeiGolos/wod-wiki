@@ -15,6 +15,8 @@ export class RuntimeBlock implements IRuntimeBlock {
     public stack: StatementNode[],
     public handlers: EventHandler[] = []
   ) { }
+  type: string = 'runtime';
+  statements?: StatementNode[] | undefined;
     
 public events: RuntimeEvent[] = [];
   

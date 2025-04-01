@@ -9,9 +9,9 @@ export class BeginHandler extends EventHandler {
   protected eventType: string = 'begin';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // TODO: Implement start logic
-    console.log('BeginHandler handleEvent triggered for event:', event);
-    if (!runtime.current) {
+    // TODO: Implement start logic    
+    if (runtime.current?.type === 'idle') {
+      console.log('BeginHandler handleEvent triggered for event:', event);
       return [new FirstStatementAction()];
     }
     return [];
@@ -24,7 +24,7 @@ export class StartHandler extends EventHandler {
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement start logic
     console.log('StartHandler handleEvent triggered for event:', event);
-    if (runtime.current) {
+    if (runtime.current?.type !== 'idle') {
       return [
         new StartTimerAction(event),
         new SetButtonAction(event, [
