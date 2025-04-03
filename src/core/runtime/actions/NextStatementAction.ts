@@ -14,38 +14,26 @@ export class NextStatementAction implements IRuntimeAction {
       stackSize: runtime.current?.stack?.length
     });
 
-    let blockId: number | undefined;
-    while (true) {      
-      const laps = fragmentTo<RoundsFragment>(current!, 'rounds')?.count ?? 0;
-      const round = runtime.trace!.get(current?.id ?? -1) + 1;
-      
-      console.log("Next: Block", {
-        id: current?.id,
-        round: `${round}/${laps || '∞'}`,
-        children: current?.children.length
-      });
-          
-      if (laps != 0 && round > laps) {
-        blockId = current?.next;
-        console.log("Next: Rounds complete, moving to", blockId);
-        break;
-      }
-
-      if (current?.children.length == 0) {
-        blockId = current?.id;
-        console.log("Next: Leaf node, repeating", blockId);
-        break;
-      }
+    let blockId: number | undefined;    
+    const totalRounds = fragmentTo<RoundsFragment>(current!, 'rounds')?.count ?? 0;
+    const round = runtime.trace!.get(current?.id ?? -1) + 1;
+    
+    console.log("Next: Block", {
+      id: current?.id,
+      round: `${round}/${totalRounds || '∞'}`,
+      children: current?.children.length
+    });
         
-      const childIndex = round % current!.children.length;
-      const childId = current!.children[childIndex];
-      current = blocks.find(block => block.id == childId);
-      console.log("Next: Moving to child", childId);
+    if (totalRounds == 0 && round > totalRounds) {
+      console.log("Next: Rounds complete, moving to", current?.parent ?? current?.next);
+      blockId = current?.parent ?? current?.next;
+    } else {
+      console.log("Next: Rounds not complete, repeating", current?.id);      
     }
 
-    const nextBlock = blocks.find(block => block.id == blockId);
-    console.log("Next: Selected", blockId);
-    runtime.gotoBlock(nextBlock);
-    return [{name:'start', timestamp: new Date()}];
+    const nextBlock = blocks.find(block => block.id == blockId);    
+    const leaf = runtime.gotoBlock(nextBlock);
+    console.log("Next: Leaf", leaf);
+    return leaf ? [{name:'start', timestamp: new Date()}] : [];
   }
 }
