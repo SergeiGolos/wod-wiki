@@ -188,8 +188,9 @@ export class StatementKey extends Map<number, number> {
 
 export interface StatementNode {
     id: number;
-    parent?: number;
+    parent?: number;    
     next?: number;
+    rounds?: number;
     children: number[];
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];

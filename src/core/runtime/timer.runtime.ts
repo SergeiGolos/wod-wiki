@@ -80,30 +80,65 @@ export class TimerRuntime implements ITimerRuntime {1
    * @returns The runtime block that was navigated to
    */
   public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {        
+    console.log('[gotoBlock] Input node:', node);  
     if (node == undefined) {
+      console.log('[gotoBlock] No node provided, returning IdleRuntimeBlock');
       return this.current = new IdleRuntimeBlock();
     }    
 
+    // if Leaf
+    if (node.children.length == 0) {
+      console.log('[gotoBlock] Leaf node, returning LeafRuntimeBlock');
+      const leaf = this.script.goto(node.id);
+      const compiledBlock = this.jit.compile(this.trace!, leaf);            
+      return this.current = compiledBlock;
+    }
+
     // Get the initial execution stack for this node
-    let current = this.script.getId(node.id);
+    let current = this.script.getId(node.id);        
+    let expectedRounds = (current?.rounds ?? 1);
+    if (current?.children?.length ?? 0 > 0) {
+      expectedRounds *= current?.children?.length ?? 1;
+    }
     
-    // If this is a parent node, traverse down to a leaf node
+    let reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
+    console.log('[gotoBlock] Initial node:', { id: node.id, current, expectedRounds, reentryCount });
+    while (current && reentryCount >= expectedRounds) {      
+      current = this.script.getId(current.parent ?? current.next ?? -1);
+      reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
+    }
+    
     while (current && current.children?.length > 0) {
-      // Get the number of times we've entered this node to determine which child to pick
-      const reentryCount = this.trace!.get(current.id) ?? 0;
+      reentryCount = this.trace!.get(current.id) ?? 0;
+      console.log('[gotoBlock] Processing parent node:', {
+        nodeId: current.id,
+        childrenCount: current.children.length,
+        reentryCount
+      });
+      
       // Select child using round-robin (modulo number of children)
       const childIndex = reentryCount % current.children.length;
       const childId = current.children[childIndex];
+      console.log('[gotoBlock] Selected child:', { childIndex, childId });
+      
       // Update the stack to include the selected child
       current = this.script.getId(childId) ?? undefined;
     }
 
-    var stack = this.script.goto(current?.id ?? node.id);
-    if (!stack) {
-      throw new Error(`Block with ID ${current?.id ?? node.id} not found`);
+    if (!current) {
+      return this.current = new IdleRuntimeBlock();
     }
 
-    let key = this.trace!.set(stack);
-    return this.current = this.jit.compile(key, this.trace!, stack);
+    var stack = this.script.goto(current.id);
+    if (!stack) {
+      const errorId = current?.id ?? -1;
+      console.error('[gotoBlock] Failed to find block:', errorId);
+      throw new Error(`Block with ID ${errorId} not found`);
+    }
+  
+    const compiledBlock = this.jit.compile(this.trace!, stack);
+    console.log('[gotoBlock] Compiled runtime block:', { key: compiledBlock.blockKey, block: compiledBlock });
+    
+    return this.current = compiledBlock;
   }
 }

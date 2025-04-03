@@ -7,6 +7,7 @@ import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFra
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
+import { fragmentTo } from "../utils";
 
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
@@ -107,6 +108,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.map((fragment: any) => fragment.meta)
     );
     statement.id = statement.meta.startOffset;
+    
+    const rounds = fragmentTo<RoundsFragment>(statement, 'rounds')?.count ?? 0;
+    statement.rounds = rounds;
     return statement;
   }
 

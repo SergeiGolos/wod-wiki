@@ -28,7 +28,8 @@ export class RuntimeJit {
     new EndHandler() 
   ]
   
-  compile(key: StatementKey, trace: RuntimeTrace, nodes: StatementNode[]): IRuntimeBlock {        
+  compile(trace: RuntimeTrace, nodes: StatementNode[]): IRuntimeBlock {        
+    let key = trace.set(nodes);
     console.log("Compiling block:", key.toString());  
     return new RuntimeBlock(key.toString(), nodes, this.handlers);
   }
