@@ -96,21 +96,33 @@ export interface IRuntimeAction {
 
   export class RuntimeTrace {  
     private trace: Map<number, number> = new Map();
-    public history: string[] = [];
+    public history: StatementKey[] = [];
     
     get(id:number) : number {
       return this.trace.get(id) ?? 0;
     }
   
     set(stack: StatementNode[]) : StatementKey {
-     var key = new StatementKey(this.history.length);
+     var key = new StatementKey(this.history.length + 1) ;
+     var previous = this.history.length > 0 
+      ? this.history[this.history.length - 1] 
+      : undefined;
+
      for(const node of stack) {    
       const index = (this.trace.get(node.id) ?? 0) + 1;
       this.trace.set(node.id, index);
       key.push(node.id, index);
      }
      
-     this.history.push(key.toString());
+     this.history.push(key);
+     if (previous) {
+      const diff = previous.not(key);
+      console.log("RuntimeTrace: Not", diff);
+      for(const id of diff) {
+        this.trace.set(id, 0);
+      }
+     }
+
      return key;
     }  
   }
@@ -148,15 +160,26 @@ export interface StatementFragment {
     toPart: () => string;    
 } 
 
-export class StatementKey {  
+
+export class StatementKey extends Map<number, number> {  
   public key: string;
+  
   constructor(public index: number) {
-    this.key = index.toString();
-   }
+    super();
+    this.key = index.toString();    
+  }
   
   push(id: number, index: number) {
     this.key += `|${id}:${index}`;
+    this.set(id, index);
   }
+
+  not(other: StatementKey) : number[] {
+    const keys = Array.from(this.keys());
+    const otherKeys = Array.from(other.keys());
+    return  keys.filter(key => !otherKeys.includes(key));
+  }
+
   toString() {
     return this.key;
   }

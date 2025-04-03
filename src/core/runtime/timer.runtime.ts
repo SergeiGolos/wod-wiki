@@ -83,7 +83,26 @@ export class TimerRuntime implements ITimerRuntime {1
     if (node == undefined) {
       return this.current = new IdleRuntimeBlock();
     }    
-    const stack = this.script.goto(node.id);
+
+    // Get the initial execution stack for this node
+    let current = this.script.getId(node.id);
+    
+    // If this is a parent node, traverse down to a leaf node
+    while (current && current.children?.length > 0) {
+      // Get the number of times we've entered this node to determine which child to pick
+      const reentryCount = this.trace!.get(current.id) ?? 0;
+      // Select child using round-robin (modulo number of children)
+      const childIndex = reentryCount % current.children.length;
+      const childId = current.children[childIndex];
+      // Update the stack to include the selected child
+      current = this.script.getId(childId) ?? undefined;
+    }
+
+    var stack = this.script.goto(current?.id ?? node.id);
+    if (!stack) {
+      throw new Error(`Block with ID ${current?.id ?? node.id} not found`);
+    }
+
     let key = this.trace!.set(stack);
     return this.current = this.jit.compile(key, this.trace!, stack);
   }
