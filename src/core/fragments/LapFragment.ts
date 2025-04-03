@@ -2,9 +2,9 @@ import { StatementFragment, SourceCodeMetadata } from "../timer.types";
 
 export class LapFragment implements StatementFragment {
   constructor(public image: string, public meta?: SourceCodeMetadata) {
-    this.increment = image == "^" ? 1 : -1;
+    this.laps = image as any * 1;
   }
   type: string = "lap";
-  increment: number;
+  laps: number;
   toPart: () => string = () => this.image;
 }

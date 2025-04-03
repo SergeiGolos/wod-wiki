@@ -9,18 +9,19 @@ import { EventHandler } from "./EventHandler";
  */
 
 export class RuntimeBlock implements IRuntimeBlock {
-  constructor(
-    public blockId: number,    
+  constructor(      
     public blockKey: string,
     public stack: StatementNode[],
     public handlers: EventHandler[] = []
-  ) { }
-  type: string = 'runtime';
-  statements?: StatementNode[] | undefined;
-    
-public events: RuntimeEvent[] = [];
+  ) {
+    this.blockId = stack?.[0]?.id ?? -1;    
+  }
   
-  onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+  public type: string = 'runtime';  
+  public events: RuntimeEvent[] = [];
+  public blockId: number;
+
+  onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     return this.handlers
       .map(handler => handler.apply(event, this.stack, runtime))
       .flat();

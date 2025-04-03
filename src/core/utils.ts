@@ -12,6 +12,19 @@ export function fragmentToPart(
   return fragment?.toPart() ?? null;
 }
 
+export function fragmentsTo<T extends StatementFragment>(
+  statements: StatementNode[],
+  type: string
+): T | null {
+  for (let statement of statements){ 
+    const fragment = statement.fragments.find((f) => f.type === type);
+    if  (fragment) {
+      return fragment as T;
+    }
+  }
+  return null;
+}
+
 export function fragmentTo<T extends StatementFragment>(
   statement: StatementNode,
   type: string

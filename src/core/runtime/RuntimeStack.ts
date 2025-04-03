@@ -1,6 +1,5 @@
 
-import { StatementNode, IRuntimeBlock } from "../timer.types";
-import { RuntimeJit } from "./RuntimeJit";
+import { StatementNode } from "../timer.types";
 
 export class RuntimeStack {
   private lookupIndex: { [key: number]: number; } = {};
@@ -12,7 +11,7 @@ export class RuntimeStack {
    * @param nodes Array of statement nodes from the parser
    * @param jit RuntimeJit instance for just-in-time compilation
    */
-  constructor(private nodes: StatementNode[], public jit: RuntimeJit) {
+  constructor(public nodes: StatementNode[]) {
     // Initialize the lookup index and identify leaf nodes
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
@@ -57,16 +56,16 @@ export class RuntimeStack {
   /**
    * Navigates to a specific block in the workout script
    * @param blockId ID of the block to navigate to
-   * @returns RuntimeBlock representing the execution state of the specified block
+   * @returns StatementNode representing the execution state of the specified block
    * @throws Error if the block is not a leaf node
    */
-  public goto(blockId: number): IRuntimeBlock {            
+  public goto(blockId: number): StatementNode[] {            
     // Check if this is a leaf node (executable block)
     const isLeaf = this.leafs.some(leaf => leaf.id === blockId);    
     if (!isLeaf) {
       throw new Error(`Block with ID ${blockId} is not a leaf node and cannot be executed directly`);
     }
-    const stack = [];        
+    const stack : StatementNode[] = [];        
     let node: StatementNode | undefined = this.getId(blockId)    
     while (node !== undefined) {
       stack.push(node);      
@@ -78,8 +77,6 @@ export class RuntimeStack {
       node = this.getId(node.parent);
     }
 
-    let key = stack.map(node => node.id).join("|");
-    key += "|" + 1;
-    return this.jit.compile(key, stack);  
+    return stack;
   }
 }

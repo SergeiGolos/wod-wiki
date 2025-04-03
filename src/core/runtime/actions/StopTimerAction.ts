@@ -1,10 +1,18 @@
-import { RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { RuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
 
 
 /**
  * Action to handle block stopped events
  */
+export class RaiseEventAction implements IRuntimeAction {
+    constructor(
+        public event: RuntimeEvent
+    ) { }
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {
+        return [this.event];
+    }
+}
 
 export class StopTimerAction extends EventAction {
     constructor(
@@ -13,11 +21,11 @@ export class StopTimerAction extends EventAction {
         super(event);
     }
 
-    apply(runtime: ITimerRuntime): void {        
-        if (!runtime.current) {
-            return;
-        }
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
+        if (runtime.current) {
+            runtime.current.events.push(this.event);    
 
-        runtime.current?.events.push(this.event);
+        }
+        return [];
     }
 }

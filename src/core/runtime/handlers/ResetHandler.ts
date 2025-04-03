@@ -1,6 +1,6 @@
 import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
-import { IdleStatementAction } from "../actions/NextStatementAction";
+import { IdleStatementAction } from "../actions/IdleStatementAction";
 import { SetButtonAction } from "../actions/SetButtonAction";
 import { startButton } from "@/components/buttons/timerButtons";
 

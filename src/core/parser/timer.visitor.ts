@@ -36,9 +36,13 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             ];
           }
         }) as StatementNode[];
-
-      let stack = [] as any[];
+     
+      let stack: { columnStart: number; block: StatementNode }[] = []; 
       for (let block of blocks) {
+        const history = stack.filter(
+          (item: any) => item.columnStart == block.meta.columnStart
+        );
+
         stack = stack.filter(
           (item: any) => item.columnStart < block.meta.columnStart
         );
@@ -54,7 +58,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             block.parent = parent.block.id;
           }
         }
-
+        
+        if(history.length > 0){
+          history[history.length - 1].block.next = block.id;
+        }         
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 

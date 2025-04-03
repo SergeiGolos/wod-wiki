@@ -1,6 +1,7 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, RuntimeTrace, StatementKey, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
+import { RuntimeJit } from "./RuntimeJit";
 
 
 /**
@@ -14,23 +15,30 @@ import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 
 
 
-export class TimerRuntime implements ITimerRuntime {
-  private blockTracker: Map<string, number> 
-  public current: IRuntimeBlock;
+
+export class TimerRuntime implements ITimerRuntime {1
+  public trace: RuntimeTrace | undefined;  
+  public current: IRuntimeBlock | undefined;
   
   /**
    * Creates a new TimerRuntime instance
    * @param script The compiled runtime to execute
    */
-  constructor(public script: RuntimeStack,
+  constructor(public script: RuntimeStack, 
+    public jit: RuntimeJit,
     private onSetDisplay: (display: TimerDisplayBag) => void,
     private onSetButtons: (buttons: ButtonConfig[]) => void,
     private onSetResults: (results: WodResultBlock[]) => void
   ) {
-    // Initialize block tracker with all nodes from the script
-    this.blockTracker = new Map();  
-    this.current = this.gotoBlock(undefined);
+    // Initialize block tracker with all nodes from the script     
+    this.reset();
   }
+
+  reset() {
+    this.current = this.gotoBlock(undefined);
+    this.trace = new RuntimeTrace();
+  }
+  
   setDisplay: (display: TimerDisplayBag) => void = (display) => {
     this.display = display;
     this.onSetDisplay(display);
@@ -47,7 +55,7 @@ export class TimerRuntime implements ITimerRuntime {
 
   buttons: ButtonConfig[] = [];
   results: WodResultBlock[] = [];
-  display: TimerDisplayBag = { elapsed: 0, state: "idel" };
+  display: TimerDisplayBag = { elapsed: 0, label: "idle", bag: {} };
   
   public events: RuntimeEvent[] = [];
   /**
@@ -55,13 +63,15 @@ export class TimerRuntime implements ITimerRuntime {
    * @param events Array of runtime events to process
    * @returns Array of runtime actions to apply
    */
-  public tick(events: RuntimeEvent[]): void {    
+  public tick(events: RuntimeEvent[]): RuntimeEvent[] {    
+    let next : RuntimeEvent[] = [];
     for (const event of events) {                        
       const actions = this.current?.onEvent(event, this) ?? [];
       for (const action of actions) {
-        action.apply(this);
+        next = [...next, ... action.apply(this)];
       }      
     }
+    return next;
   }
 
   /**
@@ -70,8 +80,11 @@ export class TimerRuntime implements ITimerRuntime {
    * @returns The runtime block that was navigated to
    */
   public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {        
-    return this.current = node !== undefined 
-      ? this.script.goto(node.id) 
-      : new IdleRuntimeBlock();
+    if (node == undefined) {
+      return this.current = new IdleRuntimeBlock();
+    }    
+    const stack = this.script.goto(node.id);
+    let key = this.trace!.set(stack);
+    return this.current = this.jit.compile(key, this.trace!, stack);
   }
 }

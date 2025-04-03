@@ -67,7 +67,7 @@ export class TimerFromSeconds {
   }
 }
 export interface IRuntimeAction {
-    apply(runtime: ITimerRuntime): void;
+    apply(runtime: ITimerRuntime): RuntimeEvent[];
   }
 
   export type WodRuntimeScript = {
@@ -94,6 +94,26 @@ export interface IRuntimeAction {
   }
   
 
+  export class RuntimeTrace {  
+    private trace: Map<number, number> = new Map();
+    public history: string[] = [];
+    
+    get(id:number) : number {
+      return this.trace.get(id) ?? 0;
+    }
+  
+    set(stack: StatementNode[]) : StatementKey {
+     var key = new StatementKey(this.history.length);
+     for(const node of stack) {    
+      const index = (this.trace.get(node.id) ?? 0) + 1;
+      this.trace.set(node.id, index);
+      key.push(node.id, index);
+     }
+     
+     this.history.push(key.toString());
+     return key;
+    }  
+  }
 
 export interface ITimerRuntime {  
   
@@ -104,10 +124,11 @@ export interface ITimerRuntime {
   buttons: ButtonConfig[];
   results: WodResultBlock[];
   display: TimerDisplayBag;
+  trace: RuntimeTrace | undefined;
 
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
-  tick(events: RuntimeEvent[]): void;
+  tick(events: RuntimeEvent[]): RuntimeEvent[];
   gotoBlock(node: StatementNode | undefined): IRuntimeBlock;
 }
 
@@ -127,9 +148,25 @@ export interface StatementFragment {
     toPart: () => string;    
 } 
 
+export class StatementKey {  
+  public key: string;
+  constructor(public index: number) {
+    this.key = index.toString();
+   }
+  
+  push(id: number, index: number) {
+    this.key += `|${id}:${index}`;
+  }
+  toString() {
+    return this.key;
+  }
+}
+
+
 export interface StatementNode {
     id: number;
     parent?: number;
+    next?: number;
     children: number[];
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];
@@ -162,7 +199,7 @@ export interface RuntimeResult {
     blockId: number;
     blockKey: string;
     events : RuntimeEvent[];
-    statements?: StatementNode[];
+    stack?: StatementNode[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
   }
    

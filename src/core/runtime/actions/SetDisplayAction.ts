@@ -24,8 +24,9 @@ export class SetDisplayAction extends EventAction {
     /**
      * Applies the display update to the runtime
      */
-    apply(runtime: ITimerRuntime): void {                
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {                
         // Update the display        
         runtime.setDisplay(this.display);                
+        return [];
     }
 }
