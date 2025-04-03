@@ -9,11 +9,9 @@ export class NextStatementAction implements IRuntimeAction {
     const blocks = runtime.script.nodes;        
     let current = runtime.current?.stack?.[runtime.current?.stack?.length - 1];
     
-    console.log("NextStatementAction: Starting from stack:", {
-      stackLength: runtime.current?.stack?.length,
-      currentBlockId: current?.id,
-      currentChildren: current?.children,
-      currentNext: current?.next
+    console.log("Next: Initial state", {
+      currentId: current?.id,
+      stackSize: runtime.current?.stack?.length
     });
 
     let blockId: number | undefined;
@@ -21,56 +19,32 @@ export class NextStatementAction implements IRuntimeAction {
       const laps = fragmentTo<RoundsFragment>(current!, 'rounds')?.count ?? 0;
       const round = runtime.trace!.get(current?.id ?? -1) + 1;
       
-      console.log("NextStatementAction: Processing block:", {
-        blockId: current?.id,
-        laps,
-        currentRound: round,
-        childrenCount: current?.children.length,
-        nextBlockId: current?.next
+      console.log("Next: Block", {
+        id: current?.id,
+        round: `${round}/${laps || '∞'}`,
+        children: current?.children.length
       });
           
       if (laps != 0 && round > laps) {
-        console.log("NextStatementAction: Completed all rounds", {
-          blockId: current?.id,
-          completedRounds: round,
-          totalLaps: laps,
-          movingToNext: current?.next
-        });
         blockId = current?.next;
+        console.log("Next: Rounds complete, moving to", blockId);
         break;
       }
 
       if (current?.children.length == 0) {
-        console.log("NextStatementAction: Leaf node, repeating", {
-          blockId: current?.id,
-          currentRound: round,
-          totalLaps: laps
-        });
         blockId = current?.id;
+        console.log("Next: Leaf node, repeating", blockId);
         break;
       }
         
       const childIndex = round % current!.children.length;
       const childId = current!.children[childIndex];
-      console.log("NextStatementAction: Moving to child", {
-        parentId: current?.id,
-        round,
-        childrenCount: current!.children.length,
-        selectedChildIndex: childIndex,
-        selectedChildId: childId
-      });
-
-      current = blocks.find(block => block.id == childId);      
+      current = blocks.find(block => block.id == childId);
+      console.log("Next: Moving to child", childId);
     }
 
     const nextBlock = blocks.find(block => block.id == blockId);
-    console.log("NextStatementAction: Final selection", {
-      selectedBlockId: blockId,
-      found: !!nextBlock,
-      nextBlockChildren: nextBlock?.children,
-      nextBlockNext: nextBlock?.next
-    });
-
+    console.log("Next: Selected", blockId);
     runtime.gotoBlock(nextBlock);
     return [{name:'start', timestamp: new Date()}];
   }
