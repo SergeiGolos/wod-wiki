@@ -9,7 +9,6 @@ export class BeginHandler extends EventHandler {
   protected eventType: string = 'begin';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log("test");
     if (runtime.current?.type === 'idle') {
       console.log('BeginHandler handleEvent triggered for event:', event);
       return [new FirstStatementAction()];

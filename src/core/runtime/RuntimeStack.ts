@@ -11,7 +11,7 @@ export class RuntimeStack {
    * @param nodes Array of statement nodes from the parser
    * @param jit RuntimeJit instance for just-in-time compilation
    */
-  constructor(private nodes: StatementNode[]) {
+  constructor(public nodes: StatementNode[]) {
     // Initialize the lookup index and identify leaf nodes
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];

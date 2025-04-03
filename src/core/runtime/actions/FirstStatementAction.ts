@@ -5,9 +5,7 @@ export class FirstStatementAction implements IRuntimeAction {
   constructor() { }
   apply(runtime: ITimerRuntime): RuntimeEvent[] {
     const block = runtime.script.leafs[0];
-    console.log("Navigating to first block:", block.id);
     if (block) {
-      
       runtime.gotoBlock(block);
     }
     return [];

@@ -34,10 +34,12 @@ export class TickHandler extends EventHandler {
     if (currentTime != undefined) {
       elapsed += (event.timestamp.getTime() - currentTime.getTime()) / 1000;
     }
+  
 
     const display: TimerDisplayBag = {
       elapsed: elapsed,
-      label: "test",
+      remaining: (runtime.results?.[0]?.stopDateTime?.getTime() ?? 0) - event.timestamp.getTime(),
+      label:runtime.current?.blockKey?? "",
       bag: {
         totalTime: (event.timestamp.getTime() - initialTime.getTime()) / 1000
       }

@@ -61,8 +61,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         
         if(history.length > 0){
           history[history.length - 1].block.next = block.id;
-        } 
-        console.log("block", block, block.meta.columnStart);  
+        }         
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 

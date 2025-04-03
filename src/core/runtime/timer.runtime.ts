@@ -1,4 +1,4 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, StatementKey, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, RuntimeTrace, StatementKey, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
@@ -15,9 +15,9 @@ import { RuntimeJit } from "./RuntimeJit";
 
 
 
-export class TimerRuntime implements ITimerRuntime {
-  private trace: Map<number, number> = new Map();
-  private index: number = 0;
+
+export class TimerRuntime implements ITimerRuntime {1
+  public trace: RuntimeTrace | undefined;  
   public current: IRuntimeBlock | undefined;
   
   /**
@@ -36,8 +36,7 @@ export class TimerRuntime implements ITimerRuntime {
 
   reset() {
     this.current = this.gotoBlock(undefined);
-    this.trace.clear();
-    this.index = 0;
+    this.trace = new RuntimeTrace();
   }
   
   setDisplay: (display: TimerDisplayBag) => void = (display) => {
@@ -85,13 +84,7 @@ export class TimerRuntime implements ITimerRuntime {
       return this.current = new IdleRuntimeBlock();
     }    
     const stack = this.script.goto(node.id);
-    let key = new StatementKey(++this.index);
-    stack.forEach(n => {      
-      const index = (this.trace.get(n.id) ?? 0) + 1;
-      this.trace.set(n.id, index);
-      key.push(n.id, index);
-    });
-    
-    return this.current = this.jit.compile(key, this.trace, stack);
+    let key = this.trace!.set(stack);
+    return this.current = this.jit.compile(key, this.trace!, stack);
   }
 }

@@ -14,7 +14,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     public stack: StatementNode[],
     public handlers: EventHandler[] = []
   ) {
-    this.blockId = stack?.[0]?.id ?? -1;
+    this.blockId = stack?.[0]?.id ?? -1;    
   }
   
   public type: string = 'runtime';  

@@ -7,6 +7,7 @@ import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
 import { CompleteHandler } from "./handlers/CompleteHandler";
 import { EndHandler } from "./handlers/EndHandler";
+import { RuntimeTrace } from "./timer.runtime";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -27,7 +28,7 @@ export class RuntimeJit {
     new EndHandler() 
   ]
   
-  compile(key: StatementKey, trace: Map<number, number>, nodes: StatementNode[]): IRuntimeBlock {        
+  compile(key: StatementKey, trace: RuntimeTrace, nodes: StatementNode[]): IRuntimeBlock {        
     console.log("Compiling block:", key.toString());  
     return new RuntimeBlock(key.toString(), nodes, this.handlers);
   }

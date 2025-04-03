@@ -7,5 +7,5 @@ import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "../timer.types";
 export abstract class EventAction implements IRuntimeAction {
     constructor(protected event: RuntimeEvent) {}
 
-    abstract apply(runtime: ITimerRuntime): void;
+    abstract apply(runtime: ITimerRuntime): RuntimeEvent[];
 }
