@@ -13,12 +13,8 @@ export class StartTimerAction extends EventAction {
         super(event);
     }
 
-    apply(runtime: ITimerRuntime): void {        
-        if (!runtime.current) {
-            const first = runtime.script.leafs[0];
-        runtime.gotoBlock(first);
-        }
-
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
         runtime.current?.events.push(this.event);
+        return [];
     }
 }

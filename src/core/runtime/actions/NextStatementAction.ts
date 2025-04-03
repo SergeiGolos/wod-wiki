@@ -1,22 +1,18 @@
-import { IRuntimeAction, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
 
-export class IdleStatementAction implements IRuntimeAction {
-  constructor() { }
-
-  apply(runtime: ITimerRuntime): void {
-    runtime.gotoBlock(undefined);
-  }
-}
 
 export class NextStatementAction implements IRuntimeAction {
-  constructor(public blockId: number) { }
+  constructor() { }
 
-  apply(runtime: ITimerRuntime): void {
+  apply(runtime: ITimerRuntime):  RuntimeEvent[]   {
     const blocks = runtime.script.leafs;
-    const block = blocks.find(block => block.id === this.blockId);
-
-    if (block) {
-      runtime.gotoBlock(block);
-    }
+    const index = blocks.findIndex(block => block.id == runtime.current!.blockId);    
+    const block = blocks.length  < index + 1 ? blocks[index + 1] : undefined;
+    console.log('NextStatementAction apply triggered for block:', block);
+    
+    runtime.gotoBlock(block);
+    return block
+      ? [{name:'start', timestamp: new Date()}]
+      : [];
   }
 }

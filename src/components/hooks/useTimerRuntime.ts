@@ -60,12 +60,8 @@ export function useTimerRuntime({
       if (runtimeRef.current) {
         // Create the tick event
         const tick = { name: "tick", timestamp: new Date() };  
-        // Process all events and get resulting actions               
-        runtimeRef.current.tick([...stack, tick]);        
-        
-        if (stack.length > 0) {          
-          setStack([]);
-        }       
+        // Process all events and get resulting actions                                       
+        setStack(runtimeRef.current.tick([...stack, tick]));      
       }
     }, 100);
 
@@ -94,10 +90,10 @@ export function useTimerRuntime({
     try {
       const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
-      const stack = new RuntimeStack(script.statements, jit);
+      const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, setDisplay, setButtons, setResults); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }

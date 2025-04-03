@@ -1,11 +1,12 @@
-import { StatementNode, IRuntimeBlock } from "../timer.types";
+import { StatementNode, IRuntimeBlock, StatementKey } from "../timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";
 import { TickHandler } from "./handlers/TickHandler";
 import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
-import { CompleteHandler, EndHandler } from "./handlers/CompleteHandler";
+import { CompleteHandler } from "./handlers/CompleteHandler";
+import { EndHandler } from "./handlers/EndHandler";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -26,9 +27,8 @@ export class RuntimeJit {
     new EndHandler() 
   ]
   
-  
-  compile(key: string, nodes: StatementNode[]): IRuntimeBlock {        
-    const blockId = nodes[0].id;    
-    return new RuntimeBlock(blockId, key, nodes, this.handlers);
+  compile(key: StatementKey, trace: Map<number, number>, nodes: StatementNode[]): IRuntimeBlock {        
+    console.log("Compiling block:", key.toString());  
+    return new RuntimeBlock(key.toString(), nodes, this.handlers);
   }
 }

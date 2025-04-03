@@ -9,6 +9,9 @@ export abstract class EventHandler {
   // New public apply method that filters events by type
   public apply(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     if (event.name === this.eventType) {
+      if (event.name !== "tick") {
+        console.log('EventHandler apply triggered for event:', event, stack);
+      }
       return this.handleEvent(event, stack, runtime);
     }
     return [];

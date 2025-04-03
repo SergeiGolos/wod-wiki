@@ -46,7 +46,7 @@ export const createWodWiki = ({
     const debouncedUpdate = debounce((content: string) => {
       let model = interpreter.read(content);      
       onValueChange && onValueChange(model, editor);
-    }, 600);
+    }, 300);
 
     editor.onDidChangeModelContent((event) => {      
       console.log("onDidChangeModelContent", event);

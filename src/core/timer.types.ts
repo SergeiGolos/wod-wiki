@@ -67,7 +67,7 @@ export class TimerFromSeconds {
   }
 }
 export interface IRuntimeAction {
-    apply(runtime: ITimerRuntime): void;
+    apply(runtime: ITimerRuntime): RuntimeEvent[];
   }
 
   export type WodRuntimeScript = {
@@ -107,7 +107,7 @@ export interface ITimerRuntime {
 
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
-  tick(events: RuntimeEvent[]): void;
+  tick(events: RuntimeEvent[]): RuntimeEvent[];
   gotoBlock(node: StatementNode | undefined): IRuntimeBlock;
 }
 
@@ -127,9 +127,25 @@ export interface StatementFragment {
     toPart: () => string;    
 } 
 
+export class StatementKey {  
+  public key: string;
+  constructor(public index: number) {
+    this.key = index.toString();
+   }
+  
+  push(id: number, index: number) {
+    this.key += `|${id}:${index}`;
+  }
+  toString() {
+    return this.key;
+  }
+}
+
+
 export interface StatementNode {
     id: number;
     parent?: number;
+    next?: number;
     children: number[];
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];

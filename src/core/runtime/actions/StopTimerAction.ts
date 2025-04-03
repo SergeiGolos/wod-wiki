@@ -13,11 +13,11 @@ export class StopTimerAction extends EventAction {
         super(event);
     }
 
-    apply(runtime: ITimerRuntime): void {        
-        if (!runtime.current) {
-            return;
-        }
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
+        if (runtime.current) {
+            runtime.current.events.push(this.event);    
 
-        runtime.current?.events.push(this.event);
+        }
+        return [];
     }
 }

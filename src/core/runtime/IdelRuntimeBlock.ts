@@ -6,7 +6,7 @@ import { TickHandler } from "./handlers/TickHandler";
 export class IdleRuntimeBlock extends RuntimeBlock {
   /** Unique identifier for this block */
   constructor() {    
-    super(-1, "idle", [], [
+    super("idle", [], [
       new BeginHandler(),
       new TickHandler(),    
       new ResetHandler()
