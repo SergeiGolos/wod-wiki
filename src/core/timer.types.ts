@@ -122,6 +122,7 @@ export interface IRuntimeAction {
         this.trace.set(id, 0);
       }
      }
+
      return key;
     }  
   }
@@ -158,6 +159,7 @@ export interface StatementFragment {
     meta?: SourceCodeMetadata;
     toPart: () => string;    
 } 
+
 
 export class StatementKey extends Map<number, number> {  
   public key: string;
