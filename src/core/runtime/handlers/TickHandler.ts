@@ -5,6 +5,8 @@ import { fragmentsTo } from "@/core/utils";
 import { TimerFragment } from "@/core/fragments/TimerFragment";
 import { RaiseEventAction, StopTimerAction } from "../actions/StopTimerAction";
 import { NextStatementAction } from "../actions/NextStatementAction";
+import { EffortFragment } from "@/core/fragments/EffortFragment";
+import { RepFragment } from "@/core/fragments/RepFragment";
 
 export class TickHandler extends EventHandler {
   protected eventType: string = 'tick';
@@ -39,11 +41,14 @@ export class TickHandler extends EventHandler {
       elapsed += (event.timestamp.getTime() - currentTime.getTime()) / 1000;
     }
   
+    const label =fragmentsTo<EffortFragment>(runtime.current!.stack!, 'effort')?.effort ?? "";
+    const reps = fragmentsTo<RepFragment>(runtime.current!.stack!, 'rep')?.reps ?? 0;
+    
     const duration = fragmentsTo<TimerFragment>(runtime.current!.stack!, 'duration')?.duration ?? 0;
     const display: TimerDisplayBag = {
       elapsed: elapsed,
       remaining: (runtime.results?.[0]?.stopDateTime?.getTime() ?? 0) - event.timestamp.getTime(),
-      label:runtime.current?.blockKey?? "",
+      label: (reps > 0 ? `${reps} ` : '') + label,
       bag: {
         totalTime: (event.timestamp.getTime() - initialTime.getTime()) / 1000
       }
