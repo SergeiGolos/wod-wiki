@@ -9,7 +9,6 @@ export class ResetHandler extends EventHandler {
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement reset logic
-    // console.log('ResetHandler handleEvent triggered for event:', event);
     return [new IdleStatementAction(), new SetButtonAction(event, [
       startButton
     ])];

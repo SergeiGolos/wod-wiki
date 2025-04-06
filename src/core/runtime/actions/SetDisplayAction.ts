@@ -1,4 +1,4 @@
-import { RuntimeEvent, TimerDisplayBag } from "@/core/timer.types";
+import { IClock, RuntimeEvent, TimerDisplayBag } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
 import { ITimerRuntime } from "@/core/timer.types";
 
@@ -6,7 +6,8 @@ import { ITimerRuntime } from "@/core/timer.types";
  * Action to update the timer display
  */
 export class SetDisplayAction extends EventAction {
-    private display: TimerDisplayBag 
+    private display: IClock 
+    private name: string;
 
     /**
      * Creates a new SetDisplayAction
@@ -14,11 +15,13 @@ export class SetDisplayAction extends EventAction {
      * @param display The display information to set
      */
     constructor(
-        event: RuntimeEvent,
-        display: TimerDisplayBag
+        event: RuntimeEvent,        
+        display: IClock,
+        name?: string    
     ) {
         super(event);
         this.display = display;
+        this.name = name ?? "";
     }
 
     /**
@@ -26,7 +29,12 @@ export class SetDisplayAction extends EventAction {
      */
     apply(runtime: ITimerRuntime): RuntimeEvent[] {                
         // Update the display        
-        runtime.setDisplay(this.display);                
+        if (this.name === "") {
+            runtime.display.primary = this.display;
+        } else {
+            runtime.display.bag[this.name] = this.display;
+        }               
+        
         return [];
     }
 }

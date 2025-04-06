@@ -7,9 +7,7 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 export class StopHandler extends EventHandler {
   protected eventType: string = 'stop';
 
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // TODO: Implement stop logic
-    console.log('StopHandler handleEvent triggered for event:', event);
+  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {    
     if (runtime.current) {
       return [
         new StopTimerAction(event),

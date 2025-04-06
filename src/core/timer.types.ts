@@ -2,14 +2,25 @@ import { RuntimeStack } from "./runtime/RuntimeStack";
 
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplayBag {
-    elapsed: number;
-    remaining?: number;        
+    primary?: IClock;    
     label?: string;
-    bag: { [key: string]: any }    
+    bag: { [key: string]: IClock }
 }
 
+export interface IClock  extends IDuration {
+  toClock(): [string, string];
+}
 
-export class TimerFromSeconds {
+export interface IDuration {
+  days?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+  milliseconds?: number;
+  
+}
+
+export class TimerFromSeconds implements IClock {
   days?: number;
   hours?: number;
   minutes?: number;
@@ -116,8 +127,7 @@ export interface IRuntimeAction {
      
      this.history.push(key);
      if (previous) {
-      const diff = previous.not(key);
-      console.log("RuntimeTrace: Not", diff);
+      const diff = previous.not(key);      
       for(const id of diff) {
         this.trace.set(id, 0);
       }
@@ -128,15 +138,10 @@ export interface IRuntimeAction {
   }
 
 export interface ITimerRuntime {  
-  
-  setDisplay: (display: TimerDisplayBag) => void,
-  setButtons: (buttons: ButtonConfig[]) => void,
-  setResults: (results: WodResultBlock[]) => void
-  
   reset(): void;
-  buttons: ButtonConfig[];
-  results: WodResultBlock[];
   display: TimerDisplayBag;
+  buttons: ButtonConfig[];
+  results: ResultSpan[];  
   trace: RuntimeTrace | undefined;
 
   script: RuntimeStack;
@@ -226,6 +231,7 @@ export interface RuntimeResult {
     events : RuntimeEvent[];
     stack?: StatementNode[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
+    report(): ResultSpan[]
   }
    
   export type RuntimeEvent = { 
@@ -259,39 +265,13 @@ export class ResultSpan {
     start?: RuntimeEvent;
     stop?: RuntimeEvent;
     label?: string;
+    metrics: RuntimeMetric[] = [];
     duration(timestamp?: Date): number {
         let now = timestamp ?? new Date();
         return ((this.stop?.timestamp ?? now).getTime() || 0) - (this.start?.timestamp.getTime() || 0);
     }
 }
 
-export type ElapsedState = {
-    elapsed: number;
-    duration: number;
-    remaining?: number;
-    spans?: ResultSpan[];
-    state: string;
-};
-
-
-
-
-/**
- * Represents a collection of metrics for a workout block
- */
-export type WodResultBlock = {
-    /** Unique identifier for the runtime block */
-    blockId: number;
-    /** Position within a sequence of blocks */
-    index: number;
-    /** Collection of performance metrics */
-    metrics: WodMetric[];
-    /** When the block execution started */
-    startDateTime: Date;
-    /** When the block execution completed */
-    stopDateTime: Date;
-  }
-  
   /**
    * Represents individual measurements within a workout block
    */
