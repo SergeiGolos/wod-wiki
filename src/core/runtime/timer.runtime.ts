@@ -35,8 +35,10 @@ export class TimerRuntime implements ITimerRuntime {1
   }
 
   reset() {
+    this.setResults([]);
     this.current = this.gotoBlock(undefined);
-    this.trace = new RuntimeTrace();
+    this.trace = new RuntimeTrace();    
+    console.log("TimerRuntime reset", this.results)
   }
   
   setDisplay: (display: TimerDisplayBag) => void = (display) => {
@@ -48,7 +50,7 @@ export class TimerRuntime implements ITimerRuntime {1
     this.buttons = buttons;
     this.onSetButtons(buttons);
   };
-  setResults: (results: WodResultBlock[]) => void = (results) => {
+  setResults: (results: WodResultBlock[]) => void = (results) => {          
     this.results = results;
     this.onSetResults(results);
   };

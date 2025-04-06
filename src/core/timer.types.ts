@@ -133,6 +133,7 @@ export interface ITimerRuntime {
   setButtons: (buttons: ButtonConfig[]) => void,
   setResults: (results: WodResultBlock[]) => void
   
+  reset(): void;
   buttons: ButtonConfig[];
   results: WodResultBlock[];
   display: TimerDisplayBag;

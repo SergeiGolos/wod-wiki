@@ -1,5 +1,6 @@
 import { StatementFragment, StatementNode } from "./timer.types";
 
+export const cn = (...args: string[]) => args.filter(Boolean).join(' ');
 
 /**
  * Helper function to extract a specific fragment type from a statement

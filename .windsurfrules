@@ -1,0 +1,50 @@
+## Core Workflow for AI
+
+1. **Planning:** When requested by the user, create a plan of action.   This is when the New section at the top of the worklog should be created.
+2. **Review & Refinement:** Wait for the user to review the plan. The user may edit the plan.
+3. **Execution:** When instructed by the user, execute the plan.
+4. **Logging:** Log the execution details and results as described below.
+
+## Detailed Rules for AI
+
+Here's how the AI should behave:
+
+1. **Daily File Creation:**
+    * The AI will create a new Markdown file in the `docs/Working` folder for each day's work.
+    * The filename will be in the format `YYYY-MM-DD.md` (e.g., `2024-07-24.md`).
+    * If a file for the current day already exists, the AI will append new entries to it.
+
+2. **Planning Phase:**
+    * When the user asks the AI to create a plan, the AI will add the following structure to the daily file:
+
+        ```markdown
+        ## {Timestamp} - Plan {5 word summary}
+        {AI-generated plan with numbered steps}
+        ```
+
+        ### Summary
+
+        {AI-generated summary of the plan, code examples are welcome here}
+
+        ### Completed Steps
+
+        * [x]: The current timestamp (HH:MM).  The AI should generate this.
+        
+        ### Next Steps
+
+        * [ ]: The current timestamp (HH:MM).  The AI should generate this.
+        
+
+3. **Execution Phase:**
+    The user will give a go-ahead on the plan. Example the tasks that are unfinished [ ]. and once finishing them mark them as [x] and move them to the section Completed Steps with a timestamp.
+
+4. **Logging Phase:**
+    * After executing all steps, the AI will add a summary of the execution:
+
+        ```markdown
+        ### Summary
+        {Summary of the executed plan and results}
+        ```
+
+        * The AI should provide the summary
+

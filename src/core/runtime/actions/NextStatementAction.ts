@@ -1,6 +1,6 @@
 import { RoundsFragment } from "@/core/fragments/RoundsFragment";
 import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
-import { fragmentTo } from "@/core/utils";
+import { fragmentTo } from "@/c ore/utils";
 
 export class NextStatementAction implements IRuntimeAction {
   constructor() { }
