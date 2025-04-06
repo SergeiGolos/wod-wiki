@@ -6,7 +6,7 @@ The Result Block is a core data structure in wod.wiki that represents the outcom
 
 ### WodResultBlock
 
-The `WodResultBlock` is the primary data structure for storing workout results. It is defined in `src/types/results.ts` and used throughout the application to track workout execution metrics.
+The `WodResultBlock` is the primary data structure for storing workout results. It is defined in `src/core/timer.types.ts` and used throughout the application to track workout execution metrics.
 
 ```typescript
 export type WodResultBlock = {
@@ -20,7 +20,7 @@ export type WodResultBlock = {
 
 ### WodMetric
 
-The `WodMetric` represents individual measurements within a workout block, such as repetitions, weights, or times.
+The `WodMetric` represents individual measurements within a workout block, such as repetitions, weights, or times. It is also defined in `src/core/timer.types.ts`.
 
 ```typescript
 export type WodMetric = {
@@ -31,36 +31,32 @@ export type WodMetric = {
 }
 ```
 
-### TimerEvent
-
-Timer events are used to mark significant points during workout execution and are stored within result blocks.
-
-```typescript
-export type TimerEventType = 'complete' | 'stop' | 'start' | 'lap';
-
-export type TimerEvent = {
-  index: number;    // Sequential position
-  blockId: number;  // Reference to parent block
-  timestamp: Date;  // When the event occurred
-  type: TimerEventType; // Event category
-}
-```
-
 ### ResultSpan
 
-The `ResultSpan` calculates durations between timer events, providing timing metrics for workout segments.
+The `ResultSpan` calculates durations between runtime events, providing timing metrics for workout segments. It is defined in `src/core/timer.types.ts`.
 
 ```typescript
 export class ResultSpan {
-  start?: TimerEvent;
-  stop?: TimerEvent;
-  label?: string;
-  
+  start?: RuntimeEvent;   // Starting event of the span
+  stop?: RuntimeEvent;    // Ending event of the span
+  label?: string;         // Optional label for the span
+
+  // Calculates the duration in milliseconds
   duration(timestamp?: Date): number {
-    let now = timestamp ?? new Date();
-    return ((this.stop?.timestamp ?? now).getTime() || 0) - 
-           (this.start?.timestamp.getTime() || 0);
+    // Implementation details...
   }
+}
+```
+
+### RuntimeMetric
+
+The `RuntimeMetric` provides a basic structure for representing named metrics with units, often used for general runtime statistics before they are potentially consolidated into a `WodResultBlock`. It is defined in `src/core/timer.types.ts`.
+
+```typescript
+export interface RuntimeMetric {
+  name: string;   // Name of the metric (e.g., "Total Time", "Avg Pace")
+  unit: string;   // Unit of measurement (e.g., "seconds", "m/s")
+  value: number;  // Numeric value of the metric
 }
 ```
 
@@ -72,20 +68,20 @@ Result blocks are primarily created and updated through the `SetResultAction` cl
 
 ```typescript
 export class SetResultAction extends EventAction {    
-    constructor(
-        event: RuntimeEvent,
-        private results: WodResultBlock[]
-    ) {
-        super(event);        
-    }
+  constructor(
+    event: RuntimeEvent,
+    private results: WodResultBlock[]
+  ) {
+    super(event);        
+  }
 
-    apply(
-        setDisplay: (display: TimerDisplay) => void,
-        setButtons: (buttons: ButtonConfig[]) => void,
-        setResults: (results: WodResultBlock[]) => void
-    ): void {
-        setResults(this.results)        
-    }
+  apply(
+    setDisplay: (display: TimerDisplay) => void,
+    setButtons: (buttons: ButtonConfig[]) => void,
+    setResults: (results: WodResultBlock[]) => void
+  ): void {
+    setResults(this.results)        
+  }
 }
 ```
 
@@ -125,11 +121,13 @@ Result blocks are integrated with the runtime system through the `IRuntimeAction
 
 ```typescript
 export interface IRuntimeAction {
-    apply(
-        setDisplay: (display: TimerDisplay) => void,
-        setButtons: (buttons: ButtonConfig[]) => void,
-        setResults: (results: WodResultBlock[]) => void
-    ): void;
+  apply(
+    setDisplay: (display: TimerDisplay) => void,
+    setButtons: (buttons: ButtonConfig[]) => void,
+    setResults: (results: WodResultBlock[]) => void
+  ): RuntimeEvent[] {
+    // Implementation details...
+  }
 }
 ```
 
@@ -139,17 +137,17 @@ Compiler strategies generate actions that can update result blocks based on work
 
 ### Data Persistence
 
-Result blocks are designed to be persisted through the Data Store component, which can save workout results to local storage or cloud services like Supabase.
+Result blocks (`WodResultBlock`) are designed to be persisted. This typically happens after a workout is fully completed, potentially through a dedicated persistence layer or service.
 
 ## Implementation Considerations
 
 ### Multiple Instances
 
-The `WodResultBlock` type is defined in `src/types/results.ts` but is imported and used throughout the codebase:
+The `WodResultBlock` type is defined in `src/core/timer.types.ts` but is imported and used throughout the codebase:
 
 1. **UI Components**: `ResultsDisplay.tsx` and `WodResults.tsx`
-2. **Actions**: `SetResultAction.ts`, `SetDisplayAction.ts`, `SetButtonAction.ts`
-3. **Runtime Types**: `timer.types.ts`
+2. **Actions**: `SetResultAction.ts`
+3. **Runtime Types**: `src/core/timer.types.ts`
 4. **Hooks**: `useTimerRuntime.ts`
 
 This widespread usage indicates the central role of result blocks in the application architecture.
@@ -165,9 +163,9 @@ The result block structure is designed to be extensible for future enhancements:
 
 ## Best Practices
 
-When working with result blocks in the codebase:
+When working with result blocks (`WodResultBlock`, `WodMetric`, `ResultSpan`, `RuntimeMetric`) in the codebase:
 
-1. **Type Safety**: Always use the defined TypeScript interfaces for result blocks and metrics
+1. **Type Safety**: Always use the defined TypeScript interfaces/classes from `src/core/timer.types.ts`.
 2. **Immutability**: Treat result blocks as immutable data structures, creating new instances rather than modifying existing ones
 3. **Consistency**: Maintain consistent blockId and index values across related metrics
 4. **Validation**: Validate metric values before storing them in result blocks

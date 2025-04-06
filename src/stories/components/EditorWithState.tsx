@@ -15,14 +15,15 @@ export const EditorWithState: React.FC<React.ComponentProps<typeof EditorContain
   const [results, setResults] = useState<WodResultBlock[]>([]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col md:flex-row gap-4 ">
       <EditorContainer
+        className='md:mt-0 md:w-1/2'
         {...props}
         onScriptCompiled={(script) => setCompiledScript(script)}
         onResultsUpdated={(newResults) => setResults(newResults)}
       />
       
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="flex flex-col gap-4 mt-4 md:mt-0 md:w-1/2">
         {/* Script Data Display */}
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
           <div className="flex items-center justify-between mb-2">

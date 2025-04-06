@@ -1,6 +1,6 @@
 import { RuntimeBlock } from "./RuntimeBlock";
 import { ResetHandler } from "./handlers/ResetHandler";
-import { BeginHandler } from "./handlers/StartHandler";
+import { BeginHandler } from "./handlers/BeginHandler";
 import { TickHandler } from "./handlers/TickHandler";
 
 export class IdleRuntimeBlock extends RuntimeBlock {

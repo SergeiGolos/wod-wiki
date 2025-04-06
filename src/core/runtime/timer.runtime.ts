@@ -1,7 +1,8 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, RuntimeEvent, RuntimeTrace, StatementKey, StatementNode, TimerDisplayBag, WodResultBlock } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeTrace, StatementKey, StatementNode, TimerDisplayBag, TimerFromSeconds, WodResultBlock } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
+import { startButton } from "@/components/buttons/timerButtons";
 
 
 /**
@@ -16,7 +17,7 @@ import { RuntimeJit } from "./RuntimeJit";
 
 
 
-export class TimerRuntime implements ITimerRuntime {1
+export class TimerRuntime implements ITimerRuntime {
   public trace: RuntimeTrace | undefined;  
   public current: IRuntimeBlock | undefined;
   
@@ -28,34 +29,24 @@ export class TimerRuntime implements ITimerRuntime {1
     public jit: RuntimeJit,
     private onSetDisplay: (display: TimerDisplayBag) => void,
     private onSetButtons: (buttons: ButtonConfig[]) => void,
-    private onSetResults: (results: WodResultBlock[]) => void
+    private onSetResults: (results: ResultSpan[]) => void
   ) {
     // Initialize block tracker with all nodes from the script     
     this.reset();
   }
 
   reset() {
-    this.current = this.gotoBlock(undefined);
-    this.trace = new RuntimeTrace();
+    this.results = [];
+    this.buttons = [startButton];
+
+    this.onSetResults(this.results);
+    this.current = this.gotoBlock(undefined);    
+    this.trace = new RuntimeTrace();        
   }
   
-  setDisplay: (display: TimerDisplayBag) => void = (display) => {
-    this.display = display;
-    this.onSetDisplay(display);
-  };
- 
-  setButtons: (buttons: ButtonConfig[]) => void = (buttons) => {
-    this.buttons = buttons;
-    this.onSetButtons(buttons);
-  };
-  setResults: (results: WodResultBlock[]) => void = (results) => {
-    this.results = results;
-    this.onSetResults(results);
-  };
-
   buttons: ButtonConfig[] = [];
-  results: WodResultBlock[] = [];
-  display: TimerDisplayBag = { elapsed: 0, label: "idle", bag: {} };
+  results: ResultSpan[] = [];
+  display: TimerDisplayBag = { primary: new TimerFromSeconds(0), label: "idle", bag: {} };
   
   public events: RuntimeEvent[] = [];
   /**
@@ -64,31 +55,42 @@ export class TimerRuntime implements ITimerRuntime {1
    * @returns Array of runtime actions to apply
    */
   public tick(events: RuntimeEvent[]): RuntimeEvent[] {    
+    let resultsCount = this.results.length;
     let next : RuntimeEvent[] = [];
+    this.display = { bag: {} } as TimerDisplayBag;    
+    
     for (const event of events) {                        
       const actions = this.current?.onEvent(event, this) ?? [];
       for (const action of actions) {
         next = [...next, ... action.apply(this)];
       }      
     }
+    this.onSetDisplay(this.display);
+    this.onSetButtons(this.buttons);        
+    if (resultsCount != this.results.length) {
+      this.onSetResults([...this.results]);
+    }
+
     return next;
   }
-
+  
   /**
    * Navigates to a specific block in the workout script and records the visit
    * @param blockId ID of the block to navigate to
    * @returns The runtime block that was navigated to
    */
-  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {        
-    console.log('[gotoBlock] Input node:', node);  
+  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {            
+    if (this.current && this.current.type !== 'idle') {      
+      const report = this.current.report();
+      this.results = [...this.results, ...report];      
+    }
+    
     if (node == undefined) {
-      console.log('[gotoBlock] No node provided, returning IdleRuntimeBlock');
       return this.current = new IdleRuntimeBlock();
     }    
 
     // if Leaf
     if (node.children.length == 0) {
-      console.log('[gotoBlock] Leaf node, returning LeafRuntimeBlock');
       const leaf = this.script.goto(node.id);
       const compiledBlock = this.jit.compile(this.trace!, leaf);            
       return this.current = compiledBlock;
@@ -102,7 +104,6 @@ export class TimerRuntime implements ITimerRuntime {1
     }
     
     let reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
-    console.log('[gotoBlock] Initial node:', { id: node.id, current, expectedRounds, reentryCount });
     while (current && reentryCount >= expectedRounds) {      
       current = this.script.getId(current.parent ?? current.next ?? -1);
       reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
@@ -110,16 +111,10 @@ export class TimerRuntime implements ITimerRuntime {1
     
     while (current && current.children?.length > 0) {
       reentryCount = this.trace!.get(current.id) ?? 0;
-      console.log('[gotoBlock] Processing parent node:', {
-        nodeId: current.id,
-        childrenCount: current.children.length,
-        reentryCount
-      });
       
       // Select child using round-robin (modulo number of children)
       const childIndex = reentryCount % current.children.length;
       const childId = current.children[childIndex];
-      console.log('[gotoBlock] Selected child:', { childIndex, childId });
       
       // Update the stack to include the selected child
       current = this.script.getId(childId) ?? undefined;
@@ -137,7 +132,6 @@ export class TimerRuntime implements ITimerRuntime {1
     }
   
     const compiledBlock = this.jit.compile(this.trace!, stack);
-    console.log('[gotoBlock] Compiled runtime block:', { key: compiledBlock.blockKey, block: compiledBlock });
     
     return this.current = compiledBlock;
   }

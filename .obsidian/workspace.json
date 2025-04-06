@@ -1,24 +1,20 @@
 {
   "main": {
-    "id": "a742e32687739302",
+    "id": "137e4e52aecfb26a",
     "type": "split",
     "children": [
       {
-        "id": "a90d782f5e1ad49c",
+        "id": "3b21e386fd219d79",
         "type": "tabs",
         "children": [
           {
-            "id": "3220bcf1653f432c",
+            "id": "7492dbc4c8df3a3a",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "DataTypes/Display Block.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Display Block"
+              "title": "New tab"
             }
           }
         ]
@@ -27,15 +23,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "cd2fd7febb343ff4",
+    "id": "27768c543917c71f",
     "type": "split",
     "children": [
       {
-        "id": "0df6278c1a5cf239",
+        "id": "ddb8612d23e55090",
         "type": "tabs",
         "children": [
           {
-            "id": "2862666687f2c8b4",
+            "id": "0f794377ec62177f",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -48,7 +44,7 @@
             }
           },
           {
-            "id": "357f4dd147c62762",
+            "id": "649678fa25f01f3f",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -65,7 +61,7 @@
             }
           },
           {
-            "id": "7503aadcb57b5d35",
+            "id": "65f221246498468f",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -81,20 +77,19 @@
     "width": 300
   },
   "right": {
-    "id": "249689aca2c55076",
+    "id": "e41a63de2baa6052",
     "type": "split",
     "children": [
       {
-        "id": "ec62ef3a07814cdd",
+        "id": "7964302fcae887d1",
         "type": "tabs",
         "children": [
           {
-            "id": "94d4b7bb6a2b0977",
+            "id": "cdce4a8236659c99",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,25 +99,24 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Birds Eye Workflow"
+              "title": "Backlinks"
             }
           },
           {
-            "id": "19bccb1db70290a1",
+            "id": "c1d3630fe563502d",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from Birds Eye Workflow"
+              "title": "Outgoing links"
             }
           },
           {
-            "id": "392207b433004441",
+            "id": "ea38edb5f6d2a6e4",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -137,18 +131,17 @@
             }
           },
           {
-            "id": "a76f6f8c48080f9b",
+            "id": "7d31f254a0fb10bf",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Birds Eye Workflow"
+              "title": "Outline"
             }
           }
         ]
@@ -168,14 +161,6 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "3220bcf1653f432c",
-  "lastOpenFiles": [
-    "Working/2025-04-06.md",
-    "DataTypes/Result Block.md",
-    "DataTypes/Display Block.md",
-    "Birds Eye Overview.canvas",
-    "Birds Eye Workflow.canvas",
-    "Working",
-    "Welcome.md"
-  ]
+  "active": "7492dbc4c8df3a3a",
+  "lastOpenFiles": []
 }
