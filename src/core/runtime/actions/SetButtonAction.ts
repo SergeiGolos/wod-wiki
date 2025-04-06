@@ -9,8 +9,8 @@ export class SetButtonAction extends EventAction {
         super(event);
     }
 
-    apply(runtime: ITimerRuntime): RuntimeEvent[] {  
-        runtime.setButtons(this.buttons);
+    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
+        runtime.buttons = this.buttons;
         return [];
     }
 }

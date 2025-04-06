@@ -9,8 +9,7 @@ export class EndHandler extends EventHandler {
   protected eventType: string = 'end';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // TODO: Implement end logic
-    console.log('EndHandler handleEvent triggered for event:', event);
+    // Create a result block for the final time    
     return [
       new IdleStatementAction(), 
       new SetButtonAction(event, [ startButton ])

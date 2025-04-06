@@ -1,13 +1,12 @@
-import { StatementNode, IRuntimeBlock, StatementKey } from "../timer.types";
+import { StatementNode, IRuntimeBlock, RuntimeTrace } from "../timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";
-import { TickHandler } from "./handlers/TickHandler";
+import { TickHandler, TotalTimeHandler } from "./handlers/TickHandler";
 import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
 import { CompleteHandler } from "./handlers/CompleteHandler";
 import { EndHandler } from "./handlers/EndHandler";
-import { RuntimeTrace } from "./timer.runtime";
 
 /**
  * Compiled runtime that manages workout statement nodes and their handlers
@@ -22,6 +21,7 @@ export class RuntimeJit {
   handlers: EventHandler[] | undefined = [
     new StartHandler(),
     new TickHandler(),
+    new TotalTimeHandler(),
     new StopHandler(),
     new ResetHandler(),
     new CompleteHandler(),

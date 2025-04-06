@@ -47,7 +47,7 @@ export function useTimerRuntime({
 
   // Handler for results updates
   useEffect(() => {
-    if (onResultsUpdated && results.length > 0) {
+    if (onResultsUpdated) {
       onResultsUpdated(results);
     }
   }, [results, onResultsUpdated]);

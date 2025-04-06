@@ -6,11 +6,13 @@ import { WodResultBlock, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
+import { cn } from "@/core/utils";
 
 
 interface EditorContainerProps {
   id: string;
   code: string;
+  className?: string;
   /**
    * Optional callback when script is compiled
    */
@@ -24,6 +26,7 @@ interface EditorContainerProps {
 export const EditorContainer: React.FC<EditorContainerProps> = ({
   id,
   code = "",
+  className = "",
   onScriptCompiled,
   onResultsUpdated,
 }) => {
@@ -40,7 +43,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   });
 
   return (
-    <div className="border border-gray-200 rounded-lg divide-y">
+    <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>
       <div className="timer-controls p-4">
         <ButtonRibbon buttons={buttons} setEvents={setStack} />
         {display && (

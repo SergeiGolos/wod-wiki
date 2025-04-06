@@ -6,10 +6,10 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 export class CompleteHandler extends EventHandler {
   protected eventType: string = 'complete';
 
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-   
+  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {   
     return [
-      new StopTimerAction({ name: 'stop', timestamp: event.timestamp }),
-      new NextStatementAction()];      
+      new StopTimerAction({ name: 'stop', timestamp: event.timestamp }),       
+      new NextStatementAction()
+    ];      
   }
 }

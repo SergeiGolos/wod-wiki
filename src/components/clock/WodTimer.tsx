@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { TimerDisplayBag, TimerFromSeconds } from "@/core/timer.types";
+import { TimerDisplayBag } from "@/core/timer.types";
 
 
 export interface WodTimerProps {
@@ -14,11 +14,11 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   const [clock, setClock] = useState<[string,string]>(["",""]);
   const [total, setTotal] = useState<[string,string]>(["",""]);
 useEffect(() => {
-  let time = new TimerFromSeconds(display.elapsed);
-  let total = new TimerFromSeconds(display.bag.totalTime);
+  let time = display.primary;
+  let total = display.bag.totalTime;
   
-  setClock(time.toClock());
-  setTotal(total.toClock());
+  setClock(time?.toClock() ?? ["",""]);
+  setTotal(total?.toClock() ?? ["",""]);
 }, [display]);
 
   // This effect runs whenever the block or block.events changes  

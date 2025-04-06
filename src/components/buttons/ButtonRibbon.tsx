@@ -27,8 +27,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
   };
 
   const clickEvent = (button: ButtonConfig) => {
-    const events = button.onClick();
-    console.log("Button clicked:", events);
+    const events = button.onClick();    
     setEvents(events);
   }
 
