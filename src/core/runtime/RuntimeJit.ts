@@ -17,7 +17,7 @@ import { ResetHandler } from "./handlers/ResetHandler";
 import { CompleteHandler } from "./handlers/CompleteHandler";
 import { EndHandler } from "./handlers/EndHandler";
 import { DefaultResultLogger } from "./logger/DefaultResultLogger";
-import { fragmentsTo } from "../utils";
+import { fragmentsTo, fragmentsToMany } from "../utils";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { WorkRestLogger } from "./logger/WorkRestLogger";
@@ -44,18 +44,24 @@ export class RuntimeJit {
     console.log("Compiling block:", key.toString());
 
     const efforts = fragmentsTo<EffortFragment>(nodes, "effort");
-    const rounds = fragmentsTo<RoundsFragment>(nodes, "round");
-    const repetitions = fragmentsTo<RepFragment>(nodes, "rep");
+    const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
+    const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
     const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
+    console.log(efforts, rounds, repetitions, resistance);
+
+    const currentIndex = trace.getTotal(nodes[0].id) ;
+    const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
+    
+    console.log("Rep / Round:", currentRep, currentIndex);
     console.log(efforts, rounds, repetitions, resistance);
 
     let logger: IRuntimeLogger = new DefaultResultLogger(
       efforts,
-      repetitions,
+      currentRep,
       resistance
     );
     if (repetitions && rounds) {
-      logger = new WorkRestLogger(efforts, rounds, repetitions, resistance);
+      logger = new WorkRestLogger(efforts, rounds, currentRep, resistance);
     }
 
     return new RuntimeBlock(key.toString(), nodes, logger, this.handlers);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ResultSpan } from '@/core/timer.types';
 
 interface WodTableProps {
@@ -6,6 +6,9 @@ interface WodTableProps {
 }
 
 export const WodTable: React.FC<WodTableProps> = ({ results }) => {
+  // State to track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
   // Extract all metrics from result spans
   const exerciseMetrics = results.flatMap(result => 
     result.metrics.map(metric => ({
@@ -46,6 +49,20 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
     };
   });
 
+  // Toggle section expansion
+  const toggleSection = (effort: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [effort]: !prev[effort]
+    }));
+  };
+
+  // Check if a section is expanded
+  const isSectionExpanded = (effort: string) => {
+    // Default to expanded if not explicitly collapsed
+    return expandedSections[effort] !== false;
+  };
+
   return (
     <div className="overflow-x-auto px-3 py-1">
       <div className='text-lg font-semibold text-gray-700 mb-3'>
@@ -74,8 +91,15 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
         <tbody className="bg-white">
           {effortGroups.map((group, groupIndex) => [
             // Group header with totals
-            <tr key={`group-${group.effort}`} className="bg-gray-100 font-semibold">
+            <tr 
+              key={`group-${group.effort}`} 
+              className="bg-gray-100 font-semibold cursor-pointer hover:bg-gray-200"
+              onClick={() => toggleSection(group.effort)}
+            >
               <td className="px-3 py-2 text-sm text-gray-700">
+                <span className="inline-block w-4 mr-1">
+                  {isSectionExpanded(group.effort) ? '▼' : '►'}
+                </span>
                 Total
               </td>
               <td className="px-3 py-2 text-sm text-gray-700">
@@ -91,27 +115,30 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
                 {group.totalTime}s
               </td>
             </tr>,
-            // Individual instances
-            ...group.metrics.map((metric, index) => (
-              <tr key={`${group.effort}-${index}`} 
-                  className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                  {metric.round}
-                </td>
-                <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
-                  {metric.effort}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                  {metric.repetitions > 0 ? metric.repetitions : '-'}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                  {metric.value > 0 ? `${metric.value}${metric.unit}` : '-'}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500">
-                  {metric.duration.toFixed(1)}s
-                </td>
-              </tr>
-            ))
+            // Individual instances (only shown if section is expanded)
+            ...(isSectionExpanded(group.effort) ? 
+              group.metrics.map((metric, index) => (
+                <tr key={`${group.effort}-${index}`} 
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200 pl-8">
+                    {metric.round}
+                  </td>
+                  <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
+                    {metric.effort}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
+                    {metric.repetitions > 0 ? metric.repetitions : '-'}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
+                    {metric.value > 0 ? `${metric.value}${metric.unit}` : '-'}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {metric.duration.toFixed(1)}s
+                  </td>
+                </tr>
+              ))
+              : []
+            )
           ])}
         </tbody>
       </table>
