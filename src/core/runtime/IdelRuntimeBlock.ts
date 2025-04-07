@@ -2,8 +2,8 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { ResetHandler } from "./handlers/ResetHandler";
 import { BeginHandler } from "./handlers/BeginHandler";
 import { TickHandler } from "./handlers/TickHandler";
-import { EmptyResultWriter } from "./RuntimeJit";
 import { LabelCurrentEffortHandler } from "./handlers/TotalTimeHandler";
+import { EmptyResultWriter } from "./logger/EmptyResultWriter";
 
 export class IdleRuntimeBlock extends RuntimeBlock {
   /** Unique identifier for this block */

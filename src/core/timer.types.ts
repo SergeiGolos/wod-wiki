@@ -136,6 +136,10 @@ export interface IRuntimeAction {
      return key;
     }  
   }
+  export interface IRuntimeLogger {
+    write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
+  }
+  
 
 export interface ITimerRuntime {  
   reset(): void;
@@ -219,7 +223,8 @@ export interface RuntimeResult {
   }
   
   export type RuntimeMetric = {
-    name: string;
+    effort: string;    
+    repetitions: number;    
     unit: string;
     value: number;
   }
@@ -262,13 +267,16 @@ export interface SourceCodeMetadata {
 }
 
 export class ResultSpan {
-    start?: RuntimeEvent;
-    stop?: RuntimeEvent;
-    label?: string;
-    metrics: RuntimeMetric[] = [];
-    duration(timestamp?: Date): number {
-        let now = timestamp ?? new Date();
-        return ((this.stop?.timestamp ?? now).getTime() || 0) - (this.start?.timestamp.getTime() || 0);
+  blockKey?: string;
+  index?: number;
+  stack?: number[];
+  start?: RuntimeEvent;
+  stop?: RuntimeEvent;
+  label?: string;
+  metrics: RuntimeMetric[] = [];
+  duration(timestamp?: Date): number {
+    let now = timestamp ?? new Date();
+    return ((this.stop?.timestamp ?? now).getTime() || 0) - (this.start?.timestamp.getTime() || 0);
     }
 }
 
