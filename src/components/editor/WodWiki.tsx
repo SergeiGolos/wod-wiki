@@ -1,5 +1,5 @@
 import Editor from '@monaco-editor/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { WodWikiSyntaxInitializer } from '../hooks/WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from '../hooks/SemantcTokenEngine';
 import { SuggestionEngine } from '../hooks/SuggestionEngine';
@@ -7,6 +7,7 @@ import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { DefaultSuggestionService } from '../hooks/SuggestionService';
 import { IRuntimeBlock, WodRuntimeScript, WodWikiToken } from '@/core/timer.types';
+import { debounce } from 'lodash';
 
 interface WodWikiProps {
   id: string;
@@ -32,13 +33,23 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
-    
+    const [height, setHeight] = useState(50); // Initial height
     function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
       editorRef.current = editor;
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
-
-    }
+      editor.onDidContentSizeChange(() => {
+        handleContentSizeChange();
+      });
+    };
+  
+    const handleContentSizeChange = debounce(() => {
+      if (editorRef.current) {
+        const newHeight = Math.min(500, editorRef.current.getContentHeight()); // Example max height of 500px
+        setHeight(newHeight);
+        editorRef.current.layout();
+      }
+    }, 150); // Debounce for 150ms
     
     function handleBeforeMount(monaco: Monaco) {
       initializer.handleBeforeMount(monaco);
@@ -85,7 +96,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
   
     return (
       <Editor
-        height="25vh"    
+        height={`${height}px`}
         path={id}
         language={initializer.syntax} 
         theme={initializer.theme}        
