@@ -29,7 +29,8 @@ export class TimerRuntime implements ITimerRuntime {
     public jit: RuntimeJit,
     private onSetDisplay: (display: TimerDisplayBag) => void,
     private onSetButtons: (buttons: ButtonConfig[]) => void,
-    private onSetResults: (results: ResultSpan[]) => void
+    private onSetResults: (results: ResultSpan[]) => void,
+    private onSetCursor: (cursor: IRuntimeBlock | undefined) => void
   ) {
     // Initialize block tracker with all nodes from the script     
     this.reset();
@@ -84,6 +85,7 @@ export class TimerRuntime implements ITimerRuntime {
     this.results = [...this.results, ...report];      
     
     if (node == undefined) {
+      this.onSetCursor(undefined);
       return this.current = new IdleRuntimeBlock();
     }    
 
@@ -91,6 +93,7 @@ export class TimerRuntime implements ITimerRuntime {
     if (node.children.length == 0) {
       const leaf = this.script.goto(node.id);
       const compiledBlock = this.jit.compile(this.trace!, leaf);            
+      this.onSetCursor(compiledBlock);
       return this.current = compiledBlock;
     }
 
@@ -119,6 +122,7 @@ export class TimerRuntime implements ITimerRuntime {
     }
 
     if (!current) {
+      this.onSetCursor(undefined);
       return this.current = new IdleRuntimeBlock();
     }
 
@@ -130,7 +134,7 @@ export class TimerRuntime implements ITimerRuntime {
     }
   
     const compiledBlock = this.jit.compile(this.trace!, stack);
-    
+    this.onSetCursor(compiledBlock);
     return this.current = compiledBlock;
   }
 }

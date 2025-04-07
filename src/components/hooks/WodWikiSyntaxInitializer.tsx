@@ -1,4 +1,3 @@
-
 import type * as monaco from 'monaco-editor';
 import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
@@ -62,6 +61,20 @@ export class WodWikiSyntaxInitializer {
         "editor.selectionBackground": "#D6FF80",
       }
     });
+
+    // Add a CSS class for the current line decoration
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      .currentLineDecoration {
+        background-color: #E6F7FF !important;
+        border-left: 2px solid #1890FF !important;
+      }
+      .currentLineGlyphMargin {
+        background-color: #1890FF;
+        width: 4px !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
 
     this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
       provideCompletionItems: (model, position, token) => {

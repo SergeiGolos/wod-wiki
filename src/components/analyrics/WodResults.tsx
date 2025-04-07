@@ -18,7 +18,8 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       repetitions: metric.repetitions,
       value: metric.value,
       unit: metric.unit,
-      duration: result.duration ? result.duration() / 1000 : 0 // duration in seconds
+      duration: result.duration ? result.duration() / 1000 : 0, // duration in seconds
+      timestamp: result.stop?.timestamp || Date.now() // Use createdAt timestamp or current time as fallback
     }))
   );
 
@@ -31,8 +32,11 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return acc;
   }, {} as Record<string, typeof exerciseMetrics>);
 
-  // Calculate totals for each effort group
+  // Calculate totals for each effort group and reverse the order of items
   const effortGroups = Object.entries(groupedByEffort).map(([effort, items]) => {
+    // Reverse the order of items within each group
+    const reversedItems = [...items].reverse();
+    
     const totalReps = items.reduce((sum, m) => sum + m.repetitions, 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
@@ -47,16 +51,25 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     // Get the unit from the first item with a value (if any)
     const unit = items.find(item => item.value > 0)?.unit || '';
     
+    // Find the newest timestamp in this group
+    const newestTimestamp = Math.max(...items.map(item => item.timestamp));
+    
     return {
       effort,
-      items,
+      items: reversedItems, // Use the reversed items
       totalReps,
       totalTime,
       totalWeightDistance,
       unit,
-      count: items.length
+      count: items.length,
+      newestTimestamp // Store the newest timestamp for sorting
     };
   });
+
+  // Sort effort groups by newest timestamp, so groups with newest events appear first
+  const sortedEffortGroups = [...effortGroups].sort((a, b) => 
+    b.newestTimestamp - a.newestTimestamp
+  );
 
   // Toggle section expansion
   const toggleSection = (effort: string) => {
@@ -74,17 +87,17 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
 
   return (
     <div className="px-3 py-1">
-      {effortGroups.map((group, groupIndex) => (
+      {sortedEffortGroups.map((group, groupIndex) => (
         <div key={`group-${group.effort}`} className="mb-3">
           {/* Card-style summary group */}
-          <div className="bg-gray-100 shadow-sm">
+          <div className="shadow-sm">
             <div className="flex items-stretch">
               {/* Main content area */}
               <div 
-                className="flex-grow p-3 cursor-pointer hover:bg-gray-200 transition-colors"
+                className="flex-grow cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => toggleSection(group.effort)}
               >
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center p-3">
                   <h3 className="font-semibold text-gray-800">
                     {group.effort}
                   </h3>
@@ -93,7 +106,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                <div className="grid grid-cols-3 gap-2 px-3 pb-3 text-sm">
                   <div className="flex items-center">
                     <span className="text-gray-500 mr-1">⏱️</span>
                     <span className="font-medium">{group.totalTime}s</span>
@@ -113,7 +126,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
               
               {/* Toggle button on the right */}
               <div 
-                className="flex items-center justify-center w-10 border-l border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors"
+                className="flex items-center justify-center w-10 border-l border-gray-200 cursor-pointer bg-gray-100 hover:bg-gray-200 transition-colors"
                 onClick={() => toggleSection(group.effort)}
               >
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-300 flex items-center justify-center leading-none">
