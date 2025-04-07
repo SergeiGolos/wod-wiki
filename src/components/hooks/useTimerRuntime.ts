@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
+import { IRuntimeBlock, ResultSpan, WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
@@ -37,7 +37,8 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   const runtimeRef = useRef<TimerRuntime>();
   const intervalRef = useRef<number | null>(null);
-
+  
+  const [cursor, setCursor] = useState<IRuntimeBlock | undefined>(undefined);
   const [stack, setStack] = useState<RuntimeEvent[]>([]);
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
   const [display, setDisplay] = useState<TimerDisplayBag | undefined>();
@@ -93,7 +94,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }
@@ -106,6 +107,7 @@ export function useTimerRuntime({
   return {
     loadScript: handleLoadScript,
     runtimeRef,
+    cursor,
     buttons,
     display,
     results,

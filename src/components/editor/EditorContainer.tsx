@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
 import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
@@ -7,10 +7,12 @@ import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
 import { cn } from "@/core/utils";
-import { SoundToggle } from "../buttons/SoundToggle";
 import { useSound } from "@/core/contexts/SoundContext";
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/outline";
 import { SoundProvider } from "@/core/contexts/SoundContext";
+import { ScreenProvider } from "@/core/contexts/ScreenContext";
+import { useScreen } from "@/core/contexts/ScreenContext";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 interface EditorContainerProps {
   id: string;
@@ -36,6 +38,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   const {
     loadScript,
     runtimeRef,
+    cursor,
     buttons,
     display,
     results, 
@@ -46,6 +49,45 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   });
 
   const { soundEnabled, toggleSound } = useSound();
+  const { screenOnEnabled, toggleScreenOn, requestWakeLock, releaseWakeLock } = useScreen();  
+
+  // Custom onValueChange handler to track cursor position from script
+  const handleScriptChange = (script?: WodRuntimeScript) => {
+    if (script) {            
+      // Pass to runtime
+      loadScript(script);
+    }
+  };
+
+  // Monitor runtime state to control screen wake lock
+  useEffect(() => {
+    if (!runtimeRef.current) return;
+
+    const handleRuntimeStateChange = async () => {
+      const isIdle = runtimeRef.current?.current?.type === "idle";
+      
+      if (screenOnEnabled) {
+        if (!isIdle) {
+          // Runtime is active, request wake lock
+          await requestWakeLock();
+        } else {
+          // Runtime is idle, release wake lock
+          await releaseWakeLock();
+        }
+      }
+    };
+
+    // Initial check
+    handleRuntimeStateChange();
+
+    // Set up an interval to check for state changes
+    const intervalId = setInterval(handleRuntimeStateChange, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+      releaseWakeLock();
+    };
+  }, [runtimeRef, screenOnEnabled, requestWakeLock, releaseWakeLock]);
 
   // Create sound toggle button
   const soundToggleButton = {
@@ -57,17 +99,27 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     isActive: soundEnabled,
   };
 
+  // Create screen on toggle button
+  const screenOnToggleButton = {
+    icon: screenOnEnabled ? EyeIcon : EyeSlashIcon,
+    onClick: () => {
+      toggleScreenOn();
+      return [];
+    },
+    isActive: screenOnEnabled,
+  };
+
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>
       <div className="timer-controls p-4">
         <ButtonRibbon 
           buttons={buttons} 
-          leftButtons={[soundToggleButton]} 
+          leftButtons={[soundToggleButton, screenOnToggleButton]} 
           setEvents={setStack} 
         />              
       </div>      
-      {display && <WodTimer display={display} />}
-      <WodWiki id={id} code={code} onValueChange={loadScript} />      
+      <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
+      {display && <WodTimer display={display} />}      
       <ResultsDisplay runtime={runtimeRef} results={results} />
     </div>
   );
@@ -76,8 +128,10 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
 // Export a wrapped version that includes the SoundProvider
 export const EditorContainerWithProviders: React.FC<EditorContainerProps> = (props) => {
   return (
-    <SoundProvider>
-      <EditorContainer {...props} />
-    </SoundProvider>
+    <ScreenProvider>
+      <SoundProvider>
+        <EditorContainer {...props} />
+      </SoundProvider>
+    </ScreenProvider>
   );
 };
