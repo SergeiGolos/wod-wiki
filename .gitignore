@@ -85,6 +85,9 @@ web_modules/
 .next
 out
 
+# Obsidian workspace
+.obsidian
+
 # Nuxt.js build output
 .nuxt
 dist
