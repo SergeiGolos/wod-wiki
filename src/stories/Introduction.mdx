@@ -4,6 +4,7 @@ import { BuyMeACoffee } from "./components/BuyMeACoffee";
 import logoImage from './assets/logo.png';
 import '../index.css';
 import { SoundProvider } from "/src/core/contexts/SoundContext";
+import { ScreenProvider } from "/src/core/contexts/ScreenContext";
 
 export const code = `(8)
   :20 Push ups
@@ -83,7 +84,9 @@ export const code = `(8)
   Try out this pushup tabata workout to see the timer in action.  But don't stop here, create your own workouts and see how easy it is to plan, execute, and analyze your workouts.
 </p>
 <SoundProvider>
-  <EditorContainer code={code}/>
+  <ScreenProvider>
+    <EditorContainer code={code}/>
+  </ScreenProvider>
 </SoundProvider>
 
 <div className="grid justify-items-center" style={{ marginTop: '2rem', textAlign: 'center' }}>
