@@ -3,6 +3,7 @@ import { EditorContainer } from "/src/components/editor/EditorContainer";
 import { BuyMeACoffee } from "./components/BuyMeACoffee";
 import logoImage from './assets/logo.png';
 import '../index.css';
+import { SoundProvider } from "/src/core/contexts/SoundContext";
 
 export const code = `(8)
   :20 Push ups
@@ -81,7 +82,9 @@ export const code = `(8)
 <p>
   Try out this pushup tabata workout to see the timer in action.  But don't stop here, create your own workouts and see how easy it is to plan, execute, and analyze your workouts.
 </p>
-<EditorContainer code={code}/>
+<SoundProvider>
+  <EditorContainer code={code}/>
+</SoundProvider>
 
 <div className="grid justify-items-center" style={{ marginTop: '2rem', textAlign: 'center' }}>
   <div className="text-sm" style={{ marginBottom: '1rem' }}>Find WOD.wiki useful?</div>
