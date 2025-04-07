@@ -88,7 +88,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
   };
 
   return (
-    <div className="px-3 py-1">
+    <div className="">
       {sortedEffortGroups.map((group, groupIndex) => (
         <div key={`group-${group.effort}`} className="mb-3">
           {/* Use the section head component */}

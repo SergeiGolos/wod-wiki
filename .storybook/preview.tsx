@@ -2,6 +2,7 @@ import type { Preview, StoryFn } from "@storybook/react";
 import '../src/index.css'; // Import Tailwind CSS
 import React from 'react';
 import { SoundProvider } from '../src/core/contexts/SoundContext';
+import { ScreenProvider } from '../src/core/contexts/ScreenContext';
 
 const preview: Preview = {
   parameters: {
@@ -15,7 +16,9 @@ const preview: Preview = {
   decorators: [
     (Story: StoryFn) => (
       <SoundProvider>
-        <Story />
+        <ScreenProvider>
+          <Story />
+        </ScreenProvider>
       </SoundProvider>
     ),
   ],
