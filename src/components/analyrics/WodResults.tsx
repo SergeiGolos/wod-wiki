@@ -36,11 +36,25 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     const totalReps = items.reduce((sum, m) => sum + m.repetitions, 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
+    // Calculate total weight/distance
+    const totalWeightDistance = items.reduce((acc, item) => {
+      if (item.value > 0) {
+        return acc + (item.value * item.repetitions);
+      }
+      return acc;
+    }, 0);
+    
+    // Get the unit from the first item with a value (if any)
+    const unit = items.find(item => item.value > 0)?.unit || '';
+    
     return {
       effort,
       items,
       totalReps,
-      totalTime
+      totalTime,
+      totalWeightDistance,
+      unit,
+      count: items.length
     };
   });
 
@@ -54,83 +68,112 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
 
   // Check if a section is expanded
   const isSectionExpanded = (effort: string) => {
-    // Default to expanded if not explicitly collapsed
-    return expandedSections[effort] !== false;
+    // Default to collapsed (false) if not explicitly expanded
+    return expandedSections[effort] === true;
   };
 
   return (
-    <div className="overflow-x-auto px-3 py-1">
-      <table className="min-w-full">
-        <thead>
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
-              Round
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
-              Exercise
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
-              Time
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
-              Metrics
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white">
-          {effortGroups.map((group, groupIndex) => [
-            // Group header with totals
-            <tr 
-              key={`group-${group.effort}`} 
-              className="bg-gray-100 font-semibold cursor-pointer hover:bg-gray-200"
-              onClick={() => toggleSection(group.effort)}
-            >
-              <td className="px-3 py-2 text-sm text-gray-700">
-                <span className="inline-block w-4 mr-1">
-                  {isSectionExpanded(group.effort) ? '▼' : '►'}
-                </span>
-                Total
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-700">
-                {group.effort}
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-700">
-                {group.totalTime}s
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-700">
-                {group.totalReps} reps
-              </td>
-            </tr>,
-            // Individual instances (only shown if section is expanded)
-            ...(isSectionExpanded(group.effort) ? 
-              group.items.map((item, index) => {
-                const result = item.result;
-                const blockId = result.blockKey?.split('|')[0] || 'unknown';
+    <div className="px-3 py-1">
+      {effortGroups.map((group, groupIndex) => (
+        <div key={`group-${group.effort}`} className="mb-3">
+          {/* Card-style summary group */}
+          <div className="bg-gray-100 shadow-sm">
+            <div className="flex items-stretch">
+              {/* Main content area */}
+              <div 
+                className="flex-grow p-3 cursor-pointer hover:bg-gray-200 transition-colors"
+                onClick={() => toggleSection(group.effort)}
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-800">
+                    {group.effort}
+                  </h3>
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5">
+                    {group.count} {group.count === 1 ? 'round' : 'rounds'}
+                  </span>
+                </div>
                 
-                return (
-                  <tr key={`${group.effort}-${index}`}
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200 pl-8">
-                      {result.index || 'N/A'} (Block {blockId})
-                    </td>
-                    <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
-                      {item.effort}
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                      {item.duration.toFixed(1)}s
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-500">  
-                      {item.repetitions > 0 && `${item.repetitions} reps`}
-                      {item.value > 0 && ` ${item.value}${item.unit}`}
-                    </td>
+                <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-1">⏱️</span>
+                    <span className="font-medium">{group.totalTime}s</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-1">🔄</span>
+                    <span className="font-medium">{group.totalReps} reps</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-1">📏</span>
+                    <span className="font-medium">
+                      {group.totalWeightDistance > 0 ? `${group.totalWeightDistance}${group.unit}` : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Toggle button on the right */}
+              <div 
+                className="flex items-center justify-center w-10 border-l border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors"
+                onClick={() => toggleSection(group.effort)}
+              >
+                <div className="w-6 h-6 rounded-full bg-white border border-gray-300 flex items-center justify-center leading-none">
+                  <span className="text-gray-600 font-bold" style={{ lineHeight: '1', marginTop: '-1px' }}>
+                    {isSectionExpanded(group.effort) ? '−' : '+'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Detailed table (only shown if section is expanded) */}
+          {isSectionExpanded(group.effort) && (
+            <div className="mt-1 overflow-x-auto border-t border-gray-200 shadow-sm">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Round
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Time
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Reps
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Weight / Distance
+                    </th>
                   </tr>
-                );
-              })
-              : []
-            )
-          ])}
-        </tbody>
-      </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {group.items.map((item, index) => {
+                    const result = item.result;
+                    const blockId = result.blockKey?.split('|')[0] || 'unknown';
+                    
+                    return (
+                      <tr key={`${group.effort}-${index}`}
+                          className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50`}>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {result.index || 'N/A'} (Block {blockId})
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {item.duration.toFixed(1)}s
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {item.repetitions > 0 ? `${item.repetitions}` : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {item.value > 0 ? `${item.value}${item.unit}` : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

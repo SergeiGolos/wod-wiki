@@ -51,9 +51,6 @@ export class RuntimeJit {
 
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
-    
-    console.log("Rep / Round:", currentRep, currentIndex);
-    console.log(efforts, rounds, repetitions, resistance);
 
     let logger: IRuntimeLogger = new DefaultResultLogger(
       efforts,
