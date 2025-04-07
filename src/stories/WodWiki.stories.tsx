@@ -1,6 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import '../index.css';
 import { EditorWithState } from './components/EditorWithState';
+import { SoundProvider } from '../core/contexts/SoundContext';
+import React from 'react';
+
+// Create a wrapper component that includes the SoundProvider
+const EditorWithSoundProvider = (props: React.ComponentProps<typeof EditorWithState>) => (
+  <SoundProvider>
+    <EditorWithState {...props} />
+  </SoundProvider>
+);
 
 const meta: Meta<typeof EditorWithState> = {
   title: 'Components/Wiki',
@@ -9,7 +18,15 @@ const meta: Meta<typeof EditorWithState> = {
     controls: { hideNoControlsWarning: true },
     layout: 'fullscreen',
     showPanel: false
-  }
+  },
+  // Use a decorator to wrap all stories with SoundProvider
+  decorators: [
+    (Story) => (
+      <SoundProvider>
+        <Story />
+      </SoundProvider>
+    )
+  ]
 };
 
 export default meta;
