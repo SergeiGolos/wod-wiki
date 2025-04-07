@@ -1,4 +1,4 @@
-import { IRuntimeAction, ResultSpan, StatementNode} from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode} from "@/core/timer.types";
 import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "./EventHandler";
 
@@ -7,15 +7,11 @@ import { EventHandler } from "./EventHandler";
  * such as start and stop.
  */
 
-export interface IRuntimeWriter {
-  write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
-}
-
 export class RuntimeBlock implements IRuntimeBlock {
   constructor(      
     public blockKey: string,
     public stack: StatementNode[],
-    public writer: IRuntimeWriter,
+    public writer: IRuntimeLogger,
     public handlers: EventHandler[] = []    
   ) {
     this.blockId = stack?.[0]?.id ?? -1;    

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "DataTypes/Display Block.md",
+                "file": "Working/2025-04-06.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Display Block"
+              "title": "2025-04-06"
             }
           }
         ]
@@ -170,9 +170,15 @@
   },
   "active": "3220bcf1653f432c",
   "lastOpenFiles": [
-    "Working/2025-04-06.md",
-    "DataTypes/Result Block.md",
     "DataTypes/Display Block.md",
+    "Working/2025-04-06.md",
+    "Worklog/2025-03-10.md",
+    "Worklog/2025-03-09.md",
+    "Worklog/2025-03-09-Migration.md",
+    "Worklog/2025-03-04.md",
+    "Notes/Tailwind-storybook.md",
+    "Notes/Naming.md",
+    "DataTypes/Result Block.md",
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas",
     "Working",

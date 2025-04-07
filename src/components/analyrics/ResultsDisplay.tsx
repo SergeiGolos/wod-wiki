@@ -1,14 +1,12 @@
 import React, { MutableRefObject, useEffect, useState } from 'react';
 
 import { WodResults } from './WodResults';
-import { WodResultBlock } from '@/core/timer.types';
-import { TimerRuntime } from '@/core/runtime/timer.runtime';
-
+import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
 
 
 interface ResultsDisplayProps {  
-  results: WodResultBlock[];
-  runtime: MutableRefObject<TimerRuntime | undefined>;
+  results: ResultSpan[];
+  runtime: MutableRefObject<ITimerRuntime | undefined>;
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({   
@@ -28,7 +26,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   return (
     <div className="results-display">
       <div>{statementCounter}</div>
-      {results && results.length > -1 && (        
+      {results && results.length > 0 && (        
         <div className="mb-4">
           <WodResults results={results} runtime={runtime} />
         </div>
