@@ -1,8 +1,11 @@
 import './index.css'; // Ensure styles are included
 
 export { WodTimer } from './components/clock/WodTimer';
-export { TimerDisplayBag as TimerDisplay } from './components/clock/TimerDisplay';
 export { WodWiki } from './components/editor/WodWiki';
 export { EditorContainer } from './components/editor/EditorContainer';
+export { EditorContainerWithProviders } from './components/editor/EditorContainer';
 export { ButtonRibbon } from './components/buttons/ButtonRibbon';
 export { ResultsDisplay } from './components/analyrics/ResultsDisplay';
+export { SoundProvider, useSound } from './core/contexts/SoundContext';
+export { SoundToggle } from './components/buttons/SoundToggle';
+export { WodWikiProviders } from './components/providers/WodWikiProviders';

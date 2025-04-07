@@ -59,6 +59,7 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
     "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3"

@@ -1,14 +1,14 @@
-
 import React, { Dispatch, SetStateAction } from "react";
 import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
 
 
 interface ButtonRibbonProps {
   buttons: ButtonConfig[];
+  leftButtons?: ButtonConfig[];
   setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;
 }
 
-export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }) => {
+export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, leftButtons = [], setEvents }) => {
   
   
   /// TODO:  THis should be conifugred at the button not in the ribben
@@ -32,17 +32,34 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
   }
 
   return (
-    <div className="flex justify-end space-x-2 px-2 py-1">
-      {buttons.map((button, index) => (
-        <button
-          key={index}
-          onClick={() => clickEvent(button)}
-          className={getButtonStyle(button)}
-        >
-          {button.label && <span className="mr-2">{button.label}</span>}
-          <button.icon className="w-4 h-4" />
-        </button>
-      ))}
+    <div className="flex justify-between items-center px-2 py-1">
+      {/* Left-aligned buttons */}
+      <div className="flex space-x-2">
+        {leftButtons.map((button, index) => (
+          <button
+            key={`left-${index}`}
+            onClick={() => clickEvent(button)}
+            className={getButtonStyle(button)}
+          >
+            {button.label && <span className="mr-2">{button.label}</span>}
+            <button.icon className="w-4 h-4" />
+          </button>
+        ))}
+      </div>
+      
+      {/* Right-aligned buttons */}
+      <div className="flex space-x-2">
+        {buttons.map((button, index) => (
+          <button
+            key={`right-${index}`}
+            onClick={() => clickEvent(button)}
+            className={getButtonStyle(button)}
+          >
+            {button.label && <span className="mr-2">{button.label}</span>}
+            <button.icon className="w-4 h-4" />
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
