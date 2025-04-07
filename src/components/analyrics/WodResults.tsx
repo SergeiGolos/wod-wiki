@@ -1,6 +1,6 @@
 import React, { MutableRefObject, useState } from 'react';
 import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
-import { WodResultsSectionHead, EffortGroup } from './WodResultsSectionHead';
+import { WodResultsSectionHead } from './WodResultsSectionHead';
 import { WodResultsRow } from './WodResultsRow';
 
 interface WodResultsProps {
