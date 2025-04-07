@@ -1,4 +1,4 @@
-import { IClock, RuntimeEvent, TimerDisplayBag } from "@/core/timer.types";
+import { IClock, RuntimeEvent } from "@/core/timer.types";
 import { EventAction } from "../EventAction";
 import { ITimerRuntime } from "@/core/timer.types";
 

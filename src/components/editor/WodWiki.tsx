@@ -60,7 +60,7 @@ export const WodWiki = ({ id, code = "", onValueChange }: WodWikiProps) => {
 
     return (
       <Editor
-        height="30vh"    
+        height="25vh"    
         path={id}
         language={initializer.syntax} 
         theme={initializer.theme}        

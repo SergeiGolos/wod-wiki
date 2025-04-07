@@ -7,11 +7,16 @@ import { EventHandler } from "./EventHandler";
  * such as start and stop.
  */
 
+export interface IRuntimeWriter {
+  write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
+}
+
 export class RuntimeBlock implements IRuntimeBlock {
   constructor(      
     public blockKey: string,
     public stack: StatementNode[],
-    public handlers: EventHandler[] = []
+    public writer: IRuntimeWriter,
+    public handlers: EventHandler[] = []    
   ) {
     this.blockId = stack?.[0]?.id ?? -1;    
   }
@@ -23,28 +28,7 @@ export class RuntimeBlock implements IRuntimeBlock {
    */
   report(): ResultSpan[] {
     // Include 'stop' as a relevant boundary event type
-    const timerEventTypes: string[] = ["start", "lap", "done", "complete", "stop"];
-
-    const resultSpans: ResultSpan[] = [];
-    let previousRelevantEvent: RuntimeEvent | null = null;
-
-    for (let i = 0; i < this.events.length; i++) {
-      const currentEvent: RuntimeEvent = this.events[i];
-      const isRelevant = timerEventTypes.includes(currentEvent.name);
-
-      if (isRelevant) {
-        if (previousRelevantEvent) {          
-          const span = new ResultSpan();
-          span.start = previousRelevantEvent;
-          span.stop = currentEvent;
-          span.label = `Describe interval between ${previousRelevantEvent.name} at ${previousRelevantEvent.timestamp} and ${currentEvent.name} at ${currentEvent.timestamp}`;
-          resultSpans.push(span);
-        }
-        previousRelevantEvent = currentEvent;
-      }
-    }
-
-    return resultSpans;
+    return this.writer.write(this);
   }
   
   public type: string = 'runtime';  

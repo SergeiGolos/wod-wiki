@@ -79,11 +79,9 @@ export class TimerRuntime implements ITimerRuntime {
    * @param blockId ID of the block to navigate to
    * @returns The runtime block that was navigated to
    */
-  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {            
-    if (this.current && this.current.type !== 'idle') {      
-      const report = this.current.report();
-      this.results = [...this.results, ...report];      
-    }
+  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {                
+    const report = this.current?.report() ?? [];
+    this.results = [...this.results, ...report];      
     
     if (node == undefined) {
       return this.current = new IdleRuntimeBlock();

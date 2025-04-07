@@ -2,7 +2,7 @@
 import React from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { WodResultBlock, WodRuntimeScript } from "@/core/timer.types";
+import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
@@ -20,7 +20,7 @@ interface EditorContainerProps {
   /**
    * Optional callback when results are updated
    */
-  onResultsUpdated?: (results: WodResultBlock[]) => void;
+  onResultsUpdated?: (results: ResultSpan[]) => void;
 }
 
 export const EditorContainer: React.FC<EditorContainerProps> = ({
@@ -45,14 +45,10 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>
       <div className="timer-controls p-4">
-        <ButtonRibbon buttons={buttons} setEvents={setStack} />
-        {display && (
-          <div className="border rounded-md p-4 bg-white shadow">
-            <WodTimer display={display} />
-          </div>
-        )}
-      </div>
-      <WodWiki id={id} code={code} onValueChange={loadScript} />
+        <ButtonRibbon buttons={buttons} setEvents={setStack} />              
+      </div>      
+      {display && <WodTimer display={display} />}
+      <WodWiki id={id} code={code} onValueChange={loadScript} />      
       <ResultsDisplay runtime={runtimeRef} results={results} />
     </div>
   );

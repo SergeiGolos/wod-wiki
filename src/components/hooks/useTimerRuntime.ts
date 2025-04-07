@@ -1,9 +1,9 @@
 import { useRef, useState, useEffect } from "react";
-import { WodRuntimeScript } from "@/core/timer.types";
+import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
-import { WodResultBlock, TimerDisplayBag, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { TimerDisplayBag, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
 import { startButton } from "../buttons/timerButtons";
 
 /**
@@ -18,7 +18,7 @@ export interface UseTimerRuntimeProps {
   /**
    * Called when results are updated
    */
-  onResultsUpdated?: (results: WodResultBlock[]) => void;
+  onResultsUpdated?: (results: ResultSpan[]) => void;
 }
 
 /**
@@ -43,7 +43,7 @@ export function useTimerRuntime({
   const [display, setDisplay] = useState<TimerDisplayBag | undefined>();
 
   const [buttons, setButtons] = useState<ButtonConfig[]>([startButton]);
-  const [results, setResults] = useState<WodResultBlock[]>([]);
+  const [results, setResults] = useState<ResultSpan[]>([]);
 
   // Handler for results updates
   useEffect(() => {
