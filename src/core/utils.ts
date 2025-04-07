@@ -13,6 +13,22 @@ export function fragmentToPart(
   return fragment?.toPart();
 }
 
+export function fragmentsToMany<T extends StatementFragment>(
+  statements: StatementNode[],
+  type: string
+): T[] {
+  const fragments: T[] = [];
+  for (let statement of statements) {
+    const fragment = statement.fragments.filter((f) => f.type === type);
+    if (fragment) {
+      fragments.push(...fragment as T[]);
+    }
+  }
+  return fragments;
+}
+
+
+
 export function fragmentsTo<T extends StatementFragment>(
   statements: StatementNode[],
   type: string

@@ -7,10 +7,10 @@ import { RoundsFragment } from "@/core/fragments/RoundsFragment";
 export class WorkRestLogger implements IRuntimeLogger {
 
   constructor(
-    private efforts: EffortFragment,
-    private rounds: RoundsFragment,
-    private repetitions: RepFragment,
-    private resistance: ResistanceFragment
+    private efforts?: EffortFragment,
+    private rounds?: RoundsFragment,
+    private repetitions?: RepFragment,
+    private resistance?: ResistanceFragment
   ) { }
 
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {

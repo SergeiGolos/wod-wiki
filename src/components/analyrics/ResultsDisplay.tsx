@@ -24,8 +24,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   }, [results, runtime]);
   
   return (
-    <div className="results-display">
-      <div>{statementCounter}</div>
+    <div className="results-display">  
       {results && results.length > 0 && (        
         <div className="mb-4">
           <WodResults results={results} runtime={runtime} />

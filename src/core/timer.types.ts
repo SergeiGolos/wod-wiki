@@ -106,11 +106,15 @@ export interface IRuntimeAction {
   
 
   export class RuntimeTrace {  
-    private trace: Map<number, number> = new Map();
+    private trace: Map<number, [number, number]> = new Map();
     public history: StatementKey[] = [];
     
     get(id:number) : number {
-      return this.trace.get(id) ?? 0;
+      return this.trace.get(id)?.[0] ?? 0;
+    }
+
+    getTotal(id:number) : number {
+      return this.trace.get(id)?.[1] ?? 0;
     }
   
     set(stack: StatementNode[]) : StatementKey {
@@ -120,16 +124,18 @@ export interface IRuntimeAction {
       : undefined;
 
      for(const node of stack) {    
-      const index = (this.trace.get(node.id) ?? 0) + 1;
-      this.trace.set(node.id, index);
+      const index = (this.trace.get(node.id)?.[0] ?? 0) + 1;
+      const total = this.getTotal(node.id)+1;
+      this.trace.set(node.id, [index, total]);
       key.push(node.id, index);
      }
-     
-     this.history.push(key);
+ 
+ this.history.push(key);
      if (previous) {
       const diff = previous.not(key);      
       for(const id of diff) {
-        this.trace.set(id, 0);
+        const total = this.getTotal(id)
+        this.trace.set(id, [0,total]);
       }
      }
 

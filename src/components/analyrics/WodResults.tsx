@@ -1,4 +1,4 @@
-import React, { MutableRefObject } from 'react';
+import React, { MutableRefObject, useState } from 'react';
 import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
 
 interface WodResultsProps {
@@ -7,6 +7,9 @@ interface WodResultsProps {
 }
 
 export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
+  // State to track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
   // Extract all metrics from result spans
   const exerciseMetrics = results.flatMap(result => 
     result.metrics.map(metric => ({
@@ -41,6 +44,20 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     };
   });
 
+  // Toggle section expansion
+  const toggleSection = (effort: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [effort]: !prev[effort]
+    }));
+  };
+
+  // Check if a section is expanded
+  const isSectionExpanded = (effort: string) => {
+    // Default to expanded if not explicitly collapsed
+    return expandedSections[effort] !== false;
+  };
+
   return (
     <div className="overflow-x-auto px-3 py-1">
       <table className="min-w-full">
@@ -63,8 +80,15 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
         <tbody className="bg-white">
           {effortGroups.map((group, groupIndex) => [
             // Group header with totals
-            <tr key={`group-${group.effort}`} className="bg-gray-100 font-semibold">
+            <tr 
+              key={`group-${group.effort}`} 
+              className="bg-gray-100 font-semibold cursor-pointer hover:bg-gray-200"
+              onClick={() => toggleSection(group.effort)}
+            >
               <td className="px-3 py-2 text-sm text-gray-700">
+                <span className="inline-block w-4 mr-1">
+                  {isSectionExpanded(group.effort) ? '▼' : '►'}
+                </span>
                 Total
               </td>
               <td className="px-3 py-2 text-sm text-gray-700">
@@ -77,30 +101,33 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
                 {group.totalReps} reps
               </td>
             </tr>,
-            // Individual instances
-            ...group.items.map((item, index) => {
-              const result = item.result;
-              const blockId = result.blockKey?.split('|')[0] || 'unknown';
-              
-              return (
-                <tr key={`${group.effort}-${index}`}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                    {result.index || 'N/A'} (Block {blockId})
-                  </td>
-                  <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
-                    {item.effort}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                    {item.duration.toFixed(1)}s
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-500">  
-                    {item.repetitions > 0 && `${item.repetitions} reps`}
-                    {item.value > 0 && ` ${item.value}${item.unit}`}
-                  </td>
-                </tr>
-              );
-            })
+            // Individual instances (only shown if section is expanded)
+            ...(isSectionExpanded(group.effort) ? 
+              group.items.map((item, index) => {
+                const result = item.result;
+                const blockId = result.blockKey?.split('|')[0] || 'unknown';
+                
+                return (
+                  <tr key={`${group.effort}-${index}`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200 pl-8">
+                      {result.index || 'N/A'} (Block {blockId})
+                    </td>
+                    <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
+                      {item.effort}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
+                      {item.duration.toFixed(1)}s
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-500">  
+                      {item.repetitions > 0 && `${item.repetitions} reps`}
+                      {item.value > 0 && ` ${item.value}${item.unit}`}
+                    </td>
+                  </tr>
+                );
+              })
+              : []
+            )
           ])}
         </tbody>
       </table>
