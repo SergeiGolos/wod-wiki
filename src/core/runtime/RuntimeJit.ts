@@ -6,6 +6,7 @@ import {
   IRuntimeAction,
   ITimerRuntime,
   RuntimeEvent,
+  RuntimeMetric,
 } from "../timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
@@ -124,14 +125,9 @@ export class RuntimeJit {
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
 
-    let logger: IRuntimeLogger = new DefaultResultLogger(
-      efforts,
-      currentRep,
-      resistance,
-      distance  
-    );
+    let logger: IRuntimeLogger = new DefaultResultLogger();
     if (repetitions && rounds) {
-      logger = new WorkRestLogger(efforts, rounds, currentRep, resistance, distance);
+      logger = new WorkRestLogger();
     }
 
     const block = new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
@@ -179,6 +175,7 @@ export class RuntimeJit {
           value: distanceValue,
           unit: distance.units ?? ''
         };
+        metric.repetitions = !metric.repetitions || metric.repetitions == 0? 1 : metric.repetitions ;
       }
     }
     

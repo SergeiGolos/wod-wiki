@@ -5,12 +5,10 @@ export interface EffortGroup {
   count: number;
   totalReps: number;
   totalTime: string;
-  totalWeightDistance: number; // Kept for backward compatibility
-  totalWeight?: number;        // New field for weight
-  totalDistance?: number;      // New field for distance
-  unit: string;                // Kept for backward compatibility
-  weightUnit?: string;         // New field for weight unit
-  distanceUnit?: string;       // New field for distance unit
+  totalWeight?: number;
+  totalDistance?: number;
+  weightUnit?: string;
+  distanceUnit?: string;
   newestTimestamp: number;
 }
 
@@ -25,21 +23,11 @@ export const WodResultsSectionHead: React.FC<WodResultsSectionHeadProps> = ({
   isExpanded, 
   onToggle 
 }) => {
-  // Handle weight/resistance independently
-  const hasNewWeightMetric = group.totalWeight !== undefined;
-  const weight = hasNewWeightMetric ? group.totalWeight : 
-    (group.unit === 'lb' || group.unit === 'kg' ? group.totalWeightDistance : 0);
-  const weightUnit = hasNewWeightMetric ? group.weightUnit : 
-    (group.unit === 'lb' || group.unit === 'kg' ? group.unit : '');
-  const hasWeight = weight !== undefined && weight > 0 && weightUnit;
+  // Handle weight/resistance directly
+  const hasWeight = group.totalWeight !== undefined && group.totalWeight > 0 && group.weightUnit;
   
-  // Handle distance independently
-  const hasNewDistanceMetric = group.totalDistance !== undefined;
-  const distance = hasNewDistanceMetric ? group.totalDistance : 
-    (group.unit === 'm' || group.unit === 'km' ? group.totalWeightDistance : 0);
-  const distanceUnit = hasNewDistanceMetric ? group.distanceUnit : 
-    (group.unit === 'm' || group.unit === 'km' ? group.unit : '');
-  const hasDistance = distance !== undefined && distance > 0 && distanceUnit;
+  // Handle distance directly
+  const hasDistance = group.totalDistance !== undefined && group.totalDistance > 0 && group.distanceUnit;
   
   return (
     <div className="shadow-sm">
@@ -80,7 +68,7 @@ export const WodResultsSectionHead: React.FC<WodResultsSectionHeadProps> = ({
                     <div className="flex items-center">
                       <span className="text-gray-500 mr-1">💪</span>
                       <span className="font-medium">
-                        {weight}{weightUnit}
+                        {group.totalWeight}{group.weightUnit}
                       </span>
                     </div>
                   )}
@@ -90,7 +78,7 @@ export const WodResultsSectionHead: React.FC<WodResultsSectionHeadProps> = ({
                     <div className="flex items-center">
                       <span className="text-gray-500 mr-1">📏</span>
                       <span className="font-medium">
-                        {distance}{distanceUnit}
+                        {group.totalDistance}{group.distanceUnit}
                       </span>
                     </div>
                   )}

@@ -56,7 +56,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     }, 0);
     
     // Calculate the total distance
-    const totalDistance = items.reduce((acc, item) => {
+    const totalDistance = items.reduce((acc, item) => {      
       if (item.distance?.value) {
         return acc + (item.distance.value * item.repetitions);
       }
@@ -98,34 +98,18 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return expandedSections[effort] === true;
   };
 
-  const toEffortGroup = (group: typeof effortGroups[0]): EffortGroup => {
-    // Set the appropriate totalWeightDistance for backward compatibility
-    // based on what type of metrics are available
-    let totalWeightDistance = 0;
-    let unit = '';
-    
-    if (group.totalWeight && group.weightUnit) {
-      totalWeightDistance = group.totalWeight;
-      unit = group.weightUnit;
-    } else if (group.totalDistance && group.distanceUnit) {
-      totalWeightDistance = group.totalDistance;
-      unit = group.distanceUnit;
-    }
-    
-    return {
-      effort: group.effort,
-      count: group.count,
-      totalReps: group.totalReps,
-      totalTime: group.totalTime,
-      totalWeightDistance, // Set this for backward compatibility
-      totalWeight: group.totalWeight,
-      totalDistance: group.totalDistance,
-      unit, // Set this for backward compatibility
-      weightUnit: group.weightUnit,
-      distanceUnit: group.distanceUnit,
-      newestTimestamp: group.newestTimestamp
-    };
-  };
+  // Convert to EffortGroup without any backward compatibility
+  const toEffortGroup = (group: typeof effortGroups[0]): EffortGroup => ({
+    effort: group.effort,
+    count: group.count,
+    totalReps: group.totalReps,
+    totalTime: group.totalTime,
+    totalWeight: group.totalWeight,
+    totalDistance: group.totalDistance,
+    weightUnit: group.weightUnit,
+    distanceUnit: group.distanceUnit,
+    newestTimestamp: group.newestTimestamp
+  });
 
   return (
     <div className="">
