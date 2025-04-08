@@ -1,5 +1,5 @@
 import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
+import { ResultSpan, MetricValue } from '@/core/timer.types';
 
 interface EventsViewProps {
   results: ResultSpan[];
@@ -10,9 +10,9 @@ export const EventsView: React.FC<EventsViewProps> = ({ results, runtime }) => {
   // Sort the results in reverse chronological order
   const sortedResults = [...results].sort((a, b) => {
     // Use the stop timestamp for comparison, or createdAt if stop is not available
-    const timeA = a.stop?.timestamp || a.start?.timestamp || new Date()
-    const timeB = b.stop?.timestamp || b.start?.timestamp || new Date()
-    return timeB.getTime() - timeA.getTime(); // Reverse order (newest first)
+    const timeA = a.stop?.timestamp || a.start?.timestamp || Date.now();
+    const timeB = b.stop?.timestamp || b.start?.timestamp || Date.now();
+    return timeB - timeA; // Reverse order (newest first)
   });
 
   // Format timestamp to a readable format
@@ -24,6 +24,11 @@ export const EventsView: React.FC<EventsViewProps> = ({ results, runtime }) => {
   // Format duration in seconds
   const formatDuration = (duration: number): string => {
     return `${(duration / 1000).toFixed(1)}s`;
+  };
+
+  // Format resistance or distance value
+  const formatMetricValue = (metricValue?: MetricValue): string => {
+    return metricValue ? `${metricValue.value}${metricValue.unit}` : '-';
   };
 
   return (
@@ -58,27 +63,19 @@ export const EventsView: React.FC<EventsViewProps> = ({ results, runtime }) => {
                 // Get the effort name from the first metric if available
                 const effort = result.metrics && result.metrics.length > 0 
                   ? result.metrics[0].effort 
-                  : result.type || 'Event';
+                  : 'Event';
                 
                 // Calculate totals for this result span
                 const totalReps = result.metrics?.reduce((sum, m) => sum + m.repetitions, 0) || 0;
                 
-                // Extract resistance (weight) and distance metrics
-                const resistanceMetric = result.metrics?.find(m => m.unit === 'lb' || m.unit === 'kg');
-                const distanceMetric = result.metrics?.find(m => m.unit === 'm' || m.unit === 'km');
-                
-                const resistance = resistanceMetric 
-                  ? `${resistanceMetric.value}${resistanceMetric.unit}` 
-                  : '-';
-                  
-                const distance = distanceMetric 
-                  ? `${distanceMetric.value}${distanceMetric.unit}` 
-                  : '-';
+                // Find the first metric with resistance and distance values
+                const resistanceMetric = result.metrics?.find(m => m.resistance)?.resistance;
+                const distanceMetric = result.metrics?.find(m => m.distance)?.distance;
                 
                 return (
                   <tr key={`event-${index}`} className="hover:bg-gray-50">
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                      {formatTimestamp(result.stop?.timestamp || result.createdAt?.timestamp || 0)}
+                      {formatTimestamp(result.stop?.timestamp || 0)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                       {effort}
@@ -90,10 +87,10 @@ export const EventsView: React.FC<EventsViewProps> = ({ results, runtime }) => {
                       {totalReps > 0 ? totalReps : '-'}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                      {resistance}
+                      {formatMetricValue(resistanceMetric)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                      {distance}
+                      {formatMetricValue(distanceMetric)}
                     </td>
                   </tr>
                 );

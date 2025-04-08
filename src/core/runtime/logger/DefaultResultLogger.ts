@@ -7,7 +7,7 @@
  * - Processing timer events and delegating to appropriate handlers
  */
 
-import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent, RuntimeMetric } from "@/core/timer.types";
+import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent, RuntimeMetric, MetricValue } from "@/core/timer.types";
 import { EffortFragment } from "@/core/fragments/EffortFragment";
 import { RepFragment } from "@/core/fragments/RepFragment";
 import { DistanceFragment, ResistanceFragment } from "@/core/fragments/ResistanceFragment";
@@ -42,8 +42,8 @@ export class DefaultResultLogger implements IRuntimeLogger {
           span.start = previousRelevantEvent;
           span.stop = currentEvent;          
 
-          // Create and add metrics from stored fragments
-          span.metrics = this.createMetrics();
+          // Use the metrics from the runtime block
+          span.metrics = [...runtimeBlock.metrics];
 
           resultSpans.push(span);
         }
@@ -51,35 +51,5 @@ export class DefaultResultLogger implements IRuntimeLogger {
       }
     }
     return resultSpans;
-  }
-
-  private createMetrics(): RuntimeMetric[] {
-    const metrics: RuntimeMetric[] = [];
-
-    // Basic mapping - assumes one set of metrics applies to the whole block/span
-    const effort = this.efforts?.effort ?? '';
-    const reps = this.repetitions?.reps ?? 0;
-    const valueStr = this.resistance?.value ?? this.distance?.value ?? '0';
-    const unit = this.resistance?.units ?? this.distance?.units ?? ''    
-    let value = parseFloat(valueStr); // Convert string value to number
-    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`, this);
-    // Handle potential number format issues
-    if (isNaN(value)) {
-      console.warn(`Invalid value format: ${valueStr}, defaulting to 0`);
-      value = 0;
-    }
-    
-    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`);
-    
-    // Always create a metric even if some values are empty/zero
-    // This ensures data flows through the system even if incomplete
-    metrics.push({
-      effort: effort,
-      repetitions: reps,
-      value: value,
-      unit: unit,
-    });
-
-    return metrics;
   }
 }

@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode} from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric } from "@/core/timer.types";
 import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "./EventHandler";
 
@@ -30,6 +30,7 @@ export class RuntimeBlock implements IRuntimeBlock {
   public type: string = 'runtime';  
   public events: RuntimeEvent[] = [];
   public blockId: number;
+  public metrics: RuntimeMetric[] = [];
 
   onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     return this.handlers

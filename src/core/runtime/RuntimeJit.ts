@@ -134,6 +134,55 @@ export class RuntimeJit {
       logger = new WorkRestLogger(efforts, rounds, currentRep, resistance, distance);
     }
 
-    return new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
+    const block = new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
+    
+    // Create metrics for the block with the new structure
+    block.metrics = this.createBlockMetrics(efforts, currentRep, resistance, distance);
+    
+    return block;
+  }
+  
+  private createBlockMetrics(
+    efforts?: EffortFragment,
+    repetitions?: RepFragment,
+    resistance?: ResistanceFragment,
+    distance?: DistanceFragment
+  ): RuntimeMetric[] {
+    const metrics: RuntimeMetric[] = [];
+    
+    // Basic metrics compilation
+    const effort = efforts?.effort ?? '';
+    const reps = repetitions?.reps ?? 0;
+    
+    // Create the metric with the new structure
+    const metric: RuntimeMetric = {
+      effort: effort,
+      repetitions: reps,
+    };
+    
+    // Add resistance if available
+    if (resistance) {
+      const resistanceValue = parseFloat(resistance.value);
+      if (!isNaN(resistanceValue)) {
+        metric.resistance = {
+          value: resistanceValue,
+          unit: resistance.units ?? ''
+        };
+      }
+    }
+    
+    // Add distance if available
+    if (distance) {
+      const distanceValue = parseFloat(distance.value);
+      if (!isNaN(distanceValue)) {
+        metric.distance = {
+          value: distanceValue,
+          unit: distance.units ?? ''
+        };
+      }
+    }
+    
+    metrics.push(metric);
+    return metrics;
   }
 }

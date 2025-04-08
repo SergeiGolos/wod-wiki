@@ -50,48 +50,51 @@ export const WodResultsSectionHead: React.FC<WodResultsSectionHeadProps> = ({
           onClick={onToggle}
         >
           <div className="flex justify-between items-center p-2">
-            <div className="flex items-center space-x-3">
-              <h3 className="font-semibold text-gray-800 w-32">
+            <div className="flex items-center">
+              <h3 className="font-semibold text-gray-800 w-32 mr-2">
                 {group.effort}
               </h3>
               
-              {/* Metrics in the same row - only show non-empty metrics */}
-              <div className="flex space-x-4 text-sm">
-                {/* Time metric */}
-                {group.totalTime && group.totalTime !== '0' && (
-                  <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">⏱️</span>
-                    <span className="font-medium">{group.totalTime}s</span>
-                  </div>
-                )}
-                
-                {/* Reps metric */}
-                {group.totalReps > 0 && (
-                  <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">🔄</span>
-                    <span className="font-medium">{group.totalReps} reps</span>
-                  </div>
-                )}
-                
-                {/* Weight metric - only show if there's a weight value */}
-                {hasWeight && (
-                  <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">💪</span>
-                    <span className="font-medium">
-                      {weight}{weightUnit}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Distance metric - only show if there's a distance value */}
-                {hasDistance && (
-                  <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">📏</span>
-                    <span className="font-medium">
-                      {distance}{distanceUnit}
-                    </span>
-                  </div>
-                )}
+              {/* Metrics in the same row with equal spacing */}
+              <div className="flex items-center">
+                {/* Use a grid layout for even spacing */}
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Time metric */}
+                  {group.totalTime && group.totalTime !== '0' && (
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1">⏱️</span>
+                      <span className="font-medium">{group.totalTime}s</span>
+                    </div>
+                  )}
+                  
+                  {/* Reps metric */}
+                  {group.totalReps > 0 && (
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1">🔄</span>
+                      <span className="font-medium">{group.totalReps} reps</span>
+                    </div>
+                  )}
+                  
+                  {/* Weight metric - only show if there's a weight value */}
+                  {hasWeight && (
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1">💪</span>
+                      <span className="font-medium">
+                        {weight}{weightUnit}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Distance metric - only show if there's a distance value */}
+                  {hasDistance && (
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1">📏</span>
+                      <span className="font-medium">
+                        {distance}{distanceUnit}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -102,7 +105,7 @@ export const WodResultsSectionHead: React.FC<WodResultsSectionHeadProps> = ({
           className="flex items-center px-3 cursor-pointer hover:bg-gray-100 transition-colors"
           onClick={onToggle}
         >
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 whitespace-nowrap">
+          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">
             {group.count} {group.count === 1 ? 'round' : 'rounds'}
           </span>
         </div>

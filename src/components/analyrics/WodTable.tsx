@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { ResultSpan } from '@/core/timer.types';
+import { ResultSpan, MetricValue } from '@/core/timer.types';
 
 interface WodTableProps {
   results: ResultSpan[];
+}
+
+// Define a structured metric item interface matching the new structure
+interface ExerciseMetricItem {
+  blockKey?: string;
+  index?: number;
+  round: number;
+  effort: string;
+  repetitions: number;
+  resistance?: MetricValue;
+  distance?: MetricValue;
+  duration: number;
 }
 
 export const WodTable: React.FC<WodTableProps> = ({ results }) => {
   // State to track which sections are expanded
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  // Extract all metrics from result spans
+  // Extract all metrics from result spans with the new structure
   const exerciseMetrics = results.flatMap(result => 
     result.metrics.map(metric => ({
       blockKey: result.blockKey,
@@ -17,8 +29,8 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
       round: result.stack?.[0] || 0,
       effort: metric.effort,
       repetitions: metric.repetitions,
-      value: metric.value,
-      unit: metric.unit,
+      resistance: metric.resistance,
+      distance: metric.distance,
       duration: result.duration ? result.duration() / 1000 : 0 // duration in seconds
     }))
   );
@@ -30,22 +42,34 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
     }
     acc[metric.effort].push(metric);
     return acc;
-  }, {} as Record<string, typeof exerciseMetrics>);
+  }, {} as Record<string, ExerciseMetricItem[]>);
 
   // Calculate totals for each effort group
   const effortGroups = Object.entries(groupedByEffort).map(([effort, metrics]) => {
     const totalReps = metrics.reduce((sum, m) => sum + m.repetitions, 0);
     const totalTime = metrics.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
-    const avgWeight = metrics.length > 0 ? 
-      metrics.reduce((sum, m) => sum + m.value, 0) / metrics.length : 
-      0;
+    
+    // Calculate average resistance if present
+    const resistanceMetrics = metrics.filter(m => m.resistance?.value);
+    const avgResistance = resistanceMetrics.length > 0 
+      ? resistanceMetrics.reduce((sum, m) => sum + (m.resistance?.value || 0), 0) / resistanceMetrics.length 
+      : 0;
+    const resistanceUnit = resistanceMetrics.length > 0 ? resistanceMetrics[0].resistance?.unit || '' : '';
+    
+    // Calculate average distance if present
+    const distanceMetrics = metrics.filter(m => m.distance?.value);
+    const avgDistance = distanceMetrics.length > 0 
+      ? distanceMetrics.reduce((sum, m) => sum + (m.distance?.value || 0), 0) / distanceMetrics.length 
+      : 0;
+    const distanceUnit = distanceMetrics.length > 0 ? distanceMetrics[0].distance?.unit || '' : '';
     
     return {
       effort,
       metrics,
       totalReps,
       totalTime,
-      avgWeight: avgWeight > 0 ? `${avgWeight}${metrics[0].unit}` : '-'
+      avgResistance: avgResistance > 0 ? `${avgResistance.toFixed(1)}${resistanceUnit}` : '-',
+      avgDistance: avgDistance > 0 ? `${avgDistance.toFixed(1)}${distanceUnit}` : '-'
     };
   });
 
@@ -61,6 +85,13 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
   const isSectionExpanded = (effort: string) => {
     // Default to expanded if not explicitly collapsed
     return expandedSections[effort] !== false;
+  };
+
+  // Format metric value helper
+  const formatMetricValue = (metricValue?: MetricValue): string => {
+    return metricValue && metricValue.value > 0 
+      ? `${metricValue.value}${metricValue.unit}` 
+      : '-';
   };
 
   return (
@@ -81,7 +112,10 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
               Reps
             </th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
-              Weight
+              Resistance
+            </th>
+            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
+              Distance
             </th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b-2 border-gray-300">
               Time
@@ -109,7 +143,10 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
                 {group.totalReps}
               </td>
               <td className="px-3 py-2 text-sm text-gray-700">
-                {group.avgWeight}
+                {group.avgResistance}
+              </td>
+              <td className="px-3 py-2 text-sm text-gray-700">
+                {group.avgDistance}
               </td>
               <td className="px-3 py-2 text-sm text-gray-700">
                 {group.totalTime}s
@@ -130,7 +167,10 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
                     {metric.repetitions > 0 ? metric.repetitions : '-'}
                   </td>
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                    {metric.value > 0 ? `${metric.value}${metric.unit}` : '-'}
+                    {formatMetricValue(metric.resistance)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
+                    {formatMetricValue(metric.distance)}
                   </td>
                   <td className="px-3 py-2 text-sm text-gray-500">
                     {metric.duration.toFixed(1)}s
