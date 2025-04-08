@@ -210,6 +210,7 @@ export interface StatementNode {
     children: number[];
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];
+    isLeaf?: boolean; // Explicit flag to mark a node as a leaf even if it has children
 }
 
 

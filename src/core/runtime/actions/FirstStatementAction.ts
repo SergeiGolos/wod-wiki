@@ -6,7 +6,7 @@ export class FirstStatementAction implements IRuntimeAction {
   apply(runtime: ITimerRuntime): RuntimeEvent[] {    
     runtime.reset();
     
-    const block = runtime.script.leafs[0];                
+    const block = runtime.script.nodes[0];                
     if (block) {
       runtime.gotoBlock(block);
     }

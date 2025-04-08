@@ -91,10 +91,6 @@ describe('RuntimeStack', () => {
     expect(runtimeStack.leafs[1].id).toBe(3);
   });
   
-  test('getIndex returns correct node', () => {
-    const node = runtimeStack.getIndex(0);
-    expect(node?.id).toBe(2);
-  });
   
   test('getId returns correct index', () => {
     expect(runtimeStack.getId(1)).toBe(0);

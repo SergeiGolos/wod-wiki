@@ -84,7 +84,6 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
         }
       }
     ]);
-    console.log("Test!!!!!");
     
     return () => {
       if (editorRef.current) {

@@ -118,9 +118,7 @@ export class RuntimeJit {
     const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
     const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
     const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
-    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");
-    
-    console.log("Fragments:", efforts, rounds, repetitions, resistance, distance);
+    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");       
 
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
