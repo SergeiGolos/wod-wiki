@@ -25,7 +25,7 @@ import { RoundsFragment } from "../fragments/RoundsFragment";
 import { WorkRestLogger } from "./logger/WorkRestLogger";
 import { RepFragment } from "../fragments/RepFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
-import { ResistanceFragment } from "../fragments/ResistanceFragment";
+import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
 import { PlaySoundAction } from "./actions/PlaySoundAction";
 
 /**
@@ -117,7 +117,9 @@ export class RuntimeJit {
     const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
     const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
     const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
-    console.log(efforts, rounds, repetitions, resistance);
+    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");
+    
+    console.log("Fragments:", efforts, rounds, repetitions, resistance, distance);
 
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
@@ -125,10 +127,11 @@ export class RuntimeJit {
     let logger: IRuntimeLogger = new DefaultResultLogger(
       efforts,
       currentRep,
-      resistance
+      resistance,
+      distance  
     );
     if (repetitions && rounds) {
-      logger = new WorkRestLogger(efforts, rounds, currentRep, resistance);
+      logger = new WorkRestLogger(efforts, rounds, currentRep, resistance, distance);
     }
 
     return new RuntimeBlock(key.toString(), nodes, logger, this.handlers);

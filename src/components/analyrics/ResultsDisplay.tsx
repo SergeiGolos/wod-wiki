@@ -16,7 +16,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   results,
   runtime
 }) => {
-  const [activeTab, setActiveTab] = useState<TabOption>('Totals');
+  const [activeTab, setActiveTab] = useState<TabOption>('Efforts');
   const [statementCounter, setStatementCounter] = useState<number>(0);
   
   useEffect(() => {
@@ -35,7 +35,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           {!results || results.length === 0 && (
             <div className="text-gray-500 text-sm p-4">Run the timers to log efforts.</div>
           )}
-          {activeTab === 'Totals' && (
+          {activeTab === 'Grouped' && (
             <WodResults results={results} runtime={runtime} />
           )}
           

@@ -110,15 +110,15 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   };
 
   return (
-    <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>
-      <div className="timer-controls p-4">
+    <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
+      <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
+      <div className="timer-controls p-1">
         <ButtonRibbon 
           buttons={buttons} 
           leftButtons={[soundToggleButton, screenOnToggleButton]} 
           setEvents={setStack} 
         />              
       </div>      
-      <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
       {display && display.label !== 'idle' && <WodTimer display={display} />}      
       <ResultsDisplay runtime={runtimeRef} results={results} />
     </div>

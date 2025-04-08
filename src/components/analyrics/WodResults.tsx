@@ -1,6 +1,6 @@
 import React, { MutableRefObject, useState } from 'react';
 import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
-import { WodResultsSectionHead } from './WodResultsSectionHead';
+import { WodResultsSectionHead, EffortGroup } from './WodResultsSectionHead';
 import { WodResultsRow } from './WodResultsRow';
 
 interface WodResultsProps {
@@ -34,6 +34,12 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return acc;
   }, {} as Record<string, typeof exerciseMetrics>);
 
+  // Helper function to determine if a unit is for weight
+  const isWeightUnit = (unit: string) => unit === 'lb' || unit === 'kg';
+  
+  // Helper function to determine if a unit is for distance
+  const isDistanceUnit = (unit: string) => unit === 'm' || unit === 'km';
+
   // Calculate totals for each effort group and reverse the order of items
   const effortGroups = Object.entries(groupedByEffort).map(([effort, items]) => {
     // Reverse the order of items within each group
@@ -42,16 +48,27 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     const totalReps = items.reduce((sum, m) => sum + m.repetitions, 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
-    // Calculate total weight/distance
-    const totalWeightDistance = items.reduce((acc, item) => {
-      if (item.value > 0) {
+    // Calculate total weight/resistance (only for weight units)
+    const totalWeight = items.reduce((acc, item) => {
+      if (item.value > 0 && isWeightUnit(item.unit)) {
         return acc + (item.value * item.repetitions);
       }
       return acc;
     }, 0);
     
-    // Get the unit from the first item with a value (if any)
-    const unit = items.find(item => item.value > 0)?.unit || '';
+    // Calculate total distance (only for distance units)
+    const totalDistance = items.reduce((acc, item) => {
+      if (item.value > 0 && isDistanceUnit(item.unit)) {
+        return acc + (item.value * item.repetitions);
+      }
+      return acc;
+    }, 0);
+    
+    // Get the weight unit if any weight items exist
+    const weightUnit = items.find(item => item.value > 0 && isWeightUnit(item.unit))?.unit || '';
+    
+    // Get the distance unit if any distance items exist
+    const distanceUnit = items.find(item => item.value > 0 && isDistanceUnit(item.unit))?.unit || '';
     
     // Find the newest timestamp in this group
     const newestTimestamp = Math.max(...items.map(item => item.timestamp));
@@ -61,8 +78,10 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       items: reversedItems, // Use the reversed items
       totalReps,
       totalTime,
-      totalWeightDistance,
-      unit,
+      totalWeight,
+      totalDistance,
+      weightUnit,
+      distanceUnit,
       count: items.length,
       newestTimestamp // Store the newest timestamp for sorting
     };
@@ -87,13 +106,28 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return expandedSections[effort] === true;
   };
 
+  // Convert our internal effort group to the one needed by WodResultsSectionHead
+  const toEffortGroup = (group: typeof effortGroups[0]): EffortGroup => ({
+    effort: group.effort,
+    count: group.count,
+    totalReps: group.totalReps,
+    totalTime: group.totalTime,
+    totalWeightDistance: group.totalWeight, // For backward compatibility
+    totalWeight: group.totalWeight,
+    totalDistance: group.totalDistance,
+    unit: group.weightUnit, // For backward compatibility
+    weightUnit: group.weightUnit,
+    distanceUnit: group.distanceUnit,
+    newestTimestamp: group.newestTimestamp
+  });
+
   return (
     <div className="">
       {sortedEffortGroups.map((group, groupIndex) => (
         <div key={`group-${group.effort}`} className="">
           {/* Use the section head component */}
           <WodResultsSectionHead
-            group={group}
+            group={toEffortGroup(group)}
             isExpanded={isSectionExpanded(group.effort)}
             onToggle={() => toggleSection(group.effort)}
           />
