@@ -227,12 +227,15 @@ export interface RuntimeResult {
     elapsedTime: number;
     remainingTime?: number;
   }
-  
+  export type MetricValue = {
+    value: number;
+    unit: string;
+  }
   export type RuntimeMetric = {
     effort: string;    
     repetitions: number;    
-    unit: string;
-    value: number;
+    resistance?: MetricValue;
+    distance?: MetricValue;
   }
   
   export interface IRuntimeBlock {    
