@@ -1,7 +1,7 @@
 import { IRuntimeLogger, IRuntimeBlock, ResultSpan, RuntimeMetric, RuntimeEvent } from "@/core/timer.types";
 import { EffortFragment } from "@/core/fragments/EffortFragment";
 import { RepFragment } from "@/core/fragments/RepFragment";
-import { ResistanceFragment } from "@/core/fragments/ResistanceFragment";
+import { DistanceFragment, ResistanceFragment } from "@/core/fragments/ResistanceFragment";
 import { RoundsFragment } from "@/core/fragments/RoundsFragment";
 
 export class WorkRestLogger implements IRuntimeLogger {
@@ -10,7 +10,8 @@ export class WorkRestLogger implements IRuntimeLogger {
     private efforts?: EffortFragment,
     private rounds?: RoundsFragment,
     private repetitions?: RepFragment,
-    private resistance?: ResistanceFragment
+    private resistance?: ResistanceFragment,
+    private distance?: DistanceFragment
   ) { }
 
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {
@@ -45,22 +46,29 @@ export class WorkRestLogger implements IRuntimeLogger {
   private createMetrics(): RuntimeMetric[] {
     const metrics: RuntimeMetric[] = [];
 
+    // Basic mapping - assumes one set of metrics applies to the whole block/span
     const effort = this.efforts?.effort ?? '';
     const reps = this.repetitions?.reps ?? 0;
-    const valueStr = this.resistance?.value ?? '0';
-    const unit = this.resistance?.units ?? '';
-    const value = parseFloat(valueStr) || 0;
-
-    const roundCount = this.rounds?.count ?? 0;
-
-    if (effort || reps || value || unit || roundCount) {
-      metrics.push({
-        effort: effort,
-        repetitions: reps,
-        value: value,
-        unit: unit,
-      });
+    const valueStr = this.resistance?.value ?? this.distance?.value ?? '0';
+    const unit = this.resistance?.units ?? this.distance?.units ?? ''    
+    let value = parseFloat(valueStr); // Convert string value to number
+    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`, this);
+    // Handle potential number format issues
+    if (isNaN(value)) {
+      console.warn(`Invalid value format: ${valueStr}, defaulting to 0`);
+      value = 0;
     }
+    
+    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`);
+    
+    // Always create a metric even if some values are empty/zero
+    // This ensures data flows through the system even if incomplete
+    metrics.push({
+      effort: effort,
+      repetitions: reps,
+      value: value,
+      unit: unit,
+    });
 
     return metrics;
   }

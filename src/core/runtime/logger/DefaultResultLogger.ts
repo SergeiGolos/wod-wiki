@@ -10,7 +10,7 @@
 import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent, RuntimeMetric } from "@/core/timer.types";
 import { EffortFragment } from "@/core/fragments/EffortFragment";
 import { RepFragment } from "@/core/fragments/RepFragment";
-import { ResistanceFragment } from "@/core/fragments/ResistanceFragment";
+import { DistanceFragment, ResistanceFragment } from "@/core/fragments/ResistanceFragment";
 
 /**
  * Default logger implementation that creates ResultSpans between major timer events.
@@ -21,9 +21,9 @@ export class DefaultResultLogger implements IRuntimeLogger {
   constructor(
     private efforts?: EffortFragment,
     private repetitions?: RepFragment,
-    private resistance?: ResistanceFragment
+    private resistance?: ResistanceFragment,
+    private distance?: DistanceFragment
   ) { }
-
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {
     const timerEventTypes: string[] = ["start", "lap", "done", "complete", "stop"];
     const resultSpans: ResultSpan[] = [];
@@ -57,22 +57,28 @@ export class DefaultResultLogger implements IRuntimeLogger {
     const metrics: RuntimeMetric[] = [];
 
     // Basic mapping - assumes one set of metrics applies to the whole block/span
-    // TODO: Refine logic if metrics need finer-grained association
     const effort = this.efforts?.effort ?? '';
     const reps = this.repetitions?.reps ?? 0;
-    const valueStr = this.resistance?.value ?? '0';
-    const unit = this.resistance?.units ?? '';
-    const value = parseFloat(valueStr) || 0; // Convert string value to number
-    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${valueStr}, unit=${unit}`);
-    
-    if (effort || reps || value || unit) {
-      metrics.push({
-        effort: effort,
-        repetitions: reps,
-        value: value,
-        unit: unit,
-      });
+    const valueStr = this.resistance?.value ?? this.distance?.value ?? '0';
+    const unit = this.resistance?.units ?? this.distance?.units ?? ''    
+    let value = parseFloat(valueStr); // Convert string value to number
+    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`, this);
+    // Handle potential number format issues
+    if (isNaN(value)) {
+      console.warn(`Invalid value format: ${valueStr}, defaulting to 0`);
+      value = 0;
     }
+    
+    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`);
+    
+    // Always create a metric even if some values are empty/zero
+    // This ensures data flows through the system even if incomplete
+    metrics.push({
+      effort: effort,
+      repetitions: reps,
+      value: value,
+      unit: unit,
+    });
 
     return metrics;
   }

@@ -7,7 +7,6 @@ import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { DefaultSuggestionService } from '../hooks/SuggestionService';
 import { IRuntimeBlock, WodRuntimeScript, WodWikiToken } from '@/core/timer.types';
-import { debounce } from 'lodash';
 
 interface WodWikiProps {
   id: string;
@@ -43,13 +42,13 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
       });
     };
   
-    const handleContentSizeChange = debounce(() => {
+    const handleContentSizeChange = () => {
       if (editorRef.current) {
         const newHeight = Math.min(500, editorRef.current.getContentHeight()); // Example max height of 500px
         setHeight(newHeight);
         editorRef.current.layout();
       }
-    }, 150); // Debounce for 150ms
+    }
     
     function handleBeforeMount(monaco: Monaco) {
       initializer.handleBeforeMount(monaco);

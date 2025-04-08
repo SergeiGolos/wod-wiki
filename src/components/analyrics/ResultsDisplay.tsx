@@ -1,6 +1,9 @@
 import React, { MutableRefObject, useEffect, useState } from 'react';
 
 import { WodResults } from './WodResults';
+import { EventsView } from './EventsView';
+import { AnalyticsView } from './AnalyticsView';
+import { TabSelector, TabOption } from './TabSelector';
 import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
 
 
@@ -13,8 +16,9 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   results,
   runtime
 }) => {
-  
+  const [activeTab, setActiveTab] = useState<TabOption>('Efforts');
   const [statementCounter, setStatementCounter] = useState<number>(0);
+  
   useEffect(() => {
     if (runtime.current) {
       setStatementCounter(
@@ -25,11 +29,24 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   
   return (
     <div className="results-display">  
-      {results && results.length > 0 && (        
-        <div className="mb-4">
-          <WodResults results={results} runtime={runtime} />
-        </div>
-      )}        
+        
+      <div className="mb-4">
+          <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
+          {!results || results.length === 0 && (
+            <div className="text-gray-500 text-sm p-4">Run the timers to log efforts.</div>
+          )}
+          {activeTab === 'Grouped' && (
+            <WodResults results={results} runtime={runtime} />
+          )}
+          
+          {activeTab === 'Efforts' && (
+            <EventsView results={results} runtime={runtime} />
+          )}
+          
+          {activeTab === 'Analytics' && (
+            <AnalyticsView results={results} runtime={runtime} />
+          )}
+        </div>      
     </div>
   );
 };
