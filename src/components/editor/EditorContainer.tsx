@@ -119,7 +119,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         />              
       </div>      
       <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
-      {display && <WodTimer display={display} />}      
+      {display && display.label !== 'idle' && <WodTimer display={display} />}      
       <ResultsDisplay runtime={runtimeRef} results={results} />
     </div>
   );

@@ -90,7 +90,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
   return (
     <div className="">
       {sortedEffortGroups.map((group, groupIndex) => (
-        <div key={`group-${group.effort}`} className="mb-3">
+        <div key={`group-${group.effort}`} className="">
           {/* Use the section head component */}
           <WodResultsSectionHead
             group={group}
@@ -100,7 +100,7 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
           
           {/* Detailed table (only shown if section is expanded) */}
           {isSectionExpanded(group.effort) && (
-            <div className="mt-1 overflow-x-auto border-t border-gray-200 shadow-sm">
+            <div className="overflow-x-auto border-t border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -114,7 +114,10 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
                       Reps
                     </th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Weight / Distance
+                      Resistance
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Distance
                     </th>
                   </tr>
                 </thead>
