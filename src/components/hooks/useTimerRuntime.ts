@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetric } from "@/core/timer.types";
+import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetric, RuntimeMetricEdit } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
@@ -39,6 +39,7 @@ export function useTimerRuntime({
 
   const [buttons, setButtons] = useState<ButtonConfig[]>([startButton]);
   const [results, setResults] = useState<ResultSpan[]>([]);
+  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
 
   // Triggers the tick event every 100ms
   useEffect(() => {
@@ -81,7 +82,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor, setEdits); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }
@@ -94,6 +95,7 @@ export function useTimerRuntime({
     loadScript: handleLoadScript,
     runtimeRef,
     cursor,
+    edits,
     buttons,
     display,
     results,

@@ -165,13 +165,15 @@ export interface ITimerRuntime {
   reset(): void;
   display: TimerDisplayBag;
   buttons: ButtonConfig[];
+  edits: RuntimeMetricEdit[];
   results: ResultSpan[];  
   trace: RuntimeTrace | undefined;
-
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
   tick(events: RuntimeEvent[]): RuntimeEvent[];
   gotoBlock(node: StatementNode | undefined): IRuntimeBlock;
+  edit(metric: RuntimeMetricEdit): void;
+  
 }
 
 /**

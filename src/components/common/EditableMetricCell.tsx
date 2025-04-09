@@ -1,28 +1,47 @@
+import { MetricValue, RuntimeMetricEdit } from '@/core/timer.types';
 import React, { useState, useEffect, useRef } from 'react';
 
 export type MetricType = 'repetitions' | 'resistance' | 'distance'; // Export type
 
 interface EditableMetricCellProps {
-  initialValue: number | string;
+  blockKey: string;
+  index: number;
+  initialValue?: MetricValue;
   metricType: MetricType;
-  onSave: (newValue: number | string) => void; // Placeholder for saving logic
-  validate?: (newValue: number | string, metricType: MetricType) => boolean; // Pass metricType to validation
+  onSave: (update: RuntimeMetricEdit) => void; // Placeholder for saving logic
+  validate?: (newValue: MetricValue, oldValue?: MetricValue) => boolean; // Pass metricType to validation
+}
+
+export function createMetricValidation(units: string[]) {
+  return (newValue: MetricValue, oldValue?: MetricValue) => {
+    if (!newValue.value || newValue.value < 0) {
+      return false;
+    }
+
+    if (units.length > 0 && !units.includes(newValue.unit)) {
+      return false;
+    }
+
+    return true;
+  };
 }
 
 const EditableMetricCell: React.FC<EditableMetricCellProps> = ({
+  blockKey,
+  index,
   initialValue,
   metricType,
   onSave,
   validate = () => true, // Default validation passes
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [currentValue, setCurrentValue] = useState<string>(String(initialValue));
+  const [currentValue, setCurrentValue] = useState<string>(String(initialValue?.value || ''));
   const [error, setError] = useState<boolean>(false); // State for validation error
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset internal state if initialValue prop changes externally
   useEffect(() => {
-    setCurrentValue(String(initialValue));
+    setCurrentValue(String(initialValue?.value || ''));
     setIsEditing(false);
     setError(false); // Reset error on external change
   }, [initialValue]);
@@ -34,34 +53,27 @@ const EditableMetricCell: React.FC<EditableMetricCellProps> = ({
       inputRef.current?.select(); // Select text for easy replacement
     }
   }, [isEditing]);
-
+  
+  const regex = /(\d+)([a-zA-Z\s]*)?/; // Removed 'g' flag
   const handleAttemptSave = () => {
-    // Basic type coercion attempt (can be refined)
-    let newValue: number | string = currentValue;
-     if (metricType === 'reps') {
-        const parsedValue = parseInt(currentValue, 10);
-        if (isNaN(parsedValue)) {
-             console.warn('Invalid number format for reps');
-             setError(true); // Set error for NaN on reps
-             return; // Stop processing
-        }
-        newValue = parsedValue;
-    }
-    // For resistance/distance, keep as string for now, parsing happens higher up
-
-    if (validate(newValue, metricType)) { // Pass metricType to validator
-      setError(false); // Clear error on successful validation
-      onSave(newValue);
-      setIsEditing(false);
-    } else {
-      console.warn('Validation failed for:', newValue);
+    const parsed = currentValue.match(regex);
+    const value = Number(parsed?.[1]); // Use group 1 for value
+    const unit = parsed?.[2]?.trim() || ''; // Use group 2 for unit
+    const newValue:  MetricValue = { value, unit: unit || initialValue?.unit || '' };             
+    
+    if (value && !validate(newValue, initialValue)) {     
+      console.warn('Validation failed for:' + currentValue, newValue);
       setError(true); // Set error state
-      // Do not setIsEditing(false) - keep input open
+      return;
     }
+
+    setError(false); // Clear error on successful validation      
+    onSave({ blockKey, index, metricType, newValue, createdAt: new Date() });
+    setIsEditing(false);  
   };
 
   const handleCancel = () => {
-    setCurrentValue(String(initialValue));
+    setCurrentValue(String(initialValue?.value));
     setIsEditing(false);
     setError(false); // Clear error on cancel
   };
@@ -108,13 +120,12 @@ const EditableMetricCell: React.FC<EditableMetricCellProps> = ({
     return (
       <input
         ref={inputRef}
-        type={metricType === 'reps' ? 'number' : 'text'} // Use number type for reps
+        type={'text'}
         value={currentValue}
         onChange={handleChange} // Use new handler
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         className={inputClassName} // Use dynamic class name
-        min={metricType === 'reps' ? 0 : undefined} // Basic validation for reps
         aria-invalid={error} // Accessibility hint
       />
     );
@@ -122,7 +133,7 @@ const EditableMetricCell: React.FC<EditableMetricCellProps> = ({
 
   return (
     <span onClick={() => setIsEditing(true)} className="cursor-pointer hover:bg-gray-200 px-1 rounded w-full block text-right min-h-[1.5em]"> {/* Ensure minimum height */}
-      {initialValue}
+      {`${initialValue?.value || ''}${initialValue?.unit || ''}`}
     </span>
   );
 };

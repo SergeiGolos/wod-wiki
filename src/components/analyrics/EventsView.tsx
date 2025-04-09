@@ -1,6 +1,6 @@
 import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime, RuntimeMetric, MetricValue, RuntimeMetricEdit } from '@/core/timer.types';
-import EditableMetricCell, { MetricType } from '../common/EditableMetricCell';
+import { ResultSpan, ITimerRuntime, MetricValue, RuntimeMetricEdit, TimerFromSeconds } from '@/core/timer.types';
+import EditableMetricCell, { createMetricValidation } from '../common/EditableMetricCell';
 
 const parseMetricInput = (input: string): MetricValue | null => {
   const match = String(input).trim().match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)$/);
@@ -16,31 +16,12 @@ const parseMetricInput = (input: string): MetricValue | null => {
 
 interface EventsViewProps {
   results: ResultSpan[];
-  runtime: MutableRefObject<ITimerRuntime | undefined>;
-  onAddMetricUpdate: (update: RuntimeMetricEdit) => void;
-  validateMetric?: (value: string | number, type: MetricType) => boolean;
-}
-
-const defaultValidator = (value: string | number, type: MetricType): boolean => {
-  console.log(`Default validating: ${value} as ${type}`);
-  if (type === 'repetitions') {
-    // Check if it's a non-negative integer
-    const num = Number(value);
-    return !isNaN(num) && Number.isInteger(num) && num >= 0;
-  } else if (type === 'resistance' || type === 'distance') {
-    // Attempt to parse resistance/distance (e.g., '100kg', '5km', '150')
-    const parsed = parseMetricInput(String(value));
-    // Validation passes if parsing is successful (returns a MetricValue object)
-    return parsed !== null;
-  }
-  return true; // Should not happen
+  runtime: MutableRefObject<ITimerRuntime | undefined>;  
 }
 
 export const EventsView: React.FC<EventsViewProps> = ({
   results,
-  runtime,
-  onAddMetricUpdate,
-  validateMetric = defaultValidator
+  runtime
 }) => {
   const sortedResults = [...results].sort((a, b) => {
     const timeA = a.stop?.timestamp || a.start?.timestamp || new Date();
@@ -52,42 +33,14 @@ export const EventsView: React.FC<EventsViewProps> = ({
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
-  const formatDuration = (duration: number): string => `${(duration / 1000).toFixed(1)}s`;
-
-  const handleSaveMetric = (resultId: string, metricType: MetricType, newValue: number | string) => {
-    console.log(`Attempting save - ID: ${resultId}, Type: ${metricType}, New Value: ${newValue}`);
-
-    const [blockKey, indexStr] = resultId.split('-');
-    const index = Number(indexStr);
-    const resultIndex = sortedResults.findIndex(r => r.blockKey === blockKey && r.index === index);
-
-    if (resultIndex === -1) {
-      console.error("Result not found for ID:", resultId);
-      return;
-    }
-
-    const parsedValue = parseMetricInput(String(newValue));
-
-    if (!parsedValue) {
-      console.error(`Failed to parse ${metricType} input:`, newValue);
-      // Validation should prevent this, but good to double-check
-      return;
-    }
-
-    // Construct the update instruction object
-    const updateInstruction: RuntimeMetricEdit = {
-      blockKey,
-      index,
-      metricType: metricType as 'repetitions' | 'resistance' | 'distance', // Updated cast
-      newValue: parsedValue,
-      createdAt: new Date() // Add timestamp
-    };
-
-    // Call the new callback to add the update instruction
-    onAddMetricUpdate(updateInstruction);
-
-    console.log('Dispatched metric update instruction:', updateInstruction);
+  const formatDuration = (duration: number): string => {
+    const clock = new TimerFromSeconds(duration/1000).toClock();
+    return `${clock[0]}.${clock[1][0]}`;
   };
+  
+  const repValidation = createMetricValidation(['']);
+  const resistanceValidation = createMetricValidation(['kg', 'lbs', 'lb']);
+  const distanceValidation = createMetricValidation(['m', 'km', 'mile']);
 
   return (
     <div className="events-view">
@@ -107,12 +60,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedResults.map((result) => {
                 const effort = result.metrics?.[0]?.effort || 'Event';
-                const resistanceMetric = result.metrics?.find(m => m.resistance);
-                const distanceMetric = result.metrics?.find(m => m.distance);
-                const repsMetric = result.metrics?.find(m => m.repetitions);
-                const repsValue = repsMetric?.repetitions?.value; // Get the value if it exists
-                const resistance = resistanceMetric?.resistance ? `${resistanceMetric.resistance.value}${resistanceMetric.resistance.unit}` : '-';
-                const distance = distanceMetric?.distance ? `${distanceMetric.distance.value}${distanceMetric.distance.unit}` : '-';
+                const resistance = result.metrics?.find(m => m.resistance);
+                const distance = result.metrics?.find(m => m.distance);
+                const repsValue = result.metrics?.find(m => m.repetitions);
                 const resultId = `${result.blockKey}-${result.index}`;
 
                 if (!resultId) {
@@ -122,9 +72,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       <td className="px-3 py-2">... (Missing ID) ...</td>
                       <td className="px-3 py-2">{effort}</td>
                       <td className="px-3 py-2 text-right">{result.duration ? formatDuration(result.duration()) : '-'}</td>
-                      <td className="px-3 py-2 text-right">{repsValue > 0 ? repsValue : '-'}</td>
-                      <td className="px-3 py-2 text-right">{resistance}</td>
-                      <td className="px-3 py-2 text-right">{distance}</td>
+                      <td className="px-3 py-2 text-right">{repsValue?.repetitions?.value || '-'}</td>
+                      <td className="px-3 py-2 text-right">{resistance?.resistance?.value || '-'}</td>
+                      <td className="px-3 py-2 text-right">{distance?.distance?.value || '-'}</td>
                     </tr>
                   )
                 }
@@ -132,7 +82,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 return (
                   <tr key={resultId} className="hover:bg-gray-50">
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                      {formatTimestamp(result.stop?.timestamp || result.createdAt?.timestamp || 0)}
+                      {formatTimestamp(result.stop?.timestamp?.getTime() || result.start?.timestamp?.getTime() || 0)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                       {effort}
@@ -142,27 +92,30 @@ export const EventsView: React.FC<EventsViewProps> = ({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
                       <EditableMetricCell
-                        initialValue={repsValue ?? '-'} // Display value or '-' if none exists yet
+                        initialValue={repsValue?.repetitions} // Display value or '-' if none exists yet
                         metricType="repetitions" // Set type
-                        onSave={(newValue) => handleSaveMetric(resultId, 'repetitions', newValue)}
-                        validate={validateMetric}
-                      />
+                        onSave={(update) => runtime.current?.edit?.(update)}
+                        blockKey={result.blockKey!} index={result.index!}                      
+                        validate={repValidation}
+                        />
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
                       <EditableMetricCell
-                        initialValue={resistance} // Will be '-' if no data
+                        initialValue={resistance?.resistance} // Will be '-' if no data
                         metricType="resistance"
-                        onSave={(newValue) => handleSaveMetric(resultId, 'resistance', newValue)}
-                        validate={validateMetric}
-                      />
+                        onSave={(update) => runtime.current?.edit?.(update)}
+                        blockKey={result.blockKey!} index={result.index!}   
+                        validate={resistanceValidation}
+                        />
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
                       <EditableMetricCell
-                        initialValue={distance} // Will be '-' if no data
+                        initialValue={distance?.distance} // Will be '-' if no data
                         metricType="distance"
-                        onSave={(newValue) => handleSaveMetric(resultId, 'distance', newValue)}
-                        validate={validateMetric}
-                      />
+                        onSave={(update) => runtime.current?.edit?.(update)}
+                        blockKey={result.blockKey!} index={result.index!}   
+                        validate={distanceValidation}
+                        />
                     </td>
                   </tr>
                 );

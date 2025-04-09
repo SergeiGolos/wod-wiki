@@ -4,6 +4,7 @@ import { SetButtonAction } from './actions/SetButtonAction';
 import { NextStatementAction } from "./actions/NextStatementAction";
 import { test, expect, describe, beforeEach, vi } from "vitest";
 import { RuntimeEvent } from "@/core/timer.types";
+import { RuntimeJit } from "./RuntimeJit";
 
 // Mock dependencies
 vi.mock('../parser/timer.runtime');
@@ -17,7 +18,8 @@ describe('IdleRuntimeBlock', () => {
   beforeEach(() => {
     // Create a new block for each test
     block = new IdleRuntimeBlock();
-    mockRuntime = new TimerRuntime(null as any, () => {}, () => {}, () => {});    
+    const jit = new RuntimeJit();
+    mockRuntime = new TimerRuntime(null as any, jit, () => {}, () => {}, () => {}, () => {}, () => {});    
   });
 
   describe('onEvent', () => {
