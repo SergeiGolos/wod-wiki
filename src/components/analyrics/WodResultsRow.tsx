@@ -1,12 +1,12 @@
 import React from 'react';
-import { ResultSpan } from '@/core/timer.types';
+import { ResultSpan, MetricValue } from '@/core/timer.types';
 
 interface ResultMetricItem {
   result: ResultSpan;
   effort: string;
-  repetitions: number;
-  value: number;
-  unit: string;
+  repetitions?: MetricValue;
+  resistance?: MetricValue;
+  distance?: MetricValue;
   duration: number;
   timestamp: number;
 }
@@ -19,22 +19,11 @@ interface WodResultsRowProps {
 export const WodResultsRow: React.FC<WodResultsRowProps> = ({ item, index }) => {
   const result = item.result;
   const blockId = result.blockKey?.split('|')[0] || 'unknown';
-  
-  // Normalize the unit string (lowercase)
-  const normalizedUnit = item.unit.toLowerCase();
-  
-  // Determine if the value/unit is resistance or distance with more comprehensive checks
-  const isResistance = ['lb', 'kg', 'lbs', 'kgs', '#'].includes(normalizedUnit);
-  const isDistance = ['m', 'km', 'mi', 'ft', 'meter', 'meters'].includes(normalizedUnit);
-  
-  // Format values for display
-  const resistance = isResistance ? `${item.value}${item.unit}` : '-';
-  const distance = isDistance ? `${item.value}${item.unit}` : '-';
-  
-  // If we have a value but couldn't categorize it, default to resistance
-  const fallbackValue = (!isResistance && !isDistance && item.value > 0) ? 
-    `${item.value}${item.unit}` : '-';
-  
+
+  const repsDisplay = (item.repetitions?.value ?? 0) > 0 ? `${item.repetitions?.value}` : '-';
+  const resistanceDisplay = item.resistance ? `${item.resistance.value}${item.resistance.unit}` : '-';
+  const distanceDisplay = item.distance ? `${item.distance.value}${item.distance.unit}` : '-';
+
   return (
     <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50`}>
       <td className="pl-6 pr-3 py-2 text-sm text-gray-500 border-l-2 border-gray-200">
@@ -44,13 +33,13 @@ export const WodResultsRow: React.FC<WodResultsRowProps> = ({ item, index }) => 
         {item.duration.toFixed(1)}s
       </td>
       <td className="px-3 py-2 text-sm text-gray-500">
-        {item.repetitions > 0 ? `${item.repetitions}` : '-'}
+        {repsDisplay}
       </td>
       <td className="px-3 py-2 text-sm text-gray-500">
-        {isResistance ? resistance : fallbackValue}
+        {resistanceDisplay}
       </td>
       <td className="px-3 py-2 text-sm text-gray-500">
-        {distance}
+        {distanceDisplay}
       </td>
     </tr>
   );

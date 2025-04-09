@@ -4,17 +4,21 @@ import { WodResults } from './WodResults';
 import { EventsView } from './EventsView';
 import { AnalyticsView } from './AnalyticsView';
 import { TabSelector, TabOption } from './TabSelector';
-import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
-
+import { ResultSpan, ITimerRuntime, RuntimeMetric, RuntimeMetricEdit } from '@/core/timer.types';
 
 interface ResultsDisplayProps {  
   results: ResultSpan[];
   runtime: MutableRefObject<ITimerRuntime | undefined>;
+  /**
+   * Callback function to add a metric update instruction.
+   */
+  onAddMetricUpdate: (update: RuntimeMetricEdit) => void;
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({   
   results,
-  runtime
+  runtime,
+  onAddMetricUpdate
 }) => {
   const [activeTab, setActiveTab] = useState<TabOption>('Efforts');
   const [statementCounter, setStatementCounter] = useState<number>(0);
@@ -40,7 +44,11 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           )}
           
           {activeTab === 'Efforts' && (
-            <EventsView results={results} runtime={runtime} />
+            <EventsView 
+              results={results} 
+              runtime={runtime} 
+              onAddMetricUpdate={onAddMetricUpdate}
+            />
           )}
           
           {activeTab === 'Analytics' && (

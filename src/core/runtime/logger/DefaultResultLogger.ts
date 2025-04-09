@@ -56,29 +56,33 @@ export class DefaultResultLogger implements IRuntimeLogger {
   private createMetrics(): RuntimeMetric[] {
     const metrics: RuntimeMetric[] = [];
 
-    // Basic mapping - assumes one set of metrics applies to the whole block/span
     const effort = this.efforts?.effort ?? '';
     const reps = this.repetitions?.reps ?? 0;
-    const valueStr = this.resistance?.value ?? this.distance?.value ?? '0';
-    const unit = this.resistance?.units ?? this.distance?.units ?? ''    
-    let value = parseFloat(valueStr); // Convert string value to number
-    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`, this);
-    // Handle potential number format issues
-    if (isNaN(value)) {
-      console.warn(`Invalid value format: ${valueStr}, defaulting to 0`);
-      value = 0;
-    }
-    
-    console.log(`createMetrics: effort=${effort}, reps=${reps}, value=${value}, unit=${unit}`);
-    
-    // Always create a metric even if some values are empty/zero
-    // This ensures data flows through the system even if incomplete
-    metrics.push({
+
+    const newMetric: RuntimeMetric = {
       effort: effort,
-      repetitions: reps,
-      value: value,
-      unit: unit,
-    });
+      // Assign repetitions as a MetricValue
+      repetitions: { value: reps, unit: "" }, 
+    };
+
+    // Add resistance if present
+    if (this.resistance) {
+      const value = parseFloat(this.resistance.value ?? '0');
+      const unit = this.resistance.units ?? '';
+      newMetric.resistance = { value: isNaN(value) ? 0 : value, unit: unit };
+    }
+
+    // Add distance if present
+    if (this.distance) {
+      const value = parseFloat(this.distance.value ?? '0');
+      const unit = this.distance.units ?? '';
+      newMetric.distance = { value: isNaN(value) ? 0 : value, unit: unit };
+    }
+
+    console.log(`createMetrics:`, newMetric, this);
+
+    // Push the fully constructed metric
+    metrics.push(newMetric);
 
     return metrics;
   }

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
+import { ResultSpan, WodRuntimeScript, RuntimeMetric, RuntimeMetricEdit, MetricValue } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
@@ -42,10 +42,9 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     buttons,
     display,
     results, 
-    setStack   
+    setStack
   } = useTimerRuntime({
     onScriptCompiled,
-    onResultsUpdated,
   });
 
   const { soundEnabled, toggleSound } = useSound();
@@ -109,6 +108,18 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     isActive: screenOnEnabled,
   };
 
+  // State to hold the list of metric update instructions
+  const [metricUpdates, setMetricUpdates] = useState<RuntimeMetricEdit[]>([]);
+
+  // Function to add a new metric update instruction
+  const handleAddMetricUpdate = (update: RuntimeMetricEdit) => {
+    setMetricUpdates(prevUpdates => {
+      const newUpdates = [...prevUpdates, update];
+      console.log('Metric Updates:', newUpdates); // Log the list
+      return newUpdates;
+    });
+  };
+
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
       <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
@@ -120,7 +131,11 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         />              
       </div>      
       {display && display.label !== 'idle' && <WodTimer display={display} />}      
-      <ResultsDisplay runtime={runtimeRef} results={results} />
+      <ResultsDisplay 
+        runtime={runtimeRef} 
+        results={results} 
+        onAddMetricUpdate={handleAddMetricUpdate} 
+      />
     </div>
   );
 };

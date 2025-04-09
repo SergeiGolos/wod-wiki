@@ -104,7 +104,11 @@ export interface IRuntimeAction {
     offSet?: number | undefined;
   }
   
-
+  export type MetricValue = {
+    value: number;
+    unit: string;
+  };
+  
   export class RuntimeTrace {  
     private trace: Map<number, [number, number]> = new Map();
     public history: StatementKey[] = [];
@@ -142,6 +146,16 @@ export interface IRuntimeAction {
      return key;
     }  
   }
+
+  // Represents an instruction to update a specific metric for a result span
+  export type RuntimeMetricEdit = {
+    blockKey: string;
+    index: number;
+    metricType: 'repetitions' | 'resistance' | 'distance';
+    newValue: MetricValue; // The parsed new value 
+    createdAt: Date; // Timestamp when the edit was created
+  };
+
   export interface IRuntimeLogger {
     write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
   }
@@ -230,9 +244,9 @@ export interface RuntimeResult {
   
   export type RuntimeMetric = {
     effort: string;    
-    repetitions: number;    
-    unit: string;
-    value: number;
+    repetitions?: MetricValue;
+    resistance?: MetricValue;
+    distance?: MetricValue;
   }
   
   export interface IRuntimeBlock {    
