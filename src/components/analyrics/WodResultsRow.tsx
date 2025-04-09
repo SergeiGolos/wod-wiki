@@ -24,6 +24,7 @@ export const WodResultsRow: React.FC<WodResultsRowProps> = ({ item, index }) => 
   const resistanceDisplay = item.resistance ? `${item.resistance.value}${item.resistance.unit}` : '-';
   const distanceDisplay = item.distance ? `${item.distance.value}${item.distance.unit}` : '-';
 
+
   return (
     <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50`}>
       <td className="pl-6 pr-3 py-2 text-sm text-gray-500 border-l-2 border-gray-200">

@@ -1,5 +1,5 @@
 import React, { MutableRefObject, useState } from 'react';
-import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
+import { ResultSpan, ITimerRuntime, MetricValue } from '@/core/timer.types';
 import { WodResultsSectionHead, EffortGroup } from './WodResultsSectionHead';
 import { WodResultsRow } from './WodResultsRow';
 
@@ -8,11 +8,19 @@ interface WodResultsProps {
   runtime: MutableRefObject<ITimerRuntime | undefined>;  
 }
 
+interface ResultMetricItem {
+  result: ResultSpan;
+  effort: string;
+  repetitions: number;
+  resistance?: MetricValue;
+  distance?: MetricValue;
+  duration: number;
+  timestamp: number;
+}
+
 export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
-  // State to track which sections are expanded
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  // Extract all metrics from result spans
   const exerciseMetrics = results.flatMap(result => 
     result.metrics.map(metric => ({
       result,
@@ -25,24 +33,22 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     }))
   );
 
-  // Group metrics by effort type
   const groupedByEffort = exerciseMetrics.reduce((acc, item) => {
     if (!acc[item.effort]) {
       acc[item.effort] = [];
     }
     acc[item.effort].push(item);
     return acc;
-  }, {} as Record<string, typeof exerciseMetrics>);
+  }, {} as Record<string, ResultMetricItem[]>);
 
   // Calculate totals for each effort group and reverse the order of items
   const effortGroups = Object.entries(groupedByEffort).map(([effort, items]) => {
-    // Reverse the order of items within each group
     const reversedItems = [...items].reverse();
     
     const totalReps = items.reduce((sum, m) => sum + (m.repetitions?.value ?? 0), 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
-    // Calculate total weight/resistance (only for weight units)
+    // Calculate the total weight (resistance)
     const totalWeight = items.reduce((acc, item) => {
       if (item.resistance && item.resistance.value > 0) {
         const reps = item.repetitions?.value ?? 1;
@@ -66,29 +72,26 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     // Get the distance unit if any distance items exist
     const distanceUnit = items.find(item => item.distance)?.distance?.unit || '';
     
-    // Find the newest timestamp in this group
     const newestTimestamp = Math.max(...items.map(item => item.timestamp));
     
     return {
       effort,
-      items: reversedItems, // Use the reversed items
+      items: reversedItems, 
       totalReps,
       totalTime,
-      totalWeight,
-      totalDistance,
-      weightUnit,
-      distanceUnit,
+      totalWeight: totalWeight > 0 ? totalWeight : undefined,
+      totalDistance: totalDistance > 0 ? totalDistance : undefined,
+      weightUnit: weightUnit || undefined,
+      distanceUnit: distanceUnit || undefined,
       count: items.length,
-      newestTimestamp // Store the newest timestamp for sorting
+      newestTimestamp 
     };
   });
 
-  // Sort effort groups by newest timestamp, so groups with newest events appear first
   const sortedEffortGroups = [...effortGroups].sort((a, b) => 
     b.newestTimestamp - a.newestTimestamp
   );
 
-  // Toggle section expansion
   const toggleSection = (effort: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -96,22 +99,18 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     }));
   };
 
-  // Check if a section is expanded
   const isSectionExpanded = (effort: string) => {
-    // Default to collapsed (false) if not explicitly expanded
     return expandedSections[effort] === true;
   };
 
-  // Convert our internal effort group to the one needed by WodResultsSectionHead
+  // Convert to EffortGroup without any backward compatibility
   const toEffortGroup = (group: typeof effortGroups[0]): EffortGroup => ({
     effort: group.effort,
     count: group.count,
     totalReps: group.totalReps,
     totalTime: group.totalTime,
-    totalWeightDistance: group.totalWeight, // For backward compatibility
     totalWeight: group.totalWeight,
     totalDistance: group.totalDistance,
-    unit: group.weightUnit, // For backward compatibility
     weightUnit: group.weightUnit,
     distanceUnit: group.distanceUnit,
     newestTimestamp: group.newestTimestamp
@@ -121,14 +120,12 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     <div className="">
       {sortedEffortGroups.map((group, groupIndex) => (
         <div key={`group-${group.effort}`} className="">
-          {/* Use the section head component */}
           <WodResultsSectionHead
             group={toEffortGroup(group)}
             isExpanded={isSectionExpanded(group.effort)}
             onToggle={() => toggleSection(group.effort)}
           />
           
-          {/* Detailed table (only shown if section is expanded) */}
           {isSectionExpanded(group.effort) && (
             <div className="overflow-x-auto border-t border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">

@@ -7,23 +7,14 @@
  * - Processing timer events and delegating to appropriate handlers
  */
 
-import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent, RuntimeMetric } from "@/core/timer.types";
-import { EffortFragment } from "@/core/fragments/EffortFragment";
-import { RepFragment } from "@/core/fragments/RepFragment";
-import { DistanceFragment, ResistanceFragment } from "@/core/fragments/ResistanceFragment";
-
+import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent } from "@/core/timer.types";
 /**
  * Default logger implementation that creates ResultSpans between major timer events.
  */
 export class DefaultResultLogger implements IRuntimeLogger {
 
   // Store fragments associated with the runtime block
-  constructor(
-    private efforts?: EffortFragment,
-    private repetitions?: RepFragment,
-    private resistance?: ResistanceFragment,
-    private distance?: DistanceFragment
-  ) { }
+  constructor() { }
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {
     const timerEventTypes: string[] = ["start", "lap", "done", "complete", "stop"];
     const resultSpans: ResultSpan[] = [];
@@ -42,8 +33,8 @@ export class DefaultResultLogger implements IRuntimeLogger {
           span.start = previousRelevantEvent;
           span.stop = currentEvent;          
 
-          // Create and add metrics from stored fragments
-          span.metrics = this.createMetrics();
+          // Use the metrics from the runtime block
+          span.metrics = [...runtimeBlock.metrics];
 
           resultSpans.push(span);
         }

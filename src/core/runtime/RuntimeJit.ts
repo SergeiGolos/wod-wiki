@@ -6,6 +6,7 @@ import {
   IRuntimeAction,
   ITimerRuntime,
   RuntimeEvent,
+  RuntimeMetric,
 } from "../timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
@@ -109,23 +110,66 @@ export class RuntimeJit {
     const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
     const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
     const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
-    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");
-    
-    console.log("Fragments:", efforts, rounds, repetitions, resistance, distance);
+    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");       
 
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
 
-    let logger: IRuntimeLogger = new DefaultResultLogger(
-      efforts,
-      currentRep,
-      resistance,
-      distance  
-    );
+    let logger: IRuntimeLogger = new DefaultResultLogger();
     if (repetitions && rounds) {
-      logger = new WorkRestLogger(efforts, rounds, currentRep, resistance, distance);
+      logger = new WorkRestLogger();
     }
 
-    return new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
+    const block = new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
+    
+    // Create metrics for the block with the new structure
+    block.metrics = this.createBlockMetrics(efforts, currentRep, resistance, distance);
+    
+    return block;
+  }
+  
+  private createBlockMetrics(
+    efforts?: EffortFragment,
+    repetitions?: RepFragment,
+    resistance?: ResistanceFragment,
+    distance?: DistanceFragment
+  ): RuntimeMetric[] {
+    const metrics: RuntimeMetric[] = [];
+    
+    // Basic metrics compilation
+    const effort = efforts?.effort ?? '';
+    const reps = repetitions?.reps ?? 0;
+    
+    // Create the metric with the new structure
+    const metric: RuntimeMetric = {
+      effort: effort,
+      repetitions: reps,
+    };
+    
+    // Add resistance if available
+    if (resistance) {
+      const resistanceValue = parseFloat(resistance.value);
+      if (!isNaN(resistanceValue)) {
+        metric.resistance = {
+          value: resistanceValue,
+          unit: resistance.units ?? ''
+        };
+      }
+    }
+    
+    // Add distance if available
+    if (distance) {
+      const distanceValue = parseFloat(distance.value);
+      if (!isNaN(distanceValue)) {
+        metric.distance = {
+          value: distanceValue,
+          unit: distance.units ?? ''
+        };
+        metric.repetitions = !metric.repetitions || metric.repetitions == 0? 1 : metric.repetitions ;
+      }
+    }
+    
+    metrics.push(metric);
+    return metrics;
   }
 }

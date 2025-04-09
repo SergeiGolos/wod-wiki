@@ -1,18 +1,6 @@
-import { IRuntimeLogger, IRuntimeBlock, ResultSpan, RuntimeMetric, RuntimeEvent } from "@/core/timer.types";
-import { EffortFragment } from "@/core/fragments/EffortFragment";
-import { RepFragment } from "@/core/fragments/RepFragment";
-import { DistanceFragment, ResistanceFragment } from "@/core/fragments/ResistanceFragment";
-import { RoundsFragment } from "@/core/fragments/RoundsFragment";
+import { IRuntimeLogger, IRuntimeBlock, ResultSpan, RuntimeEvent } from "@/core/timer.types";
 
 export class WorkRestLogger implements IRuntimeLogger {
-
-  constructor(
-    private efforts?: EffortFragment,
-    private rounds?: RoundsFragment,
-    private repetitions?: RepFragment,
-    private resistance?: ResistanceFragment,
-    private distance?: DistanceFragment
-  ) { }
 
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {
     const timerEventTypes: string[] = ["start", "lap", "done", "complete", "stop"];
@@ -33,7 +21,8 @@ export class WorkRestLogger implements IRuntimeLogger {
 
           span.label = `Work/Rest Span ${i}`;
 
-          span.metrics = this.createMetrics();
+          // Use the metrics from the runtime block
+          span.metrics = [...runtimeBlock.metrics];
 
           resultSpans.push(span);
         }

@@ -95,9 +95,8 @@ export class TimerRuntime implements ITimerRuntime {
       this.onSetCursor(undefined);
       return this.current = new IdleRuntimeBlock();
     }    
-
-    // if Leaf
-    if (node.children.length == 0) {
+    console.log("Navigating to block:", node.id, node.isLeaf, node.children.length);  
+    if (node.isLeaf === true || node.children.length == 0) {
       const leaf = this.script.goto(node.id);
       const compiledBlock = this.jit.compile(this.trace!, leaf);            
       this.onSetCursor(compiledBlock);

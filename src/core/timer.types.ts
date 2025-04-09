@@ -226,6 +226,7 @@ export interface StatementNode {
     children: number[];
     meta: SourceCodeMetadata;
     fragments: StatementFragment[];
+    isLeaf?: boolean; // Explicit flag to mark a node as a leaf even if it has children
 }
 
 
@@ -243,7 +244,10 @@ export interface RuntimeResult {
     elapsedTime: number;
     remainingTime?: number;
   }
-  
+  export type MetricValue = {
+    value: number;
+    unit: string;
+  }
   export type RuntimeMetric = {
     effort: string;    
     repetitions?: MetricValue;
@@ -255,8 +259,9 @@ export interface RuntimeResult {
     type: string;
     blockId: number;
     blockKey: string;
-    events : RuntimeEvent[];
+    events: RuntimeEvent[];
     stack?: StatementNode[];
+    metrics: RuntimeMetric[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
     report(): ResultSpan[]
   }

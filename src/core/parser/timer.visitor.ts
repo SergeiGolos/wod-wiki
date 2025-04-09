@@ -55,6 +55,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
         if (stack.length > 0) {
           for (let parent of stack) {
+            const lapFragments = block.fragments.filter(f => f.type === 'lap');            
+            parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
             parent.block.children.push(block.id);
             block.parent = parent.block.id;
           }
@@ -111,6 +113,11 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     
     const rounds = fragmentTo<RoundsFragment>(statement, 'rounds')?.count ?? 0;
     statement.rounds = rounds;
+    
+    // Determine if this is a leaf node with lap fragments
+    const lapFragments = statement.fragments.filter(f => f.type === 'lap');
+    statement.isLeaf = lapFragments.length > 0;
+    
     return statement;
   }
 

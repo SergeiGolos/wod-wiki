@@ -42,6 +42,11 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const resistanceValidation = createMetricValidation(['kg', 'lbs', 'lb']);
   const distanceValidation = createMetricValidation(['m', 'km', 'mile']);
 
+  // Format resistance or distance value
+  const formatMetricValue = (metricValue?: MetricValue): string => {
+    return metricValue ? `${metricValue.value}${metricValue.unit}` : '-';
+  };
+
   return (
     <div className="events-view">
       {sortedResults.length > 0 ? (
