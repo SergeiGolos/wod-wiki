@@ -244,10 +244,7 @@ export interface RuntimeResult {
     elapsedTime: number;
     remainingTime?: number;
   }
-  export type MetricValue = {
-    value: number;
-    unit: string;
-  }
+
   export type RuntimeMetric = {
     effort: string;    
     repetitions?: MetricValue;
