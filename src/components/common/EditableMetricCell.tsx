@@ -133,7 +133,7 @@ const EditableMetricCell: React.FC<EditableMetricCellProps> = ({
 
   return (
     <span onClick={() => setIsEditing(true)} className="cursor-pointer hover:bg-gray-200 px-1 rounded w-full block text-right min-h-[1.5em]"> {/* Ensure minimum height */}
-      {`${initialValue?.value || ''}${initialValue?.unit || ''}`}
+      {`${initialValue?.value || '-'}${initialValue?.unit || ''}`}
     </span>
   );
 };
