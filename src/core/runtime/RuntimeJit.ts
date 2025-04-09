@@ -138,12 +138,13 @@ export class RuntimeJit {
     
     // Basic metrics compilation
     const effort = efforts?.effort ?? '';
-    const reps = repetitions?.reps ?? 0;
+    const reps = repetitions?.reps ?? 
+      ((resistance || distance) ? 1 : 0);
     
     // Create the metric with the new structure
     const metric: RuntimeMetric = {
       effort: effort,
-      repetitions: reps,
+      repetitions: { value: reps, unit: "" },
     };
     
     // Add resistance if available
@@ -164,8 +165,7 @@ export class RuntimeJit {
         metric.distance = {
           value: distanceValue,
           unit: distance.units ?? ''
-        };
-        metric.repetitions = !metric.repetitions || metric.repetitions == 0? 1 : metric.repetitions ;
+        };      
       }
     }
     
