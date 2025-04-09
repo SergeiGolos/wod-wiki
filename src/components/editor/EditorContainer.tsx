@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { ResultSpan, WodRuntimeScript, RuntimeMetricEdit } from "@/core/timer.types";
+import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
