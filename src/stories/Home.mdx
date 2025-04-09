@@ -1,0 +1,43 @@
+import { Meta } from "@storybook/blocks";
+import { EditorContainer } from "/src/components/editor/EditorContainer";
+import { BuyMeACoffee } from "./components/BuyMeACoffee";
+import logoImage from './assets/logo.png';
+import '../index.css';
+import { SoundProvider } from "/src/core/contexts/SoundContext";
+import { ScreenProvider } from "/src/core/contexts/ScreenContext";
+
+export const code = `(8)
+  :20 Push ups
+  :10 Rest`;
+
+<Meta title="Playground" />
+<SoundProvider>
+  <ScreenProvider>
+    <h2 className="text-3xl font-bold pt-4 mb-4">Give it a Try</h2>
+    <p>
+      Hit the run button, record your Tabada and updates the efforts for your rep counts to see the Totals & Analytics get really granual. 
+      But don't stop here, plan your actual work and see how easy it is to plan, execute, and analyze your workouts.
+    </p>
+    <div className="flex flex-col md:flex-row">      
+      <div className="w-full md:w-2/3 pt-4">
+        <EditorContainer code={code}/>
+      </div>
+      <div className="w-full md:w-1/3 md:pl-4">
+        <h2 className="text-lg font-semibold mb-2 mt-4">Syntax Guide</h2>
+        <ul className="list-none space-y-2 mb-6">  
+          <li><strong>Durations</strong>: Use standard time format `mm:ss` or `hh:mm:ss` to create a countdown timer.</li>
+          <li><strong>Rounds</strong>: Use `(n)` where n is the number of rounds</li>
+          <li><strong>Resistance</strong>: Use weight followed by the unit of mesurments, (e.g., `kg` or `lb`)</li>
+          <li><strong>Distance</strong>: Use distance followed by the unit of mesurments, (e.g., `m`, `km`, `miles`)</li>
+          <li><strong>Effort</strong>: What you are doing as plain text (e.g., `Push ups`, `Deadlifts`, `Sun Saluations`, etc.)</li>
+        </ul>
+        <p className="text-sm text-gray-600">Combine these elements to build complex workouts.</p>
+      </div>
+    </div>
+  </ScreenProvider>
+</SoundProvider>
+
+<div className="grid justify-items-center" style={{ marginTop: '2rem', textAlign: 'center' }}>
+  <div className="text-sm" style={{ marginBottom: '1rem' }}>Find WOD.wiki useful?</div>
+  <BuyMeACoffee />
+</div>

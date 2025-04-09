@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
+import { ResultSpan, WodRuntimeScript, RuntimeMetricEdit } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
@@ -33,19 +33,18 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
-  onResultsUpdated,
 }) => {
   const {
     loadScript,
     runtimeRef,
     cursor,
     buttons,
+    edits,
     display,
     results, 
-    setStack   
+    setStack
   } = useTimerRuntime({
     onScriptCompiled,
-    onResultsUpdated,
   });
 
   const { soundEnabled, toggleSound } = useSound();
@@ -120,7 +119,11 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         />              
       </div>      
       {display && display.label !== 'idle' && <WodTimer display={display} />}      
-      <ResultsDisplay runtime={runtimeRef} results={results} />
+      <ResultsDisplay 
+        runtime={runtimeRef} 
+        results={results} 
+        edits={edits} 
+      />
     </div>
   );
 };

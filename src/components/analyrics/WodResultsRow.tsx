@@ -4,7 +4,7 @@ import { ResultSpan, MetricValue } from '@/core/timer.types';
 interface ResultMetricItem {
   result: ResultSpan;
   effort: string;
-  repetitions: number;
+  repetitions?: MetricValue;
   resistance?: MetricValue;
   distance?: MetricValue;
   duration: number;
@@ -19,17 +19,12 @@ interface WodResultsRowProps {
 export const WodResultsRow: React.FC<WodResultsRowProps> = ({ item, index }) => {
   const result = item.result;
   const blockId = result.blockKey?.split('|')[0] || 'unknown';
-  
-  // Format resistance value if present
-  const resistanceDisplay = item.resistance 
-    ? `${item.resistance.value}${item.resistance.unit}` 
-    : '-';
-  
-  // Format distance value if present
-  const distanceDisplay = item.distance 
-    ? `${item.distance.value}${item.distance.unit}` 
-    : '-';
-  
+
+  const repsDisplay = (item.repetitions?.value ?? 0) > 0 ? `${item.repetitions?.value}` : '-';
+  const resistanceDisplay = item.resistance ? `${item.resistance.value}${item.resistance.unit}` : '-';
+  const distanceDisplay = item.distance ? `${item.distance.value}${item.distance.unit}` : '-';
+
+
   return (
     <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50`}>
       <td className="pl-6 pr-3 py-2 text-sm text-gray-500 border-l-2 border-gray-200">
@@ -39,7 +34,7 @@ export const WodResultsRow: React.FC<WodResultsRowProps> = ({ item, index }) => 
         {item.duration.toFixed(1)}s
       </td>
       <td className="px-3 py-2 text-sm text-gray-500">
-        {item.repetitions > 0 ? `${item.repetitions}` : '-'}
+        {repsDisplay}
       </td>
       <td className="px-3 py-2 text-sm text-gray-500">
         {resistanceDisplay}

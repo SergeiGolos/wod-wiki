@@ -28,8 +28,8 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       repetitions: metric.repetitions,
       resistance: metric.resistance,
       distance: metric.distance,
-      duration: result.duration ? result.duration() / 1000 : 0, 
-      timestamp: result.stop?.timestamp || Date.now() 
+      duration: result.duration ? result.duration() / 1000 : 0, // duration in seconds
+      timestamp: result.stop?.timestamp || result.start?.timestamp || Date.now() // Use stop, start, or current timestamp
     }))
   );
 
@@ -41,31 +41,36 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return acc;
   }, {} as Record<string, ResultMetricItem[]>);
 
+  // Calculate totals for each effort group and reverse the order of items
   const effortGroups = Object.entries(groupedByEffort).map(([effort, items]) => {
     const reversedItems = [...items].reverse();
     
-    const totalReps = items.reduce((sum, m) => sum + m.repetitions, 0);
+    const totalReps = items.reduce((sum, m) => sum + (m.repetitions?.value ?? 0), 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
     // Calculate the total weight (resistance)
     const totalWeight = items.reduce((acc, item) => {
-      if (item.resistance?.value) {
-        return acc + (item.resistance.value * item.repetitions);
+      if (item.resistance && item.resistance.value > 0) {
+        const reps = item.repetitions?.value ?? 1;
+        return acc + (item.resistance.value * (reps > 0 ? reps : 1));
+      }      
+      return acc;
+    }, 0);
+    
+    // Calculate total distance (only for distance units)
+    const totalDistance = items.reduce((acc, item) => {
+      if (item.distance && item.distance.value > 0) {
+        const reps = item.repetitions?.value ?? 1;
+        return acc + (item.distance.value * (reps > 0 ? reps : 1));
       }
       return acc;
     }, 0);
     
-    // Calculate the total distance
-    const totalDistance = items.reduce((acc, item) => {      
-      if (item.distance?.value) {
-        return acc + (item.distance.value * item.repetitions);
-      }
-      return acc;
-    }, 0);
+    // Get the weight unit if any weight items exist
+    const weightUnit = items.find(item => item.resistance)?.resistance?.unit || '';
     
-    // Get units for display
-    const weightUnit = items.find(item => item.resistance?.value)?.resistance?.unit || '';
-    const distanceUnit = items.find(item => item.distance?.value)?.distance?.unit || '';
+    // Get the distance unit if any distance items exist
+    const distanceUnit = items.find(item => item.distance)?.distance?.unit || '';
     
     const newestTimestamp = Math.max(...items.map(item => item.timestamp));
     

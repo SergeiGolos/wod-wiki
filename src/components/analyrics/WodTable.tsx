@@ -46,7 +46,7 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
 
   // Calculate totals for each effort group
   const effortGroups = Object.entries(groupedByEffort).map(([effort, metrics]) => {
-    const totalReps = metrics.reduce((sum, m) => sum + m.repetitions, 0);
+    const totalReps = metrics.reduce((sum, m) => sum + (m.repetitions?.value ?? 0), 0);
     const totalTime = metrics.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
     // Calculate average resistance if present
@@ -164,7 +164,7 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
                     {metric.effort}
                   </td>
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                    {metric.repetitions > 0 ? metric.repetitions : '-'}
+                    {(metric.repetitions?.value ?? 0) > 0 ? metric.repetitions.value : '-'}
                   </td>
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
                     {formatMetricValue(metric.resistance)}

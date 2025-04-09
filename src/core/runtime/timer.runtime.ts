@@ -1,4 +1,4 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
@@ -14,9 +14,6 @@ import { startButton } from "@/components/buttons/timerButtons";
  * - Delegating to the compiled runtime for node-specific processing
  */
 
-
-
-
 export class TimerRuntime implements ITimerRuntime {
   public trace: RuntimeTrace | undefined;  
   public current: IRuntimeBlock | undefined;
@@ -30,7 +27,9 @@ export class TimerRuntime implements ITimerRuntime {
     private onSetDisplay: (display: TimerDisplayBag) => void,
     private onSetButtons: (buttons: ButtonConfig[]) => void,
     private onSetResults: (results: ResultSpan[]) => void,
-    private onSetCursor: (cursor: IRuntimeBlock | undefined) => void
+    private onSetCursor: (cursor: IRuntimeBlock | undefined) => void,
+    private onSetEdits: (edits: RuntimeMetricEdit[]) => void
+    
   ) {
     // Initialize block tracker with all nodes from the script     
     this.reset();
@@ -39,14 +38,17 @@ export class TimerRuntime implements ITimerRuntime {
   reset() {
     this.results = [];
     this.buttons = [startButton];
-
+    this.edits = [];
     this.onSetResults(this.results);
+    this.onSetEdits(this.edits);
     this.current = this.gotoBlock(undefined);    
     this.trace = new RuntimeTrace();        
   }
   
   buttons: ButtonConfig[] = [];
   results: ResultSpan[] = [];
+  edits: RuntimeMetricEdit[] = [];
+
   display: TimerDisplayBag = { primary: new TimerFromSeconds(0), label: "idle", bag: {} };
   
   public events: RuntimeEvent[] = [];
@@ -71,10 +73,15 @@ export class TimerRuntime implements ITimerRuntime {
     if (resultsCount != this.results.length) {
       this.onSetResults([...this.results]);
     }
-
+    if (this.edits.length > 0) {
+      this.onSetEdits([...this.edits]);
+    }
     return next;
   }
-  
+  edit(metric: RuntimeMetricEdit) {
+    this.edits.push(metric);
+    this.onSetEdits([...this.edits]);
+  }
   /**
    * Navigates to a specific block in the workout script and records the visit
    * @param blockId ID of the block to navigate to

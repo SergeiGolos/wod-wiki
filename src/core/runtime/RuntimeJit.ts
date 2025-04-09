@@ -58,14 +58,6 @@ class CompleteSoundHandler extends EventHandler {
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     return [new PlaySoundAction(event, this.soundType)];
   }
-  
-  // Override apply to handle both complete and end events
-  public apply(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    if (event.name === "complete" || event.name === "end") {
-      return this.handleEvent(event, stack, runtime);
-    }
-    return [];
-  }
 }
 
 /**

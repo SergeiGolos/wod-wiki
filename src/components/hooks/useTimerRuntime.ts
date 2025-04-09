@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { IRuntimeBlock, ResultSpan, WodRuntimeScript } from "@/core/timer.types";
+import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetric, RuntimeMetricEdit } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
@@ -14,11 +14,6 @@ export interface UseTimerRuntimeProps {
    * Called when a script is compiled with the compiled script
    */
   onScriptCompiled?: (script: WodRuntimeScript) => void;
-  
-  /**
-   * Called when results are updated
-   */
-  onResultsUpdated?: (results: ResultSpan[]) => void;
 }
 
 /**
@@ -32,8 +27,7 @@ export interface UseTimerRuntimeProps {
  * This new implementation uses the handler-based approach for workout processing.
  */
 export function useTimerRuntime({
-  onScriptCompiled,
-  onResultsUpdated
+  onScriptCompiled
 }: UseTimerRuntimeProps = {}) {
   const runtimeRef = useRef<TimerRuntime>();
   const intervalRef = useRef<number | null>(null);
@@ -45,13 +39,7 @@ export function useTimerRuntime({
 
   const [buttons, setButtons] = useState<ButtonConfig[]>([startButton]);
   const [results, setResults] = useState<ResultSpan[]>([]);
-
-  // Handler for results updates
-  useEffect(() => {
-    if (onResultsUpdated) {
-      onResultsUpdated(results);
-    }
-  }, [results, onResultsUpdated]);
+  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
 
   // Triggers the tick event every 100ms
   useEffect(() => {
@@ -94,7 +82,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor, setEdits); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }
@@ -103,11 +91,11 @@ export function useTimerRuntime({
     };
   }, [script]);
 
-  
   return {
     loadScript: handleLoadScript,
     runtimeRef,
     cursor,
+    edits,
     buttons,
     display,
     results,

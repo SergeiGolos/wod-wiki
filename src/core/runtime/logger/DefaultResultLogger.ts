@@ -43,4 +43,38 @@ export class DefaultResultLogger implements IRuntimeLogger {
     }
     return resultSpans;
   }
+
+  private createMetrics(): RuntimeMetric[] {
+    const metrics: RuntimeMetric[] = [];
+
+    const effort = this.efforts?.effort ?? '';
+    const reps = this.repetitions?.reps ?? 0;
+
+    const newMetric: RuntimeMetric = {
+      effort: effort,
+      // Assign repetitions as a MetricValue
+      repetitions: { value: reps, unit: "" }, 
+    };
+
+    // Add resistance if present
+    if (this.resistance) {
+      const value = parseFloat(this.resistance.value ?? '0');
+      const unit = this.resistance.units ?? '';
+      newMetric.resistance = { value: isNaN(value) ? 0 : value, unit: unit };
+    }
+
+    // Add distance if present
+    if (this.distance) {
+      const value = parseFloat(this.distance.value ?? '0');
+      const unit = this.distance.units ?? '';
+      newMetric.distance = { value: isNaN(value) ? 0 : value, unit: unit };
+    }
+
+    console.log(`createMetrics:`, newMetric, this);
+
+    // Push the fully constructed metric
+    metrics.push(newMetric);
+
+    return metrics;
+  }
 }
