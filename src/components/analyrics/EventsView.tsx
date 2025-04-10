@@ -1,18 +1,6 @@
 import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime, MetricValue, RuntimeMetricEdit, TimerFromSeconds } from '@/core/timer.types';
+import { ResultSpan, ITimerRuntime, TimerFromSeconds } from '@/core/timer.types';
 import EditableMetricCell, { createMetricValidation } from '../common/EditableMetricCell';
-
-const parseMetricInput = (input: string): MetricValue | null => {
-  const match = String(input).trim().match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)$/);
-  if (match && match[1] && match[2]) {
-    const value = parseFloat(match[1]);
-    const unit = match[2].toLowerCase(); // Normalize unit
-    if (!isNaN(value)) {
-      return { value, unit };
-    }
-  }
-  return null; // Return null if parsing fails
-};
 
 interface EventsViewProps {
   results: ResultSpan[];
@@ -42,12 +30,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const repValidation = createMetricValidation(['']);
   const resistanceValidation = createMetricValidation(['kg', 'lbs', 'lb']);
   const distanceValidation = createMetricValidation(['m', 'km', 'mile']);
-
-  // Format resistance or distance value
-  const formatMetricValue = (metricValue?: MetricValue): string => {
-    return metricValue ? `${metricValue.value}${metricValue.unit}` : '-';
-  };
-
+  
   return (
     <div className="events-view">
       {sortedResults.length > 0 ? (
@@ -130,7 +113,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              })}          
             </tbody>
           </table>
         </div>
