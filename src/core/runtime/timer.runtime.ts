@@ -73,9 +73,6 @@ export class TimerRuntime implements ITimerRuntime {
     if (resultsCount != this.results.length) {
       this.onSetResults([...this.results]);
     }
-    if (this.edits.length > 0) {
-      this.onSetEdits([...this.edits]);
-    }
     return next;
   }
   edit(metric: RuntimeMetricEdit) {

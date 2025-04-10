@@ -300,8 +300,29 @@ export class ResultSpan {
   metrics: RuntimeMetric[] = [];
   duration(timestamp?: Date): number {
     let now = timestamp ?? new Date();
-    return ((this.stop?.timestamp ?? now).getTime() || 0) - (this.start?.timestamp.getTime() || 0);
-    }
+    const stopTime = (this.stop?.timestamp || now).getTime();
+    const startTime = this.start?.timestamp.getTime() || 0;
+    const calculatedDuration = stopTime - startTime;
+
+    // Debugging log
+    console.log(`ResultSpan.duration: blockKey=${this.blockKey}, index=${this.index}, start=${this.start?.timestamp?.toISOString()}, stop=${this.stop?.timestamp?.toISOString()}, now=${now.toISOString()}, calculatedDuration=${calculatedDuration}`);
+
+    return calculatedDuration;
+  }
+
+  edit(edits: RuntimeMetricEdit[]) : ResultSpan {
+    this.metrics = this.metrics.map(metric => {
+      const edit = edits.find(e => e.blockKey === this.blockKey && e.index === this.index);
+      if (edit) {
+        return {
+          ...metric,
+          [edit.metricType]: edit.newValue
+        };
+      }
+      return metric;
+    });
+    return this;
+  }
 }
 
   /**

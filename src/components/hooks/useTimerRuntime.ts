@@ -14,6 +14,7 @@ export interface UseTimerRuntimeProps {
    * Called when a script is compiled with the compiled script
    */
   onScriptCompiled?: (script: WodRuntimeScript) => void;
+  onResultsUpdated?: (results: ResultSpan[]) => void;
 }
 
 /**
@@ -27,7 +28,8 @@ export interface UseTimerRuntimeProps {
  * This new implementation uses the handler-based approach for workout processing.
  */
 export function useTimerRuntime({
-  onScriptCompiled
+  onScriptCompiled,
+  onResultsUpdated
 }: UseTimerRuntimeProps = {}) {
   const runtimeRef = useRef<TimerRuntime>();
   const intervalRef = useRef<number | null>(null);
@@ -61,7 +63,12 @@ export function useTimerRuntime({
       }
     };
   });
-
+  const handleResultUpdated = (newResults: ResultSpan[]) => {
+    setResults(newResults);
+    if (onResultsUpdated) {
+      onResultsUpdated(newResults);
+    }
+  };
   // Wraps the loadScript function to call onScriptCompiled
   const handleLoadScript = (newScript: WodRuntimeScript | undefined) => {
     loadScript(newScript);
@@ -82,7 +89,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, setResults, setCursor, setEdits); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, handleResultUpdated, setCursor, setEdits); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type TabOption = 'Grouped' | 'Efforts' | 'Analytics';
+export type TabOption = 'Efforts' | 'Analytics';
 
 interface TabSelectorProps {
   activeTab: TabOption;
@@ -8,7 +8,7 @@ interface TabSelectorProps {
 }
 
 export const TabSelector: React.FC<TabSelectorProps> = ({ activeTab, onTabChange }) => {
-  const tabs: TabOption[] = ['Efforts', 'Grouped', 'Analytics'];
+  const tabs: TabOption[] = ['Efforts', 'Analytics'];
 
   return (
     <div className="tab-navigation pt-2">

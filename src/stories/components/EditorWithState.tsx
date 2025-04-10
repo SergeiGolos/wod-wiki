@@ -40,7 +40,7 @@ export const EditorWithState: React.FC<React.ComponentProps<typeof EditorContain
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-700">Compiled Script</h3>
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {compiledScript ? `${compiledScript.statements.length} statements` : 'No script'}
+                      {compiledScript ? `${compiledScript.statements.length}` : 'No script'}
                     </span>
                   </div>
                 </div>
@@ -77,7 +77,7 @@ export const EditorWithState: React.FC<React.ComponentProps<typeof EditorContain
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-700">Workout Results</h3>
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                      {results.length} blocks
+                      {results.length}
                     </span>
                   </div>
                 </div>
