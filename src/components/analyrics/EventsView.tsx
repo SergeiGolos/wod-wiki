@@ -17,12 +17,15 @@ const parseMetricInput = (input: string): MetricValue | null => {
 interface EventsViewProps {
   results: ResultSpan[];
   runtime: MutableRefObject<ITimerRuntime | undefined>;  
+  onEffortClick: (effort: string) => void;  
 }
 
 export const EventsView: React.FC<EventsViewProps> = ({
   results,
-  runtime
+  runtime,
+  onEffortClick
 }) => {
+  // Filter results based on the selected effort  
   const sortedResults = results.sort((a, b) => {
     return (b.start?.timestamp?.getTime() || 0) - (a.start?.timestamp?.getTime() || 0);
   });
@@ -85,7 +88,12 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 return (
                   <tr key={resultId} className="hover:bg-gray-50">                    
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
-                      {effort}
+                      <span 
+                        className="cursor-pointer hover:underline"
+                        onClick={() => onEffortClick(effort)}
+                      >
+                        {effort}
+                      </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                       {result.duration ? formatDuration(result.duration()) : '-'}

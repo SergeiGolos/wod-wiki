@@ -33,6 +33,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
+  onResultsUpdated
 }) => {
   const {
     loadScript,
@@ -45,6 +46,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     setStack
   } = useTimerRuntime({
     onScriptCompiled,
+    onResultsUpdated
   });
 
   const { soundEnabled, toggleSound } = useSound();
@@ -122,7 +124,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
       <ResultsDisplay 
         runtime={runtimeRef} 
         results={results} 
-        edits={edits} 
+        edits={edits}                 
       />
     </div>
   );
