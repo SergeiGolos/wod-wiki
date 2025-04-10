@@ -51,15 +51,15 @@ export const EventsView: React.FC<EventsViewProps> = ({
     <div className="events-view">
       {sortedResults.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 table-fixed w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Effort</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Reps</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Resistance</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Distance</th>
+                <th className="w-1/3 px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Effort</th>
+                <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
+                <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Reps</th>
+                <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Resistance</th>
+                <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Distance</th>
+                <th className="w-24 px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>                
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -73,29 +73,26 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 if (!resultId) {
                   console.error("Result missing ID, cannot make editable:", result);
                   return (
-                    <tr key={`event-missing-id-${Math.random()}`} className="hover:bg-gray-50 opacity-50">
-                      <td className="px-3 py-2">... (Missing ID) ...</td>
+                    <tr key={`event-missing-id-${Math.random()}`} className="hover:bg-gray-50 opacity-50">                      
                       <td className="px-3 py-2">{effort}</td>
                       <td className="px-3 py-2 text-right">{result.duration ? formatDuration(result.duration()) : '-'}</td>
                       <td className="px-3 py-2 text-right">{repsValue?.repetitions?.value || '-'}</td>
                       <td className="px-3 py-2 text-right">{resistance?.resistance?.value || '-'}</td>
                       <td className="px-3 py-2 text-right">{distance?.distance?.value || '-'}</td>
+                      <td className="px-3 py-2">... (Missing ID) ...</td>
                     </tr>
                   )
                 }
 
                 return (
-                  <tr key={resultId} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                      {formatTimestamp(result.stop?.timestamp?.getTime() || result.start?.timestamp?.getTime() || 0)}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={resultId} className="hover:bg-gray-50">                    
+                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
                       {effort}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                       {result.duration ? formatDuration(result.duration()) : '-'}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                       <EditableMetricCell
                         initialValue={repsValue?.repetitions} // Display value or '-' if none exists yet
                         metricType="repetitions" // Set type
@@ -104,7 +101,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                         validate={repValidation}
                         />
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                       <EditableMetricCell
                         initialValue={resistance?.resistance} // Will be '-' if no data
                         metricType="resistance"
@@ -113,7 +110,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                         validate={resistanceValidation}
                         />
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                       <EditableMetricCell
                         initialValue={distance?.distance} // Will be '-' if no data
                         metricType="distance"
@@ -121,6 +118,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
                         blockKey={result.blockKey!} index={result.index!}   
                         validate={distanceValidation}
                         />
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                      {formatTimestamp(result.stop?.timestamp?.getTime() || result.start?.timestamp?.getTime() || 0)}
                     </td>
                   </tr>
                 );

@@ -63,9 +63,6 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         
       <div className="mb-4">
           <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
-          {!results || results.length === 0 && (
-            <div className="text-gray-500 text-sm p-4">Run the timers to log efforts.</div>
-          )}
           {activeTab === 'Grouped' && (
             <WodResults results={computed} runtime={runtime} />
           )}
