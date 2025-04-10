@@ -1,5 +1,5 @@
 import React, { MutableRefObject, useState } from 'react';
-import { ResultSpan, ITimerRuntime, MetricValue } from '@/core/timer.types';
+import { ResultSpan, ITimerRuntime, MetricValue, RuntimeMetric } from '@/core/timer.types';
 import { WodResultsSectionHead, EffortGroup } from './WodResultsSectionHead';
 import { WodResultsRow } from './WodResultsRow';
 
@@ -8,14 +8,10 @@ interface WodResultsProps {
   runtime: MutableRefObject<ITimerRuntime | undefined>;  
 }
 
-interface ResultMetricItem {
-  result: ResultSpan;
-  effort: string;
-  repetitions: number;
-  resistance?: MetricValue;
-  distance?: MetricValue;
-  duration: number;
-  timestamp: number;
+export interface ResultMetricItem extends RuntimeMetric { 
+  result: ResultSpan; 
+  duration: number; 
+  timestamp: number; 
 }
 
 export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
@@ -28,8 +24,8 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       repetitions: metric.repetitions,
       resistance: metric.resistance,
       distance: metric.distance,
-      duration: result.duration ? result.duration() / 1000 : 0, // duration in seconds
-      timestamp: result.stop?.timestamp || result.start?.timestamp || Date.now() // Use stop, start, or current timestamp
+      duration: result.duration ? result.duration() / 1000 : 0, 
+      timestamp: result.stop?.timestamp || result.start?.timestamp || Date.now() 
     }))
   );
 
@@ -41,14 +37,12 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return acc;
   }, {} as Record<string, ResultMetricItem[]>);
 
-  // Calculate totals for each effort group and reverse the order of items
   const effortGroups = Object.entries(groupedByEffort).map(([effort, items]) => {
     const reversedItems = [...items].reverse();
     
     const totalReps = items.reduce((sum, m) => sum + (m.repetitions?.value ?? 0), 0);
     const totalTime = items.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
-    // Calculate the total weight (resistance)
     const totalWeight = items.reduce((acc, item) => {
       if (item.resistance && item.resistance.value > 0) {
         const reps = item.repetitions?.value ?? 1;
@@ -57,7 +51,6 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       return acc;
     }, 0);
     
-    // Calculate total distance (only for distance units)
     const totalDistance = items.reduce((acc, item) => {
       if (item.distance && item.distance.value > 0) {
         const reps = item.repetitions?.value ?? 1;
@@ -66,10 +59,8 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
       return acc;
     }, 0);
     
-    // Get the weight unit if any weight items exist
     const weightUnit = items.find(item => item.resistance)?.resistance?.unit || '';
     
-    // Get the distance unit if any distance items exist
     const distanceUnit = items.find(item => item.distance)?.distance?.unit || '';
     
     const newestTimestamp = Math.max(...items.map(item => item.timestamp));
@@ -103,7 +94,6 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
     return expandedSections[effort] === true;
   };
 
-  // Convert to EffortGroup without any backward compatibility
   const toEffortGroup = (group: typeof effortGroups[0]): EffortGroup => ({
     effort: group.effort,
     count: group.count,
@@ -118,8 +108,17 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
 
   return (
     <div className="">
+      <div className="flex bg-gray-100 p-2 border-b border-gray-300 font-semibold text-sm text-gray-700 sticky top-0 z-10"> 
+        <div className="w-1/3 px-2">Effort</div>
+        <div className="w-1/6 px-2 text-right">Duration</div>
+        <div className="w-1/12 px-2 text-right">Reps</div>
+        <div className="w-1/6 px-2 text-right">Resistance</div>
+        <div className="w-1/6 px-2 text-right">Distance</div>
+        <div className="w-1/12 px-2 text-right">Time</div>
+      </div>
+
       {sortedEffortGroups.map((group, groupIndex) => (
-        <div key={`group-${group.effort}`} className="">
+        <div key={`group-${group.effort}`} className="border-b border-gray-200">
           <WodResultsSectionHead
             group={toEffortGroup(group)}
             isExpanded={isSectionExpanded(group.effort)}
@@ -127,33 +126,14 @@ export const WodResults: React.FC<WodResultsProps> = ({ results, runtime }) => {
           />
           
           {isSectionExpanded(group.effort) && (
-            <div className="overflow-x-auto border-t border-gray-200 shadow-sm">
+            <div className="overflow-x-auto bg-gray-50/50"> 
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Round
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Reps
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Resistance
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Distance
-                    </th>
-                  </tr>
-                </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {group.items.map((item, index) => (
                     <WodResultsRow 
                       key={`${group.effort}-${index}`}
                       item={item}
-                      index={index}
+                      index={index} 
                     />
                   ))}
                 </tbody>

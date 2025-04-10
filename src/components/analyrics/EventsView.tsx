@@ -23,10 +23,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
   results,
   runtime
 }) => {
-  const sortedResults = [...results].sort((a, b) => {
-    const timeA = a.stop?.timestamp || a.start?.timestamp || new Date();
-    const timeB = b.stop?.timestamp || b.start?.timestamp || new Date();
-    return timeB.getTime() - timeA.getTime();
+  const sortedResults = results.sort((a, b) => {
+    return (b.start?.timestamp?.getTime() || 0) - (a.start?.timestamp?.getTime() || 0);
   });
 
   const formatTimestamp = (timestamp: number): string => {

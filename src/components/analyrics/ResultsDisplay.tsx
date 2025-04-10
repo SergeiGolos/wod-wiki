@@ -22,38 +22,12 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   useEffect(() => {
     // Deep clone results to avoid mutating props
-    const processedResults = structuredClone(results);
-
+    const processedResults =[];
     // Apply edits to the cloned results
-    for (const edit of edits) {
-      const targetSpan = processedResults.find(
-        (span) => span.blockKey === edit.blockKey && span.index === edit.index
-      );
-
-      // Apply edit if span exists and has metrics
-      if (targetSpan && targetSpan.metrics.length > 0) {
-        // Assumption: Apply edit to the first metric in the span
-        const targetMetric = targetSpan.metrics[0];
-
-        switch (edit.metricType) {
-          case 'repetitions':
-            targetMetric.repetitions = edit.newValue;
-            break;
-          case 'resistance':
-            targetMetric.resistance = edit.newValue;
-            break;
-          case 'distance':
-            targetMetric.distance = edit.newValue;
-            break;
-          default:
-            console.warn('Unknown metricType in edit:', edit.metricType);
-        }
-      } else {
-        // Optional: Log if an edit targets a non-existent span/metric
-        // console.warn('Edit target not found or span has no metrics:', edit);
-      }
+    for (const result of results) {
+      processedResults.push(result.edit(edits));
     }
-
+    
     setComputed(processedResults); // Update the state with processed results
 
   }, [results, edits]); // Dependencies: results and edits
