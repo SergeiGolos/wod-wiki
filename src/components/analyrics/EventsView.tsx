@@ -38,7 +38,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
           <table className="min-w-full divide-y divide-gray-200 table-fixed w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="w-1/3 px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Effort</th>
+                <th className="w-24 md:w-1/3 px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Effort</th>
                 <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
                 <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Reps</th>
                 <th className="w-20 px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Resistance</th>
