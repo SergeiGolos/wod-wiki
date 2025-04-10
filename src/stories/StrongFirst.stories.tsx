@@ -10,6 +10,9 @@ const meta: Meta<typeof EditorWithState> = {
     controls: { hideNoControlsWarning: true },
     layout: 'fullscreen',
     showPanel: false
+  },
+  argTypes: {
+    debug: { control: 'boolean' }
   }
 };
 
@@ -19,8 +22,28 @@ export type WodStory = StoryObj<typeof EditorWithState>;
 export const SimpleAndSinister: WodStory = {
   args: {
     id: "SimpleAndSinister",
+    debug: false,
     code:`5:00 100 KB Swings 70lb
 1:00 Rest
 10:00 10 Turkish Getups 70lb`
   },
 };
+
+export const KBAxeHeavy: WodStory = {
+  args: {
+    id: "KBAxeHeavy",
+    debug: false,
+    code:`(20) 1:00 
+  4 KB Swings 106lb`
+  },
+};
+
+export const KBAxeLite: WodStory = {
+  args: {
+    id: "KBAxeLite",
+    debug: false,
+    code:`(20) 1:00 
+  6 KB Swings 70lb`
+  },
+};
+
