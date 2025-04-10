@@ -19,6 +19,9 @@ const meta: Meta<typeof EditorWithState> = {
     layout: 'fullscreen',
     showPanel: false
   },
+  argTypes: {
+    debug: { control: 'boolean' }
+  },
   // Use a decorator to wrap all stories with SoundProvider
   decorators: [
     (Story) => (
@@ -35,6 +38,7 @@ export type WodStory = StoryObj<typeof EditorWithState>;
 export const Empty: WodStory = {
   args: {
     id: "Empty",
+    debug: false,
     code: '',        
   },
 };
@@ -42,6 +46,7 @@ export const Empty: WodStory = {
 export const Countdown: WodStory = {
   args: {
     id: "Countdown",
+    debug: false,
     code: `20:00 Work`,
   },
 };  
@@ -49,6 +54,7 @@ export const Countdown: WodStory = {
 export const Emom: WodStory = {
   args: {
     id: "Emom",
+    debug: false,
     code: `(30) 1:00 Work`,
   },
 };
@@ -56,6 +62,7 @@ export const Emom: WodStory = {
 export const IronBlackJack: WodStory = {
   args: {
     id: "IronBlackJack",
+    debug: false,
     code:`(30) 1:00
   10 Macebell Touchdowns 30lb
   6 KB swings 106lb
@@ -66,6 +73,7 @@ export const IronBlackJack: WodStory = {
 export const AMRAP: WodStory = {
   args: {
     id: "AMRAP",
+    debug: false,
     code: `AMRAP 20:00
   10 Burpees
   15 Pull-ups
@@ -76,6 +84,7 @@ export const AMRAP: WodStory = {
 export const ForTime: WodStory = {
   args: {
     id: "ForTime",
+    debug: false,
     code: `For Time (20:00 cap)
   5 Rounds:
     20 Wall balls

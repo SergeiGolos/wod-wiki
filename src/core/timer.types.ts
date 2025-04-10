@@ -312,12 +312,9 @@ export class ResultSpan {
 
   edit(edits: RuntimeMetricEdit[]) : ResultSpan {
     this.metrics = this.metrics.map(metric => {
-      const edit = edits.find(e => e.blockKey === this.blockKey && e.index === this.index);
-      if (edit) {
-        return {
-          ...metric,
-          [edit.metricType]: edit.newValue
-        };
+      const selected = edits.filter(e => e.blockKey === this.blockKey && e.index === this.index);
+      for (const edit of selected) {
+        metric[edit.metricType] = edit.newValue;
       }
       return metric;
     });

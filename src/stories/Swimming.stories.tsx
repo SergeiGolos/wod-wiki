@@ -9,6 +9,9 @@ const meta: Meta<typeof EditorWithState> = {
     controls: { hideNoControlsWarning: true },
     layout: 'fullscreen',
     showPanel: false
+  },
+  argTypes: {
+    debug: { control: 'boolean' }
   }
 };
 
@@ -18,6 +21,7 @@ export type WodStory = StoryObj<typeof EditorWithState>;
 export const BeginnerFriendltySwimming: WodStory = {
   args: {
     id: "BeginnerSwimming",
+    debug: false,
     code:`(6) Warmup
   25m Swim
   :20 Rest
