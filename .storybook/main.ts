@@ -15,5 +15,12 @@ const config: StorybookConfig = {
   docs: {
     autodocs: "tag",
   },
+  // Add staticDirs configuration using the object syntax
+  staticDirs: [
+    // Serve public assets from the root path
+    { from: "../public", to: "/" },
+    // Serve the cast HTML and assets from the /cast path
+    { from: "../public/cast", to: "/cast" }
+  ],
 };
 export default config;
