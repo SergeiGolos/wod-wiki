@@ -1,9 +1,10 @@
 import React, { MutableRefObject } from 'react';
 import { ResultSpan, ITimerRuntime, TimerFromSeconds } from '@/core/timer.types';
 import EditableMetricCell, { createMetricValidation } from '../common/EditableMetricCell';
+import { cn } from '@/core/utils';
 
 interface EventsViewProps {
-  results: ResultSpan[];
+  results: [ResultSpan, boolean][];
   runtime: MutableRefObject<ITimerRuntime | undefined>;  
   onEffortClick: (effort: string) => void;  
 }
@@ -15,7 +16,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
 }) => {
   // Filter results based on the selected effort  
   const sortedResults = results.sort((a, b) => {
-    return (b.start?.timestamp?.getTime() || 0) - (a.start?.timestamp?.getTime() || 0);
+    return (b[0].start?.timestamp?.getTime() || 0) - (a[0].start?.timestamp?.getTime() || 0);
   });
 
   const formatTimestamp = (timestamp: number): string => {
@@ -47,7 +48,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sortedResults.map((result) => {
+              {sortedResults.map(([result, hidden]) => {
                 const effort = result.metrics?.[0]?.effort || 'Event';
                 const resistance = result.metrics?.find(m => m.resistance);
                 const distance = result.metrics?.find(m => m.distance);
@@ -59,7 +60,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                   return (
                     <tr key={`event-missing-id-${Math.random()}`} className="hover:bg-gray-50 opacity-50">                      
                       <td className="px-3 py-2">{effort}</td>
-                      <td className="px-3 py-2 text-right">{result.duration ? formatDuration(result.duration()) : '-'}</td>
+                      <td className="px-3 py-2 text-right">{formatDuration(result.duration())}</td>
                       <td className="px-3 py-2 text-right">{repsValue?.repetitions?.value || '-'}</td>
                       <td className="px-3 py-2 text-right">{resistance?.resistance?.value || '-'}</td>
                       <td className="px-3 py-2 text-right">{distance?.distance?.value || '-'}</td>
@@ -69,7 +70,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 }
 
                 return (
-                  <tr key={resultId} className="hover:bg-gray-50">                    
+                  <tr key={resultId} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
                       <span 
                         className="cursor-pointer hover:underline"
