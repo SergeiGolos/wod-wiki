@@ -1,3 +1,6 @@
+# Chromecast Working Example
+
+## Client
 
 ```TypeScript
 
@@ -292,5 +295,142 @@ const CastControls: React.FC = () => {
   
 
 export default CastControls
+
+```
+### Receiver
+
+```typescript
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { QRCodeSVG } from 'qrcode.react';
+
+const supabase = createClient();
+
+export default function CastReceiverPage() {
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+
+  useEffect(() => {
+    const initializeReceiver = () => {
+      const context = window.cast?.framework?.CastReceiverContext.getInstance();
+      if (!context) {
+        console.error('Cast Receiver Context not available');
+        return;
+      }
+
+      // Set up custom messaging with correct namespace format
+      const channelName = 'urn:x-cast:com.google.cast.cac';
+      context.addCustomMessageListener(channelName, (event: chrome.cast.framework.CustomMessageEvent) => {
+        const { roomCode: newRoomCode } = event.data;
+        if (newRoomCode && newRoomCode !== roomCode) {
+          setRoomCode(newRoomCode);
+          // Set up Supabase subscription for the room
+          setupRoomSubscription(newRoomCode);
+        }
+      });
+
+      // Start the receiver with custom options
+      context.start({
+        skipValidation: true,
+        customNamespaces: {
+          [channelName]: 'JSON'
+        }
+      });
+    };
+
+    const setupRoomSubscription = async (code: string) => {
+      // First get the session ID
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('room_code', code)
+        .eq('status', 'active')
+        .single();
+
+      if (session?.id) {
+        // Subscribe to participant changes
+        const channel = supabase
+          .channel(`session:${session.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'participants',
+              filter: `session_id=eq.${session.id}`,
+            },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setParticipants(prev => [...prev, payload.new]);
+              } else if (payload.eventType === 'DELETE') {
+                setParticipants(prev => prev.filter(p => p.id !== payload.old.id));
+              } else if (payload.eventType === 'UPDATE') {
+                setParticipants(prev =>
+                  prev.map(p => p.id === payload.new.id ? payload.new : p)
+                );
+              }
+            }
+          )
+          .subscribe();
+
+        // Clean up subscription when room changes
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      }
+    };
+
+    // Load the Cast Receiver SDK
+    const script = document.createElement('script');
+    script.src = '//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js';
+    script.onload = initializeReceiver;
+    document.head.appendChild(script);
+
+    return () => {
+      const context = window.cast?.framework?.CastReceiverContext.getInstance();
+      if (context) {
+        context.stop();
+      }
+    };
+  }, [roomCode]); // Add roomCode to dependencies
+
+  if (!roomCode) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center py-2 w-full text-white bg-black">
+        <h1 className="text-2xl font-bold">Waiting for session...</h1>
+      </div>
+    );
+  }
+
+  const url = `${process.env.NEXT_PUBLIC_APP_URL}/join/${roomCode}`;
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center py-2 w-full text-black bg-white">
+      <h1 className="text-2xl font-bold mb-8">Session: {roomCode}</h1>      
+      <div className="mb-8">
+        <QRCodeSVG
+          value={url}
+          size={256}
+          level="H"
+        />
+      </div>
+      <h2 className="text-xl font-semibold mb-4">Scan to Join</h2>      
+      <p className="mb-8 text-lg">{url}</p> {/* Re-added the URL display */}
+      <div className="mt-4">
+        <h2 className="text-xl font-semibold mb-4">Participants ({participants.length})</h2>
+        <ul className="space-y-2">
+          {participants.map((participant) => (
+            <li key={participant.id} className="text-lg">
+              {participant.display_name}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 ```
