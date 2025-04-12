@@ -11,14 +11,10 @@
             "id": "3220bcf1653f432c",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Notes/Chromcast Working Example.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Chromcast Working Example"
+              "title": "New tab"
             }
           }
         ]
@@ -170,22 +166,22 @@
   },
   "active": "3220bcf1653f432c",
   "lastOpenFiles": [
-    "Notes/Chromecast Custom Troubleshooting.md",
-    "Notes/Chromcast Working Example.md",
-    "Notes/Chromecast Context.md",
     "Working/2025-04-12.md",
+    "Notes/LapFeature.md",
+    "Notes/Chromecast Custom Troubleshooting.md",
+    "Notes/Chromecast Context.md",
+    "Notes/Chromcast Working Example.md",
+    "docs/Components/LapFeature.md",
+    "docs/Components",
+    "docs",
     "Notes/Chromecast Custom Troubleshooting.cs",
     "Working/2025-04-11.md",
     "Notes/grounding.md",
-    "Notes/LapFeature.md",
     "Working/2025-04-09.md",
     "Notes/Static Storybook Page.md",
     "Chrome Cast Feature.md",
     "Working/2025-04-10.md",
     "Working/2025-04-07.md",
-    "docs/Components/LapFeature.md",
-    "docs/Components",
-    "docs",
     "Working/2025-04-08.md",
     "Notes/Lap Feature.md",
     "Notes",
