@@ -33,7 +33,7 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   const runtimeRef = useRef<TimerRuntime>();
   const intervalRef = useRef<number | null>(null);
-  const [state, setState] = useState<"idle" | "running" | "error" | "done">("idle");
+  const [state, setState] = useState<"idle" | "running" | "paused" | "error" | "done">("idle");
   const [cursor, setCursor] = useState<IRuntimeBlock | undefined>(undefined);
   const [stack, setStack] = useState<RuntimeEvent[]>([]);
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
@@ -57,6 +57,8 @@ export function useTimerRuntime({
           setState("idle");
         } else if (runtimeRef.current.current?.type === "running") {
           setState("running");
+        } else if (runtimeRef.current.current?.type === "paused") {
+          setState("paused");
         } else if (runtimeRef.current.current?.type === "idle" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
           setState("done");
         }

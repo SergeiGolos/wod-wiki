@@ -28,13 +28,13 @@ export interface UseChromecastResult {
   currentSession: ChromecastSession | null;
   status: ChromecastStatus;
   error: Error | null;
-  connect: (deviceId: string) => Promise<void>;
+  connect: (deviceId?: string) => Promise<void>;
   disconnect: () => Promise<void>;
   sendMessage: (namespace: string, message: unknown) => Promise<void>;
 }
 
 // Define the cast namespace for our application
-const APPLICATION_ID = '4F8B3483'; // Default Media Receiver - replace with your own if registered
+const APPLICATION_ID = "34AAF98E"; // Custom Receiver App ID
 const NAMESPACE = 'urn:x-cast:com.wod.wiki';
 
 /**
@@ -72,6 +72,7 @@ export function useChromecast(): UseChromecastResult {
     // Load the Cast API script if not already loaded
     if (!document.querySelector('script[src*="cast_sender.js"]')) {
       const script = document.createElement('script');
+      // Use the right framework version for custom receivers
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
       script.async = true;
       document.head.appendChild(script);
@@ -89,25 +90,74 @@ export function useChromecast(): UseChromecastResult {
       throw new Error('Chrome Cast API not available');
     }
 
-    const sessionRequest = new window.chrome.cast.SessionRequest(APPLICATION_ID);
+    // Create a cast context instead of using the older API directly
+    const context = window.cast?.framework?.CastContext.getInstance();
     
-    const apiConfig = new window.chrome.cast.ApiConfig(
-      sessionRequest,
-      sessionListener,
-      receiverListener
-    );
-    
-    window.chrome.cast.initialize(
-      apiConfig,
-      () => {
-        console.log('Cast API initialized successfully');
-      },
-      (error) => {
-        console.error('Cast API initialization error:', error);
-        setError(new Error(`Cast initialization failed: ${error.description}`));
-        setStatus('error');
+    if (context) {
+      // Configure for custom receiver and filter for TV displays
+      context.setOptions({
+        receiverApplicationId: APPLICATION_ID,
+        // This is critical - force to PRESENTATION mode for displays/TVs
+        autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.TAB_AND_ORIGIN_SCOPED,
+        language: 'en-US',
+        resumeSavedSession: false
+      });
+      
+      // Listen for cast state changes
+      context.addEventListener(
+        window.cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+        (event) => {
+          const castState = event.castState;
+          
+          if (castState === window.cast.framework.CastState.CONNECTED) {
+            const session = context.getCurrentSession();
+            if (session) {
+              setCurrentSession({
+                sessionId: session.getSessionId(),
+                deviceId: session.getCastDevice().friendlyName || 'Unknown TV',
+                deviceName: session.getCastDevice().friendlyName || 'Chromecast TV',
+                statusText: 'Connected'
+              });
+              setStatus('connected');
+            }
+          } else if (castState === window.cast.framework.CastState.NOT_CONNECTED) {
+            setCurrentSession(null);
+            setStatus('available');
+          } else if (castState === window.cast.framework.CastState.CONNECTING) {
+            setStatus('connecting');
+          }
+        }
+      );
+      
+      console.log('Cast framework initialized successfully');
+    } else {
+      // Fall back to the older API if framework isn't available
+      const sessionRequest = new window.chrome.cast.SessionRequest(APPLICATION_ID);
+      
+      // Try to explicitly set to presentation mode for TVs
+      if (window.chrome.cast.DefaultActionPolicy) {
+        sessionRequest.requestType = 'presentation';
       }
-    );
+      
+      const apiConfig = new window.chrome.cast.ApiConfig(
+        sessionRequest,
+        sessionListener,
+        receiverListener,
+        window.chrome.cast.AutoJoinPolicy.TAB_AND_ORIGIN_SCOPED
+      );
+      
+      window.chrome.cast.initialize(
+        apiConfig,
+        () => {
+          console.log('Cast API initialized successfully');
+        },
+        (error) => {
+          console.error('Cast API initialization error:', error);
+          setError(new Error(`Cast initialization failed: ${error.description}`));
+          setStatus('error');
+        }
+      );
+    }
   }, []);
 
   // Session listener for when a session is established or recovered
@@ -155,74 +205,84 @@ export function useChromecast(): UseChromecastResult {
   const requestDeviceList = useCallback(() => {
     if (!isAvailable || !window.chrome?.cast) return;
     
-    // Unfortunately, the Cast API doesn't directly provide a list of available devices
-    // We would need to use the Media Router API to get the device list, but it requires permissions
-    // This is a known limitation - we can only know if devices are available in general, not specifics
-    
-    // For demo purposes, we'll simulate device discovery
-    // In a production app, you'd need to use the Chrome extension API with proper permissions
-    
-    // Simulated devices for demonstration
-    const simulatedDevices: ChromecastDevice[] = [
-      { id: 'device1', name: 'Living Room TV', friendlyName: 'Living Room TV' },
-      { id: 'device2', name: 'Bedroom Chromecast', friendlyName: 'Bedroom' },
-    ];
-    
-    setDevices(simulatedDevices);
+    // For now, if we know devices are available, we'll create a single entry
+    if (window.chrome.cast.ReceiverAvailability.AVAILABLE) {
+      const compatibleDevices: ChromecastDevice[] = [
+        { id: 'tv-receiver', name: 'TV Display', friendlyName: 'TV Display' },
+      ];
+      
+      setDevices(compatibleDevices);
+    } else {
+      setDevices([]);
+    }
   }, [isAvailable]);
   
-  // Periodically check for available devices when the API is initialized
-  useEffect(() => {
-    if (!apiInitialized) return;
-    
-    const intervalId = setInterval(requestDeviceList, 5000);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [apiInitialized, requestDeviceList]);
-
   // Connect to a Cast device
-  const connect = useCallback(async (deviceId: string) => {
-    if (!isAvailable || !window.chrome?.cast) {
+  const connect = useCallback(async (deviceId?: string) => {
+    if (!isAvailable) {
       throw new Error('Chrome Cast API not available');
-    }
-    
-    // Find the selected device in our list
-    const device = devices.find(d => d.id === deviceId);
-    if (!device) {
-      throw new Error(`Device with ID ${deviceId} not found`);
     }
     
     setStatus('connecting');
     
     try {
+      // Use the Cast Framework if available (better for filtering TVs)
+      if (window.cast?.framework) {
+        const context = window.cast.framework.CastContext.getInstance();
+        
+        // This will show the standard device picker dialog
+        // but properly filtered for TV devices
+        await context.requestSession();
+        
+        // The state change listener will handle setting the session
+        return;
+      }
+      
+      // Fallback to the older API if framework isn't available
       return new Promise<void>((resolve, reject) => {
+        const sessionRequest = new window.chrome.cast.SessionRequest(APPLICATION_ID);
+        
+        // Force presentation mode for TVs
+        if (window.chrome.cast.DefaultActionPolicy) {
+          sessionRequest.requestType = 'presentation';
+        }
+        
         window.chrome.cast.requestSession(
           (session) => {
             console.log('Session established:', session);
             
+            // Add message listener
+            session.addMessageListener(NAMESPACE, (namespace, message) => {
+              console.log(`Message received from ${namespace}:`, message);
+            });
+            
+            // Send initial message to the receiver
+            try {
+              session.sendMessage(NAMESPACE, { 
+                type: 'INIT',
+                timestamp: new Date().toISOString()
+              });
+            } catch (error) {
+              console.warn('Failed to send initial message:', error);
+            }
+            
             setCurrentSession({
               sessionId: session.sessionId,
-              deviceId: device.id,
-              deviceName: device.name,
+              deviceId: session.receiverFriendlyName || 'chromecast-device',
+              deviceName: session.receiverFriendlyName || 'WOD Display',
               statusText: 'Connected'
             });
             
             setStatus('connected');
             resolve();
-            
-            // Set up the session message listener
-            session.addMessageListener(NAMESPACE, (namespace, message) => {
-              console.log(`Message received from ${namespace}:`, message);
-            });
           },
           (error) => {
             console.error('Error requesting session:', error);
             setError(new Error(`Failed to request session: ${error.description}`));
             setStatus('error');
             reject(error);
-          }
+          },
+          sessionRequest
         );
       });
     } catch (err) {
@@ -231,11 +291,11 @@ export function useChromecast(): UseChromecastResult {
       setStatus('error');
       throw err;
     }
-  }, [isAvailable, devices]);
-  
+  }, [isAvailable]);
+
   // Disconnect from the current Cast session
   const disconnect = useCallback(async () => {
-    if (!isAvailable || !window.chrome?.cast || !currentSession) {
+    if (!isAvailable) {
       if (!currentSession) {
         return; // No active session to disconnect
       }
@@ -245,10 +305,32 @@ export function useChromecast(): UseChromecastResult {
     setStatus('disconnecting');
     
     try {
+      // Try using the newer framework first
+      if (window.cast?.framework) {
+        const context = window.cast.framework.CastContext.getInstance();
+        const session = context.getCurrentSession();
+        
+        if (session) {
+          await session.endSession(true);
+          setCurrentSession(null);
+          setStatus('available');
+          return;
+        }
+      }
+      
+      // Fall back to the older API
       return new Promise<void>((resolve, reject) => {
+        if (!window.chrome?.cast || !currentSession) {
+          setCurrentSession(null);
+          setStatus('available');
+          resolve();
+          return;
+        }
+        
         const session = window.chrome.cast.getSessionById(currentSession.sessionId);
         
         if (!session) {
+          console.warn('Session not found, resetting state');
           setCurrentSession(null);
           setStatus('available');
           resolve();
@@ -257,16 +339,28 @@ export function useChromecast(): UseChromecastResult {
         
         session.leave(
           () => {
-            console.log('Session ended successfully');
+            console.log('Session left successfully');
             setCurrentSession(null);
             setStatus('available');
             resolve();
           },
           (error) => {
-            console.error('Error ending session:', error);
-            setError(new Error(`Failed to end session: ${error.description}`));
-            setStatus('error');
-            reject(error);
+            console.error('Error leaving session:', error);
+            
+            // Try to forcefully end the session as a backup
+            session.stop(
+              () => {
+                console.log('Session stopped successfully');
+                setCurrentSession(null);
+                setStatus('available');
+                resolve();
+              },
+              (stopError) => {
+                console.error('Error stopping session:', stopError);
+                setError(new Error(`Failed to disconnect: ${stopError.description}`));
+                reject(stopError);
+              }
+            );
           }
         );
       });
@@ -277,15 +371,33 @@ export function useChromecast(): UseChromecastResult {
       throw err;
     }
   }, [isAvailable, currentSession]);
-  
+
   // Send a message to the connected Cast receiver
   const sendMessage = useCallback(async (namespace: string = NAMESPACE, message: unknown) => {
-    if (!isAvailable || !window.chrome?.cast || !currentSession) {
+    if (!isAvailable || !currentSession) {
       throw new Error('No active Chromecast session');
     }
     
     try {
+      // Try using the newer framework first
+      if (window.cast?.framework) {
+        const context = window.cast.framework.CastContext.getInstance();
+        const session = context.getCurrentSession();
+        
+        if (session) {
+          const channel = session.getMessageChannel(namespace);
+          await channel.send(message);
+          return;
+        }
+      }
+      
+      // Fall back to the older API
       return new Promise<void>((resolve, reject) => {
+        if (!window.chrome?.cast || !currentSession) {
+          reject(new Error('No active Chromecast session'));
+          return;
+        }
+        
         const session = window.chrome.cast.getSessionById(currentSession.sessionId);
         
         if (!session) {
@@ -295,7 +407,7 @@ export function useChromecast(): UseChromecastResult {
         
         session.sendMessage(
           namespace,
-          typeof message === 'string' ? message : JSON.stringify(message),
+          message,
           () => {
             console.log('Message sent successfully');
             resolve();
@@ -307,8 +419,7 @@ export function useChromecast(): UseChromecastResult {
         );
       });
     } catch (err) {
-      console.error('Error sending message:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error sending message'));
+      console.error('Error sending message to device:', err);
       throw err;
     }
   }, [isAvailable, currentSession]);
@@ -328,6 +439,101 @@ export function useChromecast(): UseChromecastResult {
 // Add type definitions for the Chrome Cast API
 declare global {
   interface Window {
+    cast?: {
+      // New Cast Framework (preferred method)
+      framework?: {
+        CastContext: {
+          getInstance: () => {
+            setOptions: (options: any) => void;
+            getCurrentSession: () => any;
+            requestSession: () => Promise<void>;
+            addEventListener: (eventType: string, listener: (event: any) => void) => void;
+          }
+        };
+        CastContextEventType: {
+          CAST_STATE_CHANGED: string;
+          ACTIVE_INPUT_STATE_CHANGED: string;
+          SESSION_STATE_CHANGED: string;
+        };
+        CastState: {
+          NO_DEVICES_AVAILABLE: string;
+          NOT_CONNECTED: string;
+          CONNECTING: string;
+          CONNECTED: string;
+        };
+      };
+      // Older Cast API (fallback)
+      chrome?: {
+        // Basic initialization
+        initialize: (
+          apiConfig: any,
+          onInitSuccess: () => void,
+          onError: (error: any) => void
+        ) => void;
+        // Session management
+        requestSession: (
+          onSuccess: (session: any) => void,
+          onError: (error: any) => void,
+          sessionRequest?: any
+        ) => void;
+        SessionRequest: new (appId: string) => any;
+        ApiConfig: new (
+          sessionRequest: any,
+          sessionListener: (session: any) => void,
+          receiverListener: (availability: string) => void,
+          autoJoinPolicy?: string,
+          defaultActionPolicy?: string
+        ) => any;
+        // Session retrieval
+        getSessionById: (sessionId: string) => any;
+        // Request types
+        RequestType?: {
+          CUSTOM: string;
+          MEDIA: string;
+          PRESENTATION: string;
+        };
+        // Default action policies
+        DefaultActionPolicy?: {
+          CREATE_SESSION: string;
+          CAST_THIS_TAB: string;
+        };
+        // Constants
+        ReceiverAvailability: {
+          AVAILABLE: string;
+          UNAVAILABLE: string;
+        };
+        // Capabilities for filtering devices
+        Capability: {
+          VIDEO_OUT: string;
+          AUDIO_OUT: string;
+          VIDEO_IN: string;
+          AUDIO_IN: string;
+          MULTIZONE_GROUP: string;
+        };
+        // Auto join policies
+        AutoJoinPolicy: {
+          CUSTOM_CONTROLLER_SCOPED: string;
+          TAB_AND_ORIGIN_SCOPED: string;
+          ORIGIN_SCOPED: string;
+          PAGE_SCOPED: string;
+        };
+        // Error handling
+        Error: {
+          CANCEL: string;
+          TIMEOUT: string;
+          API_NOT_INITIALIZED: string;
+          INVALID_PARAMETER: string;
+          EXTENSION_MISSING: string;
+          EXTENSION_NOT_COMPATIBLE: string;
+          INVALID_ACTION: string;
+          AUTHENTICATION_EXPIRED: string;
+          RECEIVER_UNAVAILABLE: string;
+          SESSION_ERROR: string;
+          CHANNEL_ERROR: string;
+          LOAD_MEDIA_FAILED: string;
+        };
+      };
+    };
     chrome?: {
       cast?: {
         // Basic initialization
@@ -352,10 +558,36 @@ declare global {
         ) => any;
         // Session retrieval
         getSessionById: (sessionId: string) => any;
+        // Request types
+        RequestType?: {
+          CUSTOM: string;
+          MEDIA: string;
+          PRESENTATION: string;
+        };
+        // Default action policies
+        DefaultActionPolicy?: {
+          CREATE_SESSION: string;
+          CAST_THIS_TAB: string;
+        };
         // Constants
         ReceiverAvailability: {
           AVAILABLE: string;
           UNAVAILABLE: string;
+        };
+        // Capabilities for filtering devices
+        Capability: {
+          VIDEO_OUT: string;
+          AUDIO_OUT: string;
+          VIDEO_IN: string;
+          AUDIO_IN: string;
+          MULTIZONE_GROUP: string;
+        };
+        // Auto join policies
+        AutoJoinPolicy: {
+          CUSTOM_CONTROLLER_SCOPED: string;
+          TAB_AND_ORIGIN_SCOPED: string;
+          ORIGIN_SCOPED: string;
+          PAGE_SCOPED: string;
         };
         // Error handling
         Error: {

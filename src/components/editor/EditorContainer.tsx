@@ -5,6 +5,7 @@ import { useTimerRuntime } from "../hooks/useTimerRuntime";
 import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { ButtonRibbon } from "../buttons/ButtonRibbon";
+import { RunnerControls } from "../buttons/RunnerControls";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
 import { cn } from "@/core/utils";
 import { useSound } from "@/core/contexts/SoundContext";
@@ -43,7 +44,8 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     edits,
     display,
     results, 
-    setStack
+    setStack,
+    state
   } = useTimerRuntime({
     onScriptCompiled,
     onResultsUpdated
@@ -113,14 +115,25 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
       <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
-      <div className="timer-controls p-1">
-        <ButtonRibbon 
-          buttons={buttons} 
+      <div className="top-controls p-1">
+        <RunnerControls 
+          state={state}
           leftButtons={[soundToggleButton, screenOnToggleButton]} 
           setEvents={setStack} 
         />              
       </div>      
-      {display && display.label !== 'idle' && <WodTimer display={display} />}      
+      {display && display.label !== 'idle' && (
+        <>
+          <WodTimer display={display} />
+          <div className="timer-buttons p-1 flex justify-center">
+            <ButtonRibbon 
+              buttons={buttons} 
+              leftButtons={[]} 
+              setEvents={setStack} 
+            />
+          </div>
+        </>
+      )}      
       <ResultsDisplay 
         runtime={runtimeRef} 
         results={results} 
