@@ -24,7 +24,7 @@ interface UseChromecastResult {
 
 // Define the cast namespace for our application
 const APPLICATION_ID = "34AAF98E"; // Custom Receiver App ID
-const NAMESPACE = 'urn:x-cast:com.wod.wiki';
+const NAMESPACE = 'urn:x-cast:com.google.cast.cac';
 
 // Hook for working with Chrome Cast client APIs using the modern framework
 //
