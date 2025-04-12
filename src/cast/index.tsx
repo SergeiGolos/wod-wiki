@@ -1,14 +1,20 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import CastReceiver from './CastReceiver';
-import '../index.css'; // Import Tailwind CSS
+import '../index.css';
 
-/**
- * Entry point for the ChromeCast receiver application
- * This will be accessed via the `/cast` path in Storybook
- */
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Initialize cast receiver
+const context = cast.framework.CastReceiverContext.getInstance();
+const options = new cast.framework.CastReceiverOptions();
+options.disableIdleTimeout = true;
+
+// Initialize React app
+const root = createRoot(document.getElementById('root')!);
+root.render(
   <React.StrictMode>
     <CastReceiver />
   </React.StrictMode>
 );
+
+// Start the receiver
+context.start(options);
