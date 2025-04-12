@@ -3,7 +3,7 @@ import '../index.css';
 import { SyntaxDiagram } from './components/SyntaxDiagram';
 
 const meta: Meta<typeof SyntaxDiagram> = {
-  title: 'Components/Syntax Diagram',
+  title: 'Syntax/Diagram',
   component: SyntaxDiagram,  
   parameters: {
     controls: { hideNoControlsWarning: true },    

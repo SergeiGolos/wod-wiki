@@ -31,23 +31,29 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, leftButtons
     setEvents(events);
   }
 
+  // If we have leftButtons, show them on the left and buttons on the right
+  // Otherwise, center all buttons (for use under the timer)
+  const hasLeftButtons = leftButtons.length > 0;
+
   return (
-    <div className="flex justify-between items-center px-2 py-1">
+    <div className={`flex ${hasLeftButtons ? 'justify-between' : 'justify-center'} items-center px-2 py-1`}>
       {/* Left-aligned buttons */}
-      <div className="flex space-x-2">
-        {leftButtons.map((button, index) => (
-          <button
-            key={`left-${index}`}
-            onClick={() => clickEvent(button)}
-            className={getButtonStyle(button)}
-          >
-            {button.label && <span className="mr-2">{button.label}</span>}
-            <button.icon className="w-4 h-4" />
-          </button>
-        ))}
-      </div>
+      {hasLeftButtons && (
+        <div className="flex space-x-2">
+          {leftButtons.map((button, index) => (
+            <button
+              key={`left-${index}`}
+              onClick={() => clickEvent(button)}
+              className={getButtonStyle(button)}
+            >
+              {button.label && <span className="mr-2">{button.label}</span>}
+              <button.icon className="w-4 h-4" />
+            </button>
+          ))}
+        </div>
+      )}
       
-      {/* Right-aligned buttons */}
+      {/* Buttons - right-aligned if hasLeftButtons, centered otherwise */}
       <div className="flex space-x-2">
         {buttons.map((button, index) => (
           <button

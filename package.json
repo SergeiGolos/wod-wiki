@@ -19,6 +19,7 @@
     "dev": "storybook dev -p 6006",
     "build": "vite build",
     "build-storybook": "storybook build",
+    "build-cast": "cross-env BUILD_TARGET=cast vite build",
     "test": "vitest"
   },
   "peerDependencies": {
@@ -43,6 +44,7 @@
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
+    "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",

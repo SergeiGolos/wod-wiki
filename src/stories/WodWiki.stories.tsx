@@ -12,7 +12,7 @@ const EditorWithSoundProvider = (props: React.ComponentProps<typeof EditorWithSt
 );
 
 const meta: Meta<typeof EditorWithState> = {
-  title: 'Components/Wiki',
+  title: 'Workouts/Examples',
   component: EditorWithState,
   parameters: {
     controls: { hideNoControlsWarning: true },
