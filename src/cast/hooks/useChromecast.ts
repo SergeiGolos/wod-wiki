@@ -24,7 +24,7 @@ interface UseChromecastResult {
 
 // Define the cast namespace for our application
 const APPLICATION_ID = "38F01E0E"; // Custom Receiver App ID
-const NAMESPACE = 'urn:x-cast:com.wod.wiki';
+const CAST_NAMESPACE = "urn:x-cast:com.google.cast.cac"; // Custom namespace matching the working example
 
 // Hook for working with Chrome Cast client APIs using the modern framework
 //
@@ -41,8 +41,9 @@ export function useChromecast(): UseChromecastResult {
 
   // Initialize the Chrome Cast Framework API
   useEffect(() => {
-    window['__onGCastApiAvailable'] = (isApiAvailable: boolean) => {
-      if (isApiAvailable && window.cast?.framework) {
+    window['__onGCastApiAvailable'] = (isApiAvailable: boolean, reason?: string) => {
+      console.log('Cast API available:', isApiAvailable, reason || '');
+      if (isApiAvailable && window.chrome && window.chrome.cast) {
         try {
           initializeCastApi();
           setIsAvailable(true); // API script is loaded
@@ -62,8 +63,7 @@ export function useChromecast(): UseChromecastResult {
         setIsConnecting(false);
         setDeviceName(null);
         setInternalSession(null);
-        if (!isApiAvailable) console.warn('Cast Sender API not available.');
-        if (isApiAvailable && !window.cast?.framework) console.warn('Cast Framework not available on window.cast');
+        console.error('Google Cast SDK could not be loaded.');
       }
     };
 
@@ -72,6 +72,9 @@ export function useChromecast(): UseChromecastResult {
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
       script.async = true;
       document.head.appendChild(script);
+    } else if (window.chrome && window.chrome.cast && window.chrome.cast.isAvailable) {
+      // If the Cast API is already available, initialize it directly
+      initializeCastApi();
     }
 
     return () => {
@@ -80,81 +83,64 @@ export function useChromecast(): UseChromecastResult {
   }, []); // Run only once on mount
 
   const initializeCastApi = useCallback(() => {
-    const context = window.cast.framework.CastContext.getInstance();
-    if (!context) {
-      throw new Error('Failed to get CastContext instance.');
+    // Using the same approach as the working example
+    if (!window.chrome || !window.chrome.cast) {
+      console.log('Cast SDK not available yet.');
+      return;
     }
+    console.log('Cast SDK available.');
 
-    context.setOptions({
-      receiverApplicationId: APPLICATION_ID,
-      autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.TAB_AND_ORIGIN_SCOPED,
-      language: 'en-US',
-      resumeSavedSession: false
-    });
-
-    context.addEventListener(
-      window.cast.framework.CastContextEventType.CAST_STATE_CHANGED,
-      (event) => {
-        const castState = event.castState;
-        console.log('Cast State Changed:', castState); // Log state changes
-        setError(null); // Clear previous errors on state change
-
-        switch (castState) {
-          case window.cast.framework.CastState.NO_DEVICES_AVAILABLE:
-          case window.cast.framework.CastState.NOT_CONNECTED:
-            setIsConnecting(false);
-            setIsConnected(false);
-            setDeviceName(null);
-            setInternalSession(null);
-            break;
-          case window.cast.framework.CastState.CONNECTING:
-            setIsConnecting(true);
-            setIsConnected(false);
-            setDeviceName(null);
-            setInternalSession(null);
-            break;
-          case window.cast.framework.CastState.CONNECTED:
-            const session = context.getCurrentSession();
-            if (session) {
-              const device = session.getCastDevice();
-              const newDeviceName = device.friendlyName || 'Unknown Cast Device';
-              setDeviceName(newDeviceName);
-              setIsConnecting(false);
-              setIsConnected(true);
-              // Store session internally for operations
-              setInternalSession({
-                sessionId: session.getSessionId(),
-                deviceId: device.id,
-                deviceName: newDeviceName,
-                statusText: session.getStatusText() || 'Connected',
-                sessionObject: session // Keep the actual session object
-              });
-
-              // Add message listener (optional, only if receiver sends messages back)
-              // session.addMessageListener(NAMESPACE, (namespace, message) => {
-              //   console.log(`Message received from ${namespace}:`, message);
-              // });
-            } else {
-              // Should not happen in CONNECTED state, but handle defensively
-              setIsConnecting(false);
-              setIsConnected(false);
-              setDeviceName(null);
-              setInternalSession(null);
-            }
-            break;
-          default:
-            // Handle unknown states if necessary
-            break;
+    const sessionRequest = new window.chrome.cast.SessionRequest(APPLICATION_ID);
+    const apiConfig = new window.chrome.cast.ApiConfig(
+      sessionRequest,
+      (session) => {
+        // Session listener - called when a session is created or joined
+        console.log('New session', session);
+        if (session) {
+          const device = session.getCastDevice();
+          const newDeviceName = device.friendlyName || 'Unknown Cast Device';
+          setDeviceName(newDeviceName);
+          setIsConnecting(false);
+          setIsConnected(true);
+          // Store session internally for operations
+          setInternalSession({
+            sessionId: session.getSessionId(),
+            deviceId: device.id,
+            deviceName: newDeviceName,
+            statusText: session.getStatusText() || 'Connected',
+            sessionObject: session
+          });
+        }
+      },
+      (availability) => {
+        // Receiver availability listener
+        console.log('Receiver availability:', availability);
+        if (availability === window.chrome.cast.ReceiverAvailability.AVAILABLE) {
+          setIsAvailable(true);
+        } else {
+          setIsAvailable(false);
         }
       }
     );
-    // Removed the explicit initial state check block
-    console.log('Cast framework initialized successfully');
+
+    window.chrome.cast.initialize(
+      apiConfig,
+      () => {
+        console.log('Cast API initialized successfully.');
+        // Initialize the Cast button after API is ready
+        if (window.google && window.google.cast && window.google.cast.framework) {
+          const castContext = window.google.cast.framework.CastContext.getInstance();
+          castContext.setOptions({
+            receiverApplicationId: APPLICATION_ID
+          });
+        }
+      },
+      (error) => console.error('Cast API initialization failed:', error)
+    );
   }, []);
 
   const connect = useCallback(async () => {
-    const context = window.cast?.framework?.CastContext.getInstance();
-    if (!context || !isAvailable) {
+    if (!window.chrome || !window.chrome.cast) {
       const errorMsg = 'Cast API not available or not initialized.';
       setError(new Error(errorMsg));
       throw new Error(errorMsg);
@@ -163,8 +149,35 @@ export function useChromecast(): UseChromecastResult {
     try {
       setIsConnecting(true); // Optimistically set connecting state
       setError(null);
-      await context.requestSession();
-      // State updates (isConnected, deviceName) handled by listener
+      
+      // Use the approach from the working example
+      window.chrome.cast.requestSession(
+        (session) => {
+          console.log('Session started', session);
+          if (session) {
+            const device = session.getCastDevice();
+            const newDeviceName = device.friendlyName || 'Unknown Cast Device';
+            setDeviceName(newDeviceName);
+            setIsConnecting(false);
+            setIsConnected(true);
+            // Store session internally for operations
+            setInternalSession({
+              sessionId: session.getSessionId(),
+              deviceId: device.id,
+              deviceName: newDeviceName,
+              statusText: session.getStatusText() || 'Connected',
+              sessionObject: session
+            });
+          }
+        },
+        (error) => {
+          console.error('Error starting cast session:', error);
+          setError(new Error(`Failed to request session: ${error.code || error.message}`));
+          setIsConnecting(false);
+          setIsConnected(false);
+          setDeviceName(null);
+        }
+      );
     } catch (err: any) {
       console.error('Error requesting session:', err);
       const errorMsg = `Failed to request session: ${err.message || err.code}`; 
@@ -174,7 +187,7 @@ export function useChromecast(): UseChromecastResult {
       setDeviceName(null);
       throw err;
     }
-  }, [isAvailable]);
+  }, []);
 
   const disconnect = useCallback(async () => {
     const session = internalSession?.sessionObject;
@@ -183,13 +196,14 @@ export function useChromecast(): UseChromecastResult {
       try {
         setError(null);
         await session.endSession(true);
-        // State updates (isConnected=false, deviceName=null) handled by listener
+        // Reset the state
+        setIsConnected(false);
+        setDeviceName(null);
+        setInternalSession(null);
       } catch (err: any) {
         console.error('Error ending session:', err);
         const errorMsg = `Failed to disconnect: ${err.message || err.code}`; 
         setError(new Error(errorMsg));
-        // Reflect disconnect failure in state potentially? Or rely on listener?
-        // For now, let listener handle state unless error persists.
         throw err;
       }
     } else {
@@ -203,7 +217,14 @@ export function useChromecast(): UseChromecastResult {
     if (session) {
       try {
         setError(null);
-        await session.sendMessage(namespace, message);
+        // Use the same approach as the working example
+        session.sendMessage(namespace || CAST_NAMESPACE, message,
+          () => console.log('Message sent successfully'),
+          (error) => {
+            console.error('Failed to send message:', error);
+            throw new Error(`Failed to send message: ${error.message || error.code}`);
+          }
+        );
       } catch (err: any) {
         console.error(`Error sending message to ${namespace}:`, err);
         const errorMsg = `Failed to send message: ${err.message || err.code}`;
@@ -254,11 +275,27 @@ declare global {
         AutoJoinPolicy: {
           TAB_AND_ORIGIN_SCOPED: string;
         };
+        ReceiverAvailability?: {
+          AVAILABLE: string;
+          UNAVAILABLE: string;
+        };
+        SessionRequest?: any;
+        ApiConfig?: any;
+        initialize?: (apiConfig: any, onSuccess: () => void, onError: (error: any) => void) => void;
+        requestSession?: (
+          onSuccess: (session: CastSession) => void,
+          onError: (error: any) => void
+        ) => void;
         // ErrorCode might be needed for Promises, keep minimal types
         ErrorCode?: any;
       };
     };
-    __onGCastApiAvailable?: (isAvailable: boolean) => void;
+    google?: {
+      cast?: {
+        framework?: any;
+      };
+    };
+    __onGCastApiAvailable?: (isAvailable: boolean, reason?: string) => void;
   }
 
   interface CastContext {
@@ -301,8 +338,10 @@ declare global {
     ) => void;
     sendMessage: (
       namespace: string,
-      message: any
-    ) => Promise<void>; // Changed from ErrorCode to void based on framework docs
+      message: any,
+      onSuccess?: () => void,
+      onError?: (error: any) => void
+    ) => void;
     endSession: (stopCasting: boolean) => Promise<chrome.cast.ErrorCode | undefined>;
   }
 
