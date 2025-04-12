@@ -33,7 +33,7 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   const runtimeRef = useRef<TimerRuntime>();
   const intervalRef = useRef<number | null>(null);
-  
+  const [state, setState] = useState<"idle" | "running" | "error" | "done">("idle");
   const [cursor, setCursor] = useState<IRuntimeBlock | undefined>(undefined);
   const [stack, setStack] = useState<RuntimeEvent[]>([]);
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
@@ -50,9 +50,21 @@ export function useTimerRuntime({
     intervalRef.current = setInterval(() => {
       if (runtimeRef.current) {
         // Create the tick event
-        const tick = { name: "tick", timestamp: new Date() };  
+        const tick = { name: "tick", timestamp: new Date() };
+
+        // Update state based on runtime current values
+        if (runtimeRef.current.current?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
+          setState("idle");
+        } else if (runtimeRef.current.current?.type === "running") {
+          setState("running");
+        } else if (runtimeRef.current.current?.type === "idle" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
+          setState("done");
+        }
+        
         // Process all events and get resulting actions                                       
         setStack(runtimeRef.current.tick([...stack, tick]));      
+      } else {
+        setState("error");
       }
     }, 100);
 
@@ -106,6 +118,7 @@ export function useTimerRuntime({
     buttons,
     display,
     results,
+    state,
     setStack
   };
 }
