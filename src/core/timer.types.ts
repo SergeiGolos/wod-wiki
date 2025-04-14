@@ -304,9 +304,6 @@ export class ResultSpan {
     const startTime = this.start?.timestamp.getTime() || 0;
     const calculatedDuration = stopTime - startTime;
 
-    // Debugging log
-    console.log(`ResultSpan.duration: blockKey=${this.blockKey}, index=${this.index}, start=${this.start?.timestamp?.toISOString()}, stop=${this.stop?.timestamp?.toISOString()}, now=${now.toISOString()}, calculatedDuration=${calculatedDuration}`);
-
     return calculatedDuration;
   }
 

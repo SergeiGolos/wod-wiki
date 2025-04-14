@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
 import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
@@ -44,7 +44,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     edits,
     display,
     results, 
-    setStack,
+    setEvents,
     state
   } = useTimerRuntime({
     onScriptCompiled,
@@ -119,7 +119,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         <RunnerControls 
           state={state}
           leftButtons={[soundToggleButton, screenOnToggleButton]} 
-          setEvents={setStack} 
+          setEvents={setEvents} 
         />              
       </div>      
       {display && display.label !== 'idle' && (
@@ -129,7 +129,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
             <ButtonRibbon 
               buttons={buttons} 
               leftButtons={[]} 
-              setEvents={setStack} 
+              setEvents={setEvents} 
             />
           </div>
         </>

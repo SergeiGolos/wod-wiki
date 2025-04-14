@@ -35,13 +35,10 @@ export class TimerRuntime implements ITimerRuntime {
     this.reset();
   }
 
-  reset() {
-    this.results = [];
-    this.buttons = [startButton];
-    this.edits = [];
-    this.onSetResults(this.results);
-    this.onSetEdits(this.edits);
+  reset() {        
     this.current = this.gotoBlock(undefined);    
+    this.onSetResults(this.results = []);
+    this.onSetEdits(this.edits = []);    
     this.trace = new RuntimeTrace();        
   }
   
@@ -69,7 +66,8 @@ export class TimerRuntime implements ITimerRuntime {
       }      
     }
     this.onSetDisplay(this.display);
-    this.onSetButtons(this.buttons);        
+    // Create a new array reference to ensure React detects the change
+    this.onSetButtons([...this.buttons]);        
     if (resultsCount != this.results.length) {
       this.onSetResults([...this.results]);
     }

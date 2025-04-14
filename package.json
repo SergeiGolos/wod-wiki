@@ -17,9 +17,8 @@
   ],
   "scripts": {
     "dev": "storybook dev -p 6006",
-    "build": "vite build",
+    "build": "cross-env BUILD_TARGET=core vite build",
     "build-storybook": "storybook build",
-    "build-cast": "cross-env BUILD_TARGET=cast vite build",
     "test": "vitest"
   },
   "peerDependencies": {

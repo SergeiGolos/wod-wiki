@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
 import { startButton, stopButton, resetButton, resumeButton } from "./timerButtons";
 import { ChromecastButton } from "@/cast/components/ChromecastButton";
@@ -16,6 +16,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
 }) => {
   // Determine which control buttons to show based on state
   const getControlButtons = () => {
+    console.log("State:", state);
     switch (state) {
       case "idle":
         return [startButton];
@@ -26,7 +27,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
       case "done":
         return [resetButton];
       default:
-        return [startButton];
+        return [];
     }
   };
 
@@ -49,7 +50,10 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
     setEvents(events);
   };
 
-  const controlButtons = getControlButtons();
+  const [controlButtons, setControlButtons] = useState<ButtonConfig[]>([]);
+  useEffect(() => {
+    setControlButtons(getControlButtons());
+  }, [state]);
 
   return (
     <div className="flex justify-between items-center px-2 py-1">
