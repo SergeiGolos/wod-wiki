@@ -86,9 +86,9 @@ describe('RuntimeStack', () => {
   });
   
   test('constructor initializes leafs correctly', () => {
-    expect(runtimeStack.leafs).toHaveLength(2);
-    expect(runtimeStack.leafs[0].id).toBe(2);
-    expect(runtimeStack.leafs[1].id).toBe(3);
+    expect(runtimeStack.nodes).toHaveLength(2);
+    expect(runtimeStack.nodes[0].id).toBe(2);
+    expect(runtimeStack.nodes[1].id).toBe(3);
   });
   
   

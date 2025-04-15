@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Working/2025-04-14.repair-system-button-events.md",
+                "file": "Working/2025-04-14.pause-resume-duration-design.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2025-04-14.repair-system-button-events"
+              "title": "2025-04-14.pause-resume-duration-design"
             }
           }
         ],
@@ -201,15 +201,13 @@
                 "id": "ef8b6ff4eaa2ec6a",
                 "type": "leaf",
                 "state": {
-                  "type": "kanban",
+                  "type": "markdown",
                   "state": {
                     "file": "Working/2025-04-14.repair-system-button-events.kb.md",
-                    "kanbanViewState": {
-                      "kanban-plugin": "board",
-                      "list-collapse": []
-                    }
+                    "mode": "source",
+                    "source": false
                   },
-                  "icon": "lucide-trello",
+                  "icon": "lucide-file",
                   "title": "2025-04-14.repair-system-button-events.kb"
                 }
               }
@@ -226,8 +224,13 @@
       }
     ]
   },
-  "active": "ef8b6ff4eaa2ec6a",
+  "active": "069fcc885e621261",
   "lastOpenFiles": [
+    "Working/2025-04-14.KB.md",
+    "Working/2025-04-14.pause-resume-duration-design.md",
+    "docs/Components/EventSpanAggregator.md",
+    "docs/Components",
+    "docs",
     "Working/2025-04-14.repair-system-button-events.md",
     "Working/2025-04-14.repair-system-button-events.kb.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
@@ -250,20 +253,15 @@
     "Working/KB-2025-04-13.md",
     "Excalidraw",
     "Working/mermaid-fullscreen.js",
-    "Working/mermaid-fullscreen.css",
     "Working/2024-04-13.md",
     "Notes/Chromcast Working Example.md",
     "Working/2025-04-12.md",
     "Notes/LapFeature.md",
     "Notes/Chromecast Custom Troubleshooting.md",
     "docs/Components/LapFeature.md",
-    "docs/Components",
     "Working/2025-04-11.md",
     "Notes/grounding.md",
     "Working/2025-04-09.md",
-    "Notes/Static Storybook Page.md",
-    "Chrome Cast Feature.md",
-    "Working/2025-04-10.md",
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas"
   ]

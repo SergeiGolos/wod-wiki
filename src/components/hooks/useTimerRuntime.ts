@@ -57,7 +57,7 @@ export function useTimerRuntime({
         if (block?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
           setState("idle");
         
-        } else if (block?.type === "runtime" && block.events?.[block.events.length - 1].name == "stop") {
+        } else if (block?.type === "runtime" && block.events?.[block.events.length - 1]?.name == "stop") {
           setState("paused");
         
         } else if (block?.type === "runtime") {
