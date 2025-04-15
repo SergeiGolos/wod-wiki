@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
 import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
@@ -14,7 +14,8 @@ import { SoundProvider } from "@/core/contexts/SoundContext";
 import { ScreenProvider } from "@/core/contexts/ScreenContext";
 import { useScreen } from "@/core/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-
+import { ChromecastButton } from "@/cast/components/ChromecastButton";
+  
 interface EditorContainerProps {
   id: string;
   code: string;
@@ -44,7 +45,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     edits,
     display,
     results, 
-    setStack,
+    setEvents,
     state
   } = useTimerRuntime({
     onScriptCompiled,
@@ -67,7 +68,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     if (!runtimeRef.current) return;
 
     const handleRuntimeStateChange = async () => {
-      const isIdle = runtimeRef.current?.current?.type === "idle";
+      const isIdle = runtimeRef.current?.current?.getState() === "idle";
       
       if (screenOnEnabled) {
         if (!isIdle) {
@@ -112,24 +113,39 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     isActive: screenOnEnabled,
   };
 
+  // Create Chromecast button (now managed independently)  
+
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
       <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
-      <div className="top-controls p-1">
-        <RunnerControls 
-          state={state}
-          leftButtons={[soundToggleButton, screenOnToggleButton]} 
-          setEvents={setStack} 
-        />              
-      </div>      
-      {display && display.label !== 'idle' && (
+      <div className="top-controls p-1 flex flex-row items-center justify-between">
+        {/* Left: Sound and screen lock toggles */}
+        <div className="flex flex-row space-x-2 items-center">
+          {soundToggleButton && (
+            <button onClick={soundToggleButton.onClick} className={soundToggleButton.isActive ? "bg-blue-100 text-blue-600 p-2 rounded-full" : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"}>
+              <soundToggleButton.icon className="h-5 w-5" />
+            </button>
+          )}
+          {screenOnToggleButton && (
+            <button onClick={screenOnToggleButton.onClick} className={screenOnToggleButton.isActive ? "bg-blue-100 text-blue-600 p-2 rounded-full" : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"}>
+              <screenOnToggleButton.icon className="h-5 w-5" />
+            </button>
+          )}
+          <ChromecastButton setEvents={setEvents} />
+        </div>
+      <RunnerControls 
+        setEvents={setEvents}
+        state={state}      
+      />      
+      </div>        
+      {runtimeRef.current?.current && display && (
         <>
           <WodTimer display={display} />
           <div className="timer-buttons p-1 flex justify-center">
             <ButtonRibbon 
               buttons={buttons} 
               leftButtons={[]} 
-              setEvents={setStack} 
+              setEvents={setEvents} 
             />
           </div>
         </>

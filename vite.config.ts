@@ -4,15 +4,17 @@ import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-// Determine if we're building the cast receiver
-const isCastReceiver = process.env.BUILD_TARGET === 'cast';
+// Determine the build target
+const buildTarget = process.env.BUILD_TARGET || 'core';
+const isCastReceiver = buildTarget === 'cast';
+const isCore = buildTarget === 'core';
 
 export default defineConfig({
   plugins: [
     react(),
     tsconfigPaths(),
     // Only include dts plugin for library build
-    ...(!isCastReceiver ? [dts({ insertTypesEntry: true })] : [])
+    ...(isCore ? [dts({ insertTypesEntry: true })] : [])
   ],
   build: isCastReceiver ? {
     outDir: 'public/cast',
@@ -31,7 +33,9 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'WodWikiLibrary',
       formats: ['es', 'umd'],
-      fileName: (format) => `wod-wiki-library.${format}.js`,
+      fileName: (format) => format === 'es' 
+        ? 'wod-wiki-library.js'
+        : 'wod-wiki-library.umd.cjs',
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'monaco-editor'],

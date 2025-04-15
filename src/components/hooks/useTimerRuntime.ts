@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetric, RuntimeMetricEdit } from "@/core/timer.types";
+import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetricEdit } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
@@ -35,7 +35,7 @@ export function useTimerRuntime({
   const intervalRef = useRef<number | null>(null);
   const [state, setState] = useState<"idle" | "running" | "paused" | "error" | "done">("idle");
   const [cursor, setCursor] = useState<IRuntimeBlock | undefined>(undefined);
-  const [stack, setStack] = useState<RuntimeEvent[]>([]);
+  const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
   const [display, setDisplay] = useState<TimerDisplayBag | undefined>();
 
@@ -51,20 +51,24 @@ export function useTimerRuntime({
       if (runtimeRef.current) {
         // Create the tick event
         const tick = { name: "tick", timestamp: new Date() };
-
+        const block = runtimeRef.current.current;
         // Update state based on runtime current values
-        if (runtimeRef.current.current?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
+        
+        if (block?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
           setState("idle");
-        } else if (runtimeRef.current.current?.type === "running") {
-          setState("running");
-        } else if (runtimeRef.current.current?.type === "paused") {
+        
+        } else if (block?.type === "runtime" && block.events?.[block.events.length - 1].name == "stop") {
           setState("paused");
-        } else if (runtimeRef.current.current?.type === "idle" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
+        
+        } else if (block?.type === "runtime") {
+          setState("running");
+        
+        } else if (block?.type === "done" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
           setState("done");
         }
         
         // Process all events and get resulting actions                                       
-        setStack(runtimeRef.current.tick([...stack, tick]));      
+        setEvents(runtimeRef.current.tick([...events, tick]));      
       } else {
         setState("error");
       }
@@ -76,7 +80,7 @@ export function useTimerRuntime({
         intervalRef.current = null;
       }
     };
-  });
+  }, [events, runtimeRef]);
   const handleResultUpdated = (newResults: ResultSpan[]) => {
     setResults(newResults);
     if (onResultsUpdated) {
@@ -103,7 +107,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, handleResultUpdated, setCursor, setEdits); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, handleResultUpdated, setCursor, setEdits, setState); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }
@@ -121,6 +125,6 @@ export function useTimerRuntime({
     display,
     results,
     state,
-    setStack
+    setEvents: setEvents
   };
 }

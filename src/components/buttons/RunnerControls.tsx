@@ -1,34 +1,39 @@
-import React, { Dispatch, SetStateAction } from "react";
-import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
-import { startButton, stopButton, resetButton, resumeButton } from "./timerButtons";
-import { ChromecastButton } from "@/cast/components/ChromecastButton";
+import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { ButtonConfig, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
+import { startButton, resetButton, resumeButton, pauseButton, endButton, saveButton } from "./timerButtons";
 
 interface RunnerControlsProps {
-  state: "idle" | "running" | "paused" | "error" | "done";
-  setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;
-  leftButtons?: ButtonConfig[];
+  setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;  
+  state: string;
 }
 
 export const RunnerControls: React.FC<RunnerControlsProps> = ({ 
-  state, 
-  setEvents, 
-  leftButtons = [] 
+  setEvents,
+  state   
 }) => {
-  // Determine which control buttons to show based on state
-  const getControlButtons = () => {
+  // Canonical mapping of state to control buttons
+  
+  const [buttons, setButtons] = useState<ButtonConfig[]>([]);
+
+  useEffect(() => {
     switch (state) {
       case "idle":
-        return [startButton];
+        setButtons([startButton]);
+        break;
       case "running":
-        return [stopButton];
+        setButtons([pauseButton, endButton]);
+        break;
       case "paused":
-        return [resumeButton, resetButton];
+        setButtons([resumeButton, endButton]);
+        break;
       case "done":
-        return [resetButton];
+        setButtons([saveButton, resetButton]);
+        break;
       default:
-        return [startButton];
+        setButtons([startButton]);
+        break;
     }
-  };
+  }, [state]);
 
   const getButtonStyle = (button: ButtonConfig) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-full transition-all ";
@@ -49,31 +54,10 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
     setEvents(events);
   };
 
-  const controlButtons = getControlButtons();
-
-  return (
-    <div className="flex justify-between items-center px-2 py-1">
-      {/* Left-aligned buttons (sounds, keep awake) */}
+  return (    
       <div className="flex space-x-2">
-        {leftButtons.map((button, index) => (
-          <button
-            key={`left-${index}`}
-            onClick={() => clickEvent(button)}
-            className={getButtonStyle(button)}
-          >
-            {button.label && <span className="mr-2">{button.label}</span>}
-            <button.icon className="w-4 h-4" />
-          </button>
-        ))}
-      </div>
-      
-      {/* Right-aligned buttons */}
-      <div className="flex space-x-2">
-        {/* Only show the ChromecastButton when in idle state */}
-        {state === "idle" && <ChromecastButton setEvents={setEvents} />}
-        
         {/* Control buttons */}
-        {controlButtons.map((button, index) => (
+        {buttons.map((button: ButtonConfig, index: number) => (
           <button
             key={`control-${index}`}
             onClick={() => clickEvent(button)}
@@ -83,7 +67,6 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
             <button.icon className="w-4 h-4" />
           </button>
         ))}
-      </div>
-    </div>
+      </div>      
   );
 };

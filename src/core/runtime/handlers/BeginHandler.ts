@@ -7,7 +7,7 @@ export class BeginHandler extends EventHandler {
   protected eventType: string = 'begin';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    if (runtime.current?.type === 'idle') {      
+    if (runtime.current?.getState() === 'idle') {      
       return [new FirstStatementAction()];
     }
     return [];

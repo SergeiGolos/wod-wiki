@@ -1,50 +1,36 @@
-## Core Workflow for AI
 
-1. **Planning:** When requested by the user, create a plan of action.   This is when the New section at the top of the worklog should be created.
-2. **Review & Refinement:** Wait for the user to review the plan. The user may edit the plan.
-3. **Execution:** When instructed by the user, execute the plan.
-4. **Logging:** Log the execution details and results as described below.
+1. Architectural Principles
+Follow SOLID principles for all new code and refactors.
+Maintain a clear separation of concerns: parsing, tokenization, suggestion, runtime, and UI logic must be modular and independently testable.
+Use the event/action system for communication between the Editor, Runtime, and UI components.
 
-## Detailed Rules for AI
+2. Technology Stack
+The editor is built on React and uses the Monaco Editor (@monaco-editor/react) for the core editing experience.
+Custom syntax highlighting, inlay hints, and auto-completion are implemented using:
+WodWikiSyntaxInitializer (syntax/theme/options)
+SemantcTokenEngine (tokenization)
+SuggestionEngine and DefaultSuggestionService (completions)
+TypeScript is required for all editor and runtime logic.
 
-Here's how the AI should behave:
+3. Editor Integration
+EditorContainer must wrap: ButtonRibbon, TimerDisplay, WodWiki, ResultsDisplay.
+All runtime logic is managed via useTimerRuntime and integrates with the editor through callbacks (onScriptCompiled, onResultsUpdated).
+Sound and screen wake-lock features must use their respective providers (SoundProvider, ScreenProvider).
 
-1. **Daily File Creation:**
-    * The AI will create a new Markdown file in the `docs/Working` folder for each day's work.
-    * The filename will be in the format `YYYY-MM-DD.md` (e.g., `2024-07-24.md`).
-    * If a file for the current day already exists, the AI will append new entries to it.
+4. Syntax and Parsing
+Workouts are defined in a markdown-like syntax with tokens for time, reps, weights, distances, and round notation.
+Parsing pipeline: Lexer (timer.tokens.ts) → Parser (timer.parser.ts) → Interpreter (timer.visitor.ts) → WodRuntimeScript.
+All parsing and runtime structures must use the canonical types in timer.types.ts.
 
-2. **Planning Phase:**
-    * When the user asks the AI to create a plan, the AI will add the following structure to the daily file:
+5. Metrics and Analytics
+Use the RuntimeMetric structure for all workout metrics (effort, repetitions, resistance, distance).
+Analytics and results display must handle these metrics with appropriate icons and units.
 
-        ```markdown
-        ## {Timestamp} - Plan {5 word summary}
-        {AI-generated plan with numbered steps}
-        ```
+6. UI/UX
+Inlay hints (⏱️, 💪, etc.) and visual cues should be used to enhance readability and usability.
+Real-time validation and error feedback must be provided to the user.
+All UI components must be responsive and accessible.
 
-        ### Summary
-
-        {AI-generated summary of the plan, code examples are welcome here}
-
-        ### Completed Steps
-
-        * [x]: The current timestamp (HH:MM).  The AI should generate this.
-        
-        ### Next Steps
-
-        * [ ]: The current timestamp (HH:MM).  The AI should generate this.
-        
-
-3. **Execution Phase:**
-    The user will give a go-ahead on the plan. Example the tasks that are unfinished [ ]. and once finishing them mark them as [x] and move them to the section Completed Steps with a timestamp.
-
-4. **Logging Phase:**
-    * After executing all steps, the AI will add a summary of the execution:
-
-        ```markdown
-        ### Summary
-        {Summary of the executed plan and results}
-        ```
-
-        * The AI should provide the summary
-
+7. Documentation and Maintenance
+All changes to the editor or runtime must be reflected in the relevant markdown docs under docs/docs/Components/.
+Adhere to the Kanban/Agile workflow for planning and execution (see docs/Working/YYYY-MM-DD.KB.md).

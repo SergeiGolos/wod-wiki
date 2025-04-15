@@ -1,4 +1,4 @@
-import { PlayIcon, StopIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
+import { PlayIcon, ArrowPathIcon, PauseIcon, FlagIcon } from "@heroicons/react/24/solid";
 import { ButtonConfig } from "@/core/timer.types";
 
 
@@ -24,12 +24,16 @@ export const startButton: ButtonConfig = {
     },
   };
 
-  export const stopButton: ButtonConfig = {
-    label: "Stop",
-    icon: StopIcon,
-    onClick: () => {
-      return [{name: "stop", timestamp: new Date()}]
-    },
+  export const pauseButton: ButtonConfig = {
+    label: "Pause",
+    icon: PauseIcon,
+    onClick: () => [{ name: "stop", timestamp: new Date() }],
+  };
+
+  export const endButton: ButtonConfig = {
+    label: "End",
+    icon: FlagIcon,
+    onClick: () => [{ name: "end", timestamp: new Date() }],
   };
 
   export const resetButton: ButtonConfig = {
@@ -46,4 +50,10 @@ export const startButton: ButtonConfig = {
     onClick: () => {
       return [{name: "complete", timestamp: new Date()}]
     },
+  };
+
+  export const saveButton: ButtonConfig = {
+    label: "Save",
+    icon: ArrowPathIcon,
+    onClick: () => [{ name: "save", timestamp: new Date() }],
   };

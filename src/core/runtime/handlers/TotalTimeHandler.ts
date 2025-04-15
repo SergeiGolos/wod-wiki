@@ -10,7 +10,7 @@ export class LabelCurrentEffortHandler extends EventHandler {
   protected eventType: string = 'tick';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    if (!runtime.current || runtime.current.type === "idle") {
+    if (!runtime.current || runtime.current.getState() === "idle") {
       return [new SetDisplayLabelAction(event, "idle")];
     }
     const effort = fragmentTo<EffortFragment>(runtime.current.stack![0], "effort");
@@ -24,7 +24,7 @@ export class TotalTimeHandler extends EventHandler {
   protected eventType: string = 'tick';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    if (!runtime.current || runtime.current.type === "idle") {
+    if (!runtime.current || runtime.current.getState() === "idle") {
       return [];
     }
 

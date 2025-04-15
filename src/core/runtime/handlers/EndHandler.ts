@@ -1,8 +1,7 @@
-import { startButton } from "@/components/buttons/timerButtons";
 import { RuntimeEvent, StatementNode, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
-import { IdleStatementAction } from "../actions/IdleStatementAction";
-import { SetButtonAction } from "../actions/SetButtonAction";
+import { CompleteStatementAction } from "../actions/IdleStatementAction";
 import { EventHandler } from "../EventHandler";
+import { StopTimerAction } from "../actions/StopTimerAction";
 
 
 export class EndHandler extends EventHandler {
@@ -11,8 +10,8 @@ export class EndHandler extends EventHandler {
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result block for the final time    
     return [
-      new IdleStatementAction(), 
-      new SetButtonAction(event, [ startButton ])
+      new StopTimerAction({ name: 'stop', timestamp: event.timestamp }), 
+      new CompleteStatementAction(),
     ];
   }
 }
