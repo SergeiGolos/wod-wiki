@@ -24,7 +24,7 @@ useEffect(() => {
 
   // This effect runs whenever the block or block.events changes  
   return (
-    <div className="w-full flex flex-col items-center justify-center py-4 pb-2 px-1 bg-white space-y-3 border-t shadow-xl">      
+    <div className="w-full flex flex-col items-center justify-center py-2 pb-2 px-1 bg-white">      
         <div className="grid md:grid-cols-3 gap-4">
           {/* Left section - Rounds */}
           <div className="bg-gray-50/20 p-4">
@@ -42,7 +42,6 @@ useEffect(() => {
               </div>
             </div>
           </div>
-
         
           <div className="bg-gray-50/20 p-4">
             <div className="space-y-4">

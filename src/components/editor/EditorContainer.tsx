@@ -15,7 +15,7 @@ import { ScreenProvider } from "@/core/contexts/ScreenContext";
 import { useScreen } from "@/core/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { ChromecastButton } from "@/cast/components/ChromecastButton";
-  
+
 interface EditorContainerProps {
   id: string;
   code: string;
@@ -35,7 +35,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
-  onResultsUpdated
+  onResultsUpdated,
 }) => {
   const {
     loadScript,
@@ -44,20 +44,21 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     buttons,
     edits,
     display,
-    results, 
+    results,
     setEvents,
-    state
+    state,
   } = useTimerRuntime({
     onScriptCompiled,
-    onResultsUpdated
+    onResultsUpdated,
   });
 
   const { soundEnabled, toggleSound } = useSound();
-  const { screenOnEnabled, toggleScreenOn, requestWakeLock, releaseWakeLock } = useScreen();  
+  const { screenOnEnabled, toggleScreenOn, requestWakeLock, releaseWakeLock } =
+    useScreen();
 
   // Custom onValueChange handler to track cursor position from script
   const handleScriptChange = (script?: WodRuntimeScript) => {
-    if (script) {            
+    if (script) {
       // Pass to runtime
       loadScript(script);
     }
@@ -69,7 +70,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
 
     const handleRuntimeStateChange = async () => {
       const isIdle = runtimeRef.current?.current?.getState() === "idle";
-      
+
       if (screenOnEnabled) {
         if (!isIdle) {
           // Runtime is active, request wake lock
@@ -113,54 +114,69 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     isActive: screenOnEnabled,
   };
 
-  // Create Chromecast button (now managed independently)  
+  // Create Chromecast button (now managed independently)
 
   return (
-    <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
-      <WodWiki id={id} code={code} onValueChange={handleScriptChange} cursor={cursor} />      
-      <div className="top-controls p-1 flex flex-row items-center justify-between">
+    <div
+      className={cn(
+        `border border-gray-200 rounded-lg ${className}`,
+        className
+      )}
+    >
+      <WodWiki
+        id={id}
+        code={code}
+        onValueChange={handleScriptChange}
+        cursor={cursor}
+      />
+      <div className="top-controls p-1 flex flex-row items-center divider-y border justify-between">
         {/* Left: Sound and screen lock toggles */}
         <div className="flex flex-row space-x-2 items-center">
           {soundToggleButton && (
-            <button onClick={soundToggleButton.onClick} className={soundToggleButton.isActive ? "bg-blue-100 text-blue-600 p-2 rounded-full" : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"}>
+            <button
+              onClick={soundToggleButton.onClick}
+              className={
+                soundToggleButton.isActive
+                  ? "bg-blue-100 text-blue-600 p-2 rounded-full"
+                  : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"
+              }
+            >
               <soundToggleButton.icon className="h-5 w-5" />
             </button>
           )}
           {screenOnToggleButton && (
-            <button onClick={screenOnToggleButton.onClick} className={screenOnToggleButton.isActive ? "bg-blue-100 text-blue-600 p-2 rounded-full" : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"}>
+            <button
+              onClick={screenOnToggleButton.onClick}
+              className={
+                screenOnToggleButton.isActive
+                  ? "bg-blue-100 text-blue-600 p-2 rounded-full"
+                  : "text-gray-500 hover:bg-gray-100 p-2 rounded-full"
+              }
+            >
               <screenOnToggleButton.icon className="h-5 w-5" />
             </button>
           )}
           <ChromecastButton setEvents={setEvents} />
         </div>
-      <RunnerControls 
-        setEvents={setEvents}
-        state={state}      
-      />      
-      </div>        
+        <RunnerControls setEvents={setEvents} state={state} />
+      </div>
       {runtimeRef.current?.current && display && (
         <>
           <WodTimer display={display} />
-          <div className="timer-buttons p-1 flex justify-center">
-            <ButtonRibbon 
-              buttons={buttons} 
-              leftButtons={[]} 
-              setEvents={setEvents} 
-            />
+          <div className="p-1 flex justify-center">
+            <ButtonRibbon buttons={buttons} setEvents={setEvents} />
           </div>
         </>
-      )}      
-      <ResultsDisplay 
-        runtime={runtimeRef} 
-        results={results} 
-        edits={edits}                 
-      />
+      )}
+      <ResultsDisplay className="border-t border-gray-200" runtime={runtimeRef} results={results} edits={edits} />
     </div>
   );
 };
 
 // Export a wrapped version that includes the SoundProvider
-export const EditorContainerWithProviders: React.FC<EditorContainerProps> = (props) => {
+export const EditorContainerWithProviders: React.FC<EditorContainerProps> = (
+  props
+) => {
   return (
     <ScreenProvider>
       <SoundProvider>

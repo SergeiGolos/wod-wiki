@@ -5,61 +5,62 @@ import { AnalyticsView } from './AnalyticsView';
 import { TabSelector, TabOption } from './TabSelector';
 import { ResultSpan, ITimerRuntime, RuntimeMetricEdit } from '@/core/timer.types';
 import EffortSummaryCard from './EffortSummaryCard'; // Import the new component
+import { cn } from '@/core/utils';
 
 interface ResultsDisplayProps {  
   results: ResultSpan[];
   runtime: MutableRefObject<ITimerRuntime | undefined>;
   edits: RuntimeMetricEdit[];
+  className?: string;
 }
 
 export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({   
   results,
   runtime,
   edits,
+  className = ""
 }) => {
   const [computed, setComputed] = useState<[ResultSpan, boolean][]>([]);
   const [activeTab, setActiveTab] = useState<TabOption>('Efforts');  
-  const [selectedEffortFilter, setSelectedEffortFilter] = useState<string | null>(null);  
+  const [selectedEffortFilter, setSelectedEffortFilter] = useState<string[]>([]);  
+
+  const toggleEffortFilter = (effort: string) => {
+    setSelectedEffortFilter((prev) =>
+      prev.includes(effort) ? prev.filter(e => e !== effort) : [...prev, effort]
+    );
+  };
 
   useEffect(() => {
-    // Deep clone results to avoid mutating props
     const processedResults =[];
-    // Apply edits to the cloned results    
     for (const result of results) {
       let hidden = false;
-      if (selectedEffortFilter && result.metrics?.[0]?.effort !== selectedEffortFilter) {        
+      if (selectedEffortFilter.length > 0 && !selectedEffortFilter.includes(result.metrics?.[0]?.effort)) {        
         hidden = true;
       }
       processedResults.push([result.edit(edits), hidden]);
     }    
-    setComputed(processedResults); // Update the state with processed results
+    setComputed(processedResults); 
 
-  }, [results, edits, selectedEffortFilter]); // Dependencies: results and edits
+  }, [results, edits, selectedEffortFilter]); 
 
-  // Calculate summary metrics for the selected effort filter
-  
   return (
-    <div className="results-display">  
+    <div className={cn("results-display", className)}>  
         
       <div className="mb-4">
-          {/* Wrap TabSelector and Filter Display in a flex container */}
-          <div className="flex justify-between items-center">
-            <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
-          </div> {/* End of flex container */}          
-          {/* Tab Content */}
-        {activeTab === 'Efforts' && (<>            
-          {selectedEffortFilter && (
-            <EffortSummaryCard 
+      <EffortSummaryCard 
               spansOptions={computed} 
               selectedEffortFilter={selectedEffortFilter} 
-              setSelectedEffortFilter={setSelectedEffortFilter}
+              setSelectedEffortFilter={toggleEffortFilter}
             />
-          )}
-              
+          
+          <div className="flex justify-between items-center">
+            <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>          
+        {activeTab === 'Efforts' && (<>                                              
             <EventsView 
               results={computed} 
               runtime={runtime} 
-              onEffortClick={setSelectedEffortFilter}                 
+              onEffortClick={toggleEffortFilter}                 
             />   
           </>)}
           
