@@ -11,8 +11,8 @@ export class StopTimerAction extends EventAction {
 
     apply(runtime: ITimerRuntime): RuntimeEvent[] {        
         if (runtime.current) {
+            console.log('StopTimerAction: Adding event to runtime.current.events', this.event);
             runtime.current.events.push(this.event);    
-
         }
         return [];
     }

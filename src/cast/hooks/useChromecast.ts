@@ -97,17 +97,17 @@ export function useChromecast(): UseChromecastResult {
         // Session listener - called when a session is created or joined
         console.log('New session', session);
         if (session) {
-          const device = session.getCastDevice();
+          const device = session.receiver;
           const newDeviceName = device.friendlyName || 'Unknown Cast Device';
           setDeviceName(newDeviceName);
           setIsConnecting(false);
           setIsConnected(true);
           // Store session internally for operations
           setInternalSession({
-            sessionId: session.getSessionId(),
+            sessionId: session.sessionId,
             deviceId: device.id,
             deviceName: newDeviceName,
-            statusText: session.getStatusText() || 'Connected',
+            statusText: session.statusText || 'Connected',
             sessionObject: session
           });
         }
@@ -155,17 +155,17 @@ export function useChromecast(): UseChromecastResult {
         (session) => {
           console.log('Session started', session);
           if (session) {
-            const device = session.getCastDevice();
+            const device = session.receiver;
             const newDeviceName = device.friendlyName || 'Unknown Cast Device';
             setDeviceName(newDeviceName);
             setIsConnecting(false);
             setIsConnected(true);
             // Store session internally for operations
             setInternalSession({
-              sessionId: session.getSessionId(),
+              sessionId: session.sessionId,
               deviceId: device.id,
               deviceName: newDeviceName,
-              statusText: session.getStatusText() || 'Connected',
+              statusText: session.statusText || 'Connected',
               sessionObject: session
             });
           }
@@ -190,24 +190,22 @@ export function useChromecast(): UseChromecastResult {
   }, []);
 
   const disconnect = useCallback(async () => {
-    const session = internalSession?.sessionObject;
-
-    if (session) {
-      try {
-        setError(null);
-        await session.endSession(true);
-        // Reset the state
-        setIsConnected(false);
-        setDeviceName(null);
-        setInternalSession(null);
-      } catch (err: any) {
-        console.error('Error ending session:', err);
-        const errorMsg = `Failed to disconnect: ${err.message || err.code}`; 
-        setError(new Error(errorMsg));
-        throw err;
-      }
+    if (internalSession?.sessionObject) {
+      // Properly stop the Chromecast session
+      internalSession.sessionObject.stop(
+        () => {
+          setIsConnected(false);
+          setDeviceName(null);
+          setInternalSession(null);
+        },
+        (err) => {
+          setError(new Error('Failed to disconnect Chromecast: ' + err));
+        }
+      );
     } else {
-      console.warn('Disconnect called but no active session found.');
+      setIsConnected(false);
+      setDeviceName(null);
+      setInternalSession(null);
     }
   }, [internalSession]);
 
@@ -343,6 +341,7 @@ declare global {
       onError?: (error: any) => void
     ) => void;
     endSession: (stopCasting: boolean) => Promise<chrome.cast.ErrorCode | undefined>;
+    stop: (onSuccess: () => void, onError: (error: any) => void) => void;
   }
 
   interface CastDevice {

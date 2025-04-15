@@ -2,7 +2,7 @@ import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode } from "@/co
 import { EventHandler } from "@/core/runtime/EventHandler";
 
 export class ResumeHandler extends EventHandler {
-  protected eventType: string = 'resume';
+  protected eventType: string = 'start';
 
   protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
     // TODO: Implement resume logic

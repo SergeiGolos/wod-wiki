@@ -52,7 +52,6 @@ export function useTimerRuntime({
         // Create the tick event
         const tick = { name: "tick", timestamp: new Date() };
         const block = runtimeRef.current.current;
-        console.log("Set State: ", state, block?.type)
         // Update state based on runtime current values
         
         if (block?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
