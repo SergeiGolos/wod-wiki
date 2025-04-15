@@ -18,6 +18,9 @@ export class NextStatementAction implements IRuntimeAction {
 
     const nextBlock = blocks.find(block => block.id == blockId);    
     const leaf = runtime.gotoBlock(nextBlock);
-    return leaf ? [{name:'start', timestamp: new Date()}] : [];
-  }
+    console.log("Next Action Leaf:", leaf);
+    return leaf && leaf.type !== 'idle' && leaf.type !== 'done' 
+      ? [{name:'start', timestamp: new Date()}] 
+      : [{name:'end', timestamp: new Date()}];
+} 
 }

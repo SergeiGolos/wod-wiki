@@ -142,7 +142,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     if (ctx.Minus) {
       const meta = this.getMeta([ctx.Minus[0]]);
-      return [new LapFragment("-", meta)];
+      return [new LapFragment("round" ,"-", meta)];
     }
 
     return [];
