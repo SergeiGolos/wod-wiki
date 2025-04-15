@@ -37,4 +37,23 @@ export class RuntimeBlock implements IRuntimeBlock {
       .map(handler => handler.apply(event, this.stack, runtime))
       .flat();
   }
+
+  /**
+   * Returns the canonical state of this runtime block based on its events.
+   * - 'idle': No start event.
+   * - 'done': Last complete/done event index > last start event index.
+   * - 'running': Last start event index > last complete/done event index.
+   */
+  getState() {
+    if (!this.events || this.events.length === 0) return 'idle';
+    let lastStart = -1;
+    let lastComplete = -1;
+    this.events.forEach((ev, idx) => {
+      if (ev.name === 'start') lastStart = idx;
+      if (ev.name === 'complete' || ev.name === 'done') lastComplete = idx;
+    });
+    if (lastStart === -1) return 'idle';
+    if (lastComplete > lastStart) return 'done';
+    return 'running';
+  }
 }

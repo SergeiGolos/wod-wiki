@@ -159,10 +159,11 @@ export interface IRuntimeAction {
   export interface IRuntimeLogger {
     write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
   }
-  
 
-export interface ITimerRuntime {  
-  reset(): void;
+export type RuntimeState = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | undefined;
+
+export interface ITimerRuntime {    
+  state: RuntimeState;
   display: TimerDisplayBag;
   buttons: ButtonConfig[];
   edits: RuntimeMetricEdit[];
@@ -171,7 +172,11 @@ export interface ITimerRuntime {
   script: RuntimeStack;
   current: IRuntimeBlock | undefined;  
   tick(events: RuntimeEvent[]): RuntimeEvent[];
-  gotoBlock(node: StatementNode | undefined): IRuntimeBlock;
+  
+  gotoBlock(node: StatementNode | undefined): IRuntimeBlock;  
+
+  reset(): void;
+  
   edit(metric: RuntimeMetricEdit): void;
   
 }
@@ -236,14 +241,6 @@ export interface RuntimeResult {
     timestamps: RuntimeEvent[];
   }
   
-  export interface RuntimeState {
-    isRunning: boolean;
-    isPaused: boolean;
-    isComplete: boolean;
-    currentBlockId?: number;
-    elapsedTime: number;
-    remainingTime?: number;
-  }
 
   export type RuntimeMetric = {
     effort: string;    
@@ -261,6 +258,7 @@ export interface RuntimeResult {
     metrics: RuntimeMetric[];
     onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
     report(): ResultSpan[]
+    getState(): RuntimeState;
   }
    
   export type RuntimeEvent = { 
