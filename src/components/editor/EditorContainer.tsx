@@ -15,6 +15,8 @@ import { ScreenProvider } from "@/core/contexts/ScreenContext";
 import { useScreen } from "@/core/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { ChromecastButton } from "@/cast/components/ChromecastButton";
+import { encodeShareString } from "@/core/utils/shareUtils";
+import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 
 interface EditorContainerProps {
   id: string;
@@ -37,6 +39,8 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   onScriptCompiled,
   onResultsUpdated,
 }) => {
+  const [shareStatus, setShareStatus] = React.useState<string | null>(null);
+  const editorRef = React.useRef<any>(null);
   const {
     loadScript,
     runtimeRef,
@@ -128,6 +132,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
         code={code}
         onValueChange={handleScriptChange}
         cursor={cursor}
+        ref={editorRef}
       />
       <div className="top-controls p-1 flex flex-row items-center divider-y border justify-between">
         {/* Left: Sound and screen lock toggles */}
@@ -157,6 +162,31 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
             </button>
           )}
           <ChromecastButton setEvents={setEvents} />
+        </div>
+        {/* Right: Share Button */}
+        <div className="flex flex-row items-center space-x-2">
+          <button
+            title="Share Workout"
+            className="text-gray-500 hover:bg-gray-100 p-2 rounded-full flex items-center"
+            onClick={async () => {
+              let workoutCode = code;
+              // Try to get latest code from the editor if possible
+              if (editorRef.current && editorRef.current.getValue) {
+                workoutCode = editorRef.current.getValue();
+              }
+              const encoded = encodeShareString(workoutCode);
+              const url = `${window.location.origin}/?path=/story/live--link&code=${encoded}`;
+              await navigator.clipboard.writeText(url);
+              setShareStatus("Link copied!");
+              setTimeout(() => setShareStatus(null), 2000);
+            }}
+          >
+            <ClipboardDocumentIcon className="h-5 w-5 mr-1" />
+            <span className="hidden md:inline">Share</span>
+          </button>
+          {shareStatus && (
+            <span className="ml-2 text-green-600 text-sm">{shareStatus}</span>
+          )}
         </div>
         <RunnerControls setEvents={setEvents} state={state} />
       </div>

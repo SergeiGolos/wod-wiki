@@ -64,6 +64,8 @@
     "@heroicons/react": "^2.2.0",
     "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3",
-    "lodash": "^4.17.21"
+    "js-base64": "^3.7.7",
+    "lodash": "^4.17.21",
+    "pako": "^2.1.0"
   }
 }
