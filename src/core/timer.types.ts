@@ -163,8 +163,7 @@ export interface IRuntimeAction {
 export type RuntimeState = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | undefined;
 
 export interface ITimerRuntime {
-  gotoComplete(): unknown;    
-  state: RuntimeState;
+  gotoComplete(): unknown;      
   display: TimerDisplayBag;
   buttons: ButtonConfig[];
   edits: RuntimeMetricEdit[];

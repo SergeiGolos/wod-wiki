@@ -217,19 +217,19 @@
           }
         ],
         "direction": "vertical",
-        "x": 2284,
+        "x": 2827,
         "y": 0,
-        "width": 1130,
+        "width": 588,
         "height": 912,
         "maximize": false,
         "zoom": 0
       }
     ]
   },
-  "active": "069fcc885e621261",
+  "active": "ef8b6ff4eaa2ec6a",
   "lastOpenFiles": [
-    "Working/2025-04-14.repair-system-button-events.kb.md",
     "Working/2025-04-14.repair-system-button-events.md",
+    "Working/2025-04-14.repair-system-button-events.kb.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
     "Notes/Chromecast Context.md",

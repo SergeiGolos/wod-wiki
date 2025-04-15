@@ -121,22 +121,8 @@ export const ChromecastButton: React.FC<ChromecastButtonProps> = ({
               </g>
             </g>
           </svg>
-        </div>
-        <span className="text-sm">
-          {isConnected ? 'Disconnect' : 'Cast'}
-        </span>
+        </div>       
       </button>
-      
-      {/* Optional test button - can be removed in production */}
-      {isConnected && (
-        <button
-          onClick={handleSendMessage}
-          className="ml-2 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
-          title="Send test message to receiver"
-        >
-          Test
-        </button>
-      )}
     </div>
   );
 };

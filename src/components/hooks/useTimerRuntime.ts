@@ -57,13 +57,13 @@ export function useTimerRuntime({
         if (block?.type === "idle" && (!runtimeRef.current.results || runtimeRef.current.results.length === 0)) {
           setState("idle");
         
-        } else if (block?.type === "runtime") {
-          setState("running");
-        
         } else if (block?.type === "runtime" && block.events?.[block.events.length - 1].name == "stop") {
           setState("paused");
         
-        } else if (block?.type === "idle" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
+        } else if (block?.type === "runtime") {
+          setState("running");
+        
+        } else if (block?.type === "done" && runtimeRef.current.results && runtimeRef.current.results.length > 0) {
           setState("done");
         }
         
@@ -107,7 +107,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, handleResultUpdated, setCursor, setEdits); 
+      runtimeRef.current = new TimerRuntime(stack, jit,setDisplay, setButtons, handleResultUpdated, setCursor, setEdits, setState); 
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
     }

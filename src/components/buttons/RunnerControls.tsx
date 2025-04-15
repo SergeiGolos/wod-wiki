@@ -1,34 +1,39 @@
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { ButtonConfig, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
 import { startButton, resetButton, resumeButton, pauseButton, endButton, saveButton } from "./timerButtons";
 
 interface RunnerControlsProps {
-  runtime: ITimerRuntime | undefined;
   setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;  
+  state: string;
 }
 
 export const RunnerControls: React.FC<RunnerControlsProps> = ({ 
-  runtime, 
-  setEvents,   
+  setEvents,
+  state   
 }) => {
   // Canonical mapping of state to control buttons
-  const getControlButtons = () => {
-    const state = runtime?.current?.getState();
+  
+  const [buttons, setButtons] = useState<ButtonConfig[]>([]);
+
+  useEffect(() => {
     switch (state) {
       case "idle":
-        return [startButton];
+        setButtons([startButton]);
+        break;
       case "running":
-        return [pauseButton, endButton];
+        setButtons([pauseButton, endButton]);
+        break;
       case "paused":
-        return [resumeButton, endButton];
+        setButtons([resumeButton, endButton]);
+        break;
       case "done":
-        return [saveButton, resetButton];
+        setButtons([saveButton, resetButton]);
+        break;
       default:
-        return [];
+        setButtons([startButton]);
+        break;
     }
-  };
-
-  const controlButtons = getControlButtons();
+  }, [state]);
 
   const getButtonStyle = (button: ButtonConfig) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-full transition-all ";
@@ -52,7 +57,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
   return (    
       <div className="flex space-x-2">
         {/* Control buttons */}
-        {controlButtons.map((button, index) => (
+        {buttons.map((button: ButtonConfig, index: number) => (
           <button
             key={`control-${index}`}
             onClick={() => clickEvent(button)}

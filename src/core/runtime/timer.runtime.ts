@@ -1,8 +1,7 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
+import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeState, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { DoneRuntimeBlock, IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
-import { startButton } from "@/components/buttons/timerButtons";
 
 
 /**
@@ -28,13 +27,16 @@ export class TimerRuntime implements ITimerRuntime {
     private onSetButtons: (buttons: ButtonConfig[]) => void,
     private onSetResults: (results: ResultSpan[]) => void,
     private onSetCursor: (cursor: IRuntimeBlock | undefined) => void,
-    private onSetEdits: (edits: RuntimeMetricEdit[]) => void
+    private onSetEdits: (edits: RuntimeMetricEdit[]) => void,
+    private onSetState: (state: string) => void
     
   ) {
     // Initialize block tracker with all nodes from the script     
     this.reset();
-  }
+  }  
   gotoComplete() {
+    const report = this.current?.report() ?? [];
+    this.onSetResults(this.results = [...this.results, ...report]);
     this.current = new DoneRuntimeBlock();
     this.onSetCursor(undefined);
     return [{ name: 'end', timestamp: new Date() }];
@@ -43,6 +45,7 @@ export class TimerRuntime implements ITimerRuntime {
     this.current = this.gotoBlock(undefined);    
     this.onSetResults(this.results = []);
     this.onSetEdits(this.edits = []);    
+    this.onSetState("idle");
     this.trace = new RuntimeTrace();        
   }
   
@@ -87,6 +90,7 @@ export class TimerRuntime implements ITimerRuntime {
    * @returns The runtime block that was navigated to
    */
   public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {                
+   
     const report = this.current?.report() ?? [];
     this.results = [...this.results, ...report];      
     
@@ -127,6 +131,11 @@ export class TimerRuntime implements ITimerRuntime {
     }
 
     if (!current) {
+      // Prevent overwriting DoneRuntimeBlock with IdleRuntimeBlock
+      if (this.current && this.current.type === 'done') {
+        this.onSetCursor(undefined);
+        return this.current;
+      }
       this.onSetCursor(undefined);
       return this.current = new IdleRuntimeBlock();
     }

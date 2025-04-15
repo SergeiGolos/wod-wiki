@@ -1,7 +1,5 @@
 import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
-import { SetButtonAction } from "../actions/SetButtonAction";
-import { resetButton } from "@/components/buttons/timerButtons";
 import { StopTimerAction } from "../actions/StopTimerAction";
 
 export class StopHandler extends EventHandler {
@@ -13,8 +11,7 @@ export class StopHandler extends EventHandler {
       runtime.current.events = runtime.current.events.filter(ev => ev.name !== 'pause');
       // Only show Reset after stop (system control)
       return [
-        new StopTimerAction(event),
-        new SetButtonAction(event, [resetButton])
+        new StopTimerAction(event)        
       ];
     }
     return [];

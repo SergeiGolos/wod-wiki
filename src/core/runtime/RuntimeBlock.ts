@@ -45,8 +45,9 @@ export class RuntimeBlock implements IRuntimeBlock {
    * - 'done': Last complete/done event index > last start event index.
    * - 'running': Last start event index > last complete/done event index.
    */
-  getState() {
+  public getState() {
     if (!this.events || this.events.length === 0) return 'idle';
+    if (this.type === 'done') return 'done';
     let lastStart = -1;
     let lastComplete = -1;
     let lastStop = -1;

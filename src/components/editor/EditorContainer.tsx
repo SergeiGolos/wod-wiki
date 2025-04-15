@@ -113,8 +113,7 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
     isActive: screenOnEnabled,
   };
 
-  // Create Chromecast button (now managed independently)
-  const chromecastButton = <ChromecastButton setEvents={setEvents} />;
+  // Create Chromecast button (now managed independently)  
 
   return (
     <div className={cn(`border border-gray-200 rounded-lg divide-y ${className}`, className)}>                  
@@ -132,14 +131,13 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
               <screenOnToggleButton.icon className="h-5 w-5" />
             </button>
           )}
+          <ChromecastButton setEvents={setEvents} />
         </div>
-        {/* Right: Chromecast button */}
-        <div>{chromecastButton}</div>
-      </div>
       <RunnerControls 
-        runtime={runtimeRef.current}         
-        setEvents={setEvents} 
-      />              
+        setEvents={setEvents}
+        state={state}      
+      />      
+      </div>        
       {runtimeRef.current?.current && display && (
         <>
           <WodTimer display={display} />
