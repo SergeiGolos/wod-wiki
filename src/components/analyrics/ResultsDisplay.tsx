@@ -31,7 +31,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   };
 
   useEffect(() => {
-    const processedResults =[];
+    const processedResults: [ResultSpan, boolean][] = [];
     for (const result of results) {
       let hidden = false;
       if (selectedEffortFilter.length > 0 && !selectedEffortFilter.includes(result.metrics?.[0]?.effort)) {        
