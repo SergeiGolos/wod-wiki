@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ButtonConfig } from "@/core/timer.types";
 import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "./EventHandler";
 
@@ -16,6 +16,7 @@ export class RuntimeBlock implements IRuntimeBlock {
   ) {
     this.blockId = stack?.[0]?.id ?? -1;    
   }
+  buttons: ButtonConfig[] = [];
 
   /**
    * Generates a report summarizing the execution block as a series of spans.
@@ -48,12 +49,16 @@ export class RuntimeBlock implements IRuntimeBlock {
     if (!this.events || this.events.length === 0) return 'idle';
     let lastStart = -1;
     let lastComplete = -1;
+    let lastStop = -1;
     this.events.forEach((ev, idx) => {
       if (ev.name === 'start') lastStart = idx;
-      if (ev.name === 'complete' || ev.name === 'done') lastComplete = idx;
+      if (ev.name === 'complete' || ev.name === 'end' ) lastComplete = idx;
+      if (ev.name === 'stop') lastStop = idx;
     });
+
     if (lastStart === -1) return 'idle';
     if (lastComplete > lastStart) return 'done';
+    if (lastStop > lastStart) return 'paused';
     return 'running';
   }
 }

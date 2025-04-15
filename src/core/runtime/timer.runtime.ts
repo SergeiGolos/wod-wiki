@@ -1,6 +1,6 @@
 import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
-import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
+import { DoneRuntimeBlock, IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
 import { startButton } from "@/components/buttons/timerButtons";
 
@@ -34,7 +34,11 @@ export class TimerRuntime implements ITimerRuntime {
     // Initialize block tracker with all nodes from the script     
     this.reset();
   }
-
+  gotoComplete() {
+    this.current = new DoneRuntimeBlock();
+    this.onSetCursor(undefined);
+    return [{ name: 'end', timestamp: new Date() }];
+  }
   reset() {        
     this.current = this.gotoBlock(undefined);    
     this.onSetResults(this.results = []);

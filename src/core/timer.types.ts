@@ -162,7 +162,8 @@ export interface IRuntimeAction {
 
 export type RuntimeState = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | undefined;
 
-export interface ITimerRuntime {    
+export interface ITimerRuntime {
+  gotoComplete(): unknown;    
   state: RuntimeState;
   display: TimerDisplayBag;
   buttons: ButtonConfig[];
@@ -249,7 +250,8 @@ export interface RuntimeResult {
     distance?: MetricValue;
   }
   
-  export interface IRuntimeBlock {    
+  export interface IRuntimeBlock {
+    buttons: ButtonConfig[];    
     type: string;
     blockId: number;
     blockKey: string;

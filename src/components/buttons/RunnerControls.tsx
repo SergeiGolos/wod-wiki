@@ -1,9 +1,9 @@
 import React, { Dispatch, SetStateAction } from "react";
 import { ButtonConfig, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
-import { startButton, stopButton, resetButton, resumeButton } from "./timerButtons";
+import { startButton, resetButton, resumeButton, pauseButton, endButton, saveButton } from "./timerButtons";
 
 interface RunnerControlsProps {
-  runtime: ITimerRuntime;
+  runtime: ITimerRuntime | undefined;
   setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;  
 }
 
@@ -11,18 +11,18 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
   runtime, 
   setEvents,   
 }) => {
-  // Determine which control buttons to show based on runtime state
+  // Canonical mapping of state to control buttons
   const getControlButtons = () => {
     const state = runtime?.current?.getState();
     switch (state) {
       case "idle":
         return [startButton];
       case "running":
-        return [stopButton];
+        return [pauseButton, endButton];
       case "paused":
-        return [resumeButton, resetButton];
+        return [resumeButton, endButton];
       case "done":
-        return [resetButton];
+        return [saveButton, resetButton];
       default:
         return [];
     }
