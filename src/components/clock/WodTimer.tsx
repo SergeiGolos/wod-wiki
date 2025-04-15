@@ -25,26 +25,26 @@ useEffect(() => {
   // This effect runs whenever the block or block.events changes  
   return (
     <div className="w-full flex flex-col items-center justify-center py-2 pb-2 px-1 bg-white">      
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-1 md:gap-4">
           {/* Left section - Rounds */}
-          <div className="bg-gray-50/20 p-4">
+          <div className="bg-gray-50/20 p-1 md:p-4">
             <div className="text-2xl font-semibold text-gray-700">
               {display?.label}
             </div>            
           </div>
 
           {/* Middle section - Main Timer */}
-          <div className="bg-white p-4 rounded-lg flex items-center justify-center">
-            <div className="text-6xl font-mono font-bold text-gray-800 tracking-wider">        
+          <div className="bg-white p-2 md:p-4 rounded-lg flex items-center justify-center">
+            <div className="text-5xl md:text-8xl font-mono font-bold text-gray-800 tracking-wider">        
               <div className='mx-auto flex items-center'>
-                <span className="text-6xl">{clock[0]}</span>
+                <span className="text-5xl md:text-6xl">{clock[0]}</span>
                 <span className="text-gray-600 text-4xl">.{clock[1][0]}</span>
               </div>
             </div>
           </div>
         
           <div className="bg-gray-50/20 p-4">
-            <div className="space-y-4">
+            <div className="space-y-2 md:space-y-4">
               <div className="text-gray-600">
                 <div className="text-sm uppercase tracking-wide">Total Time</div>
                 <div className="text-xl font-mono">{total[0]}</div>

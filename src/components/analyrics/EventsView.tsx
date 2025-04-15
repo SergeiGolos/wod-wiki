@@ -71,10 +71,11 @@ export const EventsView: React.FC<EventsViewProps> = ({
 
                 return (
                   <tr key={resultId} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
-                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
                       <span 
-                        className="cursor-pointer hover:underline"
+                        className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
                         onClick={() => onEffortClick(effort)}
+                        title={effort}
                       >
                         {effort}
                       </span>

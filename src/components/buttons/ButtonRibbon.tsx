@@ -39,7 +39,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
           <button
             key={`right-${index}`}
             onClick={() => clickEvent(button)}
-              className={cn(getButtonStyle(button), "text-2xl py-2 px-4")}
+              className={cn(getButtonStyle(button), "shadow-md text-lg sm:text-2xl py-2 px-4")}
             >
               {button.label && <span className="mr-2">{button.label}</span>}
               <button.icon className="w-6 h-6 mt-1" />
