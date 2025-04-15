@@ -1,34 +1,42 @@
 import { IRuntimeLogger, IRuntimeBlock, ResultSpan, RuntimeEvent } from "@/core/timer.types";
+import { EventSpanAggregator } from "../EventSpanAggregator";
 
 export class WorkRestLogger implements IRuntimeLogger {
 
+  /**
+   * Updated (2025-04-14):
+   * - Uses EventSpanAggregator for canonical span detection and robust duration reporting.
+   * - Handles edge cases and anomalies in event sequences (pause/resume, malformed pairs).
+   */
   write(runtimeBlock: IRuntimeBlock): ResultSpan[] {
-    const timerEventTypes: string[] = ["start", "lap", "done", "complete", "stop"];
+    // Use EventSpanAggregator for robust span detection
+    const aggregator = new EventSpanAggregator(runtimeBlock.events, runtimeBlock.stack);
+    const spans = aggregator.getSpans();
     const resultSpans: ResultSpan[] = [];
-    let previousRelevantEvent: RuntimeEvent | null = null;
 
-    for (let i = 0; i < runtimeBlock.events.length; i++) {
-      const currentEvent: RuntimeEvent = runtimeBlock.events[i];
-      const isRelevant = timerEventTypes.includes(currentEvent.name);
-
-      if (isRelevant) {
-        if (previousRelevantEvent) {
-          const span = new ResultSpan();
-          span.blockKey = runtimeBlock.blockKey;
-          span.index = i;
-          span.start = previousRelevantEvent;
-          span.stop = currentEvent;
-
-          span.label = `Work/Rest Span ${i}`;
-
-          // Use the metrics from the runtime block
-          span.metrics = [...runtimeBlock.metrics];
-
-          resultSpans.push(span);
+    spans.forEach((span, i) => {
+      if (span.start && span.stop) {
+        const resultSpan = new ResultSpan();
+        resultSpan.blockKey = runtimeBlock.blockKey;
+        resultSpan.index = i;
+        resultSpan.start = span.start;
+        resultSpan.stop = span.stop;
+        resultSpan.label = `Work/Rest Span ${i}`;
+        resultSpan.metrics = [...runtimeBlock.metrics];
+        if (span.type === 'anomaly') {
+          resultSpan.anomaly = true;
         }
-        previousRelevantEvent = currentEvent;
+        resultSpans.push(resultSpan);
       }
+    });
+
+    // Optionally: log or expose anomalies for debugging
+    const anomalies = aggregator.getAnomalies();
+    if (anomalies.length > 0) {
+      // You could log or attach to resultSpans for analytics/debugging
+      // console.warn('Event sequence anomalies detected:', anomalies);
     }
+
     return resultSpans;
   }
 

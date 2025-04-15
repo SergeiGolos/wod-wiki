@@ -5,6 +5,7 @@ import { fragmentsTo } from "@/core/utils";
 import { TimerFragment } from "@/core/fragments/TimerFragment";
 import { RaiseEventAction } from "../actions/RaiseEventAction";
 import { IncrementFragment } from "@/core/fragments/IncrementFragment";
+import { EventSpanAggregator } from "../EventSpanAggregator";
 
 export class TickHandler extends EventHandler {
   protected eventType: string = 'tick';
@@ -13,30 +14,16 @@ export class TickHandler extends EventHandler {
     // Use canonical state for running check
     const isRunning = runtime.current?.getState() === 'running';
     let elapsed = 0;
-    let currentTime: Date | undefined;
-    let initialTime: Date | undefined = runtime.results?.[0]?.start?.timestamp;
 
-    // Only calculate elapsed if running
-    if (isRunning) {
-      for (const evnt of runtime.current?.events || []) {
-        if (evnt.name === 'start') {
-          currentTime = evnt.timestamp;
-          if (!initialTime) {
-            initialTime = evnt.timestamp;
-          }
-        }
-        if (evnt.name === 'stop') {
-          if (currentTime) {
-            elapsed += (evnt.timestamp.getTime() - currentTime.getTime()) / 1000;
-          }
-          currentTime = undefined;
-        }
-      }
-      if (!initialTime) {
-        initialTime = event.timestamp;
-      }
-      if (currentTime != undefined) {
-        elapsed += (event.timestamp.getTime() - currentTime.getTime()) / 1000;
+    // Use EventSpanAggregator for event span/duration logic
+    if (runtime.current) {
+      const aggregator = new EventSpanAggregator(runtime.current.events, runtime.current.stack!);
+      if (isRunning) {
+        // Elapsed time is total of closed spans plus current active span
+        elapsed = aggregator.getTotalDuration() + aggregator.getCurrentDuration(event.timestamp);
+      } else {
+        // If not running, just sum closed spans
+        elapsed = aggregator.getTotalDuration();
       }
     }
 
