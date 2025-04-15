@@ -1,10 +1,9 @@
 import { StatementFragment, SourceCodeMetadata } from "../timer.types";
+import { GroupType } from "../parser/timer.visitor";
 
 export class LapFragment implements StatementFragment {
-  constructor(public image: string, public meta?: SourceCodeMetadata) {
-    this.laps = image as any * 1;
+  constructor(public group: GroupType, public image: string, public meta?: SourceCodeMetadata) {  
   }
-  type: string = "lap";
-  laps: number;
+  type: string = "lap";  
   toPart: () => string = () => this.image;
 }

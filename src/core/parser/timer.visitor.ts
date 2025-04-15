@@ -9,6 +9,8 @@ import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
 import { fragmentTo } from "../utils";
 
+export type GroupType = 'round' | 'compose' | 'repeat';
+
 const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
 
@@ -82,8 +84,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   wodBlock(ctx: any): StatementNode {
     let statement = { fragments: [] as StatementFragment[] } as StatementNode;
-    ctx.lap && statement.fragments.push(...this.visit(ctx.lap));
-
+    const lapFragments = ctx.lap && this.visit(ctx.lap);
+    statement.fragments.push(...(lapFragments || []));
     if (ctx.rounds) {
       statement.fragments.push(...this.visit(ctx.rounds));
     }
@@ -113,18 +115,29 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     
     const rounds = fragmentTo<RoundsFragment>(statement, 'rounds')?.count ?? 0;
     statement.rounds = rounds;
-    
-    // Determine if this is a leaf node with lap fragments
-    const lapFragments = statement.fragments.filter(f => f.type === 'lap');
-    statement.isLeaf = lapFragments.length > 0;
-    
+
+    // Lap fragment logic  
+    // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment
+    if (lapFragments?.length === 0 && statement.parent !== undefined) {
+      const meta = {
+        line: statement.meta.line,
+        startOffset: statement.meta.startOffset,
+        endOffset: statement.meta.startOffset,
+        columnStart: statement.meta.columnStart,
+        columnEnd: statement.meta.columnStart,
+        length: 1,
+      };
+      statement.fragments.push(new LapFragment('repeat', "", meta as any));
+    }
+
+    statement.isLeaf = statement.fragments.filter(f => f.type === 'lap').length > 0;
     return statement;
   }
 
   lap(ctx: any): LapFragment[] {
     if (ctx.Plus) {
       const meta = this.getMeta([ctx.Plus[0]]);
-      return [new LapFragment("+", meta)];
+      return [new LapFragment('compose', "+", meta)];
     }
 
     if (ctx.Minus) {
