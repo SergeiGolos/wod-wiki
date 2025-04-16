@@ -1,7 +1,19 @@
 {
-  "name": "wod-wiki-library",
+  "name": "@bitcobblers/wod-wiki-library",
   "private": false,
   "version": "0.0.1",
+  "description": "A specialized markdown-like workout syntax editor and runtime for defining workouts",
+  "author": "BitCobblers",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitcobblers/wod-wiki"
+  },
+  "homepage": "https://github.com/bitcobblers/wod-wiki",
+  "keywords": ["workout", "timer", "editor", "wod"],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./index.umd.cjs",
   "module": "./index.js",
