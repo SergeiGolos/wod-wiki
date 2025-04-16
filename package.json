@@ -7,10 +7,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bitcobblers/wod-wiki"
+    "url": "git+https://github.com/bitcobblers/wod-wiki.git"
   },
   "homepage": "https://github.com/bitcobblers/wod-wiki",
-  "keywords": ["workout", "timer", "editor", "wod"],
+  "keywords": [
+    "workout",
+    "timer",
+    "editor",
+    "wod"
+  ],
   "publishConfig": {
     "access": "public"
   },
