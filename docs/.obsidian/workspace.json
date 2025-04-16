@@ -240,9 +240,14 @@
   },
   "active": "92979c6867b15c51",
   "lastOpenFiles": [
-    "Working/2025-04-15.KB.md",
+    "Working/2025-04-14.pause-resume-duration-design.md",
+    "Working/2025-04-15.lap-timers-feature.md",
+    "Working/2025-04-14.KB.md",
+    "Releases/0.5.0.md",
     "Working/2025-04-14.repair-system-button-events.md",
+    "Releases",
     "Working/2025-04-14.repair-system-button-events.kb.md",
+<<<<<<< Updated upstream
     "Working/2025-04-14.KB.md",
     "Working/2025-04-13.md",
     "Working/2025-04-13.KB.md",
@@ -261,6 +266,12 @@
     "Releases",
     "Untitled Kanban 1.md",
     "Untitled Kanban.md",
+=======
+    "Working/2025-04-13.KB.md",
+    "Untitled Kanban 1.md",
+    "Untitled Kanban.md",
+    "Working/2025-04-06.md",
+>>>>>>> Stashed changes
     "docs/Components/EventSpanAggregator.md",
     "docs/Components",
     "docs",
@@ -276,6 +287,13 @@
     "Excalidraw/Drawing 2025-04-13 17.24.26.excalidraw.md",
     "Excalidraw/Event-Flow-Diagram.excalidraw",
     "Excalidraw",
+<<<<<<< Updated upstream
+=======
+    "Working/2024-04-13.md",
+    "Notes/Chromcast Working Example.md",
+    "Working/2025-04-12.md",
+    "Notes/LapFeature.md",
+>>>>>>> Stashed changes
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas"
   ]
