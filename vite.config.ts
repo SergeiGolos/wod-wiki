@@ -19,7 +19,7 @@ export default defineConfig({
     outDir: 'dist',
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'WodWikiLibrary',
+      name: 'BitCobblersWodWikiLibrary',
       formats: ['es', 'umd'],
       fileName: (format) => format === 'es' 
         ? 'index.js'
