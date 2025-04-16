@@ -23,7 +23,7 @@ jobs:
           path: ./dist
 
       - name: Zip package
-        run: zip -r wod-wiki-${{ inputs.version }}.zip ./dist
+        run: cd dist && zip -r ../wod-wiki-${{ inputs.version }}.zip .
 
       - name: Create Release
         id: create_release
