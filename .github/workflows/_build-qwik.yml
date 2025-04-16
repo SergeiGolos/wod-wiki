@@ -30,11 +30,22 @@ jobs:
       #      - name: Run tests
       #      run: npm test
 
+      - name: Build Package
+        run: npm run build
+
       - name: Build Storybook
         run: npm run build-storybook
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Storybook 
+        uses: actions/upload-artifact@v4
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
           path: storybook-static
+      
+      - name: Upload Package      
+        uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
+        with:
+          name: package
+          path: dist

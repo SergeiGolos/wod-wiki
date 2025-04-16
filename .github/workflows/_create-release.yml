@@ -1,4 +1,4 @@
-﻿name: create-release
+name: create-release
 
 on:
   workflow_call:
@@ -16,11 +16,21 @@ jobs:
   create-release:
     runs-on: ubuntu-22.04
     steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: ./dist
+
+      - name: Zip package
+        run: zip -r wod-wiki-${{ inputs.version }}.zip ./dist
+
       - name: Create Release
+        id: create_release
         uses: actions/github-script@v7
         with:
           script: |
-            await github.request('POST /repos/{owner}/{repo}/releases', {
+            const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               target_commitish: "${{ github.sha }}",
@@ -28,3 +38,15 @@ jobs:
               tag_name: "${{ inputs.tag-name }}",
               generate_release_notes: true
             });
+            
+            return { upload_url: release.data.upload_url };
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ fromJSON(steps.create_release.outputs.result).upload_url }}
+          asset_path: ./wod-wiki-${{ inputs.version }}.zip
+          asset_name: wod-wiki-${{ inputs.version }}.zip
+          asset_content_type: application/zip
