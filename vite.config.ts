@@ -16,7 +16,7 @@ export default defineConfig({
     ...(isCore ? [dts({ insertTypesEntry: true })] : [])
   ],
   build: {
-    outDir: 'dist/dist',
+    outDir: 'dist',
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'WodWikiLibrary',
