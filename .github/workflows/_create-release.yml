@@ -30,15 +30,7 @@ jobs:
         with:
           name: package
           path: ./dist
-      
-      - name: Create package.json for publishing
-        run: |
-          # Copy the original package.json to the dist directory
-          node -e "const pkg=require('./package.json'); pkg.version='${{ inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))"
-          cp package.json ./dist/
-          cp README.md ./dist/ || echo "No README.md found"
-          cp LICENSE ./dist/ || echo "No LICENSE found"
-
+         
       - name: Create GitHub Release
         id: create_release
         uses: actions/github-script@v7
@@ -53,9 +45,4 @@ jobs:
               generate_release_notes: true
             });
             
-            return { release_id: release.data.id };
-
-      - name: Publish to npm
-        run: cd dist && npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            return { release_id: release.data.id };     

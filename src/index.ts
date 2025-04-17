@@ -9,3 +9,6 @@ export { ResultsDisplay } from './components/analyrics/ResultsDisplay';
 export { SoundProvider, useSound } from './core/contexts/SoundContext';
 export { SoundToggle } from './components/buttons/SoundToggle';
 export { WodWikiProviders } from './components/providers/WodWikiProviders';
+
+export { TimerFromSeconds } from './core/timer.types';
+export type { IClock, TimerDisplayBag } from './core/timer.types';

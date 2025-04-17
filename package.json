@@ -1,7 +1,7 @@
 {
   "name": "@bitcobblers/wod-wiki-library",
   "private": false,
-  "version": "0.0.1",
+  "version": "0.0.7",
   "description": "A specialized markdown-like workout syntax editor and runtime for defining workouts",
   "author": "BitCobblers",
   "license": "MIT",
@@ -35,12 +35,10 @@
   "scripts": {
     "dev": "storybook dev -p 6006",
     "build": "cross-env BUILD_TARGET=core vite build",
-    "postbuild": "node scripts/copy-package.js",
     "build-storybook": "storybook build",
     "test": "vitest"
   },
   "peerDependencies": {
-    "monaco-editor": "^0.40.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -81,10 +79,12 @@
   "dependencies": {
     "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
+    "@monaco-editor/react": "^4.6.2",
     "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3",
     "js-base64": "^3.7.7",
     "lodash": "^4.17.21",
+    "monaco-editor": "^0.40.0",
     "pako": "^2.1.0"
   }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useChromecast } from '../hooks/useChromecast';
+import { useChromecast } from './hooks/useChromecast';
 import { RuntimeEvent } from '@/core/timer.types';
 
 interface ChromecastButtonProps {

@@ -26,6 +26,72 @@ interface UseChromecastResult {
 const APPLICATION_ID = "38F01E0E"; // Custom Receiver App ID
 const CAST_NAMESPACE = "urn:x-cast:com.google.cast.cac"; // Custom namespace matching the working example
 
+
+/**
+ * Loads the Chromecast sender script and resolves when the API is available.
+ */
+function loadCastApiScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.chrome && window.chrome.cast) {
+      resolve();
+      return;
+    }
+    // If script is already loading, wait for it
+    if (document.querySelector('script[src*="cast_sender.js"]')) {
+      const checkInterval = setInterval(() => {
+        if (window.chrome && window.chrome.cast) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error('Cast API script load timed out'));
+      }, 10000);
+      return;
+    }
+    // Otherwise, add the script
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+    script.async = true;
+    script.onload = () => {
+      const checkInterval = setInterval(() => {
+        if (window.chrome && window.chrome.cast) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error('Cast API script load timed out'));
+      }, 10000);
+    };
+    script.onerror = () => reject(new Error('Failed to load Cast API script'));
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Result interface for the useChromecast hook
+ */
+interface UseChromecastResult {
+  isAvailable: boolean;      // Cast API loaded?
+  isConnected: boolean;      // Currently connected to a device?
+  isConnecting: boolean;     // Connection in progress?
+  deviceName: string | null; // Name of the connected device
+  error: Error | null;       // Any error that occurred
+  connect: () => Promise<void>;  // Connect to a Chromecast device
+  disconnect: () => Promise<void>; // Disconnect from the device
+  sendMessage: (namespace: string, message: unknown) => Promise<void>; // Send a message to the device
+}
+
+/**
+ * A React hook for interacting with Chromecast devices 
+ * using the ChromecastSender service
+ * 
+ * @returns {UseChromecastResult} Object containing Chromecast state and control functions
+ */
 // Hook for working with Chrome Cast client APIs using the modern framework
 //
 // @returns {UseChromecastResult} Object containing simplified Cast status and control functions
@@ -80,160 +146,104 @@ export function useChromecast(): UseChromecastResult {
     return () => {
       window['__onGCastApiAvailable'] = undefined;
     };
-  }, []); // Run only once on mount
+  }, []);
 
+  // Initialize Cast API and set up listeners
   const initializeCastApi = useCallback(() => {
-    // Using the same approach as the working example
-    if (!window.chrome || !window.chrome.cast) {
-      console.log('Cast SDK not available yet.');
+    if (!window.chrome || !window.chrome.cast || !window.chrome.cast.isAvailable) {
+      setIsAvailable(false);
       return;
     }
-    console.log('Cast SDK available.');
-
-    const sessionRequest = new window.chrome.cast.SessionRequest(APPLICATION_ID);
-    const apiConfig = new window.chrome.cast.ApiConfig(
-      sessionRequest,
-      (session) => {
-        // Session listener - called when a session is created or joined
-        console.log('New session', session);
+    if (!window.cast || !window.cast.framework || !window.cast.framework.CastContext) {
+      setIsAvailable(false);
+      return;
+    }
+    const context = window.cast.framework.CastContext.getInstance();
+    context.setOptions({
+      receiverApplicationId: APPLICATION_ID,
+      autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.TAB_AND_ORIGIN_SCOPED
+    });
+    // Listen for cast state changes
+    context.addEventListener(window.cast.framework.CastContextEventType.CAST_STATE_CHANGED, (event: any) => {
+      const castState = event.castState;
+      if (castState === window.cast.framework.CastState.CONNECTED) {
+        setIsConnected(true);
+        setIsConnecting(false);
+        const session = context.getCurrentSession();
         if (session) {
-          const device = session.receiver;
-          const newDeviceName = device.friendlyName || 'Unknown Cast Device';
-          setDeviceName(newDeviceName);
-          setIsConnecting(false);
-          setIsConnected(true);
-          // Store session internally for operations
+          setDeviceName(session.getCastDevice().friendlyName);
           setInternalSession({
-            sessionId: session.sessionId,
-            deviceId: device.id,
-            deviceName: newDeviceName,
-            statusText: session.statusText || 'Connected',
+            sessionId: session.getSessionId(),
+            deviceId: session.getCastDevice().id,
+            deviceName: session.getCastDevice().friendlyName,
+            statusText: session.getStatusText() || '',
             sessionObject: session
           });
         }
-      },
-      (availability) => {
-        // Receiver availability listener
-        console.log('Receiver availability:', availability);
-        if (availability === window.chrome.cast.ReceiverAvailability.AVAILABLE) {
-          setIsAvailable(true);
-        } else {
-          setIsAvailable(false);
-        }
+      } else if (castState === window.cast.framework.CastState.CONNECTING) {
+        setIsConnecting(true);
+        setIsConnected(false);
+      } else {
+        setIsConnected(false);
+        setIsConnecting(false);
+        setDeviceName(null);
+        setInternalSession(null);
       }
-    );
-
-    window.chrome.cast.initialize(
-      apiConfig,
-      () => {
-        console.log('Cast API initialized successfully.');
-        // Initialize the Cast button after API is ready
-        if (window.google && window.google.cast && window.google.cast.framework) {
-          const castContext = window.google.cast.framework.CastContext.getInstance();
-          castContext.setOptions({
-            receiverApplicationId: APPLICATION_ID
-          });
-        }
-      },
-      (error) => console.error('Cast API initialization failed:', error)
-    );
+    });
+    setIsAvailable(true);
   }, []);
 
+  // Connect to a Chromecast device
   const connect = useCallback(async () => {
-    if (!window.chrome || !window.chrome.cast) {
-      const errorMsg = 'Cast API not available or not initialized.';
-      setError(new Error(errorMsg));
-      throw new Error(errorMsg);
-    }
-
     try {
-      setIsConnecting(true); // Optimistically set connecting state
+      setIsConnecting(true);
       setError(null);
-      
-      // Use the approach from the working example
-      window.chrome.cast.requestSession(
-        (session) => {
-          console.log('Session started', session);
-          if (session) {
-            const device = session.receiver;
-            const newDeviceName = device.friendlyName || 'Unknown Cast Device';
-            setDeviceName(newDeviceName);
-            setIsConnecting(false);
-            setIsConnected(true);
-            // Store session internally for operations
-            setInternalSession({
-              sessionId: session.sessionId,
-              deviceId: device.id,
-              deviceName: newDeviceName,
-              statusText: session.statusText || 'Connected',
-              sessionObject: session
-            });
-          }
-        },
-        (error) => {
-          console.error('Error starting cast session:', error);
-          setError(new Error(`Failed to request session: ${error.code || error.message}`));
-          setIsConnecting(false);
-          setIsConnected(false);
-          setDeviceName(null);
-        }
-      );
-    } catch (err: any) {
-      console.error('Error requesting session:', err);
-      const errorMsg = `Failed to request session: ${err.message || err.code}`; 
-      setError(new Error(errorMsg));
-      setIsConnecting(false); // Reset connecting state on error
-      setIsConnected(false);
-      setDeviceName(null);
+      if (!window.cast || !window.cast.framework || !window.cast.framework.CastContext) {
+        throw new Error('Cast Framework not available');
+      }
+      const context = window.cast.framework.CastContext.getInstance();
+      await context.requestSession();
+      // State will be updated by event listener
+    } catch (err) {
+      setIsConnecting(false);
+      setError(err instanceof Error ? err : new Error('Unknown error connecting to Chromecast'));
       throw err;
     }
   }, []);
 
+  // Disconnect from the current Chromecast device
   const disconnect = useCallback(async () => {
-    if (internalSession?.sessionObject) {
-      // Properly stop the Chromecast session
-      internalSession.sessionObject.stop(
-        () => {
-          setIsConnected(false);
-          setDeviceName(null);
-          setInternalSession(null);
-        },
-        (err) => {
-          setError(new Error('Failed to disconnect Chromecast: ' + err));
-        }
-      );
-    } else {
+    try {
+      if (!window.cast || !window.cast.framework || !window.cast.framework.CastContext) {
+        throw new Error('Cast Framework not available');
+      }
+      const context = window.cast.framework.CastContext.getInstance();
+      const session = context.getCurrentSession();
+      if (session) {
+        await session.endSession(true);
+      }
       setIsConnected(false);
+      setIsConnecting(false);
       setDeviceName(null);
       setInternalSession(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error disconnecting from Chromecast'));
+      throw err;
     }
-  }, [internalSession]);
+  }, []);
 
+  // Send a message to the connected Chromecast device
   const sendMessage = useCallback(async (namespace: string, message: unknown) => {
-    const session = internalSession?.sessionObject;
-
-    if (session) {
-      try {
-        setError(null);
-        // Use the same approach as the working example
-        session.sendMessage(namespace || CAST_NAMESPACE, message,
-          () => console.log('Message sent successfully'),
-          (error) => {
-            console.error('Failed to send message:', error);
-            throw new Error(`Failed to send message: ${error.message || error.code}`);
-          }
-        );
-      } catch (err: any) {
-        console.error(`Error sending message to ${namespace}:`, err);
-        const errorMsg = `Failed to send message: ${err.message || err.code}`;
-        setError(new Error(errorMsg));
-        throw err;
+    try {
+      if (!internalSession || !internalSession.sessionObject) {
+        throw new Error('Not connected to a Chromecast device');
       }
-    } else {
-      const errMsg = 'Cannot send message: No active session.';
-      console.error(errMsg);
-      setError(new Error(errMsg));
-      throw new Error(errMsg);
+      await new Promise<void>((resolve, reject) => {
+        internalSession.sessionObject!.sendMessage(namespace, message, resolve, reject);
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error sending message to Chromecast'));
+      throw err;
     }
   }, [internalSession]);
 
@@ -245,107 +255,6 @@ export function useChromecast(): UseChromecastResult {
     error,
     connect,
     disconnect,
-    sendMessage,
+    sendMessage
   };
-}
-
-// Keep the global type definitions as they are needed for framework interactions
-declare global {
-  interface Window {
-    cast?: {
-      framework?: {
-        CastContext: {
-          getInstance: () => CastContext;
-        };
-        CastContextEventType: {
-          CAST_STATE_CHANGED: string;
-        };
-        CastState: {
-          NO_DEVICES_AVAILABLE: string;
-          NOT_CONNECTED: string;
-          CONNECTING: string;
-          CONNECTED: string;
-        };
-      };
-    };
-    chrome?: {
-      cast?: {
-        AutoJoinPolicy: {
-          TAB_AND_ORIGIN_SCOPED: string;
-        };
-        ReceiverAvailability?: {
-          AVAILABLE: string;
-          UNAVAILABLE: string;
-        };
-        SessionRequest?: any;
-        ApiConfig?: any;
-        initialize?: (apiConfig: any, onSuccess: () => void, onError: (error: any) => void) => void;
-        requestSession?: (
-          onSuccess: (session: CastSession) => void,
-          onError: (error: any) => void
-        ) => void;
-        // ErrorCode might be needed for Promises, keep minimal types
-        ErrorCode?: any;
-      };
-    };
-    google?: {
-      cast?: {
-        framework?: any;
-      };
-    };
-    __onGCastApiAvailable?: (isAvailable: boolean, reason?: string) => void;
-  }
-
-  interface CastContext {
-    setOptions: (options: CastOptions) => void;
-    addEventListener: (
-      eventType: string,
-      listener: (event: CastStateEvent) => void
-    ) => void;
-    removeEventListener: (
-      eventType: string,
-      listener: (event: CastStateEvent) => void
-    ) => void;
-    getCurrentSession: () => CastSession | null;
-    requestSession: () => Promise<chrome.cast.ErrorCode | undefined>;
-    getCastState: () => string;
-  }
-
-  interface CastOptions {
-    receiverApplicationId: string;
-    autoJoinPolicy: string;
-    language?: string;
-    resumeSavedSession?: boolean;
-  }
-
-  interface CastStateEvent {
-    castState: string;
-  }
-
-  interface CastSession {
-    getSessionId: () => string;
-    getCastDevice: () => CastDevice;
-    getStatusText: () => string | null;
-    addMessageListener: (
-      namespace: string,
-      listener: (namespace: string, message: string) => void
-    ) => void;
-    removeMessageListener: (
-      namespace: string,
-      listener: (namespace: string, message: string) => void
-    ) => void;
-    sendMessage: (
-      namespace: string,
-      message: any,
-      onSuccess?: () => void,
-      onError?: (error: any) => void
-    ) => void;
-    endSession: (stopCasting: boolean) => Promise<chrome.cast.ErrorCode | undefined>;
-    stop: (onSuccess: () => void, onError: (error: any) => void) => void;
-  }
-
-  interface CastDevice {
-    id: string;
-    friendlyName: string;
-  }
 }

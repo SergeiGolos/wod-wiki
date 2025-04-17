@@ -30,48 +30,26 @@ jobs:
 
       - name: Run tests
         run: npm test
-        # Continue on error in case there are test failures that shouldn't block the build
+        # TODO: Pass all tests and remove this.
+        # Continue on error in case there are test 
+        # failures that shouldn't block the build
         continue-on-error: true
 
-      - name: Build Package
+      - name: Build Package      
         run: npm run build
 
-      - name: Build Storybook
-        run: npm run build-storybook
+      - name: Publish Package
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Prepare npm package
-        run: |
-          # Copy necessary files to dist folder for npm publishing
-          cp package.json README.md LICENSE* ./dist/ 2>/dev/null || :
-          # Create minimal package.json for dist
-          node -e "const pkg=require('./package.json'); const minPkg = { 
-            name: pkg.name, 
-            version: '${{ inputs.version }}', 
-            description: pkg.description || '', 
-            keywords: pkg.keywords || [], 
-            author: pkg.author || '', 
-            license: pkg.license || '', 
-            repository: pkg.repository || '', 
-            homepage: pkg.homepage || '', 
-            bugs: pkg.bugs || '', 
-            main: pkg.main.replace('./dist/', './'), 
-            module: pkg.module.replace('./dist/', './'), 
-            exports: JSON.parse(JSON.stringify(pkg.exports).replace(new RegExp('./dist/', 'g'), './')), 
-            dependencies: pkg.dependencies || {},
-            publishConfig: { access: 'public' } 
-          }; 
-          require('fs').writeFileSync('./dist/package.json', JSON.stringify(minPkg, null, 2))"
+      - name: Build Storybook
+        run: npm run build-storybook    
 
       - name: Upload Storybook 
         uses: actions/upload-artifact@v4
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
-          path: storybook-static
-      
-      - name: Upload Package      
-        uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
-        with:
-          name: package
-          path: dist
+          path: storybook-static         

@@ -41,16 +41,16 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Working/2025-04-15.lap-timers-feature.md",
+                "file": "Working/2025-04-17.KB.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2025-04-15.lap-timers-feature"
+              "title": "2025-04-17.KB"
             }
           },
           {
-            "id": "7ee3b3844d9c5005",
+            "id": "a530fb68ccfc6c6c",
             "type": "leaf",
             "state": {
               "type": "card-board-view",
@@ -86,9 +86,37 @@
               "icon": "lucide-file",
               "title": "2025-04-15.lap-timers-feature"
             }
+          },
+          {
+            "id": "a686a2a1655ea3f8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Components/EventSpanAggregator.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "EventSpanAggregator"
+            }
+          },
+          {
+            "id": "75215bfeb7e96f7e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/Components/Chromecast.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Chromecast"
+            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 7
       }
     ],
     "direction": "vertical"
@@ -145,7 +173,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 441.5
+    "width": 412.5
   },
   "right": {
     "id": "249689aca2c55076",
@@ -238,16 +266,24 @@
       "card-board:CardBoard": false
     }
   },
-  "active": "92979c6867b15c51",
+  "active": "75215bfeb7e96f7e",
   "lastOpenFiles": [
-    "Working/2025-04-14.pause-resume-duration-design.md",
+    "DataTypes/Display Block.md",
+    "docs/Components/Chromecast.md",
+    "Working/2025-04-17.KB.md",
+    "docs/Components",
+    "docs",
+    "Components/Chromecast.md",
+    "Components/EventSpanAggregator.md",
+    "Components/Notebook.md",
+    "Components/Editor.md",
+    "Components/Clock.md",
+    "Components/Data Store.md",
+    "Chrome Cast Feature.md",
     "Working/2025-04-15.lap-timers-feature.md",
-    "Working/2025-04-14.KB.md",
-    "Releases/0.5.0.md",
+    "Working/2025-04-15.KB.md",
     "Working/2025-04-14.repair-system-button-events.md",
-    "Releases",
     "Working/2025-04-14.repair-system-button-events.kb.md",
-<<<<<<< Updated upstream
     "Working/2025-04-14.KB.md",
     "Working/2025-04-13.md",
     "Working/2025-04-13.KB.md",
@@ -260,40 +296,14 @@
     "Working/2025-04-06.md",
     "Working/2024-04-13.md",
     "Working/2024-04-12.md",
-    "Working/2025-04-14.pause-resume-duration-design.md",
-    "Working/2025-04-15.lap-timers-feature.md",
-    "Releases/0.5.0.md",
     "Releases",
-    "Untitled Kanban 1.md",
-    "Untitled Kanban.md",
-=======
-    "Working/2025-04-13.KB.md",
-    "Untitled Kanban 1.md",
-    "Untitled Kanban.md",
-    "Working/2025-04-06.md",
->>>>>>> Stashed changes
-    "docs/Components/EventSpanAggregator.md",
-    "docs/Components",
-    "docs",
-    "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
-    "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
-    "Notes/Chromecast Context.md",
-    "Working/Untitled Kanban.md",
     "Excalidraw/Data-Structure-Transformations.excalidraw",
     "Excalidraw/User-Input-Events.excalidraw",
     "Excalidraw/Timer-Events-Processing.excalidraw",
     "Excalidraw/Key-Event-Types.excalidraw",
     "Excalidraw/Event-State-Transitions.excalidraw",
-    "Excalidraw/Drawing 2025-04-13 17.24.26.excalidraw.md",
     "Excalidraw/Event-Flow-Diagram.excalidraw",
     "Excalidraw",
-<<<<<<< Updated upstream
-=======
-    "Working/2024-04-13.md",
-    "Notes/Chromcast Working Example.md",
-    "Working/2025-04-12.md",
-    "Notes/LapFeature.md",
->>>>>>> Stashed changes
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas"
   ]
