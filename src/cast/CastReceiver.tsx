@@ -18,7 +18,7 @@ interface TimerState {
   elapsed: number;
 }
 
-const CastReceiver: React.FC = () => {
+export const CastReceiver: React.FC = () => {
   const [timerState, setTimerState] = useState<TimerState>({
     isRunning: false,
     startTime: 0,
@@ -221,7 +221,7 @@ const CastReceiver: React.FC = () => {
   }, [handleEvent]);
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen p-4">
+    <div className="bg-gray-200 text-black h-screen w-screen">
       <header className="mb-6">
         <h1 className="text-2xl font-bold">wod.wiki Cast Receiver</h1>
         <p className="text-gray-400">Displaying workout timer</p>
@@ -326,5 +326,3 @@ declare global {
     senderId: string;
   }
 }
-
-export default CastReceiver;

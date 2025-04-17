@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import CastReceiver from '../cast/CastReceiver';
+import { MockChromecastReceiver } from './components/MockChromecastReceiver';
 
 /**
  * ChromeCast Receiver Application for wod.wiki
@@ -7,16 +7,16 @@ import CastReceiver from '../cast/CastReceiver';
  * This component serves as a ChromeCast receiver that displays workout events
  * sent from ChromeCast sender applications.
  */
-const meta: Meta<typeof CastReceiver> = {
+const meta: Meta<typeof MockChromecastReceiver> = {
   title: 'Cast/Receiver',
-  component: CastReceiver,
+  component: MockChromecastReceiver,
   parameters: {
     layout: 'fullscreen',
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof CastReceiver>;
+type Story = StoryObj<typeof MockChromecastReceiver>;
 
 /**
  * Default presentation of the ChromeCast receiver app

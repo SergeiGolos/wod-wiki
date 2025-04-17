@@ -1,6 +1,7 @@
 import './index.css'; // Ensure styles are included
 
 export { WodTimer } from './components/clock/WodTimer';
+
 export { WodWiki } from './components/editor/WodWiki';
 export { EditorContainer } from './components/editor/EditorContainer';
 export { EditorContainerWithProviders } from './components/editor/EditorContainer';
@@ -12,3 +13,6 @@ export { WodWikiProviders } from './components/providers/WodWikiProviders';
 
 export { TimerFromSeconds } from './core/timer.types';
 export type { IClock, TimerDisplayBag } from './core/timer.types';
+export type { ChromecastEvent, ChromecastEventType, CAST_NAMESPACE } from './cast/types/chromecast-events';
+export type { ClockRunningPayload } from './cast/types/chromecast-events';
+export { CastReceiver } from './cast/CastReceiver';

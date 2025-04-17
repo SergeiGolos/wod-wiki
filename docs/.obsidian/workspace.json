@@ -107,12 +107,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/Components/Chromecast.md",
+                "file": "Notes/Chromecast Events.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Chromecast"
+              "title": "Chromecast Events"
             }
           }
         ],
@@ -262,15 +262,27 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "obsidian-excalidraw-plugin:New drawing": false,
-      "obsidian-kanban:Create new board": false,
       "card-board:CardBoard": false
     }
   },
   "active": "75215bfeb7e96f7e",
   "lastOpenFiles": [
-    "DataTypes/Display Block.md",
-    "docs/Components/Chromecast.md",
+    "Architecture/TimerStateMachine.md",
+    "Notes/Chromecast Events.md",
+    "Birds Eye Overview.canvas",
+    "Birds Eye Workflow.canvas",
+    "Refactoring the WOD Wiki Timer Architecture.md",
+    "Welcome.md",
+    "Stack.md",
+    "Tailwind-Storybook.md",
+    "Notes/Chromecast.md",
+    "Notes/Chrome Cast Feature.md",
+    "Working/2025-04-15.lap-timers-feature.md",
+    "Untitled Kanban 1.md",
+    "Untitled Kanban.md",
     "Working/2025-04-17.KB.md",
+    "Releases/0.5.0.md",
+    "DataTypes/Display Block.md",
     "docs/Components",
     "docs",
     "Components/Chromecast.md",
@@ -279,23 +291,12 @@
     "Components/Editor.md",
     "Components/Clock.md",
     "Components/Data Store.md",
-    "Chrome Cast Feature.md",
-    "Working/2025-04-15.lap-timers-feature.md",
     "Working/2025-04-15.KB.md",
     "Working/2025-04-14.repair-system-button-events.md",
     "Working/2025-04-14.repair-system-button-events.kb.md",
     "Working/2025-04-14.KB.md",
     "Working/2025-04-13.md",
     "Working/2025-04-13.KB.md",
-    "Working/2025-04-12.md",
-    "Working/2025-04-11.md",
-    "Working/2025-04-10.md",
-    "Working/2025-04-09.md",
-    "Working/2025-04-08.md",
-    "Working/2025-04-07.md",
-    "Working/2025-04-06.md",
-    "Working/2024-04-13.md",
-    "Working/2024-04-12.md",
     "Releases",
     "Excalidraw/Data-Structure-Transformations.excalidraw",
     "Excalidraw/User-Input-Events.excalidraw",
@@ -303,8 +304,6 @@
     "Excalidraw/Key-Event-Types.excalidraw",
     "Excalidraw/Event-State-Transitions.excalidraw",
     "Excalidraw/Event-Flow-Diagram.excalidraw",
-    "Excalidraw",
-    "Birds Eye Overview.canvas",
-    "Birds Eye Workflow.canvas"
+    "Excalidraw"
   ]
 }

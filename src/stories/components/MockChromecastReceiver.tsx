@@ -1,251 +1,193 @@
-/**
- * MockChromecastReceiver Component
- * 
- * This component provides a visual representation of how the Chromecast receiver
- * would display workout information, without requiring an actual Chromecast device.
- * It implements the same event protocol as the real receiver for testing.
- */
-
-import React, { useState, useEffect } from 'react';
-import { 
-  ChromecastEvent, 
+import React, { useState, useEffect, useCallback } from 'react';
+// import { CastReceiver } from '@/cast/CastReceiver'; // Keep if needed for other parts, but not for this display mock
+// import { EditorContainer } from '@/components/editor/EditorContainer'; // Keep if needed for other parts
+import {
   ChromecastEventType,
-  isClockRunningEvent,
+  isClockRunningEvent, // Added missing import
   isClockPausedEvent,
-  isClockIdleEvent
-} from '../../cast/types/chromecast-events';
-import { TimerDisplayBag, TimerFromSeconds } from '@/core/timer.types';
+  isClockIdleEvent,
+  ChromecastEvent,
+} from '@/cast/types/chromecast-events';
+import { TimerFromSeconds, TimerDisplayBag } from '@/core/timer.types'; // Added ITimerDisplay
 
-interface MockChromecastReceiverProps {
-  visible: boolean;
-  onClose?: () => void;
-  debug?: boolean;
-}
+// Define the initial display state
+const initialDisplay: TimerDisplayBag = {
+  primary: new TimerFromSeconds(0),
+  label: 'Ready',
+  bag: {
+    totalTime: new TimerFromSeconds(0),
+  }
+};
 
-/**
- * Mock implementation of a Chromecast receiver for local testing
- */
-const MockChromecastReceiver: React.FC<MockChromecastReceiverProps> = ({ 
-  visible, 
-  onClose, 
-  debug = false 
-}) => {
-  // Display state
-  const [display, setDisplay] = useState<TimerDisplayBag>({
-    primary: new TimerFromSeconds(0),
-    label: 'Idle',
-    bag: { totalTime: new TimerFromSeconds(0) }
-  });
-  
-  // Current state
+export const MockChromecastReceiver: React.FC = () => {
+  // State for the receiver's display
+  const [display, setDisplay] = useState<TimerDisplayBag>(initialDisplay);
+  // State for the receiver's operational status
   const [receiverState, setReceiverState] = useState<'RUNNING' | 'PAUSED' | 'IDLE'>('IDLE');
-  
-  // Event history for debugging
+  // State for event history (for debugging)
   const [eventHistory, setEventHistory] = useState<{
     time: string;
     eventType: ChromecastEventType;
     data: string;
   }[]>([]);
+  // State to toggle debug view
+  const [debug, setDebug] = useState(true); // Control debug panel visibility
 
-  /**
-   * Process an incoming event
-   */
-  const processEvent = (event: ChromecastEvent) => {
-    if (debug) {
-      const now = new Date().toLocaleTimeString();
-      setEventHistory(prev => [
-        {
-          time: now,
-          eventType: event.eventType,
-          data: JSON.stringify(event.data, null, 2)
-        },
-        ...prev.slice(0, 9) // Keep last 10 events
-      ]);
-    }
+  // Callback function to process incoming Chromecast events
+  const processEvent = useCallback((event: ChromecastEvent) => {
+    const now = new Date().toLocaleTimeString();
+    // Update event history, stringifying data for display
+    setEventHistory(prev => [...prev, {
+      time: now,
+      eventType: event.type,
+      data: JSON.stringify(event.data, null, 2)
+    }].slice(-20)); // Keep only the last 20 events
 
-    // Handle different event types
+    // Update display and state based on event type
     if (isClockRunningEvent(event)) {
-      const { timerValue, timerDisplay, effort, roundCurrent, roundTotal, repetitions } = event.data;
-      
-      // Create label with workout information
-      let label = effort;
+      const { timerValue, effort, roundCurrent, roundTotal, repetitions } = event.data;
+      let label = `▶️ ${effort || 'Workout'}`; // Default effort if missing
       if (repetitions) {
         label += ` - ${repetitions} reps`;
       }
-      if (roundTotal) {
+      if (roundTotal && roundTotal > 0) {
         label += ` (Round ${roundCurrent}/${roundTotal})`;
-      } else {
+      } else if (roundCurrent) { // Show current round even if no total
         label += ` (Round ${roundCurrent})`;
       }
-
       setDisplay({
         primary: new TimerFromSeconds(timerValue),
         label,
         bag: { totalTime: new TimerFromSeconds(timerValue) }
       });
-      
       setReceiverState('RUNNING');
-    } 
-    else if (isClockPausedEvent(event)) {
-      const { timerValue, timerDisplay, effort, roundCurrent, roundTotal, repetitions } = event.data;
-      
-      // Create label with workout information
-      let label = `⏸️ ${effort}`;
+    } else if (isClockPausedEvent(event)) {
+      const { timerValue, effort, roundCurrent, roundTotal, repetitions } = event.data;
+      let label = `⏸️ ${effort || 'Workout'}`; // Default effort if missing
       if (repetitions) {
         label += ` - ${repetitions} reps`;
       }
-      if (roundTotal) {
+      if (roundTotal && roundTotal > 0) {
         label += ` (Round ${roundCurrent}/${roundTotal})`;
-      } else {
+      } else if (roundCurrent) {
         label += ` (Round ${roundCurrent})`;
       }
-
       setDisplay({
         primary: new TimerFromSeconds(timerValue),
         label,
         bag: { totalTime: new TimerFromSeconds(timerValue) }
       });
-      
       setReceiverState('PAUSED');
-    }
-    else if (isClockIdleEvent(event)) {
-      const { currentTime, message } = event.data;
-      
+    } else if (isClockIdleEvent(event)) {
+      const { message } = event.data;
       setDisplay({
         primary: new TimerFromSeconds(0),
         label: message || 'Ready',
-        bag: { 
+        bag: {
           totalTime: new TimerFromSeconds(0),
           currentTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
-      
       setReceiverState('IDLE');
     }
-  };
+    // Add handling for other event types if necessary
+  }, []); // processEvent definition is stable
 
-  // Make the event processor available globally for testing
+  // Effect to expose the processEvent function globally for mocking/testing in Storybook/dev tools
   useEffect(() => {
-    if (visible) {
-      // Add global access to event processor for testing
-      window.__mockChromecastReceiver = {
-        processEvent
-      };
-
-      // Set initial idle state
-      const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setDisplay(prev => ({
-        ...prev,
-        label: 'Ready',
-        bag: {
-          ...prev.bag,
-          currentTime
-        }
-      }));
-    }
-
+    window.__mockChromecastReceiver = { processEvent };
+    // Cleanup function
     return () => {
-      // Clean up
       delete window.__mockChromecastReceiver;
     };
-  }, [visible]);
+  }, [processEvent]);
 
-  if (!visible) return null;
-
-  // Main receiver UI
+  // Main component render - Focused on the Receiver Display
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-black text-white w-full max-w-2xl p-6 rounded-lg shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Mock Chromecast Receiver</h2>
-          {onClose && (
-            <button 
-              onClick={onClose}
-              className="text-white hover:text-gray-300"
-            >
-              ✕
-            </button>
+    <div className="bg-gray-900 text-white min-h-screen p-4 flex flex-col font-sans"> {/* Assuming font-sans */}
+      {/* Receiver Display Area */}
+      <div className="flex-grow flex items-center justify-center bg-black rounded-lg relative p-8 mb-4 shadow-lg"> {/* Added shadow */}
+        <div className="text-center">
+          {/* Conditional rendering based on receiver state */}
+          {receiverState === 'IDLE' ? (
+            // Idle state shows current time
+            <div>
+              <div className="text-5xl sm:text-7xl font-bold mb-2 tracking-wider"> {/* Responsive text */}
+                {display.bag?.currentTime || '--:--'} {/* Placeholder */}
+              </div>
+              <div className="text-xl sm:text-2xl opacity-80">{display.label}</div>
+            </div>
+          ) : (
+            // Active workout state
+            <div>
+              <div className="text-6xl sm:text-8xl font-bold mb-4 tracking-wider"> {/* Responsive text */}
+                {display.primary.toString()}
+              </div>
+              <div className="text-2xl sm:text-3xl">{display.label}</div>
+            </div>
           )}
         </div>
 
-        {/* TV-like display with 16:9 aspect ratio */}
-        <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-            {/* Main clock display */}
-            <div className="text-center">
-              {receiverState === 'IDLE' ? (
-                // Idle state shows current time
-                <div>
-                  <div className="text-5xl font-bold mb-2">
-                    {display.bag.currentTime || '00:00'}
-                  </div>
-                  <div className="text-xl opacity-80">{display.label}</div>
-                </div>
-              ) : (
-                // Active workout state
-                <div>
-                  <div className="text-6xl font-bold mb-4">
-                    {display.primary.toString()}
-                  </div>
-                  <div className="text-2xl">{display.label}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Status indicator */}
-            <div className="absolute bottom-4 right-4 flex items-center">
-              <div 
-                className={`w-3 h-3 rounded-full mr-2 ${
-                  receiverState === 'RUNNING' ? 'bg-green-500' : 
-                  receiverState === 'PAUSED' ? 'bg-yellow-500' : 'bg-gray-500'
-                }`}
-              />
-              <span className="text-sm opacity-80">
-                {receiverState === 'RUNNING' ? 'Running' : 
-                 receiverState === 'PAUSED' ? 'Paused' : 'Idle'}
-              </span>
-            </div>
-
-            {/* wod-wiki branding */}
-            <div className="absolute top-4 left-4 text-sm opacity-60">
-              wod-wiki
-            </div>
-          </div>
+        {/* Status indicator */}
+        <div className="absolute bottom-4 right-4 flex items-center bg-gray-800 px-2 py-1 rounded"> {/* Styled indicator */}
+          <div
+            className={`w-3 h-3 rounded-full mr-2 animate-pulse ${ // Added pulse
+              receiverState === 'RUNNING' ? 'bg-green-500' :
+              receiverState === 'PAUSED' ? 'bg-yellow-500' : 'bg-gray-500'
+            }`}
+          />
+          <span className="text-sm opacity-80">
+            {receiverState} {/* Simplified state name */}
+          </span>
         </div>
 
-        {/* Debug panel */}
-        {debug && (
-          <div className="mt-4 bg-gray-800 p-3 rounded-lg max-h-40 overflow-y-auto">
-            <h3 className="text-sm font-bold mb-2">Event History</h3>
-            {eventHistory.length === 0 ? (
-              <div className="text-sm text-gray-400">No events received yet</div>
-            ) : (
-              <ul className="text-xs space-y-1">
-                {eventHistory.map((event, index) => (
-                  <li key={index} className="border-b border-gray-700 pb-1">
-                    <span className="text-gray-400">{event.time}</span> - 
-                    <span className={`font-mono ml-1 ${
-                      event.eventType.includes('RUNNING') ? 'text-green-400' : 
-                      event.eventType.includes('PAUSED') ? 'text-yellow-400' : 
-                      'text-blue-400'
-                    }`}>
-                      {event.eventType}
-                    </span>
-                    <pre className="mt-1 text-gray-300 overflow-x-auto">
-                      {event.data}
-                    </pre>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+        {/* wod-wiki branding */}
+        <div className="absolute top-4 left-4 text-sm opacity-60 font-semibold"> {/* Styled branding */}
+          wod-wiki Receiver
+        </div>
       </div>
+
+       {/* Debug Panel Toggle Button */}
+       <button
+         onClick={() => setDebug(!debug)}
+         className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded mb-2 self-start transition-colors duration-200"
+       >
+         {debug ? 'Hide' : 'Show'} Debug Log
+       </button>
+
+      {/* Debug panel */}
+      {debug && (
+        <div className="bg-gray-800 p-3 rounded-lg max-h-48 overflow-y-auto text-sm shadow-inner"> {/* Adjusted max-height */}
+          <h3 className="font-bold mb-2 border-b border-gray-700 pb-1">Event History</h3>
+          {eventHistory.length === 0 ? (
+            <div className="text-gray-400 italic">No events received yet.</div>
+          ) : (
+            <ul className="space-y-1">
+              {eventHistory.map((event, index) => (
+                <li key={index} className="border-b border-gray-700 pb-1 last:border-b-0">
+                  <span className="text-gray-400 mr-2">{event.time}</span>
+                  <span className={`font-mono font-semibold ${
+                    event.eventType.includes('RUNNING') ? 'text-green-400' :
+                    event.eventType.includes('PAUSED') ? 'text-yellow-400' :
+                    event.eventType.includes('IDLE') ? 'text-blue-400' :
+                    'text-gray-300' // Default color
+                  }`}>
+                    {event.eventType}
+                  </span>
+                  <pre className="mt-1 text-gray-300 overflow-x-auto whitespace-pre-wrap break-words bg-gray-900 p-1 rounded text-xs"> {/* Styled pre */}
+                    {event.data}
+                  </pre>
+                </li>
+              )).reverse()} {/* Show newest events first */}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-// Add global typings for the mock receiver
+// Add global typings for the mock receiver interface
 declare global {
   interface Window {
     __mockChromecastReceiver?: {
