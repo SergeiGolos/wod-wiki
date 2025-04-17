@@ -20,12 +20,12 @@
     "access": "public"
   },
   "type": "module",
-  "main": "./index.umd.cjs",
-  "module": "./index.js",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./index.js",
-      "require": "./index.umd.cjs"
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
     },
     "./style.css": "./style.css"
   },
