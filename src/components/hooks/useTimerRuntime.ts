@@ -3,7 +3,7 @@ import { IRuntimeBlock, ResultSpan, WodRuntimeScript, RuntimeMetricEdit } from "
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
-import { TimerDisplayBag, ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { TimerDisplayBag, ActionButton, RuntimeEvent } from "@/core/timer.types";
 import { startButton } from "../buttons/timerButtons";
 
 /**
@@ -39,7 +39,7 @@ export function useTimerRuntime({
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
   const [display, setDisplay] = useState<TimerDisplayBag | undefined>();
 
-  const [buttons, setButtons] = useState<ButtonConfig[]>([startButton]);
+  const [buttons, setButtons] = useState<ActionButton[]>([startButton]);
   const [results, setResults] = useState<ResultSpan[]>([]);
   const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
 

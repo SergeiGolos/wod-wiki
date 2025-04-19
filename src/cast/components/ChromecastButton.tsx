@@ -1,14 +1,13 @@
 import React, { useEffect } from 'react';
-import { useChromecast } from './hooks/useChromecast';
+import { useChromecast } from '../hooks/useChromecast';
 import { RuntimeEvent } from '@/core/timer.types';
+import { ChromecastEvent, ChromecastEventType } from '../types/chromecast-events';
+import { CAST_NAMESPACE } from '../types/chromecast-events';
 
 interface ChromecastButtonProps {
-  onStatusChange?: (isConnected: boolean) => void;
+  onStatusChange?: (isConnected: ((event : ChromecastEvent) => void)) => void;
   setEvents?: React.Dispatch<React.SetStateAction<RuntimeEvent[]>>;
 }
-
-// Namespace for custom messages
-const CAST_NAMESPACE = "urn:x-cast:com.google.cast.cac"; 
 
 export const ChromecastButton: React.FC<ChromecastButtonProps> = ({ 
   onStatusChange,
@@ -22,24 +21,28 @@ export const ChromecastButton: React.FC<ChromecastButtonProps> = ({
     error,
     connect,
     disconnect,
-    sendMessage
+    sendMessage  
   } = useChromecast();
 
   // Notify parent component when connection status changes
   useEffect(() => {
     if (onStatusChange) {
-      onStatusChange(isConnected);
+      if (isConnected) {
+        onStatusChange((event) => sendMessage(CAST_NAMESPACE, event));
+      }else{
+        onStatusChange(() => sendMessage(CAST_NAMESPACE, { eventType: ChromecastEventType.SET_IDLE, timestamp: new Date() }));
+      }
     }
     
     // When connected, add to events if setEvents is provided
-    if (isConnected && setEvents) {
-      setEvents(prev => [...prev, { name: "cast-connected", timestamp: new Date() }]);
-    }
+    sendMessage(CAST_NAMESPACE, { eventType: ChromecastEventType.SET_IDLE, timestamp: new Date() });
   }, [isConnected, onStatusChange, setEvents]);
 
   // Handle button click
   const handleClick = async () => {
     try {
+      // If already connecting, do nothing
+      if (isConnecting) return;
       // If already connected, disconnect
       if (isConnected) {
         await disconnect();
@@ -51,22 +54,6 @@ export const ChromecastButton: React.FC<ChromecastButtonProps> = ({
       // Status change is handled by the effect hook
     } catch (error) {
       console.error('Chromecast operation failed:', error);
-    }
-  };
-
-  // Send a test message to the receiver (optional, can be removed in production)
-  const handleSendMessage = async () => {
-    if (!isConnected) return;
-    
-    try {
-      const message = { 
-        type: 'TEST_MESSAGE',
-        timestamp: Date.now(),
-        data: { text: 'Hello from sender!' }
-      };
-      await sendMessage(CAST_NAMESPACE, message);
-    } catch (err) {
-      console.error('Failed to send test message:', err);
     }
   };
 

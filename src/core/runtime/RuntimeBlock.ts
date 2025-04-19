@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ButtonConfig } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ActionButton } from "@/core/timer.types";
 import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "./EventHandler";
 
@@ -16,7 +16,7 @@ export class RuntimeBlock implements IRuntimeBlock {
   ) {
     this.blockId = stack?.[0]?.id ?? -1;    
   }
-  buttons: ButtonConfig[] = [];
+  buttons: ActionButton[] = [];
 
   /**
    * Generates a report summarizing the execution block as a series of spans.

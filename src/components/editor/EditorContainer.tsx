@@ -14,7 +14,7 @@ import { SoundProvider } from "@/core/contexts/SoundContext";
 import { ScreenProvider } from "@/core/contexts/ScreenContext";
 import { useScreen } from "@/core/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { ChromecastButton } from "@/cast/ChromecastButton";
+import { ChromecastButton } from "@/cast/components/ChromecastButton";
 import { encodeShareString } from "@/core/utils/shareUtils";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 

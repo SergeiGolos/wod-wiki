@@ -1,4 +1,5 @@
-import { ButtonConfig, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeState, RuntimeTrace, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
+import { ActionButton, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeState, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
+import { RuntimeTrace } from "../RuntimeTrace";
 import { RuntimeStack } from "./RuntimeStack";
 import { DoneRuntimeBlock, IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
@@ -25,7 +26,7 @@ export class TimerRuntime implements ITimerRuntime {
     public script: RuntimeStack,     
     public jit: RuntimeJit,
     private onSetDisplay: (display: TimerDisplayBag) => void,
-    private onSetButtons: (buttons: ButtonConfig[]) => void,
+    private onSetButtons: (buttons: ActionButton[]) => void,
     private onSetResults: (results: ResultSpan[]) => void,
     private onSetCursor: (cursor: IRuntimeBlock | undefined) => void,
     private onSetEdits: (edits: RuntimeMetricEdit[]) => void,
@@ -51,7 +52,7 @@ export class TimerRuntime implements ITimerRuntime {
     this.trace = new RuntimeTrace();        
   }
   
-  buttons: ButtonConfig[] = [];
+  buttons: ActionButton[] = [];
   results: ResultSpan[] = [];
   edits: RuntimeMetricEdit[] = [];
 

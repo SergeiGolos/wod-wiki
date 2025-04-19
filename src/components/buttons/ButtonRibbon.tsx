@@ -1,10 +1,10 @@
 import React, { Dispatch, SetStateAction } from "react";
-import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { ActionButton, RuntimeEvent } from "@/core/timer.types";
 import { cn } from "@/core/utils";
 
 
 interface ButtonRibbonProps {
-  buttons: ButtonConfig[];  
+  buttons: ActionButton[];  
   setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;
 }
 
@@ -12,7 +12,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
   
   
   /// TODO:  THis should be conifugred at the button not in the ribben
-  const getButtonStyle = (button: ButtonConfig) => {
+  const getButtonStyle = (button: ActionButton) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-md transition-all ";
     
     if (button.variant === 'success') {
@@ -26,7 +26,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
     return baseStyle + "bg-white text-blue-600 hover:bg-blue-50 border border-blue-200";
   };
 
-  const clickEvent = (button: ButtonConfig) => {
+  const clickEvent = (button: ActionButton) => {
     const events = button.onClick();    
     setEvents(events);
   }

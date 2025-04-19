@@ -1,13 +1,13 @@
 import {
   StatementNode,
   IRuntimeBlock,
-  RuntimeTrace,
   IRuntimeLogger,
   IRuntimeAction,
   ITimerRuntime,
   RuntimeEvent,
   RuntimeMetric,
 } from "../timer.types";
+import { RuntimeTrace } from "../RuntimeTrace";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";

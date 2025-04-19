@@ -1,4 +1,5 @@
 import { RuntimeStack } from "./runtime/RuntimeStack";
+import { RuntimeTrace } from "./RuntimeTrace";
 
 // TimerDisplay interface to represent the timer's visual state
 export interface TimerDisplayBag {
@@ -104,48 +105,6 @@ export interface IRuntimeAction {
     offSet?: number | undefined;
   }
   
-  export type MetricValue = {
-    value: number;
-    unit: string;
-  };
-  
-  export class RuntimeTrace {  
-    private trace: Map<number, [number, number]> = new Map();
-    public history: StatementKey[] = [];
-    
-    get(id:number) : number {
-      return this.trace.get(id)?.[0] ?? 0;
-    }
-
-    getTotal(id:number) : number {
-      return this.trace.get(id)?.[1] ?? 0;
-    }
-  
-    set(stack: StatementNode[]) : StatementKey {
-     var key = new StatementKey(this.history.length + 1) ;
-     var previous = this.history.length > 0 
-      ? this.history[this.history.length - 1] 
-      : undefined;
-
-     for(const node of stack) {    
-      const index = (this.trace.get(node.id)?.[0] ?? 0) + 1;
-      const total = this.getTotal(node.id)+1;
-      this.trace.set(node.id, [index, total]);
-      key.push(node.id, index);
-     }
- 
- this.history.push(key);
-     if (previous) {
-      const diff = previous.not(key);      
-      for(const id of diff) {
-        const total = this.getTotal(id)
-        this.trace.set(id, [0,total]);
-      }
-     }
-
-     return key;
-    }  
-  }
 
   // Represents an instruction to update a specific metric for a result span
   export type RuntimeMetricEdit = {
@@ -156,6 +115,11 @@ export interface IRuntimeAction {
     createdAt: Date; // Timestamp when the edit was created
   };
 
+  export type MetricValue = {
+    value: number;
+    unit: string;
+  };
+  
   export interface IRuntimeLogger {
     write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
   }
@@ -165,7 +129,7 @@ export type RuntimeState = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | 
 export interface ITimerRuntime {
   gotoComplete(): unknown;      
   display: TimerDisplayBag;
-  buttons: ButtonConfig[];
+  buttons: ActionButton[];
   edits: RuntimeMetricEdit[];
   results: ResultSpan[];  
   trace: RuntimeTrace | undefined;
@@ -250,7 +214,7 @@ export interface RuntimeResult {
   }
   
   export interface IRuntimeBlock {
-    buttons: ButtonConfig[];    
+    buttons: ActionButton[];    
     type: string;
     blockId: number;
     blockKey: string;
@@ -272,7 +236,7 @@ export interface RuntimeResult {
   }
 
 
-export interface ButtonConfig {
+export interface ActionButton {
   label?: string;
   icon: React.ForwardRefExoticComponent<React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & { title?: string, titleId?: string } & React.RefAttributes<SVGSVGElement>>;
   onClick: () => RuntimeEvent[];
@@ -295,8 +259,9 @@ export class ResultSpan {
   stack?: number[];
   start?: RuntimeEvent;
   stop?: RuntimeEvent;
-  label?: string;
   metrics: RuntimeMetric[] = [];
+  label?: string;
+  
   duration(timestamp?: Date): number {
     let now = timestamp ?? new Date();
     const stopTime = (this.stop?.timestamp || now).getTime();
