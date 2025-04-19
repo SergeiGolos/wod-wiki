@@ -1,7 +1,7 @@
 {
   "name": "@bitcobblers/wod-wiki-library",
   "private": false,
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A specialized markdown-like workout syntax editor and runtime for defining workouts",
   "author": "BitCobblers",
   "license": "MIT",
