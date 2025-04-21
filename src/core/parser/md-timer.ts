@@ -1,4 +1,3 @@
-import type { IToken, CstNode } from "chevrotain";
 import { Lexer } from "chevrotain";
 import { MdTimerInterpreter } from "./timer.visitor";
 import { MdTimerParse } from "./timer.parser";
@@ -23,7 +22,6 @@ export class MdTimerRuntime {
     return {
       source: inputText,
       statements: raw,
-      
     };
   }
 }

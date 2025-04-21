@@ -7,20 +7,40 @@
 
 import { ResultSpan } from '@/core/timer.types';
 
-export const CAST_NAMESPACE = "urn:x-cast:com.google.cast.cac";
+export const CAST_NAMESPACE = "urn:x-cast:com.google.cast.wod-wiki";
 /**
  * All supported Chromecast event types
  */
 export enum ChromecastEventType {
 
+  HANDSHAKE_ESTABLISHED = 'HANDSHAKE_ESTABLISHED',
+  HANDSHAKE_TERMINATED = 'HANDSHAKE_TERMINATED',
   SET_DISPLAY = 'SET_DISPLAY',
   SET_SOUND = 'SET_SOUND',
   SET_DEBUG = 'SET_DEBUG',
   SET_ERROR = 'SET_ERROR',
   HEARTBEAT = 'HEARTBEAT',
   SET_IDLE = 'SET_IDLE',
+  RESULT_UPDATED = "RESULT_UPDATED",
 }
 
+export class ReceiverEvent implements ChromecastReceiverEvent {
+  status: string;
+  message: ChromecastEvent;
+  timestamp: Date;
+  constructor(status: string, message: ChromecastEvent) {
+    this.status = status;
+    this.message = message;
+    this.timestamp = new Date();
+  }
+}
+
+export interface ChromecastReceiverEvent
+{
+    status: string;
+    message: ChromecastEvent;
+    timestamp: Date;
+}
 // ======== Base Event Interface ========
 export interface ChromecastEvent {
   eventType: ChromecastEventType;

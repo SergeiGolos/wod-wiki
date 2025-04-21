@@ -1,5 +1,5 @@
 import {
-  RuntimeEvent,
+  IRuntimeEvent,
   StatementNode,
   ITimerRuntime,
   IRuntimeAction,
@@ -13,9 +13,9 @@ export class EndHandler extends EventHandler {
   protected eventType: string = "end";
 
   protected handleEvent(
-    event: RuntimeEvent,
-    stack: StatementNode[],
-    runtime: ITimerRuntime
+    event: IRuntimeEvent,
+    _stack: StatementNode[],
+    _runtime: ITimerRuntime
   ): IRuntimeAction[] {
     // Create a result block for the final time
     return [

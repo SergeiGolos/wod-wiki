@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ActionButton, RuntimeEvent } from "@/core/timer.types";
+import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { useScreen } from "@/core/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
@@ -41,7 +41,7 @@ export function createScreenOnToggleButton(): ActionButton {
     icon: screenOnEnabled ? EyeIcon : EyeSlashIcon,
     onClick: () => {
       toggleScreenOn();
-      return [] as RuntimeEvent[];
+      return [] as IRuntimeEvent[];
     },
     isActive: screenOnEnabled,
   };

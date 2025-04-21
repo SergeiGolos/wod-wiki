@@ -7,7 +7,7 @@
  * - Processing timer events and delegating to appropriate handlers
  */
 
-import { IRuntimeBlock, IRuntimeLogger, ResultSpan, RuntimeEvent } from "@/core/timer.types";
+import { IRuntimeBlock, IRuntimeLogger, ResultSpan, IRuntimeEvent } from "@/core/timer.types";
 import { EventSpanAggregator } from "../EventSpanAggregator";
 
 /**

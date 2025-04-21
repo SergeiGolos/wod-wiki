@@ -1,10 +1,10 @@
-import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types";
 
 
 export class CompleteStatementAction implements IRuntimeAction {
   constructor() { }
 
-  apply(runtime: ITimerRuntime):  RuntimeEvent[] {
+  apply(runtime: ITimerRuntime):  IRuntimeEvent[] {
     runtime.gotoComplete();
     return [];
   }
@@ -14,7 +14,7 @@ export class CompleteStatementAction implements IRuntimeAction {
 export class IdleStatementAction implements IRuntimeAction {
   constructor() { }
 
-  apply(runtime: ITimerRuntime):  RuntimeEvent[] {
+  apply(runtime: ITimerRuntime):  IRuntimeEvent[] {
     runtime.gotoBlock(undefined);
     return [];
   }

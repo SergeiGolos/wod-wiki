@@ -1,6 +1,6 @@
-import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ActionButton } from "@/core/timer.types";
-import { IRuntimeBlock, RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
-import { EventHandler } from "./EventHandler";
+import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ActionButton, IDuration } from "@/core/timer.types";
+import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { EventHandler } from "../EventHandler";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -16,6 +16,11 @@ export class RuntimeBlock implements IRuntimeBlock {
   ) {
     this.blockId = stack?.[0]?.id ?? -1;    
   }
+  duration: IDuration = { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
+  elapsed(): IDuration {
+    return this.duration;
+  }
+  laps: ResultSpan[] = [];
   buttons: ActionButton[] = [];
 
   /**
@@ -29,11 +34,11 @@ export class RuntimeBlock implements IRuntimeBlock {
   }
   
   public type: string = 'runtime';  
-  public events: RuntimeEvent[] = [];
+  public events: IRuntimeEvent[] = [];
   public blockId: number;
   public metrics: RuntimeMetric[] = [];
 
-  onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
+  onEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     return this.handlers
       .map(handler => handler.apply(event, this.stack, runtime))
       .flat();

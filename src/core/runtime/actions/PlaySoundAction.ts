@@ -1,19 +1,18 @@
-import { EventAction } from "../EventAction";
-import { ITimerRuntime, RuntimeEvent } from "../../timer.types";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "../../timer.types";
 import { SoundService } from "../../services/SoundService";
+import { ChromecastEvent } from "@/cast/types/chromecast-events";
 
 /**
  * Action that plays a sound during workout execution
  */
-export class PlaySoundAction extends EventAction {
+export class PlaySoundAction implements IRuntimeAction {
   constructor(
-    event: RuntimeEvent,
-    private soundType: 'start' | 'complete' | 'countdown' | 'tick'
+    private event: IRuntimeEvent,
+    private soundType: string
   ) {
-    super(event);
   }
 
-  apply(runtime: ITimerRuntime): RuntimeEvent[] {
+  apply(runtime: ITimerRuntime, _input: (event: IRuntimeEvent) => void, _output: (event: ChromecastEvent) => void): IRuntimeEvent[] {
     // Get the sound service and play the appropriate sound
     const soundService = SoundService.getInstance();
     

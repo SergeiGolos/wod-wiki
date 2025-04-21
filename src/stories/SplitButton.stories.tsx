@@ -3,11 +3,11 @@ import '../index.css';
 import { useState } from 'react';
 import { SplitButton, SplitButtonOption } from '../components/buttons/SplitButton';
 import { PlayIcon, StarIcon } from "@heroicons/react/24/solid";
-import { ActionButton, RuntimeEvent } from '@/core/timer.types';
+import { ActionButton, IRuntimeEvent } from '@/core/timer.types';
 
 // Create a wrapper component for demonstration
 const SplitButtonDemo = () => {
-  const [events, setEvents] = useState<RuntimeEvent[]>([]);
+  const [events, setEvents] = useState<IRuntimeEvent[]>([]);
   const [lastAction, setLastAction] = useState<string>('No action taken');
 
   // Define the main action

@@ -22,8 +22,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 }) => {
   const [computed, setComputed] = useState<[ResultSpan, boolean][]>([]);
   const [activeTab, setActiveTab] = useState<TabOption>('Efforts');  
-  const [selectedEffortFilter, setSelectedEffortFilter] = useState<string[]>([]);  
-
+  const [selectedEffortFilter, setSelectedEffortFilter] = useState<string[]>([]);    
   const toggleEffortFilter = (effort: string) => {
     setSelectedEffortFilter((prev) =>
       prev.includes(effort) ? prev.filter(e => e !== effort) : [...prev, effort]
@@ -31,6 +30,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   };
 
   useEffect(() => {
+    if (!results) return;
     const processedResults: [ResultSpan, boolean][] = [];
     for (const result of results) {
       let hidden = false;

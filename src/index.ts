@@ -11,8 +11,8 @@ export { SoundProvider, useSound } from './core/contexts/SoundContext';
 export { SoundToggle } from './components/buttons/SoundToggle';
 export { WodWikiProviders } from './components/providers/WodWikiProviders';
 
-export { TimerFromSeconds } from './core/timer.types';
-export type { IClock, TimerDisplayBag } from './core/timer.types';
-export type { ChromecastEvent, ChromecastEventType, CAST_NAMESPACE } from './cast/types/chromecast-events';
-export type { ClockRunningPayload } from './cast/types/chromecast-events';
+export type { ChromecastEvent } from './cast/types/chromecast-events';
+export { ChromecastEventType, CAST_NAMESPACE } from './cast/types/chromecast-events';
 export { CastReceiver } from './cast/CastReceiver';
+export { CastHostContainer as CastHost } from './stories/components/CastHostContainer';
+

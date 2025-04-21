@@ -1,17 +1,12 @@
-import { RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
-import { EventAction } from "../EventAction";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { ChromecastEvent } from "@/cast/types/chromecast-events";
 
 
-export class SetDisplayLabelAction extends EventAction {
-    private label: string;
-
-    constructor(event: RuntimeEvent, label: string) {
-        super(event);
-        this.label = label;
+export class SetDisplayLabelAction implements IRuntimeAction {    
+    constructor(private event: IRuntimeEvent, label: string) {                
     }
 
-    apply(runtime: ITimerRuntime): RuntimeEvent[] {
-        runtime.display.label = this.label;
-        return [];
+    apply(_runtime: ITimerRuntime, _input: (event: IRuntimeEvent) => void, _output: (event: ChromecastEvent) => void) {
+        
     }
 }

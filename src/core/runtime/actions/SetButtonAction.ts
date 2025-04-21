@@ -1,16 +1,16 @@
-import { EventAction } from "../EventAction";
-import { ActionButton, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
+import { ChromecastEvent } from "@/cast/types/chromecast-events";
 
-export class SetButtonAction extends EventAction {
+import { ActionButton, ITimerRuntime, IRuntimeEvent, IRuntimeAction } from "@/core/timer.types";
+
+export class SetButtonAction implements IRuntimeAction {
     constructor(
-        event: RuntimeEvent,
+        private event: IRuntimeEvent,
         private buttons: ActionButton[]
     ) {
-        super(event);
     }
 
-    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
-        runtime.buttons = this.buttons;
-        return [];
+    apply(runtime: ITimerRuntime, _input: (event: IRuntimeEvent) => void, _output: (event: ChromecastEvent) => void): void {        
+        // runtime.buttons = this.buttons;
+        return;
     }
 }

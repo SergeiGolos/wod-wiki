@@ -4,18 +4,15 @@ import {
   IRuntimeLogger,
   IRuntimeAction,
   ITimerRuntime,
-  RuntimeEvent,
+  IRuntimeEvent,
   RuntimeMetric,
 } from "../timer.types";
 import { RuntimeTrace } from "../RuntimeTrace";
-import { RuntimeBlock } from "./RuntimeBlock";
+import { RuntimeBlock } from "./blocks/RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";
 import { TickHandler } from "./handlers/TickHandler";
-import {
-  LabelCurrentEffortHandler,
-  TotalTimeHandler,
-} from "./handlers/TotalTimeHandler";
+
 import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
 import { CompleteHandler } from "./handlers/CompleteHandler";
@@ -29,72 +26,10 @@ import { EffortFragment } from "../fragments/EffortFragment";
 import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
 import { PlaySoundAction } from "./actions/PlaySoundAction";
 
-/**
- * Base class for sound handlers
- */
-abstract class BaseSoundHandler extends EventHandler {
-  protected abstract soundType: 'start' | 'complete' | 'countdown' | 'tick';
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    return [new PlaySoundAction(event, this.soundType)];
-  }
-}
-
-/**
- * Handles start event sounds
- */
-class StartSoundHandler extends BaseSoundHandler {
-  protected eventType: string = "start";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "start";
-}
-
-/**
- * Handles complete/end event sounds
- */
-class CompleteSoundHandler extends EventHandler {
-  protected eventType: string = "complete";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "complete";
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    return [new PlaySoundAction(event, this.soundType)];
-  }
-}
-
-/**
- * Handles countdown event sounds
- */
-class CountdownSoundHandler extends BaseSoundHandler {
-  protected eventType: string = "countdown";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "countdown";
-}
-
-/**
- * Handles tick event sounds for countdown (3,2,1)
- */
-class TickCountdownSoundHandler extends EventHandler {
-  protected eventType: string = "tick";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "countdown";
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // Only play countdown sounds when timer hits 3, 2, or 1 seconds
-    if (runtime.display?.primary?.seconds === 3 || 
-        runtime.display?.primary?.seconds === 2 || 
-        runtime.display?.primary?.seconds === 1) {
-      return [new PlaySoundAction(event, this.soundType)];
-    }
-    return [];
-  }
-}
 
 export class RuntimeJit {
   handlers: EventHandler[] = [
     new TickHandler(),
-    new TotalTimeHandler(),
-    new LabelCurrentEffortHandler(),
-    new StartSoundHandler(),
-    new CompleteSoundHandler(),
-    new CountdownSoundHandler(),
-    new TickCountdownSoundHandler(),
     new StartHandler(),
     new StopHandler(),
     new CompleteHandler(),

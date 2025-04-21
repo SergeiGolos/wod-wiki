@@ -1,4 +1,4 @@
-import { IRuntimeLogger, IRuntimeBlock, ResultSpan, RuntimeEvent } from "@/core/timer.types";
+import { IRuntimeLogger, IRuntimeBlock, ResultSpan, IRuntimeEvent } from "@/core/timer.types";
 import { EventSpanAggregator } from "../EventSpanAggregator";
 
 export class WorkRestLogger implements IRuntimeLogger {

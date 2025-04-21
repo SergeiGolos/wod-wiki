@@ -2,7 +2,7 @@ import React from 'react';
 import { Switch } from '@headlessui/react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import { useSound } from '@/core/contexts/SoundContext';
-import { ActionButton, RuntimeEvent } from '@/core/timer.types';
+import { ActionButton, IRuntimeEvent } from '@/core/timer.types';
 
 interface SoundToggleProps {
   className?: string;
@@ -46,7 +46,7 @@ export const createSoundToggleButton = (): ActionButton => {
     icon: soundEnabled ? SpeakerWaveIcon : SpeakerXMarkIcon,
     onClick: () => {
       // Return empty events array as this is handled by the toggle itself
-      return [] as RuntimeEvent[];
+      return [] as IRuntimeEvent[];
     },
     isActive: soundEnabled,
     variant: 'secondary',

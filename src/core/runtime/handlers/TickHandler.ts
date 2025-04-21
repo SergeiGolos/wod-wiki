@@ -1,48 +1,31 @@
-import { RuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, TimerDisplayBag, TimerFromSeconds } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode, Diff, IDuration } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
-import { SetDisplayAction } from "../actions/SetDisplayAction";
-import { fragmentsTo } from "@/core/utils";
-import { TimerFragment } from "@/core/fragments/TimerFragment";
-import { RaiseEventAction } from "../actions/RaiseEventAction";
-import { IncrementFragment } from "@/core/fragments/IncrementFragment";
-import { EventSpanAggregator } from "../EventSpanAggregator";
+import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
+import { CompleteEvent } from "../timer.events";
 
 export class TickHandler extends EventHandler {
   protected eventType: string = 'tick';
 
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // Use canonical state for running check
-    const isRunning = runtime.current?.getState() === 'running';
-    let elapsed = 0;
-
-    // Use EventSpanAggregator for event span/duration logic
-    if (runtime.current) {
-      const aggregator = new EventSpanAggregator(runtime.current.events, runtime.current.stack!);
-      if (isRunning) {
-        // Elapsed time is total of closed spans plus current active span
-        elapsed = aggregator.getTotalDuration() + aggregator.getCurrentDuration(event.timestamp);
-      } else {
-        // If not running, just sum closed spans
-        elapsed = aggregator.getTotalDuration();
-      }
+  protected handleEvent(event: IRuntimeEvent, _stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
+    let remaining: IDuration | undefined;
+    if (runtime.current?.type === 'idle' || runtime.current?.type === 'done') {      
+      return [];
+    }
+    
+    if (runtime.current?.duration) {
+      remaining = Diff.duration(runtime.current.duration, runtime.current.elapsed());
     }
 
-    const duration = fragmentsTo<TimerFragment>(runtime.current!.stack!, 'duration')?.duration ?? 0;
-    const increment = fragmentsTo<IncrementFragment>(runtime.current!.stack!, 'increment')?.increment ?? 0;
+    if (remaining == undefined || remaining.original == undefined) {
+      return [];
+    }
 
-    const clock = new TimerFromSeconds(
-      increment < 0
-        ? duration - elapsed
-        : elapsed);
+    if (remaining.original > 0) {
+      return [];
+    }
 
-    const actions: IRuntimeAction[] = [
-      new SetDisplayAction(event, clock),
-      new SetDisplayAction(event, new TimerFromSeconds(duration), "duration")
+    return [
+      new NotifyRuntimeAction(new CompleteEvent(event.timestamp))
     ];
-
-    if (duration > 0 && elapsed >= duration) {
-      actions.push(new RaiseEventAction({ name: 'complete', timestamp: event.timestamp }));
-    }
-    return actions;
   }
 }

@@ -1,4 +1,5 @@
 import { CastReceiver } from '@/cast/CastReceiver';
+import { CastHostContainer } from './components/CastHostContainer';
 import type { Meta, StoryObj } from '@storybook/react';
 
 /**
@@ -21,4 +22,6 @@ type Story = StoryObj<typeof CastReceiver>;
 /**
  * Default presentation of the ChromeCast receiver app
  */
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <CastHostContainer />,
+};

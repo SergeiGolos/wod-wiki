@@ -8,7 +8,6 @@ export interface WodTimerProps {
   display: TimerDisplayBag;
 }
 
-
 export const WodTimer: React.FC<WodTimerProps> = ({
   display  
 }) => {    

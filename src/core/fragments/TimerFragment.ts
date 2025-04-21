@@ -1,4 +1,4 @@
-import { StatementFragment, SourceCodeMetadata, TimerFromSeconds } from "../timer.types";
+import { StatementFragment, SourceCodeMetadata } from "../timer.types";
 
 export class TimerFragment implements StatementFragment {
   constructor(public image: string, public meta: SourceCodeMetadata) {
@@ -27,6 +27,5 @@ export class TimerFragment implements StatementFragment {
   seconds: number;
   duration: number;
   type: string = "duration";
-  toPart: () => string = () => new TimerFromSeconds(this.duration).toClock()[0] || "*";
 }
 

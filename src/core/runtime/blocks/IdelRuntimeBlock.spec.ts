@@ -1,10 +1,10 @@
 import { IdleRuntimeBlock } from "./IdelRuntimeBlock";
-import { TimerRuntime } from './timer.runtime';
-import { SetButtonAction } from './actions/SetButtonAction';
-import { NextStatementAction } from "./actions/NextStatementAction";
+import { TimerRuntime } from '../timer.runtime';
+import { SetButtonAction } from '../actions/SetButtonAction';
+import { NextStatementAction } from "../actions/NextStatementAction";
 import { test, expect, describe, beforeEach, vi } from "vitest";
-import { RuntimeEvent } from "@/core/timer.types";
-import { RuntimeJit } from "./RuntimeJit";
+import { IRuntimeEvent } from "@/core/timer.types";
+import { RuntimeJit } from "../RuntimeJit";
 
 // Mock dependencies
 vi.mock('../parser/timer.runtime');
@@ -25,7 +25,7 @@ describe('IdleRuntimeBlock', () => {
   describe('onEvent', () => {
     test('should handle start event correctly', () => {
       // Arrange
-      const startEvent: RuntimeEvent = {
+      const startEvent: IRuntimeEvent = {
         name: 'start',
         timestamp: new Date()
       };
@@ -41,7 +41,7 @@ describe('IdleRuntimeBlock', () => {
 
     test('should handle stop event correctly', () => {
       // Arrange
-      const stopEvent: RuntimeEvent = {
+      const stopEvent: IRuntimeEvent = {
         name: 'stop',
         timestamp: new Date()
       };
@@ -57,7 +57,7 @@ describe('IdleRuntimeBlock', () => {
 
     test('should handle tick event correctly', () => {
       // Arrange
-      const tickEvent: RuntimeEvent = {
+      const tickEvent: IRuntimeEvent = {
         name: 'tick',
         timestamp: new Date()
       };
@@ -71,7 +71,7 @@ describe('IdleRuntimeBlock', () => {
 
     test('should handle unknown events gracefully', () => {
       // Arrange
-      const unknownEvent: RuntimeEvent = {
+      const unknownEvent: IRuntimeEvent = {
         name: 'unknown',
         timestamp: new Date()
       };

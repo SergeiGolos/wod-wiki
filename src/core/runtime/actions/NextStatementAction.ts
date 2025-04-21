@@ -1,9 +1,9 @@
-import { IRuntimeAction, ITimerRuntime, RuntimeEvent } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types";
 
 export class NextStatementAction implements IRuntimeAction {
   constructor() { }
 
-  apply(runtime: ITimerRuntime):  RuntimeEvent[]   {
+  apply(runtime: ITimerRuntime):  IRuntimeEvent[]   {
     const blocks = runtime.script.nodes;        
     let current = runtime.current?.stack?.[0];
     
@@ -17,7 +17,7 @@ export class NextStatementAction implements IRuntimeAction {
     }
 
     const nextBlock = blocks.find(block => block.id == blockId);    
-    const leaf = runtime.gotoBlock(nextBlock);
+    const leaf = runtime.jit(nextBlock);
     console.log("Next Action Leaf:", leaf);
     return leaf && leaf.type !== 'idle' && leaf.type !== 'done' 
       ? [{name:'start', timestamp: new Date()}] 

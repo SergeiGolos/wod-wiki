@@ -111,10 +111,10 @@ export class SoundService {
   /**
    * Play a sound by type
    */
-  public play(soundType: keyof typeof this.soundConfigs): void {
+  public play(soundType: string): void {
     if (!this.enabled) return;
     
-    const config = this.soundConfigs[soundType];
+    const config = this.soundConfigs[soundType as keyof typeof this.soundConfigs];
     if (config) {
       this.playBeepPattern(config);
     }

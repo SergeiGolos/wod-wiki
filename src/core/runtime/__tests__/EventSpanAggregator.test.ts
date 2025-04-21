@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { EventSpanAggregator } from "../EventSpanAggregator";
-import { RuntimeEvent, StatementNode } from "@/core/timer.types";
+import { IRuntimeEvent, StatementNode } from "@/core/timer.types";
 
 describe('EventSpanAggregator', () => {
-  const makeEvent = (name: string, ms: number): RuntimeEvent => ({
+  const makeEvent = (name: string, ms: number): IRuntimeEvent => ({
     name,
     timestamp: new Date(ms),
-  } as RuntimeEvent);
+  } as IRuntimeEvent);
   const dummyStack: StatementNode[] = [{ id: 1 } as StatementNode];
 
   it('aggregates simple start-stop span', () => {

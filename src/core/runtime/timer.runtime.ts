@@ -1,9 +1,10 @@
-import { ActionButton, IRuntimeBlock, ITimerRuntime, ResultSpan, RuntimeEvent, RuntimeMetricEdit, RuntimeState, StatementNode, TimerDisplayBag, TimerFromSeconds } from "../timer.types";
+import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, IRuntimeLog, StatementNode } from "../timer.types";
 import { RuntimeTrace } from "../RuntimeTrace";
 import { RuntimeStack } from "./RuntimeStack";
-import { DoneRuntimeBlock, IdleRuntimeBlock } from "./IdelRuntimeBlock";
 import { RuntimeJit } from "./RuntimeJit";
-
+import { interval, map, merge, Subject, Subscription } from "rxjs";
+import { ChromecastEvent } from "@/cast";
+import { useEffect } from "react";
 
 /**
  * Runtime engine that processes workout scripts
@@ -14,9 +15,9 @@ import { RuntimeJit } from "./RuntimeJit";
  * - Delegating to the compiled runtime for node-specific processing
  */
 
-export class TimerRuntime implements ITimerRuntime {
-  public trace: RuntimeTrace | undefined;  
+export class TimerRuntime implements ITimerRuntimeIo {  
   public current: IRuntimeBlock | undefined;
+  private messagePump: Subscription | undefined;
   
   /**
    * Creates a new TimerRuntime instance
@@ -25,133 +26,42 @@ export class TimerRuntime implements ITimerRuntime {
   constructor(public code: string,
     public script: RuntimeStack,     
     public jit: RuntimeJit,
-    private onSetDisplay: (display: TimerDisplayBag) => void,
-    private onSetButtons: (buttons: ActionButton[]) => void,
-    private onSetResults: (results: ResultSpan[]) => void,
-    private onSetCursor: (cursor: IRuntimeBlock | undefined) => void,
-    private onSetEdits: (edits: RuntimeMetricEdit[]) => void,
-    private onSetState: (state: string) => void
-    
-  ) {
-    // Initialize block tracker with all nodes from the script     
-    this.reset();
-  }  
-
-  gotoComplete() {
-    const report = this.current?.report() ?? [];
-    this.onSetResults(this.results = [...this.results, ...report]);
-    this.current = new DoneRuntimeBlock();
-    this.onSetCursor(undefined);
-    return [{ name: 'end', timestamp: new Date() }];
-  }
-  reset() {        
-    this.current = this.gotoBlock(undefined);    
-    this.onSetResults(this.results = []);
-    this.onSetEdits(this.edits = []);    
-    this.onSetState("idle");
-    this.trace = new RuntimeTrace();        
-  }
-  
-  buttons: ActionButton[] = [];
-  results: ResultSpan[] = [];
-  edits: RuntimeMetricEdit[] = [];
-
-  display: TimerDisplayBag = { primary: new TimerFromSeconds(0), label: "idle", bag: {} };
-  
-  public events: RuntimeEvent[] = [];
-  /**
-   * Processes timer events and produces actions
-   * @param events Array of runtime events to process
-   * @returns Array of runtime actions to apply
-   */
-  public tick(events: RuntimeEvent[]): RuntimeEvent[] {    
-    let resultsCount = this.results.length;
-    let next : RuntimeEvent[] = [];
-    this.display = { bag: {} } as TimerDisplayBag;    
-    
-    for (const event of events) {                        
-      const actions = this.current?.onEvent(event, this) ?? [];
-      for (const action of actions) {
-        next = [...next, ... action.apply(this)];
-      }      
-    }
-    this.onSetDisplay(this.display);
-    // Create a new array reference to ensure React detects the change
-    this.onSetButtons([...this.buttons]);        
-    if (resultsCount != this.results.length) {
-      this.onSetResults([...this.results]);
-    }
-    return next;
-  }
-  edit(metric: RuntimeMetricEdit) {
-    this.edits.push(metric);
-    this.onSetEdits([...this.edits]);
-  }
-  /**
-   * Navigates to a specific block in the workout script and records the visit
-   * @param blockId ID of the block to navigate to
-   * @returns The runtime block that was navigated to
-   */
-  public gotoBlock(node: StatementNode | undefined): IRuntimeBlock {                
-   
-    const report = this.current?.report() ?? [];
-    this.results = [...this.results, ...report];      
-    
-    if (node == undefined) {
-      this.onSetCursor(undefined);
-      return this.current = new IdleRuntimeBlock();
-    }    
-    console.log("Navigating to block:", node.id, node.isLeaf, node.children.length);  
-    if (node.isLeaf === true || node.children.length == 0) {
-      const leaf = this.script.goto(node.id);
-      const compiledBlock = this.jit.compile(this.trace!, leaf);            
-      this.onSetCursor(compiledBlock);
-      return this.current = compiledBlock;
-    }
-
-    // Get the initial execution stack for this node
-    let current = this.script.getId(node.id);        
-    let expectedRounds = (current?.rounds ?? 1);
-    if (current?.children?.length ?? 0 > 0) {
-      expectedRounds *= current?.children?.length ?? 1;
-    }
-    
-    let reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
-    while (current && reentryCount >= expectedRounds) {      
-      current = this.script.getId(current.parent ?? current.next ?? -1);
-      reentryCount = this.trace!.get(current?.id ?? -1) ?? 0;
-    }
-    
-    while (current && current.children?.length > 0) {
-      reentryCount = this.trace!.get(current.id) ?? 0;
+    public input$: Subject<IRuntimeEvent>,
+    public output: Subject<ChromecastEvent>,    
+    public events: IRuntimeLog[] = [],
+    public trace: RuntimeTrace | undefined = undefined
+  ) {            
+    useEffect(() => {
+      this.messagePump = merge(input$, interval(100)
+      .pipe(map(() => ({ name: 'tick', timestamp: new Date() } as IRuntimeEvent))))
+      .subscribe(event => {         
+        console.debug('TimerRuntime: Received event', event, this.current);
+        const actions = this.current?.onEvent(event, this) ?? [];        
+        for (const action of actions) {
+          console.debug('TimerRuntime: Generated action', action);
+          action.apply(this, this.input$.next, this.output.next);
+        }            
+      });    
       
-      // Select child using round-robin (modulo number of children)
-      const childIndex = reentryCount % current.children.length;
-      const childId = current.children[childIndex];
-      
-      // Update the stack to include the selected child
-      current = this.script.getId(childId) ?? undefined;
-    }
-
-    if (!current) {
-      // Prevent overwriting DoneRuntimeBlock with IdleRuntimeBlock
-      if (this.current && this.current.type === 'done') {
-        this.onSetCursor(undefined);
-        return this.current;
-      }
-      this.onSetCursor(undefined);
-      return this.current = new IdleRuntimeBlock();
-    }
-
-    var stack = this.script.goto(current.id);
-    if (!stack) {
-      const errorId = current?.id ?? -1;
-      console.error('[gotoBlock] Failed to find block:', errorId);
-      throw new Error(`Block with ID ${errorId} not found`);
-    }
+      return () => {
+        this.messagePump?.unsubscribe();
+        this.messagePump = undefined;
+      };
+    }, [input$]);
+  }
   
-    const compiledBlock = this.jit.compile(this.trace!, stack);
-    this.onSetCursor(compiledBlock);
-    return this.current = compiledBlock;
+  input(events: IRuntimeEvent[]): Promise<void> {  
+    events.forEach(event => this.input$?.next(event));
+    return Promise.resolve();    
+  }   
+  
+  goto(block: StatementNode | undefined): IRuntimeBlock | undefined {
+    if (!block) {
+        return this.current = undefined;
+    }
+
+    const children = (block.children ?? []).map(id => this.script.getId(id)!);
+    // todo: make this work
+    return this.current = this.jit.compile(this.trace!, children);
   }
 }

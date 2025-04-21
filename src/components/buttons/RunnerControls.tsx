@@ -1,9 +1,9 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { ActionButton, RuntimeEvent } from "@/core/timer.types";
+import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { startButton, resetButton, endButton, saveButton } from "./timerButtons";
 
 interface RunnerControlsProps {
-  setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;  
+  setEvents: Dispatch<SetStateAction<IRuntimeEvent[]>>;  
   state: string;
 }
 

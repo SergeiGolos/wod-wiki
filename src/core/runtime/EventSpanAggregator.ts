@@ -1,8 +1,8 @@
-import { RuntimeEvent, StatementNode } from "@/core/timer.types";
+import { IRuntimeEvent, StatementNode } from "@/core/timer.types";
 
 export interface EventSpan {
-  start: RuntimeEvent;
-  stop?: RuntimeEvent;
+  start: IRuntimeEvent;
+  stop?: IRuntimeEvent;
   type: string;
   stack: StatementNode[];
 }
@@ -22,14 +22,14 @@ export class EventSpanAggregator {
   private spans: EventSpan[] = [];
   private anomalies: string[] = [];
 
-  constructor(events: RuntimeEvent[], stack: StatementNode[]) {
+  constructor(events: IRuntimeEvent[], stack: StatementNode[]) {
     this.aggregate(events, stack);
   }
 
   /**
    * Aggregates events into spans, enforcing canonical sequence and flagging anomalies.
    */
-  private aggregate(events: RuntimeEvent[], stack: StatementNode[]) {
+  private aggregate(events: IRuntimeEvent[], stack: StatementNode[]) {
     let currentSpan: EventSpan | null = null;
     let lastEventType: string | null = null;
     for (const event of events) {

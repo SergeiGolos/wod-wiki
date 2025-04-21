@@ -1,5 +1,5 @@
 import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime, TimerFromSeconds } from '@/core/timer.types';
+import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
 import EditableMetricCell, { createMetricValidation } from '../common/EditableMetricCell';
 import { cn } from '@/core/utils';
 
@@ -24,8 +24,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
   const formatDuration = (duration: number): string => {
-    const clock = new TimerFromSeconds(duration/1000).toClock();
-    return `${clock[0]}.${clock[1][0]}`;
+    
+    return `"--:--"}`;
   };
   
   const repValidation = createMetricValidation(['']);
@@ -87,7 +87,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       <EditableMetricCell
                         initialValue={repsValue?.repetitions} // Display value or '-' if none exists yet
                         metricType="repetitions" // Set type
-                        onSave={(update) => runtime.current?.edit?.(update)}
+                        onSave={(update) => {}}
                         blockKey={result.blockKey!} index={result.index!}                      
                         validate={repValidation}
                         />
@@ -96,7 +96,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       <EditableMetricCell
                         initialValue={resistance?.resistance} // Will be '-' if no data
                         metricType="resistance"
-                        onSave={(update) => runtime.current?.edit?.(update)}
+                        onSave={(update) => {}}
                         blockKey={result.blockKey!} index={result.index!}   
                         validate={resistanceValidation}
                         />
@@ -105,7 +105,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       <EditableMetricCell
                         initialValue={distance?.distance} // Will be '-' if no data
                         metricType="distance"
-                        onSave={(update) => runtime.current?.edit?.(update)}
+                        onSave={(update) => {}}
                         blockKey={result.blockKey!} index={result.index!}   
                         validate={distanceValidation}
                         />

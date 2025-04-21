@@ -1,11 +1,11 @@
 import React, { Dispatch, SetStateAction } from "react";
-import { ActionButton, RuntimeEvent } from "@/core/timer.types";
+import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { cn } from "@/core/utils";
 
 
 interface ButtonRibbonProps {
   buttons: ActionButton[];  
-  setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;
+  setEvents: Dispatch<SetStateAction<IRuntimeEvent[]>>;
 }
 
 export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }) => {

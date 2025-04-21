@@ -1,162 +1,97 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { CAST_NAMESPACE, ChromecastEventType, ChromecastEvent } from './types/chromecast-events';
-import { TimerFromSeconds } from '@/core/timer.types';
+import React, { useEffect, useState } from 'react';
+import { ChromecastEventType, ChromecastEvent } from './types/chromecast-events';
 import { WodTimer } from '@/components/clock/WodTimer';
 
-export const CastReceiver: React.FC = () => {
-  const [timerState, setTimerState] = useState<{ isRunning: boolean; startTime: number; elapsed: number }>({
-    isRunning: false,
-    startTime: 0,
-    elapsed: 0,
-  });
-  const [display, setDisplay] = useState<{ primary: TimerFromSeconds; label: string; bag: { totalTime: TimerFromSeconds } }>({
-    primary: new TimerFromSeconds(0),
+import { Observable, Subscription } from 'rxjs';
+import { cn } from '@/core/utils';
+import { IDuration } from '@/core/timer.types';
+
+export interface CastReceiverProps {
+  event$: Observable<ChromecastEvent>;
+  className?: string;
+}
+
+export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className}) => {  
+  const [display, setDisplay] = useState<{ primary: IDuration; label: string; bag: { totalTime: IDuration } }>({
+    primary: { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
     label: 'Timer',
-    bag: { totalTime: new TimerFromSeconds(0) },
+    bag: { totalTime: { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 } },
   });
-  const [receivedMessages, setReceivedMessages] = useState<{ time: string; message: string }[]>([]);
-  const [debug, setDebug] = useState(false);
+  const [receivedMessages, setReceivedMessages] = useState<{ time: string; type: string; message: string }[]>([]);
+  const [debug] = useState(true);
 
-  // Handler for Chromecast events
-  const handleEvent = useCallback((event: ChromecastEvent) => {
-    setReceivedMessages(prev => [
-      ...prev,
-      {
-        time: new Date().toLocaleTimeString(),
-        message: `${event.eventType}: ${JSON.stringify(event.bag)}`,
-      },
-    ].slice(-5)); // Keep last 5 messages
-
-    switch (event.eventType) {
-      case ChromecastEventType.SET_DISPLAY:
-        setDisplay({
-          primary: event.bag.spans ? event.bag.spans[0] : new TimerFromSeconds(0),
-          label: 'Timer',
-          bag: { totalTime: event.bag.totalTime ? event.bag.totalTime : new TimerFromSeconds(0) },
-        });
-        break;
-      case ChromecastEventType.SET_SOUND:
-      case ChromecastEventType.SET_DEBUG:
-      case ChromecastEventType.SET_ERROR:
-      case ChromecastEventType.HEARTBEAT:
-      case ChromecastEventType.SET_IDLE:
-        // Handle other event types as needed
-        break;
-      default:
-        setReceivedMessages(prev => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            message: `Unknown event type: ${event.eventType}`,
-          },
-        ].slice(-5));
-        break;
-    }
-  }, []);
-
-  // Initialize ChromeCast receiver
+  // Subscribe to the ChromecastEvent observable
   useEffect(() => {
-    setReceivedMessages(prev => [
-      ...prev,
-      {
-        time: new Date().toLocaleTimeString(),
-        message: 'Initializing Chromecast receiver',
-      },
-    ]);
-    
-    const initializeReceiver = () => {
-      const context = (window as any).cast?.framework?.CastReceiverContext.getInstance();
-      if (!context) {
-        setReceivedMessages(prev => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            message: 'ERROR: Cast Receiver Context not available',
-          },
-        ]);
-        return;
-      }
-      context.addCustomMessageListener(CAST_NAMESPACE, (event: any) => {
-        setReceivedMessages(prev => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            message: `MESSAGE: ${JSON.stringify(event.data)}`,
-          },
-        ].slice(-5));
-        if (event.data && event.data.eventType) {
-          handleEvent(event.data as ChromecastEvent);
-        }
+    console.log("[CastReceiver] Subscribing to event$");
+    const sub: Subscription = event$.subscribe((event : ChromecastEvent) => {
+      console.log("[CastReceiver] Event received:", event);
+      setReceivedMessages(prev => {
+        const updated = [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: JSON.stringify(event.bag) }];
+        console.log("[CastReceiver] receivedMessages updated:", updated);
+        return updated.slice(-5);
       });
-      context.start();
-    };
 
-    if ((window as any).cast && (window as any).cast.framework) {
-      initializeReceiver();
-    } else {
-      (window as any).__onGCastApiAvailable = function(isAvailable: boolean) {
-        if (isAvailable) {
-          initializeReceiver();
-        }
-      };
-    }
-  }, [handleEvent]);
-
+      switch (event.eventType) {
+        case ChromecastEventType.SET_DISPLAY:
+          console.log("[CastReceiver] SET_DISPLAY event, updating display:", event.bag);
+          setDisplay({
+            primary: event.bag.spans ? event.bag.spans[0] : { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
+            label: 'Timer',
+            bag: { totalTime: event.bag.totalTime ? event.bag.totalTime : { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 } },
+          });
+          break;
+        case ChromecastEventType.SET_SOUND:
+        case ChromecastEventType.SET_DEBUG:
+        case ChromecastEventType.SET_ERROR:
+        case ChromecastEventType.HEARTBEAT:
+        case ChromecastEventType.SET_IDLE:
+          // Handle other event types as needed
+          break;
+        default:
+          console.log("[CastReceiver] Unknown event type:", event.eventType);
+          setReceivedMessages(prev => {
+            const updated = [...prev, { time: new Date().toLocaleTimeString(), type: "UNKNOWN", message: `Unknown event type: ${event.eventType}` }];
+            console.log("[CastReceiver] receivedMessages updated (unknown):", updated);
+            return updated.slice(-5);
+          });
+          break;
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [event$]);
 
   return (
-    <div className="bg-gray-200 text-black h-screen w-screen">      
+    <div className={cn("bg-gray-200 text-black", className || "")}>
       <div className="timer-container mb-6">
         <WodTimer display={display} />
       </div>      
       {/* Debug info - useful during development */}
-      {debug && <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-        <h2 className="text-lg font-medium mb-2">Receiver Debug Info</h2>
-        <div className="text-xs text-gray-400">
-          <div className="mb-2">Status: {timerState.isRunning ? 'Running' : 'Stopped'}</div>
-          {receivedMessages.length > 0 ? (
-            <div className="border border-gray-700 rounded p-2">
-              <h3 className="text-xs mb-1">Last Messages:</h3>
-              {receivedMessages.map((msg, i) => (
-                <div key={i} className="mb-1 pb-1 border-b border-gray-700 last:border-0">
-                  <span className="text-gray-500">[{msg.time}]</span> {msg.message}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div>No messages received yet</div>
-          )}
+      {debug && (
+        <div className="mt-8 bg-white border border-gray-300">          
+          <table className="w-full text-xs border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100 border-b border-gray-300">
+                <th className="px-2 py-1 text-left font-semibold">Time</th>
+                <th className="px-2 py-1 text-left font-semibold">Type</th>
+                <th className="px-2 py-1 text-left font-semibold">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {receivedMessages.length > 0 ? (
+                [...receivedMessages].reverse().map((msg, idx) => (
+                  <tr key={idx} className="border-b border-gray-200">
+                    <td className="px-2 py-1 font-mono whitespace-nowrap">{msg.time}</td>
+                    <td className="px-2 py-1 font-mono whitespace-nowrap">{msg.type}</td>
+                    <td className="px-2 py-1">{msg.message}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={3} className="px-2 py-1">No messages received yet</td></tr>
+              )}
+            </tbody>
+          </table>          
         </div>
-      </div>}
+      )}
     </div>
   );
 };
-
-// Add global type definitions for Cast Receiver API
-declare global {
-  interface Window {
-    cast?: {
-      framework?: {
-        CastReceiverContext: {
-          getInstance: () => CastReceiverInstance;
-        };
-      };
-    };
-    __onGCastApiAvailable?: (isAvailable: boolean) => void;
-  }
-  
-  interface CastReceiverInstance {
-    addCustomMessageListener: (namespace: string, listener: (event: CustomMessageEvent) => void) => void;
-    start: (options?: CastReceiverOptions) => void;
-    stop: () => void;
-  }
-  
-  interface CastReceiverOptions {
-    disableIdleTimeout?: boolean;
-    customNamespaces?: Record<string, string>;
-  }
-  
-  interface CustomMessageEvent {
-    data: any;
-    senderId: string;
-  }
-}
