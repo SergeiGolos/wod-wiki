@@ -6,7 +6,7 @@ interface AnalyticsViewProps {
   runtime: MutableRefObject<ITimerRuntime | undefined>;
 }
 
-export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ results,  runtime }) => {
+export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ results, runtime }) => {
   return (
     <div className="analytics-view">
       <div className="bg-gray-50 p-4 text-center">

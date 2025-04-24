@@ -1,4 +1,4 @@
-import { Observable } from "rxjs";
+import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { RuntimeTrace } from "./RuntimeTrace";
 import { ChromecastEvent } from "@/cast/types/chromecast-events";
@@ -87,8 +87,8 @@ export interface IDuration {
 export interface IRuntimeAction {
   apply(
     runtime: ITimerRuntime,
-    input: (event: IRuntimeEvent) => void, 
-    output: (event: ChromecastEvent) => void
+    input: Subject<IRuntimeEvent>, 
+    output: Subject<ChromecastEvent>
   ): void;
 }
 
@@ -142,8 +142,9 @@ export type RuntimeState =
   | undefined;
 
 export interface ITimerRuntimeIo extends ITimerRuntime {
-  input: (events: IRuntimeEvent[]) => Promise<void>;
-  output: Observable<ChromecastEvent>;  
+  input$: Subject<IRuntimeEvent>;
+  tick$: Observable<IRuntimeEvent>;
+  output$: Observable<ChromecastEvent>;  
 }
 
 export interface ITimerRuntime {

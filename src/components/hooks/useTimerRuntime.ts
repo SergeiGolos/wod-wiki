@@ -1,11 +1,12 @@
-import { useRef, useState, useEffect, useMemo } from "react";
-import { WodRuntimeScript } from "@/core/timer.types";
+import { useRef, useState, useEffect } from "react";
+import { IRuntimeEvent, WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
-import { IRuntimeEvent } from "@/core/timer.types";
+import { RuntimeTrace } from "@/core/RuntimeTrace";
+import { Subject } from "rxjs";
 import { ChromecastEvent } from "@/cast/types/chromecast-events";
-import { interval, map, merge, Observable, Subject } from "rxjs";
+import { NotifyRuntimeAction } from "@/core/runtime/actions/NotifyRuntimeAction";
 
 /**
  * Hook props for useTimerRuntime
@@ -22,8 +23,9 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   
   const runtimeRef = useRef<TimerRuntime>();  
-  const input = new Subject<IRuntimeEvent>();      
-  const output = new Subject<ChromecastEvent>();  
+  const inputRef = useRef<Subject<IRuntimeEvent>>();
+  const outputRef = useRef<Subject<ChromecastEvent>>();
+
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
 
   // Wraps the loadScript function to call onScriptCompiled
@@ -39,26 +41,33 @@ export function useTimerRuntime({
     if (!script?.statements) {
       return;
     }
+    function cleanUp() {
+      runtimeRef.current?.dispose?.unsubscribe();
+      runtimeRef.current = undefined;
+      inputRef.current = undefined;
+      outputRef.current = undefined;
+    }
 
     try {
       const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
       const stack = new RuntimeStack(script.statements);
-      
+      const trace = new RuntimeTrace();
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(script.source, stack, jit, input, output); 
+      runtimeRef.current = new TimerRuntime(script.source, stack, jit, [], trace); 
+      inputRef.current = runtimeRef.current.input$;
+      outputRef.current = runtimeRef.current.output$;
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
+      cleanUp();
     }
-    return () => {
-      runtimeRef.current = undefined;
-    };
+    return cleanUp;
   }, [script]);
 
   return {
     loadScript: handleLoadScript,
     runtimeRef,
-    input: input.next,
-    output
+    input: inputRef,
+    output: outputRef,
   };
 }

@@ -1,20 +1,22 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { startButton, resetButton, endButton, saveButton } from "./timerButtons";
+import { Subject } from "rxjs";
 
 interface RunnerControlsProps {
-  setEvents: Dispatch<SetStateAction<IRuntimeEvent[]>>;  
+  input: React.MutableRefObject<Subject<IRuntimeEvent> | undefined>;  
   state: string;
 }
 
 export const RunnerControls: React.FC<RunnerControlsProps> = ({ 
-  setEvents,
+  input,
   state   
 }) => {
   // Canonical mapping of state to control buttons
   
   const [buttons, setButtons] = useState<ActionButton[]>([]);
 
+  
   useEffect(() => {
     switch (state) {
       case "idle":
@@ -51,7 +53,9 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
 
   const clickEvent = (button: ActionButton) => {
     const events = button.onClick();    
-    setEvents(events);
+    for (const event of events) {
+      input?.current?.next(event);
+    }
   };
 
   return (    

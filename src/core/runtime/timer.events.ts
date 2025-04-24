@@ -23,7 +23,7 @@ export class GotoEvent implements IRuntimeEvent {
     }
     timestamp: Date;
     blockId?: number;
-    name = 'goto';
+    name = 'next';
 }
 
 export class StopEvent implements IRuntimeEvent {

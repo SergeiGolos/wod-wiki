@@ -9,7 +9,7 @@ export const startButton: ActionButton = {
     onClick: () => {
       const time = new Date();
       return [
-        {name: "begin", timestamp: time},
+        {name: "run", timestamp: time},
         {name: "start", timestamp: time}
       ]
     },

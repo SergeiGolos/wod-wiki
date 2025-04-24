@@ -1,10 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { ResultSpan, WodRuntimeScript } from "@/core/timer.types";
+import { IRuntimeEvent, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
-import { ButtonRibbon } from "../buttons/ButtonRibbon";
 import { RunnerControls } from "../buttons/RunnerControls";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
 import { cn } from "@/core/utils";
@@ -35,31 +34,22 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
-  onResultsUpdated,
-  outbound,
   children
 }) => {
   const [shareStatus, setShareStatus] = React.useState<string | null>(null);
   const editorRef = React.useRef<any>(null);
-  const wrapper = (event: ChromecastEvent) => {
-    outbound?.(event);
-  }
   const {
     loadScript,
     runtimeRef,
-    cursor,
-    buttons,
-    edits,
-    display,
-    results,
-    setEvents,
-    state,
+    input,
+    output
   } = useTimerRuntime({
     onScriptCompiled,
-    onResultsUpdated,
-    outbound: wrapper,
   });
-  
+  const [cursor, setCursor] = useState<IRuntimeEvent | null>(null);
+  const [results] = useState<ResultSpan[]>([]);
+  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
+  const [display, setDisplay] = useState<any | null>(null);
   // Custom onValueChange handler to track cursor position from script
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
@@ -112,14 +102,14 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
             <span className="ml-2 text-green-600 text-sm">{shareStatus}</span>
           )}
         </div>
-        <RunnerControls setEvents={setEvents} state={state} />
+        <RunnerControls input={input} state={"idle"} />
       </div>
       {runtimeRef.current?.current && display && (
         <>
           <WodTimer display={display} />
-          <div className="p-1 flex justify-center">
-            <ButtonRibbon buttons={buttons} setEvents={setEvents} />
-          </div>
+          {/* <div className="p-1 flex justify-center">
+            <ButtonRibbon buttons={buttons} setEvents={input} />
+          </div> */}
         </>
       )}
       <ResultsDisplay className="border-t border-gray-200" runtime={runtimeRef} results={results} edits={edits} />
