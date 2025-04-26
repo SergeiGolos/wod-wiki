@@ -2,6 +2,8 @@ import type { IToken } from "chevrotain";
 import { CstParser } from "chevrotain";
 import {
   Trend,
+  ActionOpen,
+  ActionClose,
   GroupClose,
   GroupOpen,
   Identifier,
@@ -16,6 +18,7 @@ import {
   AtSign,
   Plus,
   Up,
+  Collon,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -43,8 +46,22 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.SUBRULE($.resistance) },
           { ALT: () => $.SUBRULE($.distance) },
           { ALT: () => $.SUBRULE($.reps) },
+          { ALT: () => $.SUBRULE($.action) },
         ]);
       });
+    });
+
+    $.RULE("action", () => {
+      $.CONSUME(ActionOpen);
+      $.CONSUME(Collon)
+      $.AT_LEAST_ONE(() => {
+        $.OR([
+          { ALT: () => $.CONSUME(Identifier) },          
+          { ALT: () => $.CONSUME(AllowedSymbol) },
+          { ALT: () => $.CONSUME(Minus) },
+        ]);
+      });
+      $.CONSUME(ActionClose);
     });
 
     $.RULE("lap", () => {
