@@ -226,7 +226,7 @@ export type RuntimeMetric = {
 
 export interface IRuntimeBlock {
   buttons: ActionButton[];
-  type: string;
+  type: "active" | "complete" | "idle";
   blockId: number;
   nextId?: number;
   
@@ -235,7 +235,7 @@ export interface IRuntimeBlock {
   duration: IDuration;
   elapsed(): IDuration;  
   
-  stack?: RuntimeStack;
+  stack?: StatementNode[];
   laps: ResultSpan[];  
 
   metrics: RuntimeMetric[];  

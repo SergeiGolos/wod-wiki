@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ResultSpan, WodRuntimeScript } from '@/core/timer.types';
 import { EditorContainer } from '@/components/editor/EditorContainer';
 import { JsonViewer } from '@textea/json-viewer';
-import { SoundProvider } from '@/core/contexts/SoundContext';
-import { ScreenProvider } from '@/core/contexts/ScreenContext';
+import { SoundProvider } from '@/contexts/SoundContext';
+import { ScreenProvider } from '@/contexts/ScreenContext';
 
 /**
  * A wrapper component for EditorContainer that displays JSON state for debugging

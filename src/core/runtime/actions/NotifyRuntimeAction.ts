@@ -3,7 +3,7 @@ import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types
 import { Subject } from "rxjs";
 
 /**
- * Action to handle block stopped events
+ * Action to notify the runtime of a stopped event
  */
 
 export class NotifyRuntimeAction implements IRuntimeAction {

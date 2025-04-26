@@ -4,7 +4,6 @@ import { RuntimeStack } from "./RuntimeStack";
 import { RuntimeJit } from "./RuntimeJit";
 import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";
 import { ChromecastEvent } from "@/cast";
-import { IdleRuntimeBlock } from "./blocks/IdelRuntimeBlock";
 
 /**
  * Runtime engine that processes workout scripts
@@ -32,7 +31,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public events: IRuntimeLog[] = [],
     public trace: RuntimeTrace | undefined = undefined
   ) {            
-    this.current = new IdleRuntimeBlock();
+    this.current = jit.compile(this, [], this.trace)
 
     this.input$ = new Subject<IRuntimeEvent>();
     this.tick$ = interval(100).pipe(
@@ -57,12 +56,12 @@ export class TimerRuntime implements ITimerRuntimeIo {
   
   goto(block: StatementNode | undefined): IRuntimeBlock | undefined {
     if (!block) {
-        return this.current = new IdleRuntimeBlock();
+      return this.jit.compile(this, [], this.trace!);
     }
     
     const children = (block.children ?? []).map(id => this.script.getId(id)!);
     console.log("Test:", children);
     // todo: make this work
-    return this.current = this.jit.compile(this.trace!, children);
+    return this.current = this.jit.compile(this, children, this.trace);
   }
 }

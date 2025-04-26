@@ -1,7 +1,6 @@
 import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ActionButton, IDuration } from "@/core/timer.types";
 import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
-import { RuntimeStack } from "../RuntimeStack";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -11,7 +10,7 @@ import { RuntimeStack } from "../RuntimeStack";
 export class RuntimeBlock implements IRuntimeBlock {
   constructor(      
     public blockKey: string,
-    public stack: RuntimeStack,
+    public stack: StatementNode[],
     public writer: IRuntimeLogger,
     public handlers: EventHandler[] = []    
   ) {
@@ -34,26 +33,26 @@ export class RuntimeBlock implements IRuntimeBlock {
     return this.writer.write(this);
   }
   
-  public type: string = 'runtime';  
+  public type: "active" | "complete" | "idle" = 'active';  
   public events: IRuntimeEvent[] = [];
   public blockId: number;
   public metrics: RuntimeMetric[] = [];
 
   onEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     return this.handlers
-      .map(handler => handler.apply(event, this.stack, runtime))
+      .map(handler => handler.apply(event, runtime))
       .flat();
   }
 
   /**
    * Returns the canonical state of this runtime block based on its events.
    * - 'idle': No start event.
-   * - 'done': Last complete/done event index > last start event index.
+   * - 'complete': Last complete/done event index > last start event index.
    * - 'running': Last start event index > last complete/done event index.
    */
   public getState() {
     if (!this.events || this.events.length === 0) return 'idle';
-    if (this.type === 'done') return 'done';
+    if (this.type === 'complete') return 'done';
     let lastStart = -1;
     let lastComplete = -1;
     let lastStop = -1;

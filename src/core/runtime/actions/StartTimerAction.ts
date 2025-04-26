@@ -9,7 +9,7 @@ export class StartTimerAction implements IRuntimeAction {
     ) {        
     }
     name: string = 'start';
-    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<ChromecastEvent>) {        
+    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>) {        
             if (!runtime.current) {
                 return;
             }

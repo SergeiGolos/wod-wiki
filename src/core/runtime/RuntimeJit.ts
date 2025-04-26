@@ -2,10 +2,8 @@ import {
   StatementNode,
   IRuntimeBlock,
   IRuntimeLogger,
-  IRuntimeAction,
-  ITimerRuntime,
-  IRuntimeEvent,
   RuntimeMetric,
+  ITimerRuntime,
 } from "../timer.types";
 import { RuntimeTrace } from "../RuntimeTrace";
 import { RuntimeBlock } from "./blocks/RuntimeBlock";
@@ -24,7 +22,7 @@ import { WorkRestLogger } from "./logger/WorkRestLogger";
 import { RepFragment } from "../fragments/RepFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
-import { PlaySoundAction } from "./actions/PlaySoundAction";
+import { IdleRuntimeBlock } from "./blocks/IdleRuntimeBlock";
 
 
 export class RuntimeJit {
@@ -37,7 +35,11 @@ export class RuntimeJit {
     new EndHandler(),
   ];
 
-  compile(trace: RuntimeTrace, nodes: StatementNode[]): IRuntimeBlock {
+  compile(runtime: ITimerRuntime, nodes: StatementNode[], trace?: RuntimeTrace): IRuntimeBlock {
+    if (!trace || !nodes || nodes.length === 0) {      
+      return new IdleRuntimeBlock(runtime.script.nodes[0].id);
+    }
+    
     let key = trace.set(nodes);
     console.log("Compiling block:", key.toString());
 

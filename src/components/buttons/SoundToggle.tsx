@@ -1,7 +1,7 @@
 import React from 'react';
 import { Switch } from '@headlessui/react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
-import { useSound } from '@/core/contexts/SoundContext';
+import { useSound } from '@/contexts/SoundContext';
 import { ActionButton, IRuntimeEvent } from '@/core/timer.types';
 
 interface SoundToggleProps {

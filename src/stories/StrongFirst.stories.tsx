@@ -23,9 +23,9 @@ export const SimpleAndSinister: WodStory = {
   args: {
     id: "SimpleAndSinister",
     debug: false,
-    code:`5:00 100 KB Swings 70lb
+    code:`5:00 100 KB Swings 70lb [:done]
 1:00 Rest
-10:00 10 Turkish Getups 70lb`
+10:00 10 Turkish Getups 70lb [:done]`
   },
 };
 
@@ -34,7 +34,7 @@ export const KBAxeHeavy: WodStory = {
     id: "KBAxeHeavy",
     debug: false,
     code:`(20) 1:00 
-  4 KB Swings 106lb`
+  4 KB Swings 106lb [:rest]`
   },
 };
 
@@ -43,7 +43,7 @@ export const KBAxeLite: WodStory = {
     id: "KBAxeLite",
     debug: false,
     code:`(20) 1:00 
-  6 KB Swings 70lb`
+  6 KB Swings 70lb [:rest]`
   },
 };
 

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import '../index.css';
 import { EditorWithState } from './components/EditorWithState';
-import { SoundProvider } from '../core/contexts/SoundContext';
+import { SoundProvider } from '../contexts/SoundContext';
 
 const meta: Meta<typeof EditorWithState> = {
   title: 'Workouts/Examples',

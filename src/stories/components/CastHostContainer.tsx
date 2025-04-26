@@ -3,8 +3,8 @@ import { CastReceiver } from '../../cast/CastReceiver';
 import { EditorContainer } from '@/components/editor/EditorContainer';
 import { useLocalCast } from '@/cast/hooks/useLocalCast';
 import { ChromecastButton } from '@/cast/components/ChromecastButton';
-import { useScreen } from '@/core/contexts/ScreenContext';
-import { useSound } from '@/core/contexts/SoundContext';
+import { useScreen } from '@/contexts/ScreenContext';
+import { useSound } from '@/contexts/SoundContext';
 import { EyeIcon, EyeSlashIcon, SpeakerWaveIcon } from '@heroicons/react/20/solid';
 import { SpeakerXMarkIcon } from '@heroicons/react/20/solid';
 

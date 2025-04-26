@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
-import { useScreen } from "@/core/contexts/ScreenContext";
+import { useScreen } from "@/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 /**

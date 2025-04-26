@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { SoundProvider } from '@/core/contexts/SoundContext';
+import { SoundProvider } from '@/contexts/SoundContext';
 
 interface WodWikiProvidersProps {
   children: ReactNode;

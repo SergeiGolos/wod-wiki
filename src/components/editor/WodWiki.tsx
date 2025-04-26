@@ -11,7 +11,7 @@ import { IRuntimeBlock, WodRuntimeScript, WodWikiToken } from '@/core/timer.type
 interface WodWikiProps {
   id: string;
   code?: string;
-  cursor: IRuntimeBlock | undefined;  
+  cursor?: IRuntimeBlock | undefined;  
   /** Optional value change handler */
   onValueChange?: (classObject?: WodRuntimeScript) => void;    
 }

@@ -2,13 +2,13 @@
 import React, { useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { IRuntimeEvent, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
+import { IRuntimeBlock, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { RunnerControls } from "../buttons/RunnerControls";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
 import { cn } from "@/core/utils";
-import { SoundProvider } from "@/core/contexts/SoundContext";
-import { ScreenProvider } from "@/core/contexts/ScreenContext";
+import { SoundProvider } from "@/contexts/SoundContext";
+import { ScreenProvider } from "@/contexts/ScreenContext";
 import { encodeShareString } from "@/core/utils/shareUtils";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 import { ChromecastEvent } from "@/cast/types/chromecast-events";
@@ -41,15 +41,14 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
   const {
     loadScript,
     runtimeRef,
-    input,
-    output
+    input,    
   } = useTimerRuntime({
     onScriptCompiled,
   });
-  const [cursor, setCursor] = useState<IRuntimeEvent | null>(null);
+  const [cursor] = useState<IRuntimeBlock | undefined>(undefined);
   const [results] = useState<ResultSpan[]>([]);
-  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
-  const [display, setDisplay] = useState<any | null>(null);
+  const [edits] = useState<RuntimeMetricEdit[]>([]);
+  const [display] = useState<any | null>(null);
   // Custom onValueChange handler to track cursor position from script
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
