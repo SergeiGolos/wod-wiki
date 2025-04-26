@@ -2,13 +2,14 @@ import { IRuntimeEvent, StatementNode, ITimerRuntime, IRuntimeAction } from "@/c
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
 import { ResetEvent, GotoEvent, StartEvent } from "../timer.events";
+import { RuntimeStack } from "../RuntimeStack";
 
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';
 
-  protected handleEvent(event: IRuntimeEvent, _stack: StatementNode[], _runtime: ITimerRuntime): IRuntimeAction[] {
+  protected handleEvent(event: IRuntimeEvent, stack: RuntimeStack, runtime: ITimerRuntime): IRuntimeAction[] {
     const actions: IRuntimeAction[] = [];
-    if (_runtime.current?.type !== 'idle') {
+    if (runtime.current?.type !== 'idle') {
       actions.push(new NotifyRuntimeAction(new ResetEvent(event.timestamp)));
     }
 

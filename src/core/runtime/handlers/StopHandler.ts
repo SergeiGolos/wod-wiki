@@ -3,11 +3,12 @@ import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { completeButton, resumeButton } from "@/components/buttons";
 import { SetButtonAction } from "../actions/SetButtonAction";
+import { RuntimeStack } from "../RuntimeStack";
 
 export class StopHandler extends EventHandler {
   protected eventType: string = 'stop';
 
-  protected handleEvent(event: IRuntimeEvent, _stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {    
+  protected handleEvent(event: IRuntimeEvent, stack: RuntimeStack, runtime: ITimerRuntime): IRuntimeAction[] {    
     if (runtime.current) {
       return [
         new StopTimerAction(event),

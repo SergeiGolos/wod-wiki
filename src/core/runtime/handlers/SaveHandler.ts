@@ -1,5 +1,6 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, StatementNode } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
+import { RuntimeStack } from "../RuntimeStack";
 
 /**
  * SaveHandler: Handles 'save' events by generating a Markdown (.md) file from the current workout script
@@ -11,7 +12,7 @@ import { EventHandler } from "@/core/runtime/EventHandler";
 export class SaveHandler extends EventHandler {
   protected eventType: string = 'save';
 
-  protected handleEvent(_event: IRuntimeEvent, _stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
+  protected handleEvent(_event: IRuntimeEvent, _stack: RuntimeStack, runtime: ITimerRuntime): IRuntimeAction[] {
     // 1. Get the workout script or data to be saved (assume event.script or runtime.scriptText)
     const scriptText = `${runtime.code}\n\n${runtime.trace?.history.join('\n')}`;
     // 2. Generate a filename with timestamp

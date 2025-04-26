@@ -41,7 +41,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     
     const loggedInput = this.input$.pipe(
       tap((event) => {
-        console.debug('TimerRuntime: Received event', event, this.current);
+        console.debug(`::handle[- ${event.name} -]`, this.current);
       }));
 
     this.dispose = merge(loggedInput, this.tick$)
@@ -49,7 +49,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
         
         const actions = this.current?.onEvent(event, this) ?? [];        
         for (const action of actions) {
-          console.debug('TimerRuntime: Generated action', action);
+          console.debug(`++action[- ${action.name} -]`, event);
           action.apply(this, this.input$, this.output$);
         }            
       });    

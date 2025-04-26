@@ -1,6 +1,7 @@
 import { IRuntimeAction, IRuntimeLogger, ResultSpan, StatementNode, RuntimeMetric, ActionButton, IDuration } from "@/core/timer.types";
 import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
+import { RuntimeStack } from "../RuntimeStack";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -10,7 +11,7 @@ import { EventHandler } from "../EventHandler";
 export class RuntimeBlock implements IRuntimeBlock {
   constructor(      
     public blockKey: string,
-    public stack: StatementNode[],
+    public stack: RuntimeStack,
     public writer: IRuntimeLogger,
     public handlers: EventHandler[] = []    
   ) {

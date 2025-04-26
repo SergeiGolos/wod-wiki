@@ -73,7 +73,7 @@ export class SoundEvent implements IRuntimeEvent {
         this.timestamp = timestamp ?? new Date();
     }
     timestamp: Date;
-    name = 'sound';
+    name = 'sound';    
 }
 
 export class SaveEvent implements IRuntimeEvent {

@@ -85,6 +85,7 @@ export interface IDuration {
  
 
 export interface IRuntimeAction {
+  name: string;
   apply(
     runtime: ITimerRuntime,
     input: Subject<IRuntimeEvent>, 
@@ -150,6 +151,7 @@ export interface ITimerRuntimeIo extends ITimerRuntime {
 export interface ITimerRuntime {
   code: string;  
   events: IRuntimeLog[];
+  jit: RuntimeJit;
   trace: RuntimeTrace | undefined;
   script: RuntimeStack;  
   current: IRuntimeBlock | undefined;  
@@ -226,12 +228,18 @@ export interface IRuntimeBlock {
   buttons: ActionButton[];
   type: string;
   blockId: number;
+  nextId?: number;
+  
   blockKey: string;  
+  
   duration: IDuration;
   elapsed(): IDuration;  
-  stack?: StatementNode[];
+  
+  stack?: RuntimeStack;
   laps: ResultSpan[];  
+
   metrics: RuntimeMetric[];  
+
   onEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];  
 }
 

@@ -7,13 +7,14 @@ import {
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
 import { DisplayEvent } from "../timer.events";
+import { RuntimeStack } from "../RuntimeStack";
 
 export class NextStatementHandler extends EventHandler {
   protected eventType: string = "next";
 
   protected handleEvent(
     event: IRuntimeEvent,
-    _stack: StatementNode[],
+    stack: RuntimeStack,
     runtime: ITimerRuntime
   ): IRuntimeAction[] {
     const node = runtime.current;
@@ -22,10 +23,11 @@ export class NextStatementHandler extends EventHandler {
       return [];
     }
     
-    const statements = (node?.stack ?? []).map((stmn) =>
-      runtime.script.getId(stmn.id)
-    );
-    console.log("[---NextStatementHandler] Current", statements);
+    const statement = runtime?.current?.nextId 
+      ? stack.getId(runtime?.current?.nextId)
+      : undefined;    
+
+    runtime.goto(statement);
     return [new NotifyRuntimeAction(new DisplayEvent(event.timestamp))];
   }
 }

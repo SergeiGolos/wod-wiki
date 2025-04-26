@@ -2,6 +2,7 @@ import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types
 
 export class NextStatementAction implements IRuntimeAction {
   constructor() { }
+  name: string = 'next';
 
   apply(runtime: ITimerRuntime):  IRuntimeEvent[]   {
     const blocks = runtime.script.nodes;        
@@ -17,7 +18,7 @@ export class NextStatementAction implements IRuntimeAction {
     }
 
     const nextBlock = blocks.find(block => block.id == blockId);    
-    const leaf = runtime.jit(nextBlock);
+    const leaf = runtime.jit.compile(runtime.trace!, [nextBlock!]);
     console.log("Next Action Leaf:", leaf);
     return leaf && leaf.type !== 'idle' && leaf.type !== 'done' 
       ? [{name:'start', timestamp: new Date()}] 

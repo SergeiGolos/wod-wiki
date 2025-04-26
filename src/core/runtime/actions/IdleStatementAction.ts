@@ -3,9 +3,9 @@ import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types
 
 export class CompleteStatementAction implements IRuntimeAction {
   constructor() { }
-
+  name: string = 'set-complete';
   apply(runtime: ITimerRuntime):  IRuntimeEvent[] {
-    runtime.gotoComplete();
+    runtime.goto(undefined);
     return [];
   }
 }
@@ -13,9 +13,9 @@ export class CompleteStatementAction implements IRuntimeAction {
 
 export class IdleStatementAction implements IRuntimeAction {
   constructor() { }
-
-  apply(runtime: ITimerRuntime):  IRuntimeEvent[] {
-    runtime.gotoBlock(undefined);
+  name: string = 'set-idle';
+  apply(runtime: ITimerRuntime): IRuntimeEvent[] {
+    runtime.goto(undefined);
     return [];
   }
 }

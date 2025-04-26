@@ -3,11 +3,12 @@ import { EventHandler } from "@/core/runtime/EventHandler";
 import { ResetAction } from "../actions/ResetAction";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { DisplayEvent } from "../timer.events";
+import { RuntimeStack } from "../RuntimeStack";
 
 export class ResetHandler extends EventHandler {
   protected eventType: string = 'reset';
 
-  protected handleEvent(event: IRuntimeEvent, _stack: StatementNode[], _runtime: ITimerRuntime): IRuntimeAction[] {        
+  protected handleEvent(event: IRuntimeEvent, stack: RuntimeStack, runtime: ITimerRuntime): IRuntimeAction[] {        
     return [
       new ResetAction(event),
       new NotifyRuntimeAction(new DisplayEvent(event.timestamp))

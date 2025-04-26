@@ -1,12 +1,14 @@
 import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { Subject } from "rxjs/internal/Subject";
 
 
 export class SetDisplayLabelAction implements IRuntimeAction {    
     constructor(private event: IRuntimeEvent, label: string) {                
     }
+    name: string = 'setDisplayLabel';
 
-    apply(_runtime: ITimerRuntime, _input: (event: IRuntimeEvent) => void, _output: (event: ChromecastEvent) => void) {
+    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<ChromecastEvent>) {
         
     }
 }

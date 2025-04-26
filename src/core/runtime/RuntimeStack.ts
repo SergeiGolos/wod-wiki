@@ -1,9 +1,8 @@
-
-import { StatementNode } from "../timer.types";
+import { StatementKey, StatementNode } from "../timer.types";
 
 export class RuntimeStack {
   private lookupIndex: { [key: number]: number; } = {};
-  public trace: string[] = [];
+  public trace: StatementKey[] = [];
   
 
   /**
