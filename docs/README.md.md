@@ -1,6 +1,6 @@
 # WOD.Wiki – Functional Fitness Markup & Toolkit
 
-> "Write your workout like code, run it like an app."
+> "Write your workout like code, run it like an app, debug your fitness overtime."
 
 WOD.Wiki is a TypeScript / React toolkit for **authoring, executing, and analysing Cross-Training & functional-fitness workouts**.  
 It couples a specialised **markdown-like language** with a Monaco-powered editor, a just-in-time runtime engine, and a rich component library (timer, analytics, results, etc.).
@@ -40,6 +40,8 @@ The parser tokenises → builds an AST → the runtime executes, emitting UI act
 | **Runtime**| `TimerRuntime`, compiler strategies, handlers | [`docs/Components/Runtime.md`](./docs/Components/Runtime.md) |
 | **UI**     | `WodTimer`, `ButtonRibbon`, `ResultsDisplay`, analytics widgets | [`docs/Components/UI.md`](./docs/Components/UI.md) |
 
+*(All component pages are generated placeholders—feel free to expand them!)*
+
 ---
 
 ## 3. Quick Start (Users)
@@ -66,7 +68,7 @@ export default function Demo() {
 
 ## 4. Project Structure (src excerpt)
 
-```text
+```
 src/
   components/          ← React UI & hooks
   core/                ← Parser • Runtime • Types

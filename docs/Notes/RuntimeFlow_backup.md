@@ -164,7 +164,3 @@ When a user starts a workout:
 * **Group Operator Strategies** (Round-Robin/Compose/Repeat) plug into the JIT via `*CompilerStrategy` classes.
 * **Custom Metrics** (e.g., heartrate) can be added by extending `RuntimeMetric` and teaching `WodResults` to render new icon columns.
 * **New Events** should be handled by deriving from `RuntimeEventHandler` and registered in `RuntimeEngine`.
-
----
-
-_Last updated: 2025-04-26_

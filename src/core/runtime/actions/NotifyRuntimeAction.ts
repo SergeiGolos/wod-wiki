@@ -11,7 +11,7 @@ export class NotifyRuntimeAction implements IRuntimeAction {
         public event: IRuntimeEvent
     ) { }
     name: string = 'notify';
-    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>): void {
+    apply(_runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>): void {
         input?.next(this.event);        
     }
 }
