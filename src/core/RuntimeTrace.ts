@@ -1,6 +1,8 @@
 import { StatementKey, StatementNode } from "./timer.types";
 
-
+/**
+ * Represents a runtime trace of a program.
+ */
 export class RuntimeTrace {
   private trace: Map<number, [number, number]> = new Map();
   public history: StatementKey[] = [];
@@ -11,6 +13,16 @@ export class RuntimeTrace {
 
   getTotal(id: number): number {
     return this.trace.get(id)?.[1] ?? 0;
+  }
+
+  /**
+   * Convenience accessor: returns the **upcoming** round index for the given node.
+   * If the node has not been executed yet this will return `1`.
+   * Equivalent to `get(id) + 1` but centralised so callers do not need to
+   * understand the trace internals.
+   */
+  nextRound(id: number): number {
+    return this.get(id) + 1;
   }
 
   set(stack: StatementNode[]): StatementKey {

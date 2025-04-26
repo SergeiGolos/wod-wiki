@@ -32,5 +32,5 @@ Real-time validation and error feedback must be provided to the user.
 All UI components must be responsive and accessible.
 
 7. Documentation and Maintenance
-All changes to the editor or runtime must be reflected in the relevant markdown docs under docs/docs/Components/.
+All changes to the editor or runtime must be reflected in the relevant markdown docs under docs/Components/.
 Adhere to the Kanban/Agile workflow for planning and execution (see docs/Working/YYYY-MM-DD.KB.md).

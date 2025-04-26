@@ -14,6 +14,6 @@ export class IdleRuntimeBlock extends RuntimeBlock {
       new NextStatementHandler()
     ]);
     this.type = 'idle';
-    this.blockId = firstId;
+    this.nextId = firstId;
   }
 }

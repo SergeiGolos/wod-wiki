@@ -22,7 +22,7 @@ export class RuntimeBlock implements IRuntimeBlock {
   }
   laps: ResultSpan[] = [];
   buttons: ActionButton[] = [];
-
+  nextId?: number;
   /**
    * Generates a report summarizing the execution block as a series of spans.
    * Each span represents the time between two significant timer events (start, lap, done, complete).

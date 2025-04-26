@@ -1,6 +1,6 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
-import { GotoStatementAction } from "../actions/NextStatementAction";
+import { GoToStatementAction } from "../actions/GoToStatementAction";
 
 export class NextStatementHandler extends EventHandler {
   protected eventType: string = "next";
@@ -10,19 +10,12 @@ export class NextStatementHandler extends EventHandler {
     runtime: ITimerRuntime
   ): IRuntimeAction[] {
     const node = runtime.current;
-    if (node == undefined || node.nextId == undefined) {
-      console.error("[NextStatementHandler] Current block is undefined");
+    if (!node || node.nextId == undefined) {
+      console.error("[NextStatementHandler] Current block is undefined or has no nextId");
       return [];
-    } 
-    
-    return [new GotoStatementAction(node.nextId)]
-    
-    const statement = node.nextId 
-      ? runtime.script.getId()
-      : undefined;    
+    }
 
-
-    runtime.goto(statement);
-    return [];  
+    // Delegate navigation to the unified GoToStatementAction
+    return [new GoToStatementAction(node.nextId)];
   }
 }

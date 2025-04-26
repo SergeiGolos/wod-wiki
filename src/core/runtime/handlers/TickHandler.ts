@@ -25,7 +25,7 @@ export class TickHandler extends EventHandler {
     }
 
     return [
-      new NotifyRuntimeAction(new CompleteEvent(event.timestamp))
+      // new NotifyRuntimeAction(new CompleteEvent(event.timestamp))
     ];
   }
 }
