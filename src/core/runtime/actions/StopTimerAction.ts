@@ -1,5 +1,5 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "@/core/timer.types";
-import { DisplayEvent } from "../events/timer.events";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent, TimeSpanDuration } from "@/core/timer.types";
+import { DisplayEvent } from "../events/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
 
 export class StopTimerAction implements IRuntimeAction {
@@ -19,8 +19,11 @@ export class StopTimerAction implements IRuntimeAction {
          : undefined;
         
         if (currentLap && !currentLap.stop) {
-            currentLap.stop = this.event;            
-            input.next(new DisplayEvent());
+            currentLap.stop = this.event;
+            
+            input.next(new DisplayEvent("primary", new TimeSpanDuration(runtime.current.duration.original!,
+                runtime.current.laps
+            )));
         }
     }
 }

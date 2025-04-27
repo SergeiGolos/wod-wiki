@@ -15,38 +15,6 @@ export const Diff = {
   }
 }
 
-export const Clock = {
-  forDuration(duration: IDuration): [string, string] {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-
-    const days = duration.days || 0;
-    const hours = duration.hours || 0;
-    const minutes = duration.minutes || 0;
-    const seconds = duration.seconds || 0;
-    const milliseconds = duration.milliseconds || 0;
-
-    const clock = [];
-
-    if (days && days > 0) {
-      clock.push(`${days}`);
-    }
-
-    if ((hours && hours > 0) || clock.length > 0) {
-      clock.push(`${pad(hours)}`);
-    }
-
-    if (clock.length > 0) {
-      clock.push(`${pad(minutes)}`);
-    } else {
-      clock.push(`${minutes}`);
-    }
-
-    clock.push(`${pad(seconds)}`);
-
-    return [clock.join(":"), milliseconds.toString()];
-  }
-}
-
 export type DurationSign = "+" | "-";
 export class Duration implements IDuration {  
   days?: number;
@@ -96,9 +64,14 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   remaining(): IDuration {
     return new Duration((this.original ?? 0) - (this.elapsed()?.original ?? 0))      
   }   
+
+  display(): IDuration {
+    return this.sign === "+" ? this.elapsed() : this.remaining();
+  }
 }
 
-export interface ISpanDuration extends IDuration { 
+export interface ISpanDuration extends IDuration {
+  display(): IDuration;
   spans: ITimeSpan[]
   elapsed(): IDuration;
   remaining(): IDuration;

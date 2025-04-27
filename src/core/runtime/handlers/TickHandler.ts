@@ -1,7 +1,7 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, Diff, IDuration, TimeSpanDuration } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
-import { CompleteEvent } from "../events/timer.events";
+import { CompleteEvent } from "../events/CompleteEvent";
 
 export class TickHandler extends EventHandler {
   protected eventType: string = 'tick';

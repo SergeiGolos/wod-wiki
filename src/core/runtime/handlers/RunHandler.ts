@@ -1,7 +1,9 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "@/core/timer.types";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
-import { GotoEvent, StartEvent } from "../events/timer.events";
+import { StartEvent } from "../events/StartEvent";
+import { GotoEvent } from "../events/GotoEvent";
+import { SetClockAction } from "../actions/OutputAction";
 
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';
@@ -10,7 +12,7 @@ export class RunHandler extends EventHandler {
     const actions: IRuntimeAction[] = [];
     actions.push(new NotifyRuntimeAction(new GotoEvent(event.timestamp, 0)));
     actions.push(new NotifyRuntimeAction(new StartEvent(event.timestamp)));
-
+    actions.push(new SetClockAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"));
     return actions;
   }
 }

@@ -10,7 +10,8 @@ export class StartHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StartTimerAction(event),   
-      new SetClockAction(new TimeSpanDuration(_runtime.current?.duration.original ?? 0, []), "clock")
+      new SetClockAction(new TimeSpanDuration(
+        _runtime.current?.duration.original ?? 0, _runtime.current?.laps!), "primary")
     ];
   }
 }
