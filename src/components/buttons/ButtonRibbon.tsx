@@ -4,11 +4,11 @@ import { cn } from "@/core/utils";
 
 
 interface ButtonRibbonProps {
-  buttons: ActionButton[];  
+  buttons: ActionButton[] | undefined;  
   setEvent: (events: IRuntimeEvent) => void;
 }
 
-export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }) => {
+export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent }) => {
   
   
   /// TODO:  THis should be conifugred at the button not in the ribben
@@ -28,14 +28,14 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
 
   const clickEvent = (button: ActionButton) => {
     const events = button.onClick();    
-    setEvents(events);
+    events.forEach(event => setEvent(event));
   }
 
   return (
     <div className={`flex justify-center items-center px-2 py-2`}>
       {/* Left-aligned buttons */}
       <div className="flex space-x-4">
-        {buttons.map((button, index) => (
+        {buttons && buttons.map((button, index) => (
           <button
             key={`right-${index}`}
             onClick={() => clickEvent(button)}

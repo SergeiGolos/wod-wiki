@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { ResultSpan, WodRuntimeScript } from '@/core/timer.types';
-import { EditorContainer } from '@/components/editor/EditorContainer';
+import { WikiContainer } from '@/components/WikiContainer';
 import { JsonViewer } from '@textea/json-viewer';
 import { SoundProvider } from '@/contexts/SoundContext';
 import { ScreenProvider } from '@/contexts/ScreenContext';
 
 /**
- * A wrapper component for EditorContainer that displays JSON state for debugging
+ * A wrapper component for WikiContainer that displays JSON state for debugging
  * 
  * This component provides visualization panels for:
  * 1. The compiled script structure
  * 2. The workout results as they are generated
  */
-interface EditorWithStateProps extends React.ComponentProps<typeof EditorContainer> {
+interface EditorWithStateProps extends React.ComponentProps<typeof WikiContainer> {
   debug?: boolean;
 }
 
@@ -24,7 +24,7 @@ export const EditorWithState: React.FC<EditorWithStateProps> = ({ debug = false,
     <ScreenProvider>
       <SoundProvider>
         <div className="flex flex-col gap-4">
-          <EditorContainer
+          <WikiContainer
             className='md:mt-0'
             {...props}
             onScriptCompiled={(script) => setCompiledScript(script)}

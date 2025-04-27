@@ -1,5 +1,5 @@
 import { Meta } from "@storybook/blocks";
-import { EditorContainer } from "/src/components/editor/EditorContainer";
+import { WikiContainer } from "/src/components/WikiContainer";
 import { BuyMeACoffee } from "./components/BuyMeACoffee";
 import logoImage from './assets/logo.png';
 import '../index.css';
@@ -20,7 +20,7 @@ export const code = `(8)
     </p>
     <div className="flex flex-col md:flex-row">      
       <div className="w-full md:w-2/3 pt-4">
-        <EditorContainer code={code}/>
+        <WikiContainer code={code}/>
       </div>
       <div className="w-full md:w-1/3 md:pl-4">
         <h2 className="text-lg font-semibold mb-2 mt-4">Syntax Guide</h2>

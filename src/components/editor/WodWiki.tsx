@@ -1,11 +1,11 @@
 import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
-import { WodWikiSyntaxInitializer } from '../hooks/WodWikiSyntaxInitializer';
-import { SemantcTokenEngine } from '../hooks/SemantcTokenEngine';
-import { SuggestionEngine } from '../hooks/SuggestionEngine';
+import { WodWikiSyntaxInitializer } from '@/components/editor/WodWikiSyntaxInitializer';
+import { SemantcTokenEngine } from '@/components/editor/SemantcTokenEngine';
+import { SuggestionEngine } from '@/components/editor/SuggestionEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { DefaultSuggestionService } from '../hooks/SuggestionService';
+import { DefaultSuggestionService } from '@/components/editor/SuggestionService';
 import { IRuntimeBlock, WodRuntimeScript, WodWikiToken } from '@/core/timer.types';
 
 interface WodWikiProps {

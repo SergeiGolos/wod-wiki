@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { CastReceiver } from '../../cast/CastReceiver';
-import { EditorContainer } from '@/components/editor/EditorContainer';
+import { WikiContainer } from '@/components/WikiContainer';
 import { useLocalCast } from '@/cast/hooks/useLocalCast';
 import { ChromecastButton } from '@/cast/components/ChromecastButton';
 import { useScreen } from '@/contexts/ScreenContext';
@@ -93,14 +93,14 @@ useEffect(() => {
       isActive: screenOnEnabled,
     };
 
-  // Render CastReceiver and EditorContainer side by side
+  // Render CastReceiver and WikiContainer side by side
   return (
     <div style={{ display: 'flex', width: '100%', height: '100vh' }}>
       <div style={{ flex: 2, minWidth: 0, maxWidth: '57.6667%' }}>
         <CastReceiver event$={cast.event$} />
       </div>
       <div style={{ flex: 1, minWidth: 0, maxWidth: '42.3333%' }}>
-        <EditorContainer id="wod-editor" code={'5:00 Testing (10)'} outbound={cast.sendMessage}>
+        <WikiContainer id="wod-editor" code={'5:00 Testing (10)'} outbound={cast.sendMessage}>
         {soundToggleButton && (
             <button
               onClick={soundToggleButton.onClick}
@@ -126,7 +126,7 @@ useEffect(() => {
             </button>
           )}
           <ChromecastButton {...cast}/>
-        </EditorContainer>
+        </WikiContainer>
       </div>      
     </div>
   );

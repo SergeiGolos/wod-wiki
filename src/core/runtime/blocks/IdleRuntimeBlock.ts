@@ -1,6 +1,6 @@
-import { NextStatementHandler } from "../handlers/NextStatementHandler";
-import { RunHandler } from "../handlers/RunHandler";
-import { TickHandler } from "../handlers/TickHandler";
+import { NextStatementHandler } from "../inputs/NextStatementHandler";
+import { RunHandler } from "../inputs/RunHandler";
+import { TickHandler } from "../inputs/TickHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
 
 

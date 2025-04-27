@@ -1,5 +1,5 @@
 import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "../../timer.types";
-import { SoundService } from "../../services/SoundService";
+import { SoundService } from "../../../components/syncs/services/SoundService";
 import { Subject } from "rxjs";
 
 /**

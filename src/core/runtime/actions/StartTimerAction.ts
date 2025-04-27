@@ -7,7 +7,7 @@ import {
   TimeSpanDuration,
 } from "@/core/timer.types";
 import { Subject } from "rxjs/internal/Subject";
-import { DisplayEvent } from "../events/DisplayEvent";
+import { DisplayEvent } from "../inputs/DisplayEvent";
 
 export class StartTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}

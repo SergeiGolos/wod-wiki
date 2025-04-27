@@ -1,5 +1,5 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction} from "../timer.types";
-import { WriteLogAction } from "./actions/OutputAction";
+import { WriteLogAction } from "./outputs/WriteLogAction";
 
 export abstract class EventHandler {
   protected abstract eventType: string;

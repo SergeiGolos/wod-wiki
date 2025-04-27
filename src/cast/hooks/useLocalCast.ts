@@ -36,8 +36,8 @@ export function useLocalCast(): UseCastResult {
       bag: { simulated: true, type: 'HANDSHAKE_ESTABLISHED' },
     });
     return () => {
-      event$.complete();
-      state$.complete();
+      // event$.complete();
+      // state$.complete();
     };
   }, []);
 

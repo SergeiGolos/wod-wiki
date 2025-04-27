@@ -1,9 +1,11 @@
 import { StatementFragment, StatementNode } from "../timer.types";
-import { ActionFragment, EffortFragment } from "../fragments/EffortFragment";
+import { EffortFragment } from "../fragments/EffortFragment";
+import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
 import { LapFragment } from "../fragments/LapFragment";
 import { RepFragment } from "../fragments/RepFragment";
-import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
+import { ResistanceFragment } from "../fragments/ResistanceFragment";
+import { DistanceFragment } from "../fragments/DistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";

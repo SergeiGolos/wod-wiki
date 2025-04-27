@@ -4,20 +4,21 @@ import {
   RuntimeMetric,
   ITimerRuntime,
 } from "../timer.types";
-import { RuntimeTrace } from "../RuntimeTrace";
+import { RuntimeTrace } from "./RuntimeTrace";
 import { RuntimeBlock } from "./blocks/RuntimeBlock";
 import { EventHandler } from "./EventHandler";
-import { StartHandler } from "./handlers/StartHandler";
-import { TickHandler } from "./handlers/TickHandler";
-import { StopHandler } from "./handlers/StopHandler";
-import { ResetHandler } from "./handlers/ResetHandler";
-import { CompleteHandler } from "./handlers/CompleteHandler";
-import { EndHandler } from "./handlers/EndHandler";
+import { StartHandler } from "./inputs/StartHandler";
+import { TickHandler } from "./inputs/TickHandler";
+import { StopHandler } from "./inputs/StopHandler";
+import { ResetHandler } from "./inputs/ResetHandler";
+import { CompleteHandler } from "./inputs/CompleteHandler";
+import { EndHandler } from "./inputs/EndHandler";
 import { fragmentsTo, fragmentsToMany } from "../utils";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { RepFragment } from "../fragments/RepFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
-import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
+import { ResistanceFragment } from "../fragments/ResistanceFragment";
+import { DistanceFragment } from "../fragments/DistanceFragment";
 import { IdleRuntimeBlock } from "./blocks/IdleRuntimeBlock";
 
 export class RuntimeJit {

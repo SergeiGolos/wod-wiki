@@ -1,5 +1,5 @@
 import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent, TimeSpanDuration } from "@/core/timer.types";
-import { DisplayEvent } from "../events/DisplayEvent";
+import { DisplayEvent } from "../inputs/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
 
 export class StopTimerAction implements IRuntimeAction {

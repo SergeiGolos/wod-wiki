@@ -80,7 +80,7 @@ export function useCastSender(): UseCastSenderResult {
     }
     return () => {
       isMounted = false;
-      state$.complete();
+     // state$.complete();
     };
   }, []);
 

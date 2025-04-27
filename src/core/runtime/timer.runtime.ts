@@ -1,5 +1,5 @@
 import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, IRuntimeLog, StatementNode, OutputEvent } from "../timer.types";
-import { RuntimeTrace } from "../RuntimeTrace";
+import { RuntimeTrace } from "./RuntimeTrace";
 import { RuntimeStack } from "./RuntimeStack";
 import { RuntimeJit } from "./RuntimeJit";
 import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";

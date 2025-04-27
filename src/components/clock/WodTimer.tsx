@@ -39,7 +39,7 @@ export const ClockDisplay: React.FC<{ duration: IDuration | undefined }> = ({
 
   clock.push(`${pad(seconds)}`);
 
-  if (!clock) {
+  if (!clock) { 
     return (
       <div className="mx-auto flex items-center">
         <span className="text-5xl md:text-6xl">--:--.-</span>
@@ -50,7 +50,7 @@ export const ClockDisplay: React.FC<{ duration: IDuration | undefined }> = ({
   return (
     <div className="mx-auto flex items-center">
       <span className="text-5xl md:text-6xl">{clock.join(":")}</span>
-      <span className="text-gray-600 text-4xl">.{milliseconds.toString()}</span>
+      <span className="text-gray-600 text-4xl">.{pad(milliseconds).substring(0, 1)}</span>
     </div>
   );
 };
@@ -67,7 +67,7 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     const intervalId = setInterval(() => {
       setPrimaryDisplay(primary?.display());
       setTotalDisplay(total?.display());
-    }, 10); // Set interval to 1000ms (1 second)
+    }, 100); // Set interval to 1000ms (1 second)
 
     // Cleanup function to clear the interval
     return () => {

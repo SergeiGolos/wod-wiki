@@ -1,21 +1,21 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
-import { RuntimeTrace } from "./RuntimeTrace";
+import { RuntimeTrace } from "./runtime/RuntimeTrace";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 
-export const Diff = {  
-  /**
-   * Compares two durations and returns the difference in milliseconds
-   * @param a The first duration
-   * @param b The second duration
-   * @returns The difference in milliseconds
-   */
-  duration(a: IDuration, b: IDuration) : IDuration {
-    return new Duration((a.original ?? 0) - (b.original ?? 0));
-  }
+export type DurationSign = "+" | "-";
+
+export interface IDuration {
+  original?: number;
+  sign: "+" | "-";
+
+  days?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+  milliseconds?: number;
 }
 
-export type DurationSign = "+" | "-";
 export class Duration implements IDuration {  
   days?: number;
   hours?: number;
@@ -24,27 +24,33 @@ export class Duration implements IDuration {
   milliseconds?: number;
 
   constructor(public original: number, public sign: DurationSign = "+") {    
-    const multiplier = 10 ** 3;    
     let remaining = this.original = original ?? 0;
 
-    this.days = Math.floor(remaining / 86400);
-    remaining %= 86400;
+    this.days = Math.floor(remaining / 86400000);
+    remaining %= 86400000;
 
-    this.hours = Math.floor(remaining / 3600);
-    remaining %= 3600;
+    this.hours = Math.floor(remaining / 3600000);
+    remaining %= 3600000;
 
-    this.minutes = Math.floor(remaining / 60);
-    remaining %= 60;
+    this.minutes = Math.floor(remaining / 60000);
+    remaining %= 60000;
 
-    this.seconds = Math.floor(remaining);
+    this.seconds = Math.floor(remaining / 1000);
 
-    this.milliseconds = Math.round((remaining - this.seconds) * multiplier);    
+    this.milliseconds = Math.round((remaining - this.seconds * 1000) );    
   }
 }
 
 export interface ITimeSpan { 
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
+}
+
+export interface ISpanDuration extends IDuration {
+  display(): IDuration;
+  spans: ITimeSpan[]
+  elapsed(): IDuration;
+  remaining(): IDuration;
 }
 
 export class TimeSpanDuration extends Duration implements ISpanDuration {
@@ -69,26 +75,7 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
     return this.sign === "+" ? this.elapsed() : this.remaining();
   }
 }
-
-export interface ISpanDuration extends IDuration {
-  display(): IDuration;
-  spans: ITimeSpan[]
-  elapsed(): IDuration;
-  remaining(): IDuration;
-}
-
-export interface IDuration {
-  original?: number;
-  sign: "+" | "-";
-
-  days?: number;
-  hours?: number;
-  minutes?: number;
-  seconds?: number;
-  milliseconds?: number;
-}
  
-
 export interface IRuntimeAction {
   name: string;
   apply(

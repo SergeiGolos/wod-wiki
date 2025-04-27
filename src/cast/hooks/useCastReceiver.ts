@@ -19,7 +19,7 @@ export function useCastReceiver(): UseCastReceiverResult {
     // For local development, you may simulate events here if needed.
     // Example: event$.next({ eventType: ..., timestamp: ..., bag: ... });
     return () => {
-      event$.complete();
+     // event$.complete();
     };
   }, []);
 
