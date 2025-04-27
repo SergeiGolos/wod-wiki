@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { WodWiki } from "../editor/WodWiki";
 import { useTimerRuntime } from "../hooks/useTimerRuntime";
-import { IRuntimeBlock, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
+import { ActionButton, IRuntimeBlock, OutputEvent, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
 import { WodTimer } from "../clock/WodTimer";
 import { RunnerControls } from "../buttons/RunnerControls";
 import { ResultsDisplay } from "../analyrics/ResultsDisplay";
@@ -11,7 +11,9 @@ import { SoundProvider } from "@/contexts/SoundContext";
 import { ScreenProvider } from "@/contexts/ScreenContext";
 import { encodeShareString } from "@/core/utils/shareUtils";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
-import { OutputEvent } from "@/cast/types/chromecast-events";
+import { ButtonRibbon } from "../buttons/ButtonRibbon";
+import { useLocalDisplaySync, useLocalResultSync } from "@/core/runtime/syncs/LocalDisplaySync";
+
 
 interface EditorContainerProps {
   id: string;
@@ -38,24 +40,41 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
 }) => {
   const [shareStatus, setShareStatus] = React.useState<string | null>(null);
   const editorRef = React.useRef<any>(null);
-  const {
-    loadScript,
-    runtimeRef,
-    input,    
-  } = useTimerRuntime({
+  const { loadScript, runtimeRef, input, output } = useTimerRuntime({
     onScriptCompiled,
   });
+  
+  const { display, setDisplay } = useLocalDisplaySync();
+  const { results, setResults } = useLocalResultSync();
+
+  
   const [cursor] = useState<IRuntimeBlock | undefined>(undefined);
-  const [results] = useState<ResultSpan[]>([]);
-  const [edits] = useState<RuntimeMetricEdit[]>([]);
-  const [display] = useState<any | null>(null);
-  // Custom onValueChange handler to track cursor position from script
+  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);
+  
+  const [buttons, setButtons] = useState<ActionButton[]>([]);
+
+
+  
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
       // Pass to runtime
       loadScript(script);
     }
   };
+
+
+  useEffect(() => {      
+    const dispose = output?.subscribe((event) => {
+      console.log("Output event:", event);
+      setDisplay(event);
+      setResults(event);
+
+    });      
+    return () => {
+      dispose?.unsubscribe();
+    };
+  }, [output]);
+
 
   // Create Chromecast button (now managed independently)
   return (
@@ -106,9 +125,9 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
       {runtimeRef.current?.current && display && (
         <>
           <WodTimer display={display} />
-          {/* <div className="p-1 flex justify-center">
-            <ButtonRibbon buttons={buttons} setEvents={input} />
-          </div> */}
+          <div className="p-1 flex justify-center">
+            <ButtonRibbon buttons={buttons} setEvent={input.next!} />
+          </div> 
         </>
       )}
       <ResultsDisplay className="border-t border-gray-200" runtime={runtimeRef} results={results} edits={edits} />

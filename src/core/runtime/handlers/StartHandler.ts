@@ -1,8 +1,8 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
-import { SetButtonAction } from "../actions/SetButtonAction";
-import { completeButton, pauseButton } from "@/components/buttons";
+import { SetClockAction } from "../actions/OutputAction";
+//import { completeButton, pauseButton } from "@/components/buttons";
 
 export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
@@ -10,7 +10,7 @@ export class StartHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StartTimerAction(event),   
-      new SetButtonAction(event, [pauseButton, completeButton])     
+      new SetClockAction(new TimeSpanDuration(_runtime.current?.duration.original ?? 0, []), "clock")
     ];
   }
 }

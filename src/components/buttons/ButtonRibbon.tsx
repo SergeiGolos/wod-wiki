@@ -5,7 +5,7 @@ import { cn } from "@/core/utils";
 
 interface ButtonRibbonProps {
   buttons: ActionButton[];  
-  setEvents: (events: IRuntimeEvent[]) => void;
+  setEvent: (events: IRuntimeEvent) => void;
 }
 
 export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }) => {

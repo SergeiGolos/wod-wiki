@@ -1,9 +1,8 @@
-import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, IRuntimeLog, StatementNode } from "../timer.types";
+import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, IRuntimeLog, StatementNode, OutputEvent } from "../timer.types";
 import { RuntimeTrace } from "../RuntimeTrace";
 import { RuntimeStack } from "./RuntimeStack";
 import { RuntimeJit } from "./RuntimeJit";
 import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";
-import { ChromecastEvent } from "@/cast";
 
 /**
  * Runtime engine that processes workout scripts
@@ -17,9 +16,7 @@ import { ChromecastEvent } from "@/cast";
 export class TimerRuntime implements ITimerRuntimeIo {  
   public current: IRuntimeBlock;
   public dispose: Subscription | undefined;
-  public input$: Subject<IRuntimeEvent>;
-  public tick$: Observable<IRuntimeEvent>;
-  public output$: Subject<ChromecastEvent>;
+  public tick$: Observable<IRuntimeEvent>;  
     
   /**
    * Creates a new TimerRuntime instance
@@ -28,15 +25,14 @@ export class TimerRuntime implements ITimerRuntimeIo {
   constructor(public code: string,
     public script: RuntimeStack,     
     public jit: RuntimeJit,
-    public events: IRuntimeLog[] = [],
+    public input$: Subject<IRuntimeEvent>,
+    public output$: Subject<OutputEvent>,
     public trace: RuntimeTrace | undefined = undefined
   ) {            
     this.current = jit.compile(this, [], this.trace)
 
-    this.input$ = new Subject<IRuntimeEvent>();
     this.tick$ = interval(100).pipe(
       map(() => ({ name: 'tick', timestamp: new Date() } as IRuntimeEvent)));
-    this.output$ = new Subject<ChromecastEvent>();
     
     const loggedInput = this.input$.pipe(
       tap((event) => {
@@ -45,8 +41,12 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     this.dispose = merge(loggedInput, this.tick$)
       .subscribe(event => {         
+                
+        const actions = this.current?.handlers
+            .map(handler => handler.apply(event, this))
+            .filter(actions => actions !== undefined)
+            .flat() ?? [];
         
-        const actions = this.current?.onEvent(event, this) ?? [];        
         for (const action of actions) {
           console.debug(`++action[- ${action.name} -]`, event);
           action.apply(this, this.input$, this.output$);
@@ -58,15 +58,17 @@ export class TimerRuntime implements ITimerRuntimeIo {
     if (!block) {
       return this.jit.compile(this, [], this.trace!);
     }
-    
-    const children = (block.children ?? []).map(id => this.script.getId(id)!);
-    console.log("Test:", children);
-    // todo: make this work
-    return this.current = this.jit.compile(this, children, this.trace);
+    let stack: StatementNode[] = [];
+    let parentId: number | undefined = block.id;
+    while (parentId != undefined) {      
+      const next: StatementNode = this.script.getId(parentId)!;
+      stack.push(next);
+      parentId = next.parent ?? undefined;
+    }    
+    return this.current = this.jit.compile(this, stack, this.trace);
   }
 
   reset(): void {
-    this.events = [];
     this.current = this.jit.compile(this, [], this.trace);    
     this.trace?.clear();
   }

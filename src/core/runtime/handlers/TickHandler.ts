@@ -1,13 +1,15 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, Diff, IDuration, TimeSpanDuration } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
-import { CompleteEvent } from "../timer.events";
+import { CompleteEvent } from "../events/timer.events";
 
 export class TickHandler extends EventHandler {
   protected eventType: string = 'tick';
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
-    if (runtime.current?.type === 'idle' || runtime.current?.type === 'complete') {      
+    if (runtime.current?.type === 'idle' 
+      || runtime.current?.type === 'complete'
+      || runtime.current?.duration?.original === 0) {      
       return [];
     }
     
@@ -18,7 +20,6 @@ export class TickHandler extends EventHandler {
         new NotifyRuntimeAction(new CompleteEvent(_event.timestamp))
       ];
     }
-
     return [];
   }
 }

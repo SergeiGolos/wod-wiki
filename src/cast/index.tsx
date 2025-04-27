@@ -1,8 +1,3 @@
-
-export { ChromecastEventType } from './types/chromecast-events';
-export type {OutputEvent as ChromecastEvent} from './types/chromecast-events';
-
-
 // Protocol version for backward compatibility
 export const CHROMECAST_PROTOCOL_VERSION = '1.0.0';
 // Custom message namespace

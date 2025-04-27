@@ -2,7 +2,7 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { completeButton, resumeButton } from "@/components/buttons";
-import { SetButtonAction } from "../actions/SetButtonAction";
+// import { SetButtonAction } from "../actions/SetButtonAction";
 
 export class StopHandler extends EventHandler {
   protected eventType: string = 'stop';
@@ -11,10 +11,10 @@ export class StopHandler extends EventHandler {
     if (runtime.current) {
       return [
         new StopTimerAction(event),
-        new SetButtonAction(
-          event,
-          [resumeButton, completeButton]
-        )
+        //new SetButtonAction(
+        //  event,
+        //  [resumeButton, completeButton]
+        //)
       ];
     }
     return [];

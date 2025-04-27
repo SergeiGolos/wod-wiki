@@ -1,7 +1,6 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { RuntimeTrace } from "./RuntimeTrace";
-import { OutputEvent } from "@/cast/types/chromecast-events";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 
 export const Diff = {  
@@ -47,15 +46,16 @@ export const Clock = {
     return [clock.join(":"), milliseconds.toString()];
   }
 }
-export class Duration implements IDuration {
-  original?: number;
+
+export type DurationSign = "+" | "-";
+export class Duration implements IDuration {  
   days?: number;
   hours?: number;
   minutes?: number;
   seconds?: number;
   milliseconds?: number;
 
-  constructor(original?: number) {    
+  constructor(public original: number, public sign: DurationSign = "+") {    
     const multiplier = 10 ** 3;    
     let remaining = this.original = original ?? 0;
 
@@ -106,6 +106,8 @@ export interface ISpanDuration extends IDuration {
 
 export interface IDuration {
   original?: number;
+  sign: "+" | "-";
+
   days?: number;
   hours?: number;
   minutes?: number;
@@ -160,8 +162,25 @@ export type MetricValue = {
   unit: string;
 };
 
-export interface IRuntimeLogger {
-  write: (runtimeBlock: IRuntimeBlock) => ResultSpan[];
+export type IRuntimeSync = (runtimeBlock: OutputEvent) => void;  
+
+export type OutputEventType =
+  | 'SYSTEM'  
+  | 'HEARTBEAT'  
+  | 'WRITE_LOG'
+  | 'SET_DISPLAY'
+  | 'SET_CLOCK'
+  | 'SET_TEXT'
+  | 'SET_SOUND'
+  | 'SET_DEBUG'
+  | 'SET_ERROR'
+  | 'SET_IDLE'
+  | 'RESULT_UPDATED';
+
+export interface OutputEvent {
+  eventType: OutputEventType;
+  timestamp: Date;
+  bag: { [key: string]: any };
 }
 
 export type RuntimeState =
@@ -180,7 +199,6 @@ export interface ITimerRuntimeIo extends ITimerRuntime {
 
 export interface ITimerRuntime {
   code: string;  
-  events: IRuntimeLog[];
   jit: RuntimeJit;
   trace: RuntimeTrace | undefined;  
   script: RuntimeStack;  
@@ -256,22 +274,23 @@ export type RuntimeMetric = {
 };
 
 export interface IRuntimeBlock {
-  buttons: ActionButton[];
+  // Do away with this.. not important know type, 
+  // should be configured with handlers.  
   type: "active" | "complete" | "idle";
-  blockId: number;
-  nextId?: number;
-  
-  blockKey: string;  
-  
-  duration: IDuration;
-  elapsed(): IDuration;  
-  
-  stack?: StatementNode[];
-  laps: ResultSpan[];  
 
+  blockId: number;  
+  blockKey: string;  
+
+  // Build once, current block and the parents.
+  stack?: StatementNode[];
+  nextId?: number;  
+  duration: IDuration;          
+  laps: ResultSpan[];  
   metrics: RuntimeMetric[];  
 
-  onEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];  
+  handlers: RuntimeBlockHandler[];
+  
+
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
@@ -314,7 +333,7 @@ export class ResultSpan {
   blockKey?: string;
   index?: number;
   stack?: number[];
-  star?: IRuntimeEvent;
+  start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
   metrics: RuntimeMetric[] = [];
   label?: string;

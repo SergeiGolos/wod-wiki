@@ -1,6 +1,6 @@
+import { OutputEvent } from '@/core/timer.types';
 import { useEffect } from 'react';
 import { Subject } from 'rxjs';
-import { OutputEvent } from '../types/chromecast-events';
 
 export interface UseCastReceiverResult {
   event$: Subject<OutputEvent>;

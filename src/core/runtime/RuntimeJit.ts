@@ -1,7 +1,6 @@
 import {
   StatementNode,
   IRuntimeBlock,
-  IRuntimeLogger,
   RuntimeMetric,
   ITimerRuntime,
 } from "../timer.types";
@@ -10,15 +9,12 @@ import { RuntimeBlock } from "./blocks/RuntimeBlock";
 import { EventHandler } from "./EventHandler";
 import { StartHandler } from "./handlers/StartHandler";
 import { TickHandler } from "./handlers/TickHandler";
-
 import { StopHandler } from "./handlers/StopHandler";
 import { ResetHandler } from "./handlers/ResetHandler";
 import { CompleteHandler } from "./handlers/CompleteHandler";
 import { EndHandler } from "./handlers/EndHandler";
-import { DefaultResultLogger } from "./logger/DefaultResultLogger";
 import { fragmentsTo, fragmentsToMany } from "../utils";
 import { RoundsFragment } from "../fragments/RoundsFragment";
-import { WorkRestLogger } from "./logger/WorkRestLogger";
 import { RepFragment } from "../fragments/RepFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
@@ -51,12 +47,8 @@ export class RuntimeJit {
     const currentIndex = trace.getTotal(nodes[0].id) ;
     const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
 
-    let logger: IRuntimeLogger = new DefaultResultLogger();
-    if (repetitions && rounds) {
-      logger = new WorkRestLogger();
-    }
-
-    const block = new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
+  
+    const block = new RuntimeBlock(key.toString(), nodes, this.handlers);
     
     // Create metrics for the block with the new structure
     block.metrics = this.createBlockMetrics(efforts, currentRep, resistance, distance);

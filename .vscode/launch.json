@@ -23,9 +23,8 @@
       "type": "chrome",
       "request": "launch",
       "name": "Debug Storybook (npm run dev)",
-      "url": "http://localhost:6006", // or your Storybook port
-      "webRoot": "${workspaceFolder}/src",
-      "preLaunchTask": "npm: dev"
+      "url": "http://localhost:6006",
+      "webRoot": "${workspaceFolder}/src",      
     }
   ]
 }

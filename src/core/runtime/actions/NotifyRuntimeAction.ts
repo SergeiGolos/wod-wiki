@@ -1,5 +1,4 @@
-import { OutputEvent } from "@/cast/types/chromecast-events";
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "@/core/timer.types";
 import { Subject } from "rxjs";
 
 /**

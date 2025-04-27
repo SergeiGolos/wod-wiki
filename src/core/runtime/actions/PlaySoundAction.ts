@@ -1,6 +1,5 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "../../timer.types";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "../../timer.types";
 import { SoundService } from "../../services/SoundService";
-import { OutputEvent } from "@/cast/types/chromecast-events";
 import { Subject } from "rxjs";
 
 /**

@@ -1,12 +1,15 @@
 import { useRef, useState, useEffect } from "react";
-import { IRuntimeEvent, WodRuntimeScript } from "@/core/timer.types";
+import { IRuntimeEvent, OutputEvent, WodRuntimeScript } from "@/core/timer.types";
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { RuntimeTrace } from "@/core/RuntimeTrace";
 import { Subject } from "rxjs";
-import { OutputEvent } from "@/cast/types/chromecast-events";
-import { NotifyRuntimeAction } from "@/core/runtime/actions/NotifyRuntimeAction";
+
+
+
+
+
 
 /**
  * Hook props for useTimerRuntime
@@ -15,7 +18,7 @@ export interface UseTimerRuntimeProps {
   /**
    * Called when a script is compiled with the compiled script
    */
-  onScriptCompiled?: (script: WodRuntimeScript) => void;  
+  onScriptCompiled?: (script: WodRuntimeScript) => void;
 }
 
 export function useTimerRuntime({
@@ -23,8 +26,8 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   
   const runtimeRef = useRef<TimerRuntime>();  
-  const inputRef = useRef<Subject<IRuntimeEvent>>();
-  const outputRef = useRef<Subject<OutputEvent>>();
+  const inputRef = new Subject<IRuntimeEvent>();
+  const outputRef = new Subject<OutputEvent>();
 
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
 
@@ -44,8 +47,6 @@ export function useTimerRuntime({
     function cleanUp() {
       runtimeRef.current?.dispose?.unsubscribe();
       runtimeRef.current = undefined;
-      inputRef.current = undefined;
-      outputRef.current = undefined;
     }
 
     try {
@@ -54,9 +55,7 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       const trace = new RuntimeTrace();
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(script.source, stack, jit, [], trace); 
-      inputRef.current = runtimeRef.current.input$;
-      outputRef.current = runtimeRef.current.output$;
+      runtimeRef.current = new TimerRuntime(script.source, stack, jit, inputRef, outputRef, trace);      
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
       cleanUp();

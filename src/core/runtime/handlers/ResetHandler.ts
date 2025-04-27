@@ -2,7 +2,7 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { ResetAction } from "../actions/ResetAction";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
-import { DisplayEvent } from "../timer.events";
+import { DisplayEvent } from "../events/timer.events";
 export class ResetHandler extends EventHandler {
   protected eventType: string = 'reset';
 

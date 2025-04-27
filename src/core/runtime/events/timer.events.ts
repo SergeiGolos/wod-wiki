@@ -1,5 +1,6 @@
-import { IRuntimeEvent } from "../timer.types";
+import { IRuntimeEvent } from "../../timer.types";
 
+// Runtime Execution
 export class RunEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
       this.timestamp = timestamp ?? new Date();
@@ -7,7 +8,22 @@ export class RunEvent implements IRuntimeEvent {
     timestamp: Date;
     name = 'run';
 }
+export class EndEvent implements IRuntimeEvent {
+    constructor(timestamp?: Date) {
+      this.timestamp = timestamp ?? new Date();
+    }
+    timestamp: Date;
+    name = 'end';
+}
+export class ResetEvent implements IRuntimeEvent {
+    constructor(timestamp?: Date) {
+        this.timestamp = timestamp ?? new Date();
+    }
+    timestamp: Date;
+    name = 'reset';
+}
 
+// Timers
 export class StartEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
       this.timestamp = timestamp ?? new Date();
@@ -15,17 +31,6 @@ export class StartEvent implements IRuntimeEvent {
     timestamp: Date;
     name = 'start';
 }
-
-export class GotoEvent implements IRuntimeEvent {
-    constructor(timestamp?: Date, blockId?: number) {
-        this.timestamp = timestamp ?? new Date();
-        this.blockId = blockId;
-    }
-    timestamp: Date;
-    blockId?: number;
-    name = 'next';
-}
-
 export class StopEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
         this.timestamp = timestamp ?? new Date();
@@ -33,7 +38,6 @@ export class StopEvent implements IRuntimeEvent {
     timestamp: Date;
     name = 'stop';
 }
-
 export class LapEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
         this.timestamp = timestamp ?? new Date();
@@ -51,22 +55,11 @@ export class CompleteEvent implements IRuntimeEvent {
 }
 
 
-export class EndEvent implements IRuntimeEvent {
-    constructor(timestamp?: Date) {
-      this.timestamp = timestamp ?? new Date();
-    }
-    timestamp: Date;
-    name = 'end';
-}
 
 
-export class ResetEvent implements IRuntimeEvent {
-    constructor(timestamp?: Date) {
-        this.timestamp = timestamp ?? new Date();
-    }
-    timestamp: Date;
-    name = 'reset';
-}
+
+
+
 
 export class SoundEvent implements IRuntimeEvent {
     constructor(public sound: string,timestamp?: Date) {
@@ -89,6 +82,16 @@ export class NextStatementEvent implements IRuntimeEvent {
         this.timestamp = timestamp ?? new Date();
     }
     timestamp: Date;
+    name = 'next';
+}
+// Navigation
+export class GotoEvent implements IRuntimeEvent {
+    constructor(timestamp?: Date, blockId?: number) {
+        this.timestamp = timestamp ?? new Date();
+        this.blockId = blockId;
+    }
+    timestamp: Date;
+    blockId?: number;
     name = 'next';
 }
 

@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { OutputEvent, ChromecastEventType } from '../types/chromecast-events';
 import { UseCastReceiverResult } from './useCastReceiver';
 import { UseCastSenderResult } from './useCastSender';
+import { OutputEvent } from '@/core/timer.types';
 
 export interface ChromecastState {
   isAvailable: boolean;
@@ -31,9 +31,9 @@ export function useLocalCast(): UseCastResult {
   useEffect(() => {
     // Optionally: emit a handshake event or other simulated events on mount
     event$.next({
-      eventType: ChromecastEventType.HANDSHAKE_ESTABLISHED,
+      eventType: 'SYSTEM',
       timestamp: new Date(),
-      bag: { simulated: true },
+      bag: { simulated: true, type: 'HANDSHAKE_ESTABLISHED' },
     });
     return () => {
       event$.complete();

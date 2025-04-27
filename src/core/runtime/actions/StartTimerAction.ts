@@ -1,7 +1,6 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, ResultSpan } from "@/core/timer.types";
-import { OutputEvent } from "@/cast/types/chromecast-events";
-import { DisplayEvent } from "../timer.events";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent, ResultSpan } from "@/core/timer.types";
 import { Subject } from "rxjs/internal/Subject";
+import { DisplayEvent } from "../events/timer.events";
 
 export class StartTimerAction implements IRuntimeAction {
     constructor(
@@ -15,11 +14,7 @@ export class StartTimerAction implements IRuntimeAction {
             }
             
             console.log('StartTimerAction: Adding event to runtime.current.events', this.event);
-            runtime.events.push({ ...this.event, 
-                blockId: runtime.current.blockId, 
-                blockKey: runtime.current.blockKey 
-            });                        
-    
+            
             const currentLap = runtime.current.laps.length > 0
              ? runtime.current.laps[runtime.current.laps.length - 1]
              : undefined;

@@ -1,7 +1,7 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
-import { GotoEvent, StartEvent } from "../timer.events";
+import { GotoEvent, StartEvent } from "../events/timer.events";
 
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';

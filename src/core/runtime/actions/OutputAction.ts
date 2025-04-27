@@ -1,16 +1,33 @@
-import { ChromecastEventType } from "@/cast";
-import { OutputEvent } from "@/cast/types/chromecast-events";
-import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, IRuntimeLog, OutputEventType, ISpanDuration } from "@/core/timer.types";
 import { Subject } from "rxjs";
 
-
 export abstract class OutputAction implements IRuntimeAction {
-    name: string = 'output';
-    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>) {
+    constructor(public eventType: OutputEventType, public bag: { [key: string]: any }) {
+        this.name = `out:${eventType}`;        
+    }
+    name: string;    
+    apply(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>) {
         output.next({
-            eventType: ChromecastEventType.Output,
-            bag: {},
+            eventType: this.eventType,
+            bag: this.bag,
             timestamp: new Date()
         });
     }
+}
+
+export class WriteLogAction extends OutputAction {
+    constructor(log: IRuntimeLog) {
+        super('WRITE_LOG', { log });        
+    }    
+}
+
+export class SetClockAction extends OutputAction {    
+    constructor(duration: ISpanDuration, target: string) {
+        super('SET_CLOCK', { duration, target });        
+    }    
+}
+export class SetTextAction extends OutputAction {    
+    constructor(text: string, target: string) {
+        super('SET_TEXT', { text, target });        
+    }    
 }

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ChromecastEventType, OutputEvent } from './types/chromecast-events';
 import { WodTimer } from '@/components/clock/WodTimer';
 
 import { Observable, Subscription } from 'rxjs';
 import { cn } from '@/core/utils';
-import { IDuration } from '@/core/timer.types';
+import { IDuration, OutputEvent } from '@/core/timer.types';
 
 export interface CastReceiverProps {
   event$: Observable<OutputEvent>;
@@ -32,7 +31,7 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
       });
 
       switch (event.eventType) {
-        case ChromecastEventType.SET_DISPLAY:
+        case 'SET_DISPLAY':
           console.log("[CastReceiver] SET_DISPLAY event, updating display:", event.bag);
           setDisplay({
             primary: event.bag.spans ? event.bag.spans[0] : { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
@@ -40,11 +39,11 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
             bag: { totalTime: event.bag.totalTime ? event.bag.totalTime : { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 } },
           });
           break;
-        case ChromecastEventType.SET_SOUND:
-        case ChromecastEventType.SET_DEBUG:
-        case ChromecastEventType.SET_ERROR:
-        case ChromecastEventType.HEARTBEAT:
-        case ChromecastEventType.SET_IDLE:
+        case 'SET_SOUND':
+        case 'SET_DEBUG':
+        case 'SET_ERROR':
+        case 'HEARTBEAT':
+        case 'SET_IDLE':
           // Handle other event types as needed
           break;
         default:

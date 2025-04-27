@@ -4,7 +4,7 @@ import { startButton, resetButton, endButton, saveButton } from "./timerButtons"
 import { Subject } from "rxjs";
 
 interface RunnerControlsProps {
-  input: React.MutableRefObject<Subject<IRuntimeEvent> | undefined>;  
+  input: Subject<IRuntimeEvent> | undefined;  
   state: string;
 }
 
@@ -54,7 +54,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
   const clickEvent = (button: ActionButton) => {
     const events = button.onClick();    
     for (const event of events) {
-      input?.current?.next(event);
+      input?.next(event);
     }
   };
 

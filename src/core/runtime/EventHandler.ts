@@ -1,4 +1,5 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction} from "../timer.types";
+import { WriteLogAction } from "./actions/OutputAction";
 
 export abstract class EventHandler {
   protected abstract eventType: string;
@@ -9,22 +10,18 @@ export abstract class EventHandler {
   // New public apply method that filters events by type
   public apply(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     if (event.name === this.eventType) {
-      if (event.name !== "tick") {
-        console.log('EventHandler apply triggered for event:', event);      
+      const log = [];
+      if (event.name !== "tick") {        
         if (runtime.current && runtime.current.type == 'active') {
-          
-          // TODO: pipe from here to output instead of runtime block 
-          // (runtime block doesn't need these later) but the events are important
-          // to analytics.
-          
-          runtime.events.push({ ...event, 
+          log.push(new WriteLogAction({ ...event, 
             blockId: runtime.current.blockId, 
             blockKey: runtime.current.blockKey 
-          });         
+          }));
         }
       }
-
-      return this.handleEvent(event, runtime);
+      return [ 
+        ...log,
+        ...this.handleEvent(event, runtime)];
     }
     return [];
   }

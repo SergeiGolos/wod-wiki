@@ -1,6 +1,6 @@
 import { ChromecastEvent } from "@/cast";
 import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
-import { GotoEvent } from "../timer.events";
+import { GotoEvent } from "../events/timer.events";
 import { Subject } from "rxjs";
 
 

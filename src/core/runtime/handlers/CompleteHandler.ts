@@ -2,7 +2,7 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
-import { NextStatementEvent } from "../timer.events";
+import { NextStatementEvent } from "../events/timer.events";
 
 export class CompleteHandler extends EventHandler {
   protected eventType: string = 'complete';

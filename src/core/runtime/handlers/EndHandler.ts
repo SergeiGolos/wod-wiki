@@ -6,7 +6,7 @@ import {
 import { CompleteStatementAction } from "../actions/IdleStatementAction";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-import { SetButtonAction } from "../actions/SetButtonAction";
+//import { SetButtonAction } from "../actions/SetButtonAction";
 
 export class EndHandler extends EventHandler {
   protected eventType: string = "end";
@@ -19,7 +19,7 @@ export class EndHandler extends EventHandler {
     return [
       new StopTimerAction({ name: "stop", timestamp: event.timestamp }),
       new CompleteStatementAction(),
-      new SetButtonAction(event, []),
+      //new SetButtonAction(event, []),
     ];
   }
 }
