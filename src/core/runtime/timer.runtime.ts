@@ -64,4 +64,10 @@ export class TimerRuntime implements ITimerRuntimeIo {
     // todo: make this work
     return this.current = this.jit.compile(this, children, this.trace);
   }
+
+  reset(): void {
+    this.events = [];
+    this.current = this.jit.compile(this, [], this.trace);    
+    this.trace?.clear();
+  }
 }

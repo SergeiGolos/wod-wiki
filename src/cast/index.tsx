@@ -1,6 +1,6 @@
 
 export { ChromecastEventType } from './types/chromecast-events';
-export type {ChromecastEvent} from './types/chromecast-events';
+export type {OutputEvent as ChromecastEvent} from './types/chromecast-events';
 
 
 // Protocol version for backward compatibility

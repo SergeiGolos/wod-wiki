@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BehaviorSubject } from 'rxjs';
-import { ChromecastEvent } from '../types/chromecast-events';
+import { OutputEvent } from '../types/chromecast-events';
 import { CAST_NAMESPACE } from '../types/chromecast-events';
 
 export interface ChromecastState {
@@ -15,7 +15,7 @@ export interface UseCastSenderResult {
   state$: BehaviorSubject<ChromecastState>;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  sendMessage: (event: ChromecastEvent) => Promise<void>;
+  sendMessage: (event: OutputEvent) => Promise<void>;
 }
 
 /**
@@ -112,7 +112,7 @@ export function useCastSender(): UseCastSenderResult {
     }
   }, []);
 
-  const sendMessage = useCallback(async (event: ChromecastEvent) => {
+  const sendMessage = useCallback(async (event: OutputEvent) => {
     if (!state.isConnected) return;
     if (!window.cast || !window.cast.framework || !window.cast.framework.CastContext) return;
     const context = window.cast.framework.CastContext.getInstance();

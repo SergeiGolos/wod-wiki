@@ -11,7 +11,7 @@ export { SoundProvider, useSound } from './contexts/SoundContext';
 export { SoundToggle } from './components/buttons/SoundToggle';
 export { WodWikiProviders } from './components/providers/WodWikiProviders';
 
-export type { ChromecastEvent } from './cast/types/chromecast-events';
+export type { OutputEvent as ChromecastEvent } from './cast/types/chromecast-events';
 export { ChromecastEventType, CAST_NAMESPACE } from './cast/types/chromecast-events';
 export { CastReceiver } from './cast/CastReceiver';
 export { CastHostContainer as CastHost } from './stories/components/CastHostContainer';

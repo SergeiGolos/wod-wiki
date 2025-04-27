@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { Subject } from 'rxjs';
-import { ChromecastEvent } from '../types/chromecast-events';
+import { OutputEvent } from '../types/chromecast-events';
 
 export interface UseCastReceiverResult {
-  event$: Subject<ChromecastEvent>;
+  event$: Subject<OutputEvent>;
 }
 
 /**
@@ -12,7 +12,7 @@ export interface UseCastReceiverResult {
  * Note: This is a stub for sender-side dev/testing; real receiver logic is for the receiver project.
  */
 export function useCastReceiver(): UseCastReceiverResult {
-  const event$ = new Subject<ChromecastEvent>();
+  const event$ = new Subject<OutputEvent>();
 
   useEffect(() => {
     // This hook is a stub in this project; real receiver logic is implemented in the receiver app.

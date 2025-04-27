@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { ChromecastEvent, ChromecastEventType } from '../types/chromecast-events';
+import { OutputEvent, ChromecastEventType } from '../types/chromecast-events';
 import { UseCastReceiverResult } from './useCastReceiver';
 import { UseCastSenderResult } from './useCastSender';
 
@@ -26,7 +26,7 @@ export function useLocalCast(): UseCastResult {
     deviceName: 'LocalCast',
     error: null,
   });
-  const event$ = new Subject<ChromecastEvent>();
+  const event$ = new Subject<OutputEvent>();
 
   useEffect(() => {
     // Optionally: emit a handshake event or other simulated events on mount
@@ -61,7 +61,7 @@ export function useLocalCast(): UseCastResult {
     }));
   };
 
-  const sendMessage : ((event: ChromecastEvent) => Promise<void>) = (event) => {
+  const sendMessage : ((event: OutputEvent) => Promise<void>) = (event) => {
     return Promise.resolve(event$.next(event));
   }
 

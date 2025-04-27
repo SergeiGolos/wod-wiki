@@ -1,4 +1,4 @@
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types";
 import { Subject } from "rxjs";
 
@@ -6,7 +6,7 @@ import { Subject } from "rxjs";
 export class GoToStatementAction implements IRuntimeAction {
   constructor(public blockId: number) { }
   name: string = 'goto';
-  apply(runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>): void {
+  apply(runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>): void {
     const blocks = runtime.script.nodes;
     const block = blocks.find(block => block.id === this.blockId);
 

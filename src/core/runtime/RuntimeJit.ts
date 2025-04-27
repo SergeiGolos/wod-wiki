@@ -24,7 +24,6 @@ import { EffortFragment } from "../fragments/EffortFragment";
 import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
 import { IdleRuntimeBlock } from "./blocks/IdleRuntimeBlock";
 
-
 export class RuntimeJit {
   handlers: EventHandler[] = [
     new TickHandler(),

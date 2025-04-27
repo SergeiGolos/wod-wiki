@@ -11,6 +11,7 @@ export class ResetAction implements IRuntimeAction {
     }
     name: string = 'reset';
     apply(_runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>): void {
+        _runtime.reset();        
         input.next(new GotoEvent(this.event.timestamp, -1));
     }
 }

@@ -11,13 +11,13 @@ import { SoundProvider } from "@/contexts/SoundContext";
 import { ScreenProvider } from "@/contexts/ScreenContext";
 import { encodeShareString } from "@/core/utils/shareUtils";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 
 interface EditorContainerProps {
   id: string;
   code: string;
   className?: string;
-  outbound?: (event: ChromecastEvent) => Promise<void>;
+  outbound?: (event: OutputEvent) => Promise<void>;
   /**
    * Optional callback when script is compiled
    */

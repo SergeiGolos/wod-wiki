@@ -7,6 +7,11 @@ export class RuntimeTrace {
   private trace: Map<number, [number, number]> = new Map();
   public history: StatementKey[] = [];
 
+  clear(): void {
+    this.trace.clear();
+    this.history = [];
+  }
+
   get(id: number): number {
     return this.trace.get(id)?.[0] ?? 0;
   }
@@ -48,5 +53,5 @@ export class RuntimeTrace {
     }
 
     return key;
-  }
+  } 
 }

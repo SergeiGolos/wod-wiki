@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChromecastEventType, ChromecastEvent } from './types/chromecast-events';
+import { ChromecastEventType, OutputEvent } from './types/chromecast-events';
 import { WodTimer } from '@/components/clock/WodTimer';
 
 import { Observable, Subscription } from 'rxjs';
@@ -7,7 +7,7 @@ import { cn } from '@/core/utils';
 import { IDuration } from '@/core/timer.types';
 
 export interface CastReceiverProps {
-  event$: Observable<ChromecastEvent>;
+  event$: Observable<OutputEvent>;
   className?: string;
 }
 
@@ -23,7 +23,7 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
   // Subscribe to the ChromecastEvent observable
   useEffect(() => {
     console.log("[CastReceiver] Subscribing to event$");
-    const sub: Subscription = event$.subscribe((event : ChromecastEvent) => {
+    const sub: Subscription = event$.subscribe((event : OutputEvent) => {
       console.log("[CastReceiver] Event received:", event);
       setReceivedMessages(prev => {
         const updated = [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: JSON.stringify(event.bag) }];

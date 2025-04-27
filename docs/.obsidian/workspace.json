@@ -169,11 +169,12 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
-    "width": 412.5
+    "width": 200
   },
   "right": {
     "id": "249689aca2c55076",
@@ -265,7 +266,7 @@
       "card-board:CardBoard": false
     }
   },
-  "active": "2862666687f2c8b4",
+  "active": "5157ba50043eda6c",
   "lastOpenFiles": [
     "Welcome.md",
     "docs/Syntax.md",

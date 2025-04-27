@@ -1,4 +1,4 @@
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 import {
   IRuntimeAction,
   ITimerRuntime,
@@ -9,7 +9,7 @@ import { Subject } from "rxjs";
 export class GotoStatementAction implements IRuntimeAction {
   constructor(public blockId: number) {}
   name: string = "goto";
-  apply(runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>) : IRuntimeEvent[] {
+  apply(runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>) : IRuntimeEvent[] {
        
     // TODO this should be in the trace object.
     const blocks = runtime.script.nodes;

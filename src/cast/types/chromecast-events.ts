@@ -26,9 +26,9 @@ export enum ChromecastEventType {
 
 export class ReceiverEvent implements ChromecastReceiverEvent {
   status: string;
-  message: ChromecastEvent;
+  message: OutputEvent;
   timestamp: Date;
-  constructor(status: string, message: ChromecastEvent) {
+  constructor(status: string, message: OutputEvent) {
     this.status = status;
     this.message = message;
     this.timestamp = new Date();
@@ -38,17 +38,17 @@ export class ReceiverEvent implements ChromecastReceiverEvent {
 export interface ChromecastReceiverEvent
 {
     status: string;
-    message: ChromecastEvent;
+    message: OutputEvent;
     timestamp: Date;
 }
 // ======== Base Event Interface ========
-export interface ChromecastEvent {
+export interface OutputEvent {
   eventType: ChromecastEventType;
   timestamp: Date
   bag: { [key: string]: any };
 }
 
-export class SetDisplayEvent implements ChromecastEvent {
+export class SetDisplayEvent implements OutputEvent {
   constructor(spans: ResultSpan[]) {
     this.timestamp = new Date();    
     this.bag = { spans };
@@ -57,7 +57,7 @@ export class SetDisplayEvent implements ChromecastEvent {
   timestamp: Date;  
   bag: { [key: string]: any; }  
 }
-export abstract class ToggleEvent implements ChromecastEvent {  
+export abstract class ToggleEvent implements OutputEvent {  
   constructor(type: ChromecastEventType, enabled: boolean) {
     this.timestamp = new Date();    
     this.eventType = type;
@@ -78,7 +78,7 @@ export class SetDebugEvent extends ToggleEvent {
   }
 }
 
-export class SetErrorEvent implements ChromecastEvent {
+export class SetErrorEvent implements OutputEvent {
   constructor(errorCode: string, message: string) {
     this.timestamp = new Date();    
     this.eventType = ChromecastEventType.SET_ERROR;

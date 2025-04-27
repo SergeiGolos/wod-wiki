@@ -1,4 +1,4 @@
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { DisplayEvent } from "../timer.events";
 import { Subject } from "rxjs/internal/Subject";
@@ -9,7 +9,7 @@ export class StopTimerAction implements IRuntimeAction {
     ) {        
     }
     name: string = 'stop';
-    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<ChromecastEvent>) {        
+    apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>) {        
         if (!runtime.current) {
             return;
         }

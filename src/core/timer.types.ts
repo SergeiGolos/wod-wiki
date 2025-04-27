@@ -1,7 +1,7 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { RuntimeTrace } from "./RuntimeTrace";
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 
 export const Diff = {  
@@ -74,6 +74,36 @@ export class Duration implements IDuration {
   }
 }
 
+export interface ITimeSpan { 
+  start?: IRuntimeEvent;
+  stop?: IRuntimeEvent;
+}
+
+export class TimeSpanDuration extends Duration implements ISpanDuration {
+  constructor(milliseconds: number, public spans: ITimeSpan[]) {
+    super(milliseconds);
+    this.spans = spans;
+  }
+
+  elapsed(): IDuration {  
+    return new Duration(this.spans.reduce((total, span) => {
+      const start = span.start?.timestamp ?? new Date();
+      const stop = span.stop?.timestamp ?? new Date();
+      return total + (stop.getTime() - start.getTime());
+    }, 0));
+  }
+
+  remaining(): IDuration {
+    return new Duration((this.original ?? 0) - (this.elapsed()?.original ?? 0))      
+  }   
+}
+
+export interface ISpanDuration extends IDuration { 
+  spans: ITimeSpan[]
+  elapsed(): IDuration;
+  remaining(): IDuration;
+}
+
 export interface IDuration {
   original?: number;
   days?: number;
@@ -89,7 +119,7 @@ export interface IRuntimeAction {
   apply(
     runtime: ITimerRuntime,
     input: Subject<IRuntimeEvent>, 
-    output: Subject<ChromecastEvent>
+    output: Subject<OutputEvent>
   ): void;
 }
 
@@ -145,17 +175,18 @@ export type RuntimeState =
 export interface ITimerRuntimeIo extends ITimerRuntime {
   input$: Subject<IRuntimeEvent>;
   tick$: Observable<IRuntimeEvent>;
-  output$: Observable<ChromecastEvent>;  
+  output$: Observable<OutputEvent>;  
 }
 
 export interface ITimerRuntime {
   code: string;  
   events: IRuntimeLog[];
   jit: RuntimeJit;
-  trace: RuntimeTrace | undefined;
+  trace: RuntimeTrace | undefined;  
   script: RuntimeStack;  
   current: IRuntimeBlock | undefined;  
   goto(block: StatementNode | undefined): IRuntimeBlock | undefined;
+  reset(): void;
 }
 
 /**
@@ -283,7 +314,7 @@ export class ResultSpan {
   blockKey?: string;
   index?: number;
   stack?: number[];
-  start?: IRuntimeEvent;
+  star?: IRuntimeEvent;
   stop?: IRuntimeEvent;
   metrics: RuntimeMetric[] = [];
   label?: string;

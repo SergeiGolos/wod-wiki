@@ -5,7 +5,7 @@ import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { RuntimeTrace } from "@/core/RuntimeTrace";
 import { Subject } from "rxjs";
-import { ChromecastEvent } from "@/cast/types/chromecast-events";
+import { OutputEvent } from "@/cast/types/chromecast-events";
 import { NotifyRuntimeAction } from "@/core/runtime/actions/NotifyRuntimeAction";
 
 /**
@@ -24,7 +24,7 @@ export function useTimerRuntime({
   
   const runtimeRef = useRef<TimerRuntime>();  
   const inputRef = useRef<Subject<IRuntimeEvent>>();
-  const outputRef = useRef<Subject<ChromecastEvent>>();
+  const outputRef = useRef<Subject<OutputEvent>>();
 
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
 
