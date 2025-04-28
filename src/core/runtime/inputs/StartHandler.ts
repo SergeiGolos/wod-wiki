@@ -3,7 +3,7 @@ import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { completeButton, pauseButton } from "@/components/buttons/timerButtons";
+import { endButton, pauseButton } from "@/components/buttons/timerButtons";
 
 
 export class StartHandler extends EventHandler {
@@ -12,8 +12,9 @@ export class StartHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StartTimerAction(event),   
+      
       new SetClockAction(_runtime.current!, "primary"),
-      new SetButtonsAction([pauseButton, completeButton], "system"),
+      new SetButtonsAction([endButton, pauseButton], "system"),      
     ];
   }
 }
