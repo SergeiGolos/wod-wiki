@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeSync, ResultSpan, StatementNode, RuntimeMetric, ActionButton, IDuration } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeSync, ResultSpan, StatementNode, RuntimeMetric, IActionButton, IDuration } from "@/core/timer.types";
 import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 
@@ -18,7 +18,7 @@ export class RuntimeBlock implements IRuntimeBlock {
   
   public duration: IDuration = { original: 0, sign: "+", hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
   
-  public buttons: ActionButton[] = [];
+  public buttons: IActionButton[] = [];
   public blockId: number;
   public nextId?: number;
   /**

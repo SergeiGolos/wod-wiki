@@ -2,7 +2,7 @@ import React from 'react';
 import { Switch } from '@headlessui/react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/outline';
 import { useSound } from '@/contexts/SoundContext';
-import { ActionButton, IRuntimeEvent } from '@/core/timer.types';
+import { IActionButton, IRuntimeEvent } from '@/core/timer.types';
 
 interface SoundToggleProps {
   className?: string;
@@ -39,7 +39,7 @@ export const SoundToggle: React.FC<SoundToggleProps> = ({ className = '' }) => {
 /**
  * Creates a button config for the sound toggle
  */
-export const createSoundToggleButton = (): ActionButton => {
+export const createSoundToggleButton = (): IActionButton => {
   const { soundEnabled } = useSound();
   
   return {

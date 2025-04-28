@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { startButton, resetButton, endButton, saveButton } from "./timerButtons";
 import { Subject } from "rxjs";
 
@@ -14,7 +14,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
 }) => {
   // Canonical mapping of state to control buttons
   
-  const [buttons, setButtons] = useState<ActionButton[]>([]);
+  const [buttons, setButtons] = useState<IActionButton[]>([]);
 
   
   useEffect(() => {
@@ -37,7 +37,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
     }
   }, [state]);
 
-  const getButtonStyle = (button: ActionButton) => {
+  const getButtonStyle = (button: IActionButton) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-md transition-all ";
     
     if (button.variant === 'success') {
@@ -51,7 +51,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
     return baseStyle + "bg-white text-blue-600 hover:bg-blue-50 border border-blue-200";
   };
 
-  const clickEvent = (button: ActionButton) => {
+  const clickEvent = (button: IActionButton) => {
     const events = button.onClick();    
     for (const event of events) {
       input?.next(event);
@@ -61,7 +61,7 @@ export const RunnerControls: React.FC<RunnerControlsProps> = ({
   return (    
       <div className="flex space-x-2">
         {/* Control buttons */}
-        {buttons.map((button: ActionButton, index: number) => (
+        {buttons.map((button: IActionButton, index: number) => (
           <button
             key={`control-${index}`}
             onClick={() => clickEvent(button)}

@@ -1,10 +1,10 @@
 import React from "react";
-import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { cn } from "@/core/utils";
 
 
 interface ButtonRibbonProps {
-  buttons: ActionButton[] | undefined;  
+  buttons: IActionButton[] | undefined;  
   setEvent: (events: IRuntimeEvent) => void;
 }
 
@@ -12,7 +12,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
   
   
   /// TODO:  THis should be conifugred at the button not in the ribben
-  const getButtonStyle = (button: ActionButton) => {
+  const getButtonStyle = (button: IActionButton) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-md transition-all ";
     
     if (button.variant === 'success') {
@@ -26,9 +26,9 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
     return baseStyle + "bg-white text-blue-600 hover:bg-blue-50 border border-blue-200";
   };
 
-  const clickEvent = (button: ActionButton) => {
-    const events = button.onClick();    
-    events.forEach(event => setEvent(event));
+  const clickEvent = (button: IActionButton) => {
+    const event = button.event;
+    setEvent({ name: event, timestamp: new Date() });
   }
 
   return (

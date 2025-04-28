@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { useScreen } from "@/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
@@ -34,7 +34,7 @@ export const ScreenOnToggle: React.FC = () => {
  * Factory function to create a button config for the ScreenOnToggle
  * that can be used in the ButtonRibbon component
  */
-export function createScreenOnToggleButton(): ActionButton {
+export function createScreenOnToggleButton(): IActionButton {
   const { screenOnEnabled, toggleScreenOn } = useScreen();
 
   return {

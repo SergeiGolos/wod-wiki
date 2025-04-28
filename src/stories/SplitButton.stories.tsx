@@ -3,7 +3,7 @@ import '../index.css';
 import { useState } from 'react';
 import { SplitButton, SplitButtonOption } from '../components/buttons/SplitButton';
 import { PlayIcon, StarIcon } from "@heroicons/react/24/solid";
-import { ActionButton, IRuntimeEvent } from '@/core/timer.types';
+import { IActionButton, IRuntimeEvent } from '@/core/timer.types';
 
 // Create a wrapper component for demonstration
 const SplitButtonDemo = () => {
@@ -11,7 +11,7 @@ const SplitButtonDemo = () => {
   const [lastAction, setLastAction] = useState<string>('No action taken');
 
   // Define the main action
-  const mainAction: ActionButton = {
+  const mainAction: IActionButton = {
     label: "Primary",
     icon: PlayIcon,
     onClick: () => {
@@ -52,7 +52,7 @@ const SplitButtonDemo = () => {
   ];
 
   // Define a custom action and options for variant demonstration
-  const customAction: ActionButton = {
+  const customAction: IActionButton = {
     label: "Custom",
     icon: StarIcon,
     onClick: () => {

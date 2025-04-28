@@ -267,7 +267,7 @@ export interface RuntimeBlockHandler {
   apply: (event: IRuntimeEvent, runtime: ITimerRuntime) => IRuntimeAction[];
 }
 
-export interface ActionButton {
+export interface IActionButton {
   label?: string;
   icon: React.ForwardRefExoticComponent<
     React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & {
@@ -275,7 +275,7 @@ export interface ActionButton {
       titleId?: string;
     } & React.RefAttributes<SVGSVGElement>
   >;
-  onClick: () => IRuntimeEvent[];
+  event: string;
   isActive?: boolean;
   variant?: "primary" | "secondary" | "success";
 }

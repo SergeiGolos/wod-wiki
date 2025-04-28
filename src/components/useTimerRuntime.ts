@@ -26,8 +26,8 @@ export function useTimerRuntime({
 }: UseTimerRuntimeProps = {}) {
   
   const runtimeRef = useRef<TimerRuntime>();  
-  const inputRef = new Subject<IRuntimeEvent>();
-  const outputRef = new Subject<OutputEvent>();
+  const inputRef = useRef<Subject<IRuntimeEvent>>(new Subject());
+  const outputRef = useRef<Subject<OutputEvent>>(new Subject());
 
   const [script, loadScript] = useState<WodRuntimeScript | undefined>();
 
@@ -55,7 +55,9 @@ export function useTimerRuntime({
       const stack = new RuntimeStack(script.statements);
       const trace = new RuntimeTrace();
       // Create the timer runtime      
-      runtimeRef.current = new TimerRuntime(script.source, stack, jit, inputRef, outputRef, trace);      
+      runtimeRef.current = new TimerRuntime(
+        script.source, stack, jit, inputRef.current, outputRef.current, trace
+      );      
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
       cleanUp();
@@ -66,7 +68,7 @@ export function useTimerRuntime({
   return {
     loadScript: handleLoadScript,
     runtimeRef,
-    input: inputRef,
-    output: outputRef,
+    input: inputRef.current,
+    output: outputRef.current,
   };
 }
