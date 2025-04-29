@@ -49,7 +49,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   const [total, setTotal] = useClockDisplaySync("total");
   const [label, setLabel] = useState<string>("Round");
   const [results, setResults] = useLocalResultSync();
-  const [cursor, setCursor] = useLocalCursorSync();
+  const [cursor, setCursor] = useLocalCursorSync();  
   const [systemButtons, setSystemButtons] = useButtonSync("system");
   const [runtimeButtons, setRuntimeButtons] = useButtonSync("runtime");
 
@@ -63,7 +63,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   };
 
   useEffect(() => {      
-    const dispose = output?.subscribe((event) => {      
+    const dispose = output?.subscribe((event) => {        
       setPrimary(event);
       setTotal(event);
       setResults(event);

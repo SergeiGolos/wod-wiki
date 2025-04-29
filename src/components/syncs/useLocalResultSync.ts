@@ -3,14 +3,14 @@ import { useState } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 
 export function useLocalResultSync(): EventSyncResult<ResultSpan[]> {
+    
     const [results, setResults] = useState<ResultSpan[]>([]);
-    const sync = (runtimeBlock: OutputEvent) => {
-        console.log("LocalResultSync write:", runtimeBlock);
-        if (runtimeBlock.eventType !== "RESULT_UPDATED") {
+    const sync = (evnt: OutputEvent) => {
+        if (evnt.eventType !== "WRITE_RESULT" || !evnt.bag?.result) {
             return;
         }
 
-        setResults(runtimeBlock.bag?.results ?? []); //so some math.
+        setResults([...results, evnt.bag.result]); //so some math.
     };
 
     return [results, sync];

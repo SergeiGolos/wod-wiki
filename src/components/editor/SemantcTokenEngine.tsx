@@ -17,7 +17,7 @@ export class SemantcTokenEngine {
     return this.tokenTypes.indexOf(type);
   }
 
-  write(code: string, objectCode?: WodRuntimeScript) {
+  write(_code: string, objectCode?: WodRuntimeScript) {
     if (!objectCode || !objectCode.statements) {
       return this.cache;
     }

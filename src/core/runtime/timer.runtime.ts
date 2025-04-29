@@ -36,7 +36,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     
     const loggedInput = this.input$.pipe(
       tap((event) => {
-        console.debug(`::handle[- ${event.name} -]`, this.current);
+        console.debug(`::handle[- ${event.name} -]`, this.current);        
       }));
 
     this.dispose = merge(loggedInput, this.tick$)

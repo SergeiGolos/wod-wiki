@@ -13,10 +13,8 @@ export abstract class EventHandler {
       const log = [];
       if (event.name !== "tick") {        
         if (runtime.current && runtime.current.type == 'active') {
-          log.push(new WriteLogAction({ ...event, 
-            blockId: runtime.current.blockId, 
-            blockKey: runtime.current.blockKey 
-          }));
+          const outLog = runtime.trace?.log(event);          
+          log.push(new WriteLogAction(outLog));
         }
       }
       return [ 

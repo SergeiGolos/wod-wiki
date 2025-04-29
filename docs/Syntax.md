@@ -18,7 +18,7 @@ The parsing follows a standard compiler pipeline approach:
 
 The `wodBlock` rule in the parser defines how different fragments can be combined on a single line or within a block.
 
-![[Syntax-Visitor-Workflow]]
+![[Syntax-Visitor-Workflow | width:100%]]
 
 ## Statement Structure
 

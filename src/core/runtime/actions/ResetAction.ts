@@ -1,6 +1,5 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "@/core/timer.types";
 import { Subject } from "rxjs";
-
 
 export class ResetAction implements IRuntimeAction {
     constructor(
@@ -8,8 +7,7 @@ export class ResetAction implements IRuntimeAction {
     ) {
     }
     name: string = 'reset';
-    apply(_runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<ChromecastEvent>): void {
-        _runtime.reset();        
-        input.next(new GotoEvent(this.event.timestamp, -1));
+    apply(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>): void {
+        _runtime.reset(); 
     }
 }

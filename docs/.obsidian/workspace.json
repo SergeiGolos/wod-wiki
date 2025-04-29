@@ -50,16 +50,6 @@
             }
           },
           {
-            "id": "a530fb68ccfc6c6c",
-            "type": "leaf",
-            "state": {
-              "type": "card-board-view",
-              "state": {},
-              "icon": "card-board",
-              "title": "CardBoard"
-            }
-          },
-          {
             "id": "c6f1868005ebc40a",
             "type": "leaf",
             "state": {
@@ -130,17 +120,25 @@
             }
           },
           {
-            "id": "a3ce241051fd6a63",
+            "id": "5bc08f81c4e0e3dc",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "card-board-view",
+              "state": {},
+              "icon": "card-board",
+              "title": "CardBoard"
+            }
+          },
+          {
+            "id": "5e71866fe40be880",
+            "type": "leaf",
+            "state": {
+              "type": "excalidraw",
               "state": {
-                "file": "Core/Compile.md",
-                "mode": "source",
-                "source": false
+                "file": "Excalidraw/Group Behavior Expectations.md"
               },
-              "icon": "lucide-file",
-              "title": "Compile"
+              "icon": "excalidraw-icon",
+              "title": "Group Behavior Expectations"
             }
           }
         ],
@@ -201,7 +199,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 452.5
   },
   "right": {
     "id": "249689aca2c55076",
@@ -293,10 +291,55 @@
       "card-board:CardBoard": false
     }
   },
-  "active": "a3ce241051fd6a63",
+  "floating": {
+    "id": "03df7c62f5d31d24",
+    "type": "floating",
+    "children": [
+      {
+        "id": "20d8d27cbf37108c",
+        "type": "window",
+        "children": [
+          {
+            "id": "d3a13235683e1f0e",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "f82172b5e228db9a",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "Working/2025-04-17.KB.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "2025-04-17.KB"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "vertical",
+        "x": -1707,
+        "y": 0,
+        "width": 1563,
+        "height": 912,
+        "maximize": false,
+        "zoom": 0
+      }
+    ]
+  },
+  "active": "5e71866fe40be880",
   "lastOpenFiles": [
-    "Reports/2025-04-27-rxjs-message-pump.md",
+    "Working/2025-04-17.KB.md",
+    "Excalidraw/Group Behavior Expectations.md",
+    "Working/2025-04-28.monaco-migration-notes.md",
+    "Working/2025-04-28.KB.md",
+    "Working/2025.04-19.chromecasting-push.md",
+    "Working/2025-04-14.pause-resume-duration-design.md",
     "Core/Compile.md",
+    "Reports/2025-04-27-rxjs-message-pump.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
     "README.md.md",
@@ -320,15 +363,9 @@
     "docs/Components/RuntimeFlow_backup.md",
     "worklog/2025-04-26.work_clock_actions.md",
     "Working/2025-04-26.KB.md",
-    "Working/2025.04-19.chromecasting-push.md",
-    "docs/Components/ChromecastHooks.md",
     "docs/Components",
-    "Notes/Chromecast Events.md",
-    "Architecture/TimerStateMachine.md",
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas",
-    "Refactoring the WOD Wiki Timer Architecture.md",
-    "Stack.md",
     "Releases",
     "Excalidraw/Data-Structure-Transformations.excalidraw",
     "Excalidraw/User-Input-Events.excalidraw",

@@ -1,16 +1,33 @@
-import { StatementKey, StatementNode } from "../timer.types";
+import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog, StatementKey, StatementNode } from "../timer.types";
 
 /**
  * Represents a runtime trace of a program.
  */
+
+
+
+
+
+
 export class RuntimeTrace {
   private trace: Map<number, [number, number]> = new Map();
-  public history: StatementKey[] = [];
+  public history: StatementTrace[] = [];
 
   clear(): void {
     this.trace.clear();
     this.history = [];
   }
+
+  public log(event: IRuntimeEvent, current: IRuntimeBlock): IRuntimeLog {
+    const item = { ...event, 
+      blockId: current.blockId, 
+      blockKey: current.blockKey 
+    }
+    this.history.push(item);
+
+    return item;
+  }
+
 
   get(id: number): number {
     return this.trace.get(id)?.[0] ?? 0;

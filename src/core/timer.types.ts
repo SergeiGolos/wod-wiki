@@ -2,6 +2,7 @@ import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { RuntimeTrace } from "./runtime/RuntimeTrace";
 import { RuntimeJit } from "./runtime/RuntimeJit";
+import { EventHandler } from "./runtime/EventHandler";
 
 export type DurationSign = "+" | "-";
 
@@ -99,7 +100,7 @@ export interface WodWikiToken {
   token: string;
   foreground: string;
   fontStyle?: string;
-  hints: WodWikiTokenHint[];
+  hints?: WodWikiTokenHint[];
 }
 
 export interface WodWikiTokenHint {
@@ -128,14 +129,15 @@ export type OutputEventType =
   | 'SYSTEM'  
   | 'HEARTBEAT'  
   | 'WRITE_LOG'
+  | 'WRITE_RESULT'
   | 'SET_DISPLAY'
   | 'SET_CLOCK'
   | 'SET_TEXT'
   | 'SET_SOUND'
   | 'SET_DEBUG'
   | 'SET_ERROR'
-  | 'SET_IDLE'
-  | 'RESULT_UPDATED';
+  | 'SET_IDLE';
+  
 
 export interface OutputEvent {
   eventType: OutputEventType;
@@ -184,6 +186,9 @@ export interface StatementFragment {
   type: string;
   meta?: SourceCodeMetadata;  
 }
+
+
+
 
 export class StatementKey extends Map<number, number> {
   public key: string;
@@ -248,7 +253,7 @@ export interface IRuntimeBlock {
   laps: ResultSpan[];  
   metrics: RuntimeMetric[];  
 
-  handlers: RuntimeBlockHandler[];
+  handlers: EventHandler[];
   
 
 }
@@ -262,10 +267,6 @@ export interface IRuntimeEvent {
   timestamp: Date;
   name: string;
 };
-
-export interface RuntimeBlockHandler {
-  apply: (event: IRuntimeEvent, runtime: ITimerRuntime) => IRuntimeAction[];
-}
 
 export interface IActionButton {
   label?: string;
