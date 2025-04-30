@@ -31,6 +31,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public output$: Subject<OutputEvent>,    
   ) {            
     this.trace = new RuntimeTrace();
+    this.next(this.jit.root(this));
     this.next(this.jit.idle(this));
 
     this.tick$ = interval(100).pipe(
@@ -38,7 +39,10 @@ export class TimerRuntime implements ITimerRuntimeIo {
     
     const loggedInput = this.input$.pipe(
       tap((event) => {
-        console.debug(`::handle[- ${event.name} -]`, this.trace.current());        
+        console.debug(
+          ` ----- ::handle:: [${event.name}]`,
+          this.trace.current()
+        );
       }));
 
     this.dispose = merge(loggedInput, this.tick$)
@@ -58,9 +62,8 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
   next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
     if (block) {
-      this.trace.push(block);
       block.parent = this.trace.current();
-      return block;
+      return this.trace.push(block);
     }
     
     let currentBlock = this.trace.pop();
@@ -78,7 +81,6 @@ export class TimerRuntime implements ITimerRuntimeIo {
     this.trace.push(nextBlock);
     return nextBlock;
   }
-
 
   /**
    * Resets the runtime to its initial state

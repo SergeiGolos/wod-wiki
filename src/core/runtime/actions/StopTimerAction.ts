@@ -8,17 +8,6 @@ import {
 import { DisplayEvent } from "../inputs/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
 
-export class PopTimerAction implements IRuntimeAction {
-  name: string = "pop";
-  apply(
-    runtime: ITimerRuntime,
-    _input: Subject<IRuntimeEvent>,
-    _output: Subject<OutputEvent>
-  ): void {
-    runtime.trace.pop();
-  }
-}
-
 export class StopTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}
   name: string = "stop";
@@ -41,11 +30,14 @@ export class StopTimerAction implements IRuntimeAction {
 
     if (currentLap && !currentLap.stop) {
       currentLap.stop = this.event;
+    }
 
+    const duration = block.duration();
+    if (duration != undefined) {
       input.next(
         new DisplayEvent(
           "primary",
-          new TimeSpanDuration(block.duration().original!, block.laps)
+          new TimeSpanDuration(duration.original!, block.laps)
         )
       );
     }

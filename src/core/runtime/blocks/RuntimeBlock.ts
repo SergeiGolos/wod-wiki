@@ -15,9 +15,9 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public metrics: RuntimeMetric[] = [];
   public buttons: IActionButton[] = [];
 
-  public duration(): IDuration {
-    console.log("Method not implemented.");
-    return new Duration(0);
+  public duration(): IDuration | undefined {
+    // console.log("Method not implemented.");
+    return undefined;
   }
   
   protected handlers: EventHandler[] = [];

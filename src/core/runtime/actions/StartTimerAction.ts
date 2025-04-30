@@ -21,29 +21,27 @@ export class StartTimerAction implements IRuntimeAction {
     if (!block) {
       return;
     }
-                           
+
     const currentLap =
-      block.laps.length > 0
-        ? block.laps[block.laps.length - 1]
-        : undefined;
-    
+      block.laps.length > 0 ? block.laps[block.laps.length - 1] : undefined;
+
     if (!currentLap || currentLap.stop) {
-        block.laps.push({
+      block.laps.push({
         blockKey: block.blockKey,
         start: this.event,
         stop: undefined,
         metrics: [],
       } as unknown as ResultSpan);
-
+    }
+    const duration = block.duration();
+    if (duration != undefined) {
       // TOTO : create the correc ttype of coutput event.
-    input.next(
-      new DisplayEvent(
-        "primary",
-        new TimeSpanDuration(block.duration().original!,
-            block.laps
+      input.next(
+        new DisplayEvent(
+          "primary",
+          new TimeSpanDuration(duration.original!, block.laps)
         )
-      )
-    );
+      );
     }
   }
 }

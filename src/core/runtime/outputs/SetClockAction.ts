@@ -10,8 +10,9 @@ export class SetDurationAction extends OutputAction {
 
 export class SetClockAction extends OutputAction {
     constructor(block: IRuntimeBlock, target: string) {
-        var duration = new TimeSpanDuration(
-            block.duration.original ?? 0, block.laps!);
-        super('SET_CLOCK', { duration, target: target });
+        const duration = block.duration();        
+        super('SET_CLOCK', { duration : new TimeSpanDuration(
+            duration?.original ?? 0, block.laps!)
+            , target: target });
     }
 }

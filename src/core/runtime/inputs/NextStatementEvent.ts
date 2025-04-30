@@ -6,6 +6,7 @@ import {
 import { EventHandler } from "../EventHandler";
 import { GoToStatementAction } from "../actions/GoToStatementAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
+import { GoToNextAction } from "../actions/GoToNextAction";
 
 export class NextStatementEvent implements IRuntimeEvent {
   constructor(timestamp?: Date, blockId?: number) {
@@ -22,15 +23,9 @@ export class NextStatementHandler extends EventHandler {
 
   protected handleEvent(
     _event: IRuntimeEvent,
-    runtime: ITimerRuntime,
+    _runtime: ITimerRuntime
   ): IRuntimeAction[] {
-    const block = runtime.next();
-    
-    if (!block) {
-      return [
-        new GotoEndAction()
-      ];
-    }
-    return [ ];
+      
+    return [ new GoToNextAction() ];
   }
 }

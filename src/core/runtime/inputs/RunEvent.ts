@@ -4,6 +4,8 @@ import { EventHandler } from "../EventHandler";
 import { StartEvent } from "./StartEvent";
 import { SetDurationAction } from "../outputs/SetClockAction";
 import { NextStatementEvent } from "./NextStatementEvent";
+import { StartTimerAction } from "../actions/StartTimerAction";
+import { GoToNextAction } from "../actions/GoToNextAction";
 
 // Runtime Execution
 
@@ -18,11 +20,12 @@ export class RunEvent implements IRuntimeEvent {
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';
 
-  protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
-    const actions: IRuntimeAction[] = [];
-    actions.push(new NotifyRuntimeAction(new NextStatementEvent(event.timestamp, 0)));
-    actions.push(new NotifyRuntimeAction(new StartEvent(event.timestamp)));
-    actions.push(new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"));
-    return actions;
+  protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+    
+    return [
+      new GoToNextAction(),
+      new StartTimerAction({ name: "start", timestamp: event.timestamp }),
+      new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"),    
+    ];
   }
 }

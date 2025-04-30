@@ -242,8 +242,8 @@ export interface IRuntimeBlock {
   parent?: IRuntimeBlock | undefined
   // Build once, current block and the parents.
 
-  duration(): IDuration;          
-  load(runtime: ITimerRuntime): IRuntimeEvent[];  
+  duration(): IDuration | undefined;          
+  load(runtime: ITimerRuntime): IRuntimeEvent[];
   handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[]
   next(runtime: ITimerRuntime): StatementNode | undefined;
   
