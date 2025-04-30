@@ -22,18 +22,15 @@ export class NextStatementHandler extends EventHandler {
 
   protected handleEvent(
     _event: IRuntimeEvent,
-    runtime: ITimerRuntime
+    runtime: ITimerRuntime,
   ): IRuntimeAction[] {
-    const node = runtime.trace.current();
-    const nextStatement = node?.next(runtime);
+    const block = runtime.next();
     
-    if (nextStatement == undefined) {
+    if (!block) {
       return [
         new GotoEndAction()
       ];
     }
-    return [
-      new GoToStatementAction(nextStatement.id),
-    ];
+    return [ ];
   }
 }

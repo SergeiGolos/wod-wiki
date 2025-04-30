@@ -26,7 +26,7 @@ export class RuntimeJit {
   }
 
   root(runtime : ITimerRuntime) : IRuntimeBlock {
-    return new RootBlock(runtime.script.top().map(n=>n.id));
+    return new RootBlock(runtime.script.nodes);
 
   }
 
@@ -39,10 +39,8 @@ export class RuntimeJit {
     new EndHandler(),
   ];
 
-  compile(runtime: ITimerRuntime, nodes: StatementNode[]): IRuntimeBlock {
-  
-    // decisions about what type of node this is.
-    const block = new SingleBlock(runtime.trace.push(nodes), nodes, this.handlers, runtime, undefined);
+  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {
+    const block = new SingleBlock(node.id, "", node, this.handlers);
     
     return block;
   }

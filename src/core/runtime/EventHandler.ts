@@ -11,15 +11,17 @@ export abstract class EventHandler {
   public apply(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
     if (event.name === this.eventType) {
       const log = [];
-      if (event.name !== "tick") {        
-        const block = runtime.trace.current();          
-        if (block) {
+    
+      const block = runtime.trace.current();          
+      if (block) {
+        if (event.name !== "tick") {        
           log.push(new WriteLogAction({ blockId: block!.blockId, blockKey: block.blockKey, ...event }));
         }
+      
+        return [ 
+          ...log,
+          ...this.handleEvent(event, runtime)];
       }
-      return [ 
-        ...log,
-        ...this.handleEvent(event, runtime)];
     }
     return [];
   }

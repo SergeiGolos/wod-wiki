@@ -8,7 +8,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {    
     
     constructor() {
-      super(-1, "idle", undefined, undefined);   
+      super(-1, "idle", undefined);   
       this.handlers = [
         new RunHandler(),
         new TickHandler(),

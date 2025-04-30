@@ -4,7 +4,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {    
 
     constructor(public children: IRuntimeBlock[]) {
-      super(-1, "compound", undefined, undefined);        
+      super(-1, "compound", undefined);        
     }    
 
     load(runtime: ITimerRuntime): IRuntimeEvent[] {

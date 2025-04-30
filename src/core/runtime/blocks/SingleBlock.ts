@@ -13,10 +13,9 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
     blockId: number,
     blockKey: string,
     source: StatementNode,
-    public handlers: EventHandler[] = [],
-    public parent: IRuntimeBlock | undefined
+    public handlers: EventHandler[] = []
   ) {
-    super(blockId, blockKey, source, parent);
+    super(blockId, blockKey, source);
     this.handlers = handlers;
   }
 

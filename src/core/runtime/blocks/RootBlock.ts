@@ -32,8 +32,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
           length: 0,
         },
         fragments: [],
-      },
-      undefined
+      }
     );
   }
 

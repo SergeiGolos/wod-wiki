@@ -4,7 +4,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {    
     
     constructor(source: StatementNode) {
-        super(-1, "repeating", source, undefined);
+        super(-1, "repeating", source);
     }
 
   load(runtime: ITimerRuntime): IRuntimeEvent[] {

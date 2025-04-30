@@ -43,27 +43,43 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     this.dispose = merge(loggedInput, this.tick$)
       .subscribe(event => {         
-        const block = this.trace.current();
+        this.trace.log(event);
+
+        const block = this.trace.current();        
         const actions = block?.handle(this, event)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
         
-        for (const action of actions) {
-          console.debug(`++action[- ${action.name} -]`, event);
+        for (const action of actions) {          
           action.apply(this, this.input$, this.output$);
         }            
       });    
   }
 
   next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
-    // If a specific block is provided, set it as the current block
-    if (block) {      
+    if (block) {
       this.trace.push(block);
+      block.parent = this.trace.current();
       return block;
     }
+    
+    let currentBlock = this.trace.pop();
+    let statement: StatementNode | undefined = undefined;
+    while (currentBlock && !statement) {
+      statement = currentBlock.next(this);
+      currentBlock = currentBlock.parent;
+    }
 
-    this.trace.push(this.jit.idle(this));
+    if (!statement) { 
+      return undefined;
+    }
+
+    const nextBlock = this.jit.compile(this, statement) ;
+    this.trace.push(nextBlock);
+    return nextBlock;
   }
+
+
   /**
    * Resets the runtime to its initial state
    */

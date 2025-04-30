@@ -321,19 +321,19 @@
           }
         ],
         "direction": "vertical",
-        "x": -1707,
+        "x": 0,
         "y": 0,
-        "width": 1563,
-        "height": 912,
+        "width": 960,
+        "height": 1152,
         "maximize": false,
         "zoom": 0
       }
     ]
   },
-  "active": "5e71866fe40be880",
+  "active": "f82172b5e228db9a",
   "lastOpenFiles": [
-    "Working/2025-04-17.KB.md",
     "Excalidraw/Group Behavior Expectations.md",
+    "Working/2025-04-17.KB.md",
     "Working/2025-04-28.monaco-migration-notes.md",
     "Working/2025-04-28.KB.md",
     "Working/2025.04-19.chromecasting-push.md",

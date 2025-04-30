@@ -5,11 +5,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   
   constructor(public blockId: number,
     public blockKey: string,
-    public source?: StatementNode | undefined,
-    public parent?: IRuntimeBlock | undefined)
+    public source?: StatementNode | undefined)
   {
   }
-
+  
+  public parent?: IRuntimeBlock | undefined;
+  
   public laps: ResultSpan[] = []; 
   public metrics: RuntimeMetric[] = [];
   public buttons: IActionButton[] = [];
@@ -33,7 +34,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
         result.push(action);
       }
     }
-    
+
     return result;
   }  
 }

@@ -7,7 +7,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */
   constructor() {
-    super(-1, "done", undefined, undefined);   
+    super(-1, "done", undefined);   
     this.handlers = [
       new TickHandler(),
       new ResetHandler(),
@@ -20,9 +20,9 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
     return [];
   }
 
-    next(runtime: ITimerRuntime): StatementNode | undefined {
-      console.log("Method not implemented.");
-      return undefined;
-    }
+  next(runtime: ITimerRuntime): StatementNode | undefined {
+    console.log("Method not implemented.");
+    return undefined;
+  }
   
 }

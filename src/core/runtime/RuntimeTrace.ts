@@ -1,22 +1,35 @@
-import { IRuntimeBlock, StatementNode } from "../timer.types";
-import { RootBlock } from "./blocks/RootBlock";
+import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog } from "../timer.types";
 
 /**
  * Manages the runtime trace of statement execution
  * Tracks the execution flow and state of each statement node
  */
-export class RuntimeTrace {
+export class RuntimeTrace {  
+  public history: Array<IRuntimeLog> = [];
   public stack: Array<IRuntimeBlock> = [];
-  
   /**
    * Gets traces for nodes in the stack
- * @param stack Array of statement nodes to find traces for
- * @returns Array of matching statement traces
+   * @param stack Array of statement nodes to find traces for
+   * @returns Array of matching statement traces
    */
   current(): IRuntimeBlock | undefined {
     return this.stack.length == 0
       ? undefined
       : this.stack[this.stack.length - 1];
+  }
+
+  log(event: IRuntimeEvent) {
+    if (event.name == "tick") {
+      return;
+    }
+    const block = this.current();
+    if (block) {
+      this.history.push({
+        blockId: block.blockId,
+        blockKey: block.blockKey,
+        ...event
+      });
+    }
   }
 
   /**
@@ -30,7 +43,10 @@ export class RuntimeTrace {
   }
 
   pop(): IRuntimeBlock | undefined {
-    this.stack.pop();
-    return this.current();
+    if (this.stack.length == 0) {
+      return undefined;
+    }
+    
+    return this.stack.pop();
   }
 }
