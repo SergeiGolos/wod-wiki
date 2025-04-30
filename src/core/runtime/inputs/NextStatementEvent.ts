@@ -1,12 +1,39 @@
-import { IRuntimeEvent } from "@/core/timer.types";
+import {
+  IRuntimeEvent,
+  ITimerRuntime,
+  IRuntimeAction,
+} from "@/core/timer.types";
+import { EventHandler } from "../EventHandler";
+import { GoToStatementAction } from "../actions/GoToStatementAction";
+import { GotoEndAction } from "../actions/GotoEndAction";
 
-// Navigation
 export class NextStatementEvent implements IRuntimeEvent {
-    constructor(timestamp?: Date, blockId?: number) {
-        this.timestamp = timestamp ?? new Date();
-        this.blockId = blockId;
+  constructor(timestamp?: Date, blockId?: number) {
+    this.timestamp = timestamp ?? new Date();
+    this.blockId = blockId;
+  }
+  timestamp: Date;
+  blockId?: number;
+  name = "next";
+}
+
+export class NextStatementHandler extends EventHandler {
+  protected eventType: string = "next";
+
+  protected handleEvent(
+    _event: IRuntimeEvent,
+    runtime: ITimerRuntime
+  ): IRuntimeAction[] {
+    const node = runtime.trace.current();
+    const nextStatement = node?.next(runtime);
+    
+    if (nextStatement == undefined) {
+      return [
+        new GotoEndAction()
+      ];
     }
-    timestamp: Date;
-    blockId?: number;
-    name = 'next';
+    return [
+      new GoToStatementAction(nextStatement.id),
+    ];
+  }
 }

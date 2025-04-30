@@ -1,8 +1,9 @@
-import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, IRuntimeLog, StatementNode, OutputEvent } from "../timer.types";
-import { RuntimeTrace } from "./RuntimeTrace";
+import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, StatementNode, OutputEvent } from "../timer.types";
 import { RuntimeStack } from "./RuntimeStack";
 import { RuntimeJit } from "./RuntimeJit";
 import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";
+import { RuntimeTrace } from "./RuntimeTrace";
+import { TickEvent } from "./inputs/TickHandler";
 
 /**
  * Runtime engine that processes workout scripts
@@ -13,10 +14,11 @@ import { interval, map, merge, Observable, Subject, Subscription, tap } from "rx
  * - Delegating to the compiled runtime for node-specific processing
  */
 
-export class TimerRuntime implements ITimerRuntimeIo {  
-  public current: IRuntimeBlock;
+export class TimerRuntime implements ITimerRuntimeIo { 
   public dispose: Subscription | undefined;
-  public tick$: Observable<IRuntimeEvent>;  
+  public tick$: Observable<IRuntimeEvent>; 
+  public trace: RuntimeTrace;
+   
     
   /**
    * Creates a new TimerRuntime instance
@@ -26,24 +28,23 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public script: RuntimeStack,     
     public jit: RuntimeJit,
     public input$: Subject<IRuntimeEvent>,
-    public output$: Subject<OutputEvent>,
-    public trace: RuntimeTrace | undefined = undefined
+    public output$: Subject<OutputEvent>,    
   ) {            
-    this.current = jit.compile(this, [], this.trace)
+    this.trace = new RuntimeTrace();
+    this.next(this.jit.idle(this));
 
     this.tick$ = interval(100).pipe(
-      map(() => ({ name: 'tick', timestamp: new Date() } as IRuntimeEvent)));
+      map(() => new TickEvent()));
     
     const loggedInput = this.input$.pipe(
       tap((event) => {
-        console.debug(`::handle[- ${event.name} -]`, this.current);        
+        console.debug(`::handle[- ${event.name} -]`, this.trace.current());        
       }));
 
     this.dispose = merge(loggedInput, this.tick$)
       .subscribe(event => {         
-                
-        const actions = this.current?.handlers
-            .map(handler => handler.apply(event, this))
+        const block = this.trace.current();
+        const actions = block?.handle(this, event)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
         
@@ -53,23 +54,21 @@ export class TimerRuntime implements ITimerRuntimeIo {
         }            
       });    
   }
-  
-  goto(block: StatementNode | undefined): IRuntimeBlock | undefined {
-    if (!block) {
-      return this.jit.compile(this, [], this.trace!);
-    }
-    let stack: StatementNode[] = [];
-    let parentId: number | undefined = block.id;
-    while (parentId != undefined) {      
-      const next: StatementNode = this.script.getId(parentId)!;
-      stack.push(next);
-      parentId = next.parent ?? undefined;
-    }    
-    return this.current = this.jit.compile(this, stack, this.trace);
-  }
 
-  reset(): void {
-    this.current = this.jit.compile(this, [], this.trace);    
-    this.trace?.clear();
+  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
+    // If a specific block is provided, set it as the current block
+    if (block) {      
+      this.trace.push(block);
+      return block;
+    }
+
+    this.trace.push(this.jit.idle(this));
+  }
+  /**
+   * Resets the runtime to its initial state
+   */
+  reset(): void {    
+    this.trace = new RuntimeTrace();
+    this.next(this.jit.idle(this));
   }
 }

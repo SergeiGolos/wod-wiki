@@ -1,8 +1,8 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
-import { RuntimeTrace } from "./runtime/RuntimeTrace";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 import { EventHandler } from "./runtime/EventHandler";
+import { RuntimeTrace } from "./runtime/RuntimeTrace";
 
 export type DurationSign = "+" | "-";
 
@@ -160,12 +160,11 @@ export interface ITimerRuntimeIo extends ITimerRuntime {
 }
 
 export interface ITimerRuntime {
-  code: string;  
+  code: string;
   jit: RuntimeJit;
-  trace: RuntimeTrace | undefined;  
-  script: RuntimeStack;  
-  current: IRuntimeBlock | undefined;  
-  goto(block: StatementNode | undefined): IRuntimeBlock | undefined;
+  trace: RuntimeTrace;
+  script: RuntimeStack;
+  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined;
   reset(): void;
 }
 
@@ -186,9 +185,6 @@ export interface StatementFragment {
   type: string;
   meta?: SourceCodeMetadata;  
 }
-
-
-
 
 export class StatementKey extends Map<number, number> {
   public key: string;
@@ -239,23 +235,23 @@ export type RuntimeMetric = {
 };
 
 export interface IRuntimeBlock {
-  // Do away with this.. not important know type, 
-  // should be configured with handlers.  
-  type: "active" | "complete" | "idle";
-
   blockId: number;  
   blockKey: string;  
-
-  // Build once, current block and the parents.
-  stack?: StatementNode[];
-  nextId?: number;  
-  duration: IDuration;          
-  laps: ResultSpan[];  
-  metrics: RuntimeMetric[];  
-
-  handlers: EventHandler[];
   
+  source?: StatementNode | undefined ;
+  parent?: IRuntimeBlock | undefined
+  // Build once, current block and the parents.
 
+  duration(): IDuration;          
+  load(runtime: ITimerRuntime): IRuntimeEvent[];  
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[]
+  next(runtime: ITimerRuntime): StatementNode | undefined;
+  
+  // this shouldbe on the trace
+  laps: ResultSpan[];
+  
+  // Not sure where this should be yet.
+  metrics: RuntimeMetric[];    
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {

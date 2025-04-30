@@ -12,9 +12,9 @@ export abstract class EventHandler {
     if (event.name === this.eventType) {
       const log = [];
       if (event.name !== "tick") {        
-        if (runtime.current && runtime.current.type == 'active') {
-          const outLog = runtime.trace?.log(event);          
-          log.push(new WriteLogAction(outLog));
+        const block = runtime.trace.current();          
+        if (block) {
+          log.push(new WriteLogAction({ blockId: block!.blockId, blockKey: block.blockKey, ...event }));
         }
       }
       return [ 

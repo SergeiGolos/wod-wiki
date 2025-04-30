@@ -1,27 +1,35 @@
 import {
   StatementNode,
   IRuntimeBlock,
-  RuntimeMetric,
   ITimerRuntime,
 } from "../timer.types";
-import { RuntimeTrace } from "./RuntimeTrace";
-import { RuntimeBlock } from "./blocks/RuntimeBlock";
+import { SingleBlock } from "./blocks/SingleBlock";
 import { EventHandler } from "./EventHandler";
-import { StartHandler } from "./inputs/StartHandler";
+
 import { TickHandler } from "./inputs/TickHandler";
-import { StopHandler } from "./inputs/StopHandler";
-import { ResetHandler } from "./inputs/ResetHandler";
-import { CompleteHandler } from "./inputs/CompleteHandler";
-import { EndHandler } from "./inputs/EndHandler";
-import { fragmentsTo, fragmentsToMany } from "../utils";
-import { RoundsFragment } from "../fragments/RoundsFragment";
-import { RepFragment } from "../fragments/RepFragment";
-import { EffortFragment } from "../fragments/EffortFragment";
-import { ResistanceFragment } from "../fragments/ResistanceFragment";
-import { DistanceFragment } from "../fragments/DistanceFragment";
 import { IdleRuntimeBlock } from "./blocks/IdleRuntimeBlock";
+import { DoneRuntimeBlock } from "./blocks/DoneRuntimeBlock";
+import { StartHandler } from "./inputs/StartEvent";
+import { StopHandler } from "./inputs/StopEvent";
+import { CompleteHandler } from "./inputs/CompleteEvent";
+import { ResetHandler } from "./inputs/ResetEvent";
+import { EndHandler } from "./inputs/EndEvent";
+import { RootBlock } from "./blocks/RootBlock";
 
 export class RuntimeJit {
+    
+  idle(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new IdleRuntimeBlock();
+  }
+  end(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new DoneRuntimeBlock();
+  }
+
+  root(runtime : ITimerRuntime) : IRuntimeBlock {
+    return new RootBlock(runtime.script.top().map(n=>n.id));
+
+  }
+
   handlers: EventHandler[] = [
     new TickHandler(),
     new StartHandler(),
@@ -31,74 +39,11 @@ export class RuntimeJit {
     new EndHandler(),
   ];
 
-  compile(runtime: ITimerRuntime, nodes: StatementNode[], trace?: RuntimeTrace): IRuntimeBlock {
-    if (!trace || !nodes || nodes.length === 0) {      
-      return new IdleRuntimeBlock(runtime.script.nodes[0].id);
-    }
-    
-    let key = trace.set(nodes);
-    console.log("Compiling block:", key.toString());
-
-    const efforts = fragmentsTo<EffortFragment>(nodes, "effort");
-    const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
-    const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
-    const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
-    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");       
-
-    const currentIndex = trace.getTotal(nodes[0].id) ;
-    const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
-
+  compile(runtime: ITimerRuntime, nodes: StatementNode[]): IRuntimeBlock {
   
-    const block = new RuntimeBlock(key.toString(), nodes, this.handlers);
-    
-    // Create metrics for the block with the new structure
-    block.metrics = this.createBlockMetrics(efforts, currentRep, resistance, distance);
+    // decisions about what type of node this is.
+    const block = new SingleBlock(runtime.trace.push(nodes), nodes, this.handlers, runtime, undefined);
     
     return block;
-  }
-  
-  private createBlockMetrics(
-    efforts?: EffortFragment,
-    repetitions?: RepFragment,
-    resistance?: ResistanceFragment,
-    distance?: DistanceFragment
-  ): RuntimeMetric[] {
-    const metrics: RuntimeMetric[] = [];
-    
-    // Basic metrics compilation
-    const effort = efforts?.effort ?? '';
-    const reps = repetitions?.reps ?? 
-      ((resistance || distance) ? 1 : 0);
-    
-    // Create the metric with the new structure
-    const metric: RuntimeMetric = {
-      effort: effort,
-      repetitions: { value: reps, unit: "" },
-    };
-    
-    // Add resistance if available
-    if (resistance) {
-      const resistanceValue = parseFloat(resistance.value);
-      if (!isNaN(resistanceValue)) {
-        metric.resistance = {
-          value: resistanceValue,
-          unit: resistance.units ?? ''
-        };
-      }
-    }
-    
-    // Add distance if available
-    if (distance) {
-      const distanceValue = parseFloat(distance.value);
-      if (!isNaN(distanceValue)) {
-        metric.distance = {
-          value: distanceValue,
-          unit: distance.units ?? ''
-        };      
-      }
-    }
-    
-    metrics.push(metric);
-    return metrics;
   }
 }

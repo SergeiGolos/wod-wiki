@@ -1,6 +1,7 @@
 import { StatementNode } from "../timer.types";
 
 export class RuntimeStack {
+  
   private lookupIndex: { [key: number]: number; } = {};
   constructor(public nodes: StatementNode[]) {
     // Initialize the lookup index
@@ -10,7 +11,7 @@ export class RuntimeStack {
       // Store the node index in our lookup table by ID for quick access
       this.lookupIndex[node.id] = i;
     }
-  }
+  }  
 
   /**
    * Gets the index of a node by its ID
@@ -29,5 +30,5 @@ export class RuntimeStack {
     }
 
     return stack;
-  }
+  }  
 }

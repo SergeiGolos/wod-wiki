@@ -17,38 +17,33 @@ export class StartTimerAction implements IRuntimeAction {
     input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ) {
-    if (!runtime.current) {
+    const block = runtime.trace.current();
+    if (!block) {
       return;
     }
-
-    console.log(
-      "StartTimerAction: Adding event to runtime.current.events",
-      this.event
-    );
-
+                           
     const currentLap =
-      runtime.current.laps.length > 0
-        ? runtime.current.laps[runtime.current.laps.length - 1]
+      block.laps.length > 0
+        ? block.laps[block.laps.length - 1]
         : undefined;
-
+    
     if (!currentLap || currentLap.stop) {
-      runtime.current.laps.push({
-        blockKey: runtime.current.blockKey,
+        block.laps.push({
+        blockKey: block.blockKey,
         start: this.event,
         stop: undefined,
         metrics: [],
       } as unknown as ResultSpan);
 
       // TOTO : create the correc ttype of coutput event.
-      input.next(
-        new DisplayEvent(
-          "primary",
-          new TimeSpanDuration(
-            runtime.current.duration.original!,
-            runtime.current.laps
-          )
+    input.next(
+      new DisplayEvent(
+        "primary",
+        new TimeSpanDuration(block.duration().original!,
+            block.laps
         )
-      );
+      )
+    );
     }
   }
 }

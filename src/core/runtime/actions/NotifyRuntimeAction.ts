@@ -10,8 +10,7 @@ export class NotifyRuntimeAction implements IRuntimeAction {
         public event: IRuntimeEvent
     ) { }
     name: string = 'notify';
-    apply(_runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>): void {
-        console.log('NotifyRuntimeAction: Adding event to runtime.current.events', this.event);
+    apply(_runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>): void {        
         input?.next(this.event);        
     }
 }

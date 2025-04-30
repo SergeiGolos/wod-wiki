@@ -1,35 +1,39 @@
-import { IRuntimeAction, IRuntimeSync, ResultSpan, StatementNode, RuntimeMetric, IActionButton, IDuration } from "@/core/timer.types";
-import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { Duration, IActionButton, IDuration, IRuntimeAction, IRuntimeBlock, IRuntimeEvent, ITimerRuntime, ResultSpan, RuntimeMetric, StatementNode } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 
-/**
- * A simple implementation of RuntimeBlock that handles basic runtime events
- * such as start and stop.
- */
-
-export class RuntimeBlock implements IRuntimeBlock {
-  constructor(      
+export abstract class RuntimeBlock implements IRuntimeBlock {
+  
+  constructor(public blockId: number,
     public blockKey: string,
-    public stack: StatementNode[],      
-    public handlers: EventHandler[] = []    
-  ) {
-    this.blockId = stack?.[0]?.id ?? -1;    
+    public source?: StatementNode | undefined,
+    public parent?: IRuntimeBlock | undefined)
+  {
+  }
+
+  public laps: ResultSpan[] = []; 
+  public metrics: RuntimeMetric[] = [];
+  public buttons: IActionButton[] = [];
+
+  public duration(): IDuration {
+    console.log("Method not implemented.");
+    return new Duration(0);
   }
   
-  public duration: IDuration = { original: 0, sign: "+", hours: 0, minutes: 0, seconds: 0, milliseconds: 0 };
-  
-  public buttons: IActionButton[] = [];
-  public blockId: number;
-  public nextId?: number;
-  /**
-   * Generates a report summarizing the execution block as a series of spans.
-   * Each span represents the time between two significant timer events (start, lap, done, complete).
-   * @returns An array of ResultSpan objects.
-   */  
-  
-  public type: "active" | "complete" | "idle" = 'active';  
-  
-  public events: IRuntimeEvent[] = [];
-  public laps: ResultSpan[] = [];
-  public metrics: RuntimeMetric[] = [];
+  protected handlers: EventHandler[] = [];
+  protected system: EventHandler[] = [];
+
+  abstract next(runtime: ITimerRuntime): StatementNode | undefined;
+  abstract load(runtime: ITimerRuntime): IRuntimeEvent[];
+
+  public handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[] {
+    const result: IRuntimeAction[] = [];
+    for (const handler of [...this.system, ...this.handlers]) {
+      const actions = handler.apply(event, runtime);
+      for (const action of actions) {
+        result.push(action);
+      }
+    }
+    
+    return result;
+  }  
 }

@@ -3,7 +3,6 @@ import { IRuntimeEvent, OutputEvent, WodRuntimeScript } from "@/core/timer.types
 import { RuntimeStack } from "@/core/runtime/RuntimeStack";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
-import { RuntimeTrace } from "@/core/runtime/RuntimeTrace";
 import { Subject } from "rxjs";
 
 
@@ -52,11 +51,10 @@ export function useTimerRuntime({
     try {
       const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
-      const stack = new RuntimeStack(script.statements);
-      const trace = new RuntimeTrace();
+      const stack = new RuntimeStack(script.statements);        
       // Create the timer runtime      
       runtimeRef.current = new TimerRuntime(
-        script.source, stack, jit, inputRef.current, outputRef.current, trace
+        script.source, stack, jit, inputRef.current, outputRef.current
       );      
     } catch (error) {
       console.error("Failed to initialize runtime:", error);
