@@ -133,12 +133,14 @@
             "id": "5e71866fe40be880",
             "type": "leaf",
             "state": {
-              "type": "excalidraw",
+              "type": "markdown",
               "state": {
-                "file": "Excalidraw/Group Behavior Expectations.md"
+                "file": "Notes/RuntimeFlow.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "excalidraw-icon",
-              "title": "Group Behavior Expectations"
+              "icon": "lucide-file",
+              "title": "RuntimeFlow"
             }
           }
         ],
@@ -323,22 +325,26 @@
         "direction": "vertical",
         "x": 0,
         "y": 0,
-        "width": 960,
-        "height": 1152,
+        "width": 854,
+        "height": 824,
         "maximize": false,
         "zoom": 0
       }
     ]
   },
-  "active": "f82172b5e228db9a",
+  "active": "5e71866fe40be880",
   "lastOpenFiles": [
+    "Core/Compile.md",
+    "Core/Runtime.md",
+    "Notes/RuntimeFlow.md",
+    "Notes/RuntimeFlow_backup.md",
     "Excalidraw/Group Behavior Expectations.md",
+    "Working/2025-04-30.KB.md",
     "Working/2025-04-17.KB.md",
     "Working/2025-04-28.monaco-migration-notes.md",
     "Working/2025-04-28.KB.md",
     "Working/2025.04-19.chromecasting-push.md",
     "Working/2025-04-14.pause-resume-duration-design.md",
-    "Core/Compile.md",
     "Reports/2025-04-27-rxjs-message-pump.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
@@ -352,17 +358,13 @@
     "docs",
     "Core",
     "Releases/0.5.0.md",
-    "Notes/RuntimeFlow.md",
     "Syntax",
     "Components",
-    "Notes/RuntimeFlow_backup.md",
     "Components/EventSpanAggregator.md",
     "docs/Components/RuntimeFlow.md",
     "Notes/Metric Calculator.md",
     "Components/ChromecastHooks.md",
     "docs/Components/RuntimeFlow_backup.md",
-    "worklog/2025-04-26.work_clock_actions.md",
-    "Working/2025-04-26.KB.md",
     "docs/Components",
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas",

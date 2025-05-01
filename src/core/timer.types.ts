@@ -1,8 +1,8 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { RuntimeJit } from "./runtime/RuntimeJit";
-import { EventHandler } from "./runtime/EventHandler";
 import { RuntimeTrace } from "./runtime/RuntimeTrace";
+import { EventHandler } from "./runtime/EventHandler";
 
 export type DurationSign = "+" | "-";
 
@@ -241,17 +241,11 @@ export interface IRuntimeBlock {
   source?: StatementNode | undefined ;
   parent?: IRuntimeBlock | undefined
   // Build once, current block and the parents.
-
-  duration(): IDuration | undefined;          
-  load(runtime: ITimerRuntime): IRuntimeEvent[];
-  handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[]
+  
+  laps: ITimeSpan[];
+  load(runtime: ITimerRuntime): IRuntimeAction[];
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
   next(runtime: ITimerRuntime): StatementNode | undefined;
-  
-  // this shouldbe on the trace
-  laps: ResultSpan[];
-  
-  // Not sure where this should be yet.
-  metrics: RuntimeMetric[];    
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
@@ -266,7 +260,7 @@ export interface IRuntimeEvent {
 
 export interface IActionButton {
   label?: string;
-  icon: React.ForwardRefExoticComponent<
+  icon?: React.ForwardRefExoticComponent<
     React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & {
       title?: string;
       titleId?: string;

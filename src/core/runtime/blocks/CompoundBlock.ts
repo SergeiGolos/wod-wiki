@@ -1,20 +1,38 @@
-import { IRuntimeBlock, IRuntimeEvent, ITimerRuntime, StatementNode } from "@/core/timer.types";
+import {
+  IActionButton,
+  IRuntimeAction,
+  IRuntimeBlock,
+  ITimerRuntime,
+  StatementNode,
+} from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
+import { fragmentsTo } from "@/core/utils";
+import { ActionFragment } from "@/core/fragments/ActionFragment";
+import { SetButtonsAction } from "../outputs/SetButtonsAction";
 
-export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {    
+export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
+  constructor(statement: StatementNode) {
+    super(-1, "compound", statement);
+  }
 
-    constructor(public children: IRuntimeBlock[]) {
-      super(-1, "compound", undefined);        
-    }    
+  load(runtime: ITimerRuntime): IRuntimeAction[] {
+    const children =
+      this.source?.children.map((n) => runtime.script.getId(n)) ?? [];
 
-    load(runtime: ITimerRuntime): IRuntimeEvent[] {
-      console.log("Method not implemented.");
-      return [];
+    const actions: IActionButton[] = [];
+    for (const child of children) {
+      const action = fragmentsTo<ActionFragment>(child, "action");
+      if (action) {
+        actions.push({
+          label: action.action,
+          event: action.action,
+        });
+      }
     }
-    
-    next(runtime: ITimerRuntime): StatementNode | undefined {
-      console.log("Method not implemented.");
-      return undefined;
-    }
-    
+    return [new SetButtonsAction(actions, "runtime")];
+  }
+
+  next(_runtime: ITimerRuntime): StatementNode | undefined {
+    return undefined;
+  }
 }

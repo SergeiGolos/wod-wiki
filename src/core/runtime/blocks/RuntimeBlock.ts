@@ -1,34 +1,34 @@
-import { Duration, IActionButton, IDuration, IRuntimeAction, IRuntimeBlock, IRuntimeEvent, ITimerRuntime, ResultSpan, RuntimeMetric, StatementNode } from "@/core/timer.types";
+import {
+  IRuntimeAction,
+  IRuntimeBlock,
+  IRuntimeEvent,
+  ITimerRuntime,
+  ITimeSpan,
+  StatementNode,
+} from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 
 export abstract class RuntimeBlock implements IRuntimeBlock {
-  
-  constructor(public blockId: number,
+  protected runtimeIndex: number = 0;
+  constructor(
     public blockKey: string,
-    public source?: StatementNode | undefined)
-  {
-  }
-  
-  public parent?: IRuntimeBlock | undefined;
-  
-  public laps: ResultSpan[] = []; 
-  public metrics: RuntimeMetric[] = [];
-  public buttons: IActionButton[] = [];
+    public blockId: number,
+    public source?: StatementNode | undefined
+  ) {}
 
-  public duration(): IDuration | undefined {
-    // console.log("Method not implemented.");
-    return undefined;
-  }
-  
+  public parent?: IRuntimeBlock | undefined;  
+  public laps: ITimeSpan[] = [];
   protected handlers: EventHandler[] = [];
-  protected system: EventHandler[] = [];
-
   abstract next(runtime: ITimerRuntime): StatementNode | undefined;
-  abstract load(runtime: ITimerRuntime): IRuntimeEvent[];
+  abstract load(runtime: ITimerRuntime): IRuntimeAction[];
 
-  public handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[] {
+  public handle(
+    runtime: ITimerRuntime,
+    event: IRuntimeEvent,
+    system: EventHandler[]
+  ): IRuntimeAction[] {
     const result: IRuntimeAction[] = [];
-    for (const handler of [...this.system, ...this.handlers]) {
+    for (const handler of [...system, ...this.handlers]) {
       const actions = handler.apply(event, runtime);
       for (const action of actions) {
         result.push(action);
@@ -36,5 +36,5 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     }
 
     return result;
-  }  
+  }
 }

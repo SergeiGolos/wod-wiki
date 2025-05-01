@@ -39,7 +39,7 @@ export class RuntimeJit {
     new EndHandler(),
   ];
 
-  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {
+  compile(_runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {
     const block = new SingleBlock(node.id, "", node, this.handlers);
     
     return block;

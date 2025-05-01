@@ -8,6 +8,7 @@ import {
 } from "@/core/timer.types";
 import { Subject } from "rxjs/internal/Subject";
 import { DisplayEvent } from "../inputs/DisplayEvent";
+import { getDuration } from "../blocks/readers/getDuration";
 
 export class StartTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}
@@ -33,7 +34,7 @@ export class StartTimerAction implements IRuntimeAction {
         metrics: [],
       } as unknown as ResultSpan);
     }
-    const duration = block.duration();
+    const duration = runtime.trace.fromStack(getDuration);
     if (duration != undefined) {
       // TOTO : create the correc ttype of coutput event.
       input.next(

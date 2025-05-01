@@ -1,4 +1,9 @@
-import { IRuntimeBlock, StatementNode, IDuration, IActionButton, IRuntimeEvent, ResultSpan, RuntimeMetric, IRuntimeAction, ITimerRuntime } from "@/core/timer.types";
+import {
+  IRuntimeBlock,
+  StatementNode,
+  IRuntimeAction,
+  ITimerRuntime,
+} from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
 
@@ -19,12 +24,12 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
     this.handlers = handlers;
   }
 
-  next(runtime: ITimerRuntime): StatementNode | undefined {
+  next(_runtime: ITimerRuntime): StatementNode | undefined {
     console.log("Method not implemented.");
     return undefined;
   }
 
-  load(runtime: ITimerRuntime): IRuntimeEvent[] {
+  load(_runtime: ITimerRuntime): IRuntimeAction[] {
     console.log("Method not implemented.");
     return [];
   }

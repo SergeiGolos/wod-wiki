@@ -7,6 +7,7 @@ import {
 } from "@/core/timer.types";
 import { DisplayEvent } from "../inputs/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
+import { getDuration } from "../blocks/readers/getDuration";
 
 export class StopTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}
@@ -32,7 +33,7 @@ export class StopTimerAction implements IRuntimeAction {
       currentLap.stop = this.event;
     }
 
-    const duration = block.duration();
+    const duration = runtime.trace.fromStack(getDuration);
     if (duration != undefined) {
       input.next(
         new DisplayEvent(

@@ -1,4 +1,4 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetClockAction } from "../outputs/SetClockAction";
@@ -20,10 +20,9 @@ export class StartHandler extends EventHandler {
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
     return [
-      new StartTimerAction(event),      
-      
+      new StartTimerAction(event),
       new SetClockAction(_runtime.trace.current()!, "primary"),
-      new SetButtonsAction([endButton, pauseButton], "system"),      
+      new SetButtonsAction([endButton, pauseButton], "system"),
     ];
   }
 }

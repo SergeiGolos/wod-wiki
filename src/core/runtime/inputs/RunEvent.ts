@@ -2,7 +2,7 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
 import { StartEvent } from "./StartEvent";
-import { SetDurationAction } from "../outputs/SetClockAction";
+import { SetClockAction, SetDurationAction } from "../outputs/SetClockAction";
 import { NextStatementEvent } from "./NextStatementEvent";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { GoToNextAction } from "../actions/GoToNextAction";
@@ -24,7 +24,7 @@ export class RunHandler extends EventHandler {
     
     return [
       new GoToNextAction(),
-      new StartTimerAction({ name: "start", timestamp: event.timestamp }),
+      new StartTimerAction({ name: "start", timestamp: event.timestamp }),      
       new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"),    
     ];
   }

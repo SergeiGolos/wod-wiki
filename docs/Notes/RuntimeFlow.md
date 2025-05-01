@@ -6,67 +6,105 @@ aliases:
 
 # Runtime Execution Flow
 
-This document describes how workout scripts are processed at runtime in **wod.wiki**, covering the **Script Stack**, **Runtime Trace**, **JIT Compiler**, and the core **Event/Action** system.
+This document describes how workout scripts are processed at runtime in **wod.wiki**, covering the **Block-based Execution Model**, **Runtime Trace**, **JIT Compiler**, and the core **Event/Action** system.
 
 ## Overview
 
-1. **RuntimeStack**: Navigates the script tree (StatementNode[]).
-2. **RuntimeTrace**: Tracks execution history, round counts.
-3. **RuntimeJit**: Compiles execution blocks just-in-time.
-4. **RuntimeBlock**: Applies handlers to events and generates actions.
+1. **RuntimeStack**: Provides efficient lookup of StatementNode objects by ID.
+2. **RuntimeTrace**: Manages the active block stack and execution history.
+3. **RuntimeJit**: Compiles statement nodes into specialized RuntimeBlock instances.
+4. **RuntimeBlock**: Base class for all execution blocks with standardized event handling.
+5. **TimerRuntime**: Orchestrates event flow through reactive streams (RxJS).
 
-### Flowchart
+### Block Hierarchy
 
 ```mermaid
-flowchart LR
-  A[Workout Script StatementNode] --> B[RuntimeStack]
-  B --> C[RuntimeTrace]
-  C --> D[RuntimeJit.compile]
-  D --> E[RuntimeBlock]
-  E --> F[EventHandlers]
-  F --> G[IRuntimeAction]
-  G --> H[apply]
-```  
+classdiagram
+  class RuntimeBlock {
+    +blockId: number
+    +blockKey: string
+    +source?: StatementNode
+    +parent?: IRuntimeBlock
+    +laps: ResultSpan[]
+    +metrics: RuntimeMetric[]
+    +duration(): IDuration
+    +handle(runtime, event): IRuntimeAction[]
+    +next(runtime): StatementNode
+    +load(runtime): IRuntimeEvent[]
+  }
+  
+  class RootBlock
+  class SingleBlock
+  class IdleRuntimeBlock
+  class DoneRuntimeBlock
+  
+  RuntimeBlock <|-- RootBlock
+  RuntimeBlock <|-- SingleBlock
+  RuntimeBlock <|-- IdleRuntimeBlock
+  RuntimeBlock <|-- DoneRuntimeBlock
+```
+
+### Execution Flow
+
+```mermaid
+flowchart TD
+  A[Workout Script] --> B[RuntimeStack]
+  B --> C[RuntimeJit]
+  C --> D[RuntimeBlock]
+  F[User Events] --> G[TimerRuntime]
+  H[Tick Events] --> G
+  G --> D
+  D --> I[EventHandlers]
+  I --> J[IRuntimeAction]
+  J --> K[Apply Action]
+  K --> L[Output Events]
+```
 
 ### Sequence Diagram
 
 ```mermaid
 sequenceDiagram
   participant U as External Event
+  participant RT as TimerRuntime
   participant BLK as RuntimeBlock
   participant HND as EventHandler
   participant ACT as IRuntimeAction
-  participant IT as ITimerRuntime
-  participant RST as RuntimeStack
-  participant TRC as RuntimeTrace
-  participant JIT as RuntimeJit
 
-  U->>BLK: onEvent(event)
-  BLK->>HND: handler.apply(event)
-  HND-->>ACT: create actions
-  ACT->>IT: action.apply(runtime)
-  IT->>RST: runtime.goto(nextNode.id)
-  RST-->>TRC: trace.set(stack)
-  TRC-->>JIT: new block key
-```  
+
+  U->>RT: input$.next(event)
+  RT->>BLK: block.handle(runtime, event)
+  BLK->>HND: handler.apply(event, runtime)
+  HND-->>ACT: return actions[]
+  ACT->>RT: action.apply(runtime, input$, output$)  
+```
 
 ---
 
 ## RuntimeStack
 
-Navigates to a block by its `blockId`, building a call-stack of `StatementNode`s:
+Manages efficient lookups for StatementNode objects by ID:
 
 ```ts
 export class RuntimeStack {
-  constructor(public nodes: StatementNode[]) { /* build lookup */ }
-
-  public goto(blockId: number): StatementNode[] {
-    const stack: StatementNode[] = [];
-    let node = this.getId(blockId);
-    while (node) {
-      stack.push(node);
-      node = node.parent != null ? this.getId(node.parent) : undefined;
+  private lookupIndex: { [key: number]: number; } = {};
+  
+  constructor(public nodes: StatementNode[]) {
+    // Initialize lookup index for O(1) access by ID
+    for (let i = 0; i < nodes.length; i++) {
+      this.lookupIndex[nodes[i].id] = i;
     }
+  }
+
+  public getId(id: number): StatementNode[] {
+    const stack: StatementNode[] = [];
+    let index = this.lookupIndex[id];
+    
+    while (index !== undefined) {
+      const node = this.nodes[index];
+      stack.push(node);
+      index = node.parent ? this.lookupIndex[node.parent] : undefined;
+    }
+
     return stack;
   }
 }
@@ -74,45 +112,178 @@ export class RuntimeStack {
 
 ## RuntimeTrace
 
-Tracks per-node execution counts and history keys:
+Manages the execution stack of RuntimeBlocks and tracks event history:
 
 ```ts
-export class RuntimeTrace {
-  private trace = new Map<number, [number, number]>();
-  public history: StatementKey[] = [];
-
-  nextRound(id: number): number {
-    return (this.trace.get(id)?.[0] ?? 0) + 1;
+export class RuntimeTrace {  
+  public history: Array<IRuntimeLog> = [];
+  public stack: Array<IRuntimeBlock> = [];
+  
+  current(): IRuntimeBlock | undefined {
+    return this.stack.length == 0
+      ? undefined
+      : this.stack[this.stack.length - 1];
   }
 
-  set(stack: StatementNode[]): StatementKey { /* update counts & history */ }
+  log(event: IRuntimeEvent) {
+    if (event.name == "tick") return;
+    const block = this.current();
+    if (block) {
+      this.history.push({
+        blockId: block.blockId,
+        blockKey: block.blockKey,
+        ...event
+      });
+    }
+  }
 
-  getTotal(id: number): number { /* returns total executions */ }
+  push(block: IRuntimeBlock): IRuntimeBlock {
+    this.stack.push(block);
+    return block;
+  }
+
+  pop(): IRuntimeBlock | undefined {
+    if (this.stack.length == 0) return undefined;
+    return this.stack.pop();
+  }
 }
 ```
 
 ## RuntimeJit
 
-Just-In-Time compiler: creates `RuntimeBlock` for a stack, injects metrics and handlers:
+Just-In-Time compiler: creates specialized RuntimeBlock instances for execution:
 
 ```ts
 export class RuntimeJit {
-  compile(
-    runtime: ITimerRuntime,
-    nodes: StatementNode[],
-    trace?: RuntimeTrace
-  ): IRuntimeBlock {
-    if (!trace || nodes.length === 0) {
-      return new IdleRuntimeBlock(runtime.script.nodes[0].id);
-    }
-    const key = trace.set(nodes);
-    const block = new RuntimeBlock(
-      key.toString(), nodes,
-      /* logger */,
-      /* handlers */
-    );
-    block.metrics = this.createBlockMetrics(...);
+  idle(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new IdleRuntimeBlock();
+  }
+  
+  end(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new DoneRuntimeBlock();
+  }
+
+  root(runtime: ITimerRuntime): IRuntimeBlock {
+    return new RootBlock(runtime.script.nodes);
+  }
+
+  handlers: EventHandler[] = [
+    new TickHandler(),
+    new StartHandler(),
+    new StopHandler(),
+    new CompleteHandler(),
+    new ResetHandler(),
+    new EndHandler(),
+  ];
+
+  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {
+    const block = new SingleBlock(node.id, "", node, this.handlers);
     return block;
+  }
+}
+```
+
+## RuntimeBlock
+
+Base class for all execution blocks with standard event handling:
+
+```ts
+export abstract class RuntimeBlock implements IRuntimeBlock {
+  constructor(
+    public blockId: number,
+    public blockKey: string,
+    public source?: StatementNode | undefined
+  ) {}
+  
+  public parent?: IRuntimeBlock | undefined;
+  public laps: ResultSpan[] = []; 
+  public metrics: RuntimeMetric[] = [];
+  public buttons: IActionButton[] = [];
+
+  protected handlers: EventHandler[] = [];
+  protected system: EventHandler[] = [];
+
+  abstract next(runtime: ITimerRuntime): StatementNode | undefined;
+  abstract load(runtime: ITimerRuntime): IRuntimeEvent[];
+
+  public handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[] {
+    const result: IRuntimeAction[] = [];
+    for (const handler of [...this.system, ...this.handlers]) {
+      const actions = handler.apply(event, runtime);
+      for (const action of actions) {
+        result.push(action);
+      }
+    }
+    return result;
+  }  
+}
+```
+
+## TimerRuntime
+
+Orchestrates the event flow and manages the execution state:
+
+```ts
+export class TimerRuntime implements ITimerRuntimeIo { 
+  public dispose: Subscription | undefined;
+  public tick$: Observable<IRuntimeEvent>; 
+  public trace: RuntimeTrace;
+   
+  constructor(
+    public code: string,
+    public script: RuntimeStack,     
+    public jit: RuntimeJit,
+    public input$: Subject<IRuntimeEvent>,
+    public output$: Subject<OutputEvent>,    
+  ) {            
+    this.trace = new RuntimeTrace();
+    this.next(this.jit.root(this));
+    this.next(this.jit.idle(this));
+
+    this.tick$ = interval(100).pipe(
+      map(() => new TickEvent()));
+    
+    const loggedInput = this.input$.pipe(
+      tap((event) => {
+        console.debug(
+          ` ----- ::handle:: [${event.name}]`,
+          this.trace.current()
+        );
+      }));
+
+    this.dispose = merge(loggedInput, this.tick$)
+      .subscribe(event => {         
+        this.trace.log(event);
+
+        const block = this.trace.current();        
+        const actions = block?.handle(this, event)            
+            .filter(actions => actions !== undefined)
+            .flat() ?? [];
+        
+        for (const action of actions) {          
+          action.apply(this, this.input$, this.output$);
+        }            
+      });    
+  }
+
+  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
+    if (block) {
+      block.parent = this.trace.current();
+      return this.trace.push(block);
+    }
+    
+    let currentBlock = this.trace.pop();
+    let statement: StatementNode | undefined = undefined;
+    while (currentBlock && !statement) {
+      statement = currentBlock.next(this);
+      currentBlock = currentBlock.parent;
+    }
+
+    if (!statement) return undefined;
+
+    const nextBlock = this.jit.compile(this, statement);
+    this.trace.push(nextBlock);
+    return nextBlock;
   }
 }
 ```
@@ -122,26 +293,33 @@ export class RuntimeJit {
 ```ts
 export interface ITimerRuntime {
   code: string;
-  events: IRuntimeLog[];
   jit: RuntimeJit;
-  trace?: RuntimeTrace;
+  trace: RuntimeTrace;
   script: RuntimeStack;
-  current?: IRuntimeBlock;
-  goto(node?: StatementNode): IRuntimeBlock | undefined;
+  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined;
+  reset(): void;
+}
+
+export interface ITimerRuntimeIo extends ITimerRuntime {
+  input$: Subject<IRuntimeEvent>;
+  tick$: Observable<IRuntimeEvent>;
+  output$: Observable<OutputEvent>;  
 }
 
 export interface IRuntimeBlock {
-  type: string;
+  blockId: number;
   blockKey: string;
-  stack?: StatementNode[];
+  source?: StatementNode | undefined;
+  parent?: IRuntimeBlock | undefined;
+  laps: ResultSpan[];
   metrics: RuntimeMetric[];
-  onEvent(
-    event: IRuntimeEvent,
-    runtime: ITimerRuntime
-  ): IRuntimeAction[];
+  duration(): IDuration | undefined;
+  load(runtime: ITimerRuntime): IRuntimeEvent[];
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[];
+  next(runtime: ITimerRuntime): StatementNode | undefined;
 }
 ```
 
 ---
 
-By following this execution flow, **wod.wiki** ensures a consistent, traceable runtime with real-time event handling and metric collection.
+By adopting this block-based, reactive execution model, **wod.wiki** provides a more modular, testable, and extensible runtime system for workout script execution.

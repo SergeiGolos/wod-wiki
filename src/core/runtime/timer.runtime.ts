@@ -50,7 +50,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
         this.trace.log(event);
 
         const block = this.trace.current();        
-        const actions = block?.handle(this, event)            
+        const actions = block?.handle(this, event, this.jit.handlers)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
         

@@ -1,9 +1,7 @@
 import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent } from "@/core/timer.types";
 import { Subject } from "rxjs";
 
-
-export class CompleteTimerAction implements IRuntimeAction {
-  constructor(private recurcive: boolean = false) { }
+export class CompleteTimerAction implements IRuntimeAction {  
   name: string = "complete";
   apply(
     runtime: ITimerRuntime,
@@ -12,8 +10,5 @@ export class CompleteTimerAction implements IRuntimeAction {
   ): void {
     
     runtime.trace.pop();
-    while(this.recurcive && runtime.trace.current() !== undefined) {
-      runtime.trace.pop();
-    }
   }
 }
