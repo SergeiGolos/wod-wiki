@@ -4,9 +4,6 @@ import {
   ITimerRuntime,
   StatementNode,
 } from "@/core/timer.types";
-import { NextStatementHandler } from "../inputs/NextStatementEvent";
-import { RunHandler } from "../inputs/RunEvent";
-import { TickHandler } from "../inputs/TickHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
@@ -15,9 +12,6 @@ export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
     super("idle", -1, undefined);
     this.handlers = [
-      new RunHandler(),
-      new TickHandler(),
-      new NextStatementHandler(),
     ];
   }
 

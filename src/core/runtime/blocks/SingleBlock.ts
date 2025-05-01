@@ -20,7 +20,7 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
     source: StatementNode,
     public handlers: EventHandler[] = []
   ) {
-    super(blockId, blockKey, source);
+    super(blockKey, blockId, source);
     this.handlers = handlers;
   }
 

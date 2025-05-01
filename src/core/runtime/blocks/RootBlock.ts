@@ -33,12 +33,12 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     });
   }
 
-  load(_runtime: ITimerRuntime): IRuntimeAction[] {
+  load(_runtime: ITimerRuntime): IRuntimeAction[] {    
     return [];
   }
 
   next(_runtime: ITimerRuntime): StatementNode | undefined {      
-    if ((this.source?.children.length ?? 0) >= this.runtimeIndex) {
+    if ((this.source?.children.length ?? 0) < this.runtimeIndex) {
 
       return undefined;
     }

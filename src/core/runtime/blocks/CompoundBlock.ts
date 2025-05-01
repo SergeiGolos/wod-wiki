@@ -12,7 +12,7 @@ import { SetButtonsAction } from "../outputs/SetButtonsAction";
 
 export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(statement: StatementNode) {
-    super(-1, "compound", statement);
+    super("compound", statement.id, statement);
   }
 
   load(runtime: ITimerRuntime): IRuntimeAction[] {

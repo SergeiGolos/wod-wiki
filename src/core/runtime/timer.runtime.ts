@@ -63,7 +63,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
     if (block) {
       block.parent = this.trace.current();
-      return this.trace.push(block);
+      return this.trace.push(block, this);
     }
     
     let currentBlock = this.trace.pop();
@@ -78,7 +78,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
 
     const nextBlock = this.jit.compile(this, statement) ;
-    this.trace.push(nextBlock);
+    this.trace.push(nextBlock, this);
     return nextBlock;
   }
 
