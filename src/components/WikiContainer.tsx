@@ -47,7 +47,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   
   const [primary, setPrimary] = useClockDisplaySync("primary");
   const [total, setTotal] = useClockDisplaySync("total");
-  const [label, setLabel] = useState<string>("Round");
+  const [label, setLabel] = useState<string>("round");
   const [results, setResults] = useLocalResultSync();
   const [cursor, setCursor] = useLocalCursorSync();  
   const [systemButtons, setSystemButtons] = useButtonSync("system");
@@ -63,7 +63,24 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   };
 
   useEffect(() => {      
+    console.debug('WikiContainer: Setting up output subscription');
+    
     const dispose = output?.subscribe((event) => {        
+      console.debug('WikiContainer received output event:', {
+        type: event.eventType,
+        target: event.bag?.target,
+        timestamp: new Date().toISOString()
+      });
+      console.debug("WikiContainer received output event:", event);
+      // Handle SET_CLOCK events specifically
+      if (event.eventType === 'SET_CLOCK') {
+        console.debug('WikiContainer processing SET_CLOCK event:', {
+          target: event.bag?.target,
+          duration: event.bag?.duration
+        });
+      }
+      
+      // Process the event through all handlers
       setPrimary(event);
       setTotal(event);
       setResults(event);
@@ -71,11 +88,13 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       setSystemButtons(event);
       setRuntimeButtons(event);
       outbound?.(event);
-    });      
+    });
+    
     return () => {
+      console.debug('WikiContainer: Cleaning up output subscription');
       dispose?.unsubscribe();
     };
-  }, [output, outbound]);
+  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons]);
 
 
   // Create Chromecast button (now managed independently)
@@ -125,7 +144,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
         <ButtonRibbon buttons={systemButtons && systemButtons.length > 0 ? systemButtons : [startButton]} 
         setEvent={event => input.next(event)} />
       </div>
-      {runtimeRef.current?.current && primary && (
+      {runtimeRef.current && (
         <>
           <WodTimer label={label} primary={primary} total={total} />
           <div className="p-1 flex justify-center">

@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { IDuration, ISpanDuration } from "@/core/timer.types";
+import { Duration, IDuration, ISpanDuration, TimeSpanDuration } from "@/core/timer.types";
 import React, { useState, useEffect } from "react";
 
 export interface WodTimerProps {
@@ -60,20 +60,42 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   primary,
   total,
 }) => {
+  console.debug('WodTimer received primary prop:', primary, 'Type:', typeof primary, 'Instanceof Duration:', primary instanceof Duration, 'Instanceof TimeSpanDuration:', primary instanceof TimeSpanDuration);
+
   const [primaryDisplay, setPrimaryDisplay] = useState<IDuration | undefined>();
   const [totalDisplay, setTotalDisplay] = useState<IDuration | undefined>();
 
+  // Debug log to track props
   useEffect(() => {
+    console.debug("WodTimer received props:", { primary, total });
+  }, [primary, total]);
+
+  useEffect(() => {
+    // Immediately set initial values
+    if (primary) {
+      console.debug("Setting primary display from prop:", primary);
+      setPrimaryDisplay(primary.display());
+    }
+    if (total) {
+      console.debug("Setting total display from prop:", total);
+      setTotalDisplay(total.display());
+    }
+
+    // Set up interval to continuously update
     const intervalId = setInterval(() => {
-      setPrimaryDisplay(primary?.display());
-      setTotalDisplay(total?.display());
-    }, 100); // Set interval to 1000ms (1 second)
+      if (primary) {
+        setPrimaryDisplay(primary.display());
+      }
+      if (total) {
+        setTotalDisplay(total.display());
+      }
+    }, 100); // Update every 100ms for smooth display
 
     // Cleanup function to clear the interval
     return () => {
       clearInterval(intervalId);
     };
-  }, []);
+  }, [primary, total]); // Re-run effect when primary or total props change
 
   // This effect runs whenever the block or block.events changes
   return (

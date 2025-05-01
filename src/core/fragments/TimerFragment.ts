@@ -15,7 +15,7 @@ export class TimerFragment implements StatementFragment {
     this.minutes = digits[1];
     this.seconds = digits[0];
 
-    this.duration = (this.seconds +
+    this.original = (this.seconds +
       this.minutes * 60 +
       this.hours * 60 * 60 +
       this.days * 60 * 60 * 24);
@@ -25,7 +25,7 @@ export class TimerFragment implements StatementFragment {
   hours: number;
   minutes: number;
   seconds: number;
-  duration: number;
+  original: number;
   type: string = "duration";
 }
 

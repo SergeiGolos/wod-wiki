@@ -164,7 +164,7 @@ export interface ITimerRuntime {
   jit: RuntimeJit;
   trace: RuntimeTrace;
   script: RuntimeStack;
-  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined;
+  next(block?: IRuntimeBlock | undefined, pop?: boolean): IRuntimeBlock | undefined;
   reset(): void;
 }
 
@@ -213,12 +213,10 @@ export class StatementKey extends Map<number, number> {
 export interface StatementNode {
   id: number;
   parent?: number;
-  next?: number;
-  rounds?: number;
   children: number[];
   meta: SourceCodeMetadata;
   fragments: StatementFragment[];
-  isLeaf?: boolean; // Explicit flag to mark a node as a leaf even if it has children
+  isLeaf?: boolean;
 }
 
 export interface RuntimeResult {

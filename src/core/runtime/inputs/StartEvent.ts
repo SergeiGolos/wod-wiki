@@ -19,9 +19,11 @@ export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
+    console.debug('StartHandler processing start event');
     return [
       new StartTimerAction(event),
-      new SetClockAction(_runtime.trace.current()!, "primary"),
+      // Let StartTimerAction handle all timer displays through DisplayEvents
+      // This avoids competing timer update mechanisms
       new SetButtonsAction([endButton, pauseButton], "system"),
     ];
   }

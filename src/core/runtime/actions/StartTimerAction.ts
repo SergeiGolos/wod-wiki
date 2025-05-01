@@ -9,6 +9,9 @@ import {
 import { Subject } from "rxjs/internal/Subject";
 import { DisplayEvent } from "../inputs/DisplayEvent";
 import { getDuration } from "../blocks/readers/getDuration";
+import { SetDurationAction } from "../outputs/SetClockAction";
+import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { endButton, pauseButton } from "@/components/buttons/timerButtons";
 
 export class StartTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}
@@ -36,13 +39,18 @@ export class StartTimerAction implements IRuntimeAction {
     }
     const duration = runtime.trace.fromStack(getDuration);
     if (duration != undefined) {
-      // TOTO : create the correc ttype of coutput event.
-      input.next(
-        new DisplayEvent(
-          "primary",
-          new TimeSpanDuration(duration.original!, block.laps)
-        )
-      );
+      console.debug("StartTimerAction - Processing with duration:", duration);
+              
+      // Create time span duration object for both timers
+      const timeSpan = new TimeSpanDuration(duration.original!, block.laps);          
+          
+      console.debug("StartTimerAction - Directly applying SET_CLOCK actions");
+      return [
+        new SetDurationAction(timeSpan, "primary"),
+        new SetButtonsAction([endButton, pauseButton], "system")
+      ]     
     }
+    
+    return [];
   }
 }

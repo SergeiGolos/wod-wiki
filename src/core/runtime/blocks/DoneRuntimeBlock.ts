@@ -4,6 +4,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 import { SetClockAction, SetDurationAction } from "../outputs/SetClockAction";
+import { getDuration } from "./readers/getDuration";
 
 export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */
@@ -22,10 +23,11 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
       metrics: [],
     } as unknown as ResultSpan];
     
+    const duration = runtime.trace.fromStack(getDuration);    
     return [
       new SetButtonsAction([resetButton, saveButton], "system"),
       new SetButtonsAction([], "runtime"),
-      new SetClockAction(this, "total"),
+      new SetClockAction(this, duration, "total"),
       new SetDurationAction(new Duration(0), "primary")];
   }
 

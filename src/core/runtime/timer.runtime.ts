@@ -50,23 +50,35 @@ export class TimerRuntime implements ITimerRuntimeIo {
         this.trace.log(event);
 
         const block = this.trace.current();        
+        // Debug log for event handling
+        if (event.name !== 'tick') {
+            console.debug(`TimerRuntime handling event [${event.name}] with current block:`, block?.blockKey);
+        }
+        
         const actions = block?.handle(this, event, this.jit.handlers)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
         
+        if (actions.length > 0) {
+        // Debug log for actions generated
+          console.debug(`TimerRuntime generated ${actions.length} actions for [${event.name}]:`, 
+            actions.map(a => a.constructor.name));
+
+        }
         for (const action of actions) {          
+          console.debug(`TimerRuntime applying action: ${action.constructor.name}`);
           action.apply(this, this.input$, this.output$);
         }            
       });    
   }
 
-  next(block?: IRuntimeBlock | undefined): IRuntimeBlock | undefined {
+  next(block?: IRuntimeBlock | undefined, pop : boolean = false): IRuntimeBlock | undefined {
     if (block) {
       block.parent = this.trace.current();
       return this.trace.push(block, this);
     }
     
-    let currentBlock = this.trace.pop();
+    let currentBlock = pop ? this.trace.pop() : this.trace.current();
     let statement: StatementNode | undefined = undefined;
     while (currentBlock && !statement) {
       statement = currentBlock.next(this);

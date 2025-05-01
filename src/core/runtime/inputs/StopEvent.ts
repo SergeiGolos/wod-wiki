@@ -5,7 +5,7 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { endButton, resumeButton } from "@/components/buttons/timerButtons";
-// import { SetButtonAction } from "../actions/SetButtonAction";
+import { getDuration } from "../blocks/readers/getDuration";
 
 export class StopEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -21,9 +21,10 @@ export class StopHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     const block = runtime.trace.current();
     if (block) {
+      const duration = runtime.trace.fromStack(getDuration);
       return [
         new StopTimerAction(event),
-        new SetClockAction(block, "primary"),
+        new SetClockAction(block, duration, "primary"),
         new SetButtonsAction([endButton, resumeButton], "system"),
       ];
     }

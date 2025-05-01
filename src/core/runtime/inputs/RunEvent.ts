@@ -24,8 +24,8 @@ export class RunHandler extends EventHandler {
     
     return [
       new GoToNextAction(),
-      new StartTimerAction({ name: "start", timestamp: event.timestamp }),      
-      new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"),    
+      new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"),  
+      new NotifyRuntimeAction(new StartEvent(event.timestamp))
     ];
   }
 }
