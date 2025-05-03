@@ -18,7 +18,7 @@ export function useClockDisplaySync(target: string): EventSyncResult<any> {
             return;
         }
         
-        console.debug(`Setting ${target} display to:`, runtimeBlock.bag?.duration);
+        console.debug(`Setting display for ${target} :`, runtimeBlock.bag?.duration);
         setDisplay(runtimeBlock.bag?.duration ?? null); //so some math.
     };
 

@@ -11,9 +11,8 @@ import { RuntimeBlock } from "./RuntimeBlock";
  * A simple implementation of RuntimeBlock that handles basic runtime events
  * such as start and stop.
  */
-
-    
-export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
+  
+export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {  
   constructor(
     blockId: number,
     blockKey: string,
@@ -22,15 +21,18 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
   ) {
     super(blockKey, blockId, source);
     this.handlers = handlers;
-  }
+  }  
 
-  next(_runtime: ITimerRuntime): StatementNode | undefined {
-    console.log("Method not implemented.");
+  next(): StatementNode | undefined {
     return undefined;
   }
 
-  load(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log("Method not implemented.");
+  visit(_runtime: ITimerRuntime): IRuntimeAction[] {
+    
+    return [];
+  }
+
+  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [];
   }
 }

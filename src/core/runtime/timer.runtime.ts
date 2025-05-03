@@ -1,5 +1,5 @@
-import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, StatementNode, OutputEvent } from "../timer.types";
-import { RuntimeStack } from "./RuntimeStack";
+import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, StatementNode, OutputEvent, IRuntimeAction } from "../timer.types";
+import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJit } from "./RuntimeJit";
 import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";
 import { RuntimeTrace } from "./RuntimeTrace";
@@ -18,34 +18,24 @@ export class TimerRuntime implements ITimerRuntimeIo {
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>; 
   public trace: RuntimeTrace;
-   
-    
+       
   /**
    * Creates a new TimerRuntime instance
    * @param script The compiled runtime to execute
    */
   constructor(public code: string,
-    public script: RuntimeStack,     
+    public script: RuntimeScript,     
     public jit: RuntimeJit,
     public input$: Subject<IRuntimeEvent>,
     public output$: Subject<OutputEvent>,    
-  ) {            
+  ) {                
     this.trace = new RuntimeTrace();
-    this.next(this.jit.root(this));
-    this.next(this.jit.idle(this));
-
-    this.tick$ = interval(100).pipe(
+    
+    this.init();
+    this.tick$ = interval(50).pipe(
       map(() => new TickEvent()));
     
-    const loggedInput = this.input$.pipe(
-      tap((event) => {
-        console.debug(
-          ` ----- ::handle:: [${event.name}]`,
-          this.trace.current()
-        );
-      }));
-
-    this.dispose = merge(loggedInput, this.tick$)
+    this.dispose = merge(this.input$, this.tick$)
       .subscribe(event => {         
         this.trace.log(event);
 
@@ -58,47 +48,50 @@ export class TimerRuntime implements ITimerRuntimeIo {
         const actions = block?.handle(this, event, this.jit.handlers)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
-        
-        if (actions.length > 0) {
-        // Debug log for actions generated
-          console.debug(`TimerRuntime generated ${actions.length} actions for [${event.name}]:`, 
-            actions.map(a => a.constructor.name));
-
-        }
-        for (const action of actions) {          
-          console.debug(`TimerRuntime applying action: ${action.constructor.name}`);
-          action.apply(this, this.input$, this.output$);
-        }            
+                
+        this.apply(actions, "handle");        
       });    
+  } 
+  init() {
+    this.push(this.jit.root(this));
   }
 
-  next(block?: IRuntimeBlock | undefined, pop : boolean = false): IRuntimeBlock | undefined {
-    if (block) {
-      block.parent = this.trace.current();
-      return this.trace.push(block, this);
-    }
+  apply(actions: IRuntimeAction[], lifeCycle: string) {
     
-    let currentBlock = pop ? this.trace.pop() : this.trace.current();
-    let statement: StatementNode | undefined = undefined;
-    while (currentBlock && !statement) {
-      statement = currentBlock.next(this);
-      currentBlock = currentBlock.parent;
+    if (actions.length > 0) {
+    // Debug log for actions generated
+      console.debug(`TimerRuntime generated ${actions.length} actions for [${lifeCycle}]`, 
+        actions.map(a => a.constructor.name));
+
     }
 
-    if (!statement) { 
-      return undefined;
-    }
-
-    const nextBlock = this.jit.compile(this, statement) ;
-    this.trace.push(nextBlock, this);
-    return nextBlock;
+    for (const action of actions) {          
+      console.debug(`TimerRuntime applying action: ${action.constructor.name}`);
+      action.apply(this, this.input$, this.output$);
+    }    
   }
+
+  push(block: IRuntimeBlock): IRuntimeBlock {        
+    block.index += 1;
+    block = this.trace.push(block);
+    
+    let actions = block?.visit(this) ?? [];
+    this.apply(actions, "visit");
+    return block;
+  }
+
+  pop(): IRuntimeBlock | undefined {
+    let block = this.trace.pop();    
+    let actions = block?.leave(this) ?? [];
+    this.apply(actions, "leave");
+    return block;
+  } 
 
   /**
    * Resets the runtime to its initial state
    */
-  reset(): void {    
+  reset() {    
     this.trace = new RuntimeTrace();
-    this.next(this.jit.idle(this));
-  }
+    this.init()
+  }  
 }

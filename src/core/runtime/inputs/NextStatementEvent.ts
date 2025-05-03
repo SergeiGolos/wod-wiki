@@ -4,9 +4,7 @@ import {
   IRuntimeAction,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
-import { GoToStatementAction } from "../actions/GoToStatementAction";
-import { GotoEndAction } from "../actions/GotoEndAction";
-import { GoToNextAction } from "../actions/GoToNextAction";
+import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
 
 export class NextStatementEvent implements IRuntimeEvent {
   constructor(timestamp?: Date, blockId?: number) {
@@ -26,6 +24,8 @@ export class NextStatementHandler extends EventHandler {
     _runtime: ITimerRuntime
   ): IRuntimeAction[] {
       
-    return [ new GoToNextAction() ];
+    return [ 
+      new NextStatementAction()
+    ];
   }
 }

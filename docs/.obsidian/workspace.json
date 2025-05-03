@@ -142,9 +142,21 @@
               "icon": "lucide-file",
               "title": "2025-05-01.ui-design-guide"
             }
+          },
+          {
+            "id": "1b1e39dd1f065fa0",
+            "type": "leaf",
+            "state": {
+              "type": "excalidraw",
+              "state": {
+                "file": "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md"
+              },
+              "icon": "excalidraw-icon",
+              "title": "Drawing 2025-05-02 15.37.36.excalidraw"
+            }
           }
         ],
-        "currentTab": 9
+        "currentTab": 10
       }
     ],
     "direction": "vertical"
@@ -201,7 +213,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 452.5
+    "width": 355.5
   },
   "right": {
     "id": "249689aca2c55076",
@@ -293,56 +305,18 @@
       "card-board:CardBoard": false
     }
   },
-  "floating": {
-    "id": "03df7c62f5d31d24",
-    "type": "floating",
-    "children": [
-      {
-        "id": "20d8d27cbf37108c",
-        "type": "window",
-        "children": [
-          {
-            "id": "d3a13235683e1f0e",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "f82172b5e228db9a",
-                "type": "leaf",
-                "state": {
-                  "type": "markdown",
-                  "state": {
-                    "file": "Working/2025-04-17.KB.md",
-                    "mode": "source",
-                    "source": false
-                  },
-                  "icon": "lucide-file",
-                  "title": "2025-04-17.KB"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "vertical",
-        "x": -1651,
-        "y": 16,
-        "width": 1212,
-        "height": 876,
-        "maximize": false,
-        "zoom": 0
-      }
-    ]
-  },
-  "active": "5e71866fe40be880",
+  "active": "1b1e39dd1f065fa0",
   "lastOpenFiles": [
+    "Working/2025-05-01.ui-design-guide.md",
+    "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md",
+    "Working/2025-04-17.KB.md",
+    "worklog",
     "Components/RuntimeHandlers.md",
     "Working/2025-05-01.ui-design-guide.kb.md",
-    "Working/2025-05-01.ui-design-guide.md",
     "worklog/2025-05-01.ui-design-guide.kb.md",
     "worklog/2025-05-01.ui-design-guide.md",
-    "worklog",
     "design.md",
     "Notes/RuntimeFlow.md",
-    "Working/2025-04-17.KB.md",
     "Core/Compile.md",
     "Core/Runtime.md",
     "Notes/RuntimeFlow_backup.md",
@@ -361,7 +335,6 @@
     "Syntax.md",
     "Excalidraw/Syntax-Parser-Workflow.md",
     "Excalidraw/Syntax-Visitor-Workflow.md",
-    "docs/Syntax.md",
     "docs",
     "Core",
     "Syntax",

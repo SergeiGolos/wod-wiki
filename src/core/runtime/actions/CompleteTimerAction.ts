@@ -8,7 +8,6 @@ export class CompleteTimerAction implements IRuntimeAction {
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ): void {
-    
-    runtime.trace.pop();
+    runtime.pop();
   }
 }

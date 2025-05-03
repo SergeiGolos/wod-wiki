@@ -1,4 +1,4 @@
-import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog, ITimerRuntime } from "../timer.types";
+import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog } from "../timer.types";
 
 /**
  * Manages the runtime trace of statement execution
@@ -37,9 +37,8 @@ export class RuntimeTrace {
    * @param stack Array of statement nodes being executed
    * @returns A unique key for this execution context
    */
-  public push(block: IRuntimeBlock, runtime: ITimerRuntime): IRuntimeBlock {
-    this.stack.push(block);
-    block.load(runtime);
+  public push(block: IRuntimeBlock): IRuntimeBlock {
+    this.stack.push(block);            
     return block;
   }
 

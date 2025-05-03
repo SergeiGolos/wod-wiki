@@ -20,11 +20,10 @@ export class StopHandler extends EventHandler {
 
   protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     const block = runtime.trace.current();
-    if (block) {
-      const duration = runtime.trace.fromStack(getDuration);
+    if (block) {      
       return [
         new StopTimerAction(event),
-        new SetClockAction(block, duration, "primary"),
+        new SetClockAction("primary"),
         new SetButtonsAction([endButton, resumeButton], "system"),
       ];
     }

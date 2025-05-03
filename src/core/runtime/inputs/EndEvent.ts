@@ -6,7 +6,7 @@ import {
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-import { SetDurationAction } from "../outputs/SetClockAction";
+import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
 import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
@@ -32,7 +32,8 @@ export class EndHandler extends EventHandler {
       new StopTimerAction({ name: "stop", timestamp: event.timestamp }),    
       new GotoEndAction(),
 
-      new SetDurationAction(new TimeSpanDuration(0, []), "total"),
+      new SetTimeSpanAction([], "total"),
+      new SetClockAction("primary"),
       new SetButtonsAction([resetButton, saveButton], "system"),
     ];
   }

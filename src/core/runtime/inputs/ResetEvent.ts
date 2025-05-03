@@ -4,7 +4,6 @@ import { ResetAction } from "../actions/ResetAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetClockAction } from "../outputs/SetClockAction";
-import { GoToStatementAction } from "../actions/GoToStatementAction";
 import { getDuration } from "../blocks/readers/getDuration";
 import { IdleStatementAction } from "../actions/IdleStatementAction";
 
@@ -20,12 +19,11 @@ export class ResetHandler extends EventHandler {
   protected eventType: string = 'reset';
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {        
-    const duration = _runtime.trace.fromStack(getDuration);        
     return [
       new ResetAction(event),      
       new IdleStatementAction(),      
       new SetButtonsAction([startButton], "system"),
-      new SetClockAction(_runtime.trace.current()!, duration, "primary"),
+      new SetClockAction("primary"),
     ];
   }
 }

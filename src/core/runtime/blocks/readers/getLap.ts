@@ -1,5 +1,6 @@
 import { LapFragment } from "@/core/fragments/LapFragment";
-import { IRuntimeBlock } from "@/core/timer.types";
+import { IRuntimeBlock, StatementNode } from "@/core/timer.types";
+
 
 /**
  * Extracts the first lap fragment from a runtime block
@@ -12,4 +13,8 @@ export function getLap(block: IRuntimeBlock): LapFragment | undefined {
     .map(f => f as LapFragment);
 
   return fragments?.[0];
+}
+
+export function getNext(block: IRuntimeBlock): StatementNode | undefined {  
+  return block.next();
 }

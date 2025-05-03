@@ -2,49 +2,46 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  SourceCodeMetadata,
+  NullStatementNode,
   StatementNode,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
+import { PushBlockAction, PushStatementAction } from "../actions/PushStatementAction";
 
-class ZeroIndexMeta implements SourceCodeMetadata {
-  line = 0;
-  startOffset = 0;
-  endOffset = 0;
-  columnStart = 0;
-  columnEnd = 0;
-  length = 0;      
-}
+
 /**
  * Represents the root of the execution tree.
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
 export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
-  constructor(statements: StatementNode[]) {
-    const children = statements
-      .filter((s) => s.parent === undefined)
-      .map((s) => s.id);
-
-    super("root", -1, {
-      id: -1,
-      children: [...children],
-      meta: new ZeroIndexMeta(),
-      fragments: []
-    });
+  constructor(private statements: StatementNode[]) {
+    super("root", -1, new NullStatementNode());
+    this.index = -1; // preload visit;
   }
 
-  load(_runtime: ITimerRuntime): IRuntimeAction[] {    
+  visit(runtime: ITimerRuntime): IRuntimeAction[] {    
+    if (this.index == 0) {      
+      const children = this.statements
+        .filter((s) => s.parent === undefined)
+        .map((s) => s.id);
+      this.source.children = [...children];    
+      return [new PushBlockAction(runtime.jit.idle(runtime))];
+    }
+    
+    const next = this.next();
+    if (next) {
+      return [new PushStatementAction(next)];
+    }
+
     return [];
   }
 
-  next(_runtime: ITimerRuntime): StatementNode | undefined {      
-    if ((this.source?.children.length ?? 0) < this.runtimeIndex) {
+  leave(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    return [];
+  }
 
-      return undefined;
-    }
-      
-    const childId = this.source?.children[this.runtimeIndex];
-    const stack =  _runtime.script.getId(childId ?? -1);
-    return stack.length > 0 ? stack[0] : undefined;
+  next(): StatementNode | undefined {      
+    const next = this.index + 1;
+    return this.statements[next % this.statements.length];
   }
 }

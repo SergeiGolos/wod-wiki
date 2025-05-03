@@ -21,6 +21,7 @@ import { NextStatementHandler } from "./inputs/NextStatementEvent";
 import { RepeatingBlock } from "./blocks/RepeatingBlock";
 import { CompoundBlock } from "./blocks/CompoundBlock";
 import { DisplayHandler } from "./inputs/DisplayHandler";
+import { LoadActionHandler } from "./inputs/EventActionEvent";
 
 export class RuntimeJit {
     
@@ -37,6 +38,7 @@ export class RuntimeJit {
   }
 
   handlers: EventHandler[] = [
+    new LoadActionHandler(),
     new RunHandler(),
     new TickHandler(),
     new NextStatementHandler(),    

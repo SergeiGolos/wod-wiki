@@ -8,14 +8,15 @@ import {
 import { RuntimeBlock } from "./RuntimeBlock";
 import { fragmentsTo } from "@/core/utils";
 import { ActionFragment } from "@/core/fragments/ActionFragment";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
 
 export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(statement: StatementNode) {
     super("compound", statement.id, statement);
   }
 
-  load(runtime: ITimerRuntime): IRuntimeAction[] {
+  visit(runtime: ITimerRuntime): IRuntimeAction[] {
+    
+    
     const children =
       this.source?.children.map((n) => runtime.script.getId(n)) ?? [];
 
@@ -29,10 +30,14 @@ export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
         });
       }
     }
-    return [new SetButtonsAction(actions, "runtime")];
+    return [];
   }
 
-  next(_runtime: ITimerRuntime): StatementNode | undefined {
+  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+
+  next(): StatementNode | undefined {
     return undefined;
   }
 }

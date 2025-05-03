@@ -8,19 +8,23 @@ import {
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 
-export abstract class RuntimeBlock implements IRuntimeBlock {
-  protected runtimeIndex: number = 0;
+export abstract class RuntimeBlock implements IRuntimeBlock {  
   constructor(
     public blockKey: string,
     public blockId: number,
-    public source?: StatementNode | undefined
+    public source: StatementNode
   ) {}
+  
+  public index: number = 0;
+  public limit?: number;
 
   public parent?: IRuntimeBlock | undefined;  
   public laps: ITimeSpan[] = [];
   protected handlers: EventHandler[] = [];
-  abstract next(runtime: ITimerRuntime): StatementNode | undefined;
-  abstract load(runtime: ITimerRuntime): IRuntimeAction[];
+  abstract next(): StatementNode | undefined;
+  
+  abstract visit(runtime: ITimerRuntime): IRuntimeAction[];
+  abstract leave(runtime: ITimerRuntime): IRuntimeAction[];
 
   public handle(
     runtime: ITimerRuntime,

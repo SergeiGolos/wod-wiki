@@ -1,5 +1,5 @@
 import { Observable, Subject } from "rxjs";
-import { RuntimeStack } from "./runtime/RuntimeStack";
+import { RuntimeScript } from "./runtime/RuntimeScript";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeTrace } from "./runtime/RuntimeTrace";
 import { EventHandler } from "./runtime/EventHandler";
@@ -163,8 +163,9 @@ export interface ITimerRuntime {
   code: string;
   jit: RuntimeJit;
   trace: RuntimeTrace;
-  script: RuntimeStack;
-  next(block?: IRuntimeBlock | undefined, pop?: boolean): IRuntimeBlock | undefined;
+  script: RuntimeScript;
+  push(block?: IRuntimeBlock | undefined): IRuntimeBlock;
+  pop(): IRuntimeBlock | undefined;
   reset(): void;
 }
 
@@ -210,6 +211,24 @@ export class StatementKey extends Map<number, number> {
   }
 }
 
+export class ZeroIndexMeta implements SourceCodeMetadata {
+  line = 0;
+  startOffset = 0;
+  endOffset = 0;
+  columnStart = 0;
+  columnEnd = 0;
+  length = 0;      
+}
+
+export class NullStatementNode implements StatementNode {
+  id: number = -1;
+  parent?: number;
+  children: number[] = [];
+  meta: SourceCodeMetadata = new ZeroIndexMeta();
+  fragments: StatementFragment[] = [];
+  isLeaf?: boolean;
+}
+
 export interface StatementNode {
   id: number;
   parent?: number;
@@ -236,14 +255,18 @@ export interface IRuntimeBlock {
   blockId: number;  
   blockKey: string;  
   
+  index:number;  
+
   source?: StatementNode | undefined ;
   parent?: IRuntimeBlock | undefined
+  next(): StatementNode | undefined;
   // Build once, current block and the parents.
   
   laps: ITimeSpan[];
-  load(runtime: ITimerRuntime): IRuntimeAction[];
+  visit(runtime: ITimerRuntime): IRuntimeAction[];  
   handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
-  next(runtime: ITimerRuntime): StatementNode | undefined;
+  leave(runtime: ITimerRuntime): IRuntimeAction[];
+  
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {

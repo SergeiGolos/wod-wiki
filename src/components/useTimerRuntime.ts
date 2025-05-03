@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { IRuntimeEvent, OutputEvent, WodRuntimeScript } from "@/core/timer.types";
-import { RuntimeStack } from "@/core/runtime/RuntimeStack";
+import { RuntimeScript } from "@/core/runtime/RuntimeScript";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
 import { TimerRuntime } from "@/core/runtime/timer.runtime";
 import { Subject } from "rxjs";
@@ -51,7 +51,7 @@ export function useTimerRuntime({
     try {
       const jit = new RuntimeJit()
       // Create the compiled runtime with handlers
-      const stack = new RuntimeStack(script.statements);        
+      const stack = new RuntimeScript(script.statements);        
       // Create the timer runtime      
       runtimeRef.current = new TimerRuntime(
         script.source, stack, jit, inputRef.current, outputRef.current

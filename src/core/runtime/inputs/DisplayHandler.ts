@@ -1,7 +1,7 @@
 import { IRuntimeAction, IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { DisplayEvent } from "./DisplayEvent";
-import { SetDurationAction } from "../outputs/SetClockAction";
+import { SetTimeSpanAction } from "../outputs/SetClockAction";
 
 /**
  * Handles DisplayEvents and converts them to appropriate UI update actions
@@ -25,19 +25,7 @@ export class DisplayHandler extends EventHandler {
   ): IRuntimeAction[] {
     console.debug(`DisplayHandler.handleEvent processing event:`, event);
     
-    if (!(event instanceof DisplayEvent)) {
-      console.warn('DisplayHandler received non-DisplayEvent:', event);
-      return [];
-    }
-
-    const displayEvent = event as DisplayEvent;
-    console.debug(`DisplayHandler creating SET_CLOCK action for target=${displayEvent.target}`);
-    
-    // Create the SET_CLOCK action
-    const action = new SetDurationAction(displayEvent.span, displayEvent.target);
-    console.debug(`DisplayHandler created action:`, action);
-    
-    return [action];
+    return [];
   }
   
   /**

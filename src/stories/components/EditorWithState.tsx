@@ -7,8 +7,8 @@ import { ScreenProvider } from '@/contexts/ScreenContext';
 import { useLocalLogSync } from '@/components/syncs/useLocalLogSync';
 
 /**
- * A wrapper component for WikiContainer that displays JSON state for debugging
  * 
+ * A wrapper component for WikiContainer that displays JSON state for debugging
  * This component provides visualization panels for:
  * 1. The compiled script structure
  * 2. The workout results as they are generated

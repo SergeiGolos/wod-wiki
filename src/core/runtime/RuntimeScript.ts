@@ -1,6 +1,6 @@
 import { StatementNode } from "../timer.types";
 
-export class RuntimeStack {
+export class RuntimeScript {
   
   private lookupIndex: { [key: number]: number; } = {};
   constructor(public nodes: StatementNode[]) {

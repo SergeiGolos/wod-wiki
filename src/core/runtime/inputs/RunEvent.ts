@@ -2,10 +2,8 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { EventHandler } from "../EventHandler";
 import { StartEvent } from "./StartEvent";
-import { SetClockAction, SetDurationAction } from "../outputs/SetClockAction";
-import { NextStatementEvent } from "./NextStatementEvent";
-import { StartTimerAction } from "../actions/StartTimerAction";
-import { GoToNextAction } from "../actions/GoToNextAction";
+import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
+import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
 
 // Runtime Execution
 
@@ -20,11 +18,11 @@ export class RunEvent implements IRuntimeEvent {
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';
 
-  protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
-    
+  protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     return [
-      new GoToNextAction(),
-      new SetDurationAction(new TimeSpanDuration(0, [{start: event, stop: undefined}]), "total"),  
+      new NextStatementAction(),
+      new SetTimeSpanAction([{start: event, stop: undefined}], "total"),  
+      new SetClockAction("primary"),  
       new NotifyRuntimeAction(new StartEvent(event.timestamp))
     ];
   }
