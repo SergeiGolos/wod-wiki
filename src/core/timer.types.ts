@@ -165,7 +165,7 @@ export interface ITimerRuntime {
   trace: RuntimeStack;
   history: Array<IRuntimeLog>;
   script: RuntimeScript;
-  push(block?: IRuntimeBlock | undefined): IRuntimeBlock;
+  push(block: IRuntimeBlock | undefined): IRuntimeBlock;
   pop(): IRuntimeBlock | undefined;
   reset(): void;
 }

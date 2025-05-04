@@ -18,7 +18,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>; 
   public trace: RuntimeStack;
-       
+  
   /**
    * Creates a new TimerRuntime instance
    * @param script The compiled runtime to execute
@@ -88,7 +88,11 @@ export class TimerRuntime implements ITimerRuntimeIo {
     block.index += 1;
     block = this.trace.push(block);
     
-    this.trace.
+    
+    block.source?.parent
+
+    // the strack is a collection of IRuntimeBlock     
+    this.trace.stack
 
 
     let actions = block?.visit(this) ?? [];

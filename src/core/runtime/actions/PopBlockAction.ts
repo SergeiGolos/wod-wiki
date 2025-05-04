@@ -11,22 +11,20 @@ export class NextStatementAction implements IRuntimeAction {
         
     let block : IRuntimeBlock | undefined;
     let next: StatementNode | undefined;
-    do {      
-      block = runtime.trace.pop();      
-      next = block?.next();
-    } while (block && !next && block.blockKey !== "root");
+    do {                
+      block = runtime.trace.current();      
+      next = block?.next();      
+      if (next == undefined && block?.blockKey !== "root") {
+        runtime.pop();
+      }
+      
+    } while (block && !next);
 
     if (!next) {
       runtime.push(runtime.jit.idle(runtime));
       return;
     }
-
-    if (next.id == block?.blockId || block?.blockKey == "root") 
-    {
-      runtime.push(block);
-      return;
-    }
-
+    
     runtime.push(runtime.jit.compile(runtime, next));
   }
 }

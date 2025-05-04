@@ -6,7 +6,7 @@ import { getDuration } from "./blocks/readers/getDuration";
  * Tracks the execution flow and state of each statement node
  */
 export class RuntimeStack {  
-  private stack: Array<IRuntimeBlock> = [];
+  public stack: Array<IRuntimeBlock> = [];
   /**
    * Gets traces for nodes in the stack
    * @param stack Array of statement nodes to find traces for

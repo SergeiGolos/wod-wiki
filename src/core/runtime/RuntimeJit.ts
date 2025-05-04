@@ -3,7 +3,18 @@ import {
   IRuntimeBlock,
   ITimerRuntime,
   StatementFragment,
+  RuntimeMetric,
+  IDuration,
+  MetricValue,
+  Duration,
+  getFragments, // Import the helper function
 } from "../timer.types";
+import { EffortFragment } from "../fragments/EffortFragment";
+import { TimerFragment } from "../fragments/TimerFragment";
+import { RoundsFragment } from "../fragments/RoundsFragment";
+import { RepFragment } from "../fragments/RepFragment";
+import { ResistanceFragment } from "../fragments/ResistanceFragment";
+import { DistanceFragment } from "../fragments/DistanceFragment";
 import { SingleBlock } from "./blocks/SingleBlock";
 import { EventHandler } from "./EventHandler";
 
@@ -53,31 +64,90 @@ export class RuntimeJit {
    * Compile a statement node into an appropriate runtime block based on its type
    * @param runtime Timer runtime context
    * @param node Statement node to compile
-   * @returns Appropriate runtime block implementation
+   * @returns A runtime block or undefined if compilation fails.
    */
-  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {  
-    // Handle undefined node
-    var stack = runtime.script.getId(node.id);
+  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock | undefined {      
+    
+    const metrics: RuntimeMetric[] = [];
+    let duration: IDuration | undefined = undefined;
+    let rounds: number | undefined = undefined;
+    let effort: string | undefined = undefined;
 
-    if (!stack) {
-      return runtime.history.length === 0 
-        ? new IdleRuntimeBlock() 
-        : new DoneRuntimeBlock();
+    // --- Helper function to get or create metric ---
+    // Note: Modified to accept metrics array explicitly
+    const getOrCreateMetric = (metricsArr: RuntimeMetric[], currentEffort: string | undefined): RuntimeMetric | undefined => {
+        if (!currentEffort) return undefined; // Cannot create metric without effort name
+        let metric = metricsArr.find(m => m.effort === currentEffort);
+        if (!metric) {
+            metric = { effort: currentEffort }; // Initialize with effort only
+            metricsArr.push(metric);
+        }
+        return metric;
+    };
+    // ---
+
+    // Use getFragments to extract specific fragment types
+    const effortFrag = getFragments<EffortFragment>(node.fragments, "effort")[0];
+    const timerFrag = getFragments<TimerFragment>(node.fragments, "duration")[0];
+    const roundsFrag = getFragments<RoundsFragment>(node.fragments, "rounds")[0] ?? 1;
+    const repFrag = getFragments<RepFragment>(node.fragments, "rep")[0];
+    const resistanceFrag = getFragments<ResistanceFragment>(node.fragments, "resistance")[0];
+    const distanceFrag = getFragments<DistanceFragment>(node.fragments, "distance")[0];
+
+    // Process Effort first
+    if (effortFrag) {
+        effort = effortFrag.effort;
+        getOrCreateMetric(metrics, effort); // Ensure metric container exists if effort is found
+    }
+
+    // Process Duration
+    if (timerFrag) {
+        duration = new Duration(timerFrag.original * 1000);
+    }
+
+    // Process Rounds
+    if (roundsFrag) {
+        rounds = roundsFrag.count;
+    }
+
+    // Process Reps
+    if (repFrag) {
+        const metric = getOrCreateMetric(metrics, effort); // Get potentially existing metric
+        if (metric) {
+            metric.repetitions = { value: repFrag.reps ?? 0, unit: 'reps' };
+        } else if (!effort) {
+             // Handle case where rep fragment exists without an effort fragment (should ideally not happen?)
+             console.warn("RepFragment found without corresponding EffortFragment in node:", node.id);
+        }
+    }
+
+    // Process Resistance
+    if (resistanceFrag) {
+        const metric = getOrCreateMetric(metrics, effort);
+        if (metric) {
+            metric.resistance = { value: parseFloat(resistanceFrag.value), unit: resistanceFrag.units };
+        } else if (!effort) {
+            console.warn("ResistanceFragment found without corresponding EffortFragment in node:", node.id);
+        }
+    }
+
+    // Process Distance
+    if (distanceFrag) {
+        const metric = getOrCreateMetric(metrics, effort);
+        if (metric) {
+            metric.distance = { value: parseFloat(distanceFrag.value), unit: distanceFrag.units };
+        } else if (!effort) {
+             console.warn("DistanceFragment found without corresponding EffortFragment in node:", node.id);
+        }
     }
     
-    // First check if this is a rounds segment
-    if (node?.fragments?.some(s => s.type === 'rounds')) {
-      // For rounds segments, always create a RepeatingBlock
-      // The block itself will handle the grouping logic
-      return new RepeatingBlock(node);
-    }
+    // TODO: Implement the logic to create and return the actual IRuntimeBlock 
+    // using the extracted metrics, duration, and rounds.
+    // Currently just returning undefined.
+
+
+
     
-    // For non-rounds nodes with children, create a compound block
-    if (node?.children && node.children.length > 0) {
-      return new CompoundBlock(node);
-    }
-    
-    // For leaf nodes (no children), use a SingleBlock
-    return new SingleBlock(node.id, "", node, this.handlers);
+    return undefined; // Placeholder
   }
 }

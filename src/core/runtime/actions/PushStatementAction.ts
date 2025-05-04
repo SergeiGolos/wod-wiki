@@ -21,7 +21,8 @@ export class PushStatementAction implements IRuntimeAction {
     runtime: ITimerRuntime,
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
-  ): void {
-    runtime.push(runtime.jit.compile(runtime, this.statement));
+  ): void {        
+    var block = runtime.jit.compile(runtime, this.statement)        
+    runtime.push(block);
   }
 }
