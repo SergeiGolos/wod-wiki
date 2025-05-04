@@ -1,11 +1,8 @@
 import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-
-import { SetClockAction } from "../outputs/SetClockAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { endButton, resumeButton } from "@/components/buttons/timerButtons";
-import { getDuration } from "../blocks/readers/getDuration";
 
 export class StopEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -22,8 +19,7 @@ export class StopHandler extends EventHandler {
     const block = runtime.trace.current();
     if (block) {      
       return [
-        new StopTimerAction(event),
-        new SetClockAction("primary"),
+        new StopTimerAction(event),        
         new SetButtonsAction([endButton, resumeButton], "system"),
       ];
     }

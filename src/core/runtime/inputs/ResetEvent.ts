@@ -20,10 +20,9 @@ export class ResetHandler extends EventHandler {
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {        
     return [
-      new ResetAction(event),      
-      new IdleStatementAction(),      
+      new ResetAction(event),            
       new SetButtonsAction([startButton], "system"),
-      new SetClockAction("primary"),
+      new SetClockAction("primary")      
     ];
   }
 }

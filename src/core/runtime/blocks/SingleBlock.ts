@@ -6,6 +6,10 @@ import {
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
+import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { completeButton } from "@/components/buttons/timerButtons";
+import { CompleteHandler } from "../inputs/CompleteEvent";
+import { SetClockAction } from "../outputs/SetClockAction";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -20,16 +24,17 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
     public handlers: EventHandler[] = []
   ) {
     super(blockKey, blockId, source);
-    this.handlers = handlers;
+    this.handlers = [...handlers, new CompleteHandler()];
   }  
 
-  next(): StatementNode | undefined {
+  next(): StatementNode | undefined {    
     return undefined;
   }
 
-  visit(_runtime: ITimerRuntime): IRuntimeAction[] {
-    
-    return [];
+  visit(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    return [
+      new SetClockAction("primary"),      
+      new SetButtonsAction([completeButton], "runtime")];
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {

@@ -15,8 +15,8 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   visit(runtime: ITimerRuntime): IRuntimeAction[] {    
     this.laps = [{
       blockKey: this.blockKey,
-      start: runtime.trace.history.length > 0 ? runtime.trace.history[0].timestamp : new Date(),
-      stop: runtime.trace.history.length> 0 ? runtime.trace.history[runtime.trace.history.length - 1].timestamp : new Date(),
+      start: runtime.history.length > 0 ? runtime.history[0].timestamp : new Date(),
+      stop: runtime.history.length> 0 ? runtime.history[runtime.history.length - 1].timestamp : new Date(),
       metrics: [],
     } as unknown as ResultSpan];
     

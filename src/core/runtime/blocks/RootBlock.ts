@@ -41,7 +41,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   next(): StatementNode | undefined {      
-    const next = this.index + 1;
+    const next = this.index;
     return this.statements[next % this.statements.length];
   }
 }

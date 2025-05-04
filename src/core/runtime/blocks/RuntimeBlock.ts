@@ -1,4 +1,5 @@
 import {
+  IDuration,
   IRuntimeAction,
   IRuntimeBlock,
   IRuntimeEvent,
@@ -17,6 +18,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   
   public index: number = 0;
   public limit?: number;
+  public duration?: IDuration | undefined;
 
   public parent?: IRuntimeBlock | undefined;  
   public laps: ITimeSpan[] = [];

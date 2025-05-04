@@ -1,7 +1,7 @@
 import { Observable, Subject } from "rxjs";
 import { RuntimeScript } from "./runtime/RuntimeScript";
 import { RuntimeJit } from "./runtime/RuntimeJit";
-import { RuntimeTrace } from "./runtime/RuntimeTrace";
+import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
 
 export type DurationSign = "+" | "-";
@@ -162,7 +162,8 @@ export interface ITimerRuntimeIo extends ITimerRuntime {
 export interface ITimerRuntime {
   code: string;
   jit: RuntimeJit;
-  trace: RuntimeTrace;
+  trace: RuntimeStack;
+  history: Array<IRuntimeLog>;
   script: RuntimeScript;
   push(block?: IRuntimeBlock | undefined): IRuntimeBlock;
   pop(): IRuntimeBlock | undefined;
@@ -256,6 +257,7 @@ export interface IRuntimeBlock {
   blockKey: string;  
   
   index:number;  
+  duration?: IDuration | undefined;
 
   source?: StatementNode | undefined ;
   parent?: IRuntimeBlock | undefined

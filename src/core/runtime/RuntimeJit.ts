@@ -21,7 +21,7 @@ import { NextStatementHandler } from "./inputs/NextStatementEvent";
 import { RepeatingBlock } from "./blocks/RepeatingBlock";
 import { CompoundBlock } from "./blocks/CompoundBlock";
 import { DisplayHandler } from "./inputs/DisplayHandler";
-import { LoadActionHandler } from "./inputs/EventActionEvent";
+import { PushActionHandler } from "./inputs/PushActionEvent";
 
 export class RuntimeJit {
     
@@ -38,7 +38,7 @@ export class RuntimeJit {
   }
 
   handlers: EventHandler[] = [
-    new LoadActionHandler(),
+    new PushActionHandler(),
     new RunHandler(),
     new TickHandler(),
     new NextStatementHandler(),    
@@ -50,28 +50,17 @@ export class RuntimeJit {
   ];
 
   /**
-   * Get lap operator type from statement fragments
-   * @param fragments Array of statement fragments
-   * @returns Lap operator type: '+' for Compose, '-' for Round-Robin, or undefined for standard repetition
-   */
-  private getLapOperator(fragments: StatementFragment[]): string | undefined {
-    const lapFragment = fragments.find(f => f.type === 'lap');
-    if (!lapFragment) return undefined;
-    
-    // The lap fragment should contain the operator in its content
-    return (lapFragment as any).operator;
-  }
-
-  /**
    * Compile a statement node into an appropriate runtime block based on its type
    * @param runtime Timer runtime context
    * @param node Statement node to compile
    * @returns Appropriate runtime block implementation
    */
-  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {
+  compile(runtime: ITimerRuntime, node: StatementNode): IRuntimeBlock {  
     // Handle undefined node
-    if (!node) {
-      return runtime.trace.history.length === 0 
+    var stack = runtime.script.getId(node.id);
+
+    if (!stack) {
+      return runtime.history.length === 0 
         ? new IdleRuntimeBlock() 
         : new DoneRuntimeBlock();
     }

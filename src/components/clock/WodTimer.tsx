@@ -60,24 +60,14 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   primary,
   total,
 }) => {
-  console.debug('WodTimer received primary prop:', primary, 'Type:', typeof primary, 'Instanceof Duration:', primary instanceof Duration, 'Instanceof TimeSpanDuration:', primary instanceof TimeSpanDuration);
-
   const [primaryDisplay, setPrimaryDisplay] = useState<IDuration | undefined>();
   const [totalDisplay, setTotalDisplay] = useState<IDuration | undefined>();
 
-  // Debug log to track props
   useEffect(() => {
-    console.debug("WodTimer received props:", { primary, total });
-  }, [primary, total]);
-
-  useEffect(() => {
-    // Immediately set initial values
     if (primary) {
-      console.debug("Setting primary display from prop:", primary);
       setPrimaryDisplay(primary.display());
     }
     if (total) {
-      console.debug("Setting total display from prop:", total);
       setTotalDisplay(total.display());
     }
 
@@ -97,7 +87,6 @@ export const WodTimer: React.FC<WodTimerProps> = ({
     };
   }, [primary, total]); // Re-run effect when primary or total props change
 
-  // This effect runs whenever the block or block.events changes
   return (
     <div className="w-full flex flex-col items-center justify-center py-2 pb-2 px-1 bg-white">
       <div className="grid md:grid-cols-3 gap-1 md:gap-4">

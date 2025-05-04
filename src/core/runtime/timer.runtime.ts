@@ -1,8 +1,8 @@
-import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, StatementNode, OutputEvent, IRuntimeAction } from "../timer.types";
+import { IRuntimeBlock, ITimerRuntimeIo, IRuntimeEvent, OutputEvent, IRuntimeAction, IRuntimeLog } from "../timer.types";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJit } from "./RuntimeJit";
-import { interval, map, merge, Observable, Subject, Subscription, tap } from "rxjs";
-import { RuntimeTrace } from "./RuntimeTrace";
+import { interval, map, merge, Observable, Subject, Subscription } from "rxjs";
+import { RuntimeStack } from "./RuntimeStack";
 import { TickEvent } from "./inputs/TickHandler";
 
 /**
@@ -17,7 +17,7 @@ import { TickEvent } from "./inputs/TickHandler";
 export class TimerRuntime implements ITimerRuntimeIo { 
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>; 
-  public trace: RuntimeTrace;
+  public trace: RuntimeStack;
        
   /**
    * Creates a new TimerRuntime instance
@@ -29,7 +29,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public input$: Subject<IRuntimeEvent>,
     public output$: Subject<OutputEvent>,    
   ) {                
-    this.trace = new RuntimeTrace();
+    this.trace = new RuntimeStack();
     
     this.init();
     this.tick$ = interval(50).pipe(
@@ -37,7 +37,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     
     this.dispose = merge(this.input$, this.tick$)
       .subscribe(event => {         
-        this.trace.log(event);
+        this.log(event);
 
         const block = this.trace.current();        
         // Debug log for event handling
@@ -59,22 +59,38 @@ export class TimerRuntime implements ITimerRuntimeIo {
   apply(actions: IRuntimeAction[], lifeCycle: string) {
     
     if (actions.length > 0) {
-    // Debug log for actions generated
-      console.debug(`TimerRuntime generated ${actions.length} actions for [${lifeCycle}]`, 
+      console.debug(
+        `TimerRuntime ${actions.length} action(s) for [${lifeCycle}]`, 
         actions.map(a => a.constructor.name));
-
     }
 
     for (const action of actions) {          
-      console.debug(`TimerRuntime applying action: ${action.constructor.name}`);
       action.apply(this, this.input$, this.output$);
     }    
+  }
+
+  public history: Array<IRuntimeLog> = [];
+  public log(event: IRuntimeEvent) {
+    if (event.name == "tick") {
+      return;
+    }
+    const block = this.trace.current();
+    if (block) {
+      this.history.push({
+        blockId: block.blockId,
+        blockKey: block.blockKey,
+        ...event,
+      });
+    }
   }
 
   push(block: IRuntimeBlock): IRuntimeBlock {        
     block.index += 1;
     block = this.trace.push(block);
     
+    this.trace.
+
+
     let actions = block?.visit(this) ?? [];
     this.apply(actions, "visit");
     return block;
@@ -91,7 +107,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
    * Resets the runtime to its initial state
    */
   reset() {    
-    this.trace = new RuntimeTrace();
+    this.trace = new RuntimeStack();
     this.init()
   }  
 }
