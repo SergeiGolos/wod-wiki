@@ -9,17 +9,16 @@ export class NextStatementAction implements IRuntimeAction {
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ): void {    
-        
-    let block : IRuntimeBlock | undefined;
-    let next: StatementNode | undefined;
-    do {                
-      block = runtime.trace.current();      
-      next = block?.next(runtime);      
-      if (next == undefined && !(block instanceof RootBlock)) {
-        runtime.pop();
-      }
-      
-    } while (block && !next);
+    // Find the next valid block using the popUntil method
+    // Pop blocks until we find one that has a valid next statement or is a RootBlock
+    const block = runtime.trace.popUntil((block) => {
+      const next = block.next(runtime);
+      // Keep this block if it has a next statement or if it's a RootBlock
+      return next !== undefined || block instanceof RootBlock;
+    });
+    
+    // Get the next statement from the block (if it exists)
+    const next = block?.next(runtime);
 
     if (!next) {
       runtime.push(runtime.jit.idle(runtime));
