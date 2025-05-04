@@ -22,7 +22,7 @@ export class PushStatementAction implements IRuntimeAction {
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ): void {        
-    var block = runtime.jit.compile(runtime, this.statement)        
+    var block = runtime.jit.compile(this.statement, runtime)        
     runtime.push(block);
   }
 }

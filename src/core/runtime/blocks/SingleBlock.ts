@@ -3,6 +3,7 @@ import {
   StatementNode,
   IRuntimeAction,
   ITimerRuntime,
+  StatementNodeDetail,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { RuntimeBlock } from "./RuntimeBlock";
@@ -18,16 +19,14 @@ import { SetClockAction } from "../outputs/SetClockAction";
   
 export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {  
   constructor(
-    blockId: number,
-    blockKey: string,
-    source: StatementNode,
+    source: StatementNodeDetail,
     public handlers: EventHandler[] = []
   ) {
-    super(blockKey, blockId, source);
+    super(source);
     this.handlers = [...handlers, new CompleteHandler()];
   }  
 
-  next(): StatementNode | undefined {    
+  next(runtime: ITimerRuntime): StatementNode | undefined {     
     return undefined;
   }
 
@@ -38,6 +37,8 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return [];
+    return [
+      new SetClockAction("primary"), 
+    ];
   }
 }

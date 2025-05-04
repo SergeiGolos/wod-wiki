@@ -18,7 +18,7 @@ export class TickHandler extends EventHandler {
     }
     const spanDuration = new TimeSpanDuration(
       block.duration.original ?? 0, 
-      block.laps);
+      block.spans);
     
     const remaining = spanDuration.remaining();
     if ((remaining?.original != undefined) && (remaining.original == 0 || remaining.original < 0)) {

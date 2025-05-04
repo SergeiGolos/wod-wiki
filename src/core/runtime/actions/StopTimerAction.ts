@@ -27,7 +27,7 @@ export class StopTimerAction implements IRuntimeAction {
       this.event
     );
     const currentLap =
-      block.laps.length > 0 ? block.laps[block.laps.length - 1] : undefined;
+      block.spans.length > 0 ? block.spans[block.spans.length - 1] : undefined;
 
     if (currentLap && !currentLap.stop) {
       currentLap.stop = this.event;
@@ -38,7 +38,7 @@ export class StopTimerAction implements IRuntimeAction {
       input.next(
         new DisplayEvent(
           "primary",
-          new TimeSpanDuration(duration.original!, block.laps)
+          new TimeSpanDuration(duration.original!, block.spans)
         )
       );
     }

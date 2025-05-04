@@ -21,10 +21,10 @@ export class StartTimerAction implements IRuntimeAction {
     }
 
     const currentLap =
-      block.laps.length > 0 ? block.laps[block.laps.length - 1] : undefined;
+      block.spans.length > 0 ? block.spans[block.spans.length - 1] : undefined;
 
     if (!currentLap || currentLap.stop) {
-      block.laps.push({
+      block.spans.push({
         blockKey: block.blockKey,
         start: this.event,
         stop: undefined,

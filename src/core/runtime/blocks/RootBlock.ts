@@ -2,8 +2,9 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  NullStatementNode,
+  IdleStatementNode,
   StatementNode,
+  StatementNodeDetail,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushBlockAction, PushStatementAction } from "../actions/PushStatementAction";
@@ -15,7 +16,7 @@ import { PushBlockAction, PushStatementAction } from "../actions/PushStatementAc
  */
 export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(private statements: StatementNode[]) {
-    super("root", -1, new NullStatementNode());
+    super(new IdleStatementNode() as StatementNodeDetail);
     this.index = -1; // preload visit;
   }
 
@@ -28,7 +29,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
       return [new PushBlockAction(runtime.jit.idle(runtime))];
     }
     
-    const next = this.next();
+    const next = this.next(runtime);
     if (next) {
       return [new PushStatementAction(next)];
     }
@@ -40,7 +41,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     return [];
   }
 
-  next(): StatementNode | undefined {      
+  next(runtime: ITimerRuntime): StatementNode | undefined {      
     const next = this.index;
     return this.statements[next % this.statements.length];
   }

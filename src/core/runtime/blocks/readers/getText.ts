@@ -1,13 +1,13 @@
 import { TextFragment } from "@/core/fragments/TextFragment";
-import { IRuntimeBlock } from "@/core/timer.types";
+import { StatementNode } from "@/core/timer.types";
 
 /**
- * Extracts the first text fragment from a runtime block
- * @param block The runtime block to extract from
+ * Extracts the first text fragment from a statement node
+ * @param node The statement node to extract from
  * @returns The first text fragment or undefined if none exists
  */
-export function getText(block: IRuntimeBlock): TextFragment | undefined {
-  const fragments = block.source?.fragments
+export function getText(node: StatementNode): TextFragment | undefined {
+  const fragments = node.fragments
     .filter(f => f.type === 'text')
     .map(f => f as TextFragment);
 

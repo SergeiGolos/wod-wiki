@@ -1,13 +1,13 @@
 import { EffortFragment } from "@/core/fragments/EffortFragment";
-import { IRuntimeBlock } from "@/core/timer.types";
+import { StatementNode } from "@/core/timer.types";
 
 /**
- * Extracts the first effort fragment from a runtime block
- * @param block The runtime block to extract from
+ * Extracts the first effort fragment from a statement node
+ * @param node The statement node to extract from
  * @returns The first effort fragment or undefined if none exists
  */
-export function getEffort(block: IRuntimeBlock): EffortFragment | undefined {
-  const fragments = block.source?.fragments
+export function getEffort(node: StatementNode): EffortFragment | undefined {
+  const fragments = node.fragments
     .filter(f => f.type === 'effort')
     .map(f => f as EffortFragment);
 

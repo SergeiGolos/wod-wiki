@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, NullStatementNode, ResultSpan, StatementNode } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, IdleStatementNode, ResultSpan, StatementNode, StatementNodeDetail } from "@/core/timer.types";
 import { SaveHandler } from "../inputs/SaveEvent";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { getDuration } from "./readers/getDuration";
@@ -6,15 +6,15 @@ import { getDuration } from "./readers/getDuration";
 export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */
   constructor() {
-    super("done", -1, new NullStatementNode());
+    super(new IdleStatementNode() as StatementNodeDetail);
     this.handlers = [
       new SaveHandler()
     ];
   }
 
   visit(runtime: ITimerRuntime): IRuntimeAction[] {    
-    this.laps = [{
-      blockKey: this.blockKey,
+    const block = "key goes here:"
+    this.spans = [{            
       start: runtime.history.length > 0 ? runtime.history[0].timestamp : new Date(),
       stop: runtime.history.length> 0 ? runtime.history[runtime.history.length - 1].timestamp : new Date(),
       metrics: [],
@@ -34,7 +34,7 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
 
-  next(): StatementNode | undefined {
+  next(runtime: ITimerRuntime): StatementNode | undefined {
     return undefined;
   } 
 }

@@ -1,5 +1,6 @@
 import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, StatementNode, IRuntimeBlock } from "@/core/timer.types";
 import { Subject } from "rxjs";
+import { RootBlock } from "../blocks/RootBlock";
 
 export class NextStatementAction implements IRuntimeAction {
   name: string = "next";
@@ -13,8 +14,8 @@ export class NextStatementAction implements IRuntimeAction {
     let next: StatementNode | undefined;
     do {                
       block = runtime.trace.current();      
-      next = block?.next();      
-      if (next == undefined && block?.blockKey !== "root") {
+      next = block?.next(runtime);      
+      if (next == undefined && !(block instanceof RootBlock)) {
         runtime.pop();
       }
       
@@ -25,7 +26,7 @@ export class NextStatementAction implements IRuntimeAction {
       return;
     }
     
-    runtime.push(runtime.jit.compile(runtime, next));
+    runtime.push(runtime.jit.compile(next, runtime));
   }
 }
 

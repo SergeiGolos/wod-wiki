@@ -29,7 +29,7 @@ export class SetClockAction extends OutputAction {
         const duration = _runtime.trace.fromStack(getDuration);
         return [{
             eventType: this.eventType,
-            bag: { duration: new TimeSpanDuration(duration?.original ?? 0, block?.laps ?? []), target: this.target },
+            bag: { duration: new TimeSpanDuration(duration?.original ?? 0, block?.spans ?? []), target: this.target },
             timestamp: new Date()
         }];
     }

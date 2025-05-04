@@ -1,33 +1,34 @@
 import {
-  IDuration,
   IRuntimeAction,
   IRuntimeBlock,
   IRuntimeEvent,
   ITimerRuntime,
   ITimeSpan,
   StatementNode,
+  StatementNodeDetail,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 
 export abstract class RuntimeBlock implements IRuntimeBlock {  
   constructor(
-    public blockKey: string,
-    public blockId: number,
-    public source: StatementNode
-  ) {}
-  
+    // meta
+    public source: StatementNodeDetail
+  ) {
+    this.blockId = source.id;
+  }
+  public blockKey?: string | undefined;
+  // meta
+  public parent?: IRuntimeBlock | undefined;    
+  public blockId: number;
+   // stat
   public index: number = 0;
-  public limit?: number;
-  public duration?: IDuration | undefined;
-
-  public parent?: IRuntimeBlock | undefined;  
-  public laps: ITimeSpan[] = [];
+  public spans: ITimeSpan[] = [];
+    
+  // Runtime
   protected handlers: EventHandler[] = [];
-  abstract next(): StatementNode | undefined;
-  
+  abstract next(runtime: ITimerRuntime): StatementNode | undefined;  
   abstract visit(runtime: ITimerRuntime): IRuntimeAction[];
   abstract leave(runtime: ITimerRuntime): IRuntimeAction[];
-
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,

@@ -17,8 +17,7 @@ import { TickEvent } from "./inputs/TickHandler";
 export class TimerRuntime implements ITimerRuntimeIo { 
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>; 
-  public trace: RuntimeStack;
-  
+  public trace: RuntimeStack;  
   /**
    * Creates a new TimerRuntime instance
    * @param script The compiled runtime to execute
@@ -39,12 +38,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
       .subscribe(event => {         
         this.log(event);
 
-        const block = this.trace.current();        
-        // Debug log for event handling
-        if (event.name !== 'tick') {
-            console.debug(`TimerRuntime handling event [${event.name}] with current block:`, block?.blockKey);
-        }
-        
+        const block = this.trace.current();                
         const actions = block?.handle(this, event, this.jit.handlers)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
@@ -55,7 +49,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   init() {
     this.push(this.jit.root(this));
   }
-
+  
   apply(actions: IRuntimeAction[], lifeCycle: string) {
     
     if (actions.length > 0) {
@@ -78,23 +72,14 @@ export class TimerRuntime implements ITimerRuntimeIo {
     if (block) {
       this.history.push({
         blockId: block.blockId,
-        blockKey: block.blockKey,
-        ...event,
+        blockKey: block.blockKey ?? block.blockId.toString(),        ...event,
       });
     }
   }
 
   push(block: IRuntimeBlock): IRuntimeBlock {        
     block.index += 1;
-    block = this.trace.push(block);
-    
-    
-    block.source?.parent
-
-    // the strack is a collection of IRuntimeBlock     
-    this.trace.stack
-
-
+    block = this.trace.push(block);     
     let actions = block?.visit(this) ?? [];
     this.apply(actions, "visit");
     return block;

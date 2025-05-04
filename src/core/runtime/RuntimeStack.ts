@@ -1,4 +1,4 @@
-import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog } from "../timer.types";
+import { IRuntimeBlock, IRuntimeEvent, IRuntimeLog, StatementNode } from "../timer.types";
 import { getDuration } from "./blocks/readers/getDuration";
 
 /**
@@ -24,9 +24,19 @@ export class RuntimeStack {
    * @returns A unique key for this execution context
    */
   public push(block: IRuntimeBlock): IRuntimeBlock {        
-    this.stack.push(block);            
-    const duration = this.fromStack(getDuration);
-    block.duration = duration;
+    this.stack.push(block);
+    
+    // Build the blockKey by walking up the parent chain
+    // Format: blockId1:index1|blockId2:index2|...|blockIdN:indexN
+    let keyParts: string[] = [];
+    let currentBlock: IRuntimeBlock | undefined = block;
+    
+    while (currentBlock) {
+      keyParts.unshift(`${currentBlock.blockId}:${currentBlock.index}`);
+      currentBlock = currentBlock.parent;
+    }
+    
+    block.blockKey = keyParts.join('|');
     return block;
   }
   
@@ -38,23 +48,23 @@ export class RuntimeStack {
     return this.stack.pop();
   }
   public fromStack<T>(
-    blockFn: (block: IRuntimeBlock) => T | undefined
+    blockFn: (node: StatementNode) => T | undefined
   ): T | undefined {
     let current = this.current();
     let outcome: T | undefined = undefined;
     do {
-      outcome = blockFn(current!);
+      outcome = blockFn(current!.source!);
       current = current?.parent;
     } while (!outcome && current);
     return outcome;
   }
 
   public inStack(
-    blockFn: (block: IRuntimeBlock) => void | undefined
+    blockFn: (node: StatementNode) => void | undefined
   ): void {
     let current = this.current();
     do {
-      blockFn(current!);
+      blockFn(current!.source!);
       current = current?.parent;
     } while (current);
   }  

@@ -118,10 +118,6 @@ export type RuntimeMetricEdit = {
   createdAt: Date; // Timestamp when the edit was created
 };
 
-export type MetricValue = {
-  value: number;
-  unit: string;
-};
 
 export type IRuntimeSync = (runtimeBlock: OutputEvent) => void;  
 
@@ -180,7 +176,7 @@ export function getFragments<T extends StatementFragment>(
   fragments: StatementFragment[],
   type: string
 ): T[] {
-  return fragments.filter((fragment) => fragment.type === type) as T[];
+  return fragments?.filter((fragment) => fragment.type === type) as T[] ?? [];
 }
 
 export interface StatementFragment {
@@ -221,14 +217,28 @@ export class ZeroIndexMeta implements SourceCodeMetadata {
   length = 0;      
 }
 
-export class NullStatementNode implements StatementNode {
+export class RootStatementNode implements StatementNode {
   id: number = -1;
   parent?: number;
   children: number[] = [];
   meta: SourceCodeMetadata = new ZeroIndexMeta();
   fragments: StatementFragment[] = [];
-  isLeaf?: boolean;
 }
+
+export class IdleStatementNode implements StatementNode {
+  id: number = -1;
+  parent?: number;
+  children: number[] = [];
+  meta: SourceCodeMetadata = new ZeroIndexMeta();
+  fragments: StatementFragment[] = [];
+}
+export interface StatementNodeDetail extends StatementNode {
+
+  duration?: IDuration;
+  metrics?: RuntimeMetric;
+  rounds?: number;
+}
+
 
 export interface StatementNode {
   id: number;
@@ -245,26 +255,28 @@ export interface RuntimeResult {
   timestamps: IRuntimeEvent[];
 }
 
-export type RuntimeMetric = {
+export interface RuntimeMetric {
   effort: string;
-  repetitions?: MetricValue;
-  resistance?: MetricValue;
-  distance?: MetricValue;
+  values: MetricValue[];
 };
 
-export interface IRuntimeBlock {
-  blockId: number;  
-  blockKey: string;  
-  
-  index:number;  
-  duration?: IDuration | undefined;
+export type MetricValue = {
+  type: string;
+  value: number;
+  unit: string;
+};
 
-  source?: StatementNode | undefined ;
+
+export interface IRuntimeBlock {
+  blockKey?: string | undefined;
+  blockId: number;        
+  index:number;      
+  source?: StatementNodeDetail | undefined ;
   parent?: IRuntimeBlock | undefined
-  next(): StatementNode | undefined;
-  // Build once, current block and the parents.
+  next(runtime: ITimerRuntime): StatementNode | undefined;  
   
-  laps: ITimeSpan[];
+  spans: ITimeSpan[];
+  
   visit(runtime: ITimerRuntime): IRuntimeAction[];  
   handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
   leave(runtime: ITimerRuntime): IRuntimeAction[];
@@ -333,28 +345,4 @@ export class ResultSpan {
     });
     return this;
   }
-}
-
-/**
- * Represents individual measurements within a workout block
- */
-export type WodMetric = {
-  /** Reference to parent block */
-  blockId: number;
-  /** Position within the block */
-  index: number;
-  /** Metric type (e.g., "reps", "weight", "time") */
-  type: string;
-  /** Numeric value of the metric */
-  value: number;
-};
-
-/**
- * Interface for objects that calculate workout metrics
- */
-export interface WodMetricCalculator {
-  /** Add a timer event to the calculation */
-  push(event: IRuntimeEvent): void;
-  /** Get the calculated metrics */
-  results: WodMetric[];
 }

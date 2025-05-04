@@ -11,7 +11,7 @@ import { ActionFragment } from "@/core/fragments/ActionFragment";
 
 export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(statement: StatementNode) {
-    super("compound", statement.id, statement);
+    super(statement);
   }
 
   visit(runtime: ITimerRuntime): IRuntimeAction[] {
@@ -37,7 +37,7 @@ export class CompoundBlock extends RuntimeBlock implements IRuntimeBlock {
     return [];
   }
 
-  next(): StatementNode | undefined {
+  next(runtime: ITimerRuntime): StatementNode | undefined {
     return undefined;
   }
 }
