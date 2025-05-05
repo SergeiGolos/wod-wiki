@@ -3,12 +3,12 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  StatementNode,
   StatementNodeDetail,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { PopBlockAction } from "../actions/PopBlockAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
@@ -17,19 +17,24 @@ export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
     ];
   }
 
-  visit(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return [new SetButtonsAction([startButton], "system")];
+  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [
+      new SetButtonsAction([startButton], "system"), 
+      new SetButtonsAction([], "runtime")
+    ];
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [];
   }
   /**
-   * Returns the next statement to execute when transitioning from idle state
+   * Returns the actions to execute when transitioning from idle state
    * In an idle state, we want to start executing the first node in the script
    */
-  next(runtime: ITimerRuntime): StatementNode | undefined {    
+  next(_runtime: ITimerRuntime): IRuntimeAction[] {    
     // Get the first node from the script stack if available   
-    return undefined;
+    return [
+      new PopBlockAction()
+    ];
   }
 }

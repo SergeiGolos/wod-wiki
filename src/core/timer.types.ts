@@ -161,6 +161,7 @@ export interface ITimerRuntime {
   trace: RuntimeStack;
   history: Array<IRuntimeLog>;
   script: RuntimeScript;
+  apply(actions: IRuntimeAction[], lifeCycle: string): void;
   push(block: IRuntimeBlock | undefined): IRuntimeBlock;
   pop(): IRuntimeBlock | undefined;
   reset(): void;
@@ -266,21 +267,19 @@ export type MetricValue = {
   unit: string;
 };
 
-
 export interface IRuntimeBlock {
   blockKey?: string | undefined;
-  blockId: number;        
+  blockId: number;          
   index:number;      
   source?: StatementNodeDetail | undefined ;
-  parent?: IRuntimeBlock | undefined
-  next(runtime: ITimerRuntime): StatementNode | undefined;  
-  
+  parent?: IRuntimeBlock | undefined  
+
   spans: ITimeSpan[];
   
-  visit(runtime: ITimerRuntime): IRuntimeAction[];  
+  enter(runtime: ITimerRuntime): IRuntimeAction[];  
+  next(runtime: ITimerRuntime): IRuntimeAction[];  
   handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
-  leave(runtime: ITimerRuntime): IRuntimeAction[];
-  
+  leave(runtime: ITimerRuntime): IRuntimeAction[];  
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
@@ -333,16 +332,16 @@ export class ResultSpan {
     return calculatedDuration;
   }
 
-  edit(edits: RuntimeMetricEdit[]): ResultSpan {
-    this.metrics = this.metrics.map((metric) => {
-      const selected = edits.filter(
-        (e) => e.blockKey === this.blockKey && e.index === this.index
-      );
-      for (const edit of selected) {
-        metric[edit.metricType] = edit.newValue;
-      }
-      return metric;
-    });
-    return this;
-  }
+  // edit(edits: RuntimeMetricEdit[]): ResultSpan {
+  //   this.metrics = this.metrics.map((metric) => {
+  //     const selected = edits.filter(
+  //       (e) => e.blockKey === this.blockKey && e.index === this.index
+  //     );
+  //     for (const edit of selected) {
+  //       metric[edit.metricType] = edit.newValue;
+  //     }
+  //     return metric;
+  //   });
+  //   return this;
+  // }
 }

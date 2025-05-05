@@ -2,7 +2,6 @@ import { OutputEvent } from "@/core/timer.types";
 import { useState, useEffect } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 
-
 export function useClockDisplaySync(target: string): EventSyncResult<any> {
     const [display, setDisplay] = useState<any | null>(null);
     

@@ -4,7 +4,6 @@ import {
   IRuntimeEvent,
   ITimerRuntime,
   ITimeSpan,
-  StatementNode,
   StatementNodeDetail,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
@@ -25,10 +24,10 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public spans: ITimeSpan[] = [];
     
   // Runtime
-  protected handlers: EventHandler[] = [];
-  abstract next(runtime: ITimerRuntime): StatementNode | undefined;  
-  abstract visit(runtime: ITimerRuntime): IRuntimeAction[];
-  abstract leave(runtime: ITimerRuntime): IRuntimeAction[];
+  protected handlers: EventHandler[] = [];  
+  abstract enter(runtime: ITimerRuntime): IRuntimeAction[];
+  abstract next(runtime: ITimerRuntime): IRuntimeAction[];    
+  abstract leave(runtime: ITimerRuntime): IRuntimeAction[];  
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,

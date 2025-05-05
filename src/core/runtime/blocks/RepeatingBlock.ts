@@ -2,7 +2,6 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  StatementNode,
   StatementNodeDetail,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
@@ -34,13 +33,9 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
    * @param runtime Current timer runtime
    * @returns Array of runtime actions
    */
-  visit(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Reset counters when the block is loaded        
-    const statement = this.next(runtime);
-    if(!statement) return [];
-    return [
-      new PushStatementAction(statement)
-    ];
+  enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Reset counters when the block is loaded                
+    return this.next(runtime);
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
@@ -48,12 +43,13 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   }
   
   /**
-   * Get the next statement to execute
+   * Get the next runtime actions to execute
    * @param runtime Current timer runtime
-   * @returns The next statement node or undefined if finished
+   * @returns Array of runtime actions
    */
-  next(runtime: ITimerRuntime): StatementNode | undefined {
+  next(runtime: ITimerRuntime): IRuntimeAction[] {
      const id = this.source.children[this.index % this.source.children.length];
-     return runtime.script.getId(id)[0];
+     const statement = runtime.script.getId(id)[0];
+     return statement ? [new PushStatementAction(statement)] : [];
   }
 }

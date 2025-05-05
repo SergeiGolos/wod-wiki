@@ -1,7 +1,6 @@
 import {
-  IRuntimeBlock,
-  StatementNode,
   IRuntimeAction,
+  IRuntimeBlock,
   ITimerRuntime,
   StatementNodeDetail,
 } from "@/core/timer.types";
@@ -11,6 +10,7 @@ import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { completeButton } from "@/components/buttons/timerButtons";
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
+import { PopBlockAction } from "../actions/PopBlockAction";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
@@ -25,20 +25,23 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
     super(source);
     this.handlers = [...handlers, new CompleteHandler()];
   }  
-
-  next(runtime: ITimerRuntime): StatementNode | undefined {     
-    return undefined;
-  }
-
-  visit(_runtime: ITimerRuntime): IRuntimeAction[] {    
+  
+  enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
     return [
       new SetClockAction("primary"),      
       new SetButtonsAction([completeButton], "runtime")];
   }
 
+  next(_runtime: ITimerRuntime): IRuntimeAction[] {     
+    return [
+      new PopBlockAction()
+    ];
+  }
+
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetClockAction("primary"), 
+      new SetButtonsAction([], "runtime")
     ];
   }
 }

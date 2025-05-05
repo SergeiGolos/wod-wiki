@@ -1,9 +1,7 @@
 import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../timer.types";
-import { RuntimeScript } from "./RuntimeScript";
 import { getMetrics } from "./blocks/readers/getDistance";
 import { getDuration } from "./blocks/readers/getDuration";
 import { getRounds } from "./blocks/readers/getRounds";
-import { CompoundBlockStrategy } from "./blocks/strategies/CompoundBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { IdleBlockStrategy } from "./blocks/strategies/IdleBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
@@ -18,13 +16,10 @@ export class RuntimeJitStrategies {
   private strategies: IRuntimeBlockStrategy[] = [];
 
   constructor() {
-    // Register strategies in order of most specific to most general
     this.addStrategy(new RootBlockStrategy());
     this.addStrategy(new IdleBlockStrategy());    
     this.addStrategy(new RepeatingBlockStrategy());
-    this.addStrategy(new CompoundBlockStrategy());
     this.addStrategy(new SingleBlockStrategy());
-    // More strategies can be added here as needed
   }
 
   /**

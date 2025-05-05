@@ -1,4 +1,5 @@
 import { IRuntimeBlock, StatementNode } from "../timer.types";
+import { RootBlock } from "./blocks/RootBlock";
 
 /**
  * Type definitions for traversal callback functions
@@ -126,17 +127,14 @@ export class RuntimeStack {
   }
 
   public popUntil(
-    condition: StackTraversalCondition,
-    startBlock?: IRuntimeBlock
+    condition: StackTraversalCondition    
   ): IRuntimeBlock | undefined {
-    let currentBlock = startBlock || this.current();    
-    condition = condition ?? (() => true);
-    
-    while (currentBlock) {      
+    let currentBlock =this.pop();            
+    while (currentBlock && !(currentBlock instanceof RootBlock)) {      
       if (condition(currentBlock, currentBlock)) {
         return currentBlock;
       }       
-      currentBlock = currentBlock.parent;
+      currentBlock = this.pop();
     }
     
     return undefined;

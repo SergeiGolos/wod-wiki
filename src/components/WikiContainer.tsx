@@ -14,6 +14,7 @@ import { useClockDisplaySync } from "@/components/syncs/useClockDisplaySync";
 import { useLocalCursorSync } from "@/components/syncs/useLocalCursorSync";
 import { useButtonSync } from "@/components/syncs/useButtonSync";
 import { startButton } from "./buttons/timerButtons";
+import { useTextSync } from "./syncs/useTextSync";
 
 interface WikiContainerProps {
   id: string;
@@ -47,7 +48,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   
   const [primary, setPrimary] = useClockDisplaySync("primary");
   const [total, setTotal] = useClockDisplaySync("total");
-  const [label, setLabel] = useState<string>("round");
+  const [label, setLabel] = useTextSync("label");
   const [results, setResults] = useLocalResultSync();
   const [cursor, setCursor] = useLocalCursorSync();  
   const [systemButtons, setSystemButtons] = useButtonSync("system");
@@ -82,6 +83,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       
       // Process the event through all handlers
       setPrimary(event);
+      setLabel(event);
       setTotal(event);
       setResults(event);
       setCursor(event);      

@@ -72,7 +72,8 @@ export class TimerRuntime implements ITimerRuntimeIo {
     if (block) {
       this.history.push({
         blockId: block.blockId,
-        blockKey: block.blockKey ?? block.blockId.toString(),        ...event,
+        blockKey: block.blockKey ?? block.blockId.toString(),
+        ...event
       });
     }
   }
@@ -80,16 +81,23 @@ export class TimerRuntime implements ITimerRuntimeIo {
   push(block: IRuntimeBlock): IRuntimeBlock {        
     block.index += 1;
     block = this.trace.push(block);     
-    let actions = block?.visit(this) ?? [];
-    this.apply(actions, "visit");
-    return block;
+    
+    let actions = block?.enter(this) ?? [];
+    this.apply(actions, "enter");
+    
+    return this.trace.current() ?? block;
   }
 
   pop(): IRuntimeBlock | undefined {
     let block = this.trace.pop();    
-    let actions = block?.leave(this) ?? [];
+    let actions = block?.leave(this) ?? [];        
     this.apply(actions, "leave");
-    return block;
+    
+    block = this.trace.current(); 
+    actions = block?.next(this) ?? [];
+    this.apply(actions, "next");
+
+    return this.trace.current();
   } 
 
   /**

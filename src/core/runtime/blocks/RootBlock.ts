@@ -7,8 +7,12 @@ import {
   StatementNodeDetail,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { PushBlockAction, PushStatementAction } from "../actions/PushStatementAction";
-
+import {
+  PushIdleBlockAction,
+  PushEndBlockAction,
+  PushStatementAction,
+} from "../actions/PushStatementAction";
+import { PopBlockAction } from "../actions/PopBlockAction";
 
 /**
  * Represents the root of the execution tree.
@@ -17,32 +21,27 @@ import { PushBlockAction, PushStatementAction } from "../actions/PushStatementAc
 export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(private statements: StatementNode[]) {
     super(new IdleStatementNode() as StatementNodeDetail);
-    this.index = -1; // preload visit;
   }
 
-  visit(runtime: ITimerRuntime): IRuntimeAction[] {    
-    if (this.index == 0) {      
-      const children = this.statements
-        .filter((s) => s.parent === undefined)
-        .map((s) => s.id);
-      this.source.children = [...children];    
-      return [new PushBlockAction(runtime.jit.idle(runtime))];
+  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+    const children = this.statements
+      .filter((s) => s.parent === undefined)
+      .map((s) => s.id);
+    this.source.children = [...children];
+
+    return [new PushIdleBlockAction()];
+  }
+
+  next(_runtime: ITimerRuntime): IRuntimeAction[] {
+    if (this.index > this.statements.length) {
+      return [new PopBlockAction()];
     }
-    
-    const next = this.next(runtime);
-    if (next) {
-      return [new PushStatementAction(next)];
-    }
 
-    return [];
+    const statement = this.statements[this.index-1];
+    return [new PushStatementAction(statement)];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    return [];
-  }
-
-  next(runtime: ITimerRuntime): StatementNode | undefined {      
-    const next = this.index;
-    return this.statements[next % this.statements.length];
+  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [new PushEndBlockAction()];
   }
 }
