@@ -1,5 +1,5 @@
 import { StatementNodeDetail, ITimerRuntime, IRuntimeBlock } from "@/core/timer.types";
-import { TimedRepeaterBlock } from "../TimedRepeaterBlock";
+import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
@@ -16,6 +16,6 @@ export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
     node: StatementNodeDetail,
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-    return new TimedRepeaterBlock(node);
+    return new TimedGroupBlock(node);
   }
 }
