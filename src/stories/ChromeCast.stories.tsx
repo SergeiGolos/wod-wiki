@@ -1,5 +1,6 @@
+import { CastReceiver } from '@/cast/CastReceiver';
+import { CastHostContainer } from './components/CastHostContainer';
 import type { Meta, StoryObj } from '@storybook/react';
-import CastReceiver from '../cast/CastReceiver';
 
 /**
  * ChromeCast Receiver Application for wod.wiki
@@ -21,4 +22,6 @@ type Story = StoryObj<typeof CastReceiver>;
 /**
  * Default presentation of the ChromeCast receiver app
  */
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <CastHostContainer />,
+};

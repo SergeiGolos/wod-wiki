@@ -41,22 +41,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Working/2025-04-15.lap-timers-feature.md",
+                "file": "Working/2025-04-17.KB.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2025-04-15.lap-timers-feature"
-            }
-          },
-          {
-            "id": "7ee3b3844d9c5005",
-            "type": "leaf",
-            "state": {
-              "type": "card-board-view",
-              "state": {},
-              "icon": "card-board",
-              "title": "CardBoard"
+              "title": "2025-04-17.KB"
             }
           },
           {
@@ -86,9 +76,89 @@
               "icon": "lucide-file",
               "title": "2025-04-15.lap-timers-feature"
             }
+          },
+          {
+            "id": "a686a2a1655ea3f8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "README.md.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README.md"
+            }
+          },
+          {
+            "id": "5157ba50043eda6c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Syntax.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Syntax"
+            }
+          },
+          {
+            "id": "b35703dcc86fa6f1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Syntax.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Syntax"
+            }
+          },
+          {
+            "id": "5bc08f81c4e0e3dc",
+            "type": "leaf",
+            "state": {
+              "type": "card-board-view",
+              "state": {},
+              "icon": "card-board",
+              "title": "CardBoard"
+            }
+          },
+          {
+            "id": "5e71866fe40be880",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Working/2025-05-01.ui-design-guide.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2025-05-01.ui-design-guide"
+            }
+          },
+          {
+            "id": "1b1e39dd1f065fa0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Working/2025-04-15.lap-timers-feature.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2025-04-15.lap-timers-feature"
+            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 10
       }
     ],
     "direction": "vertical"
@@ -120,7 +190,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "lap",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -141,11 +211,12 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
-    "width": 441.5
+    "width": 355.5
   },
   "right": {
     "id": "249689aca2c55076",
@@ -234,67 +305,48 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "obsidian-excalidraw-plugin:New drawing": false,
-      "obsidian-kanban:Create new board": false,
       "card-board:CardBoard": false
     }
   },
-  "active": "92979c6867b15c51",
+  "active": "1b1e39dd1f065fa0",
   "lastOpenFiles": [
+    "Working/2025-05-04.KB.md",
+    "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md",
+    "Working/2025-05-01.ui-design-guide.md",
+    "Working/2025-04-17.KB.md",
+    "worklog",
+    "Components/RuntimeHandlers.md",
+    "Working/2025-05-01.ui-design-guide.kb.md",
+    "worklog/2025-05-01.ui-design-guide.kb.md",
+    "worklog/2025-05-01.ui-design-guide.md",
+    "design.md",
+    "Notes/RuntimeFlow.md",
+    "Core/Compile.md",
+    "Core/Runtime.md",
+    "Notes/RuntimeFlow_backup.md",
+    "Excalidraw/Group Behavior Expectations.md",
+    "Working/2025-04-30.KB.md",
+    "Working/2025-04-28.monaco-migration-notes.md",
+    "Working/2025-04-28.KB.md",
+    "Working/2025.04-19.chromecasting-push.md",
     "Working/2025-04-14.pause-resume-duration-design.md",
-    "Working/2025-04-15.lap-timers-feature.md",
-    "Working/2025-04-14.KB.md",
-    "Releases/0.5.0.md",
-    "Working/2025-04-14.repair-system-button-events.md",
-    "Releases",
-    "Working/2025-04-14.repair-system-button-events.kb.md",
-<<<<<<< Updated upstream
-    "Working/2025-04-14.KB.md",
-    "Working/2025-04-13.md",
-    "Working/2025-04-13.KB.md",
-    "Working/2025-04-12.md",
-    "Working/2025-04-11.md",
-    "Working/2025-04-10.md",
-    "Working/2025-04-09.md",
-    "Working/2025-04-08.md",
-    "Working/2025-04-07.md",
-    "Working/2025-04-06.md",
-    "Working/2024-04-13.md",
-    "Working/2024-04-12.md",
-    "Working/2025-04-14.pause-resume-duration-design.md",
-    "Working/2025-04-15.lap-timers-feature.md",
-    "Releases/0.5.0.md",
-    "Releases",
-    "Untitled Kanban 1.md",
-    "Untitled Kanban.md",
-=======
-    "Working/2025-04-13.KB.md",
-    "Untitled Kanban 1.md",
-    "Untitled Kanban.md",
-    "Working/2025-04-06.md",
->>>>>>> Stashed changes
-    "docs/Components/EventSpanAggregator.md",
-    "docs/Components",
-    "docs",
+    "Reports/2025-04-27-rxjs-message-pump.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
-    "Notes/Chromecast Context.md",
-    "Working/Untitled Kanban.md",
-    "Excalidraw/Data-Structure-Transformations.excalidraw",
-    "Excalidraw/User-Input-Events.excalidraw",
-    "Excalidraw/Timer-Events-Processing.excalidraw",
-    "Excalidraw/Key-Event-Types.excalidraw",
-    "Excalidraw/Event-State-Transitions.excalidraw",
-    "Excalidraw/Drawing 2025-04-13 17.24.26.excalidraw.md",
-    "Excalidraw/Event-Flow-Diagram.excalidraw",
-    "Excalidraw",
-<<<<<<< Updated upstream
-=======
-    "Working/2024-04-13.md",
-    "Notes/Chromcast Working Example.md",
-    "Working/2025-04-12.md",
-    "Notes/LapFeature.md",
->>>>>>> Stashed changes
+    "README.md.md",
+    "Reports",
+    "Welcome.md",
+    "Syntax.md",
+    "Excalidraw/Syntax-Parser-Workflow.md",
+    "docs",
+    "Core",
+    "Syntax",
+    "Components",
+    "docs/Components",
     "Birds Eye Overview.canvas",
-    "Birds Eye Workflow.canvas"
+    "Birds Eye Workflow.canvas",
+    "Releases",
+    "Excalidraw/Data-Structure-Transformations.excalidraw",
+    "Excalidraw/User-Input-Events.excalidraw"
   ]
 }

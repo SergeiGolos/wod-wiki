@@ -35,7 +35,12 @@ export const Weight = createToken({
   pattern: /(kg|lb|bw)\b/i,
 });
 
-export const AllowedSymbol = createToken({
+export const Collon = createToken({
+  name: "Collon",
+  pattern: /:/,
+});
+
+export const  AllowedSymbol = createToken({
   name: "AllowedSymbol",
   pattern: /[\\\/.,@!$%^*=&]+/,
   // pick up anything that isn't whitespace, a digit, or a "special" character
@@ -77,6 +82,16 @@ export const Up = createToken({
   categories: Trend,
 });
 
+export const ActionOpen = createToken({
+  name: "ActionOpen",
+  pattern: /\[/,
+});
+
+export const ActionClose = createToken({
+  name: "ActionClose",
+  pattern: /\]/,
+});
+
 export const GroupOpen = createToken({
   name: "GroupOpen",
   pattern: /\(/,
@@ -90,12 +105,15 @@ export const allTokens = [
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier
+  ActionOpen,
+  ActionClose,
   GroupOpen,
   GroupClose,
   Comma,
   AtSign,
   Timer,
   Trend,    
+  Collon,  
   Up,
   Minus,
   Plus,

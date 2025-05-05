@@ -1,184 +1,170 @@
+import { Observable, Subject } from "rxjs";
+import { RuntimeScript } from "./runtime/RuntimeScript";
+import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeStack } from "./runtime/RuntimeStack";
+import { EventHandler } from "./runtime/EventHandler";
 
-// TimerDisplay interface to represent the timer's visual state
-export interface TimerDisplayBag {
-    primary?: IClock;    
-    label?: string;
-    bag: { [key: string]: IClock }
-}
-
-export interface IClock  extends IDuration {
-  toClock(): [string, string];
-}
+export type DurationSign = "+" | "-";
 
 export interface IDuration {
+  original?: number;
+  sign: "+" | "-";
+
   days?: number;
   hours?: number;
   minutes?: number;
   seconds?: number;
   milliseconds?: number;
-  
 }
 
-export class TimerFromSeconds implements IClock {
+export class Duration implements IDuration {  
   days?: number;
   hours?: number;
   minutes?: number;
   seconds?: number;
   milliseconds?: number;
 
-  constructor(miliseconds: number) {    
-    const multiplier = 10 ** 3;
-    let remaining = miliseconds;
+  constructor(public original: number, public sign: DurationSign = "+") {    
+    let remaining = this.original = original ?? 0;
 
-    this.days = Math.floor(remaining / 86400); 
-    remaining %= 86400;
+    this.days = Math.floor(remaining / 86400000);
+    remaining %= 86400000;
 
-    this.hours = Math.floor(remaining / 3600);   
-    remaining %= 3600;
+    this.hours = Math.floor(remaining / 3600000);
+    remaining %= 3600000;
 
-    this.minutes = Math.floor(remaining / 60);    
-    remaining %= 60;
+    this.minutes = Math.floor(remaining / 60000);
+    remaining %= 60000;
 
-    this.seconds = Math.floor(remaining);
-    
-    this.milliseconds = Math.round((remaining - this.seconds) * multiplier);
-  }
+    this.seconds = Math.floor(remaining / 1000);
 
-  toClock(): [string, string] {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    
-    const days = this.days || 0;
-    const hours = this.hours || 0;
-    const minutes = this.minutes || 0;
-    const seconds = this.seconds || 0;
-    const milliseconds = this.milliseconds || 0;
-    
-    const clock = [];
-
-    if (days && days > 0) {
-      clock.push(`${days}`);
-    }
-
-    if ((hours && hours > 0) || clock.length > 0) {
-      clock.push(`${pad(hours)}`);
-    }
-
-    if (clock.length > 0) {
-      clock.push(`${pad(minutes)}`);
-    }
-    else
-    {
-      clock.push(`${minutes}`)
-    }
-
-    clock.push(`${pad(seconds)}`);
-    
-    return [clock.join(':'), milliseconds.toString()];  
+    this.milliseconds = Math.round((remaining - this.seconds * 1000) );    
   }
 }
-export interface IRuntimeAction {
-    apply(runtime: ITimerRuntime): RuntimeEvent[];
+
+export interface ITimeSpan { 
+  start?: IRuntimeEvent;
+  stop?: IRuntimeEvent;
+}
+
+export interface ISpanDuration extends IDuration {
+  display(): IDuration;
+  spans: ITimeSpan[]
+  elapsed(): IDuration;
+  remaining(): IDuration;
+}
+
+export class TimeSpanDuration extends Duration implements ISpanDuration {
+  constructor(milliseconds: number, public spans: ITimeSpan[]) {
+    super(milliseconds);
+    this.spans = spans;
   }
 
-  export type WodRuntimeScript = {
-    source: string;
-    statements: StatementNode[];    
-  };
-  
-  export interface WodWikiInitializer {
-    code?: string;
-    syntax: string;
+  elapsed(): IDuration {  
+    return new Duration(this.spans.reduce((total, span) => {
+      const start = span.start?.timestamp ?? new Date();
+      const stop = span.stop?.timestamp ?? new Date();
+      return total + (stop.getTime() - start.getTime());
+    }, 0));
   }
-  
-  export interface WodWikiToken {
-    token: string;
-    foreground: string;
-    fontStyle?: string;
-    hints: WodWikiTokenHint[];
-  }
-  
-  export interface WodWikiTokenHint {
-    hint: string;
-    position: "after" | "before";
-    offSet?: number | undefined;
-  }
-  
-  export type MetricValue = {
-    value: number;
-    unit: string;
-  };
-  
-  export class RuntimeTrace {  
-    private trace: Map<number, [number, number]> = new Map();
-    public history: StatementKey[] = [];
-    
-    get(id:number) : number {
-      return this.trace.get(id)?.[0] ?? 0;
-    }
 
-    getTotal(id:number) : number {
-      return this.trace.get(id)?.[1] ?? 0;
-    }
-  
-    set(stack: StatementNode[]) : StatementKey {
-     var key = new StatementKey(this.history.length + 1) ;
-     var previous = this.history.length > 0 
-      ? this.history[this.history.length - 1] 
-      : undefined;
+  remaining(): IDuration {
+    return new Duration((this.original ?? 0) - (this.elapsed()?.original ?? 0))      
+  }   
 
-     for(const node of stack) {    
-      const index = (this.trace.get(node.id)?.[0] ?? 0) + 1;
-      const total = this.getTotal(node.id)+1;
-      this.trace.set(node.id, [index, total]);
-      key.push(node.id, index);
-     }
+  display(): IDuration {
+    return this.sign === "+" ? this.elapsed() : this.remaining();
+  }
+}
  
- this.history.push(key);
-     if (previous) {
-      const diff = previous.not(key);      
-      for(const id of diff) {
-        const total = this.getTotal(id)
-        this.trace.set(id, [0,total]);
-      }
-     }
+export interface IRuntimeAction {
+  name: string;
+  apply(
+    runtime: ITimerRuntime,
+    input: Subject<IRuntimeEvent>, 
+    output: Subject<OutputEvent>
+  ): void;
+}
 
-     return key;
-    }  
-  }
+export type WodRuntimeScript = {
+  source: string;
+  statements: StatementNode[];
+};
 
-  // Represents an instruction to update a specific metric for a result span
-  export type RuntimeMetricEdit = {
-    blockKey: string;
-    index: number;
-    metricType: 'repetitions' | 'resistance' | 'distance';
-    newValue: MetricValue; // The parsed new value 
-    createdAt: Date; // Timestamp when the edit was created
-  };
+export interface WodWikiInitializer {
+  code?: string;
+  syntax: string;
+}
 
-  export interface IRuntimeLogger {
-    write: (runtimeBlock: IRuntimeBlock) => ResultSpan[]
-  }
+export interface WodWikiToken {
+  token: string;
+  foreground: string;
+  fontStyle?: string;
+  hints?: WodWikiTokenHint[];
+}
 
-export type RuntimeState = 'idle' | 'running' | 'paused' | 'stopped' | 'done' | undefined;
+export interface WodWikiTokenHint {
+  hint: string;
+  position: "after" | "before";
+  offSet?: number | undefined;
+}
+
+// Represents an instruction to update a specific metric for a result span
+export type RuntimeMetricEdit = {
+  blockKey: string;
+  index: number;
+  metricType: "repetitions" | "resistance" | "distance";
+  newValue: MetricValue; // The parsed new value
+  createdAt: Date; // Timestamp when the edit was created
+};
+
+
+export type IRuntimeSync = (runtimeBlock: OutputEvent) => void;  
+
+export type OutputEventType =
+  | 'SYSTEM'  
+  | 'HEARTBEAT'  
+  | 'WRITE_LOG'
+  | 'WRITE_RESULT'
+  | 'SET_DISPLAY'
+  | 'SET_CLOCK'
+  | 'SET_TEXT'
+  | 'SET_SOUND'
+  | 'SET_DEBUG'
+  | 'SET_ERROR'
+  | 'SET_IDLE';
+  
+
+export interface OutputEvent {
+  eventType: OutputEventType;
+  timestamp: Date;
+  bag: { [key: string]: any };
+}
+
+export type RuntimeState =
+  | "idle"
+  | "running"
+  | "paused"
+  | "stopped"
+  | "done"
+  | undefined;
+
+export interface ITimerRuntimeIo extends ITimerRuntime {
+  input$: Subject<IRuntimeEvent>;
+  tick$: Observable<IRuntimeEvent>;
+  output$: Observable<OutputEvent>;  
+}
 
 export interface ITimerRuntime {
-  gotoComplete(): unknown;      
-  display: TimerDisplayBag;
-  buttons: ButtonConfig[];
-  edits: RuntimeMetricEdit[];
-  results: ResultSpan[];  
-  trace: RuntimeTrace | undefined;
-  script: RuntimeStack;
-  current: IRuntimeBlock | undefined;  
-  tick(events: RuntimeEvent[]): RuntimeEvent[];
-  code:string;
-  gotoBlock(node: StatementNode | undefined): IRuntimeBlock;  
-
+  code: string;
+  jit: RuntimeJit;
+  trace: RuntimeStack;
+  history: Array<IRuntimeLog>;
+  script: RuntimeScript;
+  apply(actions: IRuntimeAction[], lifeCycle: string): void;
+  push(block: IRuntimeBlock | undefined): IRuntimeBlock;
+  pop(): IRuntimeBlock | undefined;
   reset(): void;
-  
-  edit(metric: RuntimeMetricEdit): void;
-  
 }
 
 /**
@@ -187,34 +173,35 @@ export interface ITimerRuntime {
  * @param type The type of fragments to retrieve
  * @returns Array of fragments matching the specified type
  */
-export function getFragments<T extends StatementFragment>(fragments: StatementFragment[], type: string): T[] {
-    return fragments.filter((fragment) => fragment.type === type) as T[];
+export function getFragments<T extends StatementFragment>(
+  fragments: StatementFragment[],
+  type: string
+): T[] {
+  return fragments?.filter((fragment) => fragment.type === type) as T[] ?? [];
 }
 
 export interface StatementFragment {
-    type: string;
-    meta?: SourceCodeMetadata;
-    toPart: () => string;    
-} 
+  type: string;
+  meta?: SourceCodeMetadata;  
+}
 
-
-export class StatementKey extends Map<number, number> {  
+export class StatementKey extends Map<number, number> {
   public key: string;
-  
+
   constructor(public index: number) {
     super();
-    this.key = index.toString();    
+    this.key = index.toString();
   }
-  
+
   push(id: number, index: number) {
     this.key += `|${id}:${index}`;
     this.set(id, index);
   }
 
-  not(other: StatementKey) : number[] {
+  not(other: StatementKey): number[] {
     const keys = Array.from(this.keys());
     const otherKeys = Array.from(other.keys());
-    return  keys.filter(key => !otherKeys.includes(key));
+    return keys.filter((key) => !otherKeys.includes(key));
   }
 
   toString() {
@@ -222,81 +209,122 @@ export class StatementKey extends Map<number, number> {
   }
 }
 
+export class ZeroIndexMeta implements SourceCodeMetadata {
+  line = 0;
+  startOffset = 0;
+  endOffset = 0;
+  columnStart = 0;
+  columnEnd = 0;
+  length = 0;      
+}
 
-export interface StatementNode {
-    id: number;
-    parent?: number;    
-    next?: number;
-    rounds?: number;
-    children: number[];
-    meta: SourceCodeMetadata;
-    fragments: StatementFragment[];
-    isLeaf?: boolean; // Explicit flag to mark a node as a leaf even if it has children
+export class RootStatementNode implements StatementNode {
+  id: number = -1;
+  parent?: number;
+  children: number[] = [];
+  meta: SourceCodeMetadata = new ZeroIndexMeta();
+  fragments: StatementFragment[] = [];
+}
+
+export class IdleStatementNode implements StatementNode {
+  id: number = -1;
+  parent?: number;
+  children: number[] = [];
+  meta: SourceCodeMetadata = new ZeroIndexMeta();
+  fragments: StatementFragment[] = [];
+}
+export interface StatementNodeDetail extends StatementNode {
+
+
+  duration?: IDuration;
+  metrics?: RuntimeMetric;
+  reps?: RuntimeMetric;
+  rounds?: number;
 }
 
 
-export interface RuntimeResult {    
-    round: number;
-    stack: number[];
-    timestamps: RuntimeEvent[];
-  }
-  
+export interface StatementNode {
+  id: number;
+  parent?: number;
+  children: number[];
+  meta: SourceCodeMetadata;
+  fragments: StatementFragment[];
+  isLeaf?: boolean;
+}
 
-  export type RuntimeMetric = {
-    effort: string;    
-    repetitions?: MetricValue;
-    resistance?: MetricValue;
-    distance?: MetricValue;
-  }
-  
-  export interface IRuntimeBlock {
-    buttons: ButtonConfig[];    
-    type: string;
-    blockId: number;
-    blockKey: string;
-    events: RuntimeEvent[];
-    stack?: StatementNode[];
-    metrics: RuntimeMetric[];
-    onEvent(event: RuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[];
-    report(): ResultSpan[]
-    getState(): RuntimeState;
-  }
-   
-  export type RuntimeEvent = { 
-    timestamp: Date, 
-    name: string    
-  }
-  
-  export interface RuntimeBlockHandler {
-    apply: (event: RuntimeEvent, runtime: ITimerRuntime) => IRuntimeAction[];
-  }
+export interface RuntimeResult {
+  round: number;
+  stack: number[];
+  timestamps: IRuntimeEvent[];
+}
 
+export interface RuntimeMetric {
+  effort: string;
+  values: MetricValue[];
+};
 
-export interface ButtonConfig {
+export type MetricValue = {
+  type: string;
+  value: number;
+  unit: string;
+};
+
+export interface IRuntimeBlock {
+  blockKey?: string | undefined;
+  blockId: number;          
+  index:number;      
+  source?: StatementNodeDetail | undefined ;
+  parent?: IRuntimeBlock | undefined  
+
+  spans: ITimeSpan[];
+  
+  enter(runtime: ITimerRuntime): IRuntimeAction[];  
+  next(runtime: ITimerRuntime): IRuntimeAction[];  
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
+  leave(runtime: ITimerRuntime): IRuntimeAction[];  
+}
+
+export interface IRuntimeLog extends IRuntimeEvent {
+  blockId: number;
+  blockKey: string;  
+}
+
+export interface IRuntimeEvent {
+  timestamp: Date;
+  name: string;
+};
+
+export interface IActionButton {
   label?: string;
-  icon: React.ForwardRefExoticComponent<React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & { title?: string, titleId?: string } & React.RefAttributes<SVGSVGElement>>;
-  onClick: () => RuntimeEvent[];
+  icon?: React.ForwardRefExoticComponent<
+    React.PropsWithoutRef<React.SVGProps<SVGSVGElement>> & {
+      title?: string;
+      titleId?: string;
+    } & React.RefAttributes<SVGSVGElement>
+  >;
+  event: string;
   isActive?: boolean;
-  variant?: 'primary' | 'secondary' | 'success';
+  variant?: "primary" | "secondary" | "success";
 }
 
 export interface SourceCodeMetadata {
-    line: number;
-    startOffset: number;
-    endOffset: number;
-    columnStart: number;
-    columnEnd: number;
-    length: number;
+  line: number;
+  startOffset: number;
+  endOffset: number;
+  columnStart: number;
+  columnEnd: number;
+  length: number;
 }
 
 export class ResultSpan {
   blockKey?: string;
   index?: number;
   stack?: number[];
-  start?: RuntimeEvent;
-  stop?: RuntimeEvent;
-  label?: string;
+  start?: IRuntimeEvent;
+  stop?: IRuntimeEvent;
   metrics: RuntimeMetric[] = [];
+  label?: string;
+
   duration(timestamp?: Date): number {
     let now = timestamp ?? new Date();
     const stopTime = (this.stop?.timestamp || now).getTime();
@@ -306,39 +334,16 @@ export class ResultSpan {
     return calculatedDuration;
   }
 
-  edit(edits: RuntimeMetricEdit[]) : ResultSpan {
-    this.metrics = this.metrics.map(metric => {
-      const selected = edits.filter(e => e.blockKey === this.blockKey && e.index === this.index);
-      for (const edit of selected) {
-        metric[edit.metricType] = edit.newValue;
-      }
-      return metric;
-    });
-    return this;
-  }
+  // edit(edits: RuntimeMetricEdit[]): ResultSpan {
+  //   this.metrics = this.metrics.map((metric) => {
+  //     const selected = edits.filter(
+  //       (e) => e.blockKey === this.blockKey && e.index === this.index
+  //     );
+  //     for (const edit of selected) {
+  //       metric[edit.metricType] = edit.newValue;
+  //     }
+  //     return metric;
+  //   });
+  //   return this;
+  // }
 }
-
-  /**
-   * Represents individual measurements within a workout block
-   */
-  export type WodMetric = {
-    /** Reference to parent block */
-    blockId: number;
-    /** Position within the block */
-    index: number;  
-    /** Metric type (e.g., "reps", "weight", "time") */
-    type: string;
-    /** Numeric value of the metric */
-    value: number;
-  }
-  
-  /**
-   * Interface for objects that calculate workout metrics
-   */
-  export interface WodMetricCalculator {
-    /** Add a timer event to the calculation */
-    push(event: RuntimeEvent): void;
-    /** Get the calculated metrics */
-    results: WodMetric[];
-  }
-  

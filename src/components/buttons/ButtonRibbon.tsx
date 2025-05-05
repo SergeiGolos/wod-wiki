@@ -1,18 +1,18 @@
-import React, { Dispatch, SetStateAction } from "react";
-import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import React from "react";
+import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
 import { cn } from "@/core/utils";
 
 
 interface ButtonRibbonProps {
-  buttons: ButtonConfig[];  
-  setEvents: Dispatch<SetStateAction<RuntimeEvent[]>>;
+  buttons: IActionButton[] | undefined;  
+  setEvent: (events: IRuntimeEvent) => void;
 }
 
-export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }) => {
+export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent }) => {
   
   
   /// TODO:  THis should be conifugred at the button not in the ribben
-  const getButtonStyle = (button: ButtonConfig) => {
+  const getButtonStyle = (button: IActionButton) => {
     const baseStyle = "flex items-center px-3 py-1 rounded-md transition-all ";
     
     if (button.variant === 'success') {
@@ -26,16 +26,16 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvents }
     return baseStyle + "bg-white text-blue-600 hover:bg-blue-50 border border-blue-200";
   };
 
-  const clickEvent = (button: ButtonConfig) => {
-    const events = button.onClick();    
-    setEvents(events);
+  const clickEvent = (button: IActionButton) => {
+    const event = button.event;
+    setEvent({ name: event, timestamp: new Date() });
   }
 
   return (
     <div className={`flex justify-center items-center px-2 py-2`}>
       {/* Left-aligned buttons */}
       <div className="flex space-x-4">
-        {buttons.map((button, index) => (
+        {buttons && buttons.map((button, index) => (
           <button
             key={`right-${index}`}
             onClick={() => clickEvent(button)}

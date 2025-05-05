@@ -1,59 +1,47 @@
 import { PlayIcon, ArrowPathIcon, PauseIcon, FlagIcon, FolderArrowDownIcon } from "@heroicons/react/24/solid";
-import { ButtonConfig } from "@/core/timer.types";
+import { IActionButton } from "@/core/timer.types";
 
 
 
-export const startButton: ButtonConfig = {
+export const startButton: IActionButton = {
     label: "Run",
     icon: PlayIcon,
-    onClick: () => {
-      const time = new Date();
-      return [
-        {name: "begin", timestamp: time},
-        {name: "start", timestamp: time}
-      ]
-    },
+    event: "run",
   };
 
 
-  export const resumeButton: ButtonConfig = {
+  export const resumeButton: IActionButton = {
     label: "Resume",
     icon: PlayIcon,
-    onClick: () => {
-      return [{name: "start", timestamp: new Date()}]
-    },
+    event: "start",
   };
 
-  export const pauseButton: ButtonConfig = {
+  export const pauseButton: IActionButton = {
     label: "Pause",
     icon: PauseIcon,
-    onClick: () => [{ name: "stop", timestamp: new Date() }],
+    event: "stop",
   };
 
-  export const endButton: ButtonConfig = {
+  export const endButton: IActionButton = {
     label: "End",
     icon: FlagIcon,
-    onClick: () => [{ name: "end", timestamp: new Date() }],
+    event: "end",
   };
 
-  export const resetButton: ButtonConfig = {
+  export const resetButton: IActionButton = {
     label: "Reset",
     icon: ArrowPathIcon,
-    onClick: () => {
-      return [{name: "reset", timestamp: new Date()}]
-    },
+    event: "reset",
   };
 
-  export const completeButton: ButtonConfig = {
+  export const completeButton: IActionButton = {
     label: "Complete",
     icon: ArrowPathIcon,
-    onClick: () => {
-      return [{name: "complete", timestamp: new Date()}]
-    },
+    event: "complete",
   };
 
-  export const saveButton: ButtonConfig = {
+  export const saveButton: IActionButton = {
     label: "Save",
     icon: FolderArrowDownIcon,
-    onClick: () => [{ name: "save", timestamp: new Date() }],
+    event: "save",
   };

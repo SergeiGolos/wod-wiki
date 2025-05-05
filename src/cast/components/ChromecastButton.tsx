@@ -1,114 +1,50 @@
 import React, { useEffect } from 'react';
-import { useChromecast } from '../hooks/useChromecast';
-import { RuntimeEvent } from '@/core/timer.types';
+import { UseCastSenderResult } from '../hooks/useCastSender';
 
-interface ChromecastButtonProps {
-  onStatusChange?: (isConnected: boolean) => void;
-  setEvents?: React.Dispatch<React.SetStateAction<RuntimeEvent[]>>;
-}
-
-// Namespace for custom messages
-const CAST_NAMESPACE = "urn:x-cast:com.google.cast.cac"; 
-
-export const ChromecastButton: React.FC<ChromecastButtonProps> = ({ 
-  onStatusChange,
-  setEvents 
-}) => {
-  const {
-    isAvailable,
-    isConnected,
-    isConnecting,
-    deviceName,
-    error,
-    connect,
-    disconnect,
-    sendMessage
-  } = useChromecast();
-
-  // Notify parent component when connection status changes
+export const ChromecastButton: React.FC<UseCastSenderResult> = ({ state$, connect, disconnect }) => {  
+  const [state, setState] = React.useState(state$.getValue());
+  
   useEffect(() => {
-    if (onStatusChange) {
-      onStatusChange(isConnected);
-    }
-    
-    // When connected, add to events if setEvents is provided
-    if (isConnected && setEvents) {
-      setEvents(prev => [...prev, { name: "cast-connected", timestamp: new Date() }]);
-    }
-  }, [isConnected, onStatusChange, setEvents]);
+    const sub = state$.subscribe(setState);
+    return () => sub.unsubscribe();
+  }, [state$]);
 
-  // Handle button click
   const handleClick = async () => {
     try {
-      // If already connected, disconnect
-      if (isConnected) {
+      if (state.isConnecting) return;
+      if (state.isConnected) {
         await disconnect();
+        console.debug('[ChromecastButton] Disconnected from Chromecast');
         return;
       }
-      
-      // If not connected, initiate the cast
       await connect();
-      // Status change is handled by the effect hook
+      console.debug('[ChromecastButton] Connecting to Chromecast...');
     } catch (error) {
-      console.error('Chromecast operation failed:', error);
+      console.error('[ChromecastButton] Chromecast operation failed:', error);
     }
-  };
+  }
 
-  // Send a test message to the receiver (optional, can be removed in production)
-  const handleSendMessage = async () => {
-    if (!isConnected) return;
-    
-    try {
-      const message = { 
-        type: 'TEST_MESSAGE',
-        timestamp: Date.now(),
-        data: { text: 'Hello from sender!' }
-      };
-      await sendMessage(CAST_NAMESPACE, message);
-    } catch (err) {
-      console.error('Failed to send test message:', err);
-    }
-  };
-
-  // Determine button style based on status
   const getButtonStyle = () => {
     const baseStyle = "flex items-center px-3 py-1 rounded-full transition-all border border-blue-200 ";
-    
-    if (isConnected) {
-      // Blue background when connected
+    if (state.isConnected) {
       return baseStyle + "bg-blue-600 text-white hover:bg-blue-700 shadow-lg";
     }
-    
-    if (isConnecting) {
-      // Pulsing effect when connecting
+    if (state.isConnecting) {
       return baseStyle + "bg-blue-400 text-white animate-pulse";
     }
-    
-    if (!isAvailable) {
-      // Gray when not available (disabled)
+    if (!state.isAvailable) {
       return baseStyle + "bg-white text-gray-400 opacity-50";
     }
-    
-    // Normal button with black text when available but not connected
     return baseStyle + "bg-white text-gray-800 hover:bg-gray-50";
-  };
-
-  // Status text for title/tooltip
-  const getStatusText = () => {
-    if (error) return `Error: ${error.message}`;
-    if (isConnected) return `Connected to ${deviceName || 'Chromecast device'}`;
-    if (isConnecting) return 'Connecting...';
-    if (isAvailable) return 'Cast to device';
-    return 'Chromecast not available';
   };
 
   return (
     <div className="flex items-center">
       <button
-        onClick={handleClick}
-        disabled={!isAvailable || isConnecting}
         className={getButtonStyle()}
-        title={getStatusText()}
+        onClick={handleClick}
+        disabled={!state.isAvailable || state.isConnecting}
+        aria-label={state.isConnected ? 'Disconnect Chromecast' : 'Connect Chromecast'}
       >
         <div className="w-4 h-4 mr-1">
           <svg viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
@@ -122,7 +58,7 @@ export const ChromecastButton: React.FC<ChromecastButtonProps> = ({
             </g>
           </svg>
         </div>       
-      </button>
+      </button>      
     </div>
   );
 };

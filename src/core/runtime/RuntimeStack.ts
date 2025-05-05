@@ -1,59 +1,142 @@
+import { IRuntimeBlock, StatementNode } from "../timer.types";
+import { RootBlock } from "./blocks/RootBlock";
 
-import { StatementNode } from "../timer.types";
+/**
+ * Type definitions for traversal callback functions
+ */
+type BlockTraversalCallback<T> = (block: IRuntimeBlock) => T | undefined;
+type StatementTraversalCallback<T> = (node: StatementNode) => T | undefined;
+type StackTraversalCondition = (block: IRuntimeBlock, result: any) => boolean;
 
-export class RuntimeStack {
-  private lookupIndex: { [key: number]: number; } = {};
-  public trace: string[] = [];
-  
+/**
+ * Manages the runtime trace of statement execution
+ * Tracks the execution flow and state of each statement node
+ */
+export class RuntimeStack {  
+  public stack: Array<IRuntimeBlock> = [];
+  /**
+   * Gets traces for nodes in the stack
+   * @param stack Array of statement nodes to find traces for
+   * @returns Array of matching statement traces
+   */
+  public current(): IRuntimeBlock | undefined {
+    return this.stack.length == 0
+      ? undefined
+      : this.stack[this.stack.length - 1];
+  }  
 
   /**
-   * Creates a new CompiledRuntime instance
-   * @param nodes Array of statement nodes from the parser
-   * @param jit RuntimeJit instance for just-in-time compilation
+   * Records a new execution of the statement stack and returns a key
+   * @param stack Array of statement nodes being executed
+   * @returns A unique key for this execution context
    */
-  constructor(public nodes: StatementNode[]) {
-    // Initialize the lookup index
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-
-      // Store the node index in our lookup table by ID for quick access
-      this.lookupIndex[node.id] = i;
-    }
+  public push(block: IRuntimeBlock): IRuntimeBlock {        
+    block.parent = this.current();    
+    this.stack.push(block);    
+    // Use the traverseParentChain method to build the blockKey
+    const keyParts: string[] = [];
+    this.traverseAll(
+      (currentBlock) => {
+        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.index}`);
+        return undefined; // Continue traversal
+      }
+    );
+    
+    block.blockKey = keyParts.join('|');
+    return block;
   }
-
-
-  /**
-   * Gets the index of a node by its ID
-   * @param id ID of the node to look up
-   * @returns The index of the node, or undefined if not found
-   */
-  public getId(id: number): StatementNode | undefined {
-    const index = this.lookupIndex[id];
-    if (index === undefined) {
+  
+  public pop(): IRuntimeBlock | undefined {
+    if (this.stack.length == 0) {
       return undefined;
     }
 
-    return this.nodes[index];
+    return this.stack.pop();
+  }
+  
+  /**
+   * Traverses up the parent chain from a starting block until a condition is met
+   * @param startBlock The block to start traversal from
+   * @param callback Function to call for each block in the chain
+   * @param condition Optional condition to stop traversal
+   * @returns The result from the callback if a non-undefined value is returned
+   */
+  public traverseAll<T>(
+    callback: BlockTraversalCallback<T>,
+    condition?: StackTraversalCondition,
+    startBlock?: IRuntimeBlock
+  ): T[] {
+    let currentBlock = startBlock || this.current();
+    let result: T[] = []
+    condition = condition ?? (() => true);
+    
+    while (currentBlock) {
+      var value = callback(currentBlock);
+      if (value !== undefined) {
+        result.push(value);
+      }
+      currentBlock = currentBlock.parent;
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Traverses the current stack from the top down until a condition is met
+   * @param callback Function to call for each block's statement
+   * @returns The first non-undefined result from the callback
+   */
+  public traverseFirst<T>(
+    callback: BlockTraversalCallback<T>,
+    condition?: StackTraversalCondition,
+    startBlock?: IRuntimeBlock    
+  ): T | undefined {
+    var results = this.traverseAll(
+      callback,
+      condition,
+      startBlock
+    );
+    if (results.length == 0) {
+      return undefined;
+    }
+    return results[0];
+  }
+  
+  /**
+   * Legacy method maintained for backward compatibility
+   * Traverses the stack and applies a function to each statement node until a result is found
+   */
+  public fromStack<T>(
+    blockFn: StatementTraversalCallback<T>
+  ): T | undefined {
+    return this.traverseFirst<T>(
+      (block) => block.source ? blockFn(block.source) : undefined
+    );
   }
 
   /**
-   * Navigates to a specific block in the workout script
-   * @param blockId ID of the block to navigate to
-   * @returns StatementNode representing the execution state of the specified block
+   * Legacy method maintained for backward compatibility
+   * Traverses the entire stack and applies a function to each statement node
    */
-  public goto(blockId: number): StatementNode[] {            
-    const stack : StatementNode[] = [];        
-    let node: StatementNode | undefined = this.getId(blockId)    
-    while (node !== undefined) {
-      stack.push(node);      
-      if (node.parent === undefined) {
-        node = undefined;
-        continue;
-      }
+  public inStack(
+    blockFn: StatementTraversalCallback<void>
+  ): void {
+    this.traverseFirst<void>(
+      (block) => block.source ? blockFn(block.source) : undefined
+    );
+  }
 
-      node = this.getId(node.parent);
+  public popUntil(
+    condition: StackTraversalCondition    
+  ): IRuntimeBlock | undefined {
+    let currentBlock =this.pop();            
+    while (currentBlock && !(currentBlock instanceof RootBlock)) {      
+      if (condition(currentBlock, currentBlock)) {
+        return currentBlock;
+      }       
+      currentBlock = this.pop();
     }
-
-    return stack;
+    
+    return undefined;
   }
 }

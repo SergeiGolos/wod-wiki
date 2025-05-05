@@ -1,133 +1,263 @@
-# Runtime Component
+# Runtime Component Architecture
 
-The Runtime component is the core execution engine of wod.wiki, responsible for interpreting and executing workout scripts that have been [compiled](../Core/Compile.md) from the specialized wod.wiki syntax entered in the [Editor](../Components/Editor.md).
+This document provides comprehensive details about the runtime component architecture in wod.wiki, focusing on the block-based execution model, event handling system, and reactive data flow.
 
-**Runtime:** The overall execution engine. It manages:
-  - A stack of Runtime Blocks.
-  - The current "cursor" position (which block is active).
-  - Counters/depth tracking (e.g., completed rounds).
+## 1. Architecture Overview
 
-## Core Concepts
+The wod.wiki runtime is built upon a few key architectural patterns:
 
-### Runtime Architecture
+- **Block-based Component Model**: Workout execution is divided into blocks, each responsible for a specific execution context
+- **Reactive Event Processing**: Events flow through a reactive pipeline using RxJS Observables
+- **Stack-based Execution Trace**: Maintains parent-child relationships between blocks in an execution stack
+- **Just-In-Time Compilation**: Creates specialized blocks for different execution contexts as needed
 
-The wod.wiki runtime follows an event-driven architecture with an action-based pattern:
+### Core Component Relationships
 
-1. **Event Processing**: Events flow into the runtime via the `tick()` method
-2. **State Management**: The runtime maintains state about the current workout execution
-3. **Action Generation**: Events are processed to generate actions that update the UI
-4. **Strategy Pattern**: Different workout structures are handled by specialized compiler strategies
-
-### Key Components
-
-The runtime is composed of several key components:
-
-- **TimerRuntime**: The central execution engine that processes events
-- **CompiledRuntime**: Manages the compiled script representation
-- **RuntimeBlock**: Represents individual blocks of execution within a workout
-- **Compiler Strategies**: Process different types of workout structures
-- **Runtime Actions**: Define UI updates in response to runtime events
-
-## Event Processing Flow
-
-```
-┌──────────┐      ┌─────────────┐       ┌──────────-─┐       ┌──────────┐
-│ UI Event │─────▶│ TimerRuntime│──────▶│ Strategies │──────▶│  Actions │
-└──────────┘      └─────────────┘       └───────────-┘       └──────────┘
-                         │                                         │
-                         │                                         │
-                         ▼                                         ▼
-                  ┌─────────────┐                          ┌──────────────┐
-                  │   State     │                          │     UI       │
-                  └─────────────┘                          │    Updates   │
-                                                           └──────────────┘ 
+```mermaid
+graph TB
+    subgraph Frontend
+        WikiContainer --> ButtonRibbon
+        WikiContainer --> TimerDisplay
+        WikiContainer --> WodWiki[WodWiki Editor]
+        WikiContainer --> ResultsDisplay
+    end
+    
+    subgraph RuntimeSystem
+        TimerRuntime --> RuntimeJit
+        TimerRuntime --> RuntimeTrace
+        TimerRuntime --> RuntimeStack
+        RuntimeJit --> RuntimeBlock
+        RuntimeBlock --> EventHandler
+        EventHandler --> IRuntimeAction
+    end
+    
+    WodWiki -- onScriptCompiled --> TimerRuntime
+    ButtonRibbon -- Events --> TimerRuntime
+    TimerRuntime -- Actions --> TimerDisplay
+    TimerRuntime -- Results --> ResultsDisplay
 ```
 
-## Runtime State
+## 2. Block-Based Execution Model
 
-The runtime maintains several types of state:
+### RuntimeBlock
 
-- **Execution Pointer**: Tracks the current position in the workout
-- **Runtime Stack**: Maintains the hierarchy of active blocks
-- **Timer State**: Tracks elapsed and remaining time
-- **Round Counters**: Tracks current round within repeating structures
-- **Event History**: Records significant events for results calculation
+`RuntimeBlock` is the abstract base class for all execution blocks. It defines the common interface and behavior for handling events and generating actions.
 
-## Action Types
+```typescript
+export abstract class RuntimeBlock implements IRuntimeBlock {
+  constructor(
+    public blockId: number,
+    public blockKey: string,
+    public source?: StatementNode | undefined
+  ) {}
+  
+  // Parent-child relationship
+  public parent?: IRuntimeBlock | undefined;
+  
+  // Results tracking
+  public laps: ResultSpan[] = []; 
+  public metrics: RuntimeMetric[] = [];
+  public buttons: IActionButton[] = [];
 
-Events processed by the runtime generate actions that update the UI:
+  // Event handling
+  protected handlers: EventHandler[] = [];
+  protected system: EventHandler[] = [];
+  
+  // Abstracts that specialized blocks must implement
+  abstract next(runtime: ITimerRuntime): StatementNode | undefined;
+  abstract load(runtime: ITimerRuntime): IRuntimeEvent[];
 
-1. **EventAction**: Base abstract class for all actions with the `apply()` method
-2. **SetDisplayAction**: Updates the timer display
-3. **SetButtonAction**: Updates available control buttons
-4. **SetResultAction**: Updates workout results and metrics
+  // Standard event handling pipeline
+  public handle(runtime: ITimerRuntime, event: IRuntimeEvent): IRuntimeAction[] {
+    const result: IRuntimeAction[] = [];
+    for (const handler of [...this.system, ...this.handlers]) {
+      const actions = handler.apply(event, runtime);
+      for (const action of actions) {
+        result.push(action);
+      }
+    }
+    return result;
+  }  
+}
+```
 
-Each action implements the `apply()` method which is responsible for updating the appropriate part of the UI state.
+### Specialized Block Types
 
-## Compiler Strategies
+The system includes several specialized block types:
 
-The runtime employs multiple strategies to handle different workout structures:
+1. **RootBlock**: Contains all top-level statements in the workout script
+2. **SingleBlock**: Handles execution of a single statement
+3. **IdleRuntimeBlock**: Represents the idle state of the runtime
+4. **DoneRuntimeBlock**: Represents the completed state of the runtime
 
-| Strategy                   | Purpose                                                   |
-| -------------------------- | --------------------------------------------------------- |
-| RepeatingGroupStrategy     | Handles structured round repetitions (e.g., `(5)` rounds) |
-| AMRAPStrategy              | Handles "As Many Rounds As Possible" workouts             |
-| RepeatingStatementStrategy | Processes individual repeating elements                   |
-| StatementStrategy          | Handles basic statements                                  |
-| SingleUnitStrategy         | Processes atomic workout elements                         |
-| CompoundStrategy           | Combines multiple strategies                              |
+Each specialized block type implements the abstract methods from `RuntimeBlock`:
+- `next()`: Determines the next statement to execute
+- `load()`: Initializes the block and generates any events needed at startup
 
-## Integration Points
+## 3. Reactive Event Flow
 
-The runtime integrates with other components through:
+### TimerRuntime
 
-- **Input**: Receives compiled `WodRuntimeScript` from the [Editor](../Components/Editor.md)
-- **Output**: Generates UI updates consumed by the [Editor](../Components/Editor.md) container
-- **Events**: Processes UI events (start, stop, reset) and system events (tick)
+The `TimerRuntime` orchestrates the event flow using RxJS Observables:
 
-## Technical Implementation
+```typescript
+export class TimerRuntime implements ITimerRuntimeIo { 
+  // Observable streams
+  public tick$: Observable<IRuntimeEvent>; 
+  public input$: Subject<IRuntimeEvent>;
+  public output$: Subject<OutputEvent>;
+  
+  // State management
+  public trace: RuntimeTrace;
+  
+  constructor(
+    public code: string,
+    public script: RuntimeStack,     
+    public jit: RuntimeJit,
+    input$: Subject<IRuntimeEvent>,
+    output$: Subject<OutputEvent>,    
+  ) {            
+    // Initialize the runtime
+    this.input$ = input$;
+    this.output$ = output$;
+    this.trace = new RuntimeTrace();
+    
+    // Set up the initial blocks
+    this.next(this.jit.root(this));
+    this.next(this.jit.idle(this));
 
-The runtime is implemented using TypeScript with:
+    // Create tick stream for time-based events
+    this.tick$ = interval(100).pipe(map(() => new TickEvent()));
+    
+    // Set up event processing pipeline
+    this.dispose = merge(this.input$.pipe(tap(logEvent)), this.tick$)
+      .subscribe(event => {         
+        // Log the event to the trace
+        this.trace.log(event);
 
-- **Strong Typing**: Interfaces define the structure of all components
-- **Immutable Operations**: State is updated through immutable operations
-- **Strategy Pattern**: Extensible processing strategies
-- **Observer Pattern**: UI components observe runtime state changes
+        // Get the current active block
+        const block = this.trace.current();
+        
+        // Handle the event and collect actions
+        const actions = block?.handle(this, event)
+            .filter(actions => actions !== undefined)
+            .flat() ?? [];
+        
+        // Apply each action
+        for (const action of actions) {          
+          action.apply(this, this.input$, this.output$);
+        }            
+      });    
+  }
+  
+  // ... methods for block navigation and state management ...
+}
+```
 
-## Future Enhancements
+### Event and Action Types
 
-Planned enhancements for the Runtime component include:
+Events flow through the system in this pattern:
+1. External events enter through `input$` (e.g., start, stop, lap)
+2. Time-based events enter through `tick$` (generated every 100ms)
+3. Blocks handle events and generate actions
+4. Actions apply changes to the runtime state
+5. Output events are published through `output$`
 
-- Enhanced metrics calculation for different workout types
-- Support for more complex workout patterns
-- Improved time estimation and pacing features
-- Integration with external fitness tracking systems
+## 4. Execution Tracing
 
-The Runtime component forms the execution core of wod.wiki, bringing the structured workout definitions to life by managing timing, repetitions, and workout flow.
+### RuntimeTrace
 
-- Core execution engine
-- Key methods: tick(events) - process events and return actions
+`RuntimeTrace` manages the execution stack and event history:
 
+```typescript
+export class RuntimeTrace {  
+  // Execution history
+  public history: Array<IRuntimeLog> = [];
+  
+  // Block execution stack
+  public stack: Array<IRuntimeBlock> = [];
+  
+  // Get the currently active block
+  current(): IRuntimeBlock | undefined {
+    return this.stack.length == 0 ? undefined : this.stack[this.stack.length - 1];
+  }
 
-`current == undefined`
+  // Record an event in the history
+  log(event: IRuntimeEvent) { /* ... */ }
 
-- first block on the --> 
+  // Add a block to the execution stack
+  push(block: IRuntimeBlock): IRuntimeBlock { /* ... */ }
 
-- Group (2) (round  0)
-	- group (?)  (round 0)
-		- item1 -- here  (current index (2),  parents [1, 0], round 0 )  
-		- item2
+  // Remove the top block from the execution stack
+  pop(): IRuntimeBlock | undefined { /* ... */ }
+}
+```
 
---- 
-0 item1 (1)(1)
-item2 (1)(1)
-item1 (1)(2)
-item2 (1)(2)
-item1 (2)(1)
-item2 (2)(1)
-item1 (2)(2)
-item2 (2)(2)
+The trace provides a complete picture of:
+- The current execution context (active block)
+- Parent-child relationships between blocks
+- Event history for debugging and analytics
+
+## 5. ResultSpan and Metrics
+
+### ResultSpan
+
+`ResultSpan` captures execution results for a block:
+
+```typescript
+export class ResultSpan {
+  blockKey?: string;
+  index?: number;
+  stack?: number[];
+  start?: IRuntimeEvent;
+  stop?: IRuntimeEvent;
+  metrics: RuntimeMetric[] = [];
+  label?: string;
+  
+  // Calculate duration between start and stop
+  duration(timestamp?: Date): number { /* ... */ }
+  
+  // Apply metric edits
+  edit(edits: RuntimeMetricEdit[]): ResultSpan { /* ... */ }
+}
+```
+
+### RuntimeMetric
+
+`RuntimeMetric` captures specific measurements within a workout:
+
+```typescript
+export type RuntimeMetric = {
+  effort: string;           // The exercise name
+  repetitions?: MetricValue; // Count of repetitions
+  resistance?: MetricValue;  // Weight/resistance used
+  distance?: MetricValue;    // Distance covered
+};
+
+export type MetricValue = {
+  value: number;
+  unit: string;
+};
+```
+
+These metrics are used throughout the application for results display, analytics, and performance tracking.
+
+## 6. Integration with UI Components
+
+The runtime system integrates with the UI through:
+
+1. **Input Events**: Button clicks, editor commands, and other user interactions
+2. **Output Actions**: Display updates, timer changes, result updates
+
+### Key UI Integration Points
+
+- **ButtonRibbon**: Sends control events (start, stop, lap) to the runtime
+- **TimerDisplay**: Receives display updates from the runtime
+- **ResultsDisplay**: Receives result metrics from the runtime
+- **WodWiki Editor**: Provides the workout script to the runtime
+
+By maintaining this separation of concerns, the runtime can focus on workout execution while the UI handles presentation.
 
 ---
 
-next() group has children pushNext()
+This architectural approach provides a modular, testable, and extensible foundation for the wod.wiki runtime system, enabling complex workout script execution with real-time feedback and metrics tracking.

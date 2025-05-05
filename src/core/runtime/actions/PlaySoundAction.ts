@@ -1,27 +1,22 @@
-import { EventAction } from "../EventAction";
-import { ITimerRuntime, RuntimeEvent } from "../../timer.types";
-import { SoundService } from "../../services/SoundService";
+import { IRuntimeAction, IRuntimeEvent, ITimerRuntime, OutputEvent } from "../../timer.types";
+import { SoundService } from "../../../components/syncs/services/SoundService";
+import { Subject } from "rxjs";
 
 /**
  * Action that plays a sound during workout execution
  */
-export class PlaySoundAction extends EventAction {
+export class PlaySoundAction implements IRuntimeAction {
   constructor(
-    event: RuntimeEvent,
-    private soundType: 'start' | 'complete' | 'countdown' | 'tick'
+    private soundType: string
   ) {
-    super(event);
   }
-
-  apply(runtime: ITimerRuntime): RuntimeEvent[] {
+  name: string = 'play-sound';
+  apply(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, _output: Subject<OutputEvent>): void {
     // Get the sound service and play the appropriate sound
     const soundService = SoundService.getInstance();
     
     if (soundService.isEnabled()) {
       soundService.play(this.soundType);
     }
-    
-    // Return empty array as this action doesn't generate new events
-    return [];
   }
 }

@@ -1,0 +1,31 @@
+import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "@/core/timer.types";
+import { EventHandler } from "@/core/runtime/EventHandler";
+import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
+import { CompleteEvent } from "./CompleteEvent";
+
+export class TickEvent implements IRuntimeEvent {  
+  timestamp: Date = new Date();
+  name = 'tick';
+}
+
+export class TickHandler extends EventHandler {
+  protected eventType: string = 'tick';
+
+  protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
+    const block = runtime.trace.current();      
+    if (!block || !block.duration) {
+      return [];
+    }
+    const spanDuration = new TimeSpanDuration(
+      block.duration.original ?? 0, 
+      block.spans);
+    
+    const remaining = spanDuration.remaining();
+    if ((remaining?.original != undefined) && (remaining.original == 0 || remaining.original < 0)) {
+      return [
+        new NotifyRuntimeAction(new CompleteEvent(_event.timestamp))
+      ];
+    }
+    return [];
+  }
+}

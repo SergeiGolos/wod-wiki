@@ -1,18 +1,18 @@
 import React from "react";
 import { Menu } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
-import { ButtonConfig, RuntimeEvent } from "@/core/timer.types";
+import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
 
 export interface SplitButtonOption {
   id: string;
   label: string;
-  onClick: () => RuntimeEvent[];
+  onClick: () => IRuntimeEvent[];
 }
 
 interface SplitButtonProps {
-  mainAction: ButtonConfig;
+  mainAction: IActionButton;
   options: SplitButtonOption[];
-  setEvents: React.Dispatch<React.SetStateAction<RuntimeEvent[]>>;
+  setEvents: React.Dispatch<React.SetStateAction<IRuntimeEvent[]>>;
   variant?: 'default' | 'success';
 }
 

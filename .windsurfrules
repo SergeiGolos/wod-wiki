@@ -1,10 +1,13 @@
+# Windsurf Project Rules
 
-1. Architectural Principles
+## Architectural Principles
+
 Follow SOLID principles for all new code and refactors.
 Maintain a clear separation of concerns: parsing, tokenization, suggestion, runtime, and UI logic must be modular and independently testable.
 Use the event/action system for communication between the Editor, Runtime, and UI components.
 
-2. Technology Stack
+## Technology Stack
+
 The editor is built on React and uses the Monaco Editor (@monaco-editor/react) for the core editing experience.
 Custom syntax highlighting, inlay hints, and auto-completion are implemented using:
 WodWikiSyntaxInitializer (syntax/theme/options)
@@ -12,25 +15,30 @@ SemantcTokenEngine (tokenization)
 SuggestionEngine and DefaultSuggestionService (completions)
 TypeScript is required for all editor and runtime logic.
 
-3. Editor Integration
-EditorContainer must wrap: ButtonRibbon, TimerDisplay, WodWiki, ResultsDisplay.
+## Editor Integration
+
+WikiContainer must wrap: ButtonRibbon, TimerDisplay, WodWiki, ResultsDisplay.
 All runtime logic is managed via useTimerRuntime and integrates with the editor through callbacks (onScriptCompiled, onResultsUpdated).
 Sound and screen wake-lock features must use their respective providers (SoundProvider, ScreenProvider).
 
-4. Syntax and Parsing
+## Syntax and Parsing
+
 Workouts are defined in a markdown-like syntax with tokens for time, reps, weights, distances, and round notation.
 Parsing pipeline: Lexer (timer.tokens.ts) → Parser (timer.parser.ts) → Interpreter (timer.visitor.ts) → WodRuntimeScript.
 All parsing and runtime structures must use the canonical types in timer.types.ts.
 
-5. Metrics and Analytics
+## Metrics and Analytics
+
 Use the RuntimeMetric structure for all workout metrics (effort, repetitions, resistance, distance).
 Analytics and results display must handle these metrics with appropriate icons and units.
 
-6. UI/UX
+## UI/UX
+
 Inlay hints (⏱️, 💪, etc.) and visual cues should be used to enhance readability and usability.
 Real-time validation and error feedback must be provided to the user.
 All UI components must be responsive and accessible.
 
-7. Documentation and Maintenance
-All changes to the editor or runtime must be reflected in the relevant markdown docs under docs/docs/Components/.
-Adhere to the Kanban/Agile workflow for planning and execution (see docs/Working/YYYY-MM-DD.KB.md).
+## Documentation and Maintenance
+
+All changes to the editor or runtime must be reflected in the relevant markdown docs under docs/Components/.
+Adhere to the Kanban/Agile workflow for planning and execution (see docs/Working/YYYY-MM-DD.KB.md)

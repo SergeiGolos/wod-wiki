@@ -1,20 +1,35 @@
-import { RuntimeEvent, ITimerRuntime } from "@/core/timer.types";
-import { EventAction } from "../EventAction";
+import {
+  IRuntimeAction,
+  IRuntimeEvent,
+  ITimerRuntime,
+  OutputEvent,
+  ResultSpan,
+} from "@/core/timer.types";
+import { Subject } from "rxjs";
 
-
-/**
- * Action to handle block started events
- */
-
-export class StartTimerAction extends EventAction {
-    constructor(
-        event: RuntimeEvent
-    ) {
-        super(event);
+export class StartTimerAction implements IRuntimeAction {
+  constructor(private event: IRuntimeEvent) {}
+  name: string = "start";
+  apply(
+    runtime: ITimerRuntime,
+    _input: Subject<IRuntimeEvent>,
+    _output: Subject<OutputEvent>
+  ) {
+    const block = runtime.trace.current();
+    if (!block || block.blockId === -1) {
+      return;
     }
 
-    apply(runtime: ITimerRuntime): RuntimeEvent[] {        
-        runtime.current?.events.push(this.event);
-        return [];
-    }
+    const currentLap =
+      block.spans.length > 0 ? block.spans[block.spans.length - 1] : undefined;
+
+    if (!currentLap || currentLap.stop) {
+      block.spans.push({
+        blockKey: block.blockKey,
+        start: this.event,
+        stop: undefined,
+        metrics: [],
+      } as unknown as ResultSpan);
+    }    
+  }
 }

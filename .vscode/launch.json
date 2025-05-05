@@ -1,48 +1,30 @@
 {
+  // Add these inside your "configurations": [ ... ] array
   "version": "0.2.0",
   "configurations": [
-    {
-      "name": "Next.js: debug server-side",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "npm run dev",
-      "skipFiles": ["<node_internals>/**"],
-      "serverReadyAction": {
-        "pattern": "- Local:.+(https?://.+)",
-        "uriFormat": "http://localhost:3000",
-        "action": "debugWithChrome"
-      }
-    },
-    {
-      "name": "Next.js: debug client-side",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3000"
-    },
+    // --- Debug Unit Tests (Jest or Vitest) ---
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Vitest Tests",
-      "autoAttachChildProcesses": true,
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
-      "args": ["run", "--coverage"],
-      "smartStep": true,
-      "console": "integratedTerminal"
+      "name": "Debug Unit Tests",
+      "program": "${workspaceFolder}/node_modules/.bin/jest", // or vitest if you use it
+      "args": [
+        "--runInBand"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "test"
+      }
     },
+
+    // --- Debug Storybook (npm run dev) ---
     {
       "type": "chrome",
       "request": "launch",
-      "name": "Storybook Debug",
+      "name": "Debug Storybook (npm run dev)",
       "url": "http://localhost:6006",
-      "webRoot": "${workspaceFolder}",
-      "sourceMapPathOverrides": {
-        "/@fs/*": "${webRoot}/*",
-        "/src/*": "${webRoot}/src/*",
-        "/*": "*",
-        "/node_modules/*": "${webRoot}/node_modules/*"
-      },
-      "preLaunchTask": "storybook"
-    }    
+      "webRoot": "${workspaceFolder}/src",      
+    }
   ]
 }

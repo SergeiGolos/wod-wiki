@@ -6,5 +6,4 @@ export class IncrementFragment implements StatementFragment {
   }
   type: string = "increment";
   increment: number;
-  toPart: () => string = () => this.increment == 1 ? "⬆️" : "⬇️";
 }

@@ -1,9 +1,11 @@
 import { StatementFragment, StatementNode } from "../timer.types";
 import { EffortFragment } from "../fragments/EffortFragment";
+import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
 import { LapFragment } from "../fragments/LapFragment";
 import { RepFragment } from "../fragments/RepFragment";
-import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
+import { ResistanceFragment } from "../fragments/ResistanceFragment";
+import { DistanceFragment } from "../fragments/DistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
@@ -103,6 +105,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
 
     ctx.duration && statement.fragments.push(...this.visit(ctx.duration));
+    ctx.action && statement.fragments.push(...this.visit(ctx.action));
     ctx.reps && statement.fragments.push(...this.visit(ctx.reps));
     ctx.effort && statement.fragments.push(...this.visit(ctx.effort));
     ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));
@@ -133,6 +136,15 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     statement.isLeaf = statement.fragments.filter(f => f.type === 'lap').length > 0;
     return statement;
   }
+ 
+  action(ctx: any): ActionFragment[] {
+    const meta = this.getMeta([ctx.ActionOpen[0], ctx.ActionClose[0]]);
+    const action = ctx.Identifier.map(
+      (identifier: any) => identifier.image
+    ).join(" ");
+    return [new ActionFragment(action, meta)];
+  }
+
 
   lap(ctx: any): LapFragment[] {
     if (ctx.Plus) {

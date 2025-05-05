@@ -1,6 +1,6 @@
 import React from "react";
 import { EditorWithState } from "./components/EditorWithState";
-import { decodeShareString } from "@/core/utils/shareUtils";
+import { decodeShareString } from "@/core/utils";
 
 function getCodeFromUrl(): string {
   const params = new URLSearchParams(window.location.search);
@@ -19,7 +19,7 @@ const LiveStory: React.FC = () => {
     setCode(getCodeFromUrl());
   }, []);
 
-  return <EditorWithState code={code} debug={false} id={""} />;
+  return <EditorWithState code={code} debug={false} id={""} children={[]} />;
 };
 
 export default {

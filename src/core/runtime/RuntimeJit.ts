@@ -1,175 +1,76 @@
 import {
   StatementNode,
   IRuntimeBlock,
-  RuntimeTrace,
-  IRuntimeLogger,
-  IRuntimeAction,
   ITimerRuntime,
-  RuntimeEvent,
-  RuntimeMetric,
 } from "../timer.types";
-import { RuntimeBlock } from "./RuntimeBlock";
 import { EventHandler } from "./EventHandler";
-import { StartHandler } from "./handlers/StartHandler";
-import { TickHandler } from "./handlers/TickHandler";
-import {
-  LabelCurrentEffortHandler,
-  TotalTimeHandler,
-} from "./handlers/TotalTimeHandler";
-import { StopHandler } from "./handlers/StopHandler";
-import { ResetHandler } from "./handlers/ResetHandler";
-import { CompleteHandler } from "./handlers/CompleteHandler";
-import { EndHandler } from "./handlers/EndHandler";
-import { DefaultResultLogger } from "./logger/DefaultResultLogger";
-import { fragmentsTo, fragmentsToMany } from "../utils";
-import { RoundsFragment } from "../fragments/RoundsFragment";
-import { WorkRestLogger } from "./logger/WorkRestLogger";
-import { RepFragment } from "../fragments/RepFragment";
-import { EffortFragment } from "../fragments/EffortFragment";
-import { DistanceFragment, ResistanceFragment } from "../fragments/ResistanceFragment";
-import { PlaySoundAction } from "./actions/PlaySoundAction";
 
+import { TickHandler } from "./inputs/TickHandler";
+import { IdleRuntimeBlock } from "./blocks/IdleRuntimeBlock";
+import { DoneRuntimeBlock } from "./blocks/DoneRuntimeBlock";
+import { StartHandler } from "./inputs/StartEvent";
+import { StopHandler } from "./inputs/StopEvent";
+import { ResetHandler } from "./inputs/ResetEvent";
+import { EndHandler } from "./inputs/EndEvent";
+import { RootBlock } from "./blocks/RootBlock";
+import { RunHandler } from "./inputs/RunEvent";
+import { NextStatementHandler } from "./inputs/NextStatementEvent";
+import { DisplayHandler } from "./inputs/DisplayHandler";
+import { PushActionHandler } from "./inputs/PushActionEvent";
+import { RuntimeScript } from "./RuntimeScript";
+import { RuntimeJitStrategies } from "./RuntimeJitStrategies";
+import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 /**
- * Base class for sound handlers
+ * Just-In-Time Compiler for Runtime Blocks
+ * This class compiles StatementNodes into executable IRuntimeBlocks on demand.
  */
-abstract class BaseSoundHandler extends EventHandler {
-  protected abstract soundType: 'start' | 'complete' | 'countdown' | 'tick';
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    return [new PlaySoundAction(event, this.soundType)];
-  }
-}
-
-/**
- * Handles start event sounds
- */
-class StartSoundHandler extends BaseSoundHandler {
-  protected eventType: string = "start";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "start";
-}
-
-/**
- * Handles complete/end event sounds
- */
-class CompleteSoundHandler extends EventHandler {
-  protected eventType: string = "complete";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "complete";
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    return [new PlaySoundAction(event, this.soundType)];
-  }
-}
-
-/**
- * Handles countdown event sounds
- */
-class CountdownSoundHandler extends BaseSoundHandler {
-  protected eventType: string = "countdown";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "countdown";
-}
-
-/**
- * Handles tick event sounds for countdown (3,2,1)
- */
-class TickCountdownSoundHandler extends EventHandler {
-  protected eventType: string = "tick";
-  protected soundType: 'start' | 'complete' | 'countdown' | 'tick' = "countdown";
-  
-  protected handleEvent(event: RuntimeEvent, stack: StatementNode[], runtime: ITimerRuntime): IRuntimeAction[] {
-    // Only play countdown sounds when timer hits 3, 2, or 1 seconds
-    if (runtime.display?.primary?.seconds === 3 || 
-        runtime.display?.primary?.seconds === 2 || 
-        runtime.display?.primary?.seconds === 1) {
-      return [new PlaySoundAction(event, this.soundType)];
-    }
-    return [];
-  }
-}
-
 export class RuntimeJit {
+  constructor(public script: RuntimeScript) {
+    this.strategyManager = new RuntimeJitStrategies();
+  }
+  /**
+   * Strategy manager for runtime block compilation
+   * @private
+   */
+  private strategyManager: RuntimeJitStrategies;
+
+  idle(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new IdleRuntimeBlock();
+  }
+  end(_runtime: ITimerRuntime): IRuntimeBlock {
+    return new DoneRuntimeBlock();
+  }
+
+  root(runtime: ITimerRuntime): IRuntimeBlock {
+    return new RootBlock(runtime.script.root);
+  }
+
   handlers: EventHandler[] = [
+    new PushActionHandler(),
+    new RunHandler(),
     new TickHandler(),
-    new TotalTimeHandler(),
-    new LabelCurrentEffortHandler(),
-    new StartSoundHandler(),
-    new CompleteSoundHandler(),
-    new CountdownSoundHandler(),
-    new TickCountdownSoundHandler(),
+    new NextStatementHandler(),
     new StartHandler(),
     new StopHandler(),
-    new CompleteHandler(),
     new ResetHandler(),
     new EndHandler(),
+    new DisplayHandler(),
   ];
 
-  compile(trace: RuntimeTrace, nodes: StatementNode[]): IRuntimeBlock {
-    let key = trace.set(nodes);
-    console.log("Compiling block:", key.toString());
-
-    const efforts = fragmentsTo<EffortFragment>(nodes, "effort");
-    const rounds = fragmentsTo<RoundsFragment>(nodes, "rounds");
-    const repetitions = fragmentsToMany<RepFragment>(nodes, "rep");
-    const resistance = fragmentsTo<ResistanceFragment>(nodes, "resistance");
-    const distance = fragmentsTo<DistanceFragment>(nodes, "distance");       
-
-    const currentIndex = trace.getTotal(nodes[0].id) ;
-    const currentRep = repetitions[(currentIndex- 1) % repetitions.length] 
-
-    let logger: IRuntimeLogger = new DefaultResultLogger();
-    if (repetitions && rounds) {
-      logger = new WorkRestLogger();
-    }
-
-    const block = new RuntimeBlock(key.toString(), nodes, logger, this.handlers);
-    
-    // Create metrics for the block with the new structure
-    block.metrics = this.createBlockMetrics(efforts, currentRep, resistance, distance);
-    
-    return block;
+  /**
+   * Registers a custom block compilation strategy
+   * @param strategy The strategy to register
+   */
+  registerStrategy(strategy: IRuntimeBlockStrategy): void {
+    this.strategyManager.addStrategy(strategy);
   }
-  
-  private createBlockMetrics(
-    efforts?: EffortFragment,
-    repetitions?: RepFragment,
-    resistance?: ResistanceFragment,
-    distance?: DistanceFragment
-  ): RuntimeMetric[] {
-    const metrics: RuntimeMetric[] = [];
-    
-    // Basic metrics compilation
-    const effort = efforts?.effort ?? '';
-    const reps = repetitions?.reps ?? 
-      ((resistance || distance) ? 1 : 0);
-    
-    // Create the metric with the new structure
-    const metric: RuntimeMetric = {
-      effort: effort,
-      repetitions: { value: reps, unit: "" },
-    };
-    
-    // Add resistance if available
-    if (resistance) {
-      const resistanceValue = parseFloat(resistance.value);
-      if (!isNaN(resistanceValue)) {
-        metric.resistance = {
-          value: resistanceValue,
-          unit: resistance.units ?? ''
-        };
-      }
-    }
-    
-    // Add distance if available
-    if (distance) {
-      const distanceValue = parseFloat(distance.value);
-      if (!isNaN(distanceValue)) {
-        metric.distance = {
-          value: distanceValue,
-          unit: distance.units ?? ''
-        };      
-      }
-    }
-    
-    metrics.push(metric);
-    return metrics;
-  }
+
+  /**
+   * Compiles a statement node into a runtime block using registered strategies
+   * @param node The statement node to compile
+   * @returns A compiled runtime block or undefined if compilation fails
+   */
+  compile(node: StatementNode, runtime: ITimerRuntime): IRuntimeBlock | undefined {
+    return this.strategyManager.compile(node, runtime);
+  }  
 }
