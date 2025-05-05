@@ -9,7 +9,6 @@ import { Duration, IDuration, StatementNode } from "@/core/timer.types";
  */
 export function getDuration(node: StatementNode): IDuration | undefined {
   const sign = (node?.fragments?.find(f => f.type === 'increment') as IncrementFragment)?.increment ?? -1;
-  
   const fragments = node?.fragments
     ?.filter(f => f.type === 'duration')
     ?.map(f => f as TimerFragment) ?? [];
