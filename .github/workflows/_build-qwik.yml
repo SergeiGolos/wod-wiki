@@ -42,11 +42,11 @@ jobs:
       - name: Build Package      
         run: npm run build
 
-      - name: Publish Package
-        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Publish Package
+      #   if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
+      #   run: npm publish --access public --provenance
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build Storybook
         run: npm run build-storybook    

@@ -13,6 +13,20 @@ export class CompleteEvent implements IRuntimeEvent {
     timestamp: Date;
     name = 'complete';
 }
+
+export class CompleteLapHandler extends EventHandler {
+    protected eventType: string = 'complete';
+  
+    protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {       
+      return [
+        new StopTimerAction(new StopEvent(event.timestamp)),        
+        new NextStatementAction(),
+        
+        new StartTimerAction(new StartEvent(event.timestamp)),
+      ];
+    }
+  }
+
 export class CompleteHandler extends EventHandler {
     protected eventType: string = 'complete';
   

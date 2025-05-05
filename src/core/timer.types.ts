@@ -24,7 +24,7 @@ export class Duration implements IDuration {
   seconds?: number;
   milliseconds?: number;
 
-  constructor(public original: number, public sign: DurationSign = "+") {    
+  constructor(public original: number, public sign: DurationSign = "-") {    
     let remaining = this.original = original ?? 0;
 
     this.days = Math.floor(remaining / 86400000);
@@ -69,7 +69,7 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   }
 
   remaining(): IDuration {
-    return new Duration((this.original ?? 0) - (this.elapsed()?.original ?? 0))      
+    return new Duration((this.elapsed()?.original ?? 0)-(this.original ?? 0))      
   }   
 
   display(): IDuration {
