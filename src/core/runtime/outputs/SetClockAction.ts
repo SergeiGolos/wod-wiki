@@ -1,4 +1,4 @@
-import { IDuration, IRuntimeBlock, IRuntimeEvent, ITimerRuntime, ITimeSpan, OutputEvent, TimeSpanDuration } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, ITimeSpan, OutputEvent, TimeSpanDuration } from "@/core/timer.types";
 import { OutputAction } from "../OutputAction";
 import { Subject } from "rxjs";
 import { getDuration } from "../blocks/readers/getDuration";

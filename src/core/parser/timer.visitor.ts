@@ -65,10 +65,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             block.parent = parent.block.id;
           }
         }
-        
-        if(history.length > 0){
-          history[history.length - 1].block.next = block.id;
-        }         
+                
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 
@@ -98,7 +95,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     } else if (ctx.duration) {
       statement.fragments.push(
         new IncrementFragment(
-          "",
+          "-",
           this.getMeta([ctx.duration[0].children.Timer[0]])
         )
       );
@@ -115,10 +112,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.map((fragment: any) => fragment.meta)
     );
     statement.id = statement.meta.startOffset;
-    
-    const rounds = fragmentTo<RoundsFragment>(statement, 'rounds')?.count ?? 0;
-    statement.rounds = rounds;
-
+        
     // Lap fragment logic  
     // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment
     if (lapFragments?.length === 0 && statement.parent !== undefined) {

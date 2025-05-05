@@ -4,12 +4,10 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class RepeatingBlockStrategy implements IRuntimeBlockStrategy {
   canHandle(node: StatementNodeDetail): boolean {
-    if (node.duration?.sign === "+" 
-      && (node?.rounds != null
-       && node.rounds > 1)) {
-        return true;
-       }
-       return false;
+    if (node?.rounds != null && node.rounds > 1) {
+      return true;
+    }
+    return false;
   }
 
   compile(

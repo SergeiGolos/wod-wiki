@@ -1,20 +1,26 @@
 import { IRuntimeBlock, ITimerRuntime, IRuntimeAction, StatementNodeDetail } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
-
-// TODO: Implement
-
+import { SetClockAction } from "../outputs/SetClockAction";
+import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { completeButton } from "@/components/buttons/timerButtons";
+import { CompleteLapHandler } from "../inputs/CompleteEvent";
 
 export class TimedRepeaterBlock extends RuntimeBlock implements IRuntimeBlock {
-  enter(runtime: ITimerRuntime): IRuntimeAction[] {
-    throw new Error("Method not implemented.");
-  }
-  next(runtime: ITimerRuntime): IRuntimeAction[] {
-    throw new Error("Method not implemented.");
-  }
-  leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    throw new Error("Method not implemented.");
-  }
   constructor(source: StatementNodeDetail) {
     super(source);
+    this.handlers.push(new CompleteLapHandler())
   }
+
+  enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    return [
+      new SetClockAction("primary"),
+      new SetButtonsAction([completeButton], "runtime")      
+    ];
+  }
+  next(runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+  leave(runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }  
 }
