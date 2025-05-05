@@ -107,6 +107,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
    */
   reset() {    
     this.trace = new RuntimeStack();
+    this.history = [];
     this.init()
   }  
 }

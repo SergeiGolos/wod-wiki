@@ -3,9 +3,6 @@ import { EventHandler } from "@/core/runtime/EventHandler";
 import { ResetAction } from "../actions/ResetAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { startButton } from "@/components/buttons/timerButtons";
-import { SetClockAction } from "../outputs/SetClockAction";
-import { getDuration } from "../blocks/readers/getDuration";
-import { IdleStatementAction } from "../actions/IdleStatementAction";
 
 export class ResetEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -21,8 +18,7 @@ export class ResetHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {        
     return [
       new ResetAction(event),            
-      new SetButtonsAction([startButton], "system"),
-      new SetClockAction("primary")      
+      new SetButtonsAction([startButton], "system"),      
     ];
   }
 }

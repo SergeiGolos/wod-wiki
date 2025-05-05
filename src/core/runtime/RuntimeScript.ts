@@ -1,13 +1,15 @@
 import { StatementNode } from "../timer.types";
 
 export class RuntimeScript {
-  
+  public root: StatementNode[] = [];
   private lookupIndex: { [key: number]: number; } = {};
   constructor(public nodes: StatementNode[]) {
     // Initialize the lookup index
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-
+      if (node.meta.columnStart == 1){
+        this.root.push(node);
+      }
       // Store the node index in our lookup table by ID for quick access
       this.lookupIndex[node.id] = i;
     }

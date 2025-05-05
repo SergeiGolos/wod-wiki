@@ -147,12 +147,14 @@
             "id": "1b1e39dd1f065fa0",
             "type": "leaf",
             "state": {
-              "type": "excalidraw",
+              "type": "markdown",
               "state": {
-                "file": "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md"
+                "file": "Working/2025-04-15.lap-timers-feature.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "excalidraw-icon",
-              "title": "Drawing 2025-05-02 15.37.36.excalidraw"
+              "icon": "lucide-file",
+              "title": "2025-04-15.lap-timers-feature"
             }
           }
         ],
@@ -188,7 +190,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "lap",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -209,7 +211,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -307,8 +310,8 @@
   },
   "active": "1b1e39dd1f065fa0",
   "lastOpenFiles": [
-    "Working/2025-05-01.ui-design-guide.md",
     "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md",
+    "Working/2025-05-01.ui-design-guide.md",
     "Working/2025-04-17.KB.md",
     "worklog",
     "Components/RuntimeHandlers.md",

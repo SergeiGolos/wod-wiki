@@ -17,10 +17,8 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
 
   enter(runtime: ITimerRuntime): IRuntimeAction[] {    
     this.spans = [{            
-      start: { name : "start", timestamp: runtime.history.length > 0 ? runtime.history[0].timestamp : new Date() },
-      stop: { name : "stop", timestamp: runtime.history.length > 0 
-        ? runtime.history[runtime.history.length - 1].timestamp 
-        : new Date() },
+      start: runtime.history[0] ?? { name: "start", timestamp: new Date() },
+      stop: runtime.history[runtime.history.length - 1] ?? { timestamp: new Date() , name: "stop" },
     }];
       
     return [

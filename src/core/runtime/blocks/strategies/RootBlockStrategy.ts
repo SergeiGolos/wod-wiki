@@ -11,6 +11,6 @@ export class RootBlockStrategy implements IRuntimeBlockStrategy {
     _node: StatementNodeDetail,
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
-    return new RootBlock(runtime.script.nodes);
+    return new RootBlock(runtime.script.root);
   }
 }

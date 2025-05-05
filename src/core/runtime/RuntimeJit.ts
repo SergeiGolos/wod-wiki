@@ -43,7 +43,7 @@ export class RuntimeJit {
   }
 
   root(runtime: ITimerRuntime): IRuntimeBlock {
-    return new RootBlock(runtime.script.nodes);
+    return new RootBlock(runtime.script.root);
   }
 
   handlers: EventHandler[] = [

@@ -2,15 +2,12 @@ import {
   IRuntimeEvent,
   ITimerRuntime,
   IRuntimeAction,
-  TimeSpanDuration,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
-import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
-//import { SetButtonAction } from "../actions/SetButtonAction";
+import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 
 export class EndEvent implements IRuntimeEvent {
   constructor(timestamp?: Date) {
@@ -30,11 +27,7 @@ export class EndHandler extends EventHandler {
     // Create a result block for the final time
     return [
       new StopTimerAction({ name: "stop", timestamp: event.timestamp }),    
-      new GotoEndAction(),
-
-      new SetTimeSpanAction([], "total"),
-      new SetClockAction("primary"),
-      new SetButtonsAction([resetButton, saveButton], "system"),
+      new GotoEndAction(),     
     ];
   }
 }
