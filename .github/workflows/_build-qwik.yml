@@ -21,6 +21,16 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Configure npm for private registry/scope
+        run: |
+          # Replace with your actual private registry URL and scope if needed
+          PRIVATE_REGISTRY_URL=https://my.private.registry/
+          SCOPE=@my-private-scope
+
+          echo "${SCOPE}:registry=${PRIVATE_REGISTRY_URL}" > .npmrc
+          echo "//$(echo ${PRIVATE_REGISTRY_URL#https://}):_authToken=${{ secrets.NPM_READ_TOKEN }}" >> .npmrc # Append token for the specific registry
+
+
       - name: Update version in package.json
         run: |
           node -e "const pkg=require('./package.json'); pkg.version='${{ inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))"
