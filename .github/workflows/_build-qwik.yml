@@ -6,6 +6,12 @@ on:
         description: "The version for the package"
         required: true
         type: string
+
+# Add permissions needed for npm provenance
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04  
