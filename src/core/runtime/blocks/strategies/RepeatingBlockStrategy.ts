@@ -2,10 +2,14 @@ import { StatementNodeDetail, IRuntimeBlock, ITimerRuntime } from "@/core/timer.
 import { RepeatingBlock } from "../RepeatingBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
-
 export class RepeatingBlockStrategy implements IRuntimeBlockStrategy {
   canHandle(node: StatementNodeDetail): boolean {
-    return (node?.rounds != null) && node.rounds > 1;
+    if (node.duration?.sign === "+" 
+      && (node?.rounds != null
+       && node.rounds > 1)) {
+        return true;
+       }
+       return false;
   }
 
   compile(

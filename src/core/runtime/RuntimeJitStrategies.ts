@@ -1,12 +1,14 @@
 import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../timer.types";
-import { getMetrics } from "./blocks/readers/getDistance";
+import { getMetrics, getReps } from "./blocks/readers/getDistance";
 import { getDuration } from "./blocks/readers/getDuration";
 import { getRounds } from "./blocks/readers/getRounds";
+import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { IdleBlockStrategy } from "./blocks/strategies/IdleBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
 import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
-import { SingleBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
+import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
+import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedRepeaterBlockStrategy";
 
 /**
  * Strategy manager for RuntimeBlock creation
@@ -18,8 +20,10 @@ export class RuntimeJitStrategies {
   constructor() {
     this.addStrategy(new RootBlockStrategy());
     this.addStrategy(new IdleBlockStrategy());    
+    this.addStrategy(new EffortBlockStrategy());
+    this.addStrategy(new TimedRepeaterBlockStrategy());    
     this.addStrategy(new RepeatingBlockStrategy());
-    this.addStrategy(new SingleBlockStrategy());
+    this.addStrategy(new TimerBlockStrategy());
   }
 
   /**
@@ -43,6 +47,7 @@ export class RuntimeJitStrategies {
   ): IRuntimeBlock | undefined {  
     const detail : StatementNodeDetail = {...node};
     
+    detail.reps = getReps(node);
     detail.duration = getDuration(node);
     detail.metrics = getMetrics(node);
     detail.rounds = getRounds(node);

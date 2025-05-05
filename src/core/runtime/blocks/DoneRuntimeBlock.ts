@@ -16,6 +16,7 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   enter(runtime: ITimerRuntime): IRuntimeAction[] {    
+    console.log(`+=== enter : ${this.blockKey}`);
     this.spans = [{            
       start: runtime.history[0] ?? { name: "start", timestamp: new Date() },
       stop: runtime.history[runtime.history.length - 1] ?? { timestamp: new Date() , name: "stop" },

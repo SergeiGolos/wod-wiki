@@ -9,6 +9,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
@@ -18,9 +19,12 @@ export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== enter : ${this.blockKey}`);
     return [
       new SetButtonsAction([startButton], "system"), 
-      new SetButtonsAction([], "runtime")
+      new SetButtonsAction([], "runtime"),
+      new SetClockAction("primary"),
+      new SetTimeSpanAction([], "total")
     ];
   }
 

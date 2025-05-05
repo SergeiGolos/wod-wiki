@@ -2,8 +2,6 @@ import { StatementNodeDetail, RootStatementNode, IRuntimeBlock, ITimerRuntime } 
 import { IdleRuntimeBlock } from "../IdleRuntimeBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
-
-
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
   canHandle(node: StatementNodeDetail): boolean {
     return node instanceof RootStatementNode;

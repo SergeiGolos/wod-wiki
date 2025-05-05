@@ -8,6 +8,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 
+
 /**
  * Implements a block that repeats execution of child nodes.
  */
@@ -18,6 +19,7 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== enter : ${this.blockKey}`);
     return this.next(runtime);
   }
 
@@ -40,6 +42,7 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== leave : ${this.blockKey}`);
     return [];
   }  
 }

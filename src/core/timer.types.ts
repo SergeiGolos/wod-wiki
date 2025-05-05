@@ -235,8 +235,10 @@ export class IdleStatementNode implements StatementNode {
 }
 export interface StatementNodeDetail extends StatementNode {
 
+
   duration?: IDuration;
   metrics?: RuntimeMetric;
+  reps?: RuntimeMetric;
   rounds?: number;
 }
 

@@ -16,8 +16,8 @@ export class StartTimerAction implements IRuntimeAction {
     _output: Subject<OutputEvent>
   ) {
     const block = runtime.trace.current();
-    if (!block) {
-      throw new Error("StartTimerAction - Runtime is not defined");
+    if (!block || block.blockId === -1) {
+      return;
     }
 
     const currentLap =

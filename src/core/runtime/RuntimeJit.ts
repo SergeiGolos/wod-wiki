@@ -2,7 +2,6 @@ import {
   StatementNode,
   IRuntimeBlock,
   ITimerRuntime,
-  StatementFragment, // Import the helper function
 } from "../timer.types";
 import { EventHandler } from "./EventHandler";
 

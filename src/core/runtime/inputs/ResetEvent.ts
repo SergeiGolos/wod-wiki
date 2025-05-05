@@ -17,8 +17,7 @@ export class ResetHandler extends EventHandler {
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {        
     return [
-      new ResetAction(event),            
-      new SetButtonsAction([startButton], "system"),      
+      new ResetAction(event),                  
     ];
   }
 }

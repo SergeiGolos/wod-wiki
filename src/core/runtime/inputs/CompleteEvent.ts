@@ -20,6 +20,7 @@ export class CompleteHandler extends EventHandler {
       return [
         new StopTimerAction(new StopEvent(event.timestamp)),        
         new NextStatementAction(),
+        
         new StartTimerAction(new StartEvent(event.timestamp)),
       ];
     }

@@ -1,36 +1,33 @@
-import {
-  IRuntimeAction,
-  IRuntimeBlock,
-  ITimerRuntime,
-  StatementNodeDetail,
-} from "@/core/timer.types";
-import { EventHandler } from "../EventHandler";
-import { RuntimeBlock } from "./RuntimeBlock";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { completeButton } from "@/components/buttons/timerButtons";
-import { CompleteHandler } from "../inputs/CompleteEvent";
-import { SetClockAction } from "../outputs/SetClockAction";
+import { IRuntimeBlock, StatementNodeDetail, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { EventHandler } from "../EventHandler";
+import { CompleteHandler } from "../inputs/CompleteEvent";
+import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetClockAction } from "../outputs/SetClockAction";
+import { RuntimeBlock } from "./RuntimeBlock";
 
 /**
  * A simple implementation of RuntimeBlock that handles basic runtime events
  * such as start and stop.
  */
-  
-export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {  
+
+export class TimerBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(
     source: StatementNodeDetail,
     public handlers: EventHandler[] = []
   ) {
     super(source);
     this.handlers = [...handlers, new CompleteHandler()];
-    this.index = 1;    
-  }  
-  
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    this.index = 1;
+  }
+
+  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== enter : ${this.blockKey}`);
     return [
-      new SetClockAction("primary"),      
-      new SetButtonsAction([completeButton], "runtime")];
+      new SetClockAction("primary"),
+      new SetButtonsAction([completeButton], "runtime")
+    ];
   }
 
   next(_runtime: ITimerRuntime): IRuntimeAction[] {
@@ -40,8 +37,9 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== leave : ${this.blockKey}`);
     return [
-      new SetClockAction("primary"), 
+      new SetClockAction("primary"),
       new SetButtonsAction([], "runtime")
     ];
   }

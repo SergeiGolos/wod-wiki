@@ -24,6 +24,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    console.log(`+=== enter : ${this.blockKey}`);
     const children = this.statements
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
@@ -43,6 +44,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== leave : ${this.blockKey}`);
     return [new PushEndBlockAction()];
   }
 }

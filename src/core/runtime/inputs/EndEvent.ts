@@ -5,9 +5,7 @@ import {
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
-import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 
 export class EndEvent implements IRuntimeEvent {
   constructor(timestamp?: Date) {
@@ -26,7 +24,7 @@ export class EndHandler extends EventHandler {
   ): IRuntimeAction[] {
     // Create a result block for the final time
     return [
-      new StopTimerAction({ name: "stop", timestamp: event.timestamp }),    
+      new StopTimerAction({ name: "stop", timestamp: event.timestamp }),          
       new GotoEndAction(),     
     ];
   }

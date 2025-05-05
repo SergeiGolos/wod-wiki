@@ -25,9 +25,10 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     
   // Runtime
   protected handlers: EventHandler[] = [];  
-  abstract enter(runtime: ITimerRuntime): IRuntimeAction[];
+  abstract enter(runtime: ITimerRuntime): IRuntimeAction[] ;
   abstract next(runtime: ITimerRuntime): IRuntimeAction[];    
-  abstract leave(runtime: ITimerRuntime): IRuntimeAction[];  
+  abstract leave(runtime: ITimerRuntime): IRuntimeAction[] ;  
+  
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,
