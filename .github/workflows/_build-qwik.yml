@@ -57,7 +57,7 @@ jobs:
 
       - name: Publish Package
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
-        run: npm publish --access public --provenance
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
