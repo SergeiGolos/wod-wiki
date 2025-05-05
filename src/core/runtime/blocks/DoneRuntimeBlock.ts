@@ -17,10 +17,11 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
 
   enter(runtime: ITimerRuntime): IRuntimeAction[] {    
     this.spans = [{            
-      start: runtime.history.length > 0 ? runtime.history[0].timestamp : new Date(),
-      stop: runtime.history.length> 0 ? runtime.history[runtime.history.length - 1].timestamp : new Date(),
-      metrics: [],
-    } as unknown as ResultSpan];
+      start: { name : "start", timestamp: runtime.history.length > 0 ? runtime.history[0].timestamp : new Date() },
+      stop: { name : "stop", timestamp: runtime.history.length > 0 
+        ? runtime.history[runtime.history.length - 1].timestamp 
+        : new Date() },
+    }];
       
     return [
       new SetButtonsAction([resetButton, saveButton], "system"),

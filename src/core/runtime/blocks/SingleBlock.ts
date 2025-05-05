@@ -24,6 +24,7 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
   ) {
     super(source);
     this.handlers = [...handlers, new CompleteHandler()];
+    this.index = 1;    
   }  
   
   enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
@@ -32,7 +33,7 @@ export class SingleBlock extends RuntimeBlock implements IRuntimeBlock {
       new SetButtonsAction([completeButton], "runtime")];
   }
 
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {     
+  next(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new PopBlockAction()
     ];

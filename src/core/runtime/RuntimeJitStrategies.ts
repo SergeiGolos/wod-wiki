@@ -34,14 +34,14 @@ export class RuntimeJitStrategies {
   /**
    * Compiles a statement node into a runtime block using the appropriate strategy
    * @param node The statement node to compile
-   * @param script The runtime script containing all statements
+   * @param runtime The runtime instance
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
     node: StatementNode, 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
-    const detail = {...node} as StatementNodeDetail;
+    const detail : StatementNodeDetail = {...node};
     
     detail.duration = getDuration(node);
     detail.metrics = getMetrics(node);
@@ -49,9 +49,8 @@ export class RuntimeJitStrategies {
     
     // Find the first strategy that can handle this node
     for (const strategy of this.strategies) {
-      if (strategy.canHandle(detail)) {
-        console.log(`RuntimeBlockStrategyManager: Using strategy ${strategy.constructor.name} for node ${node.id}`);
-        const block = strategy.compile(detail, runtime);
+      if (strategy.canHandle(detail)) {       
+        const block = strategy.compile(detail, runtime);        
         if(block) return block;
       }
     }

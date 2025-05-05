@@ -31,8 +31,8 @@ export class RuntimeStack {
    * @returns A unique key for this execution context
    */
   public push(block: IRuntimeBlock): IRuntimeBlock {        
-    this.stack.push(block);
-    
+    block.parent = this.current();    
+    this.stack.push(block);    
     // Use the traverseParentChain method to build the blockKey
     const keyParts: string[] = [];
     this.traverseAll(

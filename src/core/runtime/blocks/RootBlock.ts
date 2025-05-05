@@ -23,7 +23,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     super(new IdleStatementNode() as StatementNodeDetail);
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+  enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
     const children = this.statements
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
@@ -33,6 +33,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   next(_runtime: ITimerRuntime): IRuntimeAction[] {
+    this.index += 1;
     if (this.index > this.statements.length) {
       return [new PopBlockAction()];
     }
