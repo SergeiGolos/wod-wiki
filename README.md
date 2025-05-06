@@ -2,6 +2,7 @@
 
 A React component library for parsing, displaying, and executing workout definitions using a specialized syntax. Features include a Monaco Editor integration for editing workout scripts, a runtime engine for execution, and components styled with Tailwind CSS.
 
+
 ## Project Structure
 
 ```text
