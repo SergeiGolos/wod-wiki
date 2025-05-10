@@ -6,19 +6,22 @@ This document provides a detailed overview of the runtime blocks in the wod.wiki
 
 1. [Base RuntimeBlock Structure](#base-runtimeblock-structure)
 2. [Block Lifecycle Methods](#block-lifecycle-methods)
-3. [Block Types](#block-types)
+3. [System RuntimeBlock Types](#system-runtimeblock-types)
    - [`RootBlock`](#rootblock)
    - [`IdleRuntimeBlock`](#idleruntimeblock)
    - [`DoneRuntimeBlock`](#doneruntimeblock)
+4. [Repeating RuntimeBlock Types](#repeating-runtimeblock-types)
+   - [Group Operation Types](#group-operation-types)
+   - [`RepeatingBlock`](#repeatingblock)
+   - [`RoundRobinBlock`](#roundrobinblock-conceptual-implementation)
+   - [`ComposeBlock`](#composeblock-conceptual-implementation)
+   - [`TimedGroupBlock`](#timedgroupblock)
+5. [Execution RuntimeBlock Types](#execution-runtimeblock-types)
    - [`EffortBlock`](#effortblock)
    - [`TimerBlock`](#timerblock)
-   - [`RepeatingBlock`](#repeatingblock)
-   - [`RepeatingGroupBlock`](#repeatinggroupblock)
-   - [`TimedGroupBlock`](#timedgroupblock)
-   - [`TimedRepeaterBlock`](#timedrepeaterblock)
-4. [Block Selection Strategies](#block-selection-strategies)
-5. [Block Execution Flow](#block-execution-flow)
-6. [Lifecycle Diagrams](#lifecycle-diagrams)
+6. [Block Selection Strategies](#block-selection-strategies)
+7. [Block Execution Flow](#block-execution-flow)
+8. [Lifecycle Diagrams](#lifecycle-diagrams)
 
 ## Base RuntimeBlock Structure
 
@@ -142,78 +145,146 @@ Each block type can have specialized `EventHandler` instances that process runti
 
 ## Repeating `RuntimeBlock` Types
 
+The wod.wiki platform implements three distinct group operation types for handling repeating workout elements, each with specific execution patterns. These patterns are implemented through specialized runtime blocks with unique traversal logic.
+
+### Group Operation Types
+
+1. **Round-Robin Operator** (`-`): Each iteration of the parent round moves to the next item in the child list.
+
+   ```markdown
+   (3)
+     - 10 Pullups
+     - 20 Pushups
+     - 30 Squats
+   ```
+
+   **Execution**: Round 1: Pullups, Round 2: Pushups, Round 3: Squats
+
+2. **Compose Operator** (`+`): All children are executed as a single unit per round.
+
+   ```markdown
+   (3)
+     + 10 Pullups
+     + 20 Pushups
+     + 30 Squats
+   ```
+
+   **Execution**: Round 1-3: Pullups, then Pushups, then Squats (all three exercises in each round)
+
+3. **Repeat** (no operator): Each child individually goes through all parent rounds.
+
+   ```markdown
+   (3)
+     10 Pullups
+     20 Pushups
+   ```
+
+   **Execution**: 3 rounds of Pullups, then 3 rounds of Pushups
+
 ### `RepeatingBlock`
 
-**Purpose**: Implements a block that repeats execution of child nodes for a specific number of rounds.
+**Purpose**: Implements the **Repeat** pattern, where each child individually cycles through all parent rounds before moving to the next child.
+
+**Implementation Details**:
+
+- Maintains a `childIndex` to track the current child being processed
+- For each child, completes all specified rounds before advancing to the next child
+- When a child completes all rounds, resets the round counter and moves to the next child
 
 **Lifecycle**:
 
-- **`enter`**: Begins execution of child nodes
-- **`next`**: Advances through children in sequence, tracking round count and child index
-- **`leave`**: Performs cleanup
-
-**Handlers**: No specialized handlers in the base implementation.
+- **`enter`**: Begins execution by calling `next()` to start the first child's execution
+- **`next`**:
+  - Advances the round counter when starting a new child
+  - Checks if all rounds for the current child are complete
+  - Pushes current child statement into the execution stack
+  - Advances to the next child when all rounds are complete
+- **`leave`**: Performs cleanup when all children and rounds are complete
 
 **Actions**:
 
 - `PushStatementAction` (pushes child statements onto the stack)
-- `PopBlockAction` (removes itself when all rounds are completed)
+- `PopBlockAction` (removes itself when all children and rounds are completed)
 
 **Selection Strategy**: The `RepeatingBlockStrategy` selects this block when:
 
 - The statement has a rounds property > 1 (`node?.rounds != null && node.rounds > 1`)
+- No specific operator is specified
 
-### `RepeatingGroupBlock`
+### `RoundRobinBlock` (Conceptual Implementation)
 
-**Purpose**: Specialized repeating block for grouped exercises.
+**Purpose**: Implements the **Round-Robin** pattern where each round moves to the next child.
+
+**Implementation Details**:
+
+- Uses the round counter to determine which child to execute
+- Maps the current round index to the appropriate child using modulo arithmetic
+- Ensures each round executes a different child in sequence
 
 **Lifecycle**:
 
-- **`enter`**: Begins execution of the first child node
-- **`next`**: Cycles through children and rounds, resetting child index after each complete cycle
-- **`leave`**: Performs cleanup
+- **`enter`**: Initializes execution and prepares to traverse children in round-robin fashion
+- **`next`**:
+  - Calculates which child to execute based on the current round (e.g., `childIndex = (roundIndex - 1) % children.length`)
+  - Pushes the selected child onto the execution stack
+  - Advances the round counter for the next iteration
+- **`leave`**: Performs cleanup when all rounds are complete
 
-**Handlers**: No specialized handlers in the base implementation.
+**Actions**:
+
+- `PushStatementAction` (pushes the appropriate child statement for the current round)
+- `PopBlockAction` (removes itself when all rounds are completed)
+
+**Selection Strategy**: Will be selected when:
+
+- The statement has a rounds property > 1
+- The `-` operator is specified for the group
+
+### `ComposeBlock` (Conceptual Implementation)
+
+**Purpose**: Implements the **Compose** pattern where all children are executed as a single unit per round.
+
+**Implementation Details**:
+
+- Maintains both round and child indices
+- Executes all children for each round before advancing to the next round
+- Ensures all children are processed as a complete unit
+
+**Lifecycle**:
+
+- **`enter`**: Begins execution of the first child in the first round
+- **`next`**:
+  - Cycles through all children for the current round
+  - When all children in a round are complete, advances to the next round
+  - Resets the child index at the start of each new round
+  - Pushes the current child onto the execution stack
+- **`leave`**: Performs cleanup when all rounds are complete
 
 **Actions**:
 
 - `PushStatementAction` (pushes child statements onto the stack)
 - `PopBlockAction` (removes itself when all rounds are completed)
 
-**Selection Strategy**: Selected via the same `RepeatingBlockStrategy` when dealing with structured groups.
+**Selection Strategy**: Will be selected when:
+
+- The statement has a rounds property > 1
+- The `+` operator is specified for the group
 
 ### `TimedGroupBlock`
 
-**Purpose**: Handles timed group-based workout elements.
+**Purpose**: Specialized block for timed group-based workout elements.
+
+**Implementation Details**: Will extend the group operation types to support timed execution patterns.
 
 **Lifecycle**:
 
 - **`enter`**: Sets up timed execution for a group of exercises
-- **`next`**: Manages progression through timed group elements
+- **`next`**: Applies the appropriate group operation pattern (Round-Robin, Compose, or Repeat) within a timed context
 - **`leave`**: Performs cleanup when timed group is complete
 
-**Handlers**: Implementation details not fully visible in the examined code.
+**Actions**: Combines timing-related actions with group execution patterns.
 
-**Actions**: Likely includes timing-related actions similar to other timed blocks.
-
-**Selection Strategy**: Would likely be selected based on timed group criteria.
-
-### `TimedRepeaterBlock`
-
-**Purpose**: Specialized block for timed repetition workouts.
-
-**Lifecycle**:
-
-- **`enter`**: Initializes a timed repeating sequence
-- **`next`**: Manages progression through timed repetitions
-- **`leave`**: Performs cleanup when repetitions are complete
-
-**Handlers**: Implementation details not fully visible in the examined code.
-
-**Actions**: Likely combines timing actions with repetition logic.
-
-**Selection Strategy**: The `TimedRepeaterBlockStrategy` selects this for timed repetition patterns.
-
+**Selection Strategy**: Will be selected based on timed group criteria combined with appropriate group operator.
 
 ## Execution `RuntimeBlock` Types
 
