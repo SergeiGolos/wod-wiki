@@ -41,32 +41,42 @@ export class RuntimeJitStrategies {
   }
 
   /**
-   * Compiles a statement node into a runtime block using the appropriate strategy
-   * @param node The statement node to compile
+   * Compiles a collection of statement nodes into a runtime block using the appropriate strategy
+   * @param nodes The statement nodes to compile (can be a single node or multiple nodes)
    * @param runtime The runtime instance
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    node: StatementNode, 
+    nodes: StatementNode | StatementNode[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
-    const detail : StatementNodeDetail = {...node};
+    // Convert to array if a single node is passed
+    const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
     
-    detail.reps = getReps(node);
-    detail.duration = getDuration(node);
-    detail.metrics = getMetrics(node);
-    detail.rounds = getRounds(node);
+    // Process each node to create detail objects
+    const details: StatementNodeDetail[] = nodeArray.map(node => {
+      const detail: StatementNodeDetail = {...node};
+      
+      detail.reps = getReps(node);
+      detail.duration = getDuration(node);
+      detail.metrics = getMetrics(node);
+      detail.rounds = getRounds(node);
+      
+      return detail;
+    });
     
-    // Find the first strategy that can handle this node
+    // Find the first strategy that can handle these nodes
     for (const strategy of this.strategies) {
-      if (strategy.canHandle(detail)) {       
-        const block = strategy.compile(detail, runtime);        
-        if(block) return block;
+      // Pass the array of details to the strategy's canHandle method
+      if (strategy.canHandle(details)) {       
+        const block = strategy.compile(details, runtime);        
+        if (block) return block;
       }
     }
     
     // No strategy matched
-    console.warn(`RuntimeBlockStrategyManager: No strategy matched for node ${node.id}`);
+    const nodeIds = nodeArray.map(node => node.id).join(', ');
+    console.warn(`RuntimeBlockStrategyManager: No strategy matched for nodes [${nodeIds}]`);
     return undefined;
   }
 }

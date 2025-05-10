@@ -3,14 +3,21 @@ import { RootBlock } from "../RootBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class RootBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(node: StatementNodeDetail): boolean {
-    return node instanceof RootStatementNode;
+  canHandle(nodes: StatementNodeDetail[]): boolean {
+    // For now, only handle arrays with exactly one node
+    if (nodes.length !== 1) {
+      return false;
+    }
+    
+    // Check if the single node is a RootStatementNode
+    return nodes[0] instanceof RootStatementNode;
   }
 
   compile(
-    _node: StatementNodeDetail,
+    _nodes: StatementNodeDetail[],
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
+    // For root block, we ignore the nodes array and use the script's root
     return new RootBlock(runtime.script.root);
   }
 }

@@ -7,20 +7,20 @@ import { RuntimeScript } from "../../RuntimeScript";
  */
 export interface IRuntimeBlockStrategy {
   /**
-   * Check if this strategy applies to the given statement node
-   * @param node The statement node to check
-   * @returns True if this strategy can handle the node
+   * Check if this strategy applies to the given statement nodes
+   * @param nodes Array of statement nodes to check
+   * @returns True if this strategy can handle the nodes
    */
-  canHandle(node: StatementNodeDetail): boolean;
+  canHandle(nodes: StatementNodeDetail[]): boolean;
   
   /**
-   * Compile a statement node into a runtime block
-   * @param node The statement node to compile
-   * @param script The runtime script containing all statements   
+   * Compile statement nodes into a runtime block
+   * @param nodes Array of statement nodes to compile
+   * @param runtime The runtime instance   
    * @returns A compiled runtime block or undefined if compilation fails
    */
   compile(
-    node: StatementNodeDetail, 
+    nodes: StatementNodeDetail[], 
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined;
 }

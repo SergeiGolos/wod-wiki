@@ -18,7 +18,14 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  * Round 3: Pullups, then Pushups, then Squats
  */
 export class ComposeBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(node: StatementNodeDetail): boolean {
+  canHandle(nodes: StatementNodeDetail[]): boolean {
+    // For now, only handle arrays with exactly one node
+    if (nodes.length !== 1) {
+      return false;
+    }
+    
+    const node = nodes[0];
+    
     // Handle repeating blocks with the Compose (+) operator
     if (node?.rounds != null && node.rounds > 1 && node.groupOperator === "+") {
       return true;
@@ -27,9 +34,16 @@ export class ComposeBlockStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    node: StatementNodeDetail,
+    nodes: StatementNodeDetail[],
     _runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
-    return new ComposeBlock(node);
+    // Only handle the array if it contains exactly one node
+    if (nodes.length !== 1) {
+      console.warn('ComposeBlockStrategy: Expected array with exactly one node');
+      return undefined;
+    }
+    
+    // Use the first (and only) node for compatibility with existing implementation
+    return new ComposeBlock(nodes[0]);
   }
 }

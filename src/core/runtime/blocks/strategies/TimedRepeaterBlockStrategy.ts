@@ -3,7 +3,14 @@ import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(node: StatementNodeDetail): boolean {
+  canHandle(nodes: StatementNodeDetail[]): boolean {
+    // For now, only handle arrays with exactly one node
+    if (nodes.length !== 1) {
+      return false;
+    }
+    
+    const node = nodes[0];
+    
     if (node.duration?.sign === "-"
       && (node?.rounds != null
         && node.rounds === 1)) {
@@ -13,9 +20,16 @@ export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    node: StatementNodeDetail,
+    nodes: StatementNodeDetail[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-    return new TimedGroupBlock(node);
+    // Only handle the array if it contains exactly one node
+    if (nodes.length !== 1) {
+      console.warn('TimedRepeaterBlockStrategy: Expected array with exactly one node');
+      return undefined;
+    }
+    
+    // Use the first (and only) node for compatibility with existing implementation
+    return new TimedGroupBlock(nodes[0]);
   }
 }
