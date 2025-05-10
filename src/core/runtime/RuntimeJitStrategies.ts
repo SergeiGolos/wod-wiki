@@ -4,8 +4,9 @@ import { getDuration } from "./blocks/readers/getDuration";
 import { getRounds } from "./blocks/readers/getRounds";
 import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
-import { IdleBlockStrategy } from "./blocks/strategies/IdleBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
+import { RoundRobinBlockStrategy } from "./blocks/strategies/RoundRobinBlockStrategy";
+import { ComposeBlockStrategy } from "./blocks/strategies/ComposeBlockStrategy";
 import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
 import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
 import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedRepeaterBlockStrategy";
@@ -18,12 +19,16 @@ export class RuntimeJitStrategies {
   private strategies: IRuntimeBlockStrategy[] = [];
 
   constructor() {
-    this.addStrategy(new RootBlockStrategy());
-    this.addStrategy(new IdleBlockStrategy());    
-    this.addStrategy(new EffortBlockStrategy());
-    this.addStrategy(new TimedRepeaterBlockStrategy());    
+    this.addStrategy(new RootBlockStrategy());    
+    // Repeaters are first to be selected.
+    this.addStrategy(new TimedRepeaterBlockStrategy());  
+    this.addStrategy(new RoundRobinBlockStrategy());
+    this.addStrategy(new ComposeBlockStrategy());
     this.addStrategy(new RepeatingBlockStrategy());
+            
+    // Single blocks are last to be selected.
     this.addStrategy(new TimerBlockStrategy());
+    this.addStrategy(new EffortBlockStrategy());    
   }
 
   /**

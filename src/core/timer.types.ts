@@ -235,12 +235,11 @@ export class IdleStatementNode implements StatementNode {
   fragments: StatementFragment[] = [];
 }
 export interface StatementNodeDetail extends StatementNode {
-
-
   duration?: IDuration;
   metrics?: RuntimeMetric;
   reps?: RuntimeMetric;
   rounds?: number;
+  groupOperator?: "-" | "+"; // - for Round-Robin, + for Compose, undefined for Repeat
 }
 
 
