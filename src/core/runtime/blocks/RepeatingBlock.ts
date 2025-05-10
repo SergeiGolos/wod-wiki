@@ -9,6 +9,28 @@ import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 
 
+export class CompoundRepeatingBlock extends RuntimeBlock implements IRuntimeBlock
+{
+  constructor(source: StatementNodeDetail) {
+    super(source);
+  }
+  
+  enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    return this.next(runtime)
+  }
+
+  next(_runtime: ITimerRuntime): IRuntimeAction[] {
+    this.index += 1;
+
+    console.log("Load all", this.source.children);
+
+    return []
+  }
+
+  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return []
+  }
+}
 /**
  * Implements a block that repeats execution of child nodes.
  */

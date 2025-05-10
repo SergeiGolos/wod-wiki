@@ -89,6 +89,7 @@ export interface IRuntimeAction {
 export type WodRuntimeScript = {
   source: string;
   statements: StatementNode[];
+  errors: any[];
 };
 
 export interface WodWikiInitializer {

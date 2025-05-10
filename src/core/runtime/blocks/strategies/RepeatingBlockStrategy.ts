@@ -17,3 +17,22 @@ export class RepeatingBlockStrategy implements IRuntimeBlockStrategy {
     return new RepeatingGroupBlock(node);
   }
 }
+
+export class RepeatingCompoundBlockStrategy implements IRuntimeBlockStrategy {
+  canHandle(node: StatementNodeDetail): boolean {
+    if (node?.rounds != null && node.rounds > 1) {
+     
+      // todo look at children? 
+      
+      return true;
+    }
+    return false;
+  }
+
+  compile(
+    node: StatementNodeDetail,
+    _runtime: ITimerRuntime    
+  ): IRuntimeBlock | undefined {
+    return new RepeatingGroupBlock(node);
+  }
+}
