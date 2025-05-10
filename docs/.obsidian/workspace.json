@@ -190,7 +190,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "lap",
+                "query": "round robin",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -232,7 +232,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
+                "file": "Working/2025-04-15.lap-timers-feature.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -242,7 +242,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Birds Eye Workflow"
+              "title": "Backlinks for 2025-04-15.lap-timers-feature"
             }
           },
           {
@@ -280,21 +280,21 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
+                "file": "Working/2025-04-15.lap-timers-feature.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Birds Eye Workflow"
+              "title": "Outline of 2025-04-15.lap-timers-feature"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -310,6 +310,10 @@
   },
   "active": "1b1e39dd1f065fa0",
   "lastOpenFiles": [
+    "RuntimeBlocks.md",
+    "Excalidraw/Drawing 2025-05-10 10.51.06.excalidraw.md",
+    "Pasted Image 20250510105211_851.svg",
+    "Working/2025-04-15.lap-timers-feature.md",
     "Working/2025-05-04.KB.md",
     "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md",
     "Working/2025-05-01.ui-design-guide.md",
@@ -333,11 +337,7 @@
     "Reports/2025-04-27-rxjs-message-pump.md",
     "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Notes/2025-04-13-UI-Event-Flow-Architecture.md",
-    "README.md.md",
     "Reports",
-    "Welcome.md",
-    "Syntax.md",
-    "Excalidraw/Syntax-Parser-Workflow.md",
     "docs",
     "Core",
     "Syntax",
