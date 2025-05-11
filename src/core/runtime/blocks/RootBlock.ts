@@ -20,7 +20,7 @@ import { PopBlockAction } from "../actions/PopBlockAction";
  */
 export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(private statements: StatementNode[]) {
-    super(new IdleStatementNode() as StatementNodeDetail);
+    super([new IdleStatementNode() as StatementNodeDetail]);
   }
 
   enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
@@ -28,7 +28,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     const children = this.statements
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
-    this.source.children = [...children];
+    this.sources[0].children = [...children];
 
     return [new PushIdleBlockAction()];
   }
@@ -40,7 +40,7 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     }
 
     const statement = this.statements[this.index-1];
-    return [new PushStatementAction(statement)];
+    return [new PushStatementAction([statement])];
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {

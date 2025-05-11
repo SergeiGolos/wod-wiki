@@ -2,6 +2,7 @@ import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { CompleteEvent } from "./CompleteEvent";
+import { getDuration } from "../blocks/readers/getDuration";
 
 export class TickEvent implements IRuntimeEvent {  
   timestamp: Date = new Date();
@@ -13,11 +14,12 @@ export class TickHandler extends EventHandler {
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
     const block = runtime.trace.current();      
-    if (!block || !block.duration) {
+    const duration = block?.get(getDuration, true)[0];
+    if (!duration) {
       return [];
     }
     const spanDuration = new TimeSpanDuration(
-      block.duration.original ?? 0, 
+      duration.original ?? 0, 
       block.spans);
     
     const remaining = spanDuration.remaining();

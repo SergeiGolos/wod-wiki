@@ -3,15 +3,20 @@ import { SaveHandler } from "../inputs/SaveEvent";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { resetButton, saveButton } from "@/components/buttons/timerButtons";
-import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
+import { SetClockAction } from "../outputs/SetClockAction";
+import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
+import { ResetHandler } from "../inputs/ResetEvent";
 
 export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */
   constructor() {
-    super(new IdleStatementNode() as StatementNodeDetail);
+    super([new IdleStatementNode()]);
+    
     this.handlers = [
-      new SaveHandler()
+      new SaveHandler(),
+      new ResetHandler()
     ];
+
     this.spans = [];
   }
 
@@ -26,7 +31,8 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
       new SetButtonsAction([resetButton, saveButton], "system"),
       new SetButtonsAction([], "runtime"),      
       new SetTimeSpanAction(this.spans, "total"),
-      new SetClockAction("primary")];    
+      new SetTimeSpanAction(this.spans, "primary")
+    ];
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {

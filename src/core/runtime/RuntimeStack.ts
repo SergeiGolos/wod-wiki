@@ -100,43 +100,5 @@ export class RuntimeStack {
       return undefined;
     }
     return results[0];
-  }
-  
-  /**
-   * Legacy method maintained for backward compatibility
-   * Traverses the stack and applies a function to each statement node until a result is found
-   */
-  public fromStack<T>(
-    blockFn: StatementTraversalCallback<T>
-  ): T | undefined {
-    return this.traverseFirst<T>(
-      (block) => block.source ? blockFn(block.source) : undefined
-    );
-  }
-
-  /**
-   * Legacy method maintained for backward compatibility
-   * Traverses the entire stack and applies a function to each statement node
-   */
-  public inStack(
-    blockFn: StatementTraversalCallback<void>
-  ): void {
-    this.traverseFirst<void>(
-      (block) => block.source ? blockFn(block.source) : undefined
-    );
-  }
-
-  public popUntil(
-    condition: StackTraversalCondition    
-  ): IRuntimeBlock | undefined {
-    let currentBlock =this.pop();            
-    while (currentBlock && !(currentBlock instanceof RootBlock)) {      
-      if (condition(currentBlock, currentBlock)) {
-        return currentBlock;
-      }       
-      currentBlock = this.pop();
-    }
-    
-    return undefined;
-  }
+  }      
 }

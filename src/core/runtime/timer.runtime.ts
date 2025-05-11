@@ -38,12 +38,20 @@ export class TimerRuntime implements ITimerRuntimeIo {
       .subscribe(event => {         
         this.log(event);
 
-        const block = this.trace.current();                
-        const actions = block?.handle(this, event, this.jit.handlers)            
+        let block = this.trace.current();                
+        while (block) {
+          const actions = block?.handle(this, event, this.jit.handlers)            
             .filter(actions => actions !== undefined)
             .flat() ?? [];
-                
-        this.apply(actions, "handle");        
+          
+          if (actions.length > 0) {
+            this.apply(actions, "handle");
+            block = undefined;
+          }
+          else {
+            block = block.parent;
+          }          
+        }                
       });    
   } 
   init() {

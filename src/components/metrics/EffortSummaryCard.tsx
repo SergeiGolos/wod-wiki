@@ -47,7 +47,7 @@ const EffortSummaryCard: React.FC<EffortSummaryCardProps> = ({ spansOptions, sel
   }, 0);
 
   const averageWeightUsedPerRep = totalReps > 0 ? totalWeightValue / totalReps : 0;
-  const averageTimePerRepSeconds = totalReps > 0 ? (totalDurationMs / 1000) / totalReps : 0;
+  const averageTimePerRepSeconds = totalReps > 0 ? (totalDurationMs) / totalReps : 0;
 
   const stats = [
     { id: 'sets', name: 'Sets', value: numberOfSets },

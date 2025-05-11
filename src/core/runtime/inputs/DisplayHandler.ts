@@ -1,7 +1,7 @@
 import { IRuntimeAction, IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { DisplayEvent } from "./DisplayEvent";
-import { SetTimeSpanAction } from "../outputs/SetClockAction";
+import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 
 /**
  * Handles DisplayEvents and converts them to appropriate UI update actions

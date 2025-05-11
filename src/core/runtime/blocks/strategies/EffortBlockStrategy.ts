@@ -9,15 +9,14 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 
 export class EffortBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(node: StatementNodeDetail): boolean {
-    return node.rounds === 1 && node.children?.length === 0;
+  canHandle(nodes: StatementNodeDetail[]): boolean {    
+    return nodes.every(node => node.rounds === 1 && node.children?.length === 0);
   }
 
   compile(
-    node: StatementNodeDetail,
+    nodes: StatementNodeDetail[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-
-    return new EffortBlock(node);
+    return new EffortBlock(nodes);
   }
 }

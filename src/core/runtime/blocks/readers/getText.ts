@@ -6,10 +6,10 @@ import { StatementNode } from "@/core/timer.types";
  * @param node The statement node to extract from
  * @returns The first text fragment or undefined if none exists
  */
-export function getText(node: StatementNode): TextFragment | undefined {
+export function getText(node: StatementNode): TextFragment[] {
   const fragments = node.fragments
     .filter(f => f.type === 'text')
     .map(f => f as TextFragment);
 
-  return fragments?.[0];
+  return fragments;
 }

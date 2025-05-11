@@ -1,10 +1,9 @@
 import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../timer.types";
-import { getMetrics, getReps } from "./blocks/readers/getDistance";
+import { getReps } from "./blocks/readers/getReps";
 import { getDuration } from "./blocks/readers/getDuration";
 import { getRounds } from "./blocks/readers/getRounds";
 import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
-import { IdleBlockStrategy } from "./blocks/strategies/IdleBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
 import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
 import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
@@ -18,12 +17,14 @@ export class RuntimeJitStrategies {
   private strategies: IRuntimeBlockStrategy[] = [];
 
   constructor() {
-    this.addStrategy(new RootBlockStrategy());
-    this.addStrategy(new IdleBlockStrategy());    
-    this.addStrategy(new EffortBlockStrategy());
-    this.addStrategy(new TimedRepeaterBlockStrategy());    
+    this.addStrategy(new RootBlockStrategy());    
+    // Repeaters are first to be selected.
+    this.addStrategy(new TimedRepeaterBlockStrategy());  
     this.addStrategy(new RepeatingBlockStrategy());
+            
+    // Single blocks are last to be selected.
     this.addStrategy(new TimerBlockStrategy());
+    this.addStrategy(new EffortBlockStrategy());    
   }
 
   /**
@@ -36,32 +37,42 @@ export class RuntimeJitStrategies {
   }
 
   /**
-   * Compiles a statement node into a runtime block using the appropriate strategy
-   * @param node The statement node to compile
+   * Compiles a collection of statement nodes into a runtime block using the appropriate strategy
+   * @param nodes The statement nodes to compile (can be a single node or multiple nodes)
    * @param runtime The runtime instance
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    node: StatementNode, 
+    nodes: StatementNode[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
-    const detail : StatementNodeDetail = {...node};
+    // Convert to array if a single node is passed
+    const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
     
-    detail.reps = getReps(node);
-    detail.duration = getDuration(node);
-    detail.metrics = getMetrics(node);
-    detail.rounds = getRounds(node);
+    // Process each node to create detail objects
+    const details: StatementNodeDetail[] = nodeArray.map(node => {
+      const detail: StatementNodeDetail = {...node};
+      
+      detail.reps = getReps(node);
+      detail.duration = getDuration(node)[0];
+      // detail.metrics = getMetrics(node);
+      detail.rounds = getRounds(node)[0];
+      
+      return detail;
+    });
     
-    // Find the first strategy that can handle this node
+    // Find the first strategy that can handle these nodes
     for (const strategy of this.strategies) {
-      if (strategy.canHandle(detail)) {       
-        const block = strategy.compile(detail, runtime);        
-        if(block) return block;
+      // Pass the array of details to the strategy's canHandle method
+      if (strategy.canHandle(details)) {       
+        const block = strategy.compile(details, runtime);        
+        if (block) return block;
       }
     }
     
     // No strategy matched
-    console.warn(`RuntimeBlockStrategyManager: No strategy matched for node ${node.id}`);
+    const nodeIds = nodeArray.map(node => node.id).join(', ');
+    console.warn(`RuntimeBlockStrategyManager: No strategy matched for nodes [${nodeIds}]`);
     return undefined;
   }
 }

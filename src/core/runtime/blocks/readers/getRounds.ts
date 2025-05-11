@@ -6,10 +6,10 @@ import { StatementNode } from "@/core/timer.types";
  * @param node The statement node to extract from
  * @returns The first rounds fragment or undefined if none exists
  */
-export function getRounds(node: StatementNode): number {
+export function getRounds(node: StatementNode): number[] {
   const fragments = node?.fragments
     ?.filter(f => f.type === 'rounds')
     ?.map(f => f as RoundsFragment) ?? [];
 
-  return fragments.length > 0 ? fragments[0].count : 1;
+  return fragments.length > 0 ? fragments.map(f => f.count) : [1];
 }

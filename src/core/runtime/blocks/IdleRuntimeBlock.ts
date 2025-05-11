@@ -9,11 +9,12 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
-import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
+import { SetClockAction } from "../outputs/SetClockAction";
+import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
-    super(new IdleStatementNode() as StatementNodeDetail);
+    super([new IdleStatementNode() as StatementNodeDetail]);
     this.handlers = [
     ];
   }

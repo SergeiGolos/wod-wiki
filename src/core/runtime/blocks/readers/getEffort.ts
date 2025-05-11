@@ -6,10 +6,10 @@ import { StatementNode } from "@/core/timer.types";
  * @param node The statement node to extract from
  * @returns The first effort fragment or undefined if none exists
  */
-export function getEffort(node: StatementNode): EffortFragment | undefined {
+export function getEffort(node: StatementNode): EffortFragment[] {
   const fragments = node.fragments
     .filter(f => f.type === 'effort')
     .map(f => f as EffortFragment);
 
-  return fragments?.[0];
+  return fragments;
 }

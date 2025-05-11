@@ -11,14 +11,14 @@ import { EventHandler } from "../EventHandler";
 export abstract class RuntimeBlock implements IRuntimeBlock {  
   constructor(
     // meta
-    public source: StatementNodeDetail
+    public sources: StatementNodeDetail[]
   ) {
-    this.blockId = source.id;
+    this.blockId = sources.map(s => s.id).join(":") || "";
   }
   public blockKey?: string | undefined;
   // meta
   public parent?: IRuntimeBlock | undefined;    
-  public blockId: number;
+  public blockId: string;
    // stat
   public index: number = 0;
   public spans: ITimeSpan[] = [];
@@ -29,6 +29,18 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   abstract next(runtime: ITimerRuntime): IRuntimeAction[];    
   abstract leave(runtime: ITimerRuntime): IRuntimeAction[] ;  
   
+
+  public get<T>(fn: (node: StatementNodeDetail) => T[], recursive?: boolean): T[] {
+    let block: IRuntimeBlock = this;
+    let result: T[] = block.sources?.flatMap(fn) ?? [];
+    while (recursive && block.parent) {
+      block = block.parent;
+      result.push(...block.sources?.flatMap(fn) ?? []);
+    }
+    
+    return result;
+  }
+
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,
