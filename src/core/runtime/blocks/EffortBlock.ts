@@ -9,6 +9,7 @@ import { StartEvent } from "../inputs/StartEvent";
 import { StopEvent } from "../inputs/StopEvent";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
+import { SetClockAction } from "../outputs/SetClockAction";
 
 export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(
@@ -24,7 +25,9 @@ export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
     console.log(`+=== enter : ${this.blockKey}`);
     return [
       new StartTimerAction(new StartEvent(new Date())),
-      new SetButtonsAction([completeButton], "runtime")
+      new SetButtonsAction([completeButton], "runtime"),
+      new SetClockAction("primary")      
+
     ];
   }
 

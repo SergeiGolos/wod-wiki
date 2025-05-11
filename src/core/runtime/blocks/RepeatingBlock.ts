@@ -10,21 +10,10 @@ import { PopBlockAction } from "../actions/PopBlockAction";
 import { getLap } from "./readers/getLap";
 import { LapFragment } from "@/core/fragments/LapFragment";
 
-/**
- * Implements the Repeat pattern (no operator) where each child individually
- * goes through all parent rounds before moving to the next child.
- *
- * Example:
- * (3)
- *   10 Pullups
- *   20 Pushups
- *
- * Execution:
- * 3 rounds of Pullups, then 3 rounds of Pushups
- */
+
 export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   childIndex: number = 0; // Current round for the current child
-
+  lastLap: string = "";
   constructor(source: StatementNodeDetail) {
     super([source]);
   }
@@ -35,43 +24,40 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   next(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Check if we've completed all rounds for the current child
-    let restarted = false;
-    
-    if (this.childIndex >= this.sources?.[0]?.children.length) {
-      this.childIndex = 0;      
-      restarted = true;
+    // Check if we've completed all rounds for the current child        
+    if (this.childIndex >= this.sources?.[0]?.children.length || this.lastLap === "-") {
+      this.childIndex = 0;   
+      this.index += 1;             
     }
-
     if (this.sources?.[0].rounds && this.index >= this.sources?.[0].rounds) {
       return [new PopBlockAction()];
-    }
+    } 
 
     const statements: StatementNodeDetail[] = [];
     let statement: StatementNodeDetail | undefined;
     let laps: LapFragment | undefined;
-    while (true) {
+    
+    while (true) {      
+      this.childIndex += 1;
       statement = runtime.script.getId(
-        this.sources?.[0]?.children[this.childIndex]
+        this.sources?.[0]?.children[this.childIndex-1]
       )?.[0];
+      
       if (!statement) {
         break;
-      }
+      }      
 
       laps = getLap(statement)?.[0];
+      statements.push(statement);
 
-      if (statements.length == 0 || laps?.image === "+") {
-        statements.push(statement);
-        this.childIndex += 1;
-      } else {
+      if (laps?.image !=="+") {        
         break;
-      }
+      }            
     }
 
-    if (laps?.image === "-" || restarted) {
-      this.index += 1;
-    }
+    this.lastLap = laps?.image ?? "";
 
+    
     return statements.length > 0
       ? [new PushStatementAction(statements, true)]
       : [];

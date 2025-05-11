@@ -1,15 +1,11 @@
 import {
-  IDuration,
   IRuntimeAction,
   IRuntimeEvent,
   ITimerRuntime,
   OutputEvent,
-  TimeSpanDuration,
 } from "@/core/timer.types";
-import { DisplayEvent } from "../inputs/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
 import { getDuration } from "../blocks/readers/getDuration";
-import { NotifyRuntimeAction } from "./NotifyRuntimeAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { PushActionEvent } from "../inputs/PushActionEvent";
 
