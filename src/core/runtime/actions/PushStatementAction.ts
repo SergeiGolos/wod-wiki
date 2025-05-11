@@ -25,14 +25,14 @@ export class PushEndBlockAction implements IRuntimeAction {
 }
 
 export class PushStatementAction implements IRuntimeAction {
-  constructor(public statement: StatementNode, public pop: boolean = true) { }
+  constructor(public statements: StatementNode[], public pop: boolean = true) { }
   name: string = "goto";
   apply(
     runtime: ITimerRuntime,
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ): void {        
-    var block = runtime.jit.compile(this.statement, runtime)        
+    var block = runtime.jit.compile(this.statements, runtime)        
     runtime.push(block);
   }
 }

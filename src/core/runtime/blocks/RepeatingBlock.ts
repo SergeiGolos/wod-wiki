@@ -7,25 +7,26 @@ import {
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { getLap } from "./readers/getLap";
+import { LapFragment } from "@/core/fragments/LapFragment";
 
 /**
  * Implements the Repeat pattern (no operator) where each child individually
  * goes through all parent rounds before moving to the next child.
- * 
+ *
  * Example:
  * (3)
  *   10 Pullups
  *   20 Pushups
- * 
- * Execution: 
+ *
+ * Execution:
  * 3 rounds of Pullups, then 3 rounds of Pushups
  */
 export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
-  currentChild: number = 0;  // Which child we're currently processing
-  childRound: number = 1;   // Current round for the current child
-  
+  childIndex: number = 0; // Current round for the current child
+
   constructor(source: StatementNodeDetail) {
-    super(source);    
+    super([source]);
   }
 
   enter(runtime: ITimerRuntime): IRuntimeAction[] {
@@ -33,31 +34,51 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
     return this.next(runtime);
   }
 
-  next(runtime: ITimerRuntime): IRuntimeAction[] {    
+  next(runtime: ITimerRuntime): IRuntimeAction[] {
     // Check if we've completed all rounds for the current child
-    if (this.source.rounds && this.childRound > this.source.rounds) {
-      // Move to the next child and reset round counter
-      this.currentChild += 1;
-      this.childRound = 1;
-      
-      // If we've gone through all children, we're done
-      if (this.currentChild >= this.source.children.length) {
-        return [new PopBlockAction()];
+    let restarted = false;
+    
+    if (this.childIndex >= this.sources?.[0]?.children.length) {
+      this.childIndex = 0;      
+      restarted = true;
+    }
+
+    if (this.sources?.[0].rounds && this.index >= this.sources?.[0].rounds) {
+      return [new PopBlockAction()];
+    }
+
+    const statements: StatementNodeDetail[] = [];
+    let statement: StatementNodeDetail | undefined;
+    let laps: LapFragment | undefined;
+    while (true) {
+      statement = runtime.script.getId(
+        this.sources?.[0]?.children[this.childIndex]
+      )?.[0];
+      if (!statement) {
+        break;
+      }
+
+      laps = getLap(statement)?.[0];
+
+      if (statements.length == 0 || laps?.image === "+") {
+        statements.push(statement);
+        this.childIndex += 1;
+      } else {
+        break;
       }
     }
-    
-    // Get the current child to execute
-    const id = this.source.children[this.currentChild];
-    const statement = runtime.script.getId(id)[0];
-    
-    // Increment the round for the current child
-    this.childRound += 1;
-    
-    return statement ? [new PushStatementAction(statement)] : [];
+
+    if (laps?.image === "-" || restarted) {
+      this.index += 1;
+    }
+
+    return statements.length > 0
+      ? [new PushStatementAction(statements, true)]
+      : [];
   }
 
   leave(_runtime: ITimerRuntime): IRuntimeAction[] {
     console.log(`+=== leave : ${this.blockKey}`);
     return [];
-  }  
+  }
 }

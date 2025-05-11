@@ -13,7 +13,7 @@ import { SetClockAction, SetTimeSpanAction } from "../outputs/SetClockAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
-    super(new IdleStatementNode() as StatementNodeDetail);
+    super([new IdleStatementNode() as StatementNodeDetail]);
     this.handlers = [
     ];
   }

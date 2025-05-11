@@ -1,12 +1,10 @@
 import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../timer.types";
-import { getMetrics, getReps } from "./blocks/readers/getDistance";
+import { getReps } from "./blocks/readers/getReps";
 import { getDuration } from "./blocks/readers/getDuration";
 import { getRounds } from "./blocks/readers/getRounds";
 import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
-import { RoundRobinBlockStrategy } from "./blocks/strategies/RoundRobinBlockStrategy";
-import { ComposeBlockStrategy } from "./blocks/strategies/ComposeBlockStrategy";
 import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
 import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
 import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedRepeaterBlockStrategy";
@@ -22,8 +20,6 @@ export class RuntimeJitStrategies {
     this.addStrategy(new RootBlockStrategy());    
     // Repeaters are first to be selected.
     this.addStrategy(new TimedRepeaterBlockStrategy());  
-    this.addStrategy(new RoundRobinBlockStrategy());
-    this.addStrategy(new ComposeBlockStrategy());
     this.addStrategy(new RepeatingBlockStrategy());
             
     // Single blocks are last to be selected.
@@ -47,7 +43,7 @@ export class RuntimeJitStrategies {
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    nodes: StatementNode | StatementNode[], 
+    nodes: StatementNode[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
     // Convert to array if a single node is passed
@@ -58,9 +54,9 @@ export class RuntimeJitStrategies {
       const detail: StatementNodeDetail = {...node};
       
       detail.reps = getReps(node);
-      detail.duration = getDuration(node);
-      detail.metrics = getMetrics(node);
-      detail.rounds = getRounds(node);
+      detail.duration = getDuration(node)[0];
+      // detail.metrics = getMetrics(node);
+      detail.rounds = getRounds(node)[0];
       
       return detail;
     });

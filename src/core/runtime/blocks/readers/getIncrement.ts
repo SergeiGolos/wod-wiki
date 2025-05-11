@@ -6,10 +6,10 @@ import { StatementNode } from "@/core/timer.types";
  * @param node The statement node to extract from
  * @returns The first increment fragment or undefined if none exists
  */
-export function getIncrement(node: StatementNode): IncrementFragment | undefined {
+export function getIncrement(node: StatementNode): IncrementFragment[] {
   const fragments = node.fragments
     .filter(f => f.type === 'increment')
     .map(f => f as IncrementFragment);
 
-  return fragments?.[0];
+  return fragments;
 }

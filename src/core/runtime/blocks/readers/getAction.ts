@@ -6,10 +6,10 @@ import { IRuntimeBlock } from "@/core/timer.types";
  * @param block The runtime block to extract from
  * @returns The first action fragment or undefined if none exists
  */
-export function getAction(block: IRuntimeBlock): ActionFragment | undefined {
+export function getAction(block: IRuntimeBlock): ActionFragment[] {
   const fragments = block.source?.fragments
     .filter(f => f.type === 'action')
     .map(f => f as ActionFragment);
 
-  return fragments?.[0];
+  return fragments ?? [];
 }

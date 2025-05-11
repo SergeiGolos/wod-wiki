@@ -271,12 +271,13 @@ export type MetricValue = {
 
 export interface IRuntimeBlock {
   blockKey?: string | undefined;
-  blockId: number;          
+  blockId: string;          
   index:number;      
-  source?: StatementNodeDetail | undefined ;
+  sources?: StatementNodeDetail[];
   parent?: IRuntimeBlock | undefined  
 
   spans: ITimeSpan[];
+  get<T>(fn: (node: StatementNodeDetail) => T[], recursive?: boolean): T[];
   
   enter(runtime: ITimerRuntime): IRuntimeAction[];  
   next(runtime: ITimerRuntime): IRuntimeAction[];  
@@ -285,7 +286,7 @@ export interface IRuntimeBlock {
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
-  blockId: number;
+  blockId: string;
   blockKey: string;  
 }
 

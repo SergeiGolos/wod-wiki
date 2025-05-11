@@ -26,7 +26,7 @@ export class SetClockAction extends OutputAction {
 
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
         const block = _runtime.trace.current();
-        const duration = _runtime.trace.fromStack(getDuration);
+        const duration = block?.get(getDuration)[0];
         return [{
             eventType: this.eventType,
             bag: { duration: new TimeSpanDuration(duration?.original ?? 0, block?.spans ?? []), target: this.target },

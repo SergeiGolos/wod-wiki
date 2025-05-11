@@ -1,4 +1,5 @@
 import {
+  IDuration,
   IRuntimeAction,
   IRuntimeEvent,
   ITimerRuntime,
@@ -8,6 +9,9 @@ import {
 import { DisplayEvent } from "../inputs/DisplayEvent";
 import { Subject } from "rxjs/internal/Subject";
 import { getDuration } from "../blocks/readers/getDuration";
+import { NotifyRuntimeAction } from "./NotifyRuntimeAction";
+import { SetClockAction } from "../outputs/SetClockAction";
+import { PushActionEvent } from "../inputs/PushActionEvent";
 
 export class StopTimerAction implements IRuntimeAction {
   constructor(private event: IRuntimeEvent) {}
@@ -21,7 +25,7 @@ export class StopTimerAction implements IRuntimeAction {
     if (!block) {
       return;
     }
-
+    // block.walk()
     console.log(
       "StopTimerAction: Adding event to runtime.current.events",
       this.event
@@ -33,13 +37,10 @@ export class StopTimerAction implements IRuntimeAction {
       currentLap.stop = this.event;
     }
 
-    const duration = runtime.trace.fromStack(getDuration);
+    const duration = block.get(getDuration);
     if (duration != undefined) {
       input.next(
-        new DisplayEvent(
-          "primary",
-          new TimeSpanDuration(duration.original!, block.spans)
-        )
+        new PushActionEvent(new SetClockAction("primary"))
       );
     }
   }

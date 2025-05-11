@@ -16,7 +16,7 @@ export class RepeatingBlockStrategy implements IRuntimeBlockStrategy {
     const node = nodes[0];
     
     // Only handle repeating blocks with no specific operator (standard Repeat pattern)
-    if (node?.rounds != null && node.rounds > 1 && node.groupOperator === undefined) {
+    if (node?.rounds != null && node.rounds > 1) {
       return true;
     }
     return false;

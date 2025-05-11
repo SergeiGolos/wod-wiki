@@ -10,13 +10,12 @@ import { StopEvent } from "../inputs/StopEvent";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 
-
 export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(
-    source: StatementNodeDetail,
+    sources: StatementNodeDetail[],
     public handlers: EventHandler[] = []
-  ) {
-    super(source);
+  ) {    
+    super(sources);
     this.handlers = [...handlers, new CompleteHandler()];
     this.index = 1;
   }

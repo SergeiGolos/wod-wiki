@@ -1,5 +1,4 @@
-import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../../../timer.types";
-import { RuntimeScript } from "../../RuntimeScript";
+import { IRuntimeBlock, ITimerRuntime, StatementNodeDetail } from "../../../timer.types";
 
 /**
  * Interface for runtime block compilation strategies

@@ -6,10 +6,10 @@ import { StatementNode } from "@/core/timer.types";
  * @param node The statement node to extract from
  * @returns The first rep fragment or undefined if none exists
  */
-export function getRep(node: StatementNode): RepFragment | undefined {
+export function getRep(node: StatementNode): RepFragment[] {
   const fragments = node.fragments
     .filter(f => f.type === 'rep')
     .map(f => f as RepFragment);
 
-  return fragments?.[0];
+  return fragments;
 }
