@@ -26,8 +26,7 @@ export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
     return [
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
-      new SetClockAction("primary")      
-
+      new SetClockAction("primary")
     ];
   }
 

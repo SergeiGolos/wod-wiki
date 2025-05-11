@@ -18,14 +18,14 @@ export class TimerFragment implements StatementFragment {
     this.original = (this.seconds +
       this.minutes * 60 +
       this.hours * 60 * 60 +
-      this.days * 60 * 60 * 24);
+      this.days * 60 * 60 * 24) * 1000;
   }
 
   days: number;
   hours: number;
   minutes: number;
   seconds: number;
-  original: number;
+  original: number; // in m
   type: string = "duration";
 }
 

@@ -65,19 +65,21 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 
   useEffect(() => {
     if (primary) {
-      setPrimaryDisplay(primary.display());
+      
+      setPrimaryDisplay(
+        primary.sign === "+" || primary.sign === undefined ? primary.elapsed() : primary.remaining());
     }
     if (total) {
-      setTotalDisplay(total.display());
+      setTotalDisplay(total.elapsed());
     }
 
     // Set up interval to continuously update
     const intervalId = setInterval(() => {
       if (primary) {
-        setPrimaryDisplay(primary.display());
+        setPrimaryDisplay(primary.sign === "+" || primary.sign === undefined ? primary.elapsed() : primary.remaining());
       }
       if (total) {
-        setTotalDisplay(total.display());
+        setTotalDisplay(total.elapsed());
       }
     }, 100); // Update every 100ms for smooth display
 

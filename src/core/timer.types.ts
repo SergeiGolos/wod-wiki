@@ -4,11 +4,11 @@ import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
 
-export type DurationSign = "+" | "-";
+export type DurationSign = "+" | "-" | undefined;
 
 export interface IDuration {
   original?: number;
-  sign: "+" | "-";
+  sign: DurationSign;
 
   days?: number;
   hours?: number;
@@ -25,7 +25,7 @@ export class Duration implements IDuration {
   milliseconds?: number;
 
   constructor(public original: number, public sign: DurationSign = "-") {    
-    let remaining = this.original = original ?? 0;
+    let remaining = original ?? 0;
 
     this.days = Math.floor(remaining / 86400000);
     remaining %= 86400000;
@@ -48,7 +48,6 @@ export interface ITimeSpan {
 }
 
 export interface ISpanDuration extends IDuration {
-  display(): IDuration;
   spans: ITimeSpan[]
   elapsed(): IDuration;
   remaining(): IDuration;
@@ -69,12 +68,10 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   }
 
   remaining(): IDuration {
-    return new Duration((this.elapsed()?.original ?? 0)-(this.original ?? 0))      
-  }   
-
-  display(): IDuration {
-    return this.sign === "+" ? this.elapsed() : this.remaining();
-  }
+    return (this.original ?? 0) !== 0
+    ? new Duration((this.original ?? 0) - (this.elapsed()?.original ?? 0))      
+    : new Duration((this.elapsed()?.original ?? 0))      
+  }  
 }
  
 export interface IRuntimeAction {
