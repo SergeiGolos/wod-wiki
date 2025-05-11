@@ -332,16 +332,27 @@ export class ResultSpan {
     return calculatedDuration;
   }
 
-  // edit(edits: RuntimeMetricEdit[]): ResultSpan {
-  //   this.metrics = this.metrics.map((metric) => {
-  //     const selected = edits.filter(
-  //       (e) => e.blockKey === this.blockKey && e.index === this.index
-  //     );
-  //     for (const edit of selected) {
-  //       metric[edit.metricType] = edit.newValue;
-  //     }
-  //     return metric;
-  //   });
-  //   return this;
-  // }
+  edit(edits: RuntimeMetricEdit[]): ResultSpan {
+    this.metrics = this.metrics.map((metric) => {
+      const selected = edits.filter(
+        (e) => e.blockKey === this.blockKey && e.index === this.index
+      );
+      
+      // Apply edits to the appropriate metric value
+      for (const edit of selected) {
+        // Find the value with the matching type or add a new one
+        const valueIndex = metric.values.findIndex(v => v.type === edit.metricType);
+        
+        if (valueIndex >= 0) {
+          // Update existing value with the new MetricValue's properties
+          metric.values[valueIndex] = edit.newValue;
+        } else {
+          // Add the new MetricValue directly
+          metric.values.push(edit.newValue);
+        }
+      }
+      return metric;
+    });
+    return this;
+  }
 }

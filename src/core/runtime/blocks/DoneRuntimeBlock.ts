@@ -6,6 +6,7 @@ import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 import { ResetHandler } from "../inputs/ResetEvent";
+import { WriteResultAction } from "../outputs/WriteResultAction";
 
 export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /** Unique identifier for this block */
@@ -27,7 +28,7 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
       stop: runtime.history[runtime.history.length - 1] ?? { timestamp: new Date() , name: "stop" },
     }];
       
-    return [
+    return [  
       new SetButtonsAction([resetButton, saveButton], "system"),
       new SetButtonsAction([], "runtime"),      
       new SetTimeSpanAction(this.spans, "total"),
@@ -35,12 +36,23 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
     ];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return [];
+  leave(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== leave : ${this.blockKey}`);
+    
+    // Create a result span to report the completion of this block
+    const resultSpan = new ResultSpan();
+    resultSpan.blockKey = this.blockKey;
+    resultSpan.start = runtime.history[0] ?? { name: "start", timestamp: new Date() };
+    resultSpan.stop = runtime.history[runtime.history.length - 1] ?? { timestamp: new Date(), name: "stop" };
+    
+    return [
+      new WriteResultAction(resultSpan)
+    ];
   }
 
 
   next(_runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== next : ${this.blockKey}`);
     return [];
   } 
 }

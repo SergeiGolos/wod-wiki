@@ -3,6 +3,8 @@ import {
   IRuntimeBlock,
   ITimerRuntime,
   StatementNodeDetail,
+  ResultSpan,
+  RuntimeMetric
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
@@ -11,6 +13,7 @@ import { getLap } from "./readers/getLap";
 import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { WriteResultAction } from "../outputs/WriteResultAction";
 
 
 export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
@@ -28,6 +31,7 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   }
 
   next(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== next : ${this.blockKey}`);
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
       return [new PopBlockAction()];
@@ -71,8 +75,41 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
       : [];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  leave(runtime: ITimerRuntime): IRuntimeAction[] {
     console.log(`+=== leave : ${this.blockKey}`);
-    return [];
+    
+    // Create a result span to report completion and metrics for this repeating block
+    const resultSpan = new ResultSpan();
+    resultSpan.blockKey = this.blockKey;
+    resultSpan.index = this.index;
+    // Store the current path in the runtime hierarchy
+    resultSpan.stack = [this.index];
+    resultSpan.start = runtime.history.find(h => h.blockKey === this.blockKey) ?? { name: "start", timestamp: new Date() };
+    resultSpan.stop = { timestamp: new Date(), name: "repeating_complete" };
+    
+    // Add metrics if available from statement sources
+    const source = this.sources?.[0];
+    if (source) {
+      // Extract metrics from the statement if available
+      const metric: RuntimeMetric = {
+        effort: "Repeating Block",
+        values: []
+      };
+      
+      // Add round metrics
+      if (source.rounds) {
+        metric.values.push({
+          type: "repetitions",
+          value: source.rounds,
+          unit: "rounds"
+        });
+      }
+      
+      resultSpan.metrics.push(metric);
+    }
+    
+    return [
+      new WriteResultAction(resultSpan)
+    ];
   }
 }

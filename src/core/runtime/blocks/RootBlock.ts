@@ -5,6 +5,8 @@ import {
   IdleStatementNode,
   StatementNode,
   StatementNodeDetail,
+  ResultSpan,
+  RuntimeMetric,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import {
@@ -13,6 +15,7 @@ import {
   PushStatementAction,
 } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { WriteResultAction } from "../outputs/WriteResultAction";
 
 /**
  * Represents the root of the execution tree.
@@ -43,8 +46,30 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     return [new PushStatementAction([statement])];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  leave(runtime: ITimerRuntime): IRuntimeAction[] {
     console.log(`+=== leave : ${this.blockKey}`);
-    return [new PushEndBlockAction()];
+    
+    // Create a result span to report completion of the entire workout
+    const resultSpan = new ResultSpan();
+    resultSpan.blockKey = this.blockKey;
+    resultSpan.index = this.index;
+    resultSpan.stack = [];
+    resultSpan.start = runtime.history[0] ?? { name: "start", timestamp: new Date() };
+    resultSpan.stop = { timestamp: new Date(), name: "root_complete" };
+    resultSpan.label = "Workout Complete";
+    
+    // Add overall workout metrics if available
+    const metric: RuntimeMetric = {
+      effort: "Workout",
+      values: []
+    };
+    
+    // You could add summary metrics here if needed
+    resultSpan.metrics.push(metric);
+    
+    return [
+      new WriteResultAction(resultSpan),
+      new PushEndBlockAction()
+    ];
   }
 }
