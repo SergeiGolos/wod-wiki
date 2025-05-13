@@ -16,15 +16,15 @@ export class StartTimerAction implements IRuntimeAction {
     _output: Subject<OutputEvent>
   ) {
     const block = runtime.trace.current();
-    if (!block || block.blockId === -1) {
+    if (!block || block.blockId == "-1") {
       return;
     }
-
+    const spans = block.getSpans();
     const currentLap =
-      block.spans.length > 0 ? block.spans[block.spans.length - 1] : undefined;
+      spans.length > 0 ? spans[spans.length - 1] : undefined;
 
     if (!currentLap || currentLap.stop) {
-      block.spans.push({
+      spans.push({
         blockKey: block.blockKey,
         start: this.event,
         stop: undefined,

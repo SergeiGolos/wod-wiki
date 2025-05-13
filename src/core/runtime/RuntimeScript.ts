@@ -1,16 +1,14 @@
 import { PrecompiledNode, StatementNode } from "../timer.types";
-import { getDuration } from "./blocks/readers/getDuration";
-import { getMetrics, getRounds } from "./blocks/readers/getRounds";
 
 export class RuntimeScript {
-  public root: StatementNode[] = [];
+  public root: PrecompiledNode[] = [];
   private lookupIndex: { [key: number]: number; } = {};
   constructor(public nodes: StatementNode[]) {
     // Initialize the lookup index
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       if (node.meta.columnStart == 1){
-        this.root.push(node);
+        this.root.push(new PrecompiledNode(node));
       }
       // Store the node index in our lookup table by ID for quick access
       this.lookupIndex[node.id] = i;
@@ -33,5 +31,5 @@ export class RuntimeScript {
     }
 
     return stack;
-  }  
+  }    
 }

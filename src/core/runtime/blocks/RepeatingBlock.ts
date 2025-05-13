@@ -12,11 +12,13 @@ import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
+import { getTimer } from "./readers/getDuration";
+import { TimerFragment } from "@/core/fragments/TimerFragment";
 
 
 export class RepeatingBlock extends RuntimeBlock {
-  constructor(source: PrecompiledNode) {
-    super([source]);
+  constructor(source: PrecompiledNode[]) {
+    super(source);
     
     // Initialize state in context
     this.ctx.childIndex = 0; // Current round for the current child
@@ -59,7 +61,8 @@ export class RepeatingBlock extends RuntimeBlock {
     const statements: PrecompiledNode[] = [];
     let statement: PrecompiledNode | undefined;
     let laps: LapFragment | undefined;
-    
+    let durations: TimerFragment[] = this.get<TimerFragment>(getTimer, true);
+
     while (true) {      
       if (this.ctx.childIndex !== undefined) {
         this.ctx.childIndex += 1;
@@ -72,12 +75,13 @@ export class RepeatingBlock extends RuntimeBlock {
       const childId = sourceNode?.children ? sourceNode.children[childIndex] : undefined;
       statement = childId !== undefined ? runtime.script.getId(childId)?.[0] : undefined;
       
-      if (!statement) {
-        break;
-      }      
+      let durations = !!statement ? getTimer(statement!) : [];
+      if ( durations.length == 0) {        
+        statement?.addFragment(durations[0]);
+      }
 
-      laps = getLap(statement)?.[0];
-      statements.push(statement);
+      laps = getLap(statement!)?.[0];
+      statements.push(statement!);
 
       if (laps?.image !=="+") {        
         break;
@@ -88,7 +92,7 @@ export class RepeatingBlock extends RuntimeBlock {
 
     
     return statements.length > 0
-      ? [new PushStatementAction(statements, true)]
+      ? [new PushStatementAction(statements, false)]
       : [];
   }
 

@@ -1,10 +1,10 @@
 import { IRuntimeBlock, ITimerRuntime, PrecompiledNode, StatementNode } from "../timer.types";
-import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
+import { BlockEffortStrategy } from "./blocks/strategies/BlockEffortStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
-import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
-import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
-import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
-import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedLapBlockStrategy";
+import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrategy";
+import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
+import { BlockTimerStrategy } from "./blocks/strategies/BlockTimerStrategy";
+import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
 
 /**
  * Strategy manager for RuntimeBlock creation
@@ -14,14 +14,14 @@ export class RuntimeJitStrategies {
   private strategies: IRuntimeBlockStrategy[] = [];
 
   constructor() {
-    this.addStrategy(new RootBlockStrategy());    
-    // Repeaters are first to be selected.
-    this.addStrategy(new TimedRepeaterBlockStrategy());  
-    this.addStrategy(new RepeatingBlockStrategy());
+    this.addStrategy(new BlockRootStrategy());    
+    // Repeaters are first to be selected.    
+    this.addStrategy(new GroupRepeatingStrategy());
+    this.addStrategy(new GroupCountdownStrategy());  
             
     // Single blocks are last to be selected.
-    this.addStrategy(new TimerBlockStrategy());
-    this.addStrategy(new EffortBlockStrategy());    
+    this.addStrategy(new BlockTimerStrategy());
+    this.addStrategy(new BlockEffortStrategy());    
   }
 
   /**

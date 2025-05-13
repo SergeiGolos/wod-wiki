@@ -1,9 +1,8 @@
 import {
   IRuntimeAction,
   ITimerRuntime,
-  IdleStatementNode,
   PrecompiledNode,
-  RuntimeMetric,
+  StatementNode,
   ZeroIndexMeta,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
@@ -21,12 +20,13 @@ import { ResultBuilder } from "../results/ResultBuilder";
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
 export class RootBlock extends RuntimeBlock {
-  constructor() {
-    super([new IdleStatementNode({
-      id: -1,
+  constructor(private nodes: PrecompiledNode[]) {
+    super([new PrecompiledNode({
+      id: -1,      
       children: [],
-      meta: new ZeroIndexMeta(),
-      fragments: []
+      fragments: [],
+      parent: undefined,
+      meta: new ZeroIndexMeta(),    
     })]);
   }
 
@@ -34,7 +34,7 @@ export class RootBlock extends RuntimeBlock {
    * Implementation of the doEnter hook method from the template pattern
    */
   protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    const children = this.sources
+    const children = this.nodes
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
     this.sources[0].children = [...children];
@@ -47,12 +47,12 @@ export class RootBlock extends RuntimeBlock {
    */
   protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     this.ctx.index += 1;
-    if (this.ctx.index > this.sources.length) {
+    if (this.ctx.index > this.nodes.length) {
       return [new PopBlockAction()];
     }
 
-    const statement = this.sources[this.ctx.index-1];
-    return [new PushStatementAction([statement])];
+    const statement = this.nodes[this.ctx.index-1];
+    return [new PushStatementAction([statement], false)];
   }
 
   /**

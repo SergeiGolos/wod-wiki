@@ -25,7 +25,7 @@ export class PushEndBlockAction implements IRuntimeAction {
 }
 
 export class PushStatementAction implements IRuntimeAction {
-  constructor(public statements: PrecompiledNode[], public pop: boolean = true) { }
+  constructor(public statements: PrecompiledNode[], public pop: boolean = false) { }
   name: string = "goto";
   apply(
     runtime: ITimerRuntime,
@@ -33,6 +33,9 @@ export class PushStatementAction implements IRuntimeAction {
     _output: Subject<OutputEvent>
   ): void {        
     var block = runtime.jit.compile(this.statements, runtime)        
+    if (this.pop) {
+      runtime.pop();
+    }
     runtime.push(block);
   }
 }

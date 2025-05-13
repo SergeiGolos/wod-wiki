@@ -28,7 +28,7 @@ export class Duration implements IDuration {
   seconds?: number;
   milliseconds?: number;
 
-  constructor(public original: number, public sign: DurationSign = "-") {    
+  constructor(public original?: number, public sign: DurationSign = "-") {    
     let remaining = original ?? 0;
 
     this.days = Math.floor(remaining / 86400000);
@@ -49,6 +49,10 @@ export class Duration implements IDuration {
 export interface ITimeSpan { 
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
+  // Block identifier to associate with metrics
+  blockKey?: string;
+  // Metrics collected during this time span
+  metrics?: RuntimeMetric[];
 }
 
 export interface ISpanDuration extends IDuration {
@@ -64,11 +68,11 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   }
 
   elapsed(): IDuration {  
-    return new Duration(this.spans.reduce((total, span) => {
+    return new Duration(this.spans?.reduce((total, span) => {
       const start = span.start?.timestamp ?? new Date();
       const stop = span.stop?.timestamp ?? new Date();
       return total + (stop.getTime() - start.getTime());
-    }, 0));
+    }, 0) ?? 0);
   }
 
   remaining(): IDuration {
@@ -239,6 +243,11 @@ export class PrecompiledNode implements StatementNode {
     this.fragments = node?.fragments ?? [];
   }
   
+  public addFragment(fragment: StatementFragment): PrecompiledNode {
+    this.fragments.push(fragment);
+    return this;
+  }
+
   public id: number;
   public parent?: number;
   public children: number[] = [];
@@ -260,6 +269,13 @@ export class PrecompiledNode implements StatementNode {
   }
   public duration(): IDuration {
     const durations = getDuration(this);
+    if (durations.length == 0) {
+      return new Duration(undefined);
+    }
+    if (durations.length == 1) {
+      return durations[0];
+    }
+
     return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
   }
   public metrics(): RuntimeMetric[] {

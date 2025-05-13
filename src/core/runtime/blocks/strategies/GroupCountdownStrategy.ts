@@ -2,20 +2,20 @@ import { PrecompiledNode, ITimerRuntime, IRuntimeBlock } from "@/core/timer.type
 import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
-export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
+
+export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
   canHandle(nodes: PrecompiledNode[]): boolean {
     // For now, only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
     }
-    
+
     const node = nodes[0];
     const duration = node.duration();
     const rounds = node.rounds();
-    
-    if (duration?.sign === "-"
-      && (rounds != null && rounds > 0
-        && rounds === 1)) {
+
+    if (duration?.sign === "-" && duration.original != undefined && duration.original > 0
+      && (rounds != null && rounds === 1)) {
       return true;
     }
     return false;
@@ -30,7 +30,7 @@ export class TimedRepeaterBlockStrategy implements IRuntimeBlockStrategy {
       console.warn('TimedRepeaterBlockStrategy: Expected array with exactly one node');
       return undefined;
     }
-    
+
     // Use the first (and only) node for compatibility with existing implementation
     return new TimedGroupBlock(nodes[0]);
   }

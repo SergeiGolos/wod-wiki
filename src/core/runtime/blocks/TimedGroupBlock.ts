@@ -6,7 +6,6 @@ import {
   PrecompiledNode,
 } from "@/core/timer.types";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { LapFragment } from "@/core/fragments/LapFragment";
@@ -58,7 +57,7 @@ export class TimedGroupBlock extends RuntimeBlock {
 
     const duration = this.get(getDuration)[0];
     const spanDuration = new TimeSpanDuration(
-      duration.original ?? 0, 
+      duration?.original ?? 0, 
       this.ctx.spans);
     
     const remaining = spanDuration.remaining();

@@ -21,7 +21,7 @@ export abstract class AbstractBlockLifecycle implements IRuntimeBlock {
   ) {
     this.blockId = sources.map(s => s.id).join(":") || "";
     
-    // Initialize the BlockContext with default values
+    // Initialize the BlockContext with defalt values
     this.ctx = new BlockContext({
       // Default empty values that will be populated in lifecycle methods
       runtime: {} as ITimerRuntime,

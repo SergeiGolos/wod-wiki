@@ -6,7 +6,7 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  * Strategy for creating SingleBlock runtime blocks
  * Handles simple statements with duration and metrics but no children or repetitions
  */
-export class TimerBlockStrategy implements IRuntimeBlockStrategy {
+export class BlockTimerStrategy implements IRuntimeBlockStrategy {
   canHandle(nodes: PrecompiledNode[]): boolean {
     // For now, only handle arrays with exactly one node
     if (nodes.length !== 1) {

@@ -32,7 +32,7 @@ export const SimpleAndSinister: WodStory = {
 export const KBAxeHeavy: WodStory = {
   args: {
     id: "KBAxeHeavy",
-    debug: false,
+    debug: true,
     code:`(20) 1:00 
   4 KB Swings 106lb [:rest]`
   },
