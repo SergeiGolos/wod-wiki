@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { IRuntimeBlock, ITimerRuntime, IRuntimeAction, ResultSpan, RuntimeMetric, PrecompiledNode } from "@/core/timer.types";
+import { ITimerRuntime, IRuntimeAction, RuntimeMetric, PrecompiledNode } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
@@ -11,19 +11,22 @@ import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
+import { ResultBuilder } from "../results/ResultBuilder";
 
-export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
+export class EffortBlock extends RuntimeBlock {
   constructor(
     sources: PrecompiledNode[],
-    public handlers: EventHandler[] = []
+    handlers: EventHandler[] = []
   ) {    
     super(sources);
     this.handlers = [...handlers, new CompleteHandler()];
-    this.index = 1;
+    this.ctx.index = 1;
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== enter : ${this.blockKey}`);
+  /**
+   * Implementation of the doEnter hook method from the template pattern
+   */
+  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
@@ -31,32 +34,27 @@ export class EffortBlock extends RuntimeBlock implements IRuntimeBlock {
     ];
   }
 
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {
+  /**
+   * Implementation of the doNext hook method from the template pattern
+   */
+  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new PopBlockAction()
     ];
   }
 
-  leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== leave : ${this.blockKey}`);
-    
-    // Create a result span to report the completed effort and metrics
-    const resultSpan = new ResultSpan();
-    resultSpan.blockKey = this.blockKey;
-    resultSpan.index = this.index;
-    resultSpan.stack = this.get<number>(n=>[n.id], true);
-    
+  /**
+   * Implementation of the doLeave hook method from the template pattern
+   */
+  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completed effort and metrics using ResultBuilder
     const metrics = this.get<RuntimeMetric>(n=>n.metrics(), true);
-    resultSpan.metrics = metrics;
-
-
     
-    // Find start and stop events for this block
-    const startEvent = runtime.history.find(h => h.blockKey === this.blockKey && h.name === "start");
-    const stopEvent = runtime.history.find(h => h.blockKey === this.blockKey && h.name === "stop") || { timestamp: new Date(), name: "stop" };
-    
-    resultSpan.start = startEvent;
-    resultSpan.stop = stopEvent;
+    const resultSpan = ResultBuilder
+      .forBlock(this)
+      .withMetrics(metrics)
+      .withEventsFromRuntime(runtime)
+      .build();
     
     return [
       new StopTimerAction(new StopEvent(new Date())),

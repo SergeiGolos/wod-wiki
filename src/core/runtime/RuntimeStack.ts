@@ -35,7 +35,7 @@ export class RuntimeStack {
     const keyParts: string[] = [];
     this.traverseAll(
       (currentBlock) => {
-        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.index}`);
+        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.getIndex()}`);
         return undefined; // Continue traversal
       }
     );

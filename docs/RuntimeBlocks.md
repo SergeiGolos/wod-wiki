@@ -5,6 +5,8 @@ This document provides a detailed overview of the runtime blocks in the wod.wiki
 ## Table of Contents
 
 1. [Base RuntimeBlock Structure](#base-runtimeblock-structure)
+   - [`BlockContext`](#blockcontext)
+   - [`AbstractBlockLifecycle`](#abstractblocklifecycle)
 2. [Block Lifecycle Methods](#block-lifecycle-methods)
 3. [System RuntimeBlock Types](#system-runtimeblock-types)
    - [`RootBlock`](#rootblock)
@@ -22,13 +24,76 @@ This document provides a detailed overview of the runtime blocks in the wod.wiki
 6. [Block Selection Strategies](#block-selection-strategies)
 7. [Block Execution Flow](#block-execution-flow)
 8. [Lifecycle Diagrams](#lifecycle-diagrams)
+9. [Utility Classes](#utility-classes)
+   - [`ResultBuilder`](#resultbuilder)
 
 ## Base RuntimeBlock Structure
 
-All runtime blocks inherit from the abstract `RuntimeBlock` class which provides core functionality for the execution engine:
+All runtime blocks inherit from the abstract `RuntimeBlock` class which provides core functionality for the execution engine. The runtime block system was redesigned to follow the SOLID principles, particularly focusing on separation of concerns between state and behavior.
+
+### BlockContext
+
+The `BlockContext` object encapsulates all mutable state for a runtime block, making blocks easier to test and reason about:
 
 ```typescript
-abstract class RuntimeBlock implements IRuntimeBlock {
+export interface BlockContext {
+  runtime: ITimerRuntime;  // Reference to the global runtime
+  index: number;           // Current execution index/counter
+  childIndex?: number;     // Optional index for child block tracking
+  lastLap?: string;        // Optional tracking for lap display
+  spans: ITimeSpan[];      // Time spans for execution tracking
+}
+```
+
+**Purpose**: Separates mutable state from block behavior, improving testability and adhering to the Single Responsibility Principle.
+
+**Usage**: All concrete block implementations create and maintain a BlockContext instance that holds their runtime state.
+
+### AbstractBlockLifecycle
+
+The `AbstractBlockLifecycle` class implements the Template Method pattern to standardize block lifecycle operations:
+
+```typescript
+abstract class AbstractBlockLifecycle implements IRuntimeBlock {
+  protected ctx: BlockContext;
+  public blockKey?: string;
+  public blockId: string;
+  
+  // Template methods that handle common behavior
+  public enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== enter : ${this.blockKey}`);
+    return this.doEnter(runtime);
+  }
+  
+  public next(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== next : ${this.blockKey}`);
+    return this.doNext(runtime);
+  }
+  
+  public leave(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`+=== leave : ${this.blockKey}`);
+    return this.doLeave(runtime);
+  }
+  
+  // Hook methods to be implemented by subclasses
+  protected abstract doEnter(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract doNext(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract doLeave(runtime: ITimerRuntime): IRuntimeAction[];
+  
+  // Other methods...
+}
+```
+
+**Purpose**: Provides a consistent structure for all block implementations while allowing custom behavior through well-defined extension points.
+
+**Benefits**:
+- Common logging across all blocks
+- Consistent lifecycle behavior
+- Clear extension points for custom blocks
+- Follows Open-Closed Principle by being open for extension but closed for modification
+
+```typescript
+abstract class RuntimeBlock extends AbstractBlockLifecycle {
   constructor(public source: StatementNodeDetail) {
     this.blockId = source.id;
   }
@@ -442,4 +507,59 @@ flowchart TD
     EffortBlock --> Runtime
     TimerBlock --> Runtime
     CustomBlock --> Runtime
+```
+
+## Utility Classes
+
+### ResultBuilder
+
+The `ResultBuilder` utility provides a consistent, fluent interface for creating `ResultSpan` objects across all block implementations:
+
+```typescript
+export class ResultBuilder {
+  private resultSpan: ResultSpan = new ResultSpan();
+  private block?: IRuntimeBlock;
+
+  /**
+   * Create a builder for the specified runtime block
+   */
+  static forBlock(block: IRuntimeBlock): ResultBuilder {
+    const builder = new ResultBuilder();
+    // Initialize with block metadata
+    builder.resultSpan.blockKey = block.blockKey;
+    builder.resultSpan.index = block.getIndex();
+    // ... other initialization
+    return builder;
+  }
+
+  // Fluent interface methods
+  withMetrics(metrics: RuntimeMetric[]): ResultBuilder { /* ... */ }
+  withLabel(label: string): ResultBuilder { /* ... */ }
+  withEventsFromRuntime(runtime: { history: Array<IRuntimeEvent & { blockKey?: string }> }): ResultBuilder { /* ... */ }
+  withEvents(start?: IRuntimeEvent, stop?: IRuntimeEvent): ResultBuilder { /* ... */ }
+  
+  // Build the final ResultSpan
+  build(): ResultSpan { /* ... */ }
+}
+```
+
+**Purpose**: Eliminates duplicate code across block implementations and provides a consistent way to create and configure result spans.
+
+**Benefits**:
+
+- Standardized result span creation
+- Fluent interface for better readability
+- Centralized logic for result span configuration
+- Follows Builder pattern for complex object construction
+
+**Usage Example**:
+```typescript
+// Creating a result span in a block's doLeave method
+const resultSpan = ResultBuilder
+  .forBlock(this)
+  .withMetrics(this.sources[0].metrics())
+  .withEventsFromRuntime(runtime)
+  .build();
+
+return [new WriteResultAction(resultSpan)];
 ```

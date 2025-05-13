@@ -1,10 +1,8 @@
 import {
   IRuntimeAction,
-  IRuntimeBlock,
   ITimerRuntime,
   IdleStatementNode,
   PrecompiledNode,
-  ResultSpan,
   RuntimeMetric,
   ZeroIndexMeta,
 } from "@/core/timer.types";
@@ -16,12 +14,13 @@ import {
 } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
+import { ResultBuilder } from "../results/ResultBuilder";
 
 /**
  * Represents the root of the execution tree.
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
-export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
+export class RootBlock extends RuntimeBlock {
   constructor() {
     super([new IdleStatementNode({
       id: -1,
@@ -31,8 +30,10 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     })]);
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    console.log(`+=== enter : ${this.blockKey}`);
+  /**
+   * Implementation of the doEnter hook method from the template pattern
+   */
+  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
     const children = this.sources
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
@@ -41,28 +42,32 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     return [new PushIdleBlockAction()];
   }
 
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {
-    this.index += 1;
-    if (this.index > this.sources.length) {
+  /**
+   * Implementation of the doNext hook method from the template pattern
+   */
+  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
+    this.ctx.index += 1;
+    if (this.ctx.index > this.sources.length) {
       return [new PopBlockAction()];
     }
 
-    const statement = this.sources[this.index-1];
+    const statement = this.sources[this.ctx.index-1];
     return [new PushStatementAction([statement])];
   }
 
-  leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== leave : ${this.blockKey}`);
-    
-    // Create a result span to report completion of the entire workout
-    const resultSpan = new ResultSpan();
-    resultSpan.blockKey = this.blockKey;
-    resultSpan.index = this.index;
-    resultSpan.stack = [];
-    resultSpan.start = runtime.history[0] ?? { name: "start", timestamp: new Date() };
-    resultSpan.stop = { timestamp: new Date(), name: "root_complete" };
-    resultSpan.label = "Workout Complete";    
-    resultSpan.metrics = this.sources[0].metrics();
+  /**
+   * Implementation of the doLeave hook method from the template pattern
+   */
+  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completion of this block using ResultBuilder
+    const resultSpan = ResultBuilder
+      .forBlock(this)
+      // For root block, use first and last events in history
+      .withEvents(
+        runtime.history[0] ?? { name: "start", timestamp: new Date() },
+        runtime.history[runtime.history.length - 1] ?? { timestamp: new Date(), name: "stop" }
+      )
+      .build();
     
     return [
       new WriteResultAction(resultSpan),

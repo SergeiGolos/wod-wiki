@@ -301,18 +301,21 @@ export type MetricValue = {
 
 export interface IRuntimeBlock {
   blockKey?: string | undefined;
-  blockId: string;          
-  index:number;      
-  sources?: PrecompiledNode[];
-  parent?: IRuntimeBlock | undefined  
-
-  spans: ITimeSpan[];
-  get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
+  blockId: string;
   
-  enter(runtime: ITimerRuntime): IRuntimeAction[];  
-  next(runtime: ITimerRuntime): IRuntimeAction[];  
-  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
-  leave(runtime: ITimerRuntime): IRuntimeAction[];  
+  // Use getter methods instead of direct properties for encapsulation
+  getSources(): PrecompiledNode[];
+  getIndex(): number;
+  getSpans(): ITimeSpan[];
+  
+  parent?: IRuntimeBlock | undefined;
+  
+  // Core methods
+  get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
+  enter(runtime: ITimerRuntime): IRuntimeAction[];
+  next(runtime: ITimerRuntime): IRuntimeAction[];
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[];
+  leave(runtime: ITimerRuntime): IRuntimeAction[];
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
