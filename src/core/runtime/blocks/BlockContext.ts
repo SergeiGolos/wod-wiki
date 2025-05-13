@@ -12,7 +12,7 @@ export class BlockContext {
   index: number = 0;
   
   /** Child index for nested blocks (for repeating blocks) */
-  childIndex?: number;
+  childIndex: number = 0;
   
   /** Last lap separator character (for repeating blocks with lap fragments) */
   lastLap?: string;
@@ -26,7 +26,7 @@ export class BlockContext {
   constructor(params: Partial<BlockContext> = {}) {
     this.runtime = params.runtime || {} as ITimerRuntime;
     this.index = params.index || 0;
-    this.childIndex = params.childIndex;
+    this.childIndex = params.childIndex || 0;
     this.lastLap = params.lastLap;
     this.spans = params.spans || [];
     this.blockKey = params.blockKey;

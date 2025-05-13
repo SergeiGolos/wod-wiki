@@ -50,10 +50,11 @@ export class EffortBlock extends RuntimeBlock {
     // Create a result span to report the completed effort and metrics using ResultBuilder
     // Use the metrics() method from the sources to collect all metrics
     // Use enhanced BlockContext-based approach for events
-    
+    const metrics = this.sources.flatMap(s => s.metrics());
+
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withMetrics(this.sources[0].metrics())
+      .withMetrics(metrics)
       .withEventsFromContext()
       .build();
     

@@ -12,9 +12,6 @@ import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { getTimer } from "./readers/getDuration";
-import { TimerFragment } from "@/core/fragments/TimerFragment";
-
 
 export class RepeatingBlock extends RuntimeBlock {
   constructor(source: PrecompiledNode[]) {
@@ -92,9 +89,10 @@ export class RepeatingBlock extends RuntimeBlock {
   protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report completion and metrics for this repeating block using ResultBuilder
     // Use the enhanced BlockContext-based approach for events
+    const sourceNode = this.sources?.[0];
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withMetrics(sourceNode.metrics())
+      .withMetrics(sourceNode?.metrics() ?? [])
       .withEventsFromContext()
       // Override the stop event with a repeating_complete event
       .withEvents(undefined, { timestamp: new Date(), name: "repeating_complete" })
