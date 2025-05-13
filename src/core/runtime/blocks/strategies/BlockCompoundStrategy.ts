@@ -8,9 +8,9 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  */
 
 
-export class BlockEffortStrategy implements IRuntimeBlockStrategy {
+export class BlockCompoundStrategy implements IRuntimeBlockStrategy {
   canHandle(nodes: PrecompiledNode[]): boolean {    
-    return nodes.every(node => node?.rounds() === 1 && node?.children?.length === 0);
+    return nodes.every(node => node.rounds() === 1 && node.children?.length === 0);
   }
 
   compile(

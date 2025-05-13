@@ -41,11 +41,12 @@ export class IdleRuntimeBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a span to capture the idle time using ResultBuilder
+    // Use the enhanced BlockContext-based approach for events and metrics
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withEventsFromRuntime(runtime)
+      .withEventsFromContext()
       .build();
 
     return [new WriteResultAction(resultSpan)];

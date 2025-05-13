@@ -95,8 +95,8 @@ export class TimedGroupBlock extends RuntimeBlock {
 
     this.ctx.lastLap = laps?.image ?? "";
     return statements.length > 0
-      ? [new StartTimerAction(new StartEvent(new Date())),
-        new PushStatementAction(statements, true), 
+      ? [new PushStatementAction(statements), 
+        new StartTimerAction(new StartEvent(new Date())),
         new SetDurationAction(spanDuration, "primary")]
       : [];
   }

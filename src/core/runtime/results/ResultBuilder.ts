@@ -59,8 +59,37 @@ export class ResultBuilder {
   }
 
   /**
+   * Find and set the start and stop events for this block from the block's context spans
+   * This is preferred over using runtime history as the BlockContext is the authoritative source
+   */
+  withEventsFromContext(): ResultBuilder {
+    if (!this.block) return this;
+    
+    // Get the context from the block
+    const context = this.block.getContext();
+    
+    // Get spans from the context
+    const spans = context.spans || [];
+    
+    // Find the most recent span
+    if (spans.length > 0) {
+      const latestSpan = spans[spans.length - 1];
+      this.resultSpan.start = latestSpan.start;
+      this.resultSpan.stop = latestSpan.stop || { timestamp: new Date(), name: "stop" };
+      
+      // Also copy metrics if available
+      if (latestSpan.metrics && latestSpan.metrics.length > 0) {
+        this.resultSpan.metrics = latestSpan.metrics;
+      }
+    }
+    
+    return this;
+  }
+  
+  /**
    * Find and set the start and stop events for this block from runtime history
    * @param runtime The timer runtime containing history
+   * @deprecated Use withEventsFromContext instead which uses BlockContext
    */
   withEventsFromRuntime(runtime: { history: Array<IRuntimeEvent & { blockKey?: string }> }): ResultBuilder {
     if (!this.block?.blockKey) return this;

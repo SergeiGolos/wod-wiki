@@ -7,9 +7,9 @@ import { StatementNode } from "@/core/timer.types";
  * @returns The first lap fragment or undefined if none exists
  */
 export function getLap(node: StatementNode): LapFragment[] {
-  const fragments = node.fragments
-    .filter(f => f.type === 'lap')
-    .map(f => f as LapFragment);
+  const fragments = node?.fragments
+    ?.filter(f => f.type === 'lap')
+    ?.map(f => f as LapFragment) ?? [];
 
   return fragments;
 }

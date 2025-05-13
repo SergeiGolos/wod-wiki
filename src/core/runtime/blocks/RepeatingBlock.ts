@@ -43,17 +43,15 @@ export class RepeatingBlock extends RuntimeBlock {
     if (endEvent) {
       return [new PopBlockAction()];
     }
+    const sourceNode = this.sources?.[0];
+    const rounds = sourceNode?.rounds();
     
     // Check if we've completed all rounds for the current child        
-    if (this.ctx.childIndex !== undefined && 
-        this.sources[0] && 
-        (this.ctx.childIndex >= this.sources[0].children.length || this.ctx.lastLap === "-")) {
+    if (this.ctx.childIndex >= sourceNode?.children.length || this.ctx.lastLap === "-") {
       this.ctx.childIndex = 0;   
       this.ctx.index += 1;             
     }
-    
-    const sourceNode = this.sources[0];
-    const rounds = sourceNode?.rounds ? sourceNode.rounds() : 0;
+  
     if (rounds && this.ctx.index >= rounds) {
       return [new PopBlockAction()];
     } 
@@ -61,27 +59,19 @@ export class RepeatingBlock extends RuntimeBlock {
     const statements: PrecompiledNode[] = [];
     let statement: PrecompiledNode | undefined;
     let laps: LapFragment | undefined;
-    let durations: TimerFragment[] = this.get<TimerFragment>(getTimer, true);
-
+    
     while (true) {      
-      if (this.ctx.childIndex !== undefined) {
-        this.ctx.childIndex += 1;
-      } else {
-        this.ctx.childIndex = 1; // Initialize if undefined
-      }
+      this.ctx.childIndex += 1;
+      statement = runtime.script.getId(
+        sourceNode?.children[this.ctx.childIndex-1]
+      )?.[0];
       
-      const sourceNode = this.sources[0];
-      const childIndex = this.ctx.childIndex - 1;
-      const childId = sourceNode?.children ? sourceNode.children[childIndex] : undefined;
-      statement = childId !== undefined ? runtime.script.getId(childId)?.[0] : undefined;
-      
-      let durations = !!statement ? getTimer(statement!) : [];
-      if ( durations.length == 0) {        
-        statement?.addFragment(durations[0]);
-      }
+      if (!statement) {
+        break;
+      }      
 
-      laps = getLap(statement!)?.[0];
-      statements.push(statement!);
+      laps = getLap(statement)?.[0];
+      statements.push(statement);
 
       if (laps?.image !=="+") {        
         break;
@@ -92,19 +82,20 @@ export class RepeatingBlock extends RuntimeBlock {
 
     
     return statements.length > 0
-      ? [new PushStatementAction(statements, false)]
-      : [];
+      ? [new PushStatementAction(statements)]
+      : []; 
   }
 
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report completion and metrics for this repeating block using ResultBuilder
+    // Use the enhanced BlockContext-based approach for events
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withMetrics(this.sources[0].metrics())
-      .withEventsFromRuntime(runtime)
+      .withMetrics(sourceNode.metrics())
+      .withEventsFromContext()
       // Override the stop event with a repeating_complete event
       .withEvents(undefined, { timestamp: new Date(), name: "repeating_complete" })
       .build();

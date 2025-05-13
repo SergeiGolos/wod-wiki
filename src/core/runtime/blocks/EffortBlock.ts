@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { ITimerRuntime, IRuntimeAction, RuntimeMetric, PrecompiledNode } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, PrecompiledNode } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
@@ -46,14 +46,15 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completed effort and metrics using ResultBuilder
-    const metrics = this.get<RuntimeMetric>(n=>n.metrics(), true);
+    // Use the metrics() method from the sources to collect all metrics
+    // Use enhanced BlockContext-based approach for events
     
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withMetrics(metrics)
-      .withEventsFromRuntime(runtime)
+      .withMetrics(this.sources[0].metrics())
+      .withEventsFromContext()
       .build();
     
     return [

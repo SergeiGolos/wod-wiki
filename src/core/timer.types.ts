@@ -3,6 +3,7 @@ import { RuntimeScript } from "./runtime/RuntimeScript";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
+import { BlockContext } from "./runtime/blocks/BlockContext";
 import { getAction } from "./runtime/blocks/readers/getAction";
 import { getText } from "./runtime/blocks/readers/getText";
 import { getRounds } from "./runtime/blocks/readers/getRounds";
@@ -244,7 +245,9 @@ export class PrecompiledNode implements StatementNode {
   }
   
   public addFragment(fragment: StatementFragment): PrecompiledNode {
-    this.fragments.push(fragment);
+    if (!!fragment) {
+      this.fragments.push(fragment);
+    }
     return this;
   }
 
@@ -318,13 +321,13 @@ export type MetricValue = {
 export interface IRuntimeBlock {
   blockKey?: string | undefined;
   blockId: string;
+  parent?: IRuntimeBlock | undefined;
   
   // Use getter methods instead of direct properties for encapsulation
   getSources(): PrecompiledNode[];
   getIndex(): number;
   getSpans(): ITimeSpan[];
-  
-  parent?: IRuntimeBlock | undefined;
+  getContext(): BlockContext;
   
   // Core methods
   get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
@@ -342,6 +345,7 @@ export interface IRuntimeLog extends IRuntimeEvent {
 export interface IRuntimeEvent {
   timestamp: Date;
   name: string;
+  blockKey?: string;
 };
 
 export interface IActionButton {

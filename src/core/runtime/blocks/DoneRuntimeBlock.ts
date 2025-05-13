@@ -46,11 +46,12 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder
+    // Use the enhanced BlockContext-based approach for events and metrics
     const resultSpan = ResultBuilder
       .forBlock(this)
-      .withEventsFromRuntime(runtime)
+      .withEventsFromContext()
       .withEvents(undefined, { timestamp: new Date(), name: "done" })
       .build();
     

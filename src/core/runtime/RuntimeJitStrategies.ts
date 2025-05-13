@@ -50,7 +50,9 @@ export class RuntimeJitStrategies {
     for (const strategy of this.strategies) {
       if (strategy.canHandle(nodeArray)) {       
         const block = strategy.compile(nodeArray, runtime);        
-        if (block) return block;
+        if (block) {
+          return block;
+        }
       }
     }
     
