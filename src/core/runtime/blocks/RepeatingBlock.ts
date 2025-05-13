@@ -2,9 +2,8 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  StatementNodeDetail,
   ResultSpan,
-  RuntimeMetric
+  PrecompiledNode
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
@@ -19,7 +18,7 @@ import { WriteResultAction } from "../outputs/WriteResultAction";
 export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
   childIndex: number = 0; // Current round for the current child
   lastLap: string = "";
-  constructor(source: StatementNodeDetail) {
+  constructor(source: PrecompiledNode) {
     super([source]);
   }
 
@@ -41,12 +40,13 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
       this.childIndex = 0;   
       this.index += 1;             
     }
-    if (this.sources?.[0].rounds && this.index >= this.sources?.[0].rounds) {
+    const rounds = this.sources?.[0]?.rounds();
+    if (rounds && this.index >= rounds) {
       return [new PopBlockAction()];
     } 
 
-    const statements: StatementNodeDetail[] = [];
-    let statement: StatementNodeDetail | undefined;
+    const statements: PrecompiledNode[] = [];
+    let statement: PrecompiledNode | undefined;
     let laps: LapFragment | undefined;
     
     while (true) {      
@@ -85,28 +85,8 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
     // Store the current path in the runtime hierarchy
     resultSpan.stack = [this.index];
     resultSpan.start = runtime.history.find(h => h.blockKey === this.blockKey) ?? { name: "start", timestamp: new Date() };
-    resultSpan.stop = { timestamp: new Date(), name: "repeating_complete" };
-    
-    // Add metrics if available from statement sources
-    const source = this.sources?.[0];
-    if (source) {
-      // Extract metrics from the statement if available
-      const metric: RuntimeMetric = {
-        effort: "Repeating Block",
-        values: []
-      };
-      
-      // Add round metrics
-      if (source.rounds) {
-        metric.values.push({
-          type: "repetitions",
-          value: source.rounds,
-          unit: "rounds"
-        });
-      }
-      
-      resultSpan.metrics.push(metric);
-    }
+    resultSpan.stop = { timestamp: new Date(), name: "repeating_complete" };    
+    resultSpan.metrics = this.sources[0].metrics();
     
     return [
       new WriteResultAction(resultSpan)

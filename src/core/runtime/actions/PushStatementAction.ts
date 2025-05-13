@@ -1,4 +1,4 @@
-import { IRuntimeAction, StatementNode, ITimerRuntime, IRuntimeEvent, OutputEvent } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, PrecompiledNode } from "@/core/timer.types";
 import { Subject } from "rxjs";
 
 
@@ -25,7 +25,7 @@ export class PushEndBlockAction implements IRuntimeAction {
 }
 
 export class PushStatementAction implements IRuntimeAction {
-  constructor(public statements: StatementNode[], public pop: boolean = true) { }
+  constructor(public statements: PrecompiledNode[], public pop: boolean = true) { }
   name: string = "goto";
   apply(
     runtime: ITimerRuntime,

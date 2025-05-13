@@ -11,10 +11,24 @@
             "id": "5e6d7301942d694a",
             "type": "leaf",
             "state": {
-              "type": "graph",
+              "type": "markdown",
+              "state": {
+                "file": "Notes/RuntimeFlow.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "RuntimeFlow"
+            }
+          },
+          {
+            "id": "a8cc1a5e406deef7",
+            "type": "leaf",
+            "state": {
+              "type": "card-board-view",
               "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "icon": "card-board",
+              "title": "CardBoard"
             }
           }
         ]
@@ -137,12 +151,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "Notes/RuntimeFlow.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of RuntimeFlow"
             }
           }
         ],

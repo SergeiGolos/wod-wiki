@@ -1,4 +1,4 @@
-import { StatementNodeDetail, ITimerRuntime, IRuntimeBlock } from "@/core/timer.types";
+import { PrecompiledNode, ITimerRuntime, IRuntimeBlock } from "@/core/timer.types";
 import { EffortBlock } from "../EffortBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
@@ -9,12 +9,12 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 
 export class EffortBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: StatementNodeDetail[]): boolean {    
-    return nodes.every(node => node.rounds === 1 && node.children?.length === 0);
+  canHandle(nodes: PrecompiledNode[]): boolean {    
+    return nodes.every(node => node.rounds() === 1 && node.children?.length === 0);
   }
 
   compile(
-    nodes: StatementNodeDetail[],
+    nodes: PrecompiledNode[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
     return new EffortBlock(nodes);

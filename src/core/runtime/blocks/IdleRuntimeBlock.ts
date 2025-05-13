@@ -3,8 +3,8 @@ import {
   IRuntimeAction,
   IRuntimeBlock,
   ITimerRuntime,
-  StatementNodeDetail,
-  ResultSpan
+  ResultSpan,
+  ZeroIndexMeta,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
@@ -16,7 +16,13 @@ import { WriteResultAction } from "../outputs/WriteResultAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor() {
-    super([new IdleStatementNode() as StatementNodeDetail]);
+    super([new IdleStatementNode({
+      id: -1,
+      children: [],
+      meta: new ZeroIndexMeta(),
+      fragments: []
+    })]);
+    this.index = 1;
     this.handlers = [
     ];
   }

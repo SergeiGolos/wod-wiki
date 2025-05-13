@@ -1,10 +1,11 @@
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import {
   IRuntimeBlock,
-  StatementNodeDetail,
+  StatementNode,
   ITimerRuntime,
   IRuntimeAction,
   TimeSpanDuration,
+  PrecompiledNode,
 } from "@/core/timer.types";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
@@ -23,7 +24,7 @@ import { SetDurationAction } from "../outputs/SetDurationAction";
 export class TimedGroupBlock extends RuntimeBlock implements IRuntimeBlock {
   childIndex: number = 0; // Current round for the current child
   lastLap: string = "";
-  constructor(source: StatementNodeDetail) {
+  constructor(source: PrecompiledNode) {
     super([source]);    
   }
 
@@ -58,8 +59,8 @@ export class TimedGroupBlock extends RuntimeBlock implements IRuntimeBlock {
       return [new PopBlockAction()];
     }
 
-    const statements: StatementNodeDetail[] = [];
-    let statement: StatementNodeDetail | undefined;
+    const statements: PrecompiledNode[] = [];
+    let statement: PrecompiledNode | undefined;
     let laps: LapFragment | undefined;
     
     while (true) {      

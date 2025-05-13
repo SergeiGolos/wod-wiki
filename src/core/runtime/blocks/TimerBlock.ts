@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { IRuntimeBlock, StatementNodeDetail, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeBlock, ITimerRuntime, IRuntimeAction, PrecompiledNode } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { EventHandler } from "../EventHandler";
 import { CompleteHandler } from "../inputs/CompleteEvent";
@@ -14,10 +14,10 @@ import { RuntimeBlock } from "./RuntimeBlock";
 
 export class TimerBlock extends RuntimeBlock implements IRuntimeBlock {
   constructor(
-    source: StatementNodeDetail,
+    sources: PrecompiledNode[],
     public handlers: EventHandler[] = []
   ) {
-    super(source);
+    super(sources);
     this.handlers = [...handlers, new CompleteHandler()];
     this.index = 1;
   }

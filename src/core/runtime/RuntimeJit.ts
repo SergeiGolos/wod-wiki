@@ -1,7 +1,8 @@
 import {
-  StatementNode,
   IRuntimeBlock,
   ITimerRuntime,
+  PrecompiledNode,
+  
 } from "../timer.types";
 import { EventHandler } from "./EventHandler";
 
@@ -42,7 +43,7 @@ export class RuntimeJit {
   }
 
   root(runtime: ITimerRuntime): IRuntimeBlock {
-    return new RootBlock(runtime.script.root);
+    return new RootBlock();
   }
 
   handlers: EventHandler[] = [
@@ -70,7 +71,7 @@ export class RuntimeJit {
    * @param node The statement node to compile
    * @returns A compiled runtime block or undefined if compilation fails
    */
-  compile(node: StatementNode[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
+  compile(node: PrecompiledNode[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
     return this.strategyManager.compile(node, runtime);
   }  
 }

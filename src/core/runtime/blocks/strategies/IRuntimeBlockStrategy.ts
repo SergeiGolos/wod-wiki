@@ -1,4 +1,4 @@
-import { IRuntimeBlock, ITimerRuntime, StatementNodeDetail } from "../../../timer.types";
+import { IRuntimeBlock, ITimerRuntime, PrecompiledNode } from "../../../timer.types";
 
 /**
  * Interface for runtime block compilation strategies
@@ -6,20 +6,20 @@ import { IRuntimeBlock, ITimerRuntime, StatementNodeDetail } from "../../../time
  */
 export interface IRuntimeBlockStrategy {
   /**
-   * Check if this strategy applies to the given statement nodes
-   * @param nodes Array of statement nodes to check
+   * Check if this strategy applies to the given precompiled nodes
+   * @param nodes Array of precompiled nodes to check
    * @returns True if this strategy can handle the nodes
    */
-  canHandle(nodes: StatementNodeDetail[]): boolean;
+  canHandle(nodes: PrecompiledNode[]): boolean;
   
   /**
    * Compile statement nodes into a runtime block
-   * @param nodes Array of statement nodes to compile
+   * @param nodes Array of precompiled nodes to compile
    * @param runtime The runtime instance   
    * @returns A compiled runtime block or undefined if compilation fails
    */
   compile(
-    nodes: StatementNodeDetail[], 
+    nodes: PrecompiledNode[], 
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined;
 }

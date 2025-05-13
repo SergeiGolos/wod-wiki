@@ -3,6 +3,10 @@ import { RuntimeScript } from "./runtime/RuntimeScript";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
+import { getAction } from "./runtime/blocks/readers/getAction";
+import { getText } from "./runtime/blocks/readers/getText";
+import { getRounds } from "./runtime/blocks/readers/getRounds";
+import { getDuration } from "./runtime/blocks/readers/getDuration";
 
 export type DurationSign = "+" | "-" | undefined;
 
@@ -224,22 +228,50 @@ export class RootStatementNode implements StatementNode {
   fragments: StatementFragment[] = [];
 }
 
-export class IdleStatementNode implements StatementNode {
-  id: number = -1;
-  parent?: number;
+
+
+export class PrecompiledNode implements StatementNode {
+  constructor(public node: StatementNode) {
+    this.id = node?.id ?? -1;
+    this.parent = node?.parent;
+    this.children = node?.children ?? [];
+    this.meta = node?.meta ?? new ZeroIndexMeta();
+    this.fragments = node?.fragments ?? [];
+  }
+  
+  public id: number;
+  public parent?: number;
+  public children: number[] = [];
+  public meta: SourceCodeMetadata = new ZeroIndexMeta();
+  public fragments: StatementFragment[] = [];
+  public actions(): IActionButton[] {
+    return getAction(this).map(f => ({
+      event: f.type,
+      label: f.action,      
+      isActive: false,
+      variant: "primary"
+    }));
+  }
+  public label(): string {
+    return getText(this).map(f => f.text).join(" ");
+  }
+  public rounds(): number {
+    return getRounds(this).reduce((a, b) => a + b, 0);
+  }
+  public duration(): IDuration {
+    const durations = getDuration(this);
+    return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
+  }
+  public metrics(): RuntimeMetric[] {
+    return [];
+  }
+}
+export class IdleStatementNode extends PrecompiledNode { 
+  id: number = -1;  
   children: number[] = [];
   meta: SourceCodeMetadata = new ZeroIndexMeta();
   fragments: StatementFragment[] = [];
 }
-export interface StatementNodeDetail extends StatementNode {
-  duration?: IDuration;
-  metrics?: RuntimeMetric;
-  reps?: RuntimeMetric;
-  rounds?: number;
-  groupOperator?: "-" | "+"; // - for Round-Robin, + for Compose, undefined for Repeat
-}
-
-
 export interface StatementNode {
   id: number;
   parent?: number;
@@ -256,6 +288,7 @@ export interface RuntimeResult {
 }
 
 export interface RuntimeMetric {
+  sourceId: string;
   effort: string;
   values: MetricValue[];
 };
@@ -270,11 +303,11 @@ export interface IRuntimeBlock {
   blockKey?: string | undefined;
   blockId: string;          
   index:number;      
-  sources?: StatementNodeDetail[];
+  sources?: PrecompiledNode[];
   parent?: IRuntimeBlock | undefined  
 
   spans: ITimeSpan[];
-  get<T>(fn: (node: StatementNodeDetail) => T[], recursive?: boolean): T[];
+  get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
   
   enter(runtime: ITimerRuntime): IRuntimeAction[];  
   next(runtime: ITimerRuntime): IRuntimeAction[];  

@@ -9,7 +9,6 @@ import { DistanceFragment } from "../fragments/DistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
-import { fragmentTo } from "../utils";
 
 export type GroupType = 'round' | 'compose' | 'repeat';
 
@@ -200,9 +199,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   rounds(ctx: any): StatementFragment[] {
     const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     const groups = this.visit(ctx.sequence[0]);
-    const labels =
-      ctx?.Identifier?.map((identifier: any) => identifier.image) ?? [];
-
+    
     if (groups.length == 1) {
       return [new RoundsFragment(groups[0], meta)];
     }

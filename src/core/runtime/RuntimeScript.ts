@@ -1,4 +1,6 @@
-import { StatementNode } from "../timer.types";
+import { PrecompiledNode, StatementNode } from "../timer.types";
+import { getDuration } from "./blocks/readers/getDuration";
+import { getMetrics, getRounds } from "./blocks/readers/getRounds";
 
 export class RuntimeScript {
   public root: StatementNode[] = [];
@@ -20,13 +22,12 @@ export class RuntimeScript {
    * @param id ID of the node to look up
    * @returns The index of the node, or undefined if not found
    */
-  public getId(id: number): StatementNode[] {
-    const stack: StatementNode[] = [];
+  public getId(id: number): PrecompiledNode[] {
+    const stack: PrecompiledNode[] = [];
     let index: number | undefined   = this.lookupIndex[id];    
     
     while (index !== undefined) {
-      const node : StatementNode = this.nodes[index];
-      
+      const node : PrecompiledNode = new PrecompiledNode(this.nodes[index]);      
       stack.push(node);
       index = node.parent ? this.lookupIndex[node.parent] : undefined;
     }

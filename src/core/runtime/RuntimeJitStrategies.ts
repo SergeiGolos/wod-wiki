@@ -1,13 +1,10 @@
-import { IRuntimeBlock, ITimerRuntime, StatementNode, StatementNodeDetail } from "../timer.types";
-import { getReps } from "./blocks/readers/getReps";
-import { getDuration } from "./blocks/readers/getDuration";
-import { getRounds } from "./blocks/readers/getRounds";
+import { IRuntimeBlock, ITimerRuntime, PrecompiledNode, StatementNode } from "../timer.types";
 import { EffortBlockStrategy } from "./blocks/strategies/EffortBlockStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { RepeatingBlockStrategy } from "./blocks/strategies/RepeatingBlockStrategy";
 import { RootBlockStrategy } from "./blocks/strategies/RootBlockStrategy";
 import { TimerBlockStrategy } from "./blocks/strategies/SingleBlockStrategy";
-import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedRepeaterBlockStrategy";
+import { TimedRepeaterBlockStrategy } from "./blocks/strategies/TimedLapBlockStrategy";
 
 /**
  * Strategy manager for RuntimeBlock creation
@@ -43,29 +40,16 @@ export class RuntimeJitStrategies {
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    nodes: StatementNode[], 
+    nodes: PrecompiledNode[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
     // Convert to array if a single node is passed
     const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
     
-    // Process each node to create detail objects
-    const details: StatementNodeDetail[] = nodeArray.map(node => {
-      const detail: StatementNodeDetail = {...node};
-      
-      detail.reps = getReps(node);
-      detail.duration = getDuration(node)[0];
-      // detail.metrics = getMetrics(node);
-      detail.rounds = getRounds(node)[0];
-      
-      return detail;
-    });
-    
     // Find the first strategy that can handle these nodes
     for (const strategy of this.strategies) {
-      // Pass the array of details to the strategy's canHandle method
-      if (strategy.canHandle(details)) {       
-        const block = strategy.compile(details, runtime);        
+      if (strategy.canHandle(nodeArray)) {       
+        const block = strategy.compile(nodeArray, runtime);        
         if (block) return block;
       }
     }

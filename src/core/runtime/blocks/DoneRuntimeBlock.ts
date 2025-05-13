@@ -1,4 +1,4 @@
-import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, IdleStatementNode, ResultSpan, StatementNodeDetail } from "@/core/timer.types";
+import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, IdleStatementNode, ResultSpan, StatementNode } from "@/core/timer.types";
 import { SaveHandler } from "../inputs/SaveEvent";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";

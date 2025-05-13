@@ -1,9 +1,9 @@
-import { StatementNodeDetail, RootStatementNode, IRuntimeBlock, ITimerRuntime } from "../../../timer.types";
+import { PrecompiledNode, RootStatementNode, IRuntimeBlock, ITimerRuntime } from "../../../timer.types";
 import { RootBlock } from "../RootBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class RootBlockStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: StatementNodeDetail[]): boolean {
+  canHandle(nodes: PrecompiledNode[]): boolean {
     // For now, only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
@@ -14,10 +14,10 @@ export class RootBlockStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    _nodes: StatementNodeDetail[],
+    _nodes: PrecompiledNode[],
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
     // For root block, we ignore the nodes array and use the script's root
-    return new RootBlock(runtime.script.root);
+    return new RootBlock();
   }
 }
