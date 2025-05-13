@@ -1,10 +1,9 @@
 import {
   IRuntimeAction,
-  IRuntimeBlock,
   ITimerRuntime,
-  IdleStatementNode,
+  PrecompiledNode,
   StatementNode,
-  StatementNodeDetail,
+  ZeroIndexMeta,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import {
@@ -13,19 +12,29 @@ import {
   PushStatementAction,
 } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { WriteResultAction } from "../outputs/WriteResultAction";
+import { ResultBuilder } from "../results/ResultBuilder";
 
 /**
  * Represents the root of the execution tree.
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
-export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
-  constructor(private statements: StatementNode[]) {
-    super([new IdleStatementNode() as StatementNodeDetail]);
+export class RootBlock extends RuntimeBlock {
+  constructor(private nodes: PrecompiledNode[]) {
+    super([new PrecompiledNode({
+      id: -1,      
+      children: [],
+      fragments: [],
+      parent: undefined,
+      meta: new ZeroIndexMeta(),    
+    })]);
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    console.log(`+=== enter : ${this.blockKey}`);
-    const children = this.statements
+  /**
+   * Implementation of the doEnter hook method from the template pattern
+   */
+  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    const children = this.nodes
       .filter((s) => s.parent === undefined)
       .map((s) => s.id);
     this.sources[0].children = [...children];
@@ -33,18 +42,36 @@ export class RootBlock extends RuntimeBlock implements IRuntimeBlock {
     return [new PushIdleBlockAction()];
   }
 
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {
-    this.index += 1;
-    if (this.index > this.statements.length) {
+  /**
+   * Implementation of the doNext hook method from the template pattern
+   */
+  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
+    this.ctx.index += 1;
+    if (this.ctx.index > this.nodes.length) {
       return [new PopBlockAction()];
     }
 
-    const statement = this.statements[this.index-1];
-    return [new PushStatementAction([statement])];
+    const statement = this.nodes[this.ctx.index-1];
+    return [new PushStatementAction([statement], false)];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== leave : ${this.blockKey}`);
-    return [new PushEndBlockAction()];
+  /**
+   * Implementation of the doLeave hook method from the template pattern
+   */
+  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completion of this block using ResultBuilder
+    const resultSpan = ResultBuilder
+      .forBlock(this)
+      // For root block, use first and last events in history
+      .withEvents(
+        runtime.history[0] ?? { name: "start", timestamp: new Date() },
+        runtime.history[runtime.history.length - 1] ?? { timestamp: new Date(), name: "stop" }
+      )
+      .build();
+    
+    return [
+      new WriteResultAction(resultSpan),
+      new PushEndBlockAction()
+    ];
   }
 }

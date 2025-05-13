@@ -1,26 +1,35 @@
 import {
   IdleStatementNode,
   IRuntimeAction,
-  IRuntimeBlock,
   ITimerRuntime,
-  StatementNodeDetail,
+  ZeroIndexMeta
 } from "@/core/timer.types";
+import { ResultBuilder } from "../results/ResultBuilder";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
+import { WriteResultAction } from "../outputs/WriteResultAction";
 
-export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
+export class IdleRuntimeBlock extends RuntimeBlock {
   constructor() {
-    super([new IdleStatementNode() as StatementNodeDetail]);
-    this.handlers = [
-    ];
+    super([new IdleStatementNode({
+      id: -1,
+      children: [],
+      meta: new ZeroIndexMeta(),
+      fragments: []
+    })]);
+    // Initialize context values
+    this.ctx.index = 1;
+    this.handlers = [];
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== enter : ${this.blockKey}`);
+  /**
+   * Implementation of the doEnter hook method from the template pattern
+   */
+  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetButtonsAction([startButton], "system"), 
       new SetButtonsAction([], "runtime"),
@@ -29,17 +38,24 @@ export class IdleRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
     ];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return [];
-  }
   /**
-   * Returns the actions to execute when transitioning from idle state
-   * In an idle state, we want to start executing the first node in the script
+   * Implementation of the doLeave hook method from the template pattern
    */
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    // Get the first node from the script stack if available   
-    return [
-      new PopBlockAction()
-    ];
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a span to capture the idle time using ResultBuilder
+    // Use the enhanced BlockContext-based approach for events and metrics
+    const resultSpan = ResultBuilder
+      .forBlock(this)
+      .withEventsFromContext()
+      .build();
+
+    return [new WriteResultAction(resultSpan)];
+  }
+
+  /**
+   * Implementation of the doNext hook method from the template pattern
+   */
+  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [new PopBlockAction()];
   }
 }

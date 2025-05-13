@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { IRuntimeBlock, StatementNodeDetail, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { ITimerRuntime, IRuntimeAction, PrecompiledNode } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { EventHandler } from "../EventHandler";
 import { CompleteHandler } from "../inputs/CompleteEvent";
@@ -12,32 +12,39 @@ import { RuntimeBlock } from "./RuntimeBlock";
  * such as start and stop.
  */
 
-export class TimerBlock extends RuntimeBlock implements IRuntimeBlock {
+export class TimerBlock extends RuntimeBlock {
   constructor(
-    source: StatementNodeDetail,
-    public handlers: EventHandler[] = []
+    sources: PrecompiledNode[],
+    handlers: EventHandler[] = []
   ) {
-    super(source);
+    super(sources);
     this.handlers = [...handlers, new CompleteHandler()];
-    this.index = 1;
+    this.ctx.index = 1;
   }
 
-  enter(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== enter : ${this.blockKey}`);
+  /**
+   * Implementation of the doEnter hook method from the template pattern
+   */
+  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetClockAction("primary"),
       new SetButtonsAction([completeButton], "runtime")
     ];
   }
 
-  next(_runtime: ITimerRuntime): IRuntimeAction[] {
+  /**
+   * Implementation of the doNext hook method from the template pattern
+   */
+  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new PopBlockAction()
     ];
   }
 
-  leave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== leave : ${this.blockKey}`);
+  /**
+   * Implementation of the doLeave hook method from the template pattern
+   */
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetClockAction("primary"),
       new SetButtonsAction([], "runtime")

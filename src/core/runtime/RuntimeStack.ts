@@ -1,11 +1,9 @@
-import { IRuntimeBlock, StatementNode } from "../timer.types";
-import { RootBlock } from "./blocks/RootBlock";
+import { IRuntimeBlock } from "../timer.types";
 
 /**
  * Type definitions for traversal callback functions
  */
 type BlockTraversalCallback<T> = (block: IRuntimeBlock) => T | undefined;
-type StatementTraversalCallback<T> = (node: StatementNode) => T | undefined;
 type StackTraversalCondition = (block: IRuntimeBlock, result: any) => boolean;
 
 /**
@@ -37,7 +35,7 @@ export class RuntimeStack {
     const keyParts: string[] = [];
     this.traverseAll(
       (currentBlock) => {
-        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.index}`);
+        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.getIndex()}`);
         return undefined; // Continue traversal
       }
     );

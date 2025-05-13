@@ -87,7 +87,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   push(block: IRuntimeBlock): IRuntimeBlock {            
-    console.log(`==== Push: ${block.constructor.name}`);
+    console.log(`==== Push: ${block?.constructor.name ?? "block not found"}`);
     block = this.trace.push(block);         
     let actions = block?.enter(this) ?? [];
     this.apply(actions, "enter");

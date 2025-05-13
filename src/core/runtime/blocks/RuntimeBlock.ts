@@ -1,46 +1,38 @@
 import {
   IRuntimeAction,
-  IRuntimeBlock,
   IRuntimeEvent,
   ITimerRuntime,
-  ITimeSpan,
-  StatementNodeDetail,
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
+import { AbstractBlockLifecycle } from "./AbstractBlockLifecycle";
 
-export abstract class RuntimeBlock implements IRuntimeBlock {  
-  constructor(
-    // meta
-    public sources: StatementNodeDetail[]
-  ) {
-    this.blockId = sources.map(s => s.id).join(":") || "";
-  }
-  public blockKey?: string | undefined;
-  // meta
-  public parent?: IRuntimeBlock | undefined;    
-  public blockId: string;
-   // stat
-  public index: number = 0;
-  public spans: ITimeSpan[] = [];
-    
-  // Runtime
-  protected handlers: EventHandler[] = [];  
-  abstract enter(runtime: ITimerRuntime): IRuntimeAction[] ;
-  abstract next(runtime: ITimerRuntime): IRuntimeAction[];    
-  abstract leave(runtime: ITimerRuntime): IRuntimeAction[] ;  
+/**
+ * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
+ * to leverage the template method pattern while maintaining backward compatibility
+ */
+export abstract class RuntimeBlock extends AbstractBlockLifecycle {  
+  /**
+   * Hook method implementation for the enter lifecycle phase
+   * Called by the template method in the parent class
+   */
+  protected abstract doEnter(runtime: ITimerRuntime): IRuntimeAction[];
+  
+  /**
+   * Hook method implementation for the next lifecycle phase
+   * Called by the template method in the parent class
+   */
+  protected abstract doNext(runtime: ITimerRuntime): IRuntimeAction[];
+  
+  /**
+   * Hook method implementation for the leave lifecycle phase
+   * Called by the template method in the parent class
+   */
+  protected abstract doLeave(runtime: ITimerRuntime): IRuntimeAction[];
   
 
-  public get<T>(fn: (node: StatementNodeDetail) => T[], recursive?: boolean): T[] {
-    let block: IRuntimeBlock = this;
-    let result: T[] = block.sources?.flatMap(fn) ?? [];
-    while (recursive && block.parent) {
-      block = block.parent;
-      result.push(...block.sources?.flatMap(fn) ?? []);
-    }
-    
-    return result;
-  }
+  // The get method is inherited from AbstractBlockLifecycle
 
+  // Override the handle method from AbstractBlockLifecycle
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,

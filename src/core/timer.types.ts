@@ -3,6 +3,11 @@ import { RuntimeScript } from "./runtime/RuntimeScript";
 import { RuntimeJit } from "./runtime/RuntimeJit";
 import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
+import { BlockContext } from "./runtime/blocks/BlockContext";
+import { getAction } from "./runtime/blocks/readers/getAction";
+import { getText } from "./runtime/blocks/readers/getText";
+import { getRounds } from "./runtime/blocks/readers/getRounds";
+import { getDuration } from "./runtime/blocks/readers/getDuration";
 
 export type DurationSign = "+" | "-" | undefined;
 
@@ -24,7 +29,7 @@ export class Duration implements IDuration {
   seconds?: number;
   milliseconds?: number;
 
-  constructor(public original: number, public sign: DurationSign = "-") {    
+  constructor(public original?: number, public sign: DurationSign = "-") {    
     let remaining = original ?? 0;
 
     this.days = Math.floor(remaining / 86400000);
@@ -45,6 +50,10 @@ export class Duration implements IDuration {
 export interface ITimeSpan { 
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
+  // Block identifier to associate with metrics
+  blockKey?: string;
+  // Metrics collected during this time span
+  metrics?: RuntimeMetric[];
 }
 
 export interface ISpanDuration extends IDuration {
@@ -60,11 +69,11 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   }
 
   elapsed(): IDuration {  
-    return new Duration(this.spans.reduce((total, span) => {
+    return new Duration(this.spans?.reduce((total, span) => {
       const start = span.start?.timestamp ?? new Date();
       const stop = span.stop?.timestamp ?? new Date();
       return total + (stop.getTime() - start.getTime());
-    }, 0));
+    }, 0) ?? 0);
   }
 
   remaining(): IDuration {
@@ -224,22 +233,64 @@ export class RootStatementNode implements StatementNode {
   fragments: StatementFragment[] = [];
 }
 
-export class IdleStatementNode implements StatementNode {
-  id: number = -1;
-  parent?: number;
+
+
+export class PrecompiledNode implements StatementNode {
+  constructor(public node: StatementNode) {
+    this.id = node?.id ?? -1;
+    this.parent = node?.parent;
+    this.children = node?.children ?? [];
+    this.meta = node?.meta ?? new ZeroIndexMeta();
+    this.fragments = node?.fragments ?? [];
+  }
+  
+  public addFragment(fragment: StatementFragment): PrecompiledNode {
+    if (!!fragment) {
+      this.fragments.push(fragment);
+    }
+    return this;
+  }
+
+  public id: number;
+  public parent?: number;
+  public children: number[] = [];
+  public meta: SourceCodeMetadata = new ZeroIndexMeta();
+  public fragments: StatementFragment[] = [];
+  public actions(): IActionButton[] {
+    return getAction(this).map(f => ({
+      event: f.type,
+      label: f.action,      
+      isActive: false,
+      variant: "primary"
+    }));
+  }
+  public label(): string {
+    return getText(this).map(f => f.text).join(" ");
+  }
+  public rounds(): number {
+    return getRounds(this).reduce((a, b) => a + b, 0);
+  }
+  public duration(): IDuration {
+    const durations = getDuration(this);
+    if (durations.length == 0) {
+      return new Duration(undefined);
+    }
+    if (durations.length == 1) {
+      return durations[0];
+    }
+
+    return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
+  }
+  public metrics(): RuntimeMetric[] {
+    return [];
+  }
+}
+export class IdleStatementNode extends PrecompiledNode { 
+  id: number = -1;  
   children: number[] = [];
   meta: SourceCodeMetadata = new ZeroIndexMeta();
   fragments: StatementFragment[] = [];
 }
-export interface StatementNodeDetail extends StatementNode {
-  duration?: IDuration;
-  metrics?: RuntimeMetric;
-  reps?: RuntimeMetric;
-  rounds?: number;
-  groupOperator?: "-" | "+"; // - for Round-Robin, + for Compose, undefined for Repeat
-}
-
-
 export interface StatementNode {
   id: number;
   parent?: number;
@@ -256,6 +307,7 @@ export interface RuntimeResult {
 }
 
 export interface RuntimeMetric {
+  sourceId: string;
   effort: string;
   values: MetricValue[];
 };
@@ -268,18 +320,21 @@ export type MetricValue = {
 
 export interface IRuntimeBlock {
   blockKey?: string | undefined;
-  blockId: string;          
-  index:number;      
-  sources?: StatementNodeDetail[];
-  parent?: IRuntimeBlock | undefined  
-
-  spans: ITimeSpan[];
-  get<T>(fn: (node: StatementNodeDetail) => T[], recursive?: boolean): T[];
+  blockId: string;
+  parent?: IRuntimeBlock | undefined;
   
-  enter(runtime: ITimerRuntime): IRuntimeAction[];  
-  next(runtime: ITimerRuntime): IRuntimeAction[];  
-  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
-  leave(runtime: ITimerRuntime): IRuntimeAction[];  
+  // Use getter methods instead of direct properties for encapsulation
+  getSources(): PrecompiledNode[];
+  getIndex(): number;
+  getSpans(): ITimeSpan[];
+  getContext(): BlockContext;
+  
+  // Core methods
+  get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
+  enter(runtime: ITimerRuntime): IRuntimeAction[];
+  next(runtime: ITimerRuntime): IRuntimeAction[];
+  handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[];
+  leave(runtime: ITimerRuntime): IRuntimeAction[];
 }
 
 export interface IRuntimeLog extends IRuntimeEvent {
@@ -290,6 +345,7 @@ export interface IRuntimeLog extends IRuntimeEvent {
 export interface IRuntimeEvent {
   timestamp: Date;
   name: string;
+  blockKey?: string;
 };
 
 export interface IActionButton {
@@ -332,16 +388,27 @@ export class ResultSpan {
     return calculatedDuration;
   }
 
-  // edit(edits: RuntimeMetricEdit[]): ResultSpan {
-  //   this.metrics = this.metrics.map((metric) => {
-  //     const selected = edits.filter(
-  //       (e) => e.blockKey === this.blockKey && e.index === this.index
-  //     );
-  //     for (const edit of selected) {
-  //       metric[edit.metricType] = edit.newValue;
-  //     }
-  //     return metric;
-  //   });
-  //   return this;
-  // }
+  edit(edits: RuntimeMetricEdit[]): ResultSpan {
+    this.metrics = this.metrics.map((metric) => {
+      const selected = edits.filter(
+        (e) => e.blockKey === this.blockKey && e.index === this.index
+      );
+      
+      // Apply edits to the appropriate metric value
+      for (const edit of selected) {
+        // Find the value with the matching type or add a new one
+        const valueIndex = metric.values.findIndex(v => v.type === edit.metricType);
+        
+        if (valueIndex >= 0) {
+          // Update existing value with the new MetricValue's properties
+          metric.values[valueIndex] = edit.newValue;
+        } else {
+          // Add the new MetricValue directly
+          metric.values.push(edit.newValue);
+        }
+      }
+      return metric;
+    });
+    return this;
+  }
 }

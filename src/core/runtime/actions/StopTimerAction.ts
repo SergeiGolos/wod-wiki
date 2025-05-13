@@ -3,6 +3,7 @@ import {
   IRuntimeEvent,
   ITimerRuntime,
   OutputEvent,
+  RuntimeMetric,
 } from "@/core/timer.types";
 import { Subject } from "rxjs/internal/Subject";
 import { getDuration } from "../blocks/readers/getDuration";
@@ -21,23 +22,41 @@ export class StopTimerAction implements IRuntimeAction {
     if (!block) {
       return;
     }
-    // block.walk()
-    console.log(
-      "StopTimerAction: Adding event to runtime.current.events",
-      this.event
-    );
-    const currentLap =
-      block.spans.length > 0 ? block.spans[block.spans.length - 1] : undefined;
-
-    if (currentLap && !currentLap.stop) {
-      currentLap.stop = this.event;
-    }
-
-    const duration = block.get(getDuration);
-    if (duration != undefined) {
-      input.next(
-        new PushActionEvent(new SetClockAction("primary"))
+    
+    // Set blockKey in event for reference
+    this.event.blockKey = block.blockKey;
+    
+    console.log(`+=== stop_timer : ${block.blockKey}`);
+    
+    // Get the block context for span management
+    const context = block.getContext();
+    
+    // Collect metrics from the current block
+    try {
+      // Get metrics from all child blocks, recursively
+      const metrics: RuntimeMetric[] = block.get<RuntimeMetric>(
+        node => node.metrics ? node.metrics() : [], 
+        true // Include all children recursively
       );
+      
+      // Add metrics to the current span
+      if (metrics && metrics.length > 0) {
+        console.log(`StopTimerAction: Adding ${metrics.length} metrics to span`, metrics);
+        context.addMetricsToCurrentSpan(metrics);
+      }
+      
+      // Close the current span with stop event
+      context.closeCurrentSpan(this.event);
+      
+      // Check if we need to update the clock
+      const duration = block.get(getDuration)[0];
+      if (duration !== undefined) {
+        input.next(
+          new PushActionEvent(new SetClockAction("primary"))
+        );
+      }
+    } catch (e) {
+      console.error("Error collecting metrics:", e);
     }
   }
 }
