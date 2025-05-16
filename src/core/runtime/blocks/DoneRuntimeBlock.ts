@@ -1,5 +1,4 @@
-import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, IdleStatementNode, PrecompiledNode, ZeroIndexMeta } from "@/core/timer.types";
-import { ResultBuilder } from "../results/ResultBuilder";
+import { IRuntimeAction, IRuntimeBlock, ITimerRuntime, IdleStatementNode, PrecompiledNode, ResultSpan, ZeroIndexMeta } from "@/core/timer.types";
 import { SaveHandler } from "../inputs/SaveEvent";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
@@ -49,11 +48,7 @@ export class DoneRuntimeBlock extends RuntimeBlock implements IRuntimeBlock {
   protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder
     // Use the enhanced BlockContext-based approach for events and metrics
-    const resultSpan = ResultBuilder
-      .forBlock(this)
-      .withEventsFromContext()
-      .withEvents(undefined, { timestamp: new Date(), name: "done" })
-      .build();
+    const resultSpan = ResultSpan.fromBlock(this);
     
     return [
       new WriteResultAction(resultSpan)

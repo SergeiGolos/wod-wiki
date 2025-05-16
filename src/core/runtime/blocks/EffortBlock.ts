@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { IRuntimeAction, ITimerRuntime, PrecompiledNode } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, PrecompiledNode, ResultSpan } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
@@ -11,7 +11,6 @@ import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { ResultBuilder } from "../results/ResultBuilder";
 
 export class EffortBlock extends RuntimeBlock {
   constructor(
@@ -50,17 +49,15 @@ export class EffortBlock extends RuntimeBlock {
     // Create a result span to report the completed effort and metrics using ResultBuilder
     // Use the metrics() method from the sources to collect all metrics
     // Use enhanced BlockContext-based approach for events
-    
-    const resultSpan = ResultBuilder
-      .forBlock(this)
-      .withMetrics(this.sources[0].metrics())
-      .withEventsFromContext()
-      .build();
+    const metrics = this.sources.flatMap(s => s.metrics());
+
+    // Create multiple spans - one for each effort type
+    const resultSpans = ResultSpan.fromBlock(this)
     
     return [
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
-      new WriteResultAction(resultSpan)
+      new WriteResultAction(resultSpans)
     ];
   }
 }

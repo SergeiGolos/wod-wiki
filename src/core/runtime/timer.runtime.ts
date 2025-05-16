@@ -67,6 +67,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
 
     for (const action of actions) {          
+      console.debug(`&=== applying action: ${action.constructor.name}`);
       action.apply(this, this.input$, this.output$);
     }    
   }

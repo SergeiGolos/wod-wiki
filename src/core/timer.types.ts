@@ -6,7 +6,7 @@ import { EventHandler } from "./runtime/EventHandler";
 import { BlockContext } from "./runtime/blocks/BlockContext";
 import { getAction } from "./runtime/blocks/readers/getAction";
 import { getText } from "./runtime/blocks/readers/getText";
-import { getRounds } from "./runtime/blocks/readers/getRounds";
+import { getMetrics, getRounds } from "./runtime/blocks/readers/getRounds";
 import { getDuration } from "./runtime/blocks/readers/getDuration";
 
 export type DurationSign = "+" | "-" | undefined;
@@ -51,9 +51,7 @@ export interface ITimeSpan {
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
   // Block identifier to associate with metrics
-  blockKey?: string;
-  // Metrics collected during this time span
-  metrics?: RuntimeMetric[];
+  blockKey?: string;  
 }
 
 export interface ISpanDuration extends IDuration {
@@ -256,6 +254,7 @@ export class PrecompiledNode implements StatementNode {
   public children: number[] = [];
   public meta: SourceCodeMetadata = new ZeroIndexMeta();
   public fragments: StatementFragment[] = [];
+  
   public actions(): IActionButton[] {
     return getAction(this).map(f => ({
       event: f.type,
@@ -270,6 +269,7 @@ export class PrecompiledNode implements StatementNode {
   public rounds(): number {
     return getRounds(this).reduce((a, b) => a + b, 0);
   }
+
   public duration(): IDuration {
     const durations = getDuration(this);
     if (durations.length == 0) {
@@ -281,9 +281,23 @@ export class PrecompiledNode implements StatementNode {
 
     return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
   }
-  public metrics(): RuntimeMetric[] {
-    return [];
+
+  public metrics(): RuntimeMetric {
+    return getMetrics(this);
   }
+
+  public repetitions(): MetricValue[] {
+    return getMetrics(this).values.filter((m :MetricValue) => m.type === "repetitions");    
+  }
+
+  public resistance(): MetricValue[] {
+    return getMetrics(this).values.filter((m :MetricValue) => m.type === "resistance");    
+  }
+
+  public distance(): MetricValue[] {
+    return getMetrics(this).values.filter((m :MetricValue) => m.type === "distance");    
+  }
+
 }
 export class IdleStatementNode extends PrecompiledNode { 
   id: number = -1;  
@@ -300,12 +314,6 @@ export interface StatementNode {
   isLeaf?: boolean;
 }
 
-export interface RuntimeResult {
-  round: number;
-  stack: number[];
-  timestamps: IRuntimeEvent[];
-}
-
 export interface RuntimeMetric {
   sourceId: string;
   effort: string;
@@ -313,7 +321,7 @@ export interface RuntimeMetric {
 };
 
 export type MetricValue = {
-  type: string;
+  type: "repetitions" | "resistance" | "distance";
   value: number;
   unit: string;
 };
@@ -372,12 +380,28 @@ export interface SourceCodeMetadata {
 
 export class ResultSpan {
   blockKey?: string;
-  index?: number;
-  stack?: number[];
+  index?: number;  
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
+  timeSpans: ITimeSpan[] = [];
   metrics: RuntimeMetric[] = [];
   label?: string;
+
+  static fromBlock(block: IRuntimeBlock): ResultSpan {
+    var result = new ResultSpan();
+    var span = block.getSpans() ?? [];
+    if (span.length == 0) {
+      span = [{start: undefined, stop: undefined}];
+    }
+    result.blockKey = block.blockKey;
+    result.index = block.getIndex();      
+    result.start = span[0].start;
+    result.stop = span[span.length - 1].stop;
+    result.timeSpans = span;
+    result.metrics = [];
+    result.label = "";
+    return result;
+  }
 
   duration(timestamp?: Date): number {
     let now = timestamp ?? new Date();
@@ -387,6 +411,7 @@ export class ResultSpan {
 
     return calculatedDuration;
   }
+
 
   edit(edits: RuntimeMetricEdit[]): ResultSpan {
     this.metrics = this.metrics.map((metric) => {
