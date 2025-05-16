@@ -4,7 +4,8 @@ import {
   IRuntimeEvent, 
   ITimerRuntime,
   ITimeSpan,
-  PrecompiledNode
+  PrecompiledNode,
+  RuntimeMetric
 } from "@/core/timer.types";
 import { EventHandler } from "../EventHandler";
 import { BlockContext } from "./BlockContext";
@@ -39,7 +40,7 @@ export abstract class AbstractBlockLifecycle implements IRuntimeBlock {
   protected ctx: BlockContext;
   
   // Runtime event handlers
-  protected handlers: EventHandler[] = [];  
+  protected handlers: EventHandler[] = [];
   
   // Getters for encapsulated properties
   public getSources(): PrecompiledNode[] {
@@ -145,6 +146,90 @@ export abstract class AbstractBlockLifecycle implements IRuntimeBlock {
     while (recursive && block.parent) {
       block = block.parent;
       result.push(...block.getSources().flatMap(fn) ?? []);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Calculates metrics for this block, potentially inheriting from parent blocks
+   * @param includeChildren Whether to include metrics from child blocks (default: true)
+   * @param inheritFromParent Whether to inherit missing metrics from parent blocks (default: true)
+   * @returns An array of RuntimeMetric objects representing the metrics for this block
+   */
+  public metrics(includeChildren: boolean = true, inheritFromParent: boolean = true): RuntimeMetric[] {
+    // Start with metrics from this block's sources
+    let metrics = this.getSources().flatMap(source => {
+      // Create a RuntimeMetric from the source's properties
+      const metric: RuntimeMetric = {
+        sourceId: source.id.toString(),
+        effort: source.effort()?.[0]?.effort || '',
+        values: [
+          ...source.repetitions().map(rep => ({ 
+            type: 'repetitions' as const, 
+            value: rep.reps ?? 0, 
+            unit: 'reps' 
+          })),
+          ...source.resistance().map(res => ({ 
+            type: 'resistance' as const, 
+            value: parseFloat(res.value) || 0, 
+            unit: res.units || 'kg' 
+          })),
+          ...source.distance().map(dist => ({ 
+            type: 'distance' as const, 
+            value: parseFloat(dist.value) || 0, 
+            unit: dist.units || 'm' 
+          }))
+        ]
+      };
+      return metric.values.length > 0 ? [metric] : [];
+    });
+
+    // Include metrics from children if requested
+    if (includeChildren && this.parent) {
+      const childMetrics = this.parent.metrics(true, false);
+      metrics = this.mergeMetrics(metrics, childMetrics);
+    }
+
+    // Inherit missing metrics from parent if requested
+    if (inheritFromParent && this.parent) {
+      const parentMetrics = this.parent.metrics(false, true);
+      metrics = this.mergeMetrics(metrics, parentMetrics, true);
+    }
+
+    return metrics;
+  }
+
+  /**
+   * Merges two sets of metrics, with options to handle conflicts
+   * @param targetMetrics The target metrics that will receive new metrics
+   * @param sourceMetrics The source metrics to merge in
+   * @param onlyIfMissing If true, only add metrics that don't already exist in target
+   * @returns A new array containing the merged metrics
+   */
+  protected mergeMetrics(
+    targetMetrics: RuntimeMetric[],
+    sourceMetrics: RuntimeMetric[],
+    onlyIfMissing: boolean = false
+  ): RuntimeMetric[] {
+    const result = [...targetMetrics];
+    
+    for (const sourceMetric of sourceMetrics) {
+      const existingIndex = result.findIndex(m => m.effort === sourceMetric.effort);
+      
+      if (existingIndex >= 0) {
+        if (!onlyIfMissing) {
+          // Merge values from source into existing metric
+          const existing = result[existingIndex];
+          const newValues = sourceMetric.values.filter(sv => 
+            !existing.values.some(ev => ev.type === sv.type)
+          );
+          existing.values.push(...newValues);
+        }
+      } else {
+        // Add the entire source metric if it doesn't exist in target
+        result.push({...sourceMetric});
+      }
     }
     
     return result;

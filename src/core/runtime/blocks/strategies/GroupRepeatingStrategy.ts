@@ -8,18 +8,19 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  */
 export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {
   canHandle(nodes: PrecompiledNode[]): boolean {
-    // For now, only handle arrays with exactly one node
+    // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
     }
     
     const node = nodes[0];
     const rounds = node.rounds();
-    // Only handle repeating blocks with no specific operator (standard Repeat pattern)
-    if (rounds != null && rounds > 1) {
-      return true;
-    }
-    return false;
+    
+    // Only handle repeating blocks with rounds > 1 and no specific operator (standard Repeat pattern)
+    // Also ensure the node has children to repeat
+    return rounds.length > 0 && 
+           rounds[0].count > 1 && 
+           node.children.length > 0;
   }
 
   compile(

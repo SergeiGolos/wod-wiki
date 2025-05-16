@@ -5,7 +5,7 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
   canHandle(nodes: PrecompiledNode[]): boolean {
-    // For now, only handle arrays with exactly one node
+    // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
     }
@@ -13,12 +13,14 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
     const node = nodes[0];
     const duration = node.duration();
     const rounds = node.rounds();
+    const hasChildren = node.children.length > 0;
 
-    if (duration?.sign === "-" && duration.original != undefined && duration.original > 0
-      && (rounds != null && rounds === 1)) {
-      return true;
-    }
-    return false;
+    // Handle countdown nodes with negative duration, no rounds, and children
+    return (duration.sign === "-" && 
+           duration.original !== undefined && 
+           duration.original > 0 &&
+           rounds.length === 0 &&
+           hasChildren);
   }
 
   compile(

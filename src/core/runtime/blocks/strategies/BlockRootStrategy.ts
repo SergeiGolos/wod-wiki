@@ -1,4 +1,4 @@
-import { PrecompiledNode, RootStatementNode, IRuntimeBlock, ITimerRuntime } from "../../../timer.types";
+import { PrecompiledNode, IRuntimeBlock, ITimerRuntime } from "../../../timer.types";
 import { RootBlock } from "../RootBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
@@ -9,8 +9,8 @@ export class BlockRootStrategy implements IRuntimeBlockStrategy {
       return false;
     }
     
-    // Check if the single node is a RootStatementNode
-    return nodes[0] instanceof RootStatementNode;
+    // Check if the single node has no parent (root node)
+    return nodes[0].parent === undefined;
   }
 
   compile(

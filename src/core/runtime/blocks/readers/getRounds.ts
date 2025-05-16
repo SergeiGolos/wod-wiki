@@ -11,13 +11,30 @@ import { EffortFragment } from "@/core/fragments/EffortFragment";
  * @param node The statement node to extract from
  * @returns The first rounds fragment or undefined if none exists
  */
-export function getRounds(node: StatementNode): number[] {
+export function getRounds(node: StatementNode): RoundsFragment[] {
   const fragments = node?.fragments
     ?.filter(f => f.type === 'rounds')
     ?.map(f => f as RoundsFragment) ?? [];
 
-  return fragments.length > 0 ? fragments.map(f => f.count) : [1];
+  return fragments;
 }
+
+export function getRepetitions(node: StatementNode): RepFragment[] {
+  const fragments = node?.fragments
+    ?.filter(f => f.type === 'rep')
+    ?.map(f => f as RepFragment) ?? [];
+
+  return fragments;
+}
+
+export function getEffort(node: StatementNode): EffortFragment[] {
+  const fragments = node?.fragments
+    ?.filter(f => f.type === 'effort')
+    ?.map(f => f as EffortFragment) ?? [];
+
+  return fragments;
+}
+
 
 export function getMetrics(node: StatementNode): RuntimeMetric {
   const effort: RuntimeMetric = {

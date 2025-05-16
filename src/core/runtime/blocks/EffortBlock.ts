@@ -1,5 +1,5 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { IRuntimeAction, ITimerRuntime, PrecompiledNode, ResultSpan } from "@/core/timer.types";
+import { IRuntimeAction, ITimerRuntime, PrecompiledNode, ResultSpan, RuntimeMetric } from "@/core/timer.types";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
@@ -45,14 +45,31 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    // Create a result span to report the completed effort and metrics using ResultBuilder
-    // Use the metrics() method from the sources to collect all metrics
-    // Use enhanced BlockContext-based approach for events
-    const metrics = this.sources.flatMap(s => s.metrics());
+  /**
+   * Calculates metrics for this effort block
+   * @param includeChildren Whether to include metrics from child blocks (default: true)
+   * @param inheritFromParent Whether to inherit missing metrics from parent blocks (default: true)
+   * @returns An array of RuntimeMetric objects representing the metrics for this block
+   */
+  public metrics(includeChildren: boolean = true, inheritFromParent: boolean = true): RuntimeMetric[] {
+    // Start with the base implementation from AbstractBlockLifecycle
+    let metrics = super.metrics(includeChildren, inheritFromParent);
+    
+    // Add any effort-specific metric logic here
+    // For example, you might want to add metrics based on the current state of the block
+    
+    return metrics;
+  }
 
-    // Create multiple spans - one for each effort type
-    const resultSpans = ResultSpan.fromBlock(this)
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completed effort and metrics
+    const resultSpans = ResultSpan.fromBlock(this);
+    
+    // Get metrics for this block and add them to the result span
+    const metrics = this.metrics();
+    if (metrics && metrics.length > 0) {
+      resultSpans.metrics = metrics;
+    }
     
     return [
       new StopTimerAction(new StopEvent(new Date())),

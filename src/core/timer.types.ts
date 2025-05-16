@@ -6,8 +6,15 @@ import { EventHandler } from "./runtime/EventHandler";
 import { BlockContext } from "./runtime/blocks/BlockContext";
 import { getAction } from "./runtime/blocks/readers/getAction";
 import { getText } from "./runtime/blocks/readers/getText";
-import { getMetrics, getRounds } from "./runtime/blocks/readers/getRounds";
+import { getEffort, getMetrics, getRepetitions, getRounds } from "./runtime/blocks/readers/getRounds";
 import { getDuration } from "./runtime/blocks/readers/getDuration";
+import { getResistance } from "./runtime/blocks/readers/getResistance";
+import { ResistanceFragment } from "./fragments/ResistanceFragment";
+import { getDistance } from "./runtime/blocks/readers/getDistance";
+import { DistanceFragment } from "./fragments/DistanceFragment";
+import { RepFragment } from "./fragments/RepFragment";
+import { EffortFragment } from "./fragments/EffortFragment";
+import { RoundsFragment } from "./fragments/RoundsFragment";
 
 export type DurationSign = "+" | "-" | undefined;
 
@@ -51,7 +58,9 @@ export interface ITimeSpan {
   start?: IRuntimeEvent;
   stop?: IRuntimeEvent;
   // Block identifier to associate with metrics
-  blockKey?: string;  
+  blockKey?: string;
+  // Metrics associated with this time span  
+  metrics?: RuntimeMetric[];
 }
 
 export interface ISpanDuration extends IDuration {
@@ -263,14 +272,8 @@ export class PrecompiledNode implements StatementNode {
       variant: "primary"
     }));
   }
-  public label(): string {
-    return getText(this).map(f => f.text).join(" ");
-  }
-  public rounds(): number {
-    return getRounds(this).reduce((a, b) => a + b, 0);
-  }
 
-  public duration(): IDuration {
+  public duration(): Duration {
     const durations = getDuration(this);
     if (durations.length == 0) {
       return new Duration(undefined);
@@ -282,20 +285,24 @@ export class PrecompiledNode implements StatementNode {
     return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
   }
 
-  public metrics(): RuntimeMetric {
-    return getMetrics(this);
+  public repetitions(): RepFragment[] {
+    return getRepetitions(this);    
   }
 
-  public repetitions(): MetricValue[] {
-    return getMetrics(this).values.filter((m :MetricValue) => m.type === "repetitions");    
+  public resistance(): ResistanceFragment[] {
+    return getResistance(this);    
   }
 
-  public resistance(): MetricValue[] {
-    return getMetrics(this).values.filter((m :MetricValue) => m.type === "resistance");    
+  public distance(): DistanceFragment[] {
+    return getDistance(this);
   }
 
-  public distance(): MetricValue[] {
-    return getMetrics(this).values.filter((m :MetricValue) => m.type === "distance");    
+  public effort(): EffortFragment[] {
+    return getEffort(this);    
+  }
+
+  public rounds(): RoundsFragment[] {
+    return getRounds(this);
   }
 
 }
@@ -339,6 +346,15 @@ export interface IRuntimeBlock {
   
   // Core methods
   get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
+  
+  /**
+   * Calculates metrics for this block, potentially inheriting from parent blocks
+   * @param includeChildren Whether to include metrics from child blocks (default: true)
+   * @param inheritFromParent Whether to inherit missing metrics from parent blocks (default: true)
+   * @returns An array of RuntimeMetric objects representing the metrics for this block
+   */
+  metrics(includeChildren?: boolean, inheritFromParent?: boolean): RuntimeMetric[];
+  
   enter(runtime: ITimerRuntime): IRuntimeAction[];
   next(runtime: ITimerRuntime): IRuntimeAction[];
   handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[];

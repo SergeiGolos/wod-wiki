@@ -4,7 +4,6 @@ import {
   MetricValue,
   PrecompiledNode,
   ResultSpan,
-  RuntimeMetric
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
@@ -14,7 +13,6 @@ import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { getMetrics } from "./readers/getRounds";
 import { RepFragment } from "@/core/fragments/RepFragment";
 
 export class RepeatingBlock extends RuntimeBlock {
@@ -55,7 +53,7 @@ export class RepeatingBlock extends RuntimeBlock {
       this.ctx.index += 1;             
     }
   
-    if (rounds && this.ctx.index >= rounds) {
+    if (rounds && this.ctx.index >= rounds.length) {
       return [new PopBlockAction()];
     } 
 
@@ -63,7 +61,7 @@ export class RepeatingBlock extends RuntimeBlock {
     let statement: PrecompiledNode | undefined;
     let laps: LapFragment | undefined;
     
-    while (true) {      
+    while (true && this.ctx.childIndex < sourceNode?.children.length) {      
       this.ctx.childIndex += 1;
       statement = runtime.script.getId(
         sourceNode?.children[this.ctx.childIndex-1]
@@ -72,7 +70,7 @@ export class RepeatingBlock extends RuntimeBlock {
       if (!statement) {
         break;
       }      
-
+      
       laps = getLap(statement)?.[0];
       if (statement.repetitions().length == 0) {
         const reps = modIndex(sourceNode?.repetitions(),this.ctx.index);

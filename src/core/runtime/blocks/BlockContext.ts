@@ -25,6 +25,9 @@ export class BlockContext {
   events: IRuntimeEvent[] = [];  
   resultSpan: ResultSpan | undefined;
   
+  /** Duration in milliseconds for timer blocks */
+  duration?: number;
+  
   constructor(params: Partial<BlockContext> = {}) {
     this.runtime = params.runtime || {} as ITimerRuntime;
     this.index = params.index || 0;
@@ -78,7 +81,16 @@ export class BlockContext {
   addMetricsToCurrentSpan(metrics: RuntimeMetric[]): void {
     const span = this.getCurrentSpan();
     if (span) {
-      span.metrics = metrics;
+      // Initialize metrics array if it doesn't exist
+      if (!span.metrics) {
+        span.metrics = [];
+      }
+      // Add new metrics to the span, avoiding duplicates
+      metrics.forEach(metric => {
+        if (!span.metrics?.some(m => m.sourceId === metric.sourceId && m.effort === metric.effort)) {
+          span.metrics?.push(metric);
+        }
+      });
     }
   }
 }

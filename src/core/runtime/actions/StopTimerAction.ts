@@ -33,14 +33,17 @@ export class StopTimerAction implements IRuntimeAction {
     
     // Collect metrics from the current block
     try {
-      // Get metrics from all child blocks, recursively
-      const metrics: RuntimeMetric[] = block.get<RuntimeMetric>(
-        node => node.metrics ? node.metrics() : [], 
-        true // Include all children recursively
-      );
+      // Get metrics from the block and all its children
+      const metrics: RuntimeMetric[] = [];
       
-      // Add metrics to the current span
-      if (metrics && metrics.length > 0) {
+      // Get metrics from the current block and its children
+      const blockMetrics = block.metrics(true, true);
+      if (blockMetrics && blockMetrics.length > 0) {
+        metrics.push(...blockMetrics);
+      }
+      
+      // Add metrics to the current span if we have any
+      if (metrics.length > 0) {
         console.log(`StopTimerAction: Adding ${metrics.length} metrics to span`, metrics);
         context.addMetricsToCurrentSpan(metrics);
       }
