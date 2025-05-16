@@ -5,17 +5,28 @@ import { Subject } from "rxjs";
 /**
  * Action to write a result to the output stream.
  * Used by blocks to report their metrics and completion.
+ * 
+ * Can handle either a single ResultSpan or an array of ResultSpan objects,
+ * allowing blocks to emit multiple result spans when they complete.
  */
 export class WriteResultAction extends OutputAction {
-    constructor(private result: ResultSpan) {
+    private results: ResultSpan[];
+
+    constructor(result: ResultSpan | ResultSpan[]) {
         super('WRITE_RESULT');
+        // Convert single result to array for uniform handling
+        this.results = Array.isArray(result) ? result : [result];
     }
 
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
-        return [{
-            eventType: this.eventType,
-            bag: { result: this.result },
-            timestamp: new Date()
-        }];
+        // Create an output event for each result span
+        return this.results.map(result => {
+            console.log(`$$=== write_result : ${result.blockKey} (index: ${result.index})`);
+            return {
+                eventType: this.eventType,
+                bag: { result },
+                timestamp: new Date()
+            };
+        });
     }
 }

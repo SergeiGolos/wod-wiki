@@ -2,13 +2,13 @@ import {
   IdleStatementNode,
   IRuntimeAction,
   ITimerRuntime,
+  ResultSpan,
   ZeroIndexMeta
 } from "@/core/timer.types";
-import { ResultBuilder } from "../results/ResultBuilder";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { PopBlockAction } from "../actions/PopBlockAction";
+import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
@@ -44,12 +44,9 @@ export class IdleRuntimeBlock extends RuntimeBlock {
   protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a span to capture the idle time using ResultBuilder
     // Use the enhanced BlockContext-based approach for events and metrics
-    const resultSpan = ResultBuilder
-      .forBlock(this)
-      .withEventsFromContext()
-      .build();
+    const resultSpan = ResultSpan.fromBlock(this)
 
-    return [new WriteResultAction(resultSpan)];
+    return [];
   }
 
   /**

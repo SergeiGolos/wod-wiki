@@ -1,4 +1,4 @@
-import { IRuntimeEvent, ITimerRuntime, ITimeSpan, RuntimeMetric } from "@/core/timer.types";
+import { IRuntimeEvent, ITimerRuntime, ITimeSpan, ResultSpan, RuntimeMetric } from "@/core/timer.types";
 
 /**
  * Holds all mutable state for a runtime block, separating state from behavior
@@ -22,6 +22,8 @@ export class BlockContext {
   
   /** Block identifier for associating events */
   blockKey?: string;
+  events: IRuntimeEvent[] = [];  
+  resultSpan: ResultSpan | undefined;
   
   constructor(params: Partial<BlockContext> = {}) {
     this.runtime = params.runtime || {} as ITimerRuntime;
@@ -30,6 +32,8 @@ export class BlockContext {
     this.lastLap = params.lastLap;
     this.spans = params.spans || [];
     this.blockKey = params.blockKey;
+    this.events = params.events || [];
+    this.resultSpan = params.resultSpan || new ResultSpan();
   }
   
   /**
@@ -41,8 +45,7 @@ export class BlockContext {
     const span: ITimeSpan = {
       blockKey: this.blockKey,
       start: event,
-      stop: undefined,
-      metrics: []
+      stop: undefined,      
     };
     this.spans.push(span);
     return span;

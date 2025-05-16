@@ -2,6 +2,7 @@ import {
   IRuntimeAction,
   ITimerRuntime,
   PrecompiledNode,
+  ResultSpan,
   StatementNode,
   ZeroIndexMeta,
 } from "@/core/timer.types";
@@ -13,7 +14,8 @@ import {
 } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { ResultBuilder } from "../results/ResultBuilder";
+import { StartTimerAction } from "../actions/StartTimerAction";
+import { StartEvent } from "../inputs/StartEvent";
 
 /**
  * Represents the root of the execution tree.
@@ -52,7 +54,7 @@ export class RootBlock extends RuntimeBlock {
     }
 
     const statement = this.nodes[this.ctx.index-1];
-    return [new PushStatementAction([statement], false)];
+    return [ new PushStatementAction([statement], false)]
   }
 
   /**
@@ -60,14 +62,7 @@ export class RootBlock extends RuntimeBlock {
    */
   protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder
-    const resultSpan = ResultBuilder
-      .forBlock(this)
-      // For root block, use first and last events in history
-      .withEvents(
-        runtime.history[0] ?? { name: "start", timestamp: new Date() },
-        runtime.history[runtime.history.length - 1] ?? { timestamp: new Date(), name: "stop" }
-      )
-      .build();
+    const resultSpan = ResultSpan.fromBlock(this);      
     
     return [
       new WriteResultAction(resultSpan),

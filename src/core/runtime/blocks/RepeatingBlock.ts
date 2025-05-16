@@ -1,9 +1,11 @@
 import {
   IRuntimeAction,
   ITimerRuntime,
-  PrecompiledNode
+  MetricValue,
+  PrecompiledNode,
+  ResultSpan,
+  RuntimeMetric
 } from "@/core/timer.types";
-import { ResultBuilder } from "../results/ResultBuilder";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
@@ -12,6 +14,8 @@ import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
+import { getMetrics } from "./readers/getRounds";
+import { RepFragment } from "@/core/fragments/RepFragment";
 
 export class RepeatingBlock extends RuntimeBlock {
   constructor(source: PrecompiledNode[]) {
@@ -26,8 +30,10 @@ export class RepeatingBlock extends RuntimeBlock {
    * Implementation of the doEnter hook method from the template pattern
    */
   protected doEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Combine next() actions with additional button setup
-    return [...this.doNext(runtime), 
+    // Combine next() actions with additional button setup  
+    const actions = this.doNext(runtime);
+    
+    return [...actions, 
       new SetButtonsAction([endButton, pauseButton], "system"),
       new SetButtonsAction([completeButton], "runtime")];
   }
@@ -68,14 +74,22 @@ export class RepeatingBlock extends RuntimeBlock {
       }      
 
       laps = getLap(statement)?.[0];
+      if (statement.repetitions().length == 0) {
+        const reps = modIndex(sourceNode?.repetitions(),this.ctx.index);
+        if (reps) {
+          statement.addFragment(new RepFragment(reps.value));
+        }
+      }
+      
       statements.push(statement);
 
       if (laps?.image !=="+") {        
         break;
-      }            
+      }         
     }
 
     this.ctx.lastLap = laps?.image ?? "";
+    
 
     
     return statements.length > 0
@@ -90,16 +104,14 @@ export class RepeatingBlock extends RuntimeBlock {
     // Create a result span to report completion and metrics for this repeating block using ResultBuilder
     // Use the enhanced BlockContext-based approach for events
     const sourceNode = this.sources?.[0];
-    const resultSpan = ResultBuilder
-      .forBlock(this)
-      .withMetrics(sourceNode?.metrics() ?? [])
-      .withEventsFromContext()
-      // Override the stop event with a repeating_complete event
-      .withEvents(undefined, { timestamp: new Date(), name: "repeating_complete" })
-      .build();
+    const resultSpan = ResultSpan.fromBlock(this)
     
     return [
       new WriteResultAction(resultSpan)
     ];
   }
 }
+function modIndex(metrics: MetricValue[], index: number) : MetricValue | undefined {
+  return metrics[index % metrics.length];
+}
+

@@ -19,7 +19,7 @@ export function getRounds(node: StatementNode): number[] {
   return fragments.length > 0 ? fragments.map(f => f.count) : [1];
 }
 
-export function getMetrics(node: StatementNode): RuntimeMetric[] {
+export function getMetrics(node: StatementNode): RuntimeMetric {
   const effort: RuntimeMetric = {
     sourceId: node.id.toString(),
     effort: "",
@@ -49,5 +49,5 @@ export function getMetrics(node: StatementNode): RuntimeMetric[] {
     unit: "reps"
     }));
 
-  return [effort];
+  return effort;
 }
