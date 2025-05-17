@@ -13,6 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
+
                 "file": "worklog/2025-05-16.RuntimeMetricsSummary.md",
                 "mode": "source",
                 "source": false
@@ -175,8 +176,7 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "obsidian-excalidraw-plugin:New drawing": false,
-      "card-board:CardBoard": false
+      "obsidian-excalidraw-plugin:New drawing": false
     }
   },
   "active": "5e6d7301942d694a",

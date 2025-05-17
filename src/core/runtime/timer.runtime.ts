@@ -61,6 +61,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   apply(actions: IRuntimeAction[], _lifeCycle: string) {
     // Apply all actions from the lifecycle
     for (const action of actions) {          
+      console.debug(`&=== applying action: ${action.constructor.name}`);
       action.apply(this, this.input$, this.output$);
     }    
   }
