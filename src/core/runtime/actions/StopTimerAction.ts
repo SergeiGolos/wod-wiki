@@ -9,10 +9,17 @@ import { Subject } from "rxjs/internal/Subject";
 import { getDuration } from "../blocks/readers/getDuration";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { PushActionEvent } from "../inputs/PushActionEvent";
+import { BlockContext } from "../blocks/BlockContext";
 
 export class StopTimerAction implements IRuntimeAction {
-  constructor(private event: IRuntimeEvent) {}
+  private context: BlockContext;
+
+  constructor(private event: IRuntimeEvent, context: BlockContext) {
+    this.context = context;
+  }
+
   name: string = "stop";
+
   apply(
     runtime: ITimerRuntime,
     input: Subject<IRuntimeEvent>,
@@ -22,44 +29,36 @@ export class StopTimerAction implements IRuntimeAction {
     if (!block) {
       return;
     }
-    
+
     // Set blockKey in event for reference
     this.event.blockKey = block.blockKey;
-    
+
     console.log(`+=== stop_timer : ${block.blockKey}`);
-    
-    // Get the block context for span management
-    const context = block.getContext();
-    
-    // Collect metrics from the current block
-    try {
-      // Get metrics from the block and all its children
-      const metrics: RuntimeMetric[] = [];
-      
-      // Get metrics from the current block and its children
-      const blockMetrics = block.metrics(true, true);
-      if (blockMetrics && blockMetrics.length > 0) {
-        metrics.push(...blockMetrics);
-      }
-      
-      // Add metrics to the current span if we have any
-      if (metrics.length > 0) {
-        console.log(`StopTimerAction: Adding ${metrics.length} metrics to span`, metrics);
-        context.addMetricsToCurrentSpan(metrics);
-      }
-      
-      // Close the current span with stop event
-      context.closeCurrentSpan(this.event);
-      
-      // Check if we need to update the clock
-      const duration = block.get(getDuration)[0];
-      if (duration !== undefined) {
-        input.next(
-          new PushActionEvent(new SetClockAction("primary"))
-        );
-      }
-    } catch (e) {
-      console.error("Error collecting metrics:", e);
+
+    const metrics: RuntimeMetric[] = [{
+      sourceId: this.context.getBlockId(), 
+      effort: "timer_stop", 
+      values: [{ type: "repetitions", value: 1, unit: "count" }]
+    }];
+
+    // Add metrics to the currently active time span if it exists
+    const activeSpan = this.context.getActiveTimeSpan();
+    if (activeSpan) {
+      activeSpan.metrics = activeSpan.metrics ? [...activeSpan.metrics, ...metrics] : [...metrics];
+    }
+
+    // Push metrics to the overall result span for the block
+    this.context.pushMetricsToCurrentResult(metrics);
+
+    // Stop the currently active time span, this also adds it to the result span
+    this.context.stopActiveTimeSpan(this.event);
+
+    // Check if we need to update the clock
+    const duration = block.get(getDuration)[0];
+    if (duration !== undefined) {
+      input.next(
+        new PushActionEvent(new SetClockAction("primary"))
+      );
     }
   }
 }

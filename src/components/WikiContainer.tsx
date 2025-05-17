@@ -64,21 +64,10 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   };
 
   useEffect(() => {      
-    console.debug('WikiContainer: Setting up output subscription');
-    
     const dispose = output?.subscribe((event) => {        
-      console.debug('WikiContainer received output event:', {
-        type: event.eventType,
-        target: event.bag?.target,
-        timestamp: new Date().toISOString()
-      });
-      console.debug("WikiContainer received output event:", event);
       // Handle SET_CLOCK events specifically
       if (event.eventType === 'SET_CLOCK') {
-        console.debug('WikiContainer processing SET_CLOCK event:', {
-          target: event.bag?.target,
-          duration: event.bag?.duration
-        });
+        // Process clock update
       }
       
       // Process the event through all handlers
@@ -93,7 +82,6 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
     });
     
     return () => {
-      console.debug('WikiContainer: Cleaning up output subscription');
       dispose?.unsubscribe();
     };
   }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons]);

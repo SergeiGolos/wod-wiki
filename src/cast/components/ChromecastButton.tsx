@@ -14,11 +14,11 @@ export const ChromecastButton: React.FC<UseCastSenderResult> = ({ state$, connec
       if (state.isConnecting) return;
       if (state.isConnected) {
         await disconnect();
-        console.debug('[ChromecastButton] Disconnected from Chromecast');
+        // Disconnected from Chromecast
         return;
       }
       await connect();
-      console.debug('[ChromecastButton] Connecting to Chromecast...');
+      // Connecting to Chromecast...
     } catch (error) {
       console.error('[ChromecastButton] Chromecast operation failed:', error);
     }

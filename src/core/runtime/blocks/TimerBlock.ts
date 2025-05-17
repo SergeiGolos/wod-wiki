@@ -1,5 +1,6 @@
 import { completeButton } from "@/components/buttons/timerButtons";
-import { ITimerRuntime, IRuntimeAction, PrecompiledNode, IRuntimeEvent, RuntimeMetric } from "@/core/timer.types";
+import { ITimerRuntime, IRuntimeAction, PrecompiledNode, RuntimeMetric } from "@/core/timer.types";
+import { MetricsContext, MetricsRelationshipType } from "@/core/metrics";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { EventHandler } from "../EventHandler";
 import { CompleteHandler } from "../inputs/CompleteEvent";
@@ -19,9 +20,12 @@ export class TimerBlock extends RuntimeBlock {
 
   constructor(
     sources: PrecompiledNode[],
-    handlers: EventHandler[] = []
+    handlers: EventHandler[] = [],
+    parentMetricsContext?: MetricsContext
   ) {
-    super(sources);
+    // Use the ADD relationship type for timer blocks
+    // This means parent metrics will be added to child metrics
+    super(sources, parentMetricsContext, MetricsRelationshipType.ADD);
     this.handlers = [...handlers, new CompleteHandler()];
     this.ctx.index = 0;
     
@@ -38,31 +42,28 @@ export class TimerBlock extends RuntimeBlock {
   protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
     this.startTime = new Date();
     this.isRunning = true;
+    this.logger.debug(`TimerBlock: ${this.blockKey} doEnter, startTime: ${this.startTime}`);
     
-    // Create a start event for the current span
-    const startEvent: IRuntimeEvent = {
-      timestamp: this.startTime,
-      name: 'timer_start',
-      blockKey: this.ctx.blockKey
-    };
-    
-    // Add the start event to the current span
-    this.ctx.addSpan(startEvent);
-    
-    // Create a metric for the timer duration
-    if (this.durationMs > 0) {
-      const durationMetric: RuntimeMetric = {
-        sourceId: this.ctx.blockKey || 'timer',
-        effort: 'duration',
-        values: [{
-          type: 'repetitions',
-          value: this.durationMs,
-          unit: 'ms'
-        }]
-      };
-      
-      // Add the metric to the current span
-      this.ctx.addMetricsToCurrentSpan([durationMetric]);
+    const currentSpan = this.ctx.getCurrentResultSpan();
+
+    if (currentSpan) {
+      currentSpan.label = this.generateBlockLabel("Timer");
+
+      // Add Planned Duration metric (moved from createResultSpan & consolidated)
+      if (this.durationMs > 0) {
+        const plannedDurationMetric: RuntimeMetric = {
+          sourceId: this.ctx.blockKey || 'timer',
+          effort: 'Planned Duration',
+          values: [{
+            type: 'repetitions', // Consider if 'timestamp' or a dedicated duration type is better
+            value: this.durationMs,
+            unit: 'ms'
+          }]
+        };
+        this.ctx.pushMetricsToCurrentResult([plannedDurationMetric]);
+      }
+    } else {
+      this.logger.warn(`TimerBlock: ${this.blockKey} doEnter called without an initialized ResultSpan.`);
     }
     
     return [
@@ -86,39 +87,32 @@ export class TimerBlock extends RuntimeBlock {
   protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     this.endTime = new Date();
     this.isRunning = false;
+    this.logger.debug(`TimerBlock: ${this.blockKey} doLeave, endTime: ${this.endTime}`);
     
-    // Create a stop event for the current span
-    if (this.startTime) {
-      const stopEvent: IRuntimeEvent = {
-        timestamp: this.endTime,
-        name: 'timer_stop',
-        blockKey: this.ctx.blockKey
-      };
-      
-      // Add the stop event to the current span
-      this.ctx.addSpan(stopEvent);
-      
-      // Calculate the actual duration
+    const currentSpan = this.ctx.getCurrentResultSpan();
+
+    if (this.startTime && currentSpan) {
       const actualDurationMs = this.endTime.getTime() - this.startTime.getTime();
       
-      // Update the duration metric with the actual duration
+      currentSpan.label = this.generateBlockLabel("Timer", `Completed in ${super.formatDuration(actualDurationMs)}`);
+      
       const actualDurationMetric: RuntimeMetric = {
         sourceId: this.ctx.blockKey || 'timer',
-        effort: 'actual_duration',
+        effort: 'Actual Duration',
         values: [{
-          type: 'repetitions',
+          type: 'repetitions', // Consider if 'timestamp' or a dedicated duration type is better
           value: actualDurationMs,
           unit: 'ms'
         }]
       };
-      
-      // Add the actual duration metric to the current span
-      this.ctx.addMetricsToCurrentSpan([actualDurationMetric]);
+      this.ctx.pushMetricsToCurrentResult([actualDurationMetric]);
+    } else {
+      this.logger.warn(`TimerBlock: ${this.blockKey} doLeave called without startTime or currentSpan.`);
     }
     
     return [
-      new SetClockAction("primary"),
-      new SetButtonsAction([], "runtime")
+      new SetButtonsAction([], "runtime"), // Clear buttons
+      new SetClockAction("primary")
     ];
   }
   

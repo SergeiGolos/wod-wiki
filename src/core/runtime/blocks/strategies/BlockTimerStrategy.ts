@@ -1,4 +1,4 @@
-import { IRuntimeBlock, ITimerRuntime, PrecompiledNode, IRuntimeEvent } from "../../../timer.types";
+import { IRuntimeBlock, ITimerRuntime, PrecompiledNode } from "../../../timer.types";
 import { TimerBlock } from "../TimerBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
@@ -47,21 +47,10 @@ export class BlockTimerStrategy implements IRuntimeBlockStrategy {
     
     // Set up the duration for the timer block
     if (duration.original !== undefined) {
-      // Store the duration in the context for later use
+      // Store the duration in the context for later use (TimerBlock also reads this from nodes)
       context.duration = duration.original;
       
-      // Create an initial time span for the timer
-      const startEvent: IRuntimeEvent = {
-        timestamp: new Date(),
-        name: 'timer_start',
-        blockKey: context.blockKey
-      };
-      
-      // Add the initial time span to the context
-      context.addSpan(startEvent);
-      
-      // Log the timer creation
-      console.log(`Created timer block with duration: ${duration.original}ms`);
+      // Timer block initialized with duration
     }
     
     return timerBlock;

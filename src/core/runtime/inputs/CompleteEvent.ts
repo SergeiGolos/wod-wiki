@@ -3,6 +3,7 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 import { EventHandler } from "../EventHandler";
 import { StopEvent } from "./StopEvent";
 import { NextStatementAction } from "../actions/PopBlockAction";
+import { BlockContext } from "../blocks/BlockContext";
 
 export class CompleteEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -15,9 +16,19 @@ export class CompleteEvent implements IRuntimeEvent {
 export class CompleteHandler extends EventHandler {
     protected eventType: string = 'complete';
   
-    protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {       
+    protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {       
+      const block = runtime.trace.current();
+      if (!block) {
+        console.warn("CompleteHandler: No current block found.");
+        return [];
+      }
+      const context: BlockContext = block.getContext();
+     if (!context) {
+        console.warn(`CompleteHandler: No context found for block ${block.blockKey}.`);
+        return [];
+      }
       return [
-        new StopTimerAction(new StopEvent(event.timestamp)),        
+        new StopTimerAction(new StopEvent(event.timestamp), context),        
         new NextStatementAction(),      
       ];
     }

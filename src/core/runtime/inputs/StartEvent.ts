@@ -16,7 +16,6 @@ export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
-    console.debug('StartHandler processing start event');
     return [
       new StartTimerAction(event),
       new SetButtonsAction([endButton, pauseButton], "system"),

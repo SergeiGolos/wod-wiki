@@ -5,12 +5,11 @@ import { RuntimeStack } from "./runtime/RuntimeStack";
 import { EventHandler } from "./runtime/EventHandler";
 import { BlockContext } from "./runtime/blocks/BlockContext";
 import { getAction } from "./runtime/blocks/readers/getAction";
-import { getText } from "./runtime/blocks/readers/getText";
-import { getEffort, getMetrics, getRepetitions, getRounds } from "./runtime/blocks/readers/getRounds";
+import { getEffort, getRepetitions, getRounds } from "./runtime/blocks/readers/getRounds";
 import { getDuration } from "./runtime/blocks/readers/getDuration";
 import { getResistance } from "./runtime/blocks/readers/getResistance";
-import { ResistanceFragment } from "./fragments/ResistanceFragment";
 import { getDistance } from "./runtime/blocks/readers/getDistance";
+import { ResistanceFragment } from "./fragments/ResistanceFragment";
 import { DistanceFragment } from "./fragments/DistanceFragment";
 import { RepFragment } from "./fragments/RepFragment";
 import { EffortFragment } from "./fragments/EffortFragment";
@@ -328,7 +327,7 @@ export interface RuntimeMetric {
 };
 
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance";
+  type: "repetitions" | "resistance" | "distance" | "timestamp";
   value: number;
   unit: string;
 };
@@ -342,10 +341,11 @@ export interface IRuntimeBlock {
   getSources(): PrecompiledNode[];
   getIndex(): number;
   getSpans(): ITimeSpan[];
+  getResultSpans(): ResultSpan[];
   getContext(): BlockContext;
   
   // Core methods
-  get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[];
+  get<T>(fn: (node: PrecompiledNode) => T[]): T[];
   
   /**
    * Calculates metrics for this block, potentially inheriting from parent blocks
@@ -402,20 +402,43 @@ export class ResultSpan {
   timeSpans: ITimeSpan[] = [];
   metrics: RuntimeMetric[] = [];
   label?: string;
+  
+  /** References to child block keys for hierarchical relationships */
+  children: string[] = [];
 
+  /**
+   * Create a ResultSpan from a RuntimeBlock
+   * Uses the IMetricsProvider interface if available, otherwise falls back to metrics() method
+   * @param block The block to create a ResultSpan from
+   * @returns A new ResultSpan representing the block's state
+   */
   static fromBlock(block: IRuntimeBlock): ResultSpan {
-    var result = new ResultSpan();
-    var span = block.getSpans() ?? [];
-    if (span.length == 0) {
-      span = [{start: undefined, stop: undefined}];
+    const result = new ResultSpan();
+    const span = block.getSpans() ?? [];
+    
+    if (span.length === 0) {
+      span.push({start: undefined, stop: undefined});
     }
+    
+    // Basic properties
     result.blockKey = block.blockKey;
     result.index = block.getIndex();      
     result.start = span[0].start;
     result.stop = span[span.length - 1].stop;
     result.timeSpans = span;
-    result.metrics = [];
     result.label = "";
+    
+    // Get metrics using IMetricsProvider interface if available
+    // Check if the block implements IMetricsProvider by detecting the getMetrics method
+    if (typeof (block as any).getMetrics === 'function') {
+      result.metrics = (block as any).getMetrics(true, true);
+    } else if (typeof block.metrics === 'function') {
+      // Fallback to the old metrics method for backward compatibility
+      result.metrics = block.metrics(true, true);
+    } else {
+      result.metrics = [];
+    }
+    
     return result;
   }
 

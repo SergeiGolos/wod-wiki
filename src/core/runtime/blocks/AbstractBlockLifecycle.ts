@@ -1,256 +1,195 @@
 import { 
-  IRuntimeAction, 
+  PrecompiledNode, 
   IRuntimeBlock, 
   IRuntimeEvent, 
-  ITimerRuntime,
-  ITimeSpan,
-  PrecompiledNode,
-  RuntimeMetric
-} from "@/core/timer.types";
+  ITimerRuntime, 
+  RuntimeMetric, 
+  ResultSpan, 
+  IRuntimeAction,
+  ITimeSpan
+} from "../../timer.types";
+import { BlockContext, BlockContextOptions } from "./BlockContext";
+import { MetricsContext } from "@/core/metrics/MetricsContext";
+import { MetricsRelationshipType } from "@/core/metrics/MetricsRelationship";
+import { MetricsFactory } from "@/core/metrics/MetricsFactory";
 import { EventHandler } from "../EventHandler";
-import { BlockContext } from "./BlockContext";
 
-/**
- * Abstract base class that implements the Template Method pattern for runtime blocks.
- * This class provides the basic structure for all blocks and handles common behaviors
- * like logging while allowing concrete subclasses to define specific behaviors.
- */
 export abstract class AbstractBlockLifecycle implements IRuntimeBlock {
-  constructor(
-    // meta
-    protected sources: PrecompiledNode[]
-  ) {
-    this.blockId = sources.map(s => s.id).join(":") || "";
-    
-    // Initialize the BlockContext with defalt values
-    this.ctx = new BlockContext({
-      // Default empty values that will be populated in lifecycle methods
-      runtime: {} as ITimerRuntime,
-      index: 0,
-      spans: []
-    });
-  }
-  
-  public blockKey?: string | undefined;
-  // meta
-  public parent?: IRuntimeBlock | undefined;    
-  public blockId: string;
-  
-  // Block state context - holds all mutable state
+  public readonly blockKey: string;
+  public readonly blockId: string;
   protected ctx: BlockContext;
-  
-  // Runtime event handlers
-  protected handlers: EventHandler[] = [];
-  
-  // Getters for encapsulated properties
+  protected metricsContext: MetricsContext;
+  protected logger: Console = console;
+  protected readonly relationshipType: MetricsRelationshipType;
+  protected metricsFactory: MetricsFactory;
+  protected handlers: EventHandler[];
+  protected sources: PrecompiledNode[];
+  public parent?: IRuntimeBlock;
+
+  protected formatDuration(milliseconds: number): string {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const paddedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    const paddedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
+
+    if (hours > 0) {
+      const paddedHours = hours < 10 ? `0${hours}` : `${hours}`;
+      return `${paddedHours}:${paddedMinutes}:${paddedSeconds}`;
+    }
+    return `${paddedMinutes}:${paddedSeconds}`;
+  }
+
+  public get id(): string {
+    return this.blockId;
+  }
+
+  constructor(
+    sources: PrecompiledNode[],
+    parentMetricsContext: MetricsContext | undefined,
+    relationshipType: MetricsRelationshipType,
+    handlers: EventHandler[] = [],
+    parentBlock?: IRuntimeBlock
+  ) {
+    this.sources = sources;
+    this.handlers = handlers;
+    this.parent = parentBlock;
+    this.blockKey = sources.map(s => s.id ? s.id.toString() : s.constructor.name).join("-") || "unknown-block";
+    this.blockId = `${this.constructor.name}-${this.blockKey}-${Date.now()}`;
+    this.metricsFactory = new MetricsFactory();
+    this.relationshipType = relationshipType;
+
+    const contextOptions: BlockContextOptions = {
+      sources: sources,
+      blockKey: this.blockKey,
+    };
+    this.ctx = new BlockContext(contextOptions);
+
+    this.metricsContext = parentMetricsContext
+      ? parentMetricsContext.createChildContext()
+      : new MetricsContext();
+
+    const initialMetrics = this.metricsFactory.createFromStatements(this.sources.map(s => s.node));
+    this.metricsContext.addMetrics(initialMetrics);
+
+    this.logger.debug(`+=== constructor : ${this.blockKey} ===+`);
+  }
+
+  // --- IRuntimeBlock Implementation ---
   public getSources(): PrecompiledNode[] {
     return this.sources;
   }
-  
-  public getIndex(): number {
-    return this.ctx.index;
-  }
-  
-  public getSpans(): ITimeSpan[] {
-    return this.ctx.spans;
-  }
-  
-  /**
-   * Returns the block's context - useful for testing and state management
-   */
+
   public getContext(): BlockContext {
     return this.ctx;
   }
-  
-  /**
-   * Template method for enter lifecycle phase
-   * This follows the template method pattern - the base method handles
-   * common behavior while abstract methods are implemented by subclasses
-   */
+
+  public getIndex(): number {
+    return this.ctx.index;
+  }
+
+  public getSpans(): ITimeSpan[] {
+    let allTimeSpans: ITimeSpan[] = [];
+    this.ctx.resultSpans.forEach(rs => {
+      if (rs.timeSpans) {
+        allTimeSpans = allTimeSpans.concat(rs.timeSpans);
+      }
+    });
+    const currentResultSpan = this.ctx.getCurrentResultSpan();
+    if (currentResultSpan && currentResultSpan.timeSpans) {
+      allTimeSpans = allTimeSpans.concat(currentResultSpan.timeSpans);
+    }
+    return Array.from(new Set(allTimeSpans));
+  }
+
+  public getResultSpans(): ResultSpan[] {
+    return this.ctx.resultSpans;
+  }
+
+  public get<T>(fn: (node: PrecompiledNode) => T[]): T[] {
+    let results: T[] = [];
+    for (const source of this.sources) {
+      results = results.concat(fn(source));
+    }
+    return results;
+  }
+
+  public metrics(includeChildren: boolean = true, inheritFromParent: boolean = true): RuntimeMetric[] {
+    let baseMetrics = this.metricsContext.getAllMetrics(inheritFromParent);
+    if (includeChildren) {
+      this.logger.warn(`metrics(): Child metric aggregation is currently not implemented for ${this.blockKey}`);
+    }
+    return baseMetrics;
+  }
+
   public enter(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== enter : ${this.blockKey}`);
+    this.logger.debug(`+=== enter : ${this.blockKey} ===+`);
+    const enterEvent: IRuntimeEvent = {
+      timestamp: new Date(),
+      name: 'enter',
+      blockKey: this.blockKey,
+    };
     
-    // Update the context with the current runtime
-    this.ctx.runtime = runtime;
+    const defaultLabel = this.generateBlockLabel(this.constructor.name);
+    this.ctx.initializeCurrentResultSpan(enterEvent, defaultLabel);
     
-    // Call the hook method for specific behavior
+    const currentSpan = this.ctx.getCurrentResultSpan();
+    if (currentSpan) {
+      currentSpan.metrics = this.metricsContext.getAllMetrics(false);
+      if (!currentSpan.timeSpans) currentSpan.timeSpans = [];
+    }
     return this.doEnter(runtime);
   }
-  
-  /**
-   * Template method for next lifecycle phase
-   * Handles common behavior and delegates specific behavior to doNext
-   */
+
+  public leave(runtime: ITimerRuntime): IRuntimeAction[] {
+    this.logger.debug(`+=== leave : ${this.blockKey} ===+`);
+    const actions = this.doLeave(runtime);
+    const leaveEvent: IRuntimeEvent = {
+      timestamp: new Date(),
+      name: 'leave',
+      blockKey: this.blockKey,
+    };
+    this.ctx.finalizeCurrentResultSpan(leaveEvent);
+    return actions;
+  }
+
+  // Aligned with IRuntimeBlock interface: next(runtime: ITimerRuntime)
   public next(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== next : ${this.blockKey}`);
-    
-    // Update the context with the current runtime
-    this.ctx.runtime = runtime;
-    
-    // Call the hook method for specific behavior
+    this.logger.debug(`+=== next : ${this.blockKey} ===+`);
+    // Event-specific handler logic is primarily managed by the 'handle' method.
+    // 'next' is for non-event-driven progression.
     return this.doNext(runtime);
   }
-  
-  /**
-   * Template method for leave lifecycle phase
-   * Handles common behavior and delegates specific behavior to doLeave
-   */
-  public leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`+=== leave : ${this.blockKey}`);
-    
-    // Update the context with the current runtime
-    this.ctx.runtime = runtime;
-    
-    // Call the hook method for specific behavior
-    return this.doLeave(runtime);
-  }
-  
-  /**
-   * Event handling method
-   */
-  public handle(
-    runtime: ITimerRuntime,
-    event: IRuntimeEvent,
-    system: EventHandler[]
-  ): IRuntimeAction[] {
-    console.log(`+=== handle : ${this.blockKey}`);
-    
-    // Update the context with the current runtime
-    this.ctx.runtime = runtime;
-    
+
+  public handle(runtime: ITimerRuntime, event: IRuntimeEvent, systemHandlers: EventHandler[]): IRuntimeAction[] {
+    this.logger.debug(`+=== handle : ${this.blockKey} (${event.name}) ===+`);
     const result: IRuntimeAction[] = [];
-    
-    // Process the event with block-specific handlers
-    for (const handler of this.handlers) {
+    const allHandlers = Array.from(new Set([...systemHandlers, ...this.handlers]));
+
+    for (const handler of allHandlers) {
       const actions = handler.apply(event, runtime);
       result.push(...actions);
     }
-    
-    // If no actions generated by block handlers, try system handlers
-    if (result.length === 0) {
-      for (const handler of system) {
-        const actions = handler.apply(event, runtime);
-        result.push(...actions);
-      }
-    }
-    
-    return result;
-  }
-  
-  /**
-   * Helper method to retrieve data from the source nodes
-   */
-  public get<T>(fn: (node: PrecompiledNode) => T[], recursive?: boolean): T[] {
-    let block: IRuntimeBlock = this;
-    let result: T[] = block.getSources().flatMap(fn) ?? [];
-    while (recursive && block.parent) {
-      block = block.parent;
-      result.push(...block.getSources().flatMap(fn) ?? []);
-    }
-    
+    // Potentially add results from a doHandle hook if needed for block-specific non-handler logic
+    // result.push(...this.doHandle(event, runtime));
     return result;
   }
 
-  /**
-   * Calculates metrics for this block, potentially inheriting from parent blocks
-   * @param includeChildren Whether to include metrics from child blocks (default: true)
-   * @param inheritFromParent Whether to inherit missing metrics from parent blocks (default: true)
-   * @returns An array of RuntimeMetric objects representing the metrics for this block
-   */
-  public metrics(includeChildren: boolean = true, inheritFromParent: boolean = true): RuntimeMetric[] {
-    // Start with metrics from this block's sources
-    let metrics = this.getSources().flatMap(source => {
-      // Create a RuntimeMetric from the source's properties
-      const metric: RuntimeMetric = {
-        sourceId: source.id.toString(),
-        effort: source.effort()?.[0]?.effort || '',
-        values: [
-          ...source.repetitions().map(rep => ({ 
-            type: 'repetitions' as const, 
-            value: rep.reps ?? 0, 
-            unit: 'reps' 
-          })),
-          ...source.resistance().map(res => ({ 
-            type: 'resistance' as const, 
-            value: parseFloat(res.value) || 0, 
-            unit: res.units || 'kg' 
-          })),
-          ...source.distance().map(dist => ({ 
-            type: 'distance' as const, 
-            value: parseFloat(dist.value) || 0, 
-            unit: dist.units || 'm' 
-          }))
-        ]
-      };
-      return metric.values.length > 0 ? [metric] : [];
-    });
-
-    // Include metrics from children if requested
-    if (includeChildren && this.parent) {
-      const childMetrics = this.parent.metrics(true, false);
-      metrics = this.mergeMetrics(metrics, childMetrics);
-    }
-
-    // Inherit missing metrics from parent if requested
-    if (inheritFromParent && this.parent) {
-      const parentMetrics = this.parent.metrics(false, true);
-      metrics = this.mergeMetrics(metrics, parentMetrics, true);
-    }
-
-    return metrics;
-  }
-
-  /**
-   * Merges two sets of metrics, with options to handle conflicts
-   * @param targetMetrics The target metrics that will receive new metrics
-   * @param sourceMetrics The source metrics to merge in
-   * @param onlyIfMissing If true, only add metrics that don't already exist in target
-   * @returns A new array containing the merged metrics
-   */
-  protected mergeMetrics(
-    targetMetrics: RuntimeMetric[],
-    sourceMetrics: RuntimeMetric[],
-    onlyIfMissing: boolean = false
-  ): RuntimeMetric[] {
-    const result = [...targetMetrics];
-    
-    for (const sourceMetric of sourceMetrics) {
-      const existingIndex = result.findIndex(m => m.effort === sourceMetric.effort);
-      
-      if (existingIndex >= 0) {
-        if (!onlyIfMissing) {
-          // Merge values from source into existing metric
-          const existing = result[existingIndex];
-          const newValues = sourceMetric.values.filter(sv => 
-            !existing.values.some(ev => ev.type === sv.type)
-          );
-          existing.values.push(...newValues);
-        }
-      } else {
-        // Add the entire source metric if it doesn't exist in target
-        result.push({...sourceMetric});
-      }
-    }
-    
-    return result;
-  }
-  
-  // Abstract hook methods
-  /**
-   * Hook method for enter - subclasses must implement
-   * Implementation should use this.ctx for state management
-   */
   protected abstract doEnter(runtime: ITimerRuntime): IRuntimeAction[];
-  
-  /**
-   * Hook method for next - subclasses must implement
-   * Implementation should use this.ctx for state management
-   */
-  protected abstract doNext(runtime: ITimerRuntime): IRuntimeAction[];
-  
-  /**
-   * Hook method for leave - subclasses must implement
-   * Implementation should use this.ctx for state management
-   */
   protected abstract doLeave(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract doNext(runtime: ITimerRuntime): IRuntimeAction[];
+  // Optional: If blocks need to react to handled events beyond handlers.
+  // protected doHandle(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+  //   return [];
+  // }
+
+  protected generateBlockLabel(blockType: string, details?: string): string {
+    let label = `${blockType}: ${this.blockKey}`;
+    if (details) {
+      label += ` (${details})`;
+    }
+    return label;
+  }
 }

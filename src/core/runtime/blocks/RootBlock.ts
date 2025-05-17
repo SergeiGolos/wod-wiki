@@ -2,8 +2,6 @@ import {
   IRuntimeAction,
   ITimerRuntime,
   PrecompiledNode,
-  ResultSpan,
-  StatementNode,
   ZeroIndexMeta,
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
@@ -14,8 +12,7 @@ import {
 } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { StartTimerAction } from "../actions/StartTimerAction";
-import { StartEvent } from "../inputs/StartEvent";
+import { MetricsRelationshipType } from "@/core/metrics";
 
 /**
  * Represents the root of the execution tree.
@@ -23,13 +20,15 @@ import { StartEvent } from "../inputs/StartEvent";
  */
 export class RootBlock extends RuntimeBlock {
   constructor(private nodes: PrecompiledNode[]) {
-    super([new PrecompiledNode({
-      id: -1,      
-      children: [],
-      fragments: [],
-      parent: undefined,
-      meta: new ZeroIndexMeta(),    
-    })]);
+    super([
+      new PrecompiledNode({
+        id: -1,      
+        children: [],
+        fragments: [],
+        parent: undefined,
+        meta: new ZeroIndexMeta(),    
+      })
+    ], undefined, MetricsRelationshipType.ADD);
   }
 
   /**
@@ -60,13 +59,17 @@ export class RootBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder
-    const resultSpan = ResultSpan.fromBlock(this);      
+    const resultSpan = this.ctx.getCurrentResultSpan();
     
-    return [
-      new WriteResultAction(resultSpan),
-      new PushEndBlockAction()
-    ];
+    if (resultSpan) {
+      return [
+        new WriteResultAction(resultSpan),
+        new PushEndBlockAction()
+      ];
+    }
+    this.logger.warn(`RootBlock: ${this.blockKey} doLeave called without an active ResultSpan.`);
+    return [new PushEndBlockAction()]; // Still push EndBlockAction if span is missing
   }
 }

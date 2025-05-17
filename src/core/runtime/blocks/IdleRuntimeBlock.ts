@@ -2,25 +2,26 @@ import {
   IdleStatementNode,
   IRuntimeAction,
   ITimerRuntime,
-  ResultSpan,
   ZeroIndexMeta
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
+import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
-import { WriteResultAction } from "../outputs/WriteResultAction";
+import { MetricsRelationshipType } from "@/core/metrics";
 
 export class IdleRuntimeBlock extends RuntimeBlock {
   constructor() {
-    super([new IdleStatementNode({
-      id: -1,
-      children: [],
-      meta: new ZeroIndexMeta(),
-      fragments: []
-    })]);
+    super([
+      new IdleStatementNode({
+        id: -1,
+        children: [],
+        meta: new ZeroIndexMeta(),
+        fragments: []
+      })
+    ], undefined, MetricsRelationshipType.INHERIT);
     // Initialize context values
     this.ctx.index = 1;
     this.handlers = [];
@@ -42,10 +43,6 @@ export class IdleRuntimeBlock extends RuntimeBlock {
    * Implementation of the doLeave hook method from the template pattern
    */
   protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    // Create a span to capture the idle time using ResultBuilder
-    // Use the enhanced BlockContext-based approach for events and metrics
-    const resultSpan = ResultSpan.fromBlock(this)
-
     return [];
   }
 

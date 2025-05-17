@@ -54,9 +54,8 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
       initializer.handleBeforeMount(monaco);
     }
     
-    function handleEditorValidation(markers: editor.IMarker[]) {
-      // model markers
-      markers.forEach((marker) => console.log('onValidate:', marker.message));
+    function handleEditorValidation(_markers: editor.IMarker[]) {
+      // model markers - processing removed
     }
         
   useEffect(() => {
@@ -72,7 +71,10 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
   // Effect for highlighting the cursor line
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current || cursor == null) return;
-    const line  = cursor.stack?.[0].meta?.line ?? -1;
+    // Access cursor line safely with proper type handling
+    const line = cursor && 'stack' in cursor && Array.isArray(cursor.stack) && cursor.stack.length > 0 
+      ? cursor.stack[0]?.meta?.line ?? -1 
+      : -1;
     // Add a decoration to highlight the current line
     const decorations = editorRef.current.createDecorationsCollection([
       {

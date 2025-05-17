@@ -1,4 +1,5 @@
-import { IRuntimeBlock } from "../timer.types";
+import { IRuntimeBlock, ResultSpan } from "../timer.types";
+import { ResultSpanRegistry } from "../metrics";
 
 /**
  * Type definitions for traversal callback functions
@@ -12,6 +13,11 @@ type StackTraversalCondition = (block: IRuntimeBlock, result: any) => boolean;
  */
 export class RuntimeStack {  
   public stack: Array<IRuntimeBlock> = [];
+  
+  /**
+   * Registry for centralized management of ResultSpans
+   */
+  public readonly spanRegistry = new ResultSpanRegistry();
   /**
    * Gets traces for nodes in the stack
    * @param stack Array of statement nodes to find traces for
@@ -41,6 +47,22 @@ export class RuntimeStack {
     );
     
     block.blockKey = keyParts.join('|');
+    
+    // Register parent-child relationship in existing spans if applicable
+    if (block.parent) {
+      const parentSpans = block.parent.getResultSpans();
+      const parentKey = block.parent.blockKey;
+      
+      // If the parent has spans, add this block as a child to them
+      if (parentKey && parentSpans && parentSpans.length > 0) {
+        parentSpans.forEach(span => {
+          if (!span.children.includes(block.blockKey || '')) {
+            span.children.push(block.blockKey || '');
+          }
+        });
+      }
+    }
+    
     return block;
   }
   
@@ -48,8 +70,16 @@ export class RuntimeStack {
     if (this.stack.length == 0) {
       return undefined;
     }
+    
+    const poppedBlock = this.stack.pop();
+    
+    // Register any spans from the popped block before it's gone
+    if (poppedBlock) {
+      const spans = poppedBlock.getResultSpans();
+      spans.forEach(span => this.spanRegistry.registerSpan(span));
+    }
 
-    return this.stack.pop();
+    return poppedBlock;
   }
   
   /**
@@ -84,6 +114,78 @@ export class RuntimeStack {
    * @param callback Function to call for each block's statement
    * @returns The first non-undefined result from the callback
    */
+  /**
+   * Gets all result spans from all blocks in the stack
+   * @returns Array of all ResultSpans
+   */
+  public getAllResultSpans(): ResultSpan[] {
+    const allSpans: ResultSpan[] = [];
+    
+    // Collect spans from all blocks in the stack
+    this.traverseAll(block => {
+      const blockSpans = block.getResultSpans();
+      blockSpans.forEach(span => {
+        // Check if this span is already in our collection to avoid duplicates
+        const existingIndex = allSpans.findIndex(s => 
+          s.blockKey === span.blockKey && 
+          s.index === span.index && 
+          s.start?.timestamp.getTime() === span.start?.timestamp.getTime()
+        );
+        
+        if (existingIndex < 0) {
+          allSpans.push(span);
+        }
+      });
+      
+      return undefined; // Continue traversal
+    });
+    
+    return allSpans;
+  }
+  
+  /**
+   * Gets result spans for a specific block key
+   * @param blockKey The block key to get spans for
+   * @returns Array of matching ResultSpans
+   */
+  public getResultSpansByBlockKey(blockKey: string): ResultSpan[] {
+    return this.spanRegistry.getSpansByBlockKey(blockKey);
+  }
+  
+  /**
+   * Gets spans by time range
+   * @param startTime Start of the time range
+   * @param endTime End of the time range
+   * @returns Array of matching ResultSpans
+   */
+  public getResultSpansByTimeRange(startTime: Date, endTime: Date): ResultSpan[] {
+    return this.spanRegistry.getSpansByTimeRange(startTime, endTime);
+  }
+  
+  /**
+   * Aggregates metrics across all spans in the stack
+   * @returns Aggregated metrics
+   */
+  public aggregateMetrics() {
+    const allSpans = this.getAllResultSpans();
+    return this.spanRegistry.aggregateMetrics(allSpans);
+  }
+  
+  /**
+   * Gets a hierarchical view of result spans
+   * @param rootBlockKey Optional root block key to start from
+   * @returns Hierarchical view of spans
+   */
+  public getHierarchicalSpans(rootBlockKey?: string) {
+    // Make sure all spans are registered
+    this.traverseAll(block => {
+      this.spanRegistry.registerBlockSpans(block);
+      return undefined;
+    });
+    
+    return this.spanRegistry.createHierarchicalView(rootBlockKey);
+  }
+
   public traverseFirst<T>(
     callback: BlockTraversalCallback<T>,
     condition?: StackTraversalCondition,

@@ -27,6 +27,6 @@ export class BlockEffortStrategy implements IRuntimeBlockStrategy {
     nodes: PrecompiledNode[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-    return new EffortBlock(nodes);
+    return new EffortBlock(nodes, undefined);
   }
 }

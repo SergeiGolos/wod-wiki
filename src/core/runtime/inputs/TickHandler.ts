@@ -14,7 +14,7 @@ export class TickHandler extends EventHandler {
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
     const block = runtime.trace.current();      
-    const duration = block?.get(getDuration, true)[0];
+    const duration = block?.get(getDuration)[0];
     if (!duration) {
       return [];
     }

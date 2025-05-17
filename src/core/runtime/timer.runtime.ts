@@ -58,16 +58,9 @@ export class TimerRuntime implements ITimerRuntimeIo {
     this.push(this.jit.root(this));
   }
   
-  apply(actions: IRuntimeAction[], lifeCycle: string) {
-    
-    if (actions.length > 0) {
-      console.debug(
-        `TimerRuntime ${actions.length} action(s) for [${lifeCycle}]`, 
-        actions.map(a => a.constructor.name));
-    }
-
+  apply(actions: IRuntimeAction[], _lifeCycle: string) {
+    // Apply all actions from the lifecycle
     for (const action of actions) {          
-      console.debug(`&=== applying action: ${action.constructor.name}`);
       action.apply(this, this.input$, this.output$);
     }    
   }
@@ -88,7 +81,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   push(block: IRuntimeBlock): IRuntimeBlock {            
-    console.log(`==== Push: ${block?.constructor.name ?? "block not found"}`);
+    console.log(`==== Push: ${block?.constructor.name ?? "block not found"} (blockKey: ${block?.blockKey})`);
     block = this.trace.push(block);         
     let actions = block?.enter(this) ?? [];
     this.apply(actions, "enter");
@@ -97,8 +90,10 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   pop(): IRuntimeBlock | undefined {
-    console.log(`==== Pop: ${this.trace.current()?.constructor.name}`);
+    const currentBlock = this.trace.current();
+    console.log(`==== Pop: ${currentBlock?.constructor.name} (blockKey: ${currentBlock?.blockKey})`);
     let block = this.trace.pop();    
+    
     let actions = block?.leave(this) ?? [];        
     this.apply(actions, "leave");
     
@@ -107,7 +102,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     this.apply(actions, "next");
 
     block = this.trace.current();
-    console.log(`==== Load: ${block?.constructor.name}`, block?.blockKey);
+    console.log(`==== Load: ${block?.constructor.name} (blockKey: ${block?.blockKey})`);
     return block;
   } 
 
