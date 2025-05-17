@@ -189,7 +189,7 @@ export class RepeatingBlock extends RuntimeBlock {
     }
 
     this.lastLap = laps?.image ?? "";
-    
+   
 
     
     return statements.length > 0
@@ -237,3 +237,4 @@ function modIndex<T>(items: T[] | undefined, index: number): T | undefined {
   }
   return items[index % items.length];
 }
+

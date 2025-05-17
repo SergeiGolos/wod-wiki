@@ -284,6 +284,7 @@ export class PrecompiledNode implements StatementNode {
     return durations.reduce((a, b) => new Duration(a.original ?? 0 + (b.original ?? 0), b.sign));
   }
 
+
   public repetitions(): RepFragment[] {
     return getRepetitions(this);    
   }
@@ -439,6 +440,22 @@ export class ResultSpan {
       result.metrics = [];
     }
     
+    return result;
+  }
+
+  static fromBlock(block: IRuntimeBlock): ResultSpan {
+    var result = new ResultSpan();
+    var span = block.getSpans() ?? [];
+    if (span.length == 0) {
+      span = [{start: undefined, stop: undefined}];
+    }
+    result.blockKey = block.blockKey;
+    result.index = block.getIndex();      
+    result.start = span[0].start;
+    result.stop = span[span.length - 1].stop;
+    result.timeSpans = span;
+    result.metrics = [];
+    result.label = "";
     return result;
   }
 

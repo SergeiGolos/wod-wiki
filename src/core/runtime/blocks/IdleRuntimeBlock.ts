@@ -2,12 +2,13 @@ import {
   IdleStatementNode,
   IRuntimeAction,
   ITimerRuntime,
+  ResultSpan,
   ZeroIndexMeta
 } from "@/core/timer.types";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { PopBlockAction } from "../actions/PopBlockAction";
+import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 import { MetricsRelationshipType } from "@/core/metrics";

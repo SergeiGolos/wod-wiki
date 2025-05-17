@@ -20,6 +20,7 @@ export interface BlockContextOptions {
  * Manages the runtime context for a block, including its state, spans, and metrics.
  */
 export class BlockContext {
+
   public runtime: ITimerRuntime;
   public index: number;
   public blockKey?: string;
