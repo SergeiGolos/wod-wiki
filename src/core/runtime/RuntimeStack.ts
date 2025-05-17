@@ -37,16 +37,31 @@ export class RuntimeStack {
   public push(block: IRuntimeBlock): IRuntimeBlock {        
     block.parent = this.current();    
     this.stack.push(block);    
-    // Use the traverseParentChain method to build the blockKey
+    // Use the traverseAll method to build the blockKey by iterating up the current stack
     const keyParts: string[] = [];
     this.traverseAll(
       (currentBlock) => {
-        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.getIndex()}`);
+        // It's crucial that blockId and getIndex() return valid, non-empty strings/numbers
+        const blockIdPart = currentBlock.blockId;
+        const indexPart = currentBlock.getIndex();
+        if (!blockIdPart || typeof indexPart === 'undefined') {
+            // This should ideally not happen if blocks are constructed correctly
+            console.error('Block ID or index is missing during blockKey generation:', currentBlock);
+            // Fallback or error to prevent empty key parts
+            keyParts.unshift(`error_generating_key_part:${Date.now()}`); 
+        } else {
+            keyParts.unshift(`${blockIdPart}:${indexPart}`);
+        }
         return undefined; // Continue traversal
       }
     );
     
     block.blockKey = keyParts.join('|');
+    if (!block.blockKey) {
+      // This case should be rare if keyParts always get populated, 
+      // but an explicit check adds robustness.
+      throw new Error(`Generated blockKey is empty for blockId: ${block.blockId}. Key parts: ${JSON.stringify(keyParts)}`);
+    }
     
     // Register parent-child relationship in existing spans if applicable
     if (block.parent) {

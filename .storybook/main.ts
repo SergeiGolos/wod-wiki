@@ -1,5 +1,6 @@
 import type { StorybookConfig } from "@storybook/react-vite";
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
+import type { PluginOption } from 'vite';
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
@@ -43,10 +44,10 @@ const config: StorybookConfig = {
       config.plugins = [];
     }
     // Add the Monaco editor plugin.
-    // The cast to `any` is used here because the `monacoEditorPlugin` type
+    // The cast to `PluginOption` is used here because the `monacoEditorPlugin` type
     // might not perfectly align with Storybook's expected Vite plugin type,
     // but it is compatible in practice.
-    config.plugins.push(monacoEditorPlugin({}) as any);
+    config.plugins.push(monacoEditorPlugin({}) as PluginOption);
     return config;
   },
 };
