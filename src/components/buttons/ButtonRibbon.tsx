@@ -28,9 +28,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
   };
 
   const clickEvent = (button: IActionButton) => {
-    const event = button.event;
-    // CASDADE: Log the button click and the event it's supposed to trigger
-    console.log(`ButtonRibbon: clickEvent triggered for button label: "${button.label}", event: "${event}"`);
+    const event = button.event;    
     setEvent({ name: event, timestamp: new Date() });
   }
 
@@ -45,7 +43,6 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
               className={cn(getButtonStyle(button), "shadow-md text-lg sm:text-2xl py-2 px-4")}
             >
               {button.label && <span className="mr-2">{button.label}</span>}
-              {/* CASDADE: Conditionally render icon only if it exists */}
               {button.icon && <button.icon className="w-6 h-6 mt-1" />}
             </button>
           ))}

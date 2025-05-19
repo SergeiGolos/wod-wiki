@@ -14,6 +14,9 @@ import { getRounds } from "./runtime/blocks/readers/getRounds";
 import { Duration } from "./Duration";
 import { CodeFragment } from "./CodeFragment";
 import { ZeroIndexMeta } from "./ZeroIndexMeta";
+import { IncrementFragment } from "./fragments/IncrementFragment";
+import { getIncrement } from "./runtime/blocks/readers/getIncrement";
+import { BlockKey } from "./BlockKey";
 
 
 export class JitStatement implements ICodeStatement {
@@ -34,67 +37,79 @@ export class JitStatement implements ICodeStatement {
   public durations(): Duration[] {
     return getDuration(this);
   }
-  public duration(index:number): Duration {
-    const durations = getDuration(this);
+  public duration(blockKey: BlockKey): Duration {
+    const durations = this.durations();
     if (durations.length == 0) {
       return new Duration(undefined);
     }
-    return durations[index % durations.length];
+    return durations[blockKey.index % durations.length];
   }
 
-  public repetition(index:number): RepFragment | undefined {
-    const reps = getRepetitions(this);
-    if (reps.length == 0) {
+  public increments(): IncrementFragment[] {
+    return getIncrement(this);
+  }
+  public increment(blockKey: BlockKey): IncrementFragment | undefined {
+    const increments = this.increments();
+    if (increments.length == 0) {
       return undefined;
     }
-    return reps[index % reps.length];
+    return increments[blockKey.index % increments.length];
   }
 
   public repetitions(): RepFragment[] {
     return getRepetitions(this);
   }
+  public repetition(blockKey: BlockKey): RepFragment | undefined {
+    const reps = this.repetitions();
+    if (reps.length == 0) {
+      return undefined;
+    }
+    return reps[blockKey.index % reps.length];
+  }
+ 
 
   public resistances(): ResistanceFragment[] {
     return getResistance(this);
   }
-  public resistance(index:number): ResistanceFragment | undefined {
-    const resistances = getResistance(this);
+  
+  public resistance(blockKey: BlockKey): ResistanceFragment | undefined {
+    const resistances = this.resistances();
     if (resistances.length == 0) {
       return undefined;
     }
-    return resistances[index % resistances.length];
+    return resistances[blockKey.index % resistances.length];
   }
 
   public distances(): DistanceFragment[] {
     return getDistance(this);
   }
-  public distance(index:number): DistanceFragment | undefined {
-    const distances = getDistance(this);
+  public distance(blockKey: BlockKey): DistanceFragment | undefined {
+    const distances = this.distances();
     if (distances.length == 0) {
       return undefined;
     }
-    return distances[index % distances.length];
+    return distances[blockKey.index % distances.length];
   }
 
   public efforts(): EffortFragment[] {
     return getEffort(this);
   }
-  public effort(index:number): EffortFragment | undefined {
-    const efforts = getEffort(this);
+  public effort(blockKey: BlockKey): EffortFragment | undefined {
+    const efforts = this.efforts();
     if (efforts.length == 0) {
       return undefined;
     }
-    return efforts[index % efforts.length];
+    return efforts[blockKey.index % efforts.length];
   }
 
   public rounds(): RoundsFragment[] {
     return getRounds(this);
   }
-  public round(index:number): RoundsFragment | undefined {
-    const rounds = getRounds(this);
+  public round(blockKey: BlockKey): RoundsFragment | undefined {
+    const rounds = this.rounds();
     if (rounds.length == 0) {
       return undefined;
     }
-    return rounds[index % rounds.length];
+    return rounds[blockKey.index % rounds.length];
   }
 }

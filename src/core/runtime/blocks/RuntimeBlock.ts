@@ -4,6 +4,7 @@ import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
+import { LapFragment } from "@/core/fragments/LapFragment";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 
@@ -76,5 +77,49 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     }
 
     return result;
+  }
+
+  /**
+   * Retrieves a sequence of consecutive child JitStatements that are part of a 'compose' group.
+   * Iteration starts from the given startIndex and continues as long as subsequent statements
+   * have a LapFragment with group type 'compose'.
+   * 
+   * @param startIndex The index in `this.sources` to start looking for the compose group.
+   * @returns An array of JitStatement objects belonging to the consecutive compose group.
+   */
+  public getChildStatements(startIndex: number): JitStatement[] {
+    const groupStatements: JitStatement[] = [];
+
+    if (startIndex < 0 || startIndex >= this.sources.length) {
+      // Return empty if startIndex is out of bounds
+      return groupStatements;
+    }
+
+    for (let i = startIndex; i < this.sources.length; i++) {
+      const currentStatement = this.sources[i];
+      let isComposeStatement = false;
+
+      // Check if the statement has a LapFragment with groupType 'compose'
+      if (currentStatement.fragments) {
+        for (const fragment of currentStatement.fragments) {
+          if (fragment.type === 'lap') {
+            // We assume fragment is LapFragment based on type; cast for property access
+            const lapFragment = fragment as LapFragment;
+            if (lapFragment.group === 'compose') {
+              isComposeStatement = true;
+              break; // Found a compose LapFragment, no need to check others
+            }
+          }
+        }
+      }
+
+      if (isComposeStatement) {
+        groupStatements.push(currentStatement);
+      } else {
+        // Stop if the current statement is not part of the compose group
+        break;
+      }
+    }
+    return groupStatements;
   }
 }

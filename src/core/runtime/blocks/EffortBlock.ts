@@ -13,6 +13,7 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
+import { SetClockAction } from "../outputs/SetClockAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -35,7 +36,7 @@ export class EffortBlock extends RuntimeBlock {
     return [
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
-      // SetClockAction removed
+      new SetClockAction("runtime")
     ];
   }
 

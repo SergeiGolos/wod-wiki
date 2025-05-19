@@ -13,7 +13,7 @@ export class SetClockAction extends OutputAction {
 
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
         const block = _runtime.trace.current();
-        const duration = block?.selectMany(getDuration)[0];
+        const duration = block?.sources[0].duration(block.blockKey);
         return [{
             eventType: this.eventType,
             bag: { duration: new TimeSpanDuration(duration?.original ?? 0,'+', []), target: this.target },
