@@ -1,17 +1,19 @@
-import { IRuntimeBlock, ResultSpan, RuntimeMetric } from "../timer.types";
+import { RuntimeSpan } from "../RuntimeSpan";
+import { IRuntimeBlock } from "../IRuntimeBlock";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Centralized registry for managing ResultSpans across the runtime.
  * Provides methods for querying, filtering, and aggregating span data.
  */
 export class ResultSpanRegistry {
-  private spans: ResultSpan[] = [];
+  private spans: RuntimeSpan[] = [];
   
   /**
    * Registers a span in the registry
    * @param span The span to register
    */
-  public registerSpan(span: ResultSpan): void {
+  public registerSpan(span: RuntimeSpan): void {
     if (!span) return;
     
     // Check if the span already exists by comparing key properties
@@ -37,7 +39,7 @@ export class ResultSpanRegistry {
   public registerBlockSpans(block: IRuntimeBlock): void {
     if (!block) return;
     
-    const spans = block.getResultSpans();
+    const spans = block.spans();
     spans.forEach(span => this.registerSpan(span));
   }
   
@@ -45,7 +47,7 @@ export class ResultSpanRegistry {
    * Gets all spans in the registry
    * @returns Array of all registered ResultSpans
    */
-  public getAllSpans(): ResultSpan[] {
+  public getAllSpans(): RuntimeSpan[] {
     return [...this.spans];
   }
   
@@ -54,7 +56,7 @@ export class ResultSpanRegistry {
    * @param blockKey The block key to filter by
    * @returns Array of matching ResultSpans
    */
-  public getSpansByBlockKey(blockKey: string): ResultSpan[] {
+  public getSpansByBlockKey(blockKey: string): RuntimeSpan[] {
     return this.spans.filter(span => span.blockKey === blockKey);
   }
   
@@ -64,7 +66,7 @@ export class ResultSpanRegistry {
    * @param endTime End of the time range
    * @returns Array of matching ResultSpans
    */
-  public getSpansByTimeRange(startTime: Date, endTime: Date): ResultSpan[] {
+  public getSpansByTimeRange(startTime: Date, endTime: Date): RuntimeSpan[] {
     return this.spans.filter(span => {
       // If span has start time
       if (span.start) {
@@ -86,7 +88,7 @@ export class ResultSpanRegistry {
    * @param metricType Type of metric to filter by (optional)
    * @returns Array of matching ResultSpans
    */
-  public getSpansByMetric(effortName?: string, metricType?: string): ResultSpan[] {
+  public getSpansByMetric(effortName?: string, metricType?: string): RuntimeSpan[] {
     return this.spans.filter(span => {
       // If no criteria provided, return all spans with metrics
       if (!effortName && !metricType) {
@@ -111,7 +113,7 @@ export class ResultSpanRegistry {
    * @param spans The spans to aggregate metrics from
    * @returns Aggregated metrics
    */
-  public aggregateMetrics(spans: ResultSpan[]): RuntimeMetric[] {
+  public aggregateMetrics(spans: RuntimeSpan[]): RuntimeMetric[] {
     const metricsMap = new Map<string, RuntimeMetric>();
     
     // Process each span
@@ -185,7 +187,7 @@ export class ResultSpanRegistry {
    * @returns A tree node with the span and its children
    * @private
    */
-  private buildSpanTree(span: ResultSpan): SpanNode {
+  private buildSpanTree(span: RuntimeSpan): SpanNode {
     const node: SpanNode = {
       span,
       children: []
@@ -220,6 +222,6 @@ export class ResultSpanRegistry {
  * Represents a node in the span hierarchy tree
  */
 export interface SpanNode {
-  span?: ResultSpan;
+  span?: RuntimeSpan;
   children: SpanNode[];
 }

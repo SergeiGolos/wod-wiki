@@ -1,10 +1,12 @@
-import { PrecompiledNode, ITimerRuntime, IRuntimeBlock } from "@/core/timer.types";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 
 export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: PrecompiledNode[]): boolean {
+  canHandle(nodes: JitStatement[]): boolean {
     // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
@@ -24,7 +26,7 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    nodes: PrecompiledNode[],
+    nodes: JitStatement[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
     // Only handle the array if it contains exactly one node

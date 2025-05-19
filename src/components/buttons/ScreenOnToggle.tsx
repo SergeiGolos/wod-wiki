@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { useScreen } from "@/contexts/ScreenContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 

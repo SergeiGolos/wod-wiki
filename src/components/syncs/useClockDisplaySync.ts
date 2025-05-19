@@ -1,4 +1,4 @@
-import { OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
 import { useState, useEffect } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 

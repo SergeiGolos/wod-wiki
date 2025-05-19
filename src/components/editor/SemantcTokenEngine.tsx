@@ -1,4 +1,5 @@
-import { WodRuntimeScript, WodWikiToken } from "@/core/timer.types";
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { WodWikiToken } from "@/core/WodWikiToken";
 
 export class SemantcTokenEngine {
   constructor(public tokens: WodWikiToken[]) {

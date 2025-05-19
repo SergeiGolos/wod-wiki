@@ -1,4 +1,5 @@
-import { IActionButton, OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { IActionButton } from "@/core/IActionButton";
 import { useState } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 

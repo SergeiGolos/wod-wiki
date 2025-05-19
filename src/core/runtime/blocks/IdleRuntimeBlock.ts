@@ -1,17 +1,14 @@
-import {
-  IdleStatementNode,
-  IRuntimeAction,
-  ITimerRuntime,
-  ResultSpan,
-  ZeroIndexMeta
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { IdleStatementNode } from "@/core/IdleStatementNode";
+import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { NextStatementAction, PopBlockAction } from "../actions/PopBlockAction";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
-import { MetricsRelationshipType } from "@/core/metrics";
+import { PopBlockAction } from "../actions/PopBlockAction";
 
 export class IdleRuntimeBlock extends RuntimeBlock {
   constructor() {
@@ -22,16 +19,10 @@ export class IdleRuntimeBlock extends RuntimeBlock {
         meta: new ZeroIndexMeta(),
         fragments: []
       })
-    ], undefined, MetricsRelationshipType.INHERIT);
-    // Initialize context values
-    this.ctx.index = 1;
-    this.handlers = [];
+    ]);
   }
 
-  /**
-   * Implementation of the doEnter hook method from the template pattern
-   */
-  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
+  public enter(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetButtonsAction([startButton], "system"), 
       new SetButtonsAction([], "runtime"),
@@ -40,17 +31,11 @@ export class IdleRuntimeBlock extends RuntimeBlock {
     ];
   }
 
-  /**
-   * Implementation of the doLeave hook method from the template pattern
-   */
-  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [];
   }
 
-  /**
-   * Implementation of the doNext hook method from the template pattern
-   */
-  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
+  public next(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [new PopBlockAction()];
   }
 }

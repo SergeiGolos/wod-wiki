@@ -3,7 +3,8 @@ import { WodTimer } from '@/components/clock/WodTimer';
 
 import { Observable, Subscription } from 'rxjs';
 import { cn } from '@/core/utils';
-import { IDuration, OutputEvent } from '@/core/timer.types';
+import { IDuration } from "@/core/IDuration";
+import { OutputEvent } from "@/core/OutputEvent";
 
 export interface CastReceiverProps {
   event$: Observable<OutputEvent>;

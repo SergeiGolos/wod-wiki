@@ -1,4 +1,4 @@
-import { RuntimeMetric } from "../timer.types";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Types of relationships between parent and child blocks for metrics inheritance

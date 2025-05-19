@@ -1,9 +1,6 @@
-import {
-  IRuntimeBlock,
-  ITimerRuntime,
-  PrecompiledNode,
-  
-} from "../timer.types";
+import { ITimerRuntime } from "../ITimerRuntime";
+import { JitStatement } from "../JitStatement";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 import { EventHandler } from "./EventHandler";
 
 import { TickHandler } from "./inputs/TickHandler";
@@ -71,7 +68,7 @@ export class RuntimeJit {
    * @param node The statement node to compile
    * @returns A compiled runtime block or undefined if compilation fails
    */
-  compile(node: PrecompiledNode[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
+  compile(node: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
     return this.strategyManager.compile(node, runtime);
   }  
 }

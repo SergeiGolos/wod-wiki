@@ -1,10 +1,11 @@
 import React from 'react';
-import { ResultSpan, MetricValue } from '@/core/timer.types';
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { MetricValue } from "@/core/MetricValue";
 import EditableMetricCell, { createMetricValidation } from './EditableMetricCell';
 import { cn } from '@/core/utils';
 
 interface EventsViewProps {
-  results: [ResultSpan, boolean][];
+  results: [RuntimeSpan, boolean][];
   onEffortClick: (effort: string) => void;  
 }
 

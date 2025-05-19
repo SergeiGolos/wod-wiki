@@ -1,4 +1,7 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, ResultSpan } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { EventHandler } from "@/core/runtime/EventHandler";
 
 
@@ -26,7 +29,7 @@ export class SaveHandler extends EventHandler {
     const allSpans = runtime.trace.spanRegistry.getAllSpans();
     let historyString = "";
     if (allSpans && allSpans.length > 0) {
-      historyString = allSpans.map((span: ResultSpan) => JSON.stringify(span, null, 2)).join('\n\n');
+      historyString = allSpans.map((span: RuntimeSpan) => JSON.stringify(span, null, 2)).join('\n\n');
     }
 
     const scriptText = `${runtime.code}\n\n${historyString}`;

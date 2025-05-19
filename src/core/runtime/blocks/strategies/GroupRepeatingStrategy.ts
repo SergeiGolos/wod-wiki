@@ -1,4 +1,6 @@
-import { PrecompiledNode, IRuntimeBlock, ITimerRuntime } from "@/core/timer.types";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RepeatingBlock } from "../RepeatingBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
@@ -7,7 +9,7 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  * Each child individually goes through all rounds before moving to the next child
  */
 export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: PrecompiledNode[]): boolean {
+  canHandle(nodes: JitStatement[]): boolean {
     // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
@@ -24,7 +26,7 @@ export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    nodes: PrecompiledNode[],
+    nodes: JitStatement[],
     _runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
     // Only handle the array if it contains exactly one node

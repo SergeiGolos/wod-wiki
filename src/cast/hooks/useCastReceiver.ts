@@ -1,4 +1,4 @@
-import { OutputEvent } from '@/core/timer.types';
+import { OutputEvent } from "@/core/OutputEvent";
 import { useEffect } from 'react';
 import { Subject } from 'rxjs';
 

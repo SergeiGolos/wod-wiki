@@ -1,9 +1,10 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { endButton, resumeButton } from "@/components/buttons/timerButtons";
-import { BlockContext } from "../blocks/BlockContext";
 
 export class StopEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -22,13 +23,8 @@ export class StopHandler extends EventHandler {
       console.warn("StopHandler: No current block found.");
       return [];
     }
-    const context: BlockContext = block.getContext(); 
-    if (!context) {
-      console.warn(`StopHandler: No context found for block ${block.blockKey}.`);
-      return [];
-    }
     return [
-      new StopTimerAction(event, context),      
+      new StopTimerAction(event),      
       new SetButtonsAction([endButton, resumeButton], "system"),
     ];
   }

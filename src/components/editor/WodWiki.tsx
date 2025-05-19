@@ -6,7 +6,9 @@ import { SuggestionEngine } from '@/components/editor/SuggestionEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { DefaultSuggestionService } from '@/components/editor/SuggestionService';
-import { IRuntimeBlock, WodRuntimeScript, WodWikiToken } from '@/core/timer.types';
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { WodWikiToken } from "@/core/WodWikiToken";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 
 interface WodWikiProps {
   id: string;

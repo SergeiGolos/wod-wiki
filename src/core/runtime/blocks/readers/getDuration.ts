@@ -1,24 +1,9 @@
-import { IncrementFragment } from "@/core/fragments/IncrementFragment";
-import { TimerFragment } from "@/core/fragments/TimerFragment";
-import { Duration, IDuration, StatementNode } from "@/core/timer.types";
+import { Duration } from "@/core/Duration";
+import { IDuration } from "@/core/IDuration";
+import { ICodeStatement } from "@/core/CodeStatement";
+import { getTimer } from "./getTimer";
 
-/**
- * Extracts the first duration fragment from a statement node
- * @param node The statement node to extract from
- * @returns The first duration fragment or undefined if none exists
- */
-
-export function getTimer(node: StatementNode): TimerFragment[] {
-  const fragments = node?.fragments
-    ?.filter(f => f.type === 'duration')
-    ?.map(f => f as TimerFragment) ?? [];
-
-  return fragments;
-}
-
-export function getDuration(node: StatementNode): IDuration[] {
-  const sign = (node?.fragments?.find(f => f.type === 'increment') as IncrementFragment)?.increment ?? -1;
+export function getDuration(node: ICodeStatement): IDuration[] {
   const fragments = getTimer(node);
-
-  return fragments.map(f => new Duration(f.original, sign == -1 ? "-" : "+"));
+  return fragments.map(f => new Duration(f.original));
 }

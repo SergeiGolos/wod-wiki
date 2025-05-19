@@ -1,12 +1,9 @@
-import {
-  IRuntimeEvent,
-  ITimerRuntime,
-  IRuntimeAction,
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
-import { BlockContext } from "../blocks/BlockContext";
 
 export class EndEvent implements IRuntimeEvent {
   constructor(timestamp?: Date) {
@@ -28,14 +25,9 @@ export class EndHandler extends EventHandler {
       console.warn("EndHandler: No current block found.");
       return [];
     }
-    const context: BlockContext = block.getContext();
-    if (!context) {
-      console.warn(`EndHandler: No context found for block ${block.blockKey}.`);
-      return [];
-    }
     // Create a result block for the final time
     return [
-      new StopTimerAction({ name: "stop", timestamp: event.timestamp }, context),          
+      new StopTimerAction({ name: "stop", timestamp: event.timestamp }),          
       new GotoEndAction(),     
     ];
   }

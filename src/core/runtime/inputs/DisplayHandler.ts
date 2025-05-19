@@ -1,4 +1,6 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 
 /**

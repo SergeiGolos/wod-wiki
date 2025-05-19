@@ -1,8 +1,9 @@
 import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime } from '@/core/timer.types';
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 
 interface AnalyticsViewProps {
-  results: [ResultSpan, boolean][];
+  results: [RuntimeSpan, boolean][];
   runtime: MutableRefObject<ITimerRuntime | undefined>;
 }
 

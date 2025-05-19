@@ -1,4 +1,4 @@
-import { RuntimeMetric } from "../timer.types";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Container class for metrics operations

@@ -1,7 +1,8 @@
 import React from "react";
 import { Menu } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
-import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 
 export interface SplitButtonOption {
   id: string;

@@ -1,75 +1,63 @@
-import {
-  IRuntimeAction,
-  ITimerRuntime,
-  PrecompiledNode,
-  ZeroIndexMeta,
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RuntimeBlock } from "./RuntimeBlock";
 import {
-  PushIdleBlockAction,
-  PushEndBlockAction,
   PushStatementAction,
 } from "../actions/PushStatementAction";
-import { PopBlockAction } from "../actions/PopBlockAction";
+import { PushEndBlockAction } from "../actions/PushEndBlockAction";
+import { PushIdleBlockAction } from "../actions/PushIdleBlockAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { MetricsRelationshipType } from "@/core/metrics";
+import { PopBlockAction } from "../actions/PopBlockAction";
 
 /**
  * Represents the root of the execution tree.
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
 export class RootBlock extends RuntimeBlock {
-  constructor(private nodes: PrecompiledNode[]) {
+  index: number = -1;
+  constructor(private nodes: JitStatement[]) {
+    const children = nodes
+      .filter((s) => s.parent === undefined)
+      .map((s) => s.id);
     super([
-      new PrecompiledNode({
+      new JitStatement({
         id: -1,      
-        children: [],
+        children: [...children],
         fragments: [],
         parent: undefined,
         meta: new ZeroIndexMeta(),    
-      })
-    ], undefined, MetricsRelationshipType.ADD);
+      })]);
   }
 
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    const children = this.nodes
-      .filter((s) => s.parent === undefined)
-      .map((s) => s.id);
-    this.sources[0].children = [...children];
-
+  public enter(_runtime: ITimerRuntime): IRuntimeAction[] {                    
     return [new PushIdleBlockAction()];
   }
 
   /**
    * Implementation of the doNext hook method from the template pattern
    */
-  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
-    this.ctx.index += 1;
-    if (this.ctx.index > this.nodes.length) {
+  public next(_runtime: ITimerRuntime): IRuntimeAction[] {
+    this.index++;    
+    if (this.index >= this.nodes.length) {
       return [new PopBlockAction()];
     }
 
-    const statement = this.nodes[this.ctx.index-1];
-    return [ new PushStatementAction([statement], false)]
+    return [ new PushStatementAction([this.nodes[this.index]])];
   }
 
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    // Create a result span to report the completion of this block using ResultBuilder
-    const resultSpan = this.ctx.getCurrentResultSpan();
-    
-    if (resultSpan) {
-      return [
-        new WriteResultAction(resultSpan),
-        new PushEndBlockAction()
-      ];
-    }
-    this.logger.warn(`RootBlock: ${this.blockKey} doLeave called without an active ResultSpan.`);
-    return [new PushEndBlockAction()]; // Still push EndBlockAction if span is missing
+  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completion of this block using ResultBuilder        
+    return [
+      new WriteResultAction(this.spans),
+      new PushEndBlockAction()
+    ];
   }
 }

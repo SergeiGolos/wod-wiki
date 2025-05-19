@@ -1,6 +1,7 @@
-import { SourceCodeMetadata, StatementFragment } from "../timer.types";
+import { CodeFragment } from "../CodeFragment";
+import { CodeMetadata } from "../CodeMetadata";
 
-export class ResistanceFragment implements StatementFragment {
-  constructor(public value: string, public units: string, public meta?: SourceCodeMetadata) { }
+export class ResistanceFragment implements CodeFragment {
+  constructor(public value: string, public units: string, public meta?: CodeMetadata) { }
   type: string = "resistance";  
 }

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ResultSpan, MetricValue } from '@/core/timer.types';
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { MetricValue } from "@/core/MetricValue";
 
 interface WodTableProps {
-  results: ResultSpan[];
+  results: RuntimeSpan[];
 }
 
 // Define a structured metric item interface matching the new structure

@@ -1,9 +1,11 @@
-import { PrecompiledNode, IRuntimeBlock, ITimerRuntime } from "../../../timer.types";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RootBlock } from "../RootBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 export class BlockRootStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: PrecompiledNode[]): boolean {
+  canHandle(nodes: JitStatement[]): boolean {
     // For now, only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
@@ -14,7 +16,7 @@ export class BlockRootStrategy implements IRuntimeBlockStrategy {
   }
 
   compile(
-    _nodes: PrecompiledNode[],
+    _nodes: JitStatement[],
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
     // For root block, we ignore the nodes array and use the script's root

@@ -1,4 +1,4 @@
-import { RuntimeMetric } from "../timer.types";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Interface for components that can provide metrics

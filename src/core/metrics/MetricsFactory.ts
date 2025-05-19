@@ -1,8 +1,9 @@
-import { RuntimeMetric, StatementNode } from "../timer.types";
+import { RuntimeMetric } from "../RuntimeMetric";
+import { ICodeStatement } from "../CodeStatement";
 import { MetricsRelationshipFactory, MetricsRelationshipType } from "./MetricsRelationship";
 import { getEffort } from "../runtime/blocks/readers/getEffort";
-import { getRepetitions } from "../runtime/blocks/readers/getRounds";
 import { getResistance } from "../runtime/blocks/readers/getResistance";
+import { getRepetitions } from "../runtime/blocks/readers/getRepetitions";
 import { getDistance } from "../runtime/blocks/readers/getDistance";
 
 /**
@@ -15,14 +16,14 @@ export interface IMetricsFactory {
    * @param node Statement node to create metrics from
    * @returns Array of metrics
    */
-  createFromStatement(node: StatementNode): RuntimeMetric[];
+  createFromStatement(node: ICodeStatement): RuntimeMetric[];
 
   /**
    * Create metrics from multiple statement nodes
    * @param nodes Statement nodes to create metrics from
    * @returns Array of metrics
    */
-  createFromStatements(nodes: StatementNode[]): RuntimeMetric[];
+  createFromStatements(nodes: ICodeStatement[]): RuntimeMetric[];
 
   /**
    * Apply parent metrics to child metrics based on workout logic
@@ -42,7 +43,7 @@ export class MetricsFactory implements IMetricsFactory {
    * @param node Statement node to create metrics from
    * @returns Array of metrics
    */
-  public createFromStatement(node: StatementNode): RuntimeMetric[] {
+  public createFromStatement(node: ICodeStatement): RuntimeMetric[] {
     // Create a RuntimeMetric from the source's properties
     const metric: RuntimeMetric = {
       sourceId: node.id.toString(),
@@ -96,7 +97,7 @@ export class MetricsFactory implements IMetricsFactory {
    * @param nodes Statement nodes to create metrics from
    * @returns Array of metrics
    */
-  public createFromStatements(nodes: StatementNode[]): RuntimeMetric[] {
+  public createFromStatements(nodes: ICodeStatement[]): RuntimeMetric[] {
     if (!nodes || nodes.length === 0) {
       return [];
     }

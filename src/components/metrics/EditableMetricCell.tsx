@@ -1,4 +1,5 @@
-import { MetricValue, RuntimeMetricEdit } from '@/core/timer.types';
+import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { MetricValue } from "@/core/MetricValue";
 import React, { useState, useEffect, useRef } from 'react';
 
 export type MetricType = 'repetitions' | 'resistance' | 'distance'; // Export type

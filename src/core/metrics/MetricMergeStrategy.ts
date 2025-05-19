@@ -1,4 +1,4 @@
-import { RuntimeMetric } from "../timer.types";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Defines the interface for a strategy to merge new metrics into an existing list of metrics.

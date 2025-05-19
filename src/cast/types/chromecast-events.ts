@@ -5,7 +5,8 @@
  * the wod-wiki app (sender) and the Chromecast receiver application.
  */
 
-import { OutputEvent, OutputEventType } from '@/core/timer.types';
+import { OutputEvent } from "@/core/OutputEvent";
+import { OutputEventType } from "@/core/OutputEventType";
 export const CAST_NAMESPACE = "urn:x-cast:com.google.cast.wod-wiki";
 /**
  * All supported Chromecast event types

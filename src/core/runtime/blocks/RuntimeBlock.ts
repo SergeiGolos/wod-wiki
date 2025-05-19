@@ -1,38 +1,41 @@
-import {
-  IRuntimeAction,
-  IRuntimeEvent,
-  ITimerRuntime,
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
-import { AbstractBlockLifecycle } from "./AbstractBlockLifecycle";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
+import { JitStatement } from "@/core/JitStatement";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { BlockKey } from "@/core/BlockKey";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
  * to leverage the template method pattern while maintaining backward compatibility
  */
-export abstract class RuntimeBlock extends AbstractBlockLifecycle {  
-  /**
-   * Hook method implementation for the enter lifecycle phase
-   * Called by the template method in the parent class
-   */
-  protected abstract doEnter(runtime: ITimerRuntime): IRuntimeAction[];
+export abstract class RuntimeBlock implements IRuntimeBlock {  
+  constructor(public sources: JitStatement[]) {    
+    this.blockId = Math.random().toString(36).substring(2, 15);
+    this.blockKey = new BlockKey();
+    this.blockKey.push(this.sources, 0);
+  }
+  public blockId: string;
+  public blockKey: BlockKey;
+  public parent?: IRuntimeBlock | undefined;
   
-  /**
-   * Hook method implementation for the next lifecycle phase
-   * Called by the template method in the parent class
-   */
-  protected abstract doNext(runtime: ITimerRuntime): IRuntimeAction[];
+  public spans: RuntimeSpan[] = [];
+  public handlers: EventHandler[] = [];
   
-  /**
-   * Hook method implementation for the leave lifecycle phase
-   * Called by the template method in the parent class
-   */
-  protected abstract doLeave(runtime: ITimerRuntime): IRuntimeAction[];
-  
+  public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
+    let results: T[] = [];
+    for (const source of this.sources) {
+      results = results.concat(fn(source));
+    }
+    return results;
+  }
 
-  // The get method is inherited from AbstractBlockLifecycle
+  public abstract enter(runtime: ITimerRuntime): IRuntimeAction[];
+  public abstract leave(runtime: ITimerRuntime): IRuntimeAction[];
+  public abstract next(runtime: ITimerRuntime): IRuntimeAction[];
 
-  // Override the handle method from AbstractBlockLifecycle
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,

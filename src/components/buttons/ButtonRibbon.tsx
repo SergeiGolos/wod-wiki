@@ -1,5 +1,6 @@
 import React from "react";
-import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { cn } from "@/core/utils";
 
 

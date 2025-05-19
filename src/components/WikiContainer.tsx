@@ -2,7 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { useTimerRuntime } from "./useTimerRuntime";
-import { OutputEvent, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { OutputEvent } from "@/core/OutputEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { WodTimer } from "./clock/WodTimer";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
@@ -28,7 +31,7 @@ interface WikiContainerProps {
   /**
    * Optional callback when results are updated
    */
-  onResultsUpdated?: (results: ResultSpan[]) => void;
+  onResultsUpdated?: (results: RuntimeSpan[]) => void;
   children: React.ReactNode[];
 }
 

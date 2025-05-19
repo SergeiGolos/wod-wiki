@@ -1,4 +1,7 @@
-import { IRuntimeEvent, ITimerRuntime, OutputEvent, ResultSpan } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { OutputAction } from "../OutputAction";
 import { Subject } from "rxjs";
 
@@ -10,9 +13,9 @@ import { Subject } from "rxjs";
  * allowing blocks to emit multiple result spans when they complete.
  */
 export class WriteResultAction extends OutputAction {
-    private results: ResultSpan[];
+    private results: RuntimeSpan[];
 
-    constructor(result: ResultSpan | ResultSpan[]) {
+    constructor(result: RuntimeSpan | RuntimeSpan[]) {
         super('WRITE_RESULT');
         // Convert single result to array for uniform handling
         this.results = Array.isArray(result) ? result : [result];

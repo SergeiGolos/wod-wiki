@@ -1,4 +1,9 @@
-import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, OutputEventType, ISpanDuration } from "@/core/timer.types";
+import { ISpanDuration } from "../ISpanDuration";
+import { IRuntimeAction } from "../IRuntimeAction";
+import { OutputEvent } from "../OutputEvent";
+import { OutputEventType } from "../OutputEventType";
+import { ITimerRuntime } from "../ITimerRuntime";
+import { IRuntimeEvent } from "../IRuntimeEvent";
 import { Subject } from "rxjs";
 export abstract class OutputAction implements IRuntimeAction {
     constructor(public eventType: OutputEventType) {

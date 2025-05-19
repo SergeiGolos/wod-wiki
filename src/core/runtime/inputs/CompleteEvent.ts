@@ -1,9 +1,10 @@
-import { IRuntimeAction, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { EventHandler } from "../EventHandler";
 import { StopEvent } from "./StopEvent";
-import { NextStatementAction } from "../actions/PopBlockAction";
-import { BlockContext } from "../blocks/BlockContext";
+import { PushNextAction } from "../actions/PushNextAction";
 
 export class CompleteEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {
@@ -12,6 +13,11 @@ export class CompleteEvent implements IRuntimeEvent {
     timestamp: Date;
     name = 'complete';
 }
+
+// todo: Complete on timer and countdowns are different.  this is the 
+// timer version of complete.  A countdown version of complete is needed with a 
+// rest state update.
+
 
 export class CompleteHandler extends EventHandler {
     protected eventType: string = 'complete';
@@ -22,14 +28,9 @@ export class CompleteHandler extends EventHandler {
         console.warn("CompleteHandler: No current block found.");
         return [];
       }
-      const context: BlockContext = block.getContext();
-     if (!context) {
-        console.warn(`CompleteHandler: No context found for block ${block.blockKey}.`);
-        return [];
-      }
       return [
-        new StopTimerAction(new StopEvent(event.timestamp), context),        
-        new NextStatementAction(),      
+        new StopTimerAction(new StopEvent(event.timestamp)),        
+        new PushNextAction(),      
       ];
     }
   }

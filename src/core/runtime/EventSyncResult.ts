@@ -1,4 +1,4 @@
-import { IRuntimeSync } from "@/core/timer.types";
+import { IRuntimeSync } from "../IRuntimeSync";
 
 
 export type EventSyncResult<T> = [

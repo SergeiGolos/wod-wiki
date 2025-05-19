@@ -1,0 +1,11 @@
+import { BlockKey } from "./BlockKey";
+import { ITimeSpan } from "./ITimeSpan";
+import { RuntimeMetric } from "./RuntimeMetric";
+
+
+export class RuntimeSpan {
+  blockKey?: BlockKey;
+  index?: number;
+  timeSpans: ITimeSpan[] = [];
+  metrics: RuntimeMetric[] = [];
+}

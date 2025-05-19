@@ -1,4 +1,8 @@
-import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, RuntimeMetric } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { Subject } from "rxjs";
 import { SetMetricAction } from "../outputs/SetMetricAction";
 

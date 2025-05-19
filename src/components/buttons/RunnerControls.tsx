@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { startButton, resetButton, endButton, saveButton } from "./timerButtons";
 import { Subject } from "rxjs";
 

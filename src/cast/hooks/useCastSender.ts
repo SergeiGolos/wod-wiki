@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import { CAST_NAMESPACE } from '../types/chromecast-events';
-import { OutputEvent } from '@/core/timer.types';
+import { OutputEvent } from "@/core/OutputEvent";
 
 export interface ChromecastState {
   isAvailable: boolean;

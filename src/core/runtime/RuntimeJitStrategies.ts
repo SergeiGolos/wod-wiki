@@ -1,9 +1,11 @@
-import { IRuntimeBlock, ITimerRuntime, PrecompiledNode, StatementNode } from "../timer.types";
+import { ITimerRuntime } from "../ITimerRuntime";
+import { JitStatement } from "../JitStatement";
+import { IRuntimeBlock } from "../IRuntimeBlock";
+import { ICodeStatement } from "../CodeStatement";
 import { BlockEffortStrategy } from "./blocks/strategies/BlockEffortStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrategy";
 import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
-import { BlockTimerStrategy } from "./blocks/strategies/BlockTimerStrategy";
 import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
 
 /**
@@ -20,7 +22,6 @@ export class RuntimeJitStrategies {
     this.addStrategy(new GroupCountdownStrategy());  
             
     // Single blocks are last to be selected.
-    this.addStrategy(new BlockTimerStrategy());
     this.addStrategy(new BlockEffortStrategy());    
   }
 
@@ -40,7 +41,7 @@ export class RuntimeJitStrategies {
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    nodes: PrecompiledNode[], 
+    nodes: JitStatement[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
     // Convert to array if a single node is passed
