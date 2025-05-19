@@ -17,7 +17,7 @@ export abstract class EventHandler {
       const block = runtime.trace.current();          
       if (block) {
         if (event.name !== "tick") {        
-          log.push(new WriteLogAction({ blockId: block!.blockId, blockKey: block.blockKey, ...event }));
+          log.push(new WriteLogAction({ blockId: block!.blockId, blockKey: block.blockKey.toString(), ...event }));
         }
       
         return [ 

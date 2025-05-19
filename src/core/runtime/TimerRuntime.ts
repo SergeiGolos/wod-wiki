@@ -31,20 +31,34 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     this.dispose = merge(this.input$, this.tick$)
       .subscribe(event => {
-        let block = this.trace.current();
-        this.log(block!, event);
+        const blockAtEventReception = this.trace.current();
+        this.log(blockAtEventReception!, event);
+        let handledByAnyBlock = false;
 
-        while (block) {
-          const actions = block.handle(this, event, this.jit.handlers)
-            .filter(actions => actions !== undefined)
+        let currentBlockInStack = blockAtEventReception;
+        while (currentBlockInStack) {
+          const actions = currentBlockInStack.handle(this, event, this.jit.handlers)
+            .filter(arr_actions => arr_actions !== undefined)
             .flat() ?? [];
 
           if (actions.length > 0) {
-            this.apply(actions, block);
+            handledByAnyBlock = true;
+            this.apply(actions, currentBlockInStack);
           }
 
-          // parent bubbles up events
-          block = block.parent;
+          currentBlockInStack = currentBlockInStack.parent;
+        }
+
+        if (!handledByAnyBlock && event.name !== "tick") {
+          let eventDetails = `type: ${event.name}`;
+          if ((event as any).bag) { 
+            try {
+              eventDetails += `, bag: ${JSON.stringify((event as any).bag)}`;
+            } catch (e) {
+              eventDetails += `, bag: (unserializable)`;
+            }
+          }
+          console.error(`TimerRuntime: Orphaned Event Warning: Event '${event.name}' (${eventDetails}) was not handled by any block in the stack.`);          
         }
       });
   }
@@ -55,7 +69,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   public apply(actions: IRuntimeAction[], source: IRuntimeBlock) {
-    for (const action of actions) {
+    for (const action of actions) {      
       this.log(source, { name: action.name, timestamp: new Date() });
       action.apply(this, this.input$, this.output$);
     }
@@ -68,6 +82,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
 
     if (block) {
+      console.debug(`====+: ${event.name} by blockKey: ${block?.blockKey?.toString() ?? 'N/A'}`);
       this.history.push({
         blockId: block.blockId,
         blockKey: block?.blockKey?.toString() ?? "undefined",
@@ -76,8 +91,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
   }
 
-  public push(block: IRuntimeBlock): IRuntimeBlock {
-    console.log(`==== Push: ${block?.constructor.name ?? "block not found"} (blockKey: ${block?.blockKey})`);
+  public push(block: IRuntimeBlock): IRuntimeBlock {    
     block = this.trace.push(block);
     let actions = block.enter(this) ?? [];
     this.apply(actions, block);
@@ -85,9 +99,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     return this.trace.current() ?? block;
   }
 
-  public pop(): IRuntimeBlock | undefined {
-    const currentBlock = this.trace.current();
-    console.log(`==== Pop: ${currentBlock?.constructor.name} (blockKey: ${currentBlock?.blockKey})`);
+  public pop(): IRuntimeBlock | undefined {    
     let block = this.trace.pop();
 
     let actions = block?.leave(this) ?? [];
@@ -103,7 +115,6 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   reset() {
-    // Dispatch an event to clear results in the UI
     this.output$.next({
       eventType: 'CLEAR_RESULTS',
       timestamp: new Date(),

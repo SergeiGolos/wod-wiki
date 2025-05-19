@@ -12,6 +12,7 @@ import { PopBlockAction } from "../actions/PopBlockAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
+import { CompleteHandler } from "../inputs/CompleteEvent";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -21,6 +22,7 @@ export class EffortBlock extends RuntimeBlock {
   ) {
     super(sources);
     console.log(`EffortBlock created for ${this.blockKey}`);
+    this.handlers.push(new CompleteHandler());
   }
 
   /**

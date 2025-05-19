@@ -14,6 +14,6 @@ export class PushNextAction implements IRuntimeAction {
   ): void {
     const block = runtime.trace.current();
     const next = block?.next(runtime) ?? [];
-    runtime.apply(next, block!.blockKey);
+    runtime.apply(next, block!);
   }
 }

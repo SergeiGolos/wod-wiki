@@ -26,6 +26,6 @@ export class BlockKey {
   }
 
   toString() {
-    return this.key.map((key) => key.ids.join(",")).join("|");
+    return this.key.map((key) => key.ids.join(",") + "(" + key.index + ")").join("|");
   }
 }

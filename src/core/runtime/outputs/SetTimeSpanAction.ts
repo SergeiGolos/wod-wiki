@@ -16,7 +16,7 @@ export class SetTimeSpanAction extends OutputAction {
 
         return [{
             eventType: this.eventType,
-            bag: { duration: new TimeSpanDuration(0, this.spans), target: this.target },
+            bag: { duration: new TimeSpanDuration(0, '+', this.spans), target: this.target },
             timestamp: new Date()
         }];
     }
