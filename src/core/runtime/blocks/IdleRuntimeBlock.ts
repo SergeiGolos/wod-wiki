@@ -22,7 +22,7 @@ export class IdleRuntimeBlock extends RuntimeBlock {
     ]);
   }
 
-  public enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new SetButtonsAction([startButton], "system"), 
       new SetButtonsAction([], "runtime"),
@@ -31,11 +31,11 @@ export class IdleRuntimeBlock extends RuntimeBlock {
     ];
   }
 
-  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [];
   }
 
-  public next(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [new PopBlockAction()];
   }
 }

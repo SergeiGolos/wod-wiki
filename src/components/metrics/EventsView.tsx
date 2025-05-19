@@ -52,13 +52,13 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedResults.map(([result, hidden]) => {
                 // Get the primary effort name for the span
-                const effort = result.label || result.metrics?.[0]?.effort || 'Event';
-                const resultId = `${result.blockKey}-${result.index}`;
+                const effort = result.metrics?.[0]?.effort || 'Event';
+                const resultId = `${result.blockKey}`;
 
-                if (!resultId || !result.blockKey || typeof result.index === 'undefined') {
-                  console.error("Result missing ID, blockKey, or index, cannot make editable:", result);
+                if (!resultId || !result.blockKey) {
+                  console.error("Result missing blockKey, cannot make editable:", result);
                   return (
-                    <tr key={`event-missing-id-${Math.random()}`} className="hover:bg-gray-50 opacity-50">                      
+                    <tr key={`event-missing-id-${resultId}`} className="hover:bg-gray-50 opacity-50">                      
                       <td className="px-3 py-2">Unknown Event</td>
                       <td className="px-3 py-2 text-center">-</td>
                       <td className="px-3 py-2 text-center">-</td>

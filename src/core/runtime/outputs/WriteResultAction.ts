@@ -24,7 +24,7 @@ export class WriteResultAction extends OutputAction {
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
         // Create an output event for each result span
         return this.results.map(result => {
-            console.log(`$$=== write_result : ${result.blockKey} (index: ${result.index})`);
+            console.log(`$$=== write_result : ${result.blockKey} (index: ${result.blockKey?.index})`);
             return {
                 eventType: this.eventType,
                 bag: { result },

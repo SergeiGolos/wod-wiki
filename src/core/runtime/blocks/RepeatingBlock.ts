@@ -25,8 +25,8 @@ export class RepeatingBlock extends RuntimeBlock {
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  public enter(runtime: ITimerRuntime): IRuntimeAction[] {
-    const actions = this.next(runtime);
+  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
+    const actions = this.onNext(runtime);
     
     return [...actions, 
       new SetButtonsAction([endButton, pauseButton], "system"),
@@ -36,7 +36,7 @@ export class RepeatingBlock extends RuntimeBlock {
   /**
    * Implementation of the doNext hook method from the template pattern
    */
-  public next(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
       return [new PopBlockAction()];
@@ -88,7 +88,7 @@ export class RepeatingBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Get the current span (created in enter and updated throughout execution)
     const currentSpan = this.spans[this.spans.length - 1];    
     if (currentSpan) {      

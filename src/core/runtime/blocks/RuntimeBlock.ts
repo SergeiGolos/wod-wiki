@@ -32,9 +32,35 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     return results;
   }
 
-  public abstract enter(runtime: ITimerRuntime): IRuntimeAction[];
-  public abstract leave(runtime: ITimerRuntime): IRuntimeAction[];
-  public abstract next(runtime: ITimerRuntime): IRuntimeAction[];
+  // Renamed original abstract methods to be protected hooks
+  protected abstract onEnter(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract onLeave(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract onNext(runtime: ITimerRuntime): IRuntimeAction[];
+
+  // New public wrapper methods providing space for common logic
+  public enter(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Space for common code to run before the specific block's onEnter logic
+    
+    const actions = this.onEnter(runtime);
+    // Space for common code to run after the specific block's onEnter logic
+    return actions;
+  }
+
+  public leave(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Space for common code to run before the specific block's onLeave logic
+    this.blockKey = BlockKey.create(this);
+    const actions = this.onLeave(runtime);
+    // Space for common code to run after the specific block's onLeave logic
+    return actions;
+  }
+
+  public next(runtime: ITimerRuntime): IRuntimeAction[] {
+    // Space for common code to run before the specific block's onNext logic
+    this.blockKey.index += 1;
+    const actions = this.onNext(runtime);
+    // Space for common code to run after the specific block's onNext logic
+    return actions;
+  }
 
   public handle(
     runtime: ITimerRuntime,

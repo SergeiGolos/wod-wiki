@@ -36,6 +36,7 @@ export class RuntimeJit {
     return new IdleRuntimeBlock();
   }
   end(_runtime: ITimerRuntime): IRuntimeBlock {
+    // Attempting to refresh type checker
     return new DoneRuntimeBlock();
   }
 

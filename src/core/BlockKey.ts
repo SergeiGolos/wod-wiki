@@ -1,8 +1,19 @@
 import { JitStatement } from "./JitStatement";
 import { BlockKeyFragment } from "./BlockKeyFragment";
+import { IRuntimeBlock } from "./IRuntimeBlock";
 
 export class BlockKey {
-  public key: BlockKeyFragment[] = [];  
+  public key: BlockKeyFragment[] = [];
+  public index: number = 0;
+
+  public static create(block: IRuntimeBlock): BlockKey {
+    const newKey = new BlockKey();
+    if (block.sources) {
+      newKey.push(block.sources, block.blockKey?.index ?? 0);
+    }
+    return newKey;
+  }
+
   push(statements: JitStatement[], index: number) {
     this.key.push(
       new BlockKeyFragment(statements.map((s) => s.id), index));

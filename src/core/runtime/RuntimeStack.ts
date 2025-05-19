@@ -1,3 +1,4 @@
+import { BlockKey } from "../BlockKey";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**
@@ -29,7 +30,7 @@ export class RuntimeStack {
    * @returns A unique key for this execution context
    */
   public push(block: IRuntimeBlock): IRuntimeBlock {        
-    block.parent = this.current();    
+    block.parent = this.current();        
     this.stack.push(block);    
     return block;
   }

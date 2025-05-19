@@ -34,14 +34,14 @@ export class RootBlock extends RuntimeBlock {
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  public enter(_runtime: ITimerRuntime): IRuntimeAction[] {                    
+  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {                    
     return [new PushIdleBlockAction()];
   }
 
   /**
    * Implementation of the doNext hook method from the template pattern
    */
-  public next(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     this.index++;    
     if (this.index >= this.nodes.length) {
       return [new PopBlockAction()];
@@ -53,7 +53,7 @@ export class RootBlock extends RuntimeBlock {
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder        
     return [
       new WriteResultAction(this.spans),

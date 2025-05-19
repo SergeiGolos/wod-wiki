@@ -79,7 +79,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   public push(block: IRuntimeBlock): IRuntimeBlock {
     console.log(`==== Push: ${block?.constructor.name ?? "block not found"} (blockKey: ${block?.blockKey})`);
     block = this.trace.push(block);
-    let actions = block?.enter(this) ?? [];
+    let actions = block.enter(this) ?? [];
     this.apply(actions, block);
 
     return this.trace.current() ?? block;
@@ -94,8 +94,10 @@ export class TimerRuntime implements ITimerRuntimeIo {
     this.apply(actions, block!);
 
     block = this.trace.current();
-    actions = block?.next(this) ?? [];
-    this.apply(actions, block!);
+    if (block) {
+      actions = block.next(this) ?? [];
+      this.apply(actions, block);
+    }
 
     return this.trace.current();
   }

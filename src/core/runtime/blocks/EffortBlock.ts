@@ -27,7 +27,7 @@ export class EffortBlock extends RuntimeBlock {
    * Extract effort descriptions from the metrics for display purposes
    * @returns Array of effort descriptions
    */  
-  public enter(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
    console.debug(`EffortBlock: ${this.blockKey} doEnter`);
     
     return [
@@ -37,21 +37,14 @@ export class EffortBlock extends RuntimeBlock {
     ];
   }
 
-  public next(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`EffortBlock: ${this.blockKey} doNext`);
-    // EffortBlocks typically complete in one step unless they have specific event handling.
-    // The 'CompleteHandler' passed to the constructor should handle the 'complete' event.
-
-    // If an EffortBlock is 'nexted' without a specific event that an event handler catches,
-    // it implies it might be done or waiting for an external event (like 'complete' or 'skip').
-    // For now, let's assume it does nothing by default on a simple 'next' call.
-    // If it needs to auto-complete, that logic would go here or in a specific handler.
-    return [
-      new PopBlockAction()
-    ]; 
+  protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
+   console.debug(`EffortBlock: ${this.blockKey} doNext (index: ${this.blockKey?.index})`);   
+    return this.blockKey.index > 1 
+    ? [new PopBlockAction()] 
+    : [];
   }
 
-  public leave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
    console.debug(`EffortBlock: ${this.blockKey} doLeave`);
     const currentSpan = this.spans;
     if (currentSpan) {
