@@ -76,7 +76,7 @@ export class TimedGroupBlock extends RuntimeBlock {
 
     if (currentSpan) {
       // Set default label (similar to what createResultSpan did)
-      currentSpan.label = this.generateBlockLabel("TimedGroup");
+      currentSpan.label = this.sources[0]?.name ?? `TimedGroup: ${this.blockId}`;
 
       // Add duration information if available (moved from createResultSpan)
       const duration = this.selectMany(getDuration)[0];
@@ -127,12 +127,11 @@ export class TimedGroupBlock extends RuntimeBlock {
     }          
 
     const duration = this.selectMany(getDuration)[0];
-    const spanDuration = new TimeSpanDuration(
-      duration?.original ?? 0, 
-      this.ctx.getCurrentResultSpan()?.timeSpans ?? [] // Corrected: Use timeSpans from currentResultSpan
-    );
-    
-    const remaining = spanDuration.remaining();
+    const remaining = new TimeSpanDuration(
+      duration?.original ?? 0,
+      duration?.sign ?? '+',
+      this.ctx.getCurrentResultSpan()?.timeSpans ?? []
+    ).remaining();
     if ((remaining?.original != undefined) && (remaining.original == 0 || remaining.original < 0)) {
       return [new PopBlockAction()];
     }
@@ -169,7 +168,7 @@ export class TimedGroupBlock extends RuntimeBlock {
     return statements.length > 0
       ? [new PushStatementAction(statements), 
         new StartTimerAction(new StartEvent(new Date())),
-        new SetDurationAction(spanDuration, "primary")]
+        new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary")]
       : [];
   }
 

@@ -15,9 +15,19 @@ export class TimeSpanDuration extends Duration implements ISpanDuration {
   
   elapsed(): IDuration {
     return new Duration(this.spans?.reduce((total, span) => {
-      const start = span.start?.timestamp ?? new Date();
-      const stop = span.stop?.timestamp ?? new Date();
-      return total + (stop.getTime() - start.getTime());
+      const startTime = span.start?.timestamp;
+
+      // If a span somehow has no start time, skip it (shouldn't happen with current logic)
+      if (!startTime) {
+        return total;
+      }
+
+      // If span.stop is undefined (timer is running for this span),
+      // use the current time as its effective stop time for this calculation.
+      // Otherwise, use the actual recorded stop time.
+      const stopTime = span.stop?.timestamp ?? new Date();
+
+      return total + (stopTime.getTime() - startTime.getTime());
     }, 0) ?? 0);
   }
 
