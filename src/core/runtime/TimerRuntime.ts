@@ -83,26 +83,48 @@ export class TimerRuntime implements ITimerRuntimeIo {
   }
 
   public push(block: IRuntimeBlock): IRuntimeBlock {    
-    block = this.trace.push(block);
-    let actions = block.enter(this) ?? [];
-    this.apply(actions, block);
+    const pushedBlock = this.trace.push(block); // Renamed to avoid confusion
+    let enterActions = pushedBlock.enter(this) ?? [];
+    this.apply(enterActions, pushedBlock);
 
-    return this.trace.current() ?? block;
+    // Call onStart for the current block and its parents
+    let startActions: IRuntimeAction[] = [];
+    const collectedStartActions = this.trace.traverseAll<IRuntimeAction[]>(
+        (currentTraversalBlock) => { return currentTraversalBlock.onStart(this); }, 
+        undefined, 
+        pushedBlock // Start traversal from the pushed block
+    );
+    collectedStartActions.forEach(actionArray => startActions = startActions.concat(actionArray));
+    this.apply(startActions, pushedBlock); // Apply using the originally pushed block as source
+
+    return this.trace.current() ?? pushedBlock;
   }
 
   public pop(): IRuntimeBlock | undefined {    
-    let block = this.trace.pop();
+    let poppedBlock = this.trace.pop(); // Keep this as poppedBlock
 
-    let actions = block?.leave(this) ?? [];
-    this.apply(actions, block!);
+    if (poppedBlock) {
+      // Call onStop for the popped block and its parents
+      let stopActions: IRuntimeAction[] = [];
+      const collectedStopActions = this.trace.traverseAll<IRuntimeAction[]>(
+          (currentTraversalBlock) => { return currentTraversalBlock.onStop(this); }, 
+          undefined, 
+          poppedBlock // Start traversal from the popped block
+      );
+      collectedStopActions.forEach(actionArray => stopActions = stopActions.concat(actionArray));
+      this.apply(stopActions, poppedBlock); // Apply using the popped block as source
 
-    block = this.trace.current();
-    if (block) {
-      actions = block.next(this) ?? [];
-      this.apply(actions, block);
+      let leaveActions = poppedBlock.leave(this) ?? [];
+      this.apply(leaveActions, poppedBlock);
     }
 
-    return this.trace.current();
+    let currentBlockAfterPop = this.trace.current(); // Use a new variable name
+    if (currentBlockAfterPop) {
+      let nextActions = currentBlockAfterPop.next(this) ?? []; // Use currentBlockAfterPop
+      this.apply(nextActions, currentBlockAfterPop);
+    }
+
+    return currentBlockAfterPop; // Return currentBlockAfterPop
   }
 
   reset() {

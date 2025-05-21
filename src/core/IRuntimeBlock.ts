@@ -26,4 +26,8 @@ export interface IRuntimeBlock {
   enter(runtime: ITimerRuntime): IRuntimeAction[];
   next(runtime: ITimerRuntime): IRuntimeAction[];  
   leave(runtime: ITimerRuntime): IRuntimeAction[];
+
+  // Lifecycle methods
+  onStart(runtime: ITimerRuntime): IRuntimeAction[];
+  onStop(runtime: ITimerRuntime): IRuntimeAction[];
 }

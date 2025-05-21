@@ -6,10 +6,11 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RuntimeMetric } from "@/core/RuntimeMetric";
-import { MetricsContext, MetricsRelationshipType, ResultSpanRegistry } from "@/core/metrics";
+import { MetricsContext, MetricsRelationshipType, ResultSpanRegistry } from "@/core/metrics"; // ResultSpanRegistry is used
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
+import { SetClockAction } from "../outputs/SetClockAction"; // Added import
 import { LapFragment } from "@/core/fragments/LapFragment";
 import { getLap } from "./readers/getLap";
 import { StartEvent } from "../inputs/StartEvent";
@@ -23,14 +24,16 @@ import { SetDurationAction } from "../outputs/SetDurationAction";
 export class TimedGroupBlock extends RuntimeBlock {
   // Local registry for child spans
   private childSpanRegistry = new ResultSpanRegistry();
+  private childIndex: number;
+  private lastLap: string;
   
-  constructor(source: JitStatement, parentMetricsContext?: MetricsContext) {
+  constructor(source: JitStatement /*, parentMetricsContext?: MetricsContext - Removed */) {
     // Use the ADD relationship type for timed group blocks to aggregate metrics
-    super([source], parentMetricsContext, MetricsRelationshipType.ADD);
+    super([source]); // Base RuntimeBlock constructor only takes sources
     
-    // Initialize state in context
-    this.ctx.childIndex = 0; // Current round for the current child
-    this.ctx.lastLap = "";
+    // Initialize state directly on the instance
+    this.childIndex = 0; 
+    this.lastLap = "";
   }
   
   private _updateSpanWithAggregatedChildMetrics(span: RuntimeSpan | undefined): void {
@@ -40,99 +43,110 @@ export class TimedGroupBlock extends RuntimeBlock {
     const childSpans = this.childSpanRegistry.getAllSpans();
     if (childSpans.length > 0) {
       const aggregatedMetrics = this.childSpanRegistry.aggregateMetrics(childSpans);
+      if (!span.metrics) span.metrics = [];
       
       // Add aggregated metrics to the span
       aggregatedMetrics.forEach((metric: RuntimeMetric) => {
-        // Check if this metric already exists
         const existingIndex = span.metrics.findIndex(m => 
           m.sourceId === metric.sourceId && 
           m.effort === metric.effort
         );
         
         if (existingIndex >= 0) {
-          // Update existing metric
           span.metrics[existingIndex] = metric;
         } else {
-          // Add new metric
           span.metrics.push(metric);
         }
       });
       
       // Update child references
+      if (!span.children) span.children = [];
       childSpans.forEach((childSpan: RuntimeSpan) => {
-        if (childSpan.blockKey && !span.children.includes(childSpan.blockKey)) {
-          span.children.push(childSpan.blockKey);
+        if (childSpan.blockKey && !span.children?.includes(childSpan.blockKey.toString())) {
+          span.children.push(childSpan.blockKey.toString());
         }
       });
     }
   }
 
   /**
-   * Implementation of the doEnter hook method from the template pattern
+   * Called when the block is entered. For TimedGroupBlock, core setup is in onBlockStart.
    */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-   console.log(`TimedGroupBlock: ${this.blockKey} doEnter`);
-    const currentSpan = this.ctx.getCurrentResultSpan();
+    console.log(`TimedGroupBlock: ${this.blockKey} onEnter`);
+    // Specific setup logic moved to onBlockStart.
+    return [];
+  }
+
+  /**
+   * Called when the block's specific timing/activity truly starts.
+   */
+  protected onBlockStart(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`TimedGroupBlock: ${this.blockKey} onBlockStart`);
+    this.childIndex = 0; // Reset child index for this run
+    this.lastLap = "";   // Reset last lap status
+
+    const currentSpan = this.spans[this.spans.length - 1];
 
     if (currentSpan) {
-      // Set default label (similar to what createResultSpan did)
       currentSpan.label = this.sources[0]?.name ?? `TimedGroup: ${this.blockId}`;
-
-      // Add duration information if available (moved from createResultSpan)
       const duration = this.selectMany(getDuration)[0];
       if (duration?.original) {
         const durationMetric: RuntimeMetric = {
           sourceId: this.blockId,
           effort: 'Group Duration',
           values: [{
-            type: 'repetitions', // Note: This was 'repetitions', perhaps should be 'timestamp' or specific duration type
+            type: 'duration', 
             value: duration.original,
             unit: 'ms'
           }]
         };
-        this.ctx.pushMetricsToCurrentResult([durationMetric]);
+        if (!currentSpan.metrics) currentSpan.metrics = [];
+        currentSpan.metrics.push(durationMetric);
       }
     } else {
-     console.warn(`TimedGroupBlock: ${this.blockKey} doEnter called without an initialized ResultSpan.`);
+      console.warn(`TimedGroupBlock: ${this.blockKey} onBlockStart called but currentSpan is undefined.`);
     }
-
-    return [      
-      new StartTimerAction(new StartEvent(new Date())),
-      ...this.next(runtime),
+    
+    const actions: IRuntimeAction[] = [
       new SetButtonsAction([endButton, pauseButton], "system"),
       new SetButtonsAction([completeButton], "runtime"),
     ];
+
+    actions.push(...this.onNext(runtime)); // Push the first child/set of children
+    
+    return actions;
   }
+  
   /**
-   * Implementation of the doNext hook method from the template pattern
+   * Called to process the next child or determine if the block should pop.
    */
   protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
-      // Before popping, grab the current result span and enhance it
-      const currentSpan = this.ctx.getCurrentResultSpan();
+      const currentSpan = this.spans[this.spans.length - 1];
       if (currentSpan) {
         this._updateSpanWithAggregatedChildMetrics(currentSpan);
       }
-      
       return [new PopBlockAction()];
     }
     
-    // Safe access to childIndex from context
-    if (this.ctx.childIndex !== undefined && 
+    if (this.childIndex !== undefined && 
         this.sources[0] && 
-        (this.ctx.childIndex >= this.sources[0].children.length || this.ctx.lastLap === "-")) {
-      this.ctx.childIndex = 0;   
-      this.ctx.index += 1;             
+        (this.childIndex >= this.sources[0].children.length || this.lastLap === "-")) {
+      this.childIndex = 0;   
+      // this.index += 1; // Cannot use this.index from base like this
     }          
 
     const duration = this.selectMany(getDuration)[0];
+    const currentBlockSpan = this.spans[this.spans.length - 1];
     const remaining = new TimeSpanDuration(
       duration?.original ?? 0,
       duration?.sign ?? '+',
-      this.ctx.getCurrentResultSpan()?.timeSpans ?? []
+      currentBlockSpan?.timeSpans ?? []
     ).remaining();
-    if ((remaining?.original != undefined) && (remaining.original == 0 || remaining.original < 0)) {
+
+    if ((remaining?.original != undefined) && (remaining.original <= 0)) {
       return [new PopBlockAction()];
     }
 
@@ -141,15 +155,15 @@ export class TimedGroupBlock extends RuntimeBlock {
     let laps: LapFragment | undefined;
     
     while (true) {      
-      if (this.ctx.childIndex !== undefined) {
-        this.ctx.childIndex += 1;
+      if (this.childIndex !== undefined) {
+        this.childIndex += 1;
       } else {
-        this.ctx.childIndex = 1; // Initialize if undefined
+        this.childIndex = 1; 
       }
       
       const sourceNode = this.sources[0];
-      const childIndex = this.ctx.childIndex - 1;
-      const childId = sourceNode?.children ? sourceNode.children[childIndex] : undefined;
+      const currentChildIndex = this.childIndex - 1;
+      const childId = sourceNode?.children ? sourceNode.children[currentChildIndex] : undefined;
       statement = childId !== undefined ? runtime.script.getId(childId)?.[0] : undefined;
       
       if (!statement) {
@@ -164,54 +178,66 @@ export class TimedGroupBlock extends RuntimeBlock {
       }            
     }
 
-    this.ctx.lastLap = laps?.image ?? "";
-    return statements.length > 0
-      ? [new PushStatementAction(statements), 
-        new StartTimerAction(new StartEvent(new Date())),
-        new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary")]
-      : [];
+    this.lastLap = laps?.image ?? "";
+    const actionsToPush: IRuntimeAction[] = [];
+    if (statements.length > 0) {
+      actionsToPush.push(new PushStatementAction(statements));
+      actionsToPush.push(new StartTimerAction(new StartEvent(new Date())));
+      actionsToPush.push(new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary"));
+    }
+    return actionsToPush;
   }
 
   /**
    * Register a child block's result spans with this group
-   * This should be called when child blocks are pushed to the stack
-   * @param childBlock The child block to register
    */
   public registerChildBlock(childBlock: IRuntimeBlock): void {
     if (!childBlock) return;
     
-    // Register the child's spans with our local registry
     this.childSpanRegistry.registerBlockSpans(childBlock);
     
-    // Update our span to include the child as a reference
-    const currentSpan = this.ctx.getCurrentResultSpan();
+    const currentSpan = this.spans[this.spans.length - 1];
     if (currentSpan) {
-      if (childBlock.blockKey && !currentSpan.children.includes(childBlock.blockKey)) {
-        currentSpan.children.push(childBlock.blockKey);
+      if (!currentSpan.children) currentSpan.children = [];
+      if (childBlock.blockKey && !currentSpan.children.includes(childBlock.blockKey.toString())) {
+        currentSpan.children.push(childBlock.blockKey.toString());
       }
       this._updateSpanWithAggregatedChildMetrics(currentSpan);
     }
   }
   
   /**
-   * Implementation of the doLeave hook method from the template pattern
+   * Called when the block is left. For TimedGroupBlock, core teardown is in onBlockStop.
    */
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.log(`TimedGroupBlock: ${this.blockKey} doLeave`);
-    const currentSpan = this.ctx.getCurrentResultSpan();
+    console.log(`TimedGroupBlock: ${this.blockKey} onLeave`);
+    // Specific teardown logic moved to onBlockStop.
+    return [];
+  }
+
+  /**
+   * Called when the block's specific timing/activity truly stops.
+   */
+  protected onBlockStop(runtime: ITimerRuntime): IRuntimeAction[] {
+    console.log(`TimedGroupBlock: ${this.blockKey} onBlockStop`);
+    const currentSpan = this.spans[this.spans.length - 1]; 
 
     if (currentSpan) {
       this._updateSpanWithAggregatedChildMetrics(currentSpan);
     } else {
-     console.warn(`TimedGroupBlock: ${this.blockKey} doLeave called without an initialized ResultSpan.`);
+      console.warn(`TimedGroupBlock: ${this.blockKey} onBlockStop called but currentSpan is undefined.`);
     }
     
-    // Ensure timer is stopped and final actions are dispatched
-    // The WriteResultAction will be handled by AbstractBlockLifecycle.leave()
-    return [
-      new StopTimerAction(new StopEvent(new Date()), this.ctx), // Corrected constructor call
+    const actions: IRuntimeAction[] = [
       new SetButtonsAction([], "system"),
       new SetButtonsAction([], "runtime"),
     ];
+
+    const duration = this.selectMany(getDuration)[0];
+    if (duration !== undefined) { 
+        actions.push(new SetClockAction("primary"));
+    }
+    
+    return actions;
   }
 }
