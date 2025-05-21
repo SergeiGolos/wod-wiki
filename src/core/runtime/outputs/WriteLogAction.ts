@@ -1,4 +1,7 @@
-import { IRuntimeEvent, IRuntimeLog, ITimerRuntime, OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeLog } from "@/core/IRuntimeLog";
 import { OutputAction } from "../OutputAction";
 import { Subject } from "rxjs";
 

@@ -1,38 +1,32 @@
-import {
-  IRuntimeAction,
-  ITimerRuntime,
-  MetricValue,
-  PrecompiledNode,
-  ResultSpan,
-  RuntimeMetric
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
-import { getLap } from "./readers/getLap";
-import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { getMetrics } from "./readers/getRounds";
-import { RepFragment } from "@/core/fragments/RepFragment";
+import { StopTimerAction } from "../actions/StopTimerAction";
+import { StopEvent } from "../inputs/StopEvent";
 
 export class RepeatingBlock extends RuntimeBlock {
-  constructor(source: PrecompiledNode[]) {
-    super(source);
-    
-    // Initialize state in context
-    this.ctx.childIndex = 0; // Current round for the current child
-    this.ctx.lastLap = "";
-  }
+  private childIndex: number = 0;    
+  private roundIndex: number = 0;
+  private lastLap: string;
 
+  constructor(
+    source: JitStatement[]    
+  ) {
+    super(source);      
+    this.lastLap = "";
+  }
+  
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  protected doEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Combine next() actions with additional button setup  
-    const actions = this.doNext(runtime);
-    
+  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
+    const actions = this.next(runtime);    
     return [...actions, 
       new SetButtonsAction([endButton, pauseButton], "system"),
       new SetButtonsAction([completeButton], "runtime")];
@@ -41,77 +35,42 @@ export class RepeatingBlock extends RuntimeBlock {
   /**
    * Implementation of the doNext hook method from the template pattern
    */
-  protected doNext(runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
       return [new PopBlockAction()];
     }
+    
     const sourceNode = this.sources?.[0];
-    const rounds = sourceNode?.rounds();
+    const rounds = sourceNode?.round(this.roundIndex);
     
     // Check if we've completed all rounds for the current child        
-    if (this.ctx.childIndex >= sourceNode?.children.length || this.ctx.lastLap === "-") {
-      this.ctx.childIndex = 0;   
-      this.ctx.index += 1;             
+    if (this.childIndex >= sourceNode?.children.length || this.lastLap === "-") {
+      this.childIndex = 0;   
+      this.roundIndex += 1;             
     }
   
-    if (rounds && this.ctx.index >= rounds) {
+    if (rounds && this.roundIndex >= rounds.count) {
       return [new PopBlockAction()];
     } 
-
-    const statements: PrecompiledNode[] = [];
-    let statement: PrecompiledNode | undefined;
-    let laps: LapFragment | undefined;
     
-    while (true) {      
-      this.ctx.childIndex += 1;
-      statement = runtime.script.getId(
-        sourceNode?.children[this.ctx.childIndex-1]
-      )?.[0];
-      
-      if (!statement) {
-        break;
-      }      
-
-      laps = getLap(statement)?.[0];
-      if (statement.repetitions().length == 0) {
-        const reps = modIndex(sourceNode?.repetitions(),this.ctx.index);
-        if (reps) {
-          statement.addFragment(new RepFragment(reps.value));
-        }
-      }
-      
-      statements.push(statement);
-
-      if (laps?.image !=="+") {        
-        break;
-      }         
+    const statements = this.nextChildStatements(runtime, this.childIndex);
+    if (statements.length== 0) {
+      return [new PopBlockAction()];
     }
-
-    this.ctx.lastLap = laps?.image ?? "";
-    
-
-    
-    return statements.length > 0
-      ? [new PushStatementAction(statements)]
-      : []; 
-  }
+    this.childIndex += statements.length;
+    return [new PushStatementAction(statements)];
+  } 
+  
 
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    // Create a result span to report completion and metrics for this repeating block using ResultBuilder
-    // Use the enhanced BlockContext-based approach for events
-    const sourceNode = this.sources?.[0];
-    const resultSpan = ResultSpan.fromBlock(this)
-    
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    // Get the current span (created in enter and updated throughout execution)
     return [
-      new WriteResultAction(resultSpan)
+      new StopTimerAction(new StopEvent(new Date())),
+      new WriteResultAction(this.spans)
     ];
   }
 }
-function modIndex(metrics: MetricValue[], index: number) : MetricValue | undefined {
-  return metrics[index % metrics.length];
-}
-

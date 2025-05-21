@@ -1,5 +1,8 @@
 /** @jsxImportSource react */
-import { Duration, IDuration, ISpanDuration, TimeSpanDuration } from "@/core/timer.types";
+import { ISpanDuration } from "@/core/ISpanDuration";
+import { Duration } from "@/core/Duration";
+import { IDuration } from "@/core/IDuration";
+import { TimeSpanDuration } from "@/core/TimeSpanDuration";
 import React, { useState, useEffect } from "react";
 
 export interface WodTimerProps {

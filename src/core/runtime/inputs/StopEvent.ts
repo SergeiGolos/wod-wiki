@@ -1,4 +1,6 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
@@ -17,12 +19,13 @@ export class StopHandler extends EventHandler {
 
   protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {    
     const block = runtime.trace.current();
-    if (block) {      
-      return [
-        new StopTimerAction(event),        
-        new SetButtonsAction([endButton, resumeButton], "system"),
-      ];
+    if (!block) {      
+      console.warn("StopHandler: No current block found.");
+      return [];
     }
-    return [];
+    return [
+      new StopTimerAction(event),      
+      new SetButtonsAction([endButton, resumeButton], "system"),
+    ];
   }
 }

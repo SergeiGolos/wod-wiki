@@ -1,11 +1,12 @@
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
-import { ResultSpan, OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { useState } from "react";
 
 
-export function useLocalLogSync(): EventSyncResult<ResultSpan[]> {
+export function useLocalLogSync(): EventSyncResult<RuntimeSpan[]> {
 
-    const [results, setResults] = useState<ResultSpan[]>([]);
+    const [results, setResults] = useState<RuntimeSpan[]>([]);
     const sync = (evnt: OutputEvent) => {
         if (evnt.eventType !== "WRITE_LOG" || !evnt.bag?.log) {
             return;

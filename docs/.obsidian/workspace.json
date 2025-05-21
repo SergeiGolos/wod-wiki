@@ -4,25 +4,25 @@
     "type": "split",
     "children": [
       {
-        "id": "7ce8732a55ff475e",
+        "id": "4885771ab6657380",
         "type": "tabs",
         "children": [
           {
-            "id": "5e6d7301942d694a",
+            "id": "e47563db3e2c462f",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RuntimeBlocks.md",
+                "file": "Working/2025-04-15.lap-timers-feature.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "RuntimeBlocks"
+              "title": "2025-04-15.lap-timers-feature"
             }
           },
           {
-            "id": "a8cc1a5e406deef7",
+            "id": "d525150c2134bef8",
             "type": "leaf",
             "state": {
               "type": "card-board-view",
@@ -30,8 +30,23 @@
               "icon": "card-board",
               "title": "CardBoard"
             }
+          },
+          {
+            "id": "2eae734a00e32e85",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "worklog/2025-05-20.MetricsReportingRefactor.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2025-05-20.MetricsReportingRefactor"
+            }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -151,13 +166,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "RuntimeBlocks.md",
+                "file": "worklog/2025-05-20.MetricsReportingRefactor.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of RuntimeBlocks"
+              "title": "Outline of 2025-05-20.MetricsReportingRefactor"
             }
           }
         ],
@@ -165,7 +180,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 426.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -175,38 +190,40 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "obsidian-excalidraw-plugin:New drawing": false
+      "obsidian-excalidraw-plugin:New drawing": false,
+      "card-board:CardBoard": false
     }
   },
-  "active": "5e6d7301942d694a",
+  "active": "2eae734a00e32e85",
   "lastOpenFiles": [
+    "worklog/2025-05-20.RuntimeActionsAnalysis.md",
+    "worklog/2025-05-20.MetricsReportingRefactor.md",
+    "worklog/2025-05-19.BlockBehaviorProposal.md",
+    "worklog/2025-05-16.RuntimeMetricsSummary.md",
+    "worklog/2025-05-17.ApplicationArchitectureDeepDive.md",
+    "Working/2025-04-15.lap-timers-feature.md",
+    "Working/2025-05-01.ui-design-guide.kb.md",
+    "Working/2025-04-30.KB.md",
+    "worklog/2025-05-17.RuntimeInternals.md",
+    "worklog/2025-05-17.RuntimeMetricsDeepDive.md",
+    "Working/2025-05-17.KB.md",
+    "interface_diagram.md",
+    "Notes/meraid-class-diagram.md",
+    "worklog/YYYY-MM-DD.RuntimeBlockRefactoring.md",
+    "Working/2025-05-16.ResultSpanImplementation.kb.md",
+    "Components/ResultSpan.md",
+    "Working/2025.02.16 - metrics updates.md",
+    "RuntimeBlocks.md",
     "worklog/2025-05-12.runtime-block-redesign.md",
     "worklog",
-    "RuntimeBlocks.md",
     "Notes/RuntimeFlow.md",
     "Pasted Image 20250510105211_851.svg",
     "Excalidraw/Drawing 2025-05-10 10.51.06.excalidraw.md",
-    "Working/2025-04-15.lap-timers-feature.md",
     "Working/2025-05-04.KB.md",
     "Excalidraw/Drawing 2025-05-02 15.37.36.excalidraw.md",
     "Working/2025-05-01.ui-design-guide.md",
     "Working/2025-04-17.KB.md",
     "Components/RuntimeHandlers.md",
-    "Working/2025-05-01.ui-design-guide.kb.md",
-    "worklog/2025-05-01.ui-design-guide.kb.md",
-    "worklog/2025-05-01.ui-design-guide.md",
-    "design.md",
-    "Core/Compile.md",
-    "Core/Runtime.md",
-    "Notes/RuntimeFlow_backup.md",
-    "Excalidraw/Group Behavior Expectations.md",
-    "Working/2025-04-30.KB.md",
-    "Working/2025-04-28.monaco-migration-notes.md",
-    "Working/2025-04-28.KB.md",
-    "Working/2025.04-19.chromecasting-push.md",
-    "Working/2025-04-14.pause-resume-duration-design.md",
-    "Reports/2025-04-27-rxjs-message-pump.md",
-    "Excalidraw/2025-04-14.repair-system-button-events 2025-04-14 18.36.33.excalidraw.md",
     "Reports",
     "docs",
     "Core",

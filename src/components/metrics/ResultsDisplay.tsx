@@ -3,9 +3,12 @@ import React, { MutableRefObject, useState, useEffect } from 'react';
 import { EventsView } from './EventsView';
 import { AnalyticsView } from './AnalyticsView';
 import { TabSelector, TabOption } from './TabSelector';
-import { ResultSpan, ITimerRuntime, RuntimeMetricEdit } from '@/core/timer.types';
+import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import EffortSummaryCard from './EffortSummaryCard'; // Import the new component
 import { cn } from '@/core/utils';
+import { ResultSpan } from '@/core/ResultSpan';
 
 interface ResultsDisplayProps {  
   results: ResultSpan[];
@@ -20,7 +23,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   edits,
   className = ""
 }) => {
-  const [computed, setComputed] = useState<[ResultSpan, boolean][]>([]);
+  const [computed, setComputed] = useState<[ResultSpan,  boolean][]>([]);
   const [activeTab, setActiveTab] = useState<TabOption>('Efforts');  
   const [selectedEffortFilter, setSelectedEffortFilter] = useState<string[]>([]);    
   const toggleEffortFilter = (effort: string) => {
@@ -37,7 +40,8 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
       if (selectedEffortFilter.length > 0 && !selectedEffortFilter.includes(result.metrics?.[0]?.effort)) {        
         hidden = true;
       }
-      processedResults.push([result.edit(edits), hidden]);
+      // todo: DEAL WITH THE type converstion.
+       processedResults.push([result, hidden]);
     }    
     setComputed(processedResults); 
 
@@ -59,7 +63,6 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         {activeTab === 'Efforts' && (<>                                              
             <EventsView 
               results={computed} 
-              runtime={runtime} 
               onEffortClick={toggleEffortFilter}                 
             />   
           </>)}

@@ -1,4 +1,8 @@
-import { ITimeSpan, ITimerRuntime, IRuntimeEvent, OutputEvent, TimeSpanDuration } from "@/core/timer.types";
+import { ITimeSpan } from "@/core/ITimeSpan";
+import { TimeSpanDuration } from "@/core/TimeSpanDuration";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 import { OutputAction } from "../OutputAction";
 
@@ -12,7 +16,7 @@ export class SetTimeSpanAction extends OutputAction {
 
         return [{
             eventType: this.eventType,
-            bag: { duration: new TimeSpanDuration(0, this.spans), target: this.target },
+            bag: { duration: new TimeSpanDuration(0, '+', this.spans), target: this.target },
             timestamp: new Date()
         }];
     }

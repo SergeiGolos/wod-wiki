@@ -1,4 +1,5 @@
-import { StatementFragment, StatementNode } from "./timer.types";
+import { CodeFragment } from "./CodeFragment";
+import { ICodeStatement } from "./CodeStatement";
 import pako from "pako";
 import { Base64 } from "js-base64";
 
@@ -8,8 +9,8 @@ export const cn = (...args: string[]) => args.filter(Boolean).join(' ');
  * Helper function to extract a specific fragment type from a statement
  */
 
-export function fragmentsToMany<T extends StatementFragment>(
-  statements: StatementNode[],
+export function fragmentsToMany<T extends CodeFragment>(
+  statements: ICodeStatement[],
   type: string
 ): T[] {
   const fragments: T[] = [];
@@ -40,8 +41,8 @@ export function decodeShareString(encoded: string): string {
 }
 
 
-export function fragmentsTo<T extends StatementFragment>(
-  statements: StatementNode[],
+export function fragmentsTo<T extends CodeFragment>(
+  statements: ICodeStatement[],
   type: string
 ): T | undefined {
   for (let statement of statements){ 
@@ -52,8 +53,8 @@ export function fragmentsTo<T extends StatementFragment>(
   }  
 }
 
-export function fragmentTo<T extends StatementFragment>(
-  statement: StatementNode,
+export function fragmentTo<T extends CodeFragment>(
+  statement: ICodeStatement,
   type: string
 ): T | undefined {
   const fragment = statement.fragments.find((f) => f.type === type);

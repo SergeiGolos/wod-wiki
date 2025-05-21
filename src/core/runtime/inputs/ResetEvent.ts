@@ -1,8 +1,8 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { ResetAction } from "../actions/ResetAction";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { startButton } from "@/components/buttons/timerButtons";
 
 export class ResetEvent implements IRuntimeEvent {
     constructor(timestamp?: Date) {

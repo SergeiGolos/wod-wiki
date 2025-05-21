@@ -1,4 +1,7 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction, TimeSpanDuration } from "@/core/timer.types";
+import { TimeSpanDuration } from "@/core/TimeSpanDuration";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { CompleteEvent } from "./CompleteEvent";
@@ -14,16 +17,25 @@ export class TickHandler extends EventHandler {
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
     const block = runtime.trace.current();      
-    const duration = block?.get(getDuration, true)[0];
-    if (!duration) {
+    const timeSpans = block?.spans && block.spans.length > 0 
+      ?block.spans[block.spans.length - 1].timeSpans
+      :[];
+    const durationFragment = block?.selectMany(getDuration)[0];
+
+    // If no duration fragment is associated with the block, or
+    // if the fragment exists but its 'original' value is undefined (meaning duration was not specified in the script),
+    // then this TickHandler should not cause a completion.
+    if (!durationFragment || durationFragment.original === undefined) {
       return [];
     }
-    const spanDuration = new TimeSpanDuration(
-      duration.original ?? 0, 
-      block.getSpans());
-    
+
+    // At this point, durationFragment exists and durationFragment.original is a number (e.g., 0, 10, etc.).
+    // An explicit duration (like 0s) was provided.
+    const spanDuration = new TimeSpanDuration(durationFragment.original, '+', timeSpans);
     const remaining = spanDuration.remaining();
-    if ((remaining?.original != undefined) && (remaining.original == 0 || remaining.original < 0)) {
+
+    // Check if remaining time is zero or negative.
+    if (remaining?.original !== undefined && remaining.original <= 0) {
       return [
         new NotifyRuntimeAction(new CompleteEvent(_event.timestamp))
       ];

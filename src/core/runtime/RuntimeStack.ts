@@ -1,4 +1,5 @@
-import { IRuntimeBlock } from "../timer.types";
+import { BlockKey } from "../BlockKey";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**
  * Type definitions for traversal callback functions
@@ -12,10 +13,10 @@ type StackTraversalCondition = (block: IRuntimeBlock, result: any) => boolean;
  */
 export class RuntimeStack {  
   public stack: Array<IRuntimeBlock> = [];
+  
   /**
-   * Gets traces for nodes in the stack
-   * @param stack Array of statement nodes to find traces for
-   * @returns Array of matching statement traces
+   * Gets the current block in the stack
+   * @returns The current block, or undefined if the stack is empty
    */
   public current(): IRuntimeBlock | undefined {
     return this.stack.length == 0
@@ -29,18 +30,8 @@ export class RuntimeStack {
    * @returns A unique key for this execution context
    */
   public push(block: IRuntimeBlock): IRuntimeBlock {        
-    block.parent = this.current();    
+    block.parent = this.current();        
     this.stack.push(block);    
-    // Use the traverseParentChain method to build the blockKey
-    const keyParts: string[] = [];
-    this.traverseAll(
-      (currentBlock) => {
-        keyParts.unshift(`${currentBlock.blockId}:${currentBlock.getIndex()}`);
-        return undefined; // Continue traversal
-      }
-    );
-    
-    block.blockKey = keyParts.join('|');
     return block;
   }
   
@@ -48,7 +39,7 @@ export class RuntimeStack {
     if (this.stack.length == 0) {
       return undefined;
     }
-
+    
     return this.stack.pop();
   }
   
@@ -78,12 +69,7 @@ export class RuntimeStack {
     
     return result;
   }
-  
-  /**
-   * Traverses the current stack from the top down until a condition is met
-   * @param callback Function to call for each block's statement
-   * @returns The first non-undefined result from the callback
-   */
+
   public traverseFirst<T>(
     callback: BlockTraversalCallback<T>,
     condition?: StackTraversalCondition,

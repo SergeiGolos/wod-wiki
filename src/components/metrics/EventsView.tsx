@@ -1,17 +1,16 @@
-import React, { MutableRefObject } from 'react';
-import { ResultSpan, ITimerRuntime, MetricValue } from '@/core/timer.types';
+import React from 'react';
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { MetricValue } from "@/core/MetricValue";
 import EditableMetricCell, { createMetricValidation } from './EditableMetricCell';
 import { cn } from '@/core/utils';
 
 interface EventsViewProps {
-  results: [ResultSpan, boolean][];
-  runtime: MutableRefObject<ITimerRuntime | undefined>;  
+  results: [RuntimeSpan, boolean][];
   onEffortClick: (effort: string) => void;  
 }
 
 export const EventsView: React.FC<EventsViewProps> = ({
   results,
-  runtime,
   onEffortClick
 }) => {
 
@@ -53,47 +52,45 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedResults.map(([result, hidden]) => {
                 // Get the primary effort name for the span
-                const effort = result.label || result.metrics?.[0]?.effort || 'Event';
-                const resultId = `${result.blockKey}-${result.index}`;
+                const effort = result.metrics?.[0]?.effort || 'Event';
+                const resultId = `${result.blockKey}`;
 
-                if (!resultId) {
-                  console.error("Result missing ID, cannot make editable:", result);
+                if (!resultId || !result.blockKey) {
+                  console.error("Result missing blockKey, cannot make editable:", result);
                   return (
-                    <tr key={`event-missing-id-${Math.random()}`} className="hover:bg-gray-50 opacity-50">                      
+                    <tr key={`event-missing-id-${resultId}`} className="hover:bg-gray-50 opacity-50">                      
                       <td className="px-3 py-2">Unknown Event</td>
-                      <td className="px-3 py-2 text-right">-</td>
-                      <td className="px-3 py-2 text-right">-</td>
-                      <td className="px-3 py-2 text-right">-</td>
-                      <td className="px-3 py-2 text-right">-</td>
-                      <td className="px-3 py-2">... (Missing ID) ...</td>
+                      <td className="px-3 py-2 text-center">-</td>
+                      <td className="px-3 py-2 text-center">-</td>
+                      <td className="px-3 py-2 text-center">-</td>
+                      <td className="px-3 py-2 text-center">-</td>
+                      <td className="px-3 py-2 text-right">... (Missing ID) ...</td>
                     </tr>
-                  )
+                  );
                 }
                 
-                // Extract metric values by type directly from metrics array
-                const repetitionValues: [string, MetricValue][] = [];
-                const resistanceValues: [string, MetricValue][] = [];
-                const distanceValues: [string, MetricValue][] = [];
+                // Consolidate all displayable metrics into a single array
+                const allDisplayableMetrics: {
+                  effortName: string;
+                  metricValue: MetricValue;
+                  type: 'repetitions' | 'resistance' | 'distance';
+                }[] = [];
                 
-                // Go through each metric and extract values by type
-                result.metrics?.forEach(metric => {
-                  const effortName = metric.effort || effort;
-                  
-                  // Find each type of value in the values array
-                  const rep = metric.values?.find(v => v.type === 'repetitions');
-                  const resistance = metric.values?.find(v => v.type === 'resistance');
-                  const distance = metric.values?.find(v => v.type === 'distance');
-                  
-                  // Add to the appropriate arrays with the effort name
-                  if (rep) repetitionValues.push([effortName, rep]);
-                  if (resistance) resistanceValues.push([effortName, resistance]);
-                  if (distance) distanceValues.push([effortName, distance]);
+                result.metrics?.forEach(metricEntry => {
+                  const currentEffortName = metricEntry.effort || effort;
+                  metricEntry.values?.forEach(value => {
+                    if (value.type === 'repetitions' || value.type === 'resistance' || value.type === 'distance') {
+                      allDisplayableMetrics.push({
+                        effortName: currentEffortName,
+                        metricValue: value,
+                        type: value.type,
+                      });
+                    }
+                  });
                 });
                 
-                // If there are no metrics, display a row with just the effort name
-                if (repetitionValues.length === 0 && 
-                    resistanceValues.length === 0 && 
-                    distanceValues.length === 0) {
+                // If there are no displayable metrics, display a simpler row with just the effort name
+                if (allDisplayableMetrics.length === 0) {
                   return (
                     <tr key={resultId} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
                       <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
@@ -118,101 +115,77 @@ export const EventsView: React.FC<EventsViewProps> = ({
                   );
                 }
                 
-                // For each repetition metric, create a row
+                // For each displayable metric, create a row
                 return (
                   <React.Fragment key={resultId}>
-                    {repetitionValues.map(([effortName, metricValue], metricIndex) => (
-                      <tr key={`${resultId}-rep-${metricIndex}`} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
-                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
-                          <span 
-                            className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
-                            onClick={() => onEffortClick(effortName)}
-                            title={effortName}
-                          >
-                            {effortName}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          {result.duration ? formatDuration(result.duration()) : '-'}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          <EditableMetricCell
-                            initialValue={metricValue} 
-                            metricType="repetitions"
-                            onSave={() => {}}
-                            blockKey={result.blockKey!} index={result.index!}                      
-                            validate={repValidation}
-                          />
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
-                          {result.start?.timestamp ? formatTimestamp(result.start.timestamp.getTime()) : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                    
-                    {resistanceValues.map(([effortName, metricValue], metricIndex) => (
-                      <tr key={`${resultId}-res-${metricIndex}`} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
-                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
-                          <span 
-                            className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
-                            onClick={() => onEffortClick(effortName)}
-                            title={effortName}
-                          >
-                            {effortName} 💪
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          {result.duration ? formatDuration(result.duration()) : '-'}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          <EditableMetricCell
-                            initialValue={metricValue}
-                            metricType="resistance"
-                            onSave={() => {}}
-                            blockKey={result.blockKey!} index={result.index!}   
-                            validate={resistanceValidation}
-                          />
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
-                          {result.start?.timestamp ? formatTimestamp(result.start.timestamp.getTime()) : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                    
-                    {distanceValues.map(([effortName, metricValue], metricIndex) => (
-                      <tr key={`${resultId}-dist-${metricIndex}`} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
-                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
-                          <span 
-                            className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
-                            onClick={() => onEffortClick(effortName)}
-                            title={effortName}
-                          >
-                            {effortName} 📏
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          {result.duration ? formatDuration(result.duration()) : '-'}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">-</td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          <EditableMetricCell
-                            initialValue={metricValue}
-                            metricType="distance"
-                            onSave={() => {}}
-                            blockKey={result.blockKey!} index={result.index!}   
-                            validate={distanceValidation}
-                          />
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
-                          {result.start?.timestamp ? formatTimestamp(result.start.timestamp.getTime()) : '-'}
-                        </td>
-                      </tr>
-                    ))}
+                    {allDisplayableMetrics.map(({ effortName, metricValue, type }, metricIndex) => {
+                      let effortDisplay = effortName;
+                      let validationSchema = repValidation; // Default
+
+                      if (type === 'resistance') {
+                        effortDisplay = `${effortName} 💪`;
+                        validationSchema = resistanceValidation;
+                      } else if (type === 'distance') {
+                        effortDisplay = `${effortName} 📏`;
+                        validationSchema = distanceValidation;
+                      }
+
+                      return (
+                        <tr key={`${resultId}-${type}-${metricIndex}`} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
+                          <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
+                            <span 
+                              className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
+                              onClick={() => onEffortClick(effortName)} // Use original effortName for click handler
+                              title={effortName} // Use original effortName for title
+                            >
+                              {effortDisplay} {/* Displayed effort name with potential emoji */}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                            {result.duration ? formatDuration(result.duration()) : '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                            {type === 'repetitions' ? (
+                              <EditableMetricCell
+                                initialValue={metricValue} 
+                                metricType="repetitions"
+                                onSave={() => {}} // Placeholder onSave
+                                blockKey={result.blockKey!} 
+                                index={result.index!}                      
+                                validate={validationSchema}
+                              />
+                            ) : '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                            {type === 'resistance' ? (
+                              <EditableMetricCell
+                                initialValue={metricValue}
+                                metricType="resistance"
+                                onSave={() => {}} // Placeholder onSave
+                                blockKey={result.blockKey!} 
+                                index={result.index!}   
+                                validate={validationSchema}
+                              />
+                            ) : '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                            {type === 'distance' ? (
+                              <EditableMetricCell
+                                initialValue={metricValue}
+                                metricType="distance"
+                                onSave={() => {}} // Placeholder onSave
+                                blockKey={result.blockKey!} 
+                                index={result.index!}   
+                                validate={validationSchema}
+                              />
+                            ) : '-'}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 text-right">
+                            {result.start?.timestamp ? formatTimestamp(result.start.timestamp.getTime()) : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </React.Fragment>
                 );
               })}

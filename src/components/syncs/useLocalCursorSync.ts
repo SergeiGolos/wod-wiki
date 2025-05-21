@@ -1,4 +1,5 @@
-import { IRuntimeBlock, OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { useState } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 

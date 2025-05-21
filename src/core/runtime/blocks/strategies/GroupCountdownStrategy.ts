@@ -1,28 +1,32 @@
-import { PrecompiledNode, ITimerRuntime, IRuntimeBlock } from "@/core/timer.types";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 
 export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: PrecompiledNode[]): boolean {
-    // For now, only handle arrays with exactly one node
+  canHandle(nodes: JitStatement[]): boolean {
+    // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
     }
 
     const node = nodes[0];
-    const duration = node.duration();
+    const increment = node.increments();
+    const duration = node.durations();
     const rounds = node.rounds();
+    const hasChildren = node.children.length > 0;
 
-    if (duration?.sign === "-" && duration.original != undefined && duration.original > 0
-      && (rounds != null && rounds === 1)) {
-      return true;
-    }
-    return false;
+    // Handle countdown nodes with negative duration, no rounds, and children
+    return (duration.length > 0 &&
+      increment.length > 0 && increment[0].image === "-" &&
+      rounds.length === 0 &&
+      hasChildren);
   }
 
   compile(
-    nodes: PrecompiledNode[],
+    nodes: JitStatement[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
     // Only handle the array if it contains exactly one node

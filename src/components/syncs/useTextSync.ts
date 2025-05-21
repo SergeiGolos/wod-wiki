@@ -1,15 +1,14 @@
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
-import { OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
 import { useState, useEffect } from "react";
 
 
 export function useTextSync(target: string): EventSyncResult<any> {
     const [text, setText] = useState<any | null>(null);
 
-    // Debug log when this hook renders
+    // Initialize the hook
     useEffect(() => {
-        console.debug(`useTextSync initialized for target: ${target}`);
-        return () => console.debug(`useTextSync for target ${target} unmounted`);
+        return () => {}; // Cleanup function
     }, [target]);
 
     const sync = (runtimeBlock: OutputEvent) => {
@@ -18,7 +17,7 @@ export function useTextSync(target: string): EventSyncResult<any> {
             return;
         }
 
-        console.debug(`Setting text for ${target} :`, runtimeBlock.bag?.text);
+        // Set the text for the target component
         setText(runtimeBlock.bag?.text ?? null); //so some math.
     };
 

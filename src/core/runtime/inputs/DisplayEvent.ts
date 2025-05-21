@@ -1,4 +1,5 @@
-import { IRuntimeEvent, ISpanDuration } from "@/core/timer.types";
+import { ISpanDuration } from "@/core/ISpanDuration";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 
 
 export class DisplayEvent implements IRuntimeEvent {

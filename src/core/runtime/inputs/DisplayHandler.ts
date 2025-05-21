@@ -1,7 +1,7 @@
-import { IRuntimeAction, IRuntimeBlock, IRuntimeEvent, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
-import { DisplayEvent } from "./DisplayEvent";
-import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 
 /**
  * Handles DisplayEvents and converts them to appropriate UI update actions
@@ -11,20 +11,16 @@ export class DisplayHandler extends EventHandler {
   protected eventType: string = 'display';
   
   match(event: IRuntimeEvent): boolean {
-    const isDisplay = event.name === 'display';
-    console.debug(`DisplayHandler.match: Event [${event.name}] matched: ${isDisplay}`);
-    return isDisplay;
+    return event.name === 'display';
   }
 
   /**
    * Convert DisplayEvents to SET_CLOCK actions that update the UI
    */
   protected handleEvent(
-    event: IRuntimeEvent,
-    runtime: ITimerRuntime
+    _event: IRuntimeEvent,
+    _runtime: ITimerRuntime
   ): IRuntimeAction[] {
-    console.debug(`DisplayHandler.handleEvent processing event:`, event);
-    
     return [];
   }
   
@@ -33,7 +29,6 @@ export class DisplayHandler extends EventHandler {
    */
   handle(
     runtime: ITimerRuntime,
-    block: IRuntimeBlock,
     event: IRuntimeEvent
   ): IRuntimeAction[] {
     if (!this.match(event)) {

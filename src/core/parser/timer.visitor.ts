@@ -1,4 +1,5 @@
-import { StatementFragment, StatementNode } from "../timer.types";
+import { CodeFragment } from "../CodeFragment";
+import { ICodeStatement } from "../CodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
@@ -39,9 +40,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
               { SyntaxError: "Error processing markdown block:", blockError },
             ];
           }
-        }) as StatementNode[];
+        }) as ICodeStatement[];
      
-      let stack: { columnStart: number; block: StatementNode }[] = []; 
+      let stack: { columnStart: number; block: ICodeStatement }[] = []; 
       for (let block of blocks) {
         const history = stack.filter(
           (item: any) => item.columnStart == block.meta.columnStart
@@ -80,8 +81,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  wodBlock(ctx: any): StatementNode {
-    let statement = { fragments: [] as StatementFragment[] } as StatementNode;
+  wodBlock(ctx: any): ICodeStatement {
+    let statement = { fragments: [] as CodeFragment[] } as ICodeStatement;
     const lapFragments = ctx.lap && this.visit(ctx.lap);
     statement.fragments.push(...(lapFragments || []));
     if (ctx.rounds) {
@@ -196,7 +197,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
 
-  rounds(ctx: any): StatementFragment[] {
+  rounds(ctx: any): CodeFragment[] {
     const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     const groups = this.visit(ctx.sequence[0]);
     

@@ -1,4 +1,7 @@
-import { IActionButton, IRuntimeEvent, ITimerRuntime, OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { OutputAction } from "../OutputAction";
 import { Subject } from "rxjs";
 

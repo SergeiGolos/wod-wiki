@@ -1,0 +1,2 @@
+
+export type DurationSign = "+" | "-" | undefined;

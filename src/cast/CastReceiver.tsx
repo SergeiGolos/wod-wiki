@@ -3,7 +3,8 @@ import { WodTimer } from '@/components/clock/WodTimer';
 
 import { Observable, Subscription } from 'rxjs';
 import { cn } from '@/core/utils';
-import { IDuration, OutputEvent } from '@/core/timer.types';
+import { IDuration } from "@/core/IDuration";
+import { OutputEvent } from "@/core/OutputEvent";
 
 export interface CastReceiverProps {
   event$: Observable<OutputEvent>;
@@ -21,18 +22,18 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
 
   // Subscribe to the ChromecastEvent observable
   useEffect(() => {
-    console.log("[CastReceiver] Subscribing to event$");
+    // Subscribing to events
     const sub: Subscription = event$.subscribe((event : OutputEvent) => {
-      console.log("[CastReceiver] Event received:", event);
+      // Event received
       setReceivedMessages(prev => {
         const updated = [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: JSON.stringify(event.bag) }];
-        console.log("[CastReceiver] receivedMessages updated:", updated);
+        // Messages updated
         return updated.slice(-5);
       });
 
       switch (event.eventType) {
         case 'SET_DISPLAY':
-          console.log("[CastReceiver] SET_DISPLAY event, updating display:", event.bag);
+          // SET_DISPLAY event received
           setDisplay({
             primary: event.bag.spans ? event.bag.spans[0] : { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
             label: 'Timer',
@@ -47,10 +48,10 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
           // Handle other event types as needed
           break;
         default:
-          console.log("[CastReceiver] Unknown event type:", event.eventType);
+          // Unknown event type
           setReceivedMessages(prev => {
             const updated = [...prev, { time: new Date().toLocaleTimeString(), type: "UNKNOWN", message: `Unknown event type: ${event.eventType}` }];
-            console.log("[CastReceiver] receivedMessages updated (unknown):", updated);
+            // Messages updated (unknown type)
             return updated.slice(-5);
           });
           break;

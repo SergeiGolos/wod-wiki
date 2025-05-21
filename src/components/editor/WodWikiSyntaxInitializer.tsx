@@ -3,7 +3,7 @@ import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { WodRuntimeScript } from '@/core/timer.types';
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
 import { MdTimerRuntime } from '@/core/parser/md-timer';
 
 export class WodWikiSyntaxInitializer {

@@ -1,4 +1,6 @@
-import { IRuntimeEvent, IRuntimeAction, ITimerRuntime } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 
 export class PushActionEvent implements IRuntimeEvent {

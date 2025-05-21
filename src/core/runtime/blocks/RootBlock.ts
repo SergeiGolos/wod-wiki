@@ -1,72 +1,73 @@
-import {
-  IRuntimeAction,
-  ITimerRuntime,
-  PrecompiledNode,
-  ResultSpan,
-  StatementNode,
-  ZeroIndexMeta,
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+// import { ZeroIndexMeta } from "@/core/ZeroIndexMeta"; // Removed unused import
 import { RuntimeBlock } from "./RuntimeBlock";
 import {
-  PushIdleBlockAction,
-  PushEndBlockAction,
   PushStatementAction,
 } from "../actions/PushStatementAction";
+import { PushEndBlockAction } from "../actions/PushEndBlockAction";
+import { PushIdleBlockAction } from "../actions/PushIdleBlockAction";
+import { ResetHandler } from "../inputs/ResetEvent";
+import { EndHandler } from "../inputs/EndEvent";
+import { StartHandler } from "../inputs/StartEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
-import { WriteResultAction } from "../outputs/WriteResultAction";
-import { StartTimerAction } from "../actions/StartTimerAction";
-import { StartEvent } from "../inputs/StartEvent";
+import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
+import { RunHandler } from "../inputs/RunEvent";
 
 /**
  * Represents the root of the execution tree.
  * Often wraps a single main block (like a CompoundBlock or RepeatingBlock).
  */
 export class RootBlock extends RuntimeBlock {
-  constructor(private nodes: PrecompiledNode[]) {
-    super([new PrecompiledNode({
-      id: -1,      
-      children: [],
-      fragments: [],
-      parent: undefined,
-      meta: new ZeroIndexMeta(),    
-    })]);
+  _sourceIndex: number = -1;
+  constructor(private children: JitStatement[]) {
+    const childrenIds = children      
+      .map((s) => s.id);
+    super([
+      new JitStatement({
+        id: -1,      
+        children: [...childrenIds],
+        fragments: [],
+        parent: undefined,
+        meta: new ZeroIndexMeta(),    
+      })]);
+      
+      this.handlers.push(new RunHandler());
+      this.handlers.push(new EndHandler());
+      this.handlers.push(new ResetHandler());      
   }
 
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  protected doEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
-    const children = this.nodes
-      .filter((s) => s.parent === undefined)
-      .map((s) => s.id);
-    this.sources[0].children = [...children];
-
+  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {        
+    this._sourceIndex = 0
     return [new PushIdleBlockAction()];
   }
 
   /**
    * Implementation of the doNext hook method from the template pattern
    */
-  protected doNext(_runtime: ITimerRuntime): IRuntimeAction[] {
-    this.ctx.index += 1;
-    if (this.ctx.index > this.nodes.length) {
+  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {    
+    if (this._sourceIndex >=  this.children.length) {
+      return [new PushEndBlockAction()];
+    }
+  
+    const groupStatements = this.nextChildStatements(runtime, this._sourceIndex);
+    
+    if (groupStatements.length == 0) {              
       return [new PopBlockAction()];
     }
-
-    const statement = this.nodes[this.ctx.index-1];
-    return [ new PushStatementAction([statement], false)]
+    this._sourceIndex += groupStatements.length;
+    return [new PushStatementAction(groupStatements)];
   }
 
   /**
    * Implementation of the doLeave hook method from the template pattern
    */
-  protected doLeave(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Create a result span to report the completion of this block using ResultBuilder
-    const resultSpan = ResultSpan.fromBlock(this);      
-    
-    return [
-      new WriteResultAction(resultSpan),
-      new PushEndBlockAction()
-    ];
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    // Create a result span to report the completion of this block using ResultBuilder        
+    return [];
   }
 }

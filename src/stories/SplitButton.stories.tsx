@@ -3,7 +3,8 @@ import '../index.css';
 import { useState } from 'react';
 import { SplitButton, SplitButtonOption } from '../components/buttons/SplitButton';
 import { PlayIcon, StarIcon } from "@heroicons/react/24/solid";
-import { IActionButton, IRuntimeEvent } from '@/core/timer.types';
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 
 // Create a wrapper component for demonstration
 const SplitButtonDemo = () => {

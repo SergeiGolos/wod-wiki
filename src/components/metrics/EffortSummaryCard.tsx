@@ -1,10 +1,10 @@
 // src/components/analyrics/EffortSummaryCard.tsx
 import React from 'react';
-import { ResultSpan } from '../../core/timer.types';
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { XMarkIcon } from '@heroicons/react/20/solid';
 
 interface EffortSummaryCardProps {
-  spansOptions: [ResultSpan, boolean][];
+  spansOptions: [RuntimeSpan, boolean][];
   selectedEffortFilter: string[];
   setSelectedEffortFilter: (effort: string) => void;
 }

@@ -1,8 +1,9 @@
-import { StatementFragment, SourceCodeMetadata } from "../timer.types";
+import { CodeFragment } from "../CodeFragment";
+import { CodeMetadata } from "../CodeMetadata";
 import { GroupType } from "../parser/timer.visitor";
 
-export class LapFragment implements StatementFragment {
-  constructor(public group: GroupType, public image: string, public meta?: SourceCodeMetadata) {  
+export class LapFragment implements CodeFragment {
+  constructor(public group: GroupType, public image: string, public meta?: CodeMetadata) {  
   }
   type: string = "lap";    
 }

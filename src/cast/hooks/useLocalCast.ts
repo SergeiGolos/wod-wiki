@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { UseCastReceiverResult } from './useCastReceiver';
 import { UseCastSenderResult } from './useCastSender';
-import { OutputEvent } from '@/core/timer.types';
+import { OutputEvent } from "@/core/OutputEvent";
 
 export interface ChromecastState {
   isAvailable: boolean;

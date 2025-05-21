@@ -1,5 +1,5 @@
 import { PlayIcon, ArrowPathIcon, PauseIcon, FlagIcon, FolderArrowDownIcon } from "@heroicons/react/24/solid";
-import { IActionButton } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
 
 
 

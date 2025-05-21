@@ -1,8 +1,10 @@
 import { useRef, useState, useEffect } from "react";
-import { IRuntimeEvent, OutputEvent, WodRuntimeScript } from "@/core/timer.types";
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { OutputEvent } from "@/core/OutputEvent";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { RuntimeScript } from "@/core/runtime/RuntimeScript";
 import { RuntimeJit } from "@/core/runtime/RuntimeJit";
-import { TimerRuntime } from "@/core/runtime/timer.runtime";
+import { TimerRuntime } from "@/core/runtime/TimerRuntime";
 import { Subject } from "rxjs";
 
 

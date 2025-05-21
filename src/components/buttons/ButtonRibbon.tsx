@@ -1,5 +1,6 @@
 import React from "react";
-import { IActionButton, IRuntimeEvent } from "@/core/timer.types";
+import { IActionButton } from "@/core/IActionButton";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { cn } from "@/core/utils";
 
 
@@ -27,7 +28,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
   };
 
   const clickEvent = (button: IActionButton) => {
-    const event = button.event;
+    const event = button.event;    
     setEvent({ name: event, timestamp: new Date() });
   }
 
@@ -42,7 +43,7 @@ export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent })
               className={cn(getButtonStyle(button), "shadow-md text-lg sm:text-2xl py-2 px-4")}
             >
               {button.label && <span className="mr-2">{button.label}</span>}
-              <button.icon className="w-6 h-6 mt-1" />
+              {button.icon && <button.icon className="w-6 h-6 mt-1" />}
             </button>
           ))}
         </div>

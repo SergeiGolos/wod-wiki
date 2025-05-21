@@ -1,4 +1,6 @@
-import { IRuntimeAction, ITimerRuntime, IRuntimeEvent } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 
 export class IdleStatementAction implements IRuntimeAction {
   constructor() { }

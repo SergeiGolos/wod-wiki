@@ -1,6 +1,7 @@
-import { SourceCodeMetadata, StatementFragment } from "../timer.types";
+import { CodeFragment } from "../CodeFragment";
+import { CodeMetadata } from "../CodeMetadata";
 
-export class TextFragment implements StatementFragment {
-  constructor(public text: string, public level?: string, public meta?: SourceCodeMetadata) { }
+export class TextFragment implements CodeFragment {
+  constructor(public text: string, public level?: string, public meta?: CodeMetadata) { }
   type: string = "text";  
 }

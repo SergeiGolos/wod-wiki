@@ -1,7 +1,8 @@
-import { StatementFragment, SourceCodeMetadata } from "../timer.types";
+import { CodeFragment } from "../CodeFragment";
+import { CodeMetadata } from "../CodeMetadata";
 
-export class TimerFragment implements StatementFragment {
-  constructor(public image: string, public meta: SourceCodeMetadata) {
+export class TimerFragment implements CodeFragment {
+  constructor(public image: string, public meta: CodeMetadata) {
     const digits = this.image
       .split(":")
       .map((segment: any) => 1 * (segment == "" ? 0 : segment))

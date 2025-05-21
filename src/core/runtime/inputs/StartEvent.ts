@@ -1,4 +1,6 @@
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
@@ -16,7 +18,6 @@ export class StartHandler extends EventHandler {
   protected eventType: string = 'start';
 
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
-    console.debug('StartHandler processing start event');
     return [
       new StartTimerAction(event),
       new SetButtonsAction([endButton, pauseButton], "system"),

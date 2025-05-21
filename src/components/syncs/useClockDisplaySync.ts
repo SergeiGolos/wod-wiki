@@ -1,14 +1,13 @@
-import { OutputEvent } from "@/core/timer.types";
+import { OutputEvent } from "@/core/OutputEvent";
 import { useState, useEffect } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 
 export function useClockDisplaySync(target: string): EventSyncResult<any> {
     const [display, setDisplay] = useState<any | null>(null);
     
-    // Debug log when this hook renders
+    // Initialize the hook
     useEffect(() => {
-        console.debug(`useClockDisplaySync initialized for target: ${target}`);
-        return () => console.debug(`useClockDisplaySync for target ${target} unmounted`);
+        return () => {}; // Cleanup function
     }, [target]);
     
     const sync = (runtimeBlock: OutputEvent) => {
@@ -17,7 +16,7 @@ export function useClockDisplaySync(target: string): EventSyncResult<any> {
             return;
         }
         
-        console.debug(`Setting display for ${target} :`, runtimeBlock.bag?.duration);
+        // Set the display for the target component
         setDisplay(runtimeBlock.bag?.duration ?? null); //so some math.
     };
 

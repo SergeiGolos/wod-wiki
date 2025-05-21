@@ -1,5 +1,7 @@
-
-import { IRuntimeEvent, ITimerRuntime, IRuntimeAction } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { EventHandler } from "@/core/runtime/EventHandler";
 
 
@@ -23,8 +25,14 @@ export class SaveHandler extends EventHandler {
   protected eventType: string = 'save';
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
-    // 1. Get the workout script or data to be saved (assume event.script or runtime.scriptText)
-    const scriptText = `${runtime.code}\n\n${runtime.trace?.history.join('\n')}`;
+    // 1. Get the workout script and all result spans
+    const allSpans = runtime.trace.spanRegistry.getAllSpans();
+    let historyString = "";
+    if (allSpans && allSpans.length > 0) {
+      historyString = allSpans.map((span: RuntimeSpan) => JSON.stringify(span, null, 2)).join('\n\n');
+    }
+
+    const scriptText = `${runtime.code}\n\n${historyString}`;
     // 2. Generate a filename with timestamp
     const date = new Date();
     const iso = date.toISOString().replace(/[:.]/g, '-');

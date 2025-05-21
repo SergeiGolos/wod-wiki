@@ -1,31 +1,12 @@
-import { IRuntimeAction, ITimerRuntime, IRuntimeEvent, OutputEvent, PrecompiledNode } from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { OutputEvent } from "@/core/OutputEvent";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { JitStatement } from "@/core/JitStatement";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 
-
-export class PushIdleBlockAction implements IRuntimeAction {
-  name: string = "goto";
-  apply(
-    runtime: ITimerRuntime,
-    _input: Subject<IRuntimeEvent>,
-    _output: Subject<OutputEvent>
-  ): void {
-    runtime.push(runtime.jit.idle(runtime));
-  }
-}
-
-export class PushEndBlockAction implements IRuntimeAction {
-  name: string = "goto";
-  apply(
-    runtime: ITimerRuntime,
-    _input: Subject<IRuntimeEvent>,
-    _output: Subject<OutputEvent>
-  ): void {
-    runtime.push(runtime.jit.end(runtime));
-  }
-}
-
 export class PushStatementAction implements IRuntimeAction {
-  constructor(public statements: PrecompiledNode[], public pop: boolean = false) { }
+  constructor(public statements: JitStatement[]) { }
   name: string = "goto";
   apply(
     runtime: ITimerRuntime,
@@ -33,9 +14,6 @@ export class PushStatementAction implements IRuntimeAction {
     _output: Subject<OutputEvent>
   ): void {        
     var block = runtime.jit.compile(this.statements, runtime)        
-    if (this.pop) {
-      runtime.pop();
-    }
     runtime.push(block);
   }
 }

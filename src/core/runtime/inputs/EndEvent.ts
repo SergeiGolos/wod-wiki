@@ -1,8 +1,6 @@
-import {
-  IRuntimeEvent,
-  ITimerRuntime,
-  IRuntimeAction,
-} from "@/core/timer.types";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { GotoEndAction } from "../actions/GotoEndAction";
@@ -20,8 +18,13 @@ export class EndHandler extends EventHandler {
 
   protected handleEvent(
     event: IRuntimeEvent,
-    _runtime: ITimerRuntime
+    runtime: ITimerRuntime
   ): IRuntimeAction[] {
+    const block = runtime.trace.current();
+    if (!block) {
+      console.warn("EndHandler: No current block found.");
+      return [];
+    }
     // Create a result block for the final time
     return [
       new StopTimerAction({ name: "stop", timestamp: event.timestamp }),          

@@ -2,7 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { useTimerRuntime } from "./useTimerRuntime";
-import { OutputEvent, ResultSpan, RuntimeMetricEdit, WodRuntimeScript } from "@/core/timer.types";
+import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { OutputEvent } from "@/core/OutputEvent";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { WodTimer } from "./clock/WodTimer";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
@@ -28,7 +31,7 @@ interface WikiContainerProps {
   /**
    * Optional callback when results are updated
    */
-  onResultsUpdated?: (results: ResultSpan[]) => void;
+  onResultsUpdated?: (results: RuntimeSpan[]) => void;
   children: React.ReactNode[];
 }
 
@@ -64,21 +67,10 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   };
 
   useEffect(() => {      
-    console.debug('WikiContainer: Setting up output subscription');
-    
     const dispose = output?.subscribe((event) => {        
-      console.debug('WikiContainer received output event:', {
-        type: event.eventType,
-        target: event.bag?.target,
-        timestamp: new Date().toISOString()
-      });
-      console.debug("WikiContainer received output event:", event);
       // Handle SET_CLOCK events specifically
       if (event.eventType === 'SET_CLOCK') {
-        console.debug('WikiContainer processing SET_CLOCK event:', {
-          target: event.bag?.target,
-          duration: event.bag?.duration
-        });
+        // Process clock update
       }
       
       // Process the event through all handlers
@@ -93,7 +85,6 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
     });
     
     return () => {
-      console.debug('WikiContainer: Cleaning up output subscription');
       dispose?.unsubscribe();
     };
   }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons]);
