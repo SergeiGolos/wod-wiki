@@ -37,12 +37,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "worklog/2025-05-20.RuntimeActionsAnalysis.md",
+                "file": "worklog/2025-05-20.MetricsReportingRefactor.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2025-05-20.RuntimeActionsAnalysis"
+              "title": "2025-05-20.MetricsReportingRefactor"
             }
           }
         ],
@@ -166,13 +166,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "worklog/2025-05-20.RuntimeActionsAnalysis.md",
+                "file": "worklog/2025-05-20.MetricsReportingRefactor.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 2025-05-20.RuntimeActionsAnalysis"
+              "title": "Outline of 2025-05-20.MetricsReportingRefactor"
             }
           }
         ],
@@ -196,8 +196,9 @@
   },
   "active": "2eae734a00e32e85",
   "lastOpenFiles": [
-    "worklog/2025-05-19.BlockBehaviorProposal.md",
     "worklog/2025-05-20.RuntimeActionsAnalysis.md",
+    "worklog/2025-05-20.MetricsReportingRefactor.md",
+    "worklog/2025-05-19.BlockBehaviorProposal.md",
     "worklog/2025-05-16.RuntimeMetricsSummary.md",
     "worklog/2025-05-17.ApplicationArchitectureDeepDive.md",
     "Working/2025-04-15.lap-timers-feature.md",
@@ -223,7 +224,6 @@
     "Working/2025-05-01.ui-design-guide.md",
     "Working/2025-04-17.KB.md",
     "Components/RuntimeHandlers.md",
-    "worklog/2025-05-01.ui-design-guide.kb.md",
     "Reports",
     "docs",
     "Core",

@@ -18,10 +18,9 @@ export class RunEvent implements IRuntimeEvent {
 export class RunHandler extends EventHandler {
   protected eventType: string = 'run';
 
-  protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {    
+  protected handleEvent(_event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {    
     return [
-      new PushNextAction(),            
-      new StartTimerAction(event)
+      new PushNextAction(),
     ];
   }
 }

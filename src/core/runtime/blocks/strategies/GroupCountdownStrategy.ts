@@ -13,16 +13,16 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
     }
 
     const node = nodes[0];
-    const duration = node.duration();
+    const increment = node.increments();
+    const duration = node.durations();
     const rounds = node.rounds();
     const hasChildren = node.children.length > 0;
 
     // Handle countdown nodes with negative duration, no rounds, and children
-    return (duration.sign === "-" && 
-           duration.original !== undefined && 
-           duration.original > 0 &&
-           rounds.length === 0 &&
-           hasChildren);
+    return (duration.length > 0 &&
+      increment.length > 0 && increment[0].image === "-" &&
+      rounds.length === 0 &&
+      hasChildren);
   }
 
   compile(

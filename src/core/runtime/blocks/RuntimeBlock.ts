@@ -105,19 +105,33 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[] {
     const groupStatements: JitStatement[] = [];
     const sources = this.sources.flatMap(s => s.children);
-    if (startIndex < 0 || startIndex >= this.sources.length) {
+    if (startIndex < 0 || startIndex >= sources.length) {
       // Return empty if startIndex is out of bounds
       return groupStatements;
     }
-    let current: JitStatement | undefined;
-    let increment: IncrementFragment | undefined;
-    do {
-      current = runtime.script.getId(sources[startIndex])[0];
-      groupStatements.push(current);
+    
+    // Get the first item and check its lap value
+    let current = runtime.script.getId(sources[startIndex])[0];
+    let increment = current.lap(startIndex);
+    
+    // Add the first item
+    groupStatements.push(current);
+    
+    // Only continue if increment is + and more items exist
+    let currentIndex = startIndex;
+    while (increment && increment.image === "+" && ++currentIndex < sources.length) {
+      // Get the next item
+      current = runtime.script.getId(sources[currentIndex])[0];
+      increment = current.lap(currentIndex);
       
-      increment = current.increment(startIndex);
-      startIndex++;      
-    } while (startIndex < sources.length && increment && increment.image === "+");    
+      // Only add it if it has a + lap value
+      if (increment && increment.image === "+") {
+        groupStatements.push(current);
+      } else {
+        // If not +, stop the loop without incrementing or including
+        break;
+      }
+    }
     
     return groupStatements;
   }

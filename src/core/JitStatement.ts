@@ -17,6 +17,8 @@ import { ZeroIndexMeta } from "./ZeroIndexMeta";
 import { IncrementFragment } from "./fragments/IncrementFragment";
 import { getIncrement } from "./runtime/blocks/readers/getIncrement";
 import { BlockKey } from "./BlockKey";
+import { LapFragment } from "./fragments/LapFragment";
+import { getLap } from "./runtime/blocks/readers/getLap";
 
 
 export class JitStatement implements ICodeStatement {
@@ -43,6 +45,17 @@ export class JitStatement implements ICodeStatement {
       return new Duration(undefined);
     }
     return durations[blockKey.index % durations.length];
+  }
+
+  public laps(): LapFragment[] {
+    return getLap(this);
+  }
+  public lap(blockKey: BlockKey | number): LapFragment | undefined {
+    const laps = this.laps();
+    if (laps.length == 0) {
+      return undefined;
+    }
+    return laps[blockKey instanceof BlockKey ? blockKey.index : blockKey % laps.length];
   }
 
   public increments(): IncrementFragment[] {

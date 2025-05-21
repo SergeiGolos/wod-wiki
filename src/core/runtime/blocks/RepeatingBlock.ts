@@ -4,22 +4,22 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
-import { getLap } from "./readers/getLap";
-import { LapFragment } from "@/core/fragments/LapFragment";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { WriteResultAction } from "../outputs/WriteResultAction";
-import { RepFragment } from "@/core/fragments/RepFragment";
+import { StopTimerAction } from "../actions/StopTimerAction";
+import { StopEvent } from "../inputs/StopEvent";
 
 export class RepeatingBlock extends RuntimeBlock {
   private childIndex: number = 0;    
   private roundIndex: number = 0;
-  lastLap: string;
+  private lastLap: string;
 
   constructor(
     source: JitStatement[]    
   ) {
     super(source);      
+    this.lastLap = "";
   }
   
   /**
@@ -68,21 +68,9 @@ export class RepeatingBlock extends RuntimeBlock {
    */
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Get the current span (created in enter and updated throughout execution)
-    const currentSpan = this.spans[this.spans.length - 1];    
-    if (currentSpan) {      
-      // Add summary information
-      return [
-        new WriteResultAction(currentSpan)
-      ];
-    }
-    return [];
+    return [
+      new StopTimerAction(new StopEvent(new Date())),
+      new WriteResultAction(this.spans)
+    ];
   }
-}
-
-// Make modIndex generic to handle different array types
-function modIndex<T>(items: T[] | undefined, index: number): T | undefined {
-  if (!items || items.length === 0) {
-    return undefined;
-  }
-  return items[index % items.length];
 }
