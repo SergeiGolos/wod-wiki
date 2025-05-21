@@ -31,34 +31,23 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     this.dispose = merge(this.input$, this.tick$)
       .subscribe(event => {
-        const blockAtEventReception = this.trace.current();
-        this.log(blockAtEventReception!, event);
-        let handledByAnyBlock = false;
-
-        let currentBlockInStack = blockAtEventReception;
-        while (currentBlockInStack) {
-          const actions = currentBlockInStack.handle(this, event, this.jit.handlers)
-            .filter(arr_actions => arr_actions !== undefined)
-            .flat() ?? [];
-
-          if (actions.length > 0) {
-            handledByAnyBlock = true;
-            this.apply(actions, currentBlockInStack);
+        const block = this.trace.current();
+        this.log(block!, event);
+        
+        // Add enhanced logging for all non-tick events
+        if (event.name !== "tick") {
+          console.log(`📣 Event raised: ${event.name} at ${new Date().toISOString()}`);
+          if ((event as any).source) {
+            console.log(`   Source: ${(event as any).source}`);
           }
-
-          currentBlockInStack = currentBlockInStack.parent;
         }
+        
+        const actions = block!.handle(this, event, this.jit.handlers)
+          .filter(arr_actions => arr_actions !== undefined)
+          .flat() ?? [];
 
-        if (!handledByAnyBlock && event.name !== "tick") {
-          let eventDetails = `type: ${event.name}`;
-          if ((event as any).bag) { 
-            try {
-              eventDetails += `, bag: ${JSON.stringify((event as any).bag)}`;
-            } catch (e) {
-              eventDetails += `, bag: (unserializable)`;
-            }
-          }
-          console.error(`TimerRuntime: Orphaned Event Warning: Event '${event.name}' (${eventDetails}) was not handled by any block in the stack.`);          
+        if (actions.length > 0) {
+          this.apply(actions, block!);
         }
       });
   }
@@ -71,6 +60,8 @@ export class TimerRuntime implements ITimerRuntimeIo {
   public apply(actions: IRuntimeAction[], source: IRuntimeBlock) {
     for (const action of actions) {      
       this.log(source, { name: action.name, timestamp: new Date() });
+      console.log(`⚡ Action: ${action.name} requested by block: ${source.constructor.name} [${source.blockKey}]`);
+          
       action.apply(this, this.input$, this.output$);
     }
   }
@@ -82,7 +73,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
 
     if (block) {
-      console.debug(`====+: ${event.name} by blockKey: ${block?.blockKey?.toString() ?? 'N/A'}`);
+      console.log(`====+: ${event.name} by blockKey: ${block?.blockKey?.toString() ?? 'N/A'}`);
       this.history.push({
         blockId: block.blockId,
         blockKey: block?.blockKey?.toString() ?? "undefined",

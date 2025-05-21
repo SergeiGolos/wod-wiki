@@ -7,6 +7,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { LapFragment } from "@/core/fragments/LapFragment";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
+import { IncrementFragment } from "@/core/fragments/IncrementFragment";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -41,23 +42,25 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   // New public wrapper methods providing space for common logic
   public enter(runtime: ITimerRuntime): IRuntimeAction[] {
     // Space for common code to run before the specific block's onEnter logic
-    
+    this.blockKey = BlockKey.create(this);
+    console.log(`>>>>> doEnter >>>>>: ${this.blockKey} -- ${this.constructor.name}`);
     const actions = this.onEnter(runtime);
     // Space for common code to run after the specific block's onEnter logic
     return actions;
   }
 
   public leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Space for common code to run before the specific block's onLeave logic
-    this.blockKey = BlockKey.create(this);
+    // Space for common code to run before the specific block's onLeave logic    
     const actions = this.onLeave(runtime);
+    console.log(`<<<<< doLeave <<<<<: ${this.blockKey} -- ${this.constructor.name}`);
     // Space for common code to run after the specific block's onLeave logic
     return actions;
   }
 
   public next(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Space for common code to run before the specific block's onNext logic
+    // Space for common code toonsole.log(`⚡ Action: ${action.name} run before the specific block's onNext logic
     this.blockKey.index += 1;
+    console.log(`----- doNext -----: ${this.blockKey} -- ${this.constructor.name}`);
     const actions = this.onNext(runtime);
     // Space for common code to run after the specific block's onNext logic
     return actions;
@@ -69,8 +72,20 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     system: EventHandler[]
   ): IRuntimeAction[] {
     const result: IRuntimeAction[] = [];
+    
+    // Don't log tick events to reduce noise
+    if (event.name !== "tick") {
+      console.log(`🔔 Event ${event.name} received by block: ${this.constructor.name} [${this.blockKey}]`);
+    }
+    
     for (const handler of [...system, ...this.handlers]) {
       const actions = handler.apply(event, runtime);
+      
+      // Only log non-tick handlers that actually generated actions
+      if (event.name !== "tick" && actions.length > 0) {
+        console.log(`🧩 Handler ${handler.constructor.name} triggered by ${event.name} in ${this.constructor.name}`);
+      }
+      
       for (const action of actions) {
         result.push(action);
       }
@@ -87,39 +102,23 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
    * @param startIndex The index in `this.sources` to start looking for the compose group.
    * @returns An array of JitStatement objects belonging to the consecutive compose group.
    */
-  public getChildStatements(startIndex: number): JitStatement[] {
+  public nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[] {
     const groupStatements: JitStatement[] = [];
-
+    const sources = this.sources.flatMap(s => s.children);
     if (startIndex < 0 || startIndex >= this.sources.length) {
       // Return empty if startIndex is out of bounds
       return groupStatements;
     }
-
-    for (let i = startIndex; i < this.sources.length; i++) {
-      const currentStatement = this.sources[i];
-      let isComposeStatement = false;
-
-      // Check if the statement has a LapFragment with groupType 'compose'
-      if (currentStatement.fragments) {
-        for (const fragment of currentStatement.fragments) {
-          if (fragment.type === 'lap') {
-            // We assume fragment is LapFragment based on type; cast for property access
-            const lapFragment = fragment as LapFragment;
-            if (lapFragment.group === 'compose') {
-              isComposeStatement = true;
-              break; // Found a compose LapFragment, no need to check others
-            }
-          }
-        }
-      }
-
-      if (isComposeStatement) {
-        groupStatements.push(currentStatement);
-      } else {
-        // Stop if the current statement is not part of the compose group
-        break;
-      }
-    }
+    let current: JitStatement | undefined;
+    let increment: IncrementFragment | undefined;
+    do {
+      current = runtime.script.getId(sources[startIndex])[0];
+      groupStatements.push(current);
+      
+      increment = current.increment(startIndex);
+      startIndex++;      
+    } while (startIndex < sources.length && increment && increment.image === "+");    
+    
     return groupStatements;
   }
 }

@@ -48,23 +48,23 @@ export class JitStatement implements ICodeStatement {
   public increments(): IncrementFragment[] {
     return getIncrement(this);
   }
-  public increment(blockKey: BlockKey): IncrementFragment | undefined {
+  public increment(blockKey: BlockKey | number): IncrementFragment | undefined {
     const increments = this.increments();
     if (increments.length == 0) {
       return undefined;
     }
-    return increments[blockKey.index % increments.length];
+    return increments[blockKey instanceof BlockKey ? blockKey.index : blockKey % increments.length];
   }
 
   public repetitions(): RepFragment[] {
     return getRepetitions(this);
   }
-  public repetition(blockKey: BlockKey): RepFragment | undefined {
+  public repetition(blockKey: BlockKey | number): RepFragment | undefined {
     const reps = this.repetitions();
     if (reps.length == 0) {
       return undefined;
     }
-    return reps[blockKey.index % reps.length];
+    return reps[blockKey instanceof BlockKey ? blockKey.index : blockKey % reps.length];
   }
  
 
@@ -72,44 +72,44 @@ export class JitStatement implements ICodeStatement {
     return getResistance(this);
   }
   
-  public resistance(blockKey: BlockKey): ResistanceFragment | undefined {
+  public resistance(blockKey: BlockKey | number): ResistanceFragment | undefined {
     const resistances = this.resistances();
     if (resistances.length == 0) {
       return undefined;
     }
-    return resistances[blockKey.index % resistances.length];
+    return resistances[blockKey instanceof BlockKey ? blockKey.index : blockKey % resistances.length];
   }
 
   public distances(): DistanceFragment[] {
     return getDistance(this);
   }
-  public distance(blockKey: BlockKey): DistanceFragment | undefined {
+  public distance(blockKey: BlockKey | number): DistanceFragment | undefined {
     const distances = this.distances();
     if (distances.length == 0) {
       return undefined;
     }
-    return distances[blockKey.index % distances.length];
+    return distances[blockKey instanceof BlockKey ? blockKey.index : blockKey % distances.length];
   }
 
   public efforts(): EffortFragment[] {
     return getEffort(this);
   }
-  public effort(blockKey: BlockKey): EffortFragment | undefined {
+  public effort(blockKey: BlockKey | number): EffortFragment | undefined {
     const efforts = this.efforts();
     if (efforts.length == 0) {
       return undefined;
     }
-    return efforts[blockKey.index % efforts.length];
+    return efforts[blockKey instanceof BlockKey ? blockKey.index : blockKey % efforts.length];
   }
 
   public rounds(): RoundsFragment[] {
     return getRounds(this);
   }
-  public round(blockKey: BlockKey): RoundsFragment | undefined {
+  public round(blockKey: BlockKey | number): RoundsFragment | undefined {
     const rounds = this.rounds();
     if (rounds.length == 0) {
       return undefined;
     }
-    return rounds[blockKey.index % rounds.length];
+    return rounds[blockKey instanceof BlockKey ? blockKey.index : blockKey % rounds.length];
   }
 }

@@ -2,7 +2,6 @@ import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
-import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
 import { PushNextAction } from "../actions/PushNextAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 
@@ -22,8 +21,7 @@ export class RunHandler extends EventHandler {
   protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {    
     return [
       new PushNextAction(),            
-      new SetTimeSpanAction([{start: event, stop: undefined}], "total"), 
-      new StartTimerAction(event)     
+      new StartTimerAction(event)
     ];
   }
 }

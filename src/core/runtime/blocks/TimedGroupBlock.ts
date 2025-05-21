@@ -71,7 +71,7 @@ export class TimedGroupBlock extends RuntimeBlock {
    * Implementation of the doEnter hook method from the template pattern
    */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`TimedGroupBlock: ${this.blockKey} doEnter`);
+   console.log(`TimedGroupBlock: ${this.blockKey} doEnter`);
     const currentSpan = this.ctx.getCurrentResultSpan();
 
     if (currentSpan) {
@@ -198,7 +198,7 @@ export class TimedGroupBlock extends RuntimeBlock {
    * Implementation of the doLeave hook method from the template pattern
    */
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`TimedGroupBlock: ${this.blockKey} doLeave`);
+   console.log(`TimedGroupBlock: ${this.blockKey} doLeave`);
     const currentSpan = this.ctx.getCurrentResultSpan();
 
     if (currentSpan) {

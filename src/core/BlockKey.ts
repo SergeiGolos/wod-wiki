@@ -8,8 +8,10 @@ export class BlockKey {
 
   public static create(block: IRuntimeBlock): BlockKey {
     const newKey = new BlockKey();
-    if (block.sources) {
-      newKey.push(block.sources, block.blockKey?.index ?? 0);
+    let current : IRuntimeBlock | undefined = block;
+    while (current && current.sources) {
+      newKey.push(current.sources, current.blockKey?.index ?? 0);
+      current = current.parent;
     }
     return newKey;
   }

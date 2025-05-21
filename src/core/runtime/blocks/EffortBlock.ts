@@ -14,6 +14,7 @@ import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
+import { PushNextAction } from "../actions/PushNextAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -22,7 +23,6 @@ export class EffortBlock extends RuntimeBlock {
     sources: JitStatement[],        
   ) {
     super(sources);
-    console.log(`EffortBlock created for ${this.blockKey}`);
     this.handlers.push(new CompleteHandler());
   }
 
@@ -31,9 +31,8 @@ export class EffortBlock extends RuntimeBlock {
    * @returns Array of effort descriptions
    */  
   protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`EffortBlock: ${this.blockKey} doEnter`);
-    
-    return [
+   return [ 
+      new PushNextAction(),
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
       new SetClockAction("runtime")
@@ -41,14 +40,12 @@ export class EffortBlock extends RuntimeBlock {
   }
 
   protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`EffortBlock: ${this.blockKey} doNext (index: ${this.blockKey?.index})`);   
     return this.blockKey.index > 1 
     ? [new PopBlockAction()] 
     : [];
   }
 
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-   console.debug(`EffortBlock: ${this.blockKey} doLeave`);
     const currentSpan = this.spans;
     if (currentSpan) {
       const calculatedMetrics = this.calculateMetrics();
