@@ -76,31 +76,36 @@ export const WodTimer = forwardRef<WodTimerRef, WodTimerProps>((props, ref) => {
   const directionRef = useRef<"up" | "down">("up"); // 'up' or 'down' for countdown
   const targetTimeRef = useRef<number>(0); // For countdown, target time in ms
 
-  // Effect for prop-driven display (passive mode)
+  // Effect for prop-driven display (passive mode for primary display)
   useEffect(() => {
     if (!isRunning && primary) {
       setPropPrimaryDisplay(
         primary.sign === "+" || primary.sign === undefined ? primary.elapsed() : primary.remaining()
       );
-    }
-    if (!isRunning && total) {
-      setPropTotalDisplay(total.elapsed());
-    }
-
-    if (!isRunning && (primary || total)) {
-      const passiveIntervalId = setInterval(() => {
-        if (primary) {
-          setPropPrimaryDisplay(
-            primary.sign === "+" || primary.sign === undefined ? primary.elapsed() : primary.remaining()
-          );
-        }
-        if (total) {
-          setPropTotalDisplay(total.elapsed());
-        }
+      const primaryIntervalId = setInterval(() => {
+        setPropPrimaryDisplay(
+          primary.sign === "+" || primary.sign === undefined ? primary.elapsed() : primary.remaining()
+        );
       }, 100);
-      return () => clearInterval(passiveIntervalId);
+      return () => clearInterval(primaryIntervalId);
+    } else if (isRunning || !primary) {
+      // Clear primary display if timer becomes active or primary prop is removed
+      setPropPrimaryDisplay(undefined); 
     }
-  }, [primary, total, isRunning]);
+  }, [primary, isRunning]);
+
+  // Effect for prop-driven display (total display - always reflects total prop)
+  useEffect(() => {
+    if (total) {
+      setPropTotalDisplay(total.elapsed());
+      const totalIntervalId = setInterval(() => {
+        setPropTotalDisplay(total.elapsed());
+      }, 100);
+      return () => clearInterval(totalIntervalId);
+    } else {
+      setPropTotalDisplay(undefined); // Clear if total prop is removed
+    }
+  }, [total]);
 
   useImperativeHandle(ref, () => ({
     start: (startTimeInSeconds?: number) => {
@@ -179,8 +184,7 @@ export const WodTimer = forwardRef<WodTimerRef, WodTimerProps>((props, ref) => {
             <div className="text-gray-600">
               <div className="text-sm uppercase tracking-wide">Total Time</div>
               <div className="text-xl font-mono">
-                {/* Total display might need its own logic if active timer affects it */}
-                <ClockDisplay duration={isRunning ? undefined : propTotalDisplay} />
+                <ClockDisplay duration={propTotalDisplay} />
               </div>
             </div>
           </div>

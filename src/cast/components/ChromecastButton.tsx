@@ -47,9 +47,13 @@ export const ChromecastButton: React.FC<UseCastSenderResult> = (props) => {
     return baseStyle + "bg-white text-gray-800 hover:bg-gray-50 border-gray-300";
   };
 
-  const controlButtonBaseStyle = "px-3 py-1 rounded-md text-sm font-medium transition-colors ";
-  const activeControlButtonstyle = controlButtonBaseStyle + "bg-green-500 hover:bg-green-600 text-white border border-green-700";
-  const disabledControlButtonstyle = controlButtonBaseStyle + "bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-400";
+  const controlButtonBaseStyle = "px-3 py-1 rounded-md text-sm font-medium transition-colors border "; // Added base border for consistency
+
+  // Define specific styles for each control button
+  const startButtonStyle = controlButtonBaseStyle + "bg-green-500 hover:bg-green-600 text-white border-green-700";
+  const stopButtonStyle = controlButtonBaseStyle + "bg-red-500 hover:bg-red-600 text-white border-red-700";
+  const resetButtonStyle = controlButtonBaseStyle + "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700";
+  // const disabledControlButtonstyle = controlButtonBaseStyle + "bg-gray-300 text-gray-500 cursor-not-allowed border-gray-400"; // This was unused, can be removed or kept for future use
 
 
   return (
@@ -81,21 +85,21 @@ export const ChromecastButton: React.FC<UseCastSenderResult> = (props) => {
           <div className="flex items-center space-x-2 ml-2">
             <button
               onClick={() => sendStartClock()}
-              className={activeControlButtonstyle}
+              className={startButtonStyle}
               aria-label="Start Clock"
             >
               Start
             </button>
             <button
               onClick={() => sendStopClock()}
-              className={activeControlButtonstyle.replace("bg-green-500 hover:bg-green-600 border-green-700", "bg-red-500 hover:bg-red-600 border-red-700")} // Quick style change for Stop
+              className={stopButtonStyle}
               aria-label="Stop Clock"
             >
               Stop
             </button>
             <button
               onClick={() => sendResetClock()}
-              className={activeControlButtonstyle.replace("bg-green-500 hover:bg-green-600 border-green-700", "bg-yellow-500 hover:bg-yellow-600 border-yellow-700")} // Quick style change for Reset
+              className={resetButtonStyle}
               aria-label="Reset Clock"
             >
               Reset
