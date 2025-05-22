@@ -1,94 +1,111 @@
-# WOD.Wiki – Functional Fitness Markup & Toolkit
+# WOD.Wiki – Developer Documentation
 
 > "Write your workout like code, run it like an app."
 
-WOD.Wiki is a TypeScript / React toolkit for **authoring, executing, and analysing Cross-Training & functional-fitness workouts**.  
-It couples a specialised **markdown-like language** with a Monaco-powered editor, a just-in-time runtime engine, and a rich component library (timer, analytics, results, etc.).
+WOD.Wiki is a TypeScript/React toolkit for **authoring, executing, and analyzing functional fitness workouts**. It combines a specialized **markdown-like language** with a Monaco-powered editor, a reactive runtime engine, and a rich component library.
 
----
+## Architecture Overview
 
-## 1. The Workout Script Syntax  *(Quick Tour)*
+The wod.wiki system consists of several key architectural components:
 
-| Token           | Examples                | Notes / Visual hint                  |
-| --------------- | ----------------------- | ------------------------------------ |
-| **Duration**    | `:20`, `1:30`           | Seconds or *M:SS* – shown with ⏱️    |
-| **Repetitions** | `21`, `15`              | Plain numbers – shown with **×**     |
-| **Weight**      | `95lb`, `50kg`          | Any `number + lb/kg` – shown with 💪 |
-| **Distance**    | `400m`, `5km`           | `m`, `km`, `mi` – shown with 📏      |
-| **Rounds**      | `(21-15-9)`, `(5)`      | Bracketed lists define round schemes |
-| **Group Ops**   | `-`, `+`, *(blank)*     | Round-robin, compose, repeat         |
-| **Exercise**    | `Thrusters`, `Pull-ups` | Free-text effort identifier          |
-
-```wod
-# Example – classic benchmark "Fran"
-(21-15-9)
-  Thrusters 95lb
-  Pull-ups  
+```mermaid
+flowchart TB
+    Editor[Editor System] --> Parser
+    Parser --> Runtime[Runtime System]
+    Runtime --> UI[UI Components]
+    
+    subgraph Editor System
+        WodWikiEditor[Monaco Editor]
+        SyntaxHighlighting
+        Completion
+    end
+    
+    subgraph Parser
+        Tokenizer
+        SyntaxTree
+        ASTBuilder
+    end
+    
+    subgraph Runtime System
+        TimerRuntime
+        RuntimeBlocks
+        EventSystem
+        MetricsSystem
+    end
+    
+    subgraph UI Components
+        TimerDisplay
+        ButtonRibbon
+        ResultsDisplay
+    end
 ```
 
-The parser tokenises → builds an AST → the runtime executes, emitting UI actions & metrics.
+## Core Components
 
-👉  **Full spec:** see [`docs/Syntax.md`](./docs/Syntax.md) *(placeholder)*
+### Editor
 
----
+The Monaco-based editor provides a rich environment for authoring workout scripts:
 
-## 2. Component Library
+- Syntax highlighting for workout elements
+- Auto-completion for exercise names and formats
+- Real-time validation and error reporting
 
-| Area       | Key Components | Doc link |
-|------------|----------------|----------|
-| **Editor** | `WodWiki`, `EditorContainer`, `SuggestionEngine`, `WodWikiSyntaxInitializer` | [`docs/Components/Editor.md`](./docs/Components/Editor.md) |
-| **Runtime**| `TimerRuntime`, compiler strategies, handlers | [`docs/Components/Runtime.md`](./docs/Components/Runtime.md) |
-| **UI**     | `WodTimer`, `ButtonRibbon`, `ResultsDisplay`, analytics widgets | [`docs/Components/UI.md`](./docs/Components/UI.md) |
+### Parser/Compiler
 
----
+The parser transforms text into executable structures:
 
-## 3. Quick Start (Users)
+- Tokenization of workout notation
+- Construction of abstract syntax tree
+- Statement and fragment identification
 
-```bash
-# 1. Install peer deps in your React project
-npm i react react-dom monaco-editor
+### Runtime Engine
 
-# 2. Add WOD.Wiki (local path while unpublished)
-npm i ../wod-wiki
-```
+The runtime executes workout scripts using a reactive architecture:
 
-```tsx
-import { WodWiki } from 'wod-wiki';
-import 'wod-wiki/dist/style.css';
+- Event-driven execution model
+- Block-based component system
+- Metrics collection and reporting
 
-export default function Demo() {
-  const initial = `(5)\n  Burpees\n  (:30) Rest`;
-  return <WodWiki id="demo" code={initial} />;
-}
-```
+### UI Components
 
----
+The UI components provide visual representation and user interaction:
 
-## 4. Project Structure (src excerpt)
+- Timer display with visual feedback
+- Control buttons for workout execution
+- Results display for performance metrics
 
-```text
-src/
-  components/          ← React UI & hooks
-  core/                ← Parser • Runtime • Types
-  contexts/            ← React context providers (sound, screen, …)
-  stories/             ← Storybook demos
-```
+## Key Features
 
-See [`docs/Architecture.md`](./docs/Architecture.md) for deeper details.
+1. **Custom Workout Notation** - A domain-specific language for functional fitness
+2. **Just-In-Time Compilation** - Dynamic creation of executable blocks
+3. **Reactive Event System** - RxJS-based event handling
+4. **Block Strategy Pattern** - Extensible execution strategies
+5. **Comprehensive Metrics** - Detailed workout performance tracking
+6. **Chromecast Integration** - External display functionality
 
----
+## Workflow Overview
 
-## 5. Developer Guide
+A typical workflow in wod.wiki follows these steps:
 
-### Tech Stack
+1. User writes workout script in the editor
+2. Script is parsed into a syntax tree
+3. Runtime compiles the tree into executable blocks
+4. User starts the workout via UI controls
+5. Runtime executes blocks according to the script
+6. Results are collected and displayed
 
-* **React 18 + TypeScript** – UI and logic  
-* **Vite** – build & dev server  
-* **Tailwind CSS** – styling  
-* **Monaco-editor** – code editing  
-* **RxJS** – event streams in runtime  
-* **Vitest** – unit tests  
-* **Storybook** – component playground  
+## Documentation Sections
+
+The documentation is organized into the following sections:
+
+- [**Components**](./Components/README.md) - Details of the React components and their relationships
+- [**Core**](./Core/README.md) - Runtime engine, workflow, and implementation details
+- [**Chromecast**](./Chromecast/README.md) - Chromecast integration functionality
+- [**Syntax**](./Syntax.md) - Comprehensive guide to the workout notation language
+
+> Note: This documentation is automatically synchronized to the [project's GitHub Wiki](../../wiki) whenever changes are pushed to the main branch.
+
+## Getting Started as a Developer
 
 ### Prerequisites
 
@@ -97,27 +114,63 @@ node >= 18
 npm >= 9
 ```
 
-### Common Scripts
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/wod-wiki.git
+
+# Install dependencies
+cd wod-wiki
+npm install
+
+# Run Storybook
+npm run dev
+```
+
+### Key Development Scripts
 
 | Command         | Purpose                               |
 | --------------- | ------------------------------------- |
-| `npm install`   | Install deps                          |
 | `npm run dev`   | Run **Storybook** at `localhost:6006` |
 | `npm run build` | Build library into `dist/`            |
 | `npm run test`  | Execute **Vitest** suite              |
 | `npm run lint`  | ESLint + Prettier (if configured)     |
 
-### Running the Demo App
+### Project Structure
 
-1. `npm run dev` – open Storybook and play with stories.  
-2. `stories/EditorDemo.stories.tsx` contains a live script runner.
+```text
+src/
+  components/          ← React UI & hooks
+  core/                ← Parser • Runtime • Types
+    runtime/           ← Runtime components
+    parser/            ← Syntax parsing
+  cast/                ← Chromecast functionality
+  contexts/            ← React context providers
+  stories/             ← Storybook demos
+```
 
----
+## Extension Points
 
-## 6. Contributing
+The wod.wiki system is designed for extensibility at several key points:
 
-Pull requests are welcome!  Please follow the conventional-commits style and ensure tests pass (`npm run test`).
+1. **Block Strategies** - Add new runtime block behaviors
+2. **Workout Elements** - Extend the syntax with new fragment types
+3. **UI Components** - Create custom visualizations
+4. **Metrics Processors** - Add specialized metrics calculations
+5. **External Integrations** - Connect with external services
 
----
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+## License
 
 © 2025 WOD.Wiki contributors – MIT licence
