@@ -70,4 +70,18 @@ export class RootBlock extends RuntimeBlock {
     // Create a result span to report the completion of this block using ResultBuilder        
     return [];
   }
+
+  /**
+   * Implementation of the onBlockStart hook method from the template pattern
+   */
+  protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+
+  /**
+   * Implementation of the onBlockStop hook method from the template pattern
+   */
+  protected onBlockStop(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
 }

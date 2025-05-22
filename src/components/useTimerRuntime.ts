@@ -50,10 +50,10 @@ export function useTimerRuntime({
       runtimeRef.current = undefined;
     }
 
-    try {
-      const jit = new RuntimeJit()
+    try {      
       // Create the compiled runtime with handlers
       const stack = new RuntimeScript(script.statements);        
+      const jit = new RuntimeJit(stack);
       // Create the timer runtime      
       runtimeRef.current = new TimerRuntime(
         script.source, stack, jit, inputRef.current, outputRef.current

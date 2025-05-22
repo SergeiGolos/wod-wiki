@@ -73,4 +73,18 @@ export class RepeatingBlock extends RuntimeBlock {
       new WriteResultAction(this.spans)
     ];
   }
+
+  /**
+   * Implementation of the onBlockStart hook method from the template pattern
+   */
+  protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+
+  /**
+   * Implementation of the onBlockStop hook method from the template pattern
+   */
+  protected onBlockStop(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
 }

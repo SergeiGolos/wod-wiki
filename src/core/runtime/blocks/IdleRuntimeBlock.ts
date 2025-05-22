@@ -38,4 +38,12 @@ export class IdleRuntimeBlock extends RuntimeBlock {
   protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [new PopBlockAction()];
   }
+
+  protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+
+  protected onBlockStop(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
 }

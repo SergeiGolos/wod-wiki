@@ -1,15 +1,14 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
-import { IMetricCompositionStrategy } from "../metrics/IMetricCompositionStrategy";
+import type { RuntimeMetric } from "@/core/RuntimeMetric";
+import { IMetricCompositionStrategy } from "@/core/metrics/IMetricCompositionStrategy";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
-import { LapFragment } from "@/core/fragments/LapFragment";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
-import { IncrementFragment } from "@/core/fragments/IncrementFragment";
+import { ITimeSpan } from "@/core/ITimeSpan";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -183,7 +182,11 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
     const metrics: RuntimeMetric[] = [];
     for (const source of this.sources) {
-      const metric = new RuntimeMetric();
+      const metric: RuntimeMetric = {
+        sourceId: "",
+        effort: "",
+        values: []
+      };
 
       // Set sourceId
       metric.sourceId = source.id?.toString() ?? source.toString() ?? "unknown_source_id";

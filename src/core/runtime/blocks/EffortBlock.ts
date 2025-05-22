@@ -50,4 +50,12 @@ export class EffortBlock extends RuntimeBlock {
       new WriteResultAction(this.spans)
     ];
   }
+
+  protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
+
+  protected onBlockStop(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
+  }
 }
