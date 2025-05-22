@@ -8,4 +8,5 @@ export class RuntimeSpan {
   index?: number;
   timeSpans: ITimeSpan[] = [];
   metrics: RuntimeMetric[] = [];
+  children: string[] = []; // Added children property
 }

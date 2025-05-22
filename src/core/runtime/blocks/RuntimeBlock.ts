@@ -38,6 +38,9 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   protected abstract onEnter(runtime: ITimerRuntime): IRuntimeAction[];
   protected abstract onLeave(runtime: ITimerRuntime): IRuntimeAction[];
   protected abstract onNext(runtime: ITimerRuntime): IRuntimeAction[];
+  // New protected abstract lifecycle methods
+  protected abstract onBlockStart(runtime: ITimerRuntime): IRuntimeAction[];
+  protected abstract onBlockStop(runtime: ITimerRuntime): IRuntimeAction[];
 
   // New public wrapper methods providing space for common logic
   public enter(runtime: ITimerRuntime): IRuntimeAction[] {
@@ -134,5 +137,39 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     }
     
     return groupStatements;
+  }
+
+  // Lifecycle methods implementation
+  public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
+    let currentSpan = this.spans[this.spans.length - 1];
+    if (!currentSpan || (currentSpan.timeSpans.length > 0 && currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop)) {
+      currentSpan = new RuntimeSpan();
+      currentSpan.blockKey = this.blockKey; // Associate blockKey with the span
+      this.spans.push(currentSpan);
+    }
+
+    const newTimeSpan: ITimeSpan = { // Explicitly type newTimeSpan
+      start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
+      blockKey: this.blockKey.toString() // Associate blockKey with the timeSpan
+    };
+    currentSpan.timeSpans.push(newTimeSpan);
+
+    // Call the abstract method for block-specific actions
+    const actions = this.onBlockStart(runtime);
+    return actions;
+  }
+
+  public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
+    const currentSpan = this.spans[this.spans.length - 1];
+    if (currentSpan && currentSpan.timeSpans.length > 0) {
+      const currentTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
+      if (!currentTimeSpan.stop) {
+        currentTimeSpan.stop = { name: 'block_stopped', timestamp: new Date(), blockKey: this.blockKey.toString() };
+      }
+    }
+
+    // Call the abstract method for block-specific actions
+    const actions = this.onBlockStop(runtime);
+    return actions;
   }
 }
