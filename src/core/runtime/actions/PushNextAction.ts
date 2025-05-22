@@ -1,19 +1,21 @@
-import { IRuntimeAction } from "@/core/IRuntimeAction";
-import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { OutputEvent } from "@/core/OutputEvent";
-import { Subject } from "rxjs";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
+import { LeafNodeAction } from "./base/LeafNodeAction";
 
-
-export class PushNextAction implements IRuntimeAction {
+/**
+ * Action that pushes the next action for the current block
+ */
+export class PushNextAction extends LeafNodeAction {
   name: string = "next";
-  apply(
-    runtime: ITimerRuntime,
-    _input: Subject<IRuntimeEvent>,
-    _output: Subject<OutputEvent>
-  ): void {
-    const block = runtime.trace.current();
-    const next = block?.next(runtime) ?? [];
-    runtime.apply(next, block!);
+
+  /**
+   * Apply the next action to a specific block
+   * 
+   * @param runtime The timer runtime
+   * @param block The block to apply the action to
+   */
+  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+    const next = block.next(runtime);
+    runtime.apply(next, block);
   }
 }

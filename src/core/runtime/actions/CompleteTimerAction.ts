@@ -1,16 +1,22 @@
-import { IRuntimeAction } from "@/core/IRuntimeAction";
-import { OutputEvent } from "@/core/OutputEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { IRuntimeEvent } from "@/core/IRuntimeEvent";
-import { Subject } from "rxjs";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
+import { LeafNodeAction } from "./base/LeafNodeAction";
 
-export class CompleteTimerAction implements IRuntimeAction {  
+/**
+ * Action that completes a timer for the current block
+ */
+export class CompleteTimerAction extends LeafNodeAction {
   name: string = "complete";
-  apply(
-    runtime: ITimerRuntime,
-    _input: Subject<IRuntimeEvent>,
-    _output: Subject<OutputEvent>
-  ): void {
+
+  /**
+   * Apply the complete timer action to a specific block
+   * 
+   * @param runtime The timer runtime
+   * @param block The block to apply the action to
+   */
+  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+    // When completing a timer, we pop the current block
+    // This is the current behavior, but could be enhanced to record completion time
     runtime.pop();
   }
 }
