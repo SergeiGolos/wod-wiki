@@ -1,6 +1,7 @@
 import { EventHandler } from "./runtime/EventHandler";
 import { IRuntimeAction } from "./IRuntimeAction";
 import { ITimerRuntime } from "./ITimerRuntime";
+import { RuntimeMetric } from "./RuntimeMetric";
 import { JitStatement } from "./JitStatement";
 import { IRuntimeEvent } from "./IRuntimeEvent";
 import { RuntimeSpan } from "./RuntimeSpan";
@@ -30,4 +31,7 @@ export interface IRuntimeBlock {
   // Lifecycle methods
   onStart(runtime: ITimerRuntime): IRuntimeAction[];
   onStop(runtime: ITimerRuntime): IRuntimeAction[];
+
+  // Metrics composition
+  composeMetrics(runtime: ITimerRuntime): RuntimeMetric[];
 }
