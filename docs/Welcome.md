@@ -103,6 +103,8 @@ The documentation is organized into the following sections:
 - [**Chromecast**](./Chromecast/README.md) - Chromecast integration functionality
 - [**Syntax**](./Syntax.md) - Comprehensive guide to the workout notation language
 
+> Note: This documentation is automatically synchronized to the [project's GitHub Wiki](../../wiki) whenever changes are pushed to the main branch.
+
 ## Getting Started as a Developer
 
 ### Prerequisites

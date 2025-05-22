@@ -58,6 +58,8 @@ Detailed documentation for the components, architecture, and workout syntax can 
 
 [Project Documentation](./docs/Welcome.md)
 
+The documentation in the `docs` directory is automatically published to the project's [GitHub Wiki](../../wiki) whenever changes are pushed to the main branch.
+
 ## Development
 
 This project uses Storybook for component development and visualization.
