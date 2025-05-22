@@ -58,7 +58,7 @@ export class MetricCompositionStrategy implements IMetricCompositionStrategy {
    * @param runtime The timer runtime instance
    * @returns An array of RuntimeMetric objects
    */
-  protected extractMetricsFromSources(block: IRuntimeBlock, runtime: ITimerRuntime): RuntimeMetric[] {
+  protected extractMetricsFromSources(block: IRuntimeBlock, _runtime: ITimerRuntime): RuntimeMetric[] {
     const metrics: RuntimeMetric[] = [];
     
     for (const source of block.sources) {
@@ -69,13 +69,26 @@ export class MetricCompositionStrategy implements IMetricCompositionStrategy {
       };
 
       // Set sourceId
-      metric.sourceId = source.id?.toString() ?? source.toString() ?? "unknown_source_id";
-
-      // Set effort
-      let effortValue = "default_effort"; // Default effort
-      const effortFragment = source.effort(runtime.blockKey);
-      if (effortFragment) {
+      metric.sourceId = source.id?.toString() ?? source.toString() ?? "unknown_source_id";      // Set effort - try to get a meaningful name
+      let effortValue = ""; 
+        // First check for a proper effort fragment
+      const effortFragment = source.effort(block.blockKey);
+      if (effortFragment && effortFragment.effort) {
         effortValue = effortFragment.effort;
+      }
+        // If no effort fragment, try to extract a name from the source
+      if (!effortValue) {
+        // Try to use the source's string representation
+        const sourceText = source.toString();
+        if (sourceText && sourceText !== "[object Object]") {
+          // Use the first few characters as the exercise name
+          effortValue = sourceText.slice(0, 20);
+        }
+      }
+      
+      // Fall back to a generic name if we still don't have one
+      if (!effortValue) {
+        effortValue = `Exercise ${metric.sourceId.split(':')[0] || ""}`;
       }
       
       metric.effort = effortValue;

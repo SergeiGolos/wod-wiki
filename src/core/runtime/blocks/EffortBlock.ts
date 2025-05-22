@@ -14,15 +14,18 @@ import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
+import { PopulateMetricsAction } from "../actions/PopulateMetricsAction";
+import { EffortMetricCompositionStrategy } from "@/core/metrics/strategies/EffortMetricCompositionStrategy";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
-
   constructor(
     sources: JitStatement[],        
   ) {
     super(sources);
     this.handlers.push(new CompleteHandler());
+    // Set the metric composition strategy to properly extract metrics from fragments
+    this.metricCompositionStrategy = new EffortMetricCompositionStrategy();
   }
 
   /**
@@ -41,12 +44,11 @@ export class EffortBlock extends RuntimeBlock {
     return this.blockKey.index >= 1 
     ? [new PopBlockAction()] 
     : [];
-  }
-
-  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
+      new PopulateMetricsAction(this),
       new WriteResultAction(this.spans)
     ];
   }
