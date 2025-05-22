@@ -1,0 +1,54 @@
+name: Sync Wiki
+
+# This workflow automatically synchronizes the contents of the docs/ folder to the GitHub Wiki
+# whenever changes are pushed to the main branch or manually triggered from the Actions tab.
+# It uses the Andrew-Chen-Wang/github-wiki-action to handle the synchronization.
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events to the main branch
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docs/**' # Only run when docs are changed
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push to wiki
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # We need the full history
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+      
+      - name: Check Docs Structure
+        run: |
+          echo "Checking docs directory structure before wiki sync..."
+          find docs -type f -name "*.md" | sort
+          echo "Total Markdown files: $(find docs -type f -name "*.md" | wc -l)"
+          
+          # Rename any problematic files if needed
+          if [ -f "docs/README.md.md" ]; then
+            echo "Renaming README.md.md to avoid naming issues..."
+            mv docs/README.md.md docs/README.md
+          fi
+
+      - name: Sync Docs to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        env:
+          WIKI_DIR: docs/
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_MAIL: ${{ github.actor }}@users.noreply.github.com
+          GH_NAME: ${{ github.actor }}
+          WIKI_PUSH_MESSAGE: "Update wiki from docs folder"
+          EXCLUDED_FILES: "*.svg,*.png,*.jpg,*.jpeg,*.gif"
