@@ -59,10 +59,9 @@ export class TimedGroupBlock extends RuntimeBlock {
         }
       });
       
-      // Update child references
-      if (!span.children) span.children = [];
+      // Update child references (span.children is initialized in RuntimeSpan class)
       childSpans.forEach((childSpan: RuntimeSpan) => {
-        if (childSpan.blockKey && !span.children?.includes(childSpan.blockKey.toString())) {
+        if (childSpan.blockKey && !span.children.includes(childSpan.blockKey.toString())) {
           span.children.push(childSpan.blockKey.toString());
         }
       });
@@ -182,7 +181,10 @@ export class TimedGroupBlock extends RuntimeBlock {
     const actionsToPush: IRuntimeAction[] = [];
     if (statements.length > 0) {
       actionsToPush.push(new PushStatementAction(statements));
-      actionsToPush.push(new StartTimerAction(new StartEvent(new Date())));
+      // StartTimerAction removed as child block timing is handled by their own onStart/onStop lifecycle methods,
+      // and the TimedGroupBlock's main span is managed by its own onBlockStart/onBlockStop.
+      // If specific timing for children within this group's span was needed, 
+      // it would require a different mechanism, not the now-simplified StartTimerAction.
       actionsToPush.push(new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary"));
     }
     return actionsToPush;
@@ -198,7 +200,7 @@ export class TimedGroupBlock extends RuntimeBlock {
     
     const currentSpan = this.spans[this.spans.length - 1];
     if (currentSpan) {
-      if (!currentSpan.children) currentSpan.children = [];
+      // currentSpan.children is initialized in RuntimeSpan class
       if (childBlock.blockKey && !currentSpan.children.includes(childBlock.blockKey.toString())) {
         currentSpan.children.push(childBlock.blockKey.toString());
       }
