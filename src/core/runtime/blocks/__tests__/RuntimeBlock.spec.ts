@@ -2,6 +2,8 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { JitStatement } from '../../../JitStatement';
 import { IRuntimeAction } from '../../../IRuntimeAction';
 import { ITimerRuntime } from '../../../ITimerRuntime';
+import { RuntimeMetric } from '../../../RuntimeMetric';
+import { IMetricCompositionStrategy } from '../../../metrics/IMetricCompositionStrategy';
 import { BlockKey } from '../../../BlockKey';
 import { RuntimeSpan } from '../../../RuntimeSpan';
 import { ITimeSpan } from '../../../ITimeSpan';
@@ -51,7 +53,10 @@ class TestableRuntimeBlock extends RuntimeBlock {
 }
 
 // Mock ITimerRuntime
-const mockTimerRuntime: ITimerRuntime = {} as ITimerRuntime; // Add properties if needed by methods
+const mockTimerRuntime: ITimerRuntime = {
+  blockKey: new BlockKey(),
+  // Add other properties or mocks as needed by the code under test
+} as ITimerRuntime;
 
 describe('RuntimeBlock', () => {
   let block: TestableRuntimeBlock;
@@ -195,6 +200,87 @@ describe('RuntimeBlock', () => {
       expect(block.spans[0].timeSpans[0].stop).toBeDefined();
       expect(firstStopTime).toBe(secondStopTime); // Timestamp should not change
       expect(block.onBlockStopMock).toHaveBeenCalledTimes(2); // onBlockStop called again
+    });
+  });
+
+  describe('composeMetrics', () => {
+    let block: TestableRuntimeBlock;
+    let mockRuntime: ITimerRuntime;
+
+    beforeEach(() => {
+      // Initialize a default BlockKey for the mock runtime for each test
+      // to ensure `runtime.blockKey` is always a valid BlockKey instance.
+      mockRuntime = {
+        blockKey: new BlockKey(),
+        // Mock other ITimerRuntime properties if they become necessary
+      } as ITimerRuntime;
+    });
+
+    it('should return an empty array if sources are empty and no strategy is set', () => {
+      block = new TestableRuntimeBlock([]);
+      const metrics = block.composeMetrics(mockRuntime);
+      expect(metrics).toEqual([]);
+    });
+
+    it('should correctly compose metrics from sources when no strategy is set', () => {
+      const mockEffortFn1 = jest.fn().mockReturnValue({ effort: 'effort1' });
+      const mockEffortFn2 = jest.fn().mockReturnValue({ effort: 'effort2' });
+
+      const mockSources = [
+        new JitStatement({ id: 1, effort: mockEffortFn1 } as any),
+        new JitStatement({ id: 2, effort: mockEffortFn2 } as any),
+      ];
+      // Override the effort method directly on the instances for simplicity in this test
+      mockSources[0].effort = mockEffortFn1;
+      mockSources[1].effort = mockEffortFn2;
+
+
+      block = new TestableRuntimeBlock(mockSources);
+      const metrics = block.composeMetrics(mockRuntime);
+
+      expect(metrics.length).toBe(2);
+
+      expect(metrics[0].sourceId).toBe('1');
+      expect(metrics[0].effort).toBe('effort1');
+      expect(metrics[0].values).toEqual([]);
+      expect(mockEffortFn1).toHaveBeenCalledWith(mockRuntime.blockKey);
+
+      expect(metrics[1].sourceId).toBe('2');
+      expect(metrics[1].effort).toBe('effort2');
+      expect(metrics[1].values).toEqual([]);
+      expect(mockEffortFn2).toHaveBeenCalledWith(mockRuntime.blockKey);
+    });
+
+    it('should use the metricCompositionStrategy if provided', () => {
+      const mockStrategyMetrics: RuntimeMetric[] = [
+        { sourceId: 'strat1', effort: 'strat_effort1', values: [] },
+      ];
+      const mockStrategy: IMetricCompositionStrategy = {
+        composeMetrics: jest.fn().mockReturnValue(mockStrategyMetrics),
+      };
+
+      block = new TestableRuntimeBlock([new JitStatement({ id: 1 } as any)]);
+      block.metricCompositionStrategy = mockStrategy;
+
+      const metrics = block.composeMetrics(mockRuntime);
+
+      expect(mockStrategy.composeMetrics).toHaveBeenCalledWith(block, mockRuntime);
+      expect(metrics).toBe(mockStrategyMetrics);
+    });
+
+    it('should use default effort if effort fragment is undefined and no strategy', () => {
+      const mockEffortFn = jest.fn().mockReturnValue(undefined); // No effort fragment
+      const mockSources = [new JitStatement({ id: 1 } as any)];
+      mockSources[0].effort = mockEffortFn;
+
+      block = new TestableRuntimeBlock(mockSources);
+      const metrics = block.composeMetrics(mockRuntime);
+
+      expect(metrics.length).toBe(1);
+      expect(metrics[0].sourceId).toBe('1');
+      expect(metrics[0].effort).toBe('default_effort');
+      expect(metrics[0].values).toEqual([]);
+      expect(mockEffortFn).toHaveBeenCalledWith(mockRuntime.blockKey);
     });
   });
 });

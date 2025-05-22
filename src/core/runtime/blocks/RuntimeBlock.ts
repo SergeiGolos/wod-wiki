@@ -1,5 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { IMetricCompositionStrategy } from "../metrics/IMetricCompositionStrategy";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
@@ -22,6 +24,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
+  public metricCompositionStrategy?: IMetricCompositionStrategy;
   
   public spans: RuntimeSpan[] = [];
   public handlers: EventHandler[] = [];
@@ -171,5 +174,39 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStop(runtime);
     return actions;
+  }
+
+  public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
+    if (this.metricCompositionStrategy) {
+      return this.metricCompositionStrategy.composeMetrics(this, runtime);
+    }
+
+    const metrics: RuntimeMetric[] = [];
+    for (const source of this.sources) {
+      const metric = new RuntimeMetric();
+
+      // Set sourceId
+      metric.sourceId = source.id?.toString() ?? source.toString() ?? "unknown_source_id";
+
+      // Set effort
+      let effortValue = "default_effort"; // Default effort
+      const effortFragment = source.effort(runtime.blockKey);
+      if (effortFragment) {
+        effortValue = effortFragment.effort;
+      }
+      // Fallbacks for source.statement and source.fragment are not directly available on JitStatement.
+      // JitStatement wraps an ICodeStatement (node property).
+      // The effort() method already checks fragments.
+      // If more complex fallback logic is needed for statement/fragment properties not accessed via methods,
+      // it would require deeper inspection of 'source.node' or 'source.fragments'.
+      // For now, relying on source.effort() and the default.
+      metric.effort = effortValue;
+
+      // Set values to an empty array
+      metric.values = [];
+
+      metrics.push(metric);
+    }
+    return metrics;
   }
 }
