@@ -34,3 +34,7 @@ export interface ChromecastReceiverEvent
     message: OutputEvent;
     timestamp: Date;
 }
+
+export interface StartClockPayload {
+  startTime?: number; // Optional start time in seconds
+}

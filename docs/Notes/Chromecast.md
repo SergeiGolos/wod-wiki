@@ -31,64 +31,40 @@ flowchart TB
 
 ## Core Components
 
-### 1. ChromecastSender Service (`services/ChromecastSender.ts`)
+The primary components involved in the sender-side logic have been refactored into React hooks for better composability and state management within UI components.
 
-The `ChromecastSender` service provides a clean API for sending events to a Chromecast receiver. It handles:
+### 1. `useCastSender` Hook (`src/cast/hooks/useCastSender.ts`)
 
-- Connection management to Chromecast devices
-- Event dispatching to the receiver application
-- Error handling and reconnection logic
+This hook is responsible for all sender-side Chromecast interactions. It provides:
+- Chromecast availability and connection state (`isAvailable`, `isConnected`, `isConnecting`, `deviceName`, `error`).
+- `connect()`: Initiates a Chromecast session request.
+- `disconnect()`: Ends the current Chromecast session.
+- `sendMessage(event: OutputEvent)`: A generic method to send an `OutputEvent` to the receiver.
+- `sendStartClock(payload?: StartClockPayload)`: Sends a `START_CLOCK` event to the receiver.
+- `sendStopClock()`: Sends a `STOP_CLOCK` event.
+- `sendResetClock()`: Sends a `RESET_CLOCK` event.
 
-Key methods:
-- `initialize()`: Sets up the Cast API
-- `requestSession()`: Establishes a cast session with a receiver
-- `sendEvent()`: Sends a generic ChromecastEvent to the receiver
-- `sendRunningClock()`, `sendPausedClock()`, `sendIdleClock()`: Helper methods for sending specific timer states
+This hook encapsulates the logic for interacting with the Cast SDK and managing session state.
 
-Example usage:
-```typescript
-const sender = new ChromecastSender();
-await sender.initialize();
-await sender.requestSession();
-await sender.sendRunningClock(
-  60, // seconds
-  "Pushups", // current exercise
-  1, // current round
-  { repetitions: 10, roundTotal: 3 }
-);
-```
+### 2. `useCastReceiver` Hook (`src/cast/hooks/useCastReceiver.ts`)
 
-### 2. useChromecast Hook (`hooks/useChromecast.ts`)
+*(Note: While this document primarily focuses on the sender and general flow, this hook is crucial on the receiver side.)*
+This hook would be used within the Chromecast receiver application. It:
+- Initializes the `CastReceiverContext`.
+- Listens for incoming messages on the custom namespace (`CAST_NAMESPACE`).
+- Exposes an observable stream of received `OutputEvent`s that the `CastReceiver` component subscribes to.
 
-A React hook that simplifies interaction with the Cast API in components. It provides:
+### 3. `ChromecastButton` Component (`src/cast/components/ChromecastButton.tsx`)
 
-- Connection state management (`isAvailable`, `isConnected`, `isConnecting`)
-- Device information (`deviceName`)
-- Error handling
-- Methods for connection management and sending messages
+A UI component that utilizes the `useCastSender` hook. It:
+- Displays the Chromecast icon, changing its appearance based on connection state (available, connecting, connected).
+- Handles connection (`connect()`) and disconnection (`disconnect()`) when clicked.
+- Provides visual feedback about the connection status and connected device name.
+- **Timer Controls**: When connected, this component also displays "Start", "Stop", and "Reset" buttons. Clicking these buttons invokes the corresponding `sendStartClock()`, `sendStopClock()`, and `sendResetClock()` methods from the `useCastSender` hook, allowing direct control over the timer on the Chromecast receiver.
 
-Usage in a component:
-```typescript
-const {
-  isAvailable,
-  isConnected,
-  deviceName,
-  connect,
-  disconnect,
-  sendMessage
-} = useChromecast();
-```
+### 4. `CastReceiver` Component (`src/cast/CastReceiver.tsx`)
 
-### 3. ChromecastButton Component (`ChromecastButton.tsx`)
-
-A UI component that:
-- Displays the Chromecast icon with appropriate styling based on connection state
-- Handles connection/disconnection when clicked
-- Provides visual feedback about connection status
-
-### 4. CastReceiver Component (`CastReceiver.tsx`)
-
-The receiver application that runs on the Chromecast device. It:
+The main React component for the receiver application that runs on the Chromecast device. It:
 - Initializes the Chromecast receiver runtime
 - Listens for messages from sender applications
 - Updates the timer display based on received events
@@ -103,73 +79,59 @@ The communication between sender and receiver is based on a well-defined event s
 - Namespace: `urn:x-cast:com.google.cast.wod-wiki`
 - Protocol Version: `1.0.0`
 
-### Event Types
+### Event Types and Structure
+
+The primary event structure used for communication is `OutputEvent` (defined in `src/core/OutputEvent.ts`). This event wrapper contains the specific `eventType` (from `OutputEventType` in `src/core/OutputEventType.ts`) and a `bag` object for the payload.
+
+Key `OutputEventType` values relevant to Chromecast clock control include:
+- `SET_DISPLAY`: Sent by the sender to update the timer's display on the receiver (e.g., with current time, lap info). This is used for continuous updates.
+- `START_CLOCK`: Sent by the sender to command the receiver's timer to start. May include an optional `startTime` in its payload.
+- `STOP_CLOCK`: Sent by the sender to command the receiver's timer to stop.
+- `RESET_CLOCK`: Sent by the sender to command the receiver's timer to reset.
+- `HANDSHAKE_ESTABLISHED`, `HANDSHAKE_TERMINATED`: Used for managing the connection lifecycle (part of `ChromecastEventType` which unions `OutputEventType`).
+
+Other `OutputEventType` values like `WRITE_LOG`, `HEARTBEAT`, etc., are also used.
 
 ```mermaid
 classDiagram
-    ChromecastEventBase <|-- ClockRunningEvent
-    ChromecastEventBase <|-- ClockPausedEvent
-    ChromecastEventBase <|-- ClockIdleEvent
-    ChromecastEventBase <|-- ConnectEvent
-    ChromecastEventBase <|-- DisconnectEvent
-    ChromecastEventBase <|-- StatusRequestEvent
-    ChromecastEventBase <|-- StatusResponseEvent
-    
-    class ChromecastEventBase {
-        +eventType: ChromecastEventType
-        +timestamp: string
-        +version: string
+    OutputEvent {
+        +eventType: OutputEventType
+        +timestamp: Date
+        +bag: Object (payload)
     }
-    
-    class ClockRunningEvent {
-        +eventType: CLOCK_RUNNING
-        +data: ClockRunningPayload
+    OutputEventType {
+        <<enumeration>>
+        SET_DISPLAY
+        START_CLOCK
+        STOP_CLOCK
+        RESET_CLOCK
+        WRITE_LOG
+        HEARTBEAT
+        SET_IDLE
+        ...
     }
-    
-    class ClockPausedEvent {
-        +eventType: CLOCK_PAUSED
-        +data: ClockPausedPayload
+    StartClockPayload {
+        +startTime?: number
     }
-    
-    class ClockIdleEvent {
-        +eventType: CLOCK_IDLE
-        +data: ClockIdlePayload
-    }
+    OutputEvent "1" -- "1" OutputEventType : has a
+    OutputEvent "1" -- "0..1" StartClockPayload : bag can be (for START_CLOCK)
+    note for OutputEvent "The 'bag' object's structure depends on the eventType."
 ```
 
-### Event Payloads
+### Payloads
 
-Each event carries specific data:
+- **For `START_CLOCK`**: Uses `StartClockPayload` (defined in `src/cast/types/chromecast-events.ts`) which can optionally include `startTime` (in seconds).
+  ```typescript
+  // Example StartClockPayload
+  {
+    startTime: 300 // Optional: start clock at 5 minutes
+  }
+  ```
+- **For `SET_DISPLAY`**: The `bag` contains information like `spans` (for time segments) and `totalTime` to be rendered by the `WodTimer` on the receiver.
+- **For `STOP_CLOCK`, `RESET_CLOCK`**: Typically, the `bag` is empty as these commands are parameterless for the receiver.
 
-1. **ClockRunningPayload**:
-   - `timerValue`: Current time in seconds
-   - `timerDisplay`: Formatted time string
-   - `effort`: Current exercise name
-   - `repetitions?`: Current rep count (if applicable)
-   - `resistance?`: Weight/resistance (if applicable)
-   - `distance?`: Distance (if applicable)
-   - `roundCurrent`: Current round number
-   - `roundTotal?`: Total rounds (may be undefined for AMRAP)
-   - `isAMRAP`: Whether this is an "As Many Rounds As Possible" workout
-   - `estimatedCompletionPercentage?`: 0-100 if known
-
-2. **ClockPausedPayload**:
-   - All properties from ClockRunningPayload except estimatedCompletionPercentage
-   - `pauseDuration?`: How long the clock has been paused in seconds
-
-3. **ClockIdlePayload**:
-   - `currentTime`: Formatted current time (hh:mm)
-   - `message?`: Optional status or welcome message
-
-### Helper Functions
-
-The event system provides helper functions for creating events:
-
-- `createBaseEvent()`: Creates a base event object with common fields
-- `createClockRunningEvent()`: Creates a ClockRunningEvent
-- `createClockPausedEvent()`: Creates a ClockPausedEvent
-- `createClockIdleEvent()`: Creates a ClockIdleEvent
-- Type guards: `isClockRunningEvent()`, `isClockPausedEvent()`, `isClockIdleEvent()`
+The specific structure of the `bag` for `SET_DISPLAY` and other general purpose events (like `WRITE_LOG`) is defined by their respective handlers and senders.
+The `useCastSender` hook provides methods like `sendStartClock(payload?)`, `sendStopClock()`, and `sendResetClock()` which construct the appropriate `OutputEvent` and send it.
 
 ## Communication Flow
 
@@ -179,40 +141,55 @@ sequenceDiagram
     participant Sender as ChromecastSender
     participant Receiver as CastReceiver
     participant Display as Chromecast Display
+    participant WodTimerRef as Receiver's WodTimer Control
     
-    App->>Sender: initialize()
-    Sender->>Sender: Set up Cast API
-    App->>Sender: requestSession()
-    Sender->>Receiver: Connect
-    Receiver->>Sender: Connection established
+    App->>Sender: User initiates connection (e.g., clicks ChromecastButton)
+    Sender->>Hook: connect()
+    Hook->>CastAPI: Request session
+    CastAPI-->>Hook: Session established / state update
+    Hook-->>App: Update UI (isConnected = true)
     
-    loop During workout
-        App->>Sender: sendRunningClock(time, effort, round, ...)
-        Sender->>Receiver: CLOCK_RUNNING event
-        Receiver->>Display: Update timer display
+    Note over App,Display: User controls the timer
+    App->>Sender: User clicks "Start" button
+    Sender->>Hook: sendStartClock({ startTime: ... })
+    Hook->>CastAPI: session.sendMessage(CAST_NAMESPACE, OutputEvent{eventType: 'START_CLOCK', bag: {startTime: ...}})
+    CastAPI->>Receiver: Message received
+    Receiver->>WodTimerRef: start(startTime)
+    WodTimerRef->>Display: Timer starts/updates
         
-        Note over App,Display: When workout paused
-        App->>Sender: sendPausedClock(...)
-        Sender->>Receiver: CLOCK_PAUSED event
-        Receiver->>Display: Show paused state
-    end
-    
-    App->>Sender: sendIdleClock(...)
-    Sender->>Receiver: CLOCK_IDLE event
-    Receiver->>Display: Show idle screen
-    
-    App->>Sender: disconnect()
-    Sender->>Receiver: DISCONNECT event
-    Sender->>Sender: End session
+    App->>Sender: User clicks "Stop" button
+    Sender->>Hook: sendStopClock()
+    Hook->>CastAPI: session.sendMessage(CAST_NAMESPACE, OutputEvent{eventType: 'STOP_CLOCK'})
+    CastAPI->>Receiver: Message received
+    Receiver->>WodTimerRef: stop()
+    WodTimerRef->>Display: Timer stops
+        
+    App->>Sender: User clicks "Reset" button
+    Sender->>Hook: sendResetClock()
+    Hook->>CastAPI: session.sendMessage(CAST_NAMESPACE, OutputEvent{eventType: 'RESET_CLOCK'})
+    CastAPI->>Receiver: Message received
+    Receiver->>WodTimerRef: reset()
+    WodTimerRef->>Display: Timer resets
+        
+    Note over App,Display: For continuous display updates (e.g., running timer)
+    App->>Sender: (Runtime sends periodic updates)
+    Sender->>Hook: sendMessage(OutputEvent{eventType: 'SET_DISPLAY', bag: {...}})
+    Hook->>CastAPI: session.sendMessage(CAST_NAMESPACE, OutputEvent{eventType: 'SET_DISPLAY', bag: {...}})
+    CastAPI->>Receiver: Message received
+    Receiver->>Display: Update WodTimer with new display data (via props)
+
+    App->>Sender: User clicks "Disconnect"
+    Sender->>Hook: disconnect()
+    Hook->>CastAPI: End current session
+    CastAPI-->>Hook: Session terminated / state update
+    Hook-->>App: Update UI (isConnected = false)
 ```
 
 ## Integration with Runtime
 
-The Chromecast functionality integrates with the wod-wiki runtime system to:
+The Chromecast functionality integrates with the wod-wiki runtime system. While the runtime can send `SET_DISPLAY` events for continuous updates, the new clock control events (`START_CLOCK`, `STOP_CLOCK`, `RESET_CLOCK`) allow direct user interaction via the `ChromecastButton` component to manage the timer on the receiver.
 
-1. Receive workout state updates (time, current exercise, round information)
-2. Transmit this information to the Chromecast device in real-time
-3. Keep the Chromecast display synchronized with the main application
+The `CastReceiver` component listens for these events and calls the appropriate methods (`start`, `stop`, `reset`) on its internal `WodTimer` component instance.
 
 ## Browser Compatibility
 

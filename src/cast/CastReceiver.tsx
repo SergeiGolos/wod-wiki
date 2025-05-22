@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { WodTimer } from '@/components/clock/WodTimer';
+import React, { useEffect, useState, useRef } from 'react';
+import { WodTimer, WodTimerRef } from '@/components/clock/WodTimer'; // Assuming WodTimerRef and methods exist
 
 import { Observable, Subscription } from 'rxjs';
 import { cn } from '@/core/utils';
 import { IDuration } from "@/core/IDuration";
 import { OutputEvent } from "@/core/OutputEvent";
+import { StartClockPayload } from './types/chromecast-events'; // Assuming this path is correct
 
 export interface CastReceiverProps {
   event$: Observable<OutputEvent>;
   className?: string;
 }
 
-export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className}) => {  
+export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className}) => {
+  const wodTimerRef = useRef<WodTimerRef>(null); // Ref for WodTimer
   const [display, setDisplay] = useState<{ primary: IDuration; label: string; bag: { totalTime: IDuration } }>({
     primary: { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
     label: 'Timer',
@@ -47,6 +49,32 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
         case 'SET_IDLE':
           // Handle other event types as needed
           break;
+        case 'START_CLOCK':
+          // START_CLOCK event received
+          // eslint-disable-next-line no-case-declarations
+          const startPayload = event.bag as StartClockPayload;
+          if (wodTimerRef.current) {
+            wodTimerRef.current.start(startPayload.startTime); // Assuming WodTimer has a start method
+          }
+          // Optionally, update UI or log
+          setReceivedMessages(prev => [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: `Start clock at ${startPayload.startTime || '0'}` }].slice(-5));
+          break;
+        case 'STOP_CLOCK':
+          // STOP_CLOCK event received
+          if (wodTimerRef.current) {
+            wodTimerRef.current.stop(); // Assuming WodTimer has a stop method
+          }
+          // Optionally, update UI or log
+          setReceivedMessages(prev => [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: 'Stop clock' }].slice(-5));
+          break;
+        case 'RESET_CLOCK':
+          // RESET_CLOCK event received
+          if (wodTimerRef.current) {
+            wodTimerRef.current.reset(); // Assuming WodTimer has a reset method
+          }
+          // Optionally, update UI or log
+          setReceivedMessages(prev => [...prev, { time: new Date().toLocaleTimeString(), type: event.eventType, message: 'Reset clock' }].slice(-5));
+          break;
         default:
           // Unknown event type
           setReceivedMessages(prev => {
@@ -63,7 +91,7 @@ export const CastReceiver: React.FC<CastReceiverProps> = ({ event$ , className})
   return (
     <div className={cn("bg-gray-200 text-black", className || "")}>
       <div className="timer-container mb-6">
-        <WodTimer display={display} />
+        <WodTimer ref={wodTimerRef} display={display} /> {/* Pass the ref to WodTimer */}
       </div>      
       {/* Debug info - useful during development */}
       {debug && (

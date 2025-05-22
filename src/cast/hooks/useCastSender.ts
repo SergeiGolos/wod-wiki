@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BehaviorSubject } from 'rxjs';
-import { CAST_NAMESPACE } from '../types/chromecast-events';
+import { CAST_NAMESPACE, StartClockPayload } from '../types/chromecast-events';
 import { OutputEvent } from "@/core/OutputEvent";
+import { OutputEventType } from '@/core/OutputEventType';
 
 export interface ChromecastState {
   isAvailable: boolean;
@@ -16,6 +17,9 @@ export interface UseCastSenderResult {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   sendMessage: (event: OutputEvent) => Promise<void>;
+  sendStartClock: (payload?: StartClockPayload) => Promise<void>;
+  sendStopClock: () => Promise<void>;
+  sendResetClock: () => Promise<void>;
 }
 
 /**
@@ -126,5 +130,32 @@ export function useCastSender(): UseCastSenderResult {
     }
   }, [state.isConnected]);
 
-  return { state$, connect, disconnect, sendMessage };
+  const sendStartClock = useCallback(async (payload?: StartClockPayload) => {
+    const event: OutputEvent = {
+      eventType: 'START_CLOCK' as OutputEventType,
+      timestamp: new Date(),
+      bag: payload || {},
+    };
+    await sendMessage(event);
+  }, [sendMessage]);
+
+  const sendStopClock = useCallback(async () => {
+    const event: OutputEvent = {
+      eventType: 'STOP_CLOCK' as OutputEventType,
+      timestamp: new Date(),
+      bag: {},
+    };
+    await sendMessage(event);
+  }, [sendMessage]);
+
+  const sendResetClock = useCallback(async () => {
+    const event: OutputEvent = {
+      eventType: 'RESET_CLOCK' as OutputEventType,
+      timestamp: new Date(),
+      bag: {},
+    };
+    await sendMessage(event);
+  }, [sendMessage]);
+
+  return { state$, connect, disconnect, sendMessage, sendStartClock, sendStopClock, sendResetClock };
 }
