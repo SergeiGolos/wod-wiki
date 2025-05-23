@@ -15,7 +15,9 @@ export interface IRuntimeBlock {
 
   // Use getter methods instead of direct properties for encapsulation
   sources: JitStatement[];  
-  spans: RuntimeSpan[];  
+  spans(): RuntimeSpan[];
+  addSpan?(span: RuntimeSpan): void;  
+  
   // Core methods  
   
   selectMany<T>(fn: (node: JitStatement) => T[]): T[];  

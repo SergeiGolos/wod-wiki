@@ -4,7 +4,10 @@ import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { BubbleUpAction } from "./base/BubbleUpAction";
 import { getDuration } from "../blocks/readers/getDuration";
 import { SetClockAction } from "../outputs/SetClockAction";
-import { PushActionEvent } from "../inputs/PushActionEvent";
+import { SetResultSpanAction } from "../outputs/SetResultSpanAction";
+import { ResultSpan } from "@/core/ResultSpan";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { ITimeSpan } from "@/core/ITimeSpan";
 
 /**
  * Action that stops a timer and propagates up the block hierarchy
@@ -33,10 +36,40 @@ export class StopTimerAction extends BubbleUpAction {
       runtime.apply(actions, block);
     }
     
-    // Check if we need to update the clock
+    // Get the current RuntimeSpan for the block
+    let currentRuntimeSpan: RuntimeSpan | undefined;
+    const spans = block.spans();
+    if (spans.length > 0) {
+      currentRuntimeSpan = spans[spans.length - 1];
+      
+      // Find the last TimeSpan that was started
+      const timeSpans = currentRuntimeSpan.timeSpans;
+      if (timeSpans.length > 0) {
+        const lastTimeSpan = timeSpans[timeSpans.length - 1];
+        
+        // If the last TimeSpan is still running (no stop time), stop it
+        if (lastTimeSpan.start && !lastTimeSpan.stop) {
+          lastTimeSpan.stop = this.event;
+          
+          // Create a ResultSpan from the updated RuntimeSpan
+          const resultSpan = new ResultSpan(currentRuntimeSpan);
+          
+          // Push the ResultSpan to update the primary clock
+          runtime.apply([new SetResultSpanAction(resultSpan, "primary")], block);
+          
+          // Also update any registry if applicable
+          if (runtime.registry) {
+            runtime.registry.registerSpan(resultSpan);
+          }
+          
+          return; // We've handled the update with the ResultSpan
+        }
+      }
+    }
+    
+    // Fallback to traditional clock update if we couldn't use ResultSpan
     const duration = block.selectMany(getDuration)[0];
     if (duration !== undefined) {
-      // Push the clock action to update the UI
       runtime.apply([new SetClockAction("primary")], block);
     }
   }
