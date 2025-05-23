@@ -49,6 +49,16 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
     }
   }, [eventStream$]);
 
+  // Setup interval for continuous updates (elapsed/remaining times change)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Force re-render to update displayed times
+      setClockRegistry(prev => new Map(prev));
+    }, 100);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
   return clockRegistry;
 }
 
