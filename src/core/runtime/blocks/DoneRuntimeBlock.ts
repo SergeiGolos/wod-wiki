@@ -41,8 +41,8 @@ export class DoneRuntimeBlock extends RuntimeBlock {
    */
   protected onLeave(runtime: ITimerRuntime): IRuntimeAction[] {
     const block = runtime.trace.current();    
-    if (block && block.spans && block.spans.length > 0) {
-      return [new WriteResultAction(block.spans)];
+    if (block && block.spans && block.spans().length > 0) {
+      return [new WriteResultAction(block.spans())];
     } else {
       return [];
     }

@@ -19,7 +19,7 @@ export class MetricCompositionStrategy implements IMetricCompositionStrategy {
    */
   public composeMetrics(block: IRuntimeBlock, runtime: ITimerRuntime): RuntimeMetric[] {
     // First check if we have metrics in spans
-    const spanMetrics = this.extractMetricsFromSpans(block.spans);
+    const spanMetrics = this.extractMetricsFromSpans(block.spans());
     if (spanMetrics.length > 0) {
       return spanMetrics;
     }
