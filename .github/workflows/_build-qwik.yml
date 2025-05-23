@@ -50,8 +50,6 @@ jobs:
         run: npm run build
 
       - name: Configure npm for default registry with token
-        # Only run when NPM_TOKEN is available
-        if: ${{ secrets.NPM_TOKEN != '' }}
         run: |
           # For the default NPM registry (npmjs.org)
           SCOPE=@bitcobblers
@@ -59,8 +57,8 @@ jobs:
           echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
 
       - name: Publish Package
-        # Only run when on main/tag AND NPM_TOKEN is available
-        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && secrets.NPM_TOKEN != '' }}  
+        # Only run when on main/tag
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
