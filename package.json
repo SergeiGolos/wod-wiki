@@ -64,6 +64,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
     "eslint-plugin-storybook": "^0.12.0",
+    "jsdom": "^26.1.0",
     "postcss": "^8.4.38",
     "react": "^18.2.0",
     "react-docgen-typescript": "^2.2.2",
@@ -75,15 +76,13 @@
     "vite": "^6.3.5",
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-monaco-editor": "^1.1.0",
-    "vite-tsconfig-paths": "^5.1.4",    
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.1.4"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
     "@monaco-editor/react": "^4.6.2",
-
-    "@rollup/rollup-win32-x64-msvc": "^4.41.0",
     "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3",
     "js-base64": "^3.7.7",
