@@ -9,6 +9,8 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
+import { IMetricCompositionStrategy } from "@/core/metrics/IMetricCompositionStrategy";
+import { ITimeSpan } from "@/core/ITimeSpan";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -30,6 +32,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
   private _spans: RuntimeSpan[] = [];
   public handlers: EventHandler[] = [];
+  public metricCompositionStrategy?: IMetricCompositionStrategy;
   
   // Updated to implement the spans() method from the interface
   public spans(): RuntimeSpan[] {
@@ -167,13 +170,33 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     // Use the new metrics method instead of the deprecated composeMetrics
     const metrics = this.metrics(runtime);
     
-    // Simplified: Create a new span using the builder pattern
-    const span = this.getSpanBuilder()
-        .Create(metrics)
-        .Start()
-        .Current();
+    // Check if we have an active span that hasn't been stopped
+    const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : null;
+    let span: RuntimeSpan;
+    
+    if (currentSpan && currentSpan.timeSpans.length > 0 && 
+        !currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop) {
+      // Last span has an active timespan - add a new timespan to it
+      span = currentSpan;
+      const newTimeSpan: ITimeSpan = {
+        start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
+        blockKey: this.blockKey.toString()
+      };
+      span.timeSpans.push(newTimeSpan);
+    } else {
+      // Create a completely new span
+      span = this.getSpanBuilder()
+          .Create(metrics)
+          .Start()
+          .Current();
+        
+      // Ensure blockKey is set
+      if (span.timeSpans.length > 0 && span.timeSpans[0].start) {
+        span.timeSpans[0].start.blockKey = this.blockKey.toString();
+      }
       
-    this._spans.push(span);
+      this._spans.push(span);
+    }
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
@@ -186,6 +209,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     if (currentSpan && currentSpan.timeSpans.length > 0) {
       // Use the builder to stop the span
       this.getSpanBuilder().Stop();
+      
+      // Ensure blockKey is set on the stop event
+      const lastTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
+      if (lastTimeSpan.stop) {
+        lastTimeSpan.stop.blockKey = this.blockKey.toString();
+      }
     } else {
       // If there's no current span or it has no timespans, this is an error condition
       console.warn(`RuntimeBlock ${this.blockKey}: onStop called but no active timespan exists`);
@@ -204,7 +233,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
    * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
    */
   public metrics(runtime: ITimerRuntime): RuntimeMetric[] {
-    // Use the utility class to build metrics from all sources
+    // If a composition strategy is defined, use it
+    if (this.metricCompositionStrategy) {
+      return this.metricCompositionStrategy.composeMetrics(this, runtime);
+    }
+    
+    // Otherwise use the utility class to build metrics from all sources
     return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
   }
 }
