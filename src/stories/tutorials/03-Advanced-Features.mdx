@@ -1,0 +1,86 @@
+import { Meta } from "@storybook/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/03 - Advanced Features" />
+
+# Advanced Workout Features
+
+Now that you're familiar with basic structures, let's explore some advanced features to make your workouts more precise and detailed.
+
+## Adding Weights
+
+Specify weights using numbers followed by units (lb or kg):
+
+```
+5 Deadlifts 225lb
+10 Dumbbell Press 35lb
+```
+
+## Distance-Based Exercises
+
+Add distance measurements for running, rowing, or other distance-based exercises:
+
+```
+400m Run
+2000m Row
+1 mile Jog
+```
+
+## Complex Round Schemes
+
+Create pyramid or ladder workouts with varying rep schemes:
+
+```
+(21-15-9)
+  Thrusters 95lb
+  Pull-ups
+```
+
+Or:
+
+```
+(1-2-3-4-5-4-3-2-1)
+  Push Press 95lb
+  Burpees
+```
+
+## Count-up Timers
+
+Use `^` to create a count-up timer:
+
+```
+5:00^ AMRAP
+  5 Pull-ups
+  10 Push-ups
+  15 Air Squats
+```
+
+## Special Instructions
+
+Add special instructions using square brackets:
+
+```
+[:Setup] Get your equipment ready
+[:Rest] 2:00 between rounds
+```
+
+## Interactive Example
+
+Try creating an advanced workout:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={"(3) 10:00\n  400m Run\n  15 Thrusters 95lb\n  10 Pull-ups\n  Rest 1:00"}
+      height="300px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Next Steps
+
+In the next tutorial, we'll explore how to create and structure full workout programs.
+
+[← Previous: Basic Structures](./02-Basic-Structures.mdx) | [Next: Creating Programs →](./04-Creating-Programs.mdx)

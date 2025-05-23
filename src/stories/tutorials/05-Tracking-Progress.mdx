@@ -1,0 +1,88 @@
+import { Meta } from "@storybook/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/05 - Tracking Progress" />
+
+# Tracking Your Progress
+
+In this final tutorial, we'll explore how to track and analyze your workout progress over time.
+
+## Recording Results
+
+Use the `@` symbol to record your results after each workout:
+
+```
+# 2023-10-15 - Back Squat
+5x5 Back Squat @185lb
+
+# 2023-10-22 - Back Squat
+5x5 Back Squat @195lb
+
+# 2023-10-29 - Back Squat
+5x5 Back Squat @205lb
+```
+
+## Tracking PRs (Personal Records)
+
+Mark PRs with `!`:
+
+```
+# 2023-10-15 - Deadlift
+1RM Deadlift @315lb !
+```
+
+## Tracking Metcons
+
+Record your time or rounds for metcon workouts:
+
+```
+# 2023-10-16 - Fran
+21-15-9
+  Thrusters 95lb
+  Pull-ups
+@ 4:32
+```
+
+## Notes and Comments
+
+Add notes about how you felt, what you could improve, or other observations:
+
+```
+# 2023-10-17 - Running
+5k Run @ 22:15
+// Felt strong, negative split each mile
+// Could push harder in the middle next time
+```
+
+## Interactive Example
+
+Try tracking your own workout:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={"# 2023-10-15 - Back Squat\n5x5 Back Squat @185lb\n\n# 2023-10-22 - Back Squat\n5x5 Back Squat @195lb\n\n# 2023-10-29 - Back Squat\n5x5 Back Squat @205lb"}
+      height="350px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Analyzing Your Progress
+
+Over time, you can look back at your workout history to:
+- Track strength gains
+- Identify patterns in your performance
+- Adjust your programming based on what's working
+- Stay motivated by seeing your progress
+
+## Next Steps
+
+You've completed the WOD Wiki tutorial series! Here are some next steps:
+- Create your own workout programs
+- Share your workouts with others
+- Experiment with different training methodologies
+- Track your progress over time
+
+[← Previous: Creating Programs](./04-Creating-Programs.mdx) | [Back to Start →](./01-Getting-Started.mdx)

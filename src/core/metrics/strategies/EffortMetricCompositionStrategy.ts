@@ -68,8 +68,8 @@ export class EffortMetricCompositionStrategy extends MetricCompositionStrategy {
       if (resistanceFragment) {
         values.push({
           type: "resistance",
-          value: resistanceFragment.weight,
-          unit: resistanceFragment.unit || "kg"
+          value: Number(resistanceFragment.value),
+          unit: resistanceFragment.units || "kg"
         });
       }
       
@@ -78,8 +78,8 @@ export class EffortMetricCompositionStrategy extends MetricCompositionStrategy {
       if (distanceFragment) {
         values.push({
           type: "distance",
-          value: distanceFragment.distance,
-          unit: distanceFragment.unit || "m"
+          value: Number(distanceFragment.value),
+          unit: distanceFragment.units || "m"
         });
       }
       
