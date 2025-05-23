@@ -47,7 +47,9 @@ export class RuntimeBlockMetrics {
    * @param sources Array of JitStatements
    */
   public static buildMetrics(runtime: ITimerRuntime, sources: JitStatement[]): RuntimeMetric[] {
-    const blockKey: BlockKey = runtime.blockKey;
+    // Use the runtime's current block's blockKey if available
+    const currentBlock = runtime.trace?.current();
+    const blockKey = currentBlock?.blockKey || new BlockKey();
     return new RuntimeBlockMetrics(sources).build(blockKey);
   }
 
