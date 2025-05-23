@@ -1,4 +1,5 @@
 import type { Preview, StoryFn } from "@storybook/react";
+import '../src/darkModeInit.js'; // Initialize dark mode
 import '../src/index.css'; // Import Tailwind CSS
 import React from 'react';
 import { SoundProvider } from '../src/contexts/SoundContext';
@@ -15,16 +16,25 @@ const preview: Preview = {
     backgrounds: {
       default: 'light',
       values: [
-        { name: 'light', value: '#fff' },
-        { name: 'gray', value: '#f3f4f6' }
+        { name: 'light', value: '#fdf6e3' }, // Solarized light
+        { name: 'dark', value: '#002b36' },  // Solarized dark
+        { name: 'paper', value: '#f5f1e4' }  // Journal paper color
       ],
     },
+    darkMode: {
+      current: 'light',
+      darkClass: 'dark',
+      lightClass: 'light',
+      stylePreview: true,
+    }
   },
   decorators: [
     (Story: StoryFn) => (
       <SoundProvider>
         <ScreenProvider>
-          <Story />
+          <div className="transition-colors duration-300">
+            <Story />
+          </div>
         </ScreenProvider>
       </SoundProvider>
     ),

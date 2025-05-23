@@ -1,3 +1,4 @@
+import './darkModeInit.js'; // Initialize dark mode
 import './index.css'; // Ensure styles are included
 
 export { WodTimer } from './components/clock/WodTimer';
@@ -10,4 +11,5 @@ export { SoundProvider, useSound } from './contexts/SoundContext';
 export { SoundToggle } from './components/buttons/SoundToggle';
 export { CastReceiver } from './cast/CastReceiver';
 export { CastHostContainer as CastHost } from './stories/components/CastHostContainer';
+export { ThemeToggle } from './components/ThemeToggle';
 

@@ -51,24 +51,24 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
   return (
     <div 
       className={cn(
-        "transition-all duration-300 flex flex-col border-r border-gray-200 bg-gray-50",
+        "transition-all duration-300 flex flex-col border-r border-solarized-base2 dark:border-solarized-base02 bg-solarized-base3 dark:bg-solarized-base03 bg-paper-texture dark:bg-paper-texture-dark",
         isCollapsed ? "w-12" : "w-64"
       )}
     >
       {/* Header with search and collapse button */}
-      <div className="flex items-center p-2 border-b border-gray-200">
+      <div className="flex items-center p-2 border-b border-solarized-base2 dark:border-solarized-base02">
         {isCollapsed ? (
           <button 
             onClick={onToggleCollapse}
-            className="w-full flex justify-center p-2 hover:bg-gray-200 rounded"
+            className="w-full flex justify-center p-2 hover:bg-solarized-base2 dark:hover:bg-solarized-base02 rounded-journal"
           >
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
+            <MagnifyingGlassIcon className="h-5 w-5 text-solarized-base00 dark:text-solarized-base0" />
           </button>
         ) : (
           <>
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 flex items-center pl-2">
-                <MagnifyingGlassIcon className="h-4 w-4 text-gray-500" />
+                <MagnifyingGlassIcon className="h-4 w-4 text-solarized-base00 dark:text-solarized-base0" />
               </div>
               <input
                 ref={searchInputRef}
@@ -76,12 +76,12 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
                 placeholder="Search workouts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-8 pr-2 py-1 text-sm border border-solarized-base1 dark:border-solarized-base01 rounded-journal focus:ring-solarized-blue focus:border-solarized-blue bg-white dark:bg-solarized-base02 text-journal-ink dark:text-journal-ink-light"
               />
             </div>
             <button 
               onClick={onToggleCollapse}
-              className="ml-2 p-1 text-gray-500 hover:bg-gray-200 rounded"
+              className="ml-2 p-1 text-solarized-base00 dark:text-solarized-base0 hover:bg-solarized-base2 dark:hover:bg-solarized-base02 rounded-journal"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -92,13 +92,13 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
       {/* Workouts list */}
       {!isCollapsed && (
         <div className="flex-grow overflow-y-auto">
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-solarized-base2 dark:divide-solarized-base02">
             {filteredWorkouts.map(workout => (
               <li 
                 key={workout.id}
                 className={cn(
-                  "cursor-pointer hover:bg-gray-100",
-                  activeId === workout.id ? "bg-blue-50" : ""
+                  "cursor-pointer hover:bg-solarized-base2 dark:hover:bg-solarized-base02",
+                  activeId === workout.id ? "bg-solarized-base2 dark:bg-solarized-base02" : ""
                 )}
                 onClick={() => onSelectWorkout(workout)}
               >
@@ -112,7 +112,7 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
                         refreshWorkouts();
                       }
                     }}
-                    className="text-gray-400 hover:text-red-500"
+                    className="text-solarized-base00 dark:text-solarized-base0 hover:text-solarized-red"
                   >
                     <XMarkIcon className="h-4 w-4" />
                   </button>
@@ -124,14 +124,14 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
       )}
 
       {/* New workout button */}
-      <div className="p-2 border-t border-gray-200">
+      <div className="p-2 border-t border-solarized-base2 dark:border-solarized-base02">
         <button 
           onClick={() => {
             onCreateWorkout();
             refreshWorkouts();
           }}
           className={cn(
-            "flex items-center justify-center hover:bg-blue-700 bg-blue-600 text-white rounded py-1 px-2 w-full",
+            "flex items-center justify-center hover:bg-solarized-green bg-solarized-green text-white rounded-journal py-1 px-2 w-full transition-colors",
             isCollapsed ? "px-0" : ""
           )}
         >

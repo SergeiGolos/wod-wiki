@@ -57,32 +57,34 @@ export const WorkbookPage: React.FC<WorkbookPageProps> = ({
   };
 
   return (
-    <div className="flex-grow flex flex-col overflow-hidden">
+    <div className="flex-grow flex flex-col overflow-hidden bg-journal-paper dark:bg-journal-paper-dark text-journal-ink dark:text-journal-ink-light bg-paper-texture dark:bg-paper-texture-dark transition-colors duration-200">
       {/* Title editor */}
-      <div className="px-4 py-2 border-b border-gray-200">
+      <div className="px-4 py-3 border-b border-solarized-base2 dark:border-solarized-base02 shadow-sm">
         <textarea
           ref={titleRef}
           value={title}
           onChange={handleTitleChange}
           onKeyDown={handleTitleKeyDown}
-          className="w-full resize-none overflow-hidden text-2xl font-bold border-0 focus:ring-0 focus:outline-none bg-transparent"
+          className="w-full resize-none overflow-hidden text-2xl font-bold border-0 focus:ring-0 focus:outline-none bg-transparent transition-colors duration-200"
           placeholder="Workout Title"
           rows={1}
         />
       </div>
 
       {/* Workout editor */}
-      <div className="flex-grow overflow-auto">
-        <WikiContainer
-          id={workout.id}
-          code={workout.content}
-          className="m-4 border-gray-300"
-          onScriptCompiled={handleScriptChange}
-          // Store a reference to the editor instance
-          onMount={(editor) => {
-            editorRef.current = editor;
-          }}
-        />
+      <div className="flex-grow overflow-auto p-4">
+        <div className="rounded-journal shadow-journal dark:shadow-journal-dark">
+          <WikiContainer
+            id={workout.id}
+            code={workout.content}
+            className="border-solarized-base2 dark:border-solarized-base02 rounded-journal bg-white dark:bg-solarized-base03"
+            onScriptCompiled={handleScriptChange}
+            // Store a reference to the editor instance
+            onMount={(editor) => {
+              editorRef.current = editor;
+            }}
+          />
+        </div>
       </div>
     </div>
   );

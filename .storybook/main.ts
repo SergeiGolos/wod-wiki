@@ -8,6 +8,7 @@ const config: StorybookConfig = {
     "@storybook/addon-links",
     "@storybook/addon-essentials",
     "@storybook/addon-interactions",
+    "storybook-dark-mode",
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -51,4 +52,5 @@ const config: StorybookConfig = {
     return config;
   },
 };
+export default config;
 export default config;
