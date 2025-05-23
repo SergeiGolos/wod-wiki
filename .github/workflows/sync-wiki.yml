@@ -26,7 +26,7 @@ jobs:
         # Clone the wiki repository
         git clone https://github.com/${{ github.repository }}.wiki.git wiki-repo
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.WIKI_TOKEN }}
     
     - name: Copy files to wiki
       run: |
