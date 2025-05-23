@@ -4,4 +4,6 @@ export * from './MetricsFactory';
 export * from './MetricsRelationship';
 export * from './ResultSpanBuilder';
 export * from './IMetricCompositionStrategy';
+export * from './RuntimeMetricBuilder';
+export * from './RuntimeBlockMetrics';
 export * from './strategies';

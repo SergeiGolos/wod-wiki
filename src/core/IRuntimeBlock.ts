@@ -39,4 +39,14 @@ export interface IRuntimeBlock {
 
   // Metrics composition
   composeMetrics(runtime: ITimerRuntime): RuntimeMetric[];
+  
+  /**
+   * Generates a complete set of metrics for the runtime block.
+   * Uses the RuntimeMetricBuilder to collect and organize metrics by type.
+   * Includes effort, repetitions, distance, and resistance metrics.
+   * 
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects
+   */
+  metrics(runtime: ITimerRuntime): RuntimeMetric[];
 }

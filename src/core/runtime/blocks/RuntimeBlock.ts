@@ -11,6 +11,7 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ITimeSpan } from "@/core/ITimeSpan";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
+import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -202,5 +203,17 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
     // Always delegate to the composition strategy
     return this.metricCompositionStrategy!.composeMetrics(this, runtime);
+  }
+
+  /**
+   * Generates a complete set of metrics for this runtime block using the RuntimeMetricBuilder.
+   * This method provides a simplified way to collect metrics from fragments by type.
+   * 
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
+   */
+  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {
+    // Use the utility class to build metrics from all sources
+    return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
   }
 }
