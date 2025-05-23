@@ -11,10 +11,11 @@ describe('BlockKey to string integration with ResultSpanBuilder', () => {
     // Create a BlockKey
     const blockKey = new BlockKey();
     blockKey.push([{ id: 1 }, { id: 2 }] as any, 0);
+    const blockKeyString = blockKey.toString();
     
-    // Create a RuntimeSpan with BlockKey
+    // Create a RuntimeSpan with string blockKey
     const span = new RuntimeSpan();
-    span.blockKey = blockKey;
+    span.blockKey = blockKeyString;
     span.metrics = [];
     
     // Register the span
@@ -26,7 +27,6 @@ describe('BlockKey to string integration with ResultSpanBuilder', () => {
     expect(spansWithBlockKey).toHaveLength(1);
     
     // Test with string
-    const blockKeyString = blockKey.toString();
     const spansWithString = builder.getSpansByBlockKey(blockKeyString);
     expect(spansWithString).toHaveLength(1);
   });
@@ -61,19 +61,21 @@ describe('BlockKey to string integration with ResultSpanBuilder', () => {
     // Create BlockKeys
     const rootBlockKey = new BlockKey();
     rootBlockKey.push([{ id: 1 }] as any, 0);
+    const rootBlockKeyString = rootBlockKey.toString();
     
     const childBlockKey = new BlockKey();
     childBlockKey.push([{ id: 2 }] as any, 0);
+    const childBlockKeyString = childBlockKey.toString();
     
-    // Create a root RuntimeSpan with BlockKey
+    // Create a root RuntimeSpan with string blockKey
     const rootSpan = new RuntimeSpan();
-    rootSpan.blockKey = rootBlockKey;
+    rootSpan.blockKey = rootBlockKeyString;
     rootSpan.metrics = [];
-    rootSpan.children = [childBlockKey.toString()];
+    rootSpan.children = [childBlockKeyString];
     
-    // Create a child RuntimeSpan with BlockKey
+    // Create a child RuntimeSpan with string blockKey
     const childSpan = new RuntimeSpan();
-    childSpan.blockKey = childBlockKey;
+    childSpan.blockKey = childBlockKeyString;
     childSpan.metrics = [];
     
     // Register the spans
@@ -85,7 +87,6 @@ describe('BlockKey to string integration with ResultSpanBuilder', () => {
     const hierarchyWithBlockKey = builder.createHierarchicalView(rootBlockKey);
     
     // Test with string
-    const rootBlockKeyString = rootBlockKey.toString();
     const hierarchyWithString = builder.createHierarchicalView(rootBlockKeyString);
     
     // Assert
@@ -108,15 +109,15 @@ describe('BlockKey to string integration with ResultSpanBuilder', () => {
     // Act
     const builder = new ResultSpanBuilder();
     
-    // Create spans with different representations of the same BlockKey
+    // Create spans with different representations of the same BlockKey as strings
     const spanWithOriginalKey = new RuntimeSpan();
-    spanWithOriginalKey.blockKey = originalBlockKey;
+    spanWithOriginalKey.blockKey = originalBlockKey.toString();
     
     const spanWithStringKey = new RuntimeSpan();
     spanWithStringKey.blockKey = stringRepresentation;
     
     const spanWithRecreatedKey = new RuntimeSpan();
-    spanWithRecreatedKey.blockKey = recreatedBlockKey;
+    spanWithRecreatedKey.blockKey = recreatedBlockKey.toString();
     
     builder.registerSpan(spanWithOriginalKey);
     
