@@ -1,3 +1,4 @@
+import { describe, it, expect, vi } from 'vitest';
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { BubbleUpAction } from "../base/BubbleUpAction";
@@ -8,14 +9,14 @@ class MockRuntimeBlock implements IRuntimeBlock {
   constructor(public blockKey: any, public blockId: string, public parent?: IRuntimeBlock) {}
   
   // Minimal implementation to test actions
-  enter = jest.fn().mockReturnValue([]);
-  next = jest.fn().mockReturnValue([]);
-  leave = jest.fn().mockReturnValue([]);
-  onStart = jest.fn().mockReturnValue([]);
-  onStop = jest.fn().mockReturnValue([]);
-  handle = jest.fn().mockReturnValue([]);
-  composeMetrics = jest.fn().mockReturnValue([]);
-  selectMany = jest.fn().mockReturnValue([]);
+  enter = vi.fn().mockReturnValue([]);
+  next = vi.fn().mockReturnValue([]);
+  leave = vi.fn().mockReturnValue([]);
+  onStart = vi.fn().mockReturnValue([]);
+  onStop = vi.fn().mockReturnValue([]);
+  handle = vi.fn().mockReturnValue([]);
+  composeMetrics = vi.fn().mockReturnValue([]);
+  selectMany = vi.fn().mockReturnValue([]);
   
   // Other required properties
   sources: any[] = [];
@@ -32,27 +33,27 @@ class MockTimerRuntime implements ITimerRuntime {
   }
   
   code: string = "";
-  jit: any = { end: jest.fn().mockReturnValue({}) };
+  jit: any = { end: vi.fn().mockReturnValue({}) };
   trace: any = {
     stack: this.stackState,
-    current: jest.fn().mockImplementation(() => {
+    current: vi.fn().mockImplementation(() => {
       return this.stackState.length > 0 ? this.stackState[this.stackState.length - 1] : undefined;
     })
   };
   history: any[] = [];
   script: any = {};
   
-  apply = jest.fn();
-  push = jest.fn().mockImplementation((block) => {
+  apply = vi.fn();
+  push = vi.fn().mockImplementation((block) => {
     if (block) {
       this.stackState.push(block);
     }
     return block || { blockKey: "mock" };
   });
-  pop = jest.fn().mockImplementation(() => {
+  pop = vi.fn().mockImplementation(() => {
     return this.stackState.length > 0 ? this.stackState.pop() : undefined;
   });
-  reset = jest.fn();
+  reset = vi.fn();
 }
 
 // Test implementation of LeafNodeAction
