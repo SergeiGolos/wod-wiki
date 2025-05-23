@@ -4,7 +4,7 @@ import { RuntimeMetric } from "./RuntimeMetric";
 
 
 export class RuntimeSpan {
-  blockKey?: BlockKey;
+  blockKey?: string | BlockKey;
   index?: number;
   timeSpans: ITimeSpan[] = [];
   metrics: RuntimeMetric[] = [];
