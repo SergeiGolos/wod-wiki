@@ -55,13 +55,13 @@ jobs:
           SCOPE=@bitcobblers
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN || '' }}" > .npmrc
           echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
-        if: ${{ env.NPM_TOKEN != '' }}
+        if: ${{ env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
 
       - name: Publish Package
         # Only run when on main/tag
-        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && env.NPM_TOKEN != '' }}  
+        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}  
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
