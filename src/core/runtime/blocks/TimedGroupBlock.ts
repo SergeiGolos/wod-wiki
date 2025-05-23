@@ -6,7 +6,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RuntimeMetric } from "@/core/RuntimeMetric";
-import { MetricsContext, MetricsRelationshipType, ResultSpanRegistry } from "@/core/metrics"; // ResultSpanRegistry is used
+import { MetricsContext, MetricsRelationshipType, ResultSpanBuilder } from "@/core/metrics";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
@@ -23,7 +23,7 @@ import { SetDurationAction } from "../outputs/SetDurationAction";
 
 export class TimedGroupBlock extends RuntimeBlock {
   // Local registry for child spans
-  private childSpanRegistry = new ResultSpanRegistry();
+  private childSpanRegistry = new ResultSpanBuilder();
   private childIndex: number;
   private lastLap: string;
   

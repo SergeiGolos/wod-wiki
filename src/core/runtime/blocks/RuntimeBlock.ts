@@ -169,28 +169,13 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
     const metrics = this.composeMetrics(runtime);
     
-    // Check if we already have an open span that can be reused
-    let currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
-    const hasCompletedTimespan = currentSpan && 
-      currentSpan.timeSpans.length > 0 && 
-      currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop;
-      
-    if (!currentSpan || hasCompletedTimespan) {
-      // Create a new span using the builder pattern
-      const span = this.getSpanBuilder()
+    // Simplified: Create a new span using the builder pattern
+    const span = this.getSpanBuilder()
         .Create(metrics)
         .Start()
         .Current();
       
-      this._spans.push(span);
-    } else {
-      // If we have an existing span, just add a new timespan
-      const newTimeSpan: ITimeSpan = {
-        start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
-        blockKey: this.blockKey.toString()
-      };
-      currentSpan.timeSpans.push(newTimeSpan);
-    }
+    this._spans.push(span);
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
@@ -201,17 +186,8 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
     
     if (currentSpan && currentSpan.timeSpans.length > 0) {
-      const currentTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
-      if (!currentTimeSpan.stop) {
-        // Instead of directly modifying the span, we can use the builder
-        // But since we need to modify the existing span and not create a new one,
-        // we will still modify it directly for now
-        currentTimeSpan.stop = { 
-          name: 'block_stopped', 
-          timestamp: new Date(), 
-          blockKey: this.blockKey.toString() 
-        };
-      }
+      // Use the builder to stop the span
+      this.getSpanBuilder().Stop();
     } else {
       // If there's no current span or it has no timespans, this is an error condition
       console.warn(`RuntimeBlock ${this.blockKey}: onStop called but no active timespan exists`);

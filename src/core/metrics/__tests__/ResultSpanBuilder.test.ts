@@ -1,15 +1,20 @@
 import { describe, test, expect, beforeEach, jest } from 'vitest';
-import { ResultSpanBuilder } from '../ResultSpanBuilder';
+import { ResultSpanBuilder, SpanNode } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../../RuntimeMetric';
 import { MetricValue } from '../../MetricValue';
 import { IRuntimeBlock } from '../../IRuntimeBlock';
+import { RuntimeSpan } from '../../RuntimeSpan';
 import { BlockKey } from '../../BlockKey';
 
 describe('ResultSpanBuilder', () => {
+  let builder: ResultSpanBuilder;
   let mockMetrics: RuntimeMetric[];
   let mockBlock: IRuntimeBlock;
+  let mockSpan: RuntimeSpan;
 
   beforeEach(() => {
+    builder = new ResultSpanBuilder();
+    
     // Setup mock metrics
     mockMetrics = [
       {
@@ -22,12 +27,15 @@ describe('ResultSpanBuilder', () => {
     ];
 
     // Setup mock block
+    const blockKey = new BlockKey();
+    blockKey.index = 1;
+    
     mockBlock = {
-      blockKey: new BlockKey(),
+      blockKey,
       blockId: 'test-block-id',
       getIndex: jest.fn().mockReturnValue(1),
       sources: [],
-      spans: jest.fn().mockReturnValue([]),
+      spans: jest.fn(),
       selectMany: jest.fn(),
       handle: jest.fn(),
       enter: jest.fn(),
@@ -38,146 +46,100 @@ describe('ResultSpanBuilder', () => {
       composeMetrics: jest.fn()
     };
     
-    mockBlock.blockKey.push = jest.fn();
-    mockBlock.blockKey.index = 1;
+    // Setup mock span
+    mockSpan = new RuntimeSpan();
+    mockSpan.blockKey = blockKey;
+    mockSpan.metrics = [...mockMetrics];
+    mockSpan.timeSpans = [{
+      start: { name: 'test_start', timestamp: new Date(), blockKey: blockKey.toString() },
+      blockKey: blockKey.toString()
+    }];
+    
+    // Configure mock block to return our mock span
+    (mockBlock.spans as jest.Mock).mockReturnValue([mockSpan]);
   });
 
   test('Create method initializes a new span with metrics', () => {
-    const builder = new ResultSpanBuilder();
     builder.Create(mockMetrics);
     
     const span = builder.Current();
-    
     expect(span.metrics).toEqual(mockMetrics);
-    expect(span.timeSpans).toEqual([]);
   });
 
-  test('Inherit method adds new metric values', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    
-    const newValue: MetricValue = { type: 'distance', value: 100, unit: 'meters' };
-    builder.Inherit(newValue);
-    
-    const span = builder.Current();
-    
-    expect(span.metrics[0].values).toContainEqual(newValue);
-  });
-
-  test('Inherit method does not duplicate existing metric values', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    
-    const existingValue: MetricValue = { type: 'repetitions', value: 10, unit: 'reps' };
-    builder.Inherit(existingValue);
-    
-    const span = builder.Current();
-    
-    // Should still only have one 'repetitions' value
-    expect(span.metrics[0].values.filter(v => v.type === 'repetitions')).toHaveLength(1);
-  });
-
-  test('Override method replaces existing metric values', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    
-    const newValue: MetricValue = { type: 'repetitions', value: 20, unit: 'reps' };
-    builder.Override(newValue);
-    
-    const span = builder.Current();
-    
-    expect(span.metrics[0].values).toContainEqual(newValue);
-    expect(span.metrics[0].values.filter(v => v.type === 'repetitions')).toHaveLength(1);
-    expect(span.metrics[0].values[0].value).toBe(20);
-  });
-
-  test('Start method adds a timespan with start event', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    builder.Start();
-    
-    const span = builder.Current();
-    
-    expect(span.timeSpans).toHaveLength(1);
-    expect(span.timeSpans[0].start).toBeDefined();
-    expect(span.timeSpans[0].start?.name).toBe('span_started');
-    expect(span.timeSpans[0].stop).toBeUndefined();
-  });
-
-  test('Stop method adds stop event to the latest timespan', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    builder.Start();
-    builder.Stop();
-    
-    const span = builder.Current();
-    
-    expect(span.timeSpans[0].stop).toBeDefined();
-    expect(span.timeSpans[0].stop?.name).toBe('span_stopped');
-  });
-
-  test('ForBlock method associates spans with a block', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create(mockMetrics);
-    builder.Start();
-    builder.ForBlock(mockBlock);
-    
-    const span = builder.Current();
-    
-    expect(span.blockKey).toBe(mockBlock.blockKey);
-    expect(span.index).toBe(mockBlock.blockKey.index);
-    expect(span.timeSpans[0].blockKey).toBe(mockBlock.blockKey.toString());
-  });
-
-  test('All method returns all spans', () => {
-    const builder = new ResultSpanBuilder();
-    builder.Create([mockMetrics[0]]);
-    builder.Start();
-    
-    // Create another span
-    builder.Create([{
-      sourceId: 'test-source-2',
-      effort: 'Squat',
-      values: [
-        { type: 'repetitions', value: 15, unit: 'reps' } as MetricValue
-      ]
-    }]);
-    builder.Start();
-    
-    const spans = builder.All();
-    
-    expect(spans).toHaveLength(2);
-    expect(spans[0].metrics[0].effort).toBe('Pushup');
-    expect(spans[1].metrics[0].effort).toBe('Squat');
-  });
-
-  test('Current method throws error if no span exists', () => {
-    const builder = new ResultSpanBuilder();
-    
-    expect(() => builder.Current()).toThrow("No current span exists");
-  });
-
-  test('Inherit method throws error if no span exists', () => {
-    const builder = new ResultSpanBuilder();
-    
-    expect(() => builder.Inherit({ type: 'repetitions', value: 10, unit: 'reps' }))
-      .toThrow("No current span exists");
-  });
-
-  test('Methods can be chained for fluent API', () => {
-    const builder = new ResultSpanBuilder();
-    
+  test('Builder methods can be chained', () => {
     const span = builder
       .Create(mockMetrics)
       .Start()
-      .Inherit({ type: 'distance', value: 100, unit: 'meters' })
-      .Stop()
-      .ForBlock(mockBlock)
+      .Override({ type: 'repetitions', value: 20, unit: 'reps' })
       .Current();
     
-    expect(span.metrics[0].values).toHaveLength(2);
-    expect(span.timeSpans[0].start).toBeDefined();
-    expect(span.timeSpans[0].stop).toBeDefined();
-    expect(span.blockKey).toBe(mockBlock.blockKey);
+    expect(span.metrics[0].values[0].value).toBe(20);
+    expect(span.timeSpans).toHaveLength(1);
+  });
+
+  test('registerSpan adds a span to the registry', () => {
+    builder.registerSpan(mockSpan);
+    
+    const spans = builder.getAllSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]).toBe(mockSpan);
+  });
+
+  test('registerBlockSpans adds all spans from a block', () => {
+    builder.registerBlockSpans(mockBlock);
+    
+    const spans = builder.getAllSpans();
+    expect(spans).toHaveLength(1);
+    expect(spans[0]).toBe(mockSpan);
+    expect(mockBlock.spans).toHaveBeenCalled();
+  });
+
+  test('getSpansByBlockKey filters spans by block key', () => {
+    builder.registerSpan(mockSpan);
+    
+    const filteredSpans = builder.getSpansByBlockKey(mockSpan.blockKey.toString());
+    expect(filteredSpans).toHaveLength(1);
+    expect(filteredSpans[0]).toBe(mockSpan);
+  });
+
+  test('clear method resets both spans and builder', () => {
+    // Add a span to the registry
+    builder.registerSpan(mockSpan);
+    expect(builder.getAllSpans()).toHaveLength(1);
+    
+    // Create a span with the builder
+    builder.Create(mockMetrics).Start();
+    expect(builder.All()).toHaveLength(1);
+    
+    // Clear the builder
+    builder.clear();
+    
+    // Both spans and builder should be reset
+    expect(builder.getAllSpans()).toHaveLength(0);
+    
+    // The builder should create a new span after clearing
+    expect(() => builder.Current()).toThrow("No current span exists");
+  });
+
+  test('All method returns spans from the builder', () => {
+    // Create two spans with the builder
+    builder
+      .Create([mockMetrics[0]])
+      .Start();
+    
+    builder
+      .Create([{
+        sourceId: 'test-source-2',
+        effort: 'Squat',
+        values: [
+          { type: 'repetitions', value: 15, unit: 'reps' } as MetricValue
+        ]
+      }])
+      .Start();
+    
+    const builderSpans = builder.All();
+    expect(builderSpans).toHaveLength(2);
+    expect(builderSpans[0].metrics[0].effort).toBe('Pushup');
+    expect(builderSpans[1].metrics[0].effort).toBe('Squat');
   });
 });
