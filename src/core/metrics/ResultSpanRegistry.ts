@@ -1,6 +1,8 @@
 import { RuntimeSpan } from "../RuntimeSpan";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { MetricValue } from "../MetricValue";
+import { ResultSpanBuilder } from "./ResultSpanBuilder";
 
 /**
  * Centralized registry for managing ResultSpans across the runtime.
@@ -8,6 +10,66 @@ import { RuntimeMetric } from "../RuntimeMetric";
  */
 export class ResultSpanRegistry {
   private spans: RuntimeSpan[] = [];
+  private builder: ResultSpanBuilder = new ResultSpanBuilder();
+  
+  /**
+   * Creates a new RuntimeSpan with the passed in metrics
+   * @param metrics Array of RuntimeMetric objects to add to the span
+   * @returns The builder instance for further configuration
+   */
+  public Create(metrics: RuntimeMetric[]): ResultSpanBuilder {
+    return this.builder.Create(metrics);
+  }
+  
+  /**
+   * Allows a value metric to populate a MetricValue if not already present
+   * @param value The metric value to inherit
+   * @returns The builder instance for further configuration
+   */
+  public Inherit(value: MetricValue): ResultSpanBuilder {
+    return this.builder.Inherit(value);
+  }
+  
+  /**
+   * Allows a metric value to override all child RuntimeMetric values
+   * @param value The metric value to override with
+   * @returns The builder instance for further configuration
+   */
+  public Override(value: MetricValue): ResultSpanBuilder {
+    return this.builder.Override(value);
+  }
+  
+  /**
+   * Creates a start timespan for the current RuntimeSpan
+   * @returns The builder instance for further configuration
+   */
+  public Start(): ResultSpanBuilder {
+    return this.builder.Start();
+  }
+  
+  /**
+   * Stops the most recent timespan in the current RuntimeSpan
+   * @returns The builder instance for further configuration
+   */
+  public Stop(): ResultSpanBuilder {
+    return this.builder.Stop();
+  }
+  
+  /**
+   * Returns the last ResultSpan in the list
+   * @returns The current RuntimeSpan
+   */
+  public Current(): RuntimeSpan {
+    return this.builder.Current();
+  }
+  
+  /**
+   * Returns the complete list of ResultSpans
+   * @returns Array of all RuntimeSpans created by this builder
+   */
+  public All(): RuntimeSpan[] {
+    return this.builder.All();
+  }
   
   /**
    * Registers a span in the registry
@@ -215,6 +277,7 @@ export class ResultSpanRegistry {
    */
   public clear(): void {
     this.spans = [];
+    this.builder = new ResultSpanBuilder();
   }
 }
 

@@ -10,6 +10,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ITimeSpan } from "@/core/ITimeSpan";
+import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -158,17 +159,32 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   // Lifecycle methods implementation
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
     let currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
+    
     if (!currentSpan || (currentSpan.timeSpans.length > 0 && currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop)) {
-      currentSpan = new RuntimeSpan();
-      currentSpan.blockKey = this.blockKey; // Associate blockKey with the span
-      this._spans.push(currentSpan);
+      // Use the builder to create a new span with metrics and start it
+      const metrics = this.composeMetrics(runtime);
+      
+      // Create a new span through the builder pattern
+      const span = new RuntimeSpan();
+      span.blockKey = this.blockKey;
+      span.metrics = metrics;
+      
+      const newTimeSpan: ITimeSpan = {
+        start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
+        blockKey: this.blockKey.toString()
+      };
+      span.timeSpans.push(newTimeSpan);
+      
+      this._spans.push(span);
     }
-
-    const newTimeSpan: ITimeSpan = { // Explicitly type newTimeSpan
-      start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
-      blockKey: this.blockKey.toString() // Associate blockKey with the timeSpan
-    };
-    currentSpan.timeSpans.push(newTimeSpan);
+    else {
+      // If we have an existing span with an open timespan, just use that
+      const newTimeSpan: ITimeSpan = {
+        start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
+        blockKey: this.blockKey.toString()
+      };
+      currentSpan.timeSpans.push(newTimeSpan);
+    }
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
