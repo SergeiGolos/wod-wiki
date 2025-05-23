@@ -38,6 +38,13 @@ export interface IRuntimeBlock {
   onStop(runtime: ITimerRuntime): IRuntimeAction[];
 
   // Metrics composition
+  /**
+   * Composes metrics for this runtime block.
+   * 
+   * @deprecated Use metrics() instead
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects
+   */
   composeMetrics(runtime: ITimerRuntime): RuntimeMetric[];
   
   /**

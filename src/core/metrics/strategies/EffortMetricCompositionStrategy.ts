@@ -7,6 +7,8 @@ import { MetricCompositionStrategy } from "./MetricCompositionStrategy";
 /**
  * A specialized metric composition strategy for blocks that represent specific efforts,
  * such as EffortBlock.
+ * 
+ * @deprecated Use RuntimeMetricBuilder and RuntimeBlockMetrics instead
  */
 export class EffortMetricCompositionStrategy extends MetricCompositionStrategy {
   /**

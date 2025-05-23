@@ -7,6 +7,8 @@ import { RuntimeSpan } from "../../RuntimeSpan";
 /**
  * Base implementation of the IMetricCompositionStrategy interface.
  * Provides methods to extract and compose metrics from runtime blocks and spans.
+ * 
+ * @deprecated Use RuntimeMetricBuilder and RuntimeBlockMetrics instead
  */
 export class MetricCompositionStrategy implements IMetricCompositionStrategy {
   /**

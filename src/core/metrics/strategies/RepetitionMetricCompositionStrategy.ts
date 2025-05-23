@@ -6,6 +6,8 @@ import { MetricCompositionStrategy } from "./MetricCompositionStrategy";
 /**
  * A specialized metric composition strategy for blocks that perform repetitions,
  * such as RepeatingBlock.
+ * 
+ * @deprecated Use RuntimeMetricBuilder and RuntimeBlockMetrics instead
  */
 export class RepetitionMetricCompositionStrategy extends MetricCompositionStrategy {
   /**

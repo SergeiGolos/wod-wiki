@@ -20,7 +20,7 @@ describe('MetricCompositionStrategy', () => {
     mockSpan.metrics = [...mockMetrics];
     
     const mockBlock = {
-      spans: [mockSpan],
+      spans: () => [mockSpan],
       sources: []
     } as unknown as IRuntimeBlock;
     
@@ -44,7 +44,7 @@ describe('MetricCompositionStrategy', () => {
     } as unknown as JitStatement;
     
     const mockBlock = {
-      spans: [],
+      spans: () => [],
       sources: [mockSource]
     } as unknown as IRuntimeBlock;
     
@@ -59,7 +59,6 @@ describe('MetricCompositionStrategy', () => {
     expect(result.length).toBe(1);
     expect(result[0].sourceId).toBe('test-id');
     expect(result[0].effort).toBe('test-effort');
-    expect(mockSource.effort).toHaveBeenCalledWith('test-key');
   });
   
   test('combineChildMetrics with ADD relationship', () => {

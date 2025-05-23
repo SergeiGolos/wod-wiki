@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, jest } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { ResultSpanBuilder, SpanNode } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../../RuntimeMetric';
 import { MetricValue } from '../../MetricValue';
@@ -33,17 +33,17 @@ describe('ResultSpanBuilder', () => {
     mockBlock = {
       blockKey,
       blockId: 'test-block-id',
-      getIndex: jest.fn().mockReturnValue(1),
+      getIndex: vi.fn().mockReturnValue(1),
       sources: [],
-      spans: jest.fn(),
-      selectMany: jest.fn(),
-      handle: jest.fn(),
-      enter: jest.fn(),
-      next: jest.fn(),
-      leave: jest.fn(),
-      onStart: jest.fn(),
-      onStop: jest.fn(),
-      composeMetrics: jest.fn()
+      spans: vi.fn(),
+      selectMany: vi.fn(),
+      handle: vi.fn(),
+      enter: vi.fn(),
+      next: vi.fn(),
+      leave: vi.fn(),
+      onStart: vi.fn(),
+      onStop: vi.fn(),
+      composeMetrics: vi.fn()
     };
     
     // Setup mock span
@@ -56,7 +56,7 @@ describe('ResultSpanBuilder', () => {
     }];
     
     // Configure mock block to return our mock span
-    (mockBlock.spans as jest.Mock).mockReturnValue([mockSpan]);
+    (mockBlock.spans as vi.Mock).mockReturnValue([mockSpan]);
   });
 
   test('Create method initializes a new span with metrics', () => {
@@ -95,9 +95,14 @@ describe('ResultSpanBuilder', () => {
   });
 
   test('getSpansByBlockKey filters spans by block key', () => {
+    // Set the blockKey on the mockSpan
+    mockSpan.blockKey = "test-block-key";
+    
+    // Register the span with the builder
     builder.registerSpan(mockSpan);
     
-    const filteredSpans = builder.getSpansByBlockKey(mockSpan.blockKey.toString());
+    // Get spans by blockKey
+    const filteredSpans = builder.getSpansByBlockKey("test-block-key");
     expect(filteredSpans).toHaveLength(1);
     expect(filteredSpans[0]).toBe(mockSpan);
   });
