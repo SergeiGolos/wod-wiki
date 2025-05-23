@@ -1,0 +1,85 @@
+import { Meta } from "@storybook/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/04 - Creating Programs" />
+
+# Creating Structured Workout Programs
+
+Now that you've learned the basics, let's explore how to structure complete workout programs over multiple days and weeks.
+
+## Weekly Structure
+
+You can organize workouts by days of the week:
+
+```
+# Monday - Upper Body
+5 Rounds:
+  10 Pull-ups
+  15 Push-ups
+  20 Dips
+
+# Wednesday - Lower Body
+5 Rounds:
+  20 Air Squats
+  15 Lunges (each leg)
+  10 Jump Squats
+
+# Friday - Full Body
+AMRAP 20:00
+  400m Run
+  15 Thrusters 95lb
+  10 Burpees
+```
+
+## Progressive Overload
+
+Track progress by incrementing weights or reps:
+
+```
+# Week 1
+5x5 Back Squat 185lb
+
+# Week 2
+5x5 Back Squat 195lb
+
+# Week 3
+5x5 Back Squat 205lb
+```
+
+## EMOM (Every Minute on the Minute)
+
+```
+EMOM 15:00
+  Min 1: 5 Power Cleans 135lb
+  Min 2: 10 Box Jumps 24"
+  Min 3: 15 Wall Balls 20lb
+```
+
+## Tabata Intervals
+
+```
+(8) Tabata
+  :20 Work
+  :10 Rest
+```
+
+## Interactive Example
+
+Try creating a weekly program:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={"# Monday - Strength\\n5x5 Back Squat 185lb\\\\n\\\\n# Wednesday - Conditioning\\\\n3 Rounds for Time:\\\\n  400m Run\\\\n  21 Kettlebell Swings 53lb\\\\n  12 Pull-ups\\\\n\\\\n# Friday - Endurance\\\\n30:00 AMRAP\\\\n  200m Run\\\\n  10 Push Press 95lb\\\\n  15 Air Squats"}
+      height="350px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Next Steps
+
+In the next tutorial, we'll explore how to track your progress and analyze your workout data.
+
+[← Previous: Advanced Features](./03-Advanced-Features.mdx) | [Next: Tracking Progress →](./05-Tracking-Progress.mdx)

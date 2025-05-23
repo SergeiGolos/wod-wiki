@@ -1,8 +1,6 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
-import { MetricValue } from "@/core/MetricValue";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock"; 
 import { StopEvent } from "../inputs/StopEvent"; 
 import { WriteResultAction } from "../outputs/WriteResultAction";
@@ -17,12 +15,12 @@ import { SetClockAction } from "../outputs/SetClockAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
-
   constructor(
     sources: JitStatement[],        
   ) {
     super(sources);
     this.handlers.push(new CompleteHandler());
+    this.leaf = true; // mark as leaf-level block
   }
 
   /**
@@ -41,13 +39,11 @@ export class EffortBlock extends RuntimeBlock {
     return this.blockKey.index >= 1 
     ? [new PopBlockAction()] 
     : [];
-  }
-
-  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+  }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
-      new WriteResultAction(this.spans)
+      new WriteResultAction(this.spans())
     ];
   }
 

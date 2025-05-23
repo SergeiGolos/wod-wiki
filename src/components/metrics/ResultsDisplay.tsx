@@ -36,6 +36,9 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     if (!results) return;
     const processedResults: [ResultSpan, boolean][] = [];
     for (const result of results) {
+      // Skip non-leaf spans
+      if (result.leaf !== true) continue;
+      
       let hidden = false;
       if (selectedEffortFilter.length > 0 && !selectedEffortFilter.includes(result.metrics?.[0]?.effort)) {        
         hidden = true;

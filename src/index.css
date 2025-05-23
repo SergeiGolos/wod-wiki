@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Initialize dark mode based on user preference */
+@media (prefers-color-scheme: dark) {
+  html.dark-mode-auto {
+    color-scheme: dark;
+  }
+}
+
+/* Custom focus styles that work with dark mode */
+@layer base {
+  :focus-visible {
+    @apply outline-solarized-blue dark:outline-solarized-cyan outline-2 outline-offset-2;
+  }
+}

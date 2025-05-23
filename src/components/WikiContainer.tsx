@@ -6,7 +6,7 @@ import { WodRuntimeScript } from "@/core/WodRuntimeScript";
 import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
 import { OutputEvent } from "@/core/OutputEvent";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
-import { WodTimer } from "./clock/WodTimer";
+import { WodTimer, DefaultClockLayout } from "./clock";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
 import { encodeShareString } from "@/core/utils";
@@ -32,7 +32,11 @@ interface WikiContainerProps {
    * Optional callback when results are updated
    */
   onResultsUpdated?: (results: RuntimeSpan[]) => void;
-  children: React.ReactNode[];
+  /**
+   * Optional callback when the editor is mounted
+   */
+  onMount?: (editor: any) => void;
+  children?: React.ReactNode;
 }
 
 export const WikiContainer: React.FC<WikiContainerProps> = ({
@@ -40,6 +44,8 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
+  onResultsUpdated,
+  onMount,
   outbound,
   children
 }) => {
@@ -58,6 +64,13 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   const [runtimeButtons, setRuntimeButtons] = useButtonSync("runtime");
 
   const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);   
+  
+  // Call onResultsUpdated when results change
+  useEffect(() => {
+    if (onResultsUpdated && results) {
+      onResultsUpdated(results);
+    }
+  }, [results, onResultsUpdated]);
   
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
@@ -87,7 +100,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
     return () => {
       dispose?.unsubscribe();
     };
-  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons]);
+  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons, setLabel]);
 
 
   // Create Chromecast button (now managed independently)
@@ -101,6 +114,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       <WodWiki
         id={id}
         code={code}
+        onMount={onMount}
         onValueChange={handleScriptChange}
         cursor={cursor ?? undefined}        
       />
@@ -139,7 +153,9 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       </div>
       {runtimeRef.current && (
         <>
-          <WodTimer label={label} primary={primary} total={total} />
+          <WodTimer label={label} primary={primary} total={total} events={output?.value}>
+            <DefaultClockLayout label={label} />
+          </WodTimer>
           <div className="p-1 flex justify-center">
           <ButtonRibbon buttons={runtimeButtons ?? []} setEvent={event => input.next(event)} />
           </div> 

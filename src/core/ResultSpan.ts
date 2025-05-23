@@ -8,6 +8,7 @@ export class ResultSpan extends RuntimeSpan {
     this.index = span.index;
     this.timeSpans = span.timeSpans;
     this.metrics = span.metrics;
+    this.leaf = span.leaf; // preserve leaf flag
   }
 
   edit(edits: RuntimeMetricEdit[]): ResultSpan {

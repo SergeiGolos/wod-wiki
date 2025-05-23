@@ -112,7 +112,7 @@ export class JitStatement implements ICodeStatement {
     if (efforts.length == 0) {
       return undefined;
     }
-    return efforts[blockKey instanceof BlockKey ? blockKey.index : blockKey % efforts.length];
+    return efforts[blockKey instanceof BlockKey ? blockKey.index : (blockKey ?? 0) % efforts.length];
   }
 
   public rounds(): RoundsFragment[] {

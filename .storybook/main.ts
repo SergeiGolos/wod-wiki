@@ -8,6 +8,7 @@ const config: StorybookConfig = {
     "@storybook/addon-links",
     "@storybook/addon-essentials",
     "@storybook/addon-interactions",
+    "storybook-dark-mode",
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -48,7 +49,6 @@ const config: StorybookConfig = {
     // might not perfectly align with Storybook's expected Vite plugin type,
     // but it is compatible in practice.
     config.plugins.push(monacoEditorPlugin({}) as PluginOption);
-    return config;
-  },
+    return config;  },
 };
 export default config;

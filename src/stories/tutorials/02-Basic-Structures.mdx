@@ -1,0 +1,72 @@
+import { Meta } from "@storybook/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/02 - Basic Structures" />
+
+# Basic Workout Structures
+
+Now that you've created your first workout, let's explore how to structure more complex routines.
+
+## Multiple Exercises
+
+You can list multiple exercises one after another:
+
+```
+3 Rounds:
+  10 Push-ups
+  15 Air Squats
+  20 Sit-ups
+```
+
+## Rounds
+
+Use parentheses to specify rounds. The number before the parentheses indicates how many times to repeat the exercises:
+
+```
+(3)
+  10 Push-ups
+  15 Air Squats
+  20 Sit-ups
+```
+
+## Timed Rounds
+
+You can also create timed rounds:
+
+```
+(3) 5:00
+  200m Run
+  Max Reps Pull-ups
+  Rest 1:00
+```
+
+## Groups
+
+Use `-` to create exercise groups that are performed in sequence:
+
+```
+- 10 Push-ups
+- 10 Sit-ups
+- 10 Squats
+```
+
+## Interactive Example
+
+Try creating your own workout structure:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={"(3)\n  10 Push-ups\n  15 Air Squats\n  20 Sit-ups"}
+      height="250px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Next Steps
+
+In the next tutorial, we'll explore how to add weights, distances, and more advanced features to your workouts.
+
+[← Previous: Getting Started](./01-Getting-Started.mdx) | [Next: Advanced Features →](./03-Advanced-Features.mdx)

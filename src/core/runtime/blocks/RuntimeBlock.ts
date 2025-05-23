@@ -1,14 +1,14 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import type { RuntimeMetric } from "@/core/RuntimeMetric";
-import { IMetricCompositionStrategy } from "@/core/metrics/IMetricCompositionStrategy";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
-import { ITimeSpan } from "@/core/ITimeSpan";
+import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
+import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -20,13 +20,34 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     this.blockKey = new BlockKey();
     this.blockKey.push(this.sources, 0);
   }
+
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
-  public metricCompositionStrategy?: IMetricCompositionStrategy;
   
-  public spans: RuntimeSpan[] = [];
+  public leaf: boolean = false; // indicates leaf-level block
+  
+  private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
+  private _spans: RuntimeSpan[] = [];
   public handlers: EventHandler[] = [];
+  
+  // Updated to implement the spans() method from the interface
+  public spans(): RuntimeSpan[] {
+    return this._spans;
+  }
+  
+  // Added to implement addSpan method
+  public addSpan(span: RuntimeSpan): void {
+    this._spans.push(span);
+  }
+  
+  /**
+   * Get the ResultSpanBuilder to create and manage spans for this block
+   * @returns The ResultSpanBuilder instance for this block
+   */
+  public getSpanBuilder(): ResultSpanBuilder {
+    return this.spanBuilder.ForBlock(this);
+  }
   
   public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
     let results: T[] = [];
@@ -143,18 +164,16 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   // Lifecycle methods implementation
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    let currentSpan = this.spans[this.spans.length - 1];
-    if (!currentSpan || (currentSpan.timeSpans.length > 0 && currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop)) {
-      currentSpan = new RuntimeSpan();
-      currentSpan.blockKey = this.blockKey; // Associate blockKey with the span
-      this.spans.push(currentSpan);
-    }
-
-    const newTimeSpan: ITimeSpan = { // Explicitly type newTimeSpan
-      start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
-      blockKey: this.blockKey.toString() // Associate blockKey with the timeSpan
-    };
-    currentSpan.timeSpans.push(newTimeSpan);
+    // Use the new metrics method instead of the deprecated composeMetrics
+    const metrics = this.metrics(runtime);
+    
+    // Simplified: Create a new span using the builder pattern
+    const span = this.getSpanBuilder()
+        .Create(metrics)
+        .Start()
+        .Current();
+      
+    this._spans.push(span);
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
@@ -162,12 +181,14 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   }
 
   public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
-    const currentSpan = this.spans[this.spans.length - 1];
+    const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
+    
     if (currentSpan && currentSpan.timeSpans.length > 0) {
-      const currentTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
-      if (!currentTimeSpan.stop) {
-        currentTimeSpan.stop = { name: 'block_stopped', timestamp: new Date(), blockKey: this.blockKey.toString() };
-      }
+      // Use the builder to stop the span
+      this.getSpanBuilder().Stop();
+    } else {
+      // If there's no current span or it has no timespans, this is an error condition
+      console.warn(`RuntimeBlock ${this.blockKey}: onStop called but no active timespan exists`);
     }
 
     // Call the abstract method for block-specific actions
@@ -175,41 +196,15 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     return actions;
   }
 
-  public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
-    if (this.metricCompositionStrategy) {
-      return this.metricCompositionStrategy.composeMetrics(this, runtime);
-    }
-
-    const metrics: RuntimeMetric[] = [];
-    for (const source of this.sources) {
-      const metric: RuntimeMetric = {
-        sourceId: "",
-        effort: "",
-        values: []
-      };
-
-      // Set sourceId
-      metric.sourceId = source.id?.toString() ?? source.toString() ?? "unknown_source_id";
-
-      // Set effort
-      let effortValue = "default_effort"; // Default effort
-      const effortFragment = source.effort(runtime.blockKey);
-      if (effortFragment) {
-        effortValue = effortFragment.effort;
-      }
-      // Fallbacks for source.statement and source.fragment are not directly available on JitStatement.
-      // JitStatement wraps an ICodeStatement (node property).
-      // The effort() method already checks fragments.
-      // If more complex fallback logic is needed for statement/fragment properties not accessed via methods,
-      // it would require deeper inspection of 'source.node' or 'source.fragments'.
-      // For now, relying on source.effort() and the default.
-      metric.effort = effortValue;
-
-      // Set values to an empty array
-      metric.values = [];
-
-      metrics.push(metric);
-    }
-    return metrics;
+  /**
+   * Generates a complete set of metrics for this runtime block using the RuntimeMetricBuilder.
+   * This method provides a simplified way to collect metrics from fragments by type.
+   * 
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
+   */
+  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {
+    // Use the utility class to build metrics from all sources
+    return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
   }
 }
