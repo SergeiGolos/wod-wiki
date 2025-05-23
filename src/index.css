@@ -5,7 +5,7 @@
 /* Initialize dark mode based on user preference */
 @media (prefers-color-scheme: dark) {
   html.dark-mode-auto {
-    @apply dark;
+    color-scheme: dark;
   }
 }
 

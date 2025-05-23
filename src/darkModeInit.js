@@ -8,7 +8,10 @@
   } else if (storedTheme === 'light') {
     document.documentElement.classList.remove('dark');
   } else {
-    // If no preference stored, add a class to respect OS preference
+    // If no preference stored, check OS preference and apply dark class accordingly
     document.documentElement.classList.add('dark-mode-auto');
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
   }
 })();

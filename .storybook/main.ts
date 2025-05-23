@@ -49,8 +49,6 @@ const config: StorybookConfig = {
     // might not perfectly align with Storybook's expected Vite plugin type,
     // but it is compatible in practice.
     config.plugins.push(monacoEditorPlugin({}) as PluginOption);
-    return config;
-  },
+    return config;  },
 };
-export default config;
 export default config;
