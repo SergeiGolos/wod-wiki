@@ -6,7 +6,6 @@ import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { WriteResultAction } from "../outputs/WriteResultAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
 
@@ -69,8 +68,7 @@ export class RepeatingBlock extends RuntimeBlock {
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Get the current span (created in enter and updated throughout execution)
     return [
-      new StopTimerAction(new StopEvent(new Date())),
-      new WriteResultAction(this.spans())
+      new StopTimerAction(new StopEvent(new Date())),      
     ];
   }
 

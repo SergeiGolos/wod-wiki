@@ -1,13 +1,11 @@
-import { BlockKey } from "./BlockKey";
 import { ITimeSpan } from "./ITimeSpan";
 import { RuntimeMetric } from "./RuntimeMetric";
 
-
 export class RuntimeSpan {
-  blockKey?: BlockKey;
+  blockId?: string;
+  blockKey?: string;
   index?: number;
   timeSpans: ITimeSpan[] = [];
-  metrics: RuntimeMetric[] = [];
-  children: string[] = []; // Added children property
-  leaf?: boolean; // marker if span comes from a leaf-level block
+  metrics: RuntimeMetric[] = [];  
+  leaf?: boolean;  
 }

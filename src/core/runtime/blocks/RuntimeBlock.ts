@@ -5,12 +5,10 @@ import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
-import { IMetricCompositionStrategy } from "@/core/metrics/IMetricCompositionStrategy";
-import { ITimeSpan } from "@/core/ITimeSpan";
+import { WriteResultAction } from "../outputs/WriteResultAction";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -20,36 +18,23 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   constructor(public sources: JitStatement[]) {    
     this.blockId = Math.random().toString(36).substring(2, 15);
     this.blockKey = new BlockKey();
-    this.blockKey.push(this.sources, 0);
+    this.blockKey.push(this.sources, 0);    
   }
 
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
   
-  public leaf: boolean = false; // indicates leaf-level block
-  
-  private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
-  private _spans: RuntimeSpan[] = [];
+  public leaf: boolean = false; // indicates leaf-level block  
+  private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();  
   public handlers: EventHandler[] = [];
-  public metricCompositionStrategy?: IMetricCompositionStrategy;
-  
-  // Updated to implement the spans() method from the interface
-  public spans(): RuntimeSpan[] {
-    return this._spans;
-  }
-  
-  // Added to implement addSpan method
-  public addSpan(span: RuntimeSpan): void {
-    this._spans.push(span);
-  }
-  
+      
   /**
    * Get the ResultSpanBuilder to create and manage spans for this block
    * @returns The ResultSpanBuilder instance for this block
    */
   public getSpanBuilder(): ResultSpanBuilder {
-    return this.spanBuilder.ForBlock(this);
+    return this.spanBuilder;
   }
   
   public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
@@ -69,10 +54,9 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   protected abstract onBlockStop(runtime: ITimerRuntime): IRuntimeAction[];
 
   // New public wrapper methods providing space for common logic
-  public enter(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Space for common code to run before the specific block's onEnter logic
-    this.blockKey = BlockKey.create(this);
-    console.log(`>>>>> doEnter >>>>>: ${this.blockKey} -- ${this.constructor.name}`);
+  public enter(runtime: ITimerRuntime): IRuntimeAction[] {    
+    console.log(`>>>>> doEnter >>>>>: ${this.blockKey} -- ${this.constructor.name}`);    
+    this.spanBuilder.Create(this, this.metrics(runtime) ?? []);
     const actions = this.onEnter(runtime);
     // Space for common code to run after the specific block's onEnter logic
     return actions;
@@ -80,10 +64,10 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   public leave(runtime: ITimerRuntime): IRuntimeAction[] {
     // Space for common code to run before the specific block's onLeave logic    
-    const actions = this.onLeave(runtime);
     console.log(`<<<<< doLeave <<<<<: ${this.blockKey} -- ${this.constructor.name}`);
+    const actions = this.onLeave(runtime);    
     // Space for common code to run after the specific block's onLeave logic
-    return actions;
+    return [...actions, new WriteResultAction(this.spanBuilder.Build())];
   }
 
   public next(runtime: ITimerRuntime): IRuntimeAction[] {
@@ -165,66 +149,20 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     return groupStatements;
   }
 
-  // Lifecycle methods implementation
+  // Lifecycle methods implementation 
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
     // Use the new metrics method instead of the deprecated composeMetrics
-    const metrics = this.metrics(runtime);
-    
-    // Check if we have an active span that hasn't been stopped
-    const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : null;
-    let span: RuntimeSpan;
-    
-    if (currentSpan && currentSpan.timeSpans.length > 0 && 
-        !currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop) {
-      // Last span has an active timespan - add a new timespan to it
-      span = currentSpan;
-      const newTimeSpan: ITimeSpan = {
-        start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
-        blockKey: this.blockKey.toString()
-      };
-      span.timeSpans.push(newTimeSpan);
-    } else {
-      // Create a completely new span
-      span = this.getSpanBuilder()
-          .Create(metrics)
-          .Start()
-          .Current();
-        
-      // Ensure blockKey is set
-      if (span.timeSpans.length > 0 && span.timeSpans[0].start) {
-        span.timeSpans[0].start.blockKey = this.blockKey.toString();
-      }
-      
-      this._spans.push(span);
-    }
-
-    // Call the abstract method for block-specific actions
-    const actions = this.onBlockStart(runtime);
-    return actions;
+      this.getSpanBuilder().Start();
+      return this.onBlockStart(runtime);      
   }
 
+  // Lifecycle methods implementation 
   public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
-    const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
-    
-    if (currentSpan && currentSpan.timeSpans.length > 0) {
-      // Use the builder to stop the span
+    // Use the new metrics method instead of the deprecated composeMetrics
       this.getSpanBuilder().Stop();
-      
-      // Ensure blockKey is set on the stop event
-      const lastTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
-      if (lastTimeSpan.stop) {
-        lastTimeSpan.stop.blockKey = this.blockKey.toString();
-      }
-    } else {
-      // If there's no current span or it has no timespans, this is an error condition
-      console.warn(`RuntimeBlock ${this.blockKey}: onStop called but no active timespan exists`);
-    }
-
-    // Call the abstract method for block-specific actions
-    const actions = this.onBlockStop(runtime);
-    return actions;
+      return this.onBlockStop(runtime);      
   }
-
+   
   /**
    * Generates a complete set of metrics for this runtime block using the RuntimeMetricBuilder.
    * This method provides a simplified way to collect metrics from fragments by type.
@@ -232,12 +170,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
    * @param runtime The timer runtime instance
    * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
    */
-  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {
-    // If a composition strategy is defined, use it
-    if (this.metricCompositionStrategy) {
-      return this.metricCompositionStrategy.composeMetrics(this, runtime);
-    }
-    
+  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {    
     // Otherwise use the utility class to build metrics from all sources
     return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
   }

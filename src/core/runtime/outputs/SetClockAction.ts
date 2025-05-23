@@ -18,15 +18,13 @@ export class SetClockAction extends OutputAction {
         }
         
         const duration = block.sources[0].duration(block.blockKey);
-        
-        // Get the current RuntimeSpan's timeSpans to ensure the timer shows as running
-        const latestRuntimeSpan = block.spans().length > 0 ? block.spans()[block.spans().length - 1] : undefined;
-        const timeSpans = latestRuntimeSpan?.timeSpans ?? [];
-        
+        const builder = block.getSpanBuilder();
+        const resultSpan = builder.Spans();
+        // Get the current RuntimeSpan's timeSpans to ensure the timer shows as running        
         return [{
             eventType: this.eventType,
             bag: { 
-                duration: new TimeSpanDuration(duration?.original ?? 0, '+', timeSpans), 
+                duration: new TimeSpanDuration(duration?.original ?? 0, '+', resultSpan), 
                 target: this.target 
             },
             timestamp: new Date()

@@ -7,12 +7,7 @@ export class IncrementFragment implements CodeFragment {
   }
   type: string = "increment";
   increment: number;
-  applyToMetric(metric: import("../RuntimeMetric").RuntimeMetric, rounds?: number): void {
-    metric.values.push({
-      type: "increment",
-      value: this.increment,
-      unit: "",
-      round: rounds
-    });
+  applyToMetric(_metric: import("../RuntimeMetric").RuntimeMetric, _rounds?: number): void {
+  
   }
 }

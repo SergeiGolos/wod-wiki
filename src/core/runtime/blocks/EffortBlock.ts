@@ -3,7 +3,6 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock"; 
 import { StopEvent } from "../inputs/StopEvent"; 
-import { WriteResultAction } from "../outputs/WriteResultAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
@@ -51,9 +50,7 @@ export class EffortBlock extends RuntimeBlock {
   }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StopTimerAction(new StopEvent(new Date())),
-      new SetButtonsAction([], "runtime"),
-      new SetTimerStateAction(TimerState.STOPPED, "primary"),
-      new WriteResultAction(this.spans())
+      new SetButtonsAction([], "runtime"),      
     ];
   }
 

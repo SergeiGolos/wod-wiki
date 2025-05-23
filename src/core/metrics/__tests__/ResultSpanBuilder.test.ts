@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { ResultSpanBuilder, SpanNode } from '../ResultSpanBuilder';
+import { ResultSpanBuilder } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../../RuntimeMetric';
 import { MetricValue } from '../../MetricValue';
 import { IRuntimeBlock } from '../../IRuntimeBlock';
@@ -32,8 +32,7 @@ describe('ResultSpanBuilder', () => {
     
     mockBlock = {
       blockKey,
-      blockId: 'test-block-id',
-      getIndex: vi.fn().mockReturnValue(1),
+      blockId: 'test-block-id',      
       sources: [],
       spans: vi.fn(),
       selectMany: vi.fn(),
@@ -43,12 +42,13 @@ describe('ResultSpanBuilder', () => {
       leave: vi.fn(),
       onStart: vi.fn(),
       onStop: vi.fn(),
-      composeMetrics: vi.fn()
+      metrics: vi.fn(),
+      addSpan: vi.fn(),      
     };
     
     // Setup mock span
     mockSpan = new RuntimeSpan();
-    mockSpan.blockKey = blockKey;
+    mockSpan.blockKey = blockKey.toString();
     mockSpan.metrics = [...mockMetrics];
     mockSpan.timeSpans = [{
       start: { name: 'test_start', timestamp: new Date(), blockKey: blockKey.toString() },
