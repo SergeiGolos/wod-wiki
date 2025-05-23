@@ -96,25 +96,11 @@ export class TimerRuntime implements ITimerRuntimeIo {
     if (!block) {
       console.warn('Attempting to push undefined block to runtime stack - ignoring');
       return this.trace.current() as IRuntimeBlock;
-    }    
+    }
     
     const pushedBlock = this.trace.push(block); // Renamed to avoid confusion
     let enterActions = pushedBlock.enter(this) ?? [];
-    this.apply(enterActions, pushedBlock);
-
-    // Call onStart for the current block and its parents
-    let startActions: IRuntimeAction[] = [];
-    const collectedStartActions = this.trace.traverseAll<IRuntimeAction[]>(
-        (currentTraversalBlock) => { return currentTraversalBlock.onStart(this); }, 
-        undefined, 
-        pushedBlock // Start traversal from the pushed block
-    );
-    collectedStartActions.forEach(actionArray => startActions = startActions.concat(actionArray));
-    this.apply(startActions, pushedBlock); // Apply using the originally pushed block as source
-
-    // Register any spans from the block
-    this.registry.registerBlockSpans(pushedBlock);
-
+    this.apply(enterActions, pushedBlock);    
     return this.trace.current() ?? pushedBlock;
   }
 
@@ -123,29 +109,11 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     if (poppedBlock) {
       // Call onStop for the popped block and its parents
-      let stopActions: IRuntimeAction[] = [];
-      const collectedStopActions = this.trace.traverseAll<IRuntimeAction[]>(
-          (currentTraversalBlock) => { return currentTraversalBlock.onStop(this); }, 
-          undefined, 
-          poppedBlock // Start traversal from the popped block
-      );
-      collectedStopActions.forEach(actionArray => stopActions = stopActions.concat(actionArray));
-      this.apply(stopActions, poppedBlock); // Apply using the popped block as source
-
       let leaveActions = poppedBlock.leave(this) ?? [];
       this.apply(leaveActions, poppedBlock);
-      
-      // Register any spans from the block before it's popped
-      this.registry.registerBlockSpans(poppedBlock);
+      return poppedBlock;
     }
-
-    let currentBlockAfterPop = this.trace.current(); // Use a new variable name
-    if (currentBlockAfterPop) {
-      let nextActions = currentBlockAfterPop.next(this) ?? []; // Use currentBlockAfterPop
-      this.apply(nextActions, currentBlockAfterPop);
-    }
-
-    return currentBlockAfterPop; // Return currentBlockAfterPop
+    return undefined; // Return undefined if no block was popped
   }
 
   reset() {

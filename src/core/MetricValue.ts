@@ -1,7 +1,6 @@
 
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance" | "timestamp" | "lap" | "rounds" | "increment";
+  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" ;
   value: number;
   unit: string;
-  round?: number;
 };

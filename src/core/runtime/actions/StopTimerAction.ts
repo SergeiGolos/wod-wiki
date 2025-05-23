@@ -26,7 +26,7 @@ export class StopTimerAction extends BubbleUpAction {
    * @param block The block to apply the action to
    */
   protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
-    console.log(`+=== stop_timer : ${block.blockKey}`);
+    console.log(`StartTimerAction executed for block: ${block.blockKey}, event: ${this.event.name} at ${this.event.timestamp}`);
     
     // Call the block's onStop method to handle the timer stop
     const actions = block.onStop(runtime);
@@ -34,43 +34,6 @@ export class StopTimerAction extends BubbleUpAction {
     // Apply any additional actions that the block may have generated
     if (actions.length > 0) {
       runtime.apply(actions, block);
-    }
-    
-    // Get the current RuntimeSpan for the block
-    let currentRuntimeSpan: RuntimeSpan | undefined;
-    const spans = block.spans();
-    if (spans.length > 0) {
-      currentRuntimeSpan = spans[spans.length - 1];
-      
-      // Find the last TimeSpan that was started
-      const timeSpans = currentRuntimeSpan.timeSpans;
-      if (timeSpans.length > 0) {
-        const lastTimeSpan = timeSpans[timeSpans.length - 1];
-        
-        // If the last TimeSpan is still running (no stop time), stop it
-        if (lastTimeSpan.start && !lastTimeSpan.stop) {
-          lastTimeSpan.stop = this.event;
-          
-          // Create a ResultSpan from the updated RuntimeSpan
-          const resultSpan = new ResultSpan(currentRuntimeSpan);
-          
-          // Push the ResultSpan to update the primary clock
-          runtime.apply([new SetResultSpanAction(resultSpan, "primary")], block);
-          
-          // Also update any registry if applicable
-          if (runtime.registry) {
-            runtime.registry.registerSpan(resultSpan);
-          }
-          
-          return; // We've handled the update with the ResultSpan
-        }
-      }
-    }
-    
-    // Fallback to traditional clock update if we couldn't use ResultSpan
-    const duration = block.selectMany(getDuration)[0];
-    if (duration !== undefined) {
-      runtime.apply([new SetClockAction("primary")], block);
-    }
+    }      
   }
 }

@@ -10,7 +10,6 @@ import { PushEndBlockAction } from "../actions/PushEndBlockAction";
 import { PushIdleBlockAction } from "../actions/PushIdleBlockAction";
 import { ResetHandler } from "../inputs/ResetEvent";
 import { EndHandler } from "../inputs/EndEvent";
-import { StartHandler } from "../inputs/StartEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RunHandler } from "../inputs/RunEvent";
@@ -41,8 +40,8 @@ export class RootBlock extends RuntimeBlock {
   /**
    * Implementation of the doEnter hook method from the template pattern
    */
-  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {        
-    this._sourceIndex = 0
+  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {        
+    this._sourceIndex = 0    
     return [new PushIdleBlockAction()];
   }
 
@@ -68,6 +67,7 @@ export class RootBlock extends RuntimeBlock {
    */
   protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     // Create a result span to report the completion of this block using ResultBuilder        
+   
     return [];
   }
 

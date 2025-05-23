@@ -4,10 +4,11 @@ import { ITimerRuntime } from "./ITimerRuntime";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { JitStatement } from "./JitStatement";
 import { IRuntimeEvent } from "./IRuntimeEvent";
-import { RuntimeSpan } from "./RuntimeSpan";
 import { BlockKey } from "./BlockKey";
+import { ResultSpanBuilder } from "./metrics";
 
 export interface IRuntimeBlock {
+  getSpanBuilder(): ResultSpanBuilder;
   // Block identity
   blockKey: BlockKey;
   blockId: string;  
@@ -18,8 +19,7 @@ export interface IRuntimeBlock {
 
   // Use getter methods instead of direct properties for encapsulation
   sources: JitStatement[];  
-  spans(): RuntimeSpan[];
-  addSpan?(span: RuntimeSpan): void;  
+
   
   // Core methods  
   

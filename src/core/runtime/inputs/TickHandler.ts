@@ -17,9 +17,9 @@ export class TickHandler extends EventHandler {
 
   protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
     const block = runtime.trace.current();      
-    const spans = block?.spans();
+    const spans = block?.getSpanBuilder().Spans();
     const timeSpans = spans && spans.length > 0 
-      ? spans[spans.length - 1].timeSpans
+      ? spans[spans.length - 1]
       : [];
     const durationFragment = block?.selectMany(getDuration)[0];
 

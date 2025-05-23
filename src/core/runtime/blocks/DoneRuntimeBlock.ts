@@ -8,7 +8,6 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { resetButton, saveButton } from "@/components/buttons/timerButtons"; 
 import { ResetHandler } from "../inputs/ResetEvent";
-import { WriteResultAction } from "../outputs/WriteResultAction";
 
 export class DoneRuntimeBlock extends RuntimeBlock {
   /** Unique identifier for this block */  
@@ -39,13 +38,8 @@ export class DoneRuntimeBlock extends RuntimeBlock {
   /**
    * Implementation of the onLeave hook method from the template pattern
    */
-  protected onLeave(runtime: ITimerRuntime): IRuntimeAction[] {
-    const block = runtime.trace.current();    
-    if (block && block.spans && block.spans().length > 0) {
-      return [new WriteResultAction(block.spans())];
-    } else {
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
       return [];
-    }
   }
 
   /**
