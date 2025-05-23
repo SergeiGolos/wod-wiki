@@ -46,12 +46,11 @@ jobs:
       - name: Sync Docs to Wiki
         uses: Andrew-Chen-Wang/github-wiki-action@v4
         with:
-          token: ${{ secrets.WIKI_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           path: docs/
           commit-message: "Update wiki from docs folder"
         env:
           WIKI_DIR: docs/
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_MAIL: ${{ github.actor }}@users.noreply.github.com
           GH_NAME: ${{ github.actor }}
           WIKI_PUSH_MESSAGE: "Update wiki from docs folder"
