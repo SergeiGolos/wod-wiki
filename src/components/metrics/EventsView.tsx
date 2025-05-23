@@ -58,7 +58,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 if (!resultId || !result.blockKey) {
                   console.error("Result missing blockKey, cannot make editable:", result);
                   return (
-                    <tr key={`event-missing-id-${resultId}`} className="hover:bg-gray-50 opacity-50">                      
+                    <tr key={`event-missing-id-${resultId}`} className="hover:bg-gray-50 opacity-50 fade-in">                      
                       <td className="px-3 py-2">Unknown Event</td>
                       <td className="px-3 py-2 text-center">-</td>
                       <td className="px-3 py-2 text-center">-</td>
@@ -92,7 +92,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                 // If there are no displayable metrics, display a simpler row with just the effort name
                 if (allDisplayableMetrics.length === 0) {
                   return (
-                    <tr key={resultId} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
+                    <tr key={resultId} className={cn("hover:bg-gray-50 fade-in", hidden ? 'opacity-50' : '')}>                    
                       <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
                         <span 
                           className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
@@ -131,7 +131,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
                       }
 
                       return (
-                        <tr key={`${resultId}-${type}-${metricIndex}`} className={cn("hover:bg-gray-50", hidden ? 'opacity-50' : '')}>                    
+                        <tr key={`${resultId}-${type}-${metricIndex}`} className={cn("hover:bg-gray-50 fade-in", hidden ? 'opacity-50' : '')}>                    
                           <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-left overflow-hidden max-w-xs">
                             <span 
                               className="cursor-pointer hover:underline overflow-hidden text-ellipsis whitespace-nowrap block max-w-xs"
