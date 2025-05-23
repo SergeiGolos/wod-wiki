@@ -11,6 +11,7 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ITimeSpan } from "@/core/ITimeSpan";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
+import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -21,14 +22,16 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     this.blockId = Math.random().toString(36).substring(2, 15);
     this.blockKey = new BlockKey();
     this.blockKey.push(this.sources, 0);
-    
-    // Initialize with default metric composition strategy
-    this.metricCompositionStrategy = new MetricCompositionStrategy();
   }
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
+  
+  /**
+   * @deprecated Use metrics() method instead of composition strategies
+   */
   public metricCompositionStrategy?: IMetricCompositionStrategy;
+  
   public leaf: boolean = false; // indicates leaf-level block
   
   private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
@@ -168,7 +171,8 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   // Lifecycle methods implementation
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    const metrics = this.composeMetrics(runtime);
+    // Use the new metrics method instead of the deprecated composeMetrics
+    const metrics = this.metrics(runtime);
     
     // Simplified: Create a new span using the builder pattern
     const span = this.getSpanBuilder()
@@ -199,8 +203,28 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     return actions;
   }
 
+  /**
+   * Composes metrics for this runtime block.
+   * This method exists for backward compatibility and now delegates to the metrics method.
+   * 
+   * @deprecated Use metrics() instead
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects
+   */
   public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
-    // Always delegate to the composition strategy
-    return this.metricCompositionStrategy!.composeMetrics(this, runtime);
+    // Use the new metrics method instead of delegating to the strategy
+    return this.metrics(runtime);
+  }
+
+  /**
+   * Generates a complete set of metrics for this runtime block using the RuntimeMetricBuilder.
+   * This method provides a simplified way to collect metrics from fragments by type.
+   * 
+   * @param runtime The timer runtime instance
+   * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
+   */
+  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {
+    // Use the utility class to build metrics from all sources
+    return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
   }
 }

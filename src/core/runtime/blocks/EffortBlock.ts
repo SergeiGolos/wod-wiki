@@ -15,7 +15,6 @@ import { completeButton } from "@/components/buttons/timerButtons";
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { PopulateMetricsAction } from "../actions/PopulateMetricsAction";
-import { EffortMetricCompositionStrategy } from "@/core/metrics/strategies/EffortMetricCompositionStrategy";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -24,8 +23,6 @@ export class EffortBlock extends RuntimeBlock {
   ) {
     super(sources);
     this.handlers.push(new CompleteHandler());
-    // Set the metric composition strategy to properly extract metrics from fragments
-    this.metricCompositionStrategy = new EffortMetricCompositionStrategy();
     this.leaf = true; // mark as leaf-level block
   }
 
