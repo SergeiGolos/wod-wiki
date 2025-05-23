@@ -83,7 +83,6 @@
     "@heroicons/react": "^2.2.0",
     "@monaco-editor/react": "^4.6.2",
 
-    "@rollup/rollup-win32-x64-msvc": "^4.41.0",
     "@textea/json-viewer": "^4.0.1",
     "chevrotain": "^11.0.3",
     "js-base64": "^3.7.7",
