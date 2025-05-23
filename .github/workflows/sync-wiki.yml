@@ -1,59 +1,78 @@
-name: Sync Wiki
+name: Publish to Wiki
 
-# This workflow automatically synchronizes the contents of the docs/ folder to the GitHub Wiki
-# whenever changes are pushed to the main branch or manually triggered from the Actions tab.
-# It uses the Andrew-Chen-Wang/github-wiki-action to handle the synchronization.
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events to the main branch
   push:
-    branches: [ "main" ]
-    paths:
-      - 'docs/**' # Only run when docs are changed
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    branches: [ main ]  # Change to your target branch
+    paths: [ 'docs/**' ]  # Only run when files in docs/ change
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  sync-wiki:
+  publish-wiki:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Needed to push to wiki
+    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # We need the full history
-
-      - name: Setup Git User
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-      
-      - name: Check Docs Structure
-        run: |
-          echo "Checking docs directory structure before wiki sync..."
-          find docs -type f -name "*.md" | sort
-          echo "Total Markdown files: $(find docs -type f -name "*.md" | wc -l)"
-          
-          # Rename any problematic files if needed
-          if [ -f "docs/README.md.md" ]; then
-            echo "Renaming README.md.md to avoid naming issues..."
-            mv docs/README.md.md docs/README.md
-          fi
-
-      - name: Sync Docs to Wiki
-        uses: Andrew-Chen-Wang/github-wiki-action@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: SergeiGolos/wod-wiki.wiki  # Added .wiki suffix
-          github-server-url: https://github.com
-          path: docs/
-          commit-message: "Update wiki from docs folder"
-        env:
-          WIKI_DIR: docs/
-          GH_MAIL: ${{ github.actor }}@users.noreply.github.com
-          GH_NAME: ${{ github.actor }}
-          WIKI_PUSH_MESSAGE: "Update wiki from docs folder"
-          EXCLUDED_FILES: "*.svg,*.png,*.jpg,*.jpeg,*.gif"
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better commit messages
+    
+    - name: Setup Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    
+    - name: Clone wiki repository
+      run: |
+        # Clone the wiki repository
+        git clone https://github.com/${{ github.repository }}.wiki.git wiki-repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Copy files to wiki
+      run: |
+        # Remove old wiki content (except .git)
+        find wiki-repo -type f ! -path "*/\.git/*" -delete
+        
+        # Copy new content from docs directory
+        cp -r docs/* wiki-repo/ 2>/dev/null || echo "No files to copy"
+        
+        # Handle different file types appropriately
+        cd wiki-repo
+        
+        # Convert README.md to Home.md if it exists
+        if [ -f "README.md" ]; then
+          mv README.md Home.md
+        fi
+        
+        # Ensure we have at least a Home page
+        if [ ! -f "Home.md" ]; then
+          echo "# Wiki Home" > Home.md
+          echo "This wiki was automatically generated from the repository." >> Home.md
+        fi
+    
+    - name: Commit and push to wiki
+      run: |
+        cd wiki-repo
+        
+        # Add all changes
+        git add .
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        # Commit with informative message
+        COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+        git commit -m "Update wiki from docs/ - ${COMMIT_SHA}"
+        
+        # Push to wiki
+        git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Summary
+      run: |
+        echo "✅ Wiki updated successfully!"
+        echo "📖 View wiki at: https://github.com/${{ github.repository }}/wiki"
