@@ -15,12 +15,13 @@ export class PopulateMetricsAction implements IRuntimeAction {
   constructor(private readonly block: IRuntimeBlock) {}
     apply(runtime: ITimerRuntime): void {
     // Skip if no spans exist
-    if (!this.block.spans || this.block.spans.length === 0) {
+    const spans = this.block.spans();
+    if (!spans || spans.length === 0) {
       return;
     }
     
     // Get the latest span
-    const currentSpan = this.block.spans[this.block.spans.length - 1];
+    const currentSpan = spans[spans.length - 1];
     
     // Create metrics directly for the UI - simpler approach to ensure data appears
     const directMetrics = this.createDirectMetrics(this.block.sources, this.block.blockKey.toString());

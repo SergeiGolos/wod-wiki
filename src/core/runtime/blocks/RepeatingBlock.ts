@@ -70,7 +70,7 @@ export class RepeatingBlock extends RuntimeBlock {
     // Get the current span (created in enter and updated throughout execution)
     return [
       new StopTimerAction(new StopEvent(new Date())),
-      new WriteResultAction(this.spans)
+      new WriteResultAction(this.spans())
     ];
   }
 

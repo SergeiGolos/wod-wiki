@@ -49,7 +49,7 @@ export class EffortBlock extends RuntimeBlock {
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
       new PopulateMetricsAction(this),
-      new WriteResultAction(this.spans)
+      new WriteResultAction(this.spans())
     ];
   }
 
