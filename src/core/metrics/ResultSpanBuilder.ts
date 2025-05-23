@@ -1,23 +1,180 @@
+import { MetricValue } from "../MetricValue";
+import { RuntimeMetric } from "../RuntimeMetric";
 import { RuntimeSpan } from "../RuntimeSpan";
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { RuntimeMetric } from "../RuntimeMetric";
+import { ITimeSpan } from "../ITimeSpan";
 
 /**
- * Centralized registry for managing ResultSpans across the runtime.
- * Provides methods for querying, filtering, and aggregating span data.
+ * Builder class for creating and managing RuntimeSpan objects.
+ * Provides a fluent interface for creating spans with metrics and timespans.
  */
-export class ResultSpanRegistry {
+export class ResultSpanBuilder {
   private spans: RuntimeSpan[] = [];
-  
+  private currentSpan: RuntimeSpan | null = null;
+  private registeredSpans: RuntimeSpan[] = [];
+
   /**
-   * Registers a span in the registry
+   * Creates a new RuntimeSpan with the passed in metrics
+   * @param metrics Array of RuntimeMetric objects to add to the span
+   * @returns The builder instance for chaining
+   */
+  public Create(metrics: RuntimeMetric[]): ResultSpanBuilder {
+    const span = new RuntimeSpan();
+    span.metrics = [...metrics];
+    span.timeSpans = [];
+    this.spans.push(span);
+    this.currentSpan = span;
+    return this;
+  }
+
+  /**
+   * Allows a value metric to populate a MetricValue if the current type 
+   * metric value is not already on the RuntimeMetric item in the collection
+   * @param value The metric value to inherit
+   * @returns The builder instance for chaining
+   */
+  public Inherit(value: MetricValue): ResultSpanBuilder {
+    if (!this.currentSpan) {
+      throw new Error("No current span exists. Call Create() first.");
+    }
+
+    // For each metric in the current span
+    this.currentSpan.metrics.forEach(metric => {
+      // Check if this metric already has a value of this type
+      const existingValue = metric.values.find(v => v.type === value.type && v.unit === value.unit);
+      
+      // If there's no existing value of this type, add it
+      if (!existingValue) {
+        metric.values.push({ ...value });
+      }
+    });
+
+    return this;
+  }
+
+  /**
+   * Allows a metric value to override all the child RuntimeMetric values
+   * whether they are there or not
+   * @param value The metric value to use for overriding
+   * @returns The builder instance for chaining
+   */
+  public Override(value: MetricValue): ResultSpanBuilder {
+    if (!this.currentSpan) {
+      throw new Error("No current span exists. Call Create() first.");
+    }
+
+    // For each metric in the current span
+    this.currentSpan.metrics.forEach(metric => {
+      // Remove any existing values of the same type
+      const filteredValues = metric.values.filter(v => v.type !== value.type || v.unit !== value.unit);
+      
+      // Add the new value
+      filteredValues.push({ ...value });
+      
+      // Update the metric values
+      metric.values = filteredValues;
+    });
+
+    return this;
+  }
+
+  /**
+   * Creates a start timespan for the current RuntimeSpan
+   * @returns The builder instance for chaining
+   */
+  public Start(): ResultSpanBuilder {
+    if (!this.currentSpan) {
+      throw new Error("No current span exists. Call Create() first.");
+    }
+
+    const newTimeSpan: ITimeSpan = {
+      start: { name: 'span_started', timestamp: new Date() }
+    };
+
+    this.currentSpan.timeSpans.push(newTimeSpan);
+    return this;
+  }
+
+  /**
+   * Stops the most recent timespan in the current RuntimeSpan
+   * @returns The builder instance for chaining
+   */
+  public Stop(): ResultSpanBuilder {
+    if (!this.currentSpan) {
+      throw new Error("No current span exists. Call Create() first.");
+    }
+
+    const timeSpans = this.currentSpan.timeSpans;
+    if (timeSpans.length === 0) {
+      throw new Error("No timespan to stop. Call Start() first.");
+    }
+
+    const currentTimeSpan = timeSpans[timeSpans.length - 1];
+    if (!currentTimeSpan.stop) {
+      currentTimeSpan.stop = { name: 'span_stopped', timestamp: new Date() };
+    }
+
+    return this;
+  }
+
+  /**
+   * Returns the last ResultSpan in the list
+   * @returns The current RuntimeSpan
+   */
+  public Current(): RuntimeSpan {
+    if (!this.currentSpan) {
+      throw new Error("No current span exists. Call Create() first.");
+    }
+    
+    return this.currentSpan;
+  }
+
+  /**
+   * Returns the complete list of ResultSpans
+   * @returns Array of all RuntimeSpans created by this builder
+   */
+  public All(): RuntimeSpan[] {
+    return [...this.spans];
+  }
+
+  /**
+   * Associates the spans with a specific runtime block
+   * @param block The block to associate with the spans
+   * @returns The builder instance for chaining
+   */
+  public ForBlock(block: IRuntimeBlock): ResultSpanBuilder {
+    if (!block) return this;
+    
+    this.spans.forEach(span => {
+      span.blockKey = block.blockKey;
+      span.index = block.blockKey.index;
+      
+      // Also associate block key with each timespan
+      span.timeSpans.forEach(timeSpan => {
+        timeSpan.blockKey = block.blockKey.toString();
+        
+        if (timeSpan.start) {
+          timeSpan.start.blockKey = block.blockKey.toString();
+        }
+        
+        if (timeSpan.stop) {
+          timeSpan.stop.blockKey = block.blockKey.toString();
+        }
+      });
+    });
+    
+    return this;
+  }
+
+  /**
+   * Registers a span in the builder's registry
    * @param span The span to register
    */
   public registerSpan(span: RuntimeSpan): void {
     if (!span) return;
     
     // Check if the span already exists by comparing key properties
-    const existingIndex = this.spans.findIndex(s => 
+    const existingIndex = this.registeredSpans.findIndex(s => 
       s.blockKey === span.blockKey && 
       s.index === span.index && 
       s.start?.timestamp.getTime() === span.start?.timestamp.getTime()
@@ -25,13 +182,13 @@ export class ResultSpanRegistry {
     
     if (existingIndex >= 0) {
       // Update existing span
-      this.spans[existingIndex] = span;
+      this.registeredSpans[existingIndex] = span;
     } else {
       // Add new span
-      this.spans.push(span);
+      this.registeredSpans.push(span);
     }
   }
-  
+
   /**
    * Registers all spans from a runtime block
    * @param block The block containing spans to register
@@ -42,24 +199,24 @@ export class ResultSpanRegistry {
     const spans = block.spans();
     spans.forEach(span => this.registerSpan(span));
   }
-  
+
   /**
    * Gets all spans in the registry
    * @returns Array of all registered ResultSpans
    */
   public getAllSpans(): RuntimeSpan[] {
-    return [...this.spans];
+    return [...this.registeredSpans];
   }
-  
+
   /**
    * Gets spans by block key
    * @param blockKey The block key to filter by
    * @returns Array of matching ResultSpans
    */
   public getSpansByBlockKey(blockKey: string): RuntimeSpan[] {
-    return this.spans.filter(span => span.blockKey === blockKey);
+    return this.registeredSpans.filter(span => span.blockKey === blockKey);
   }
-  
+
   /**
    * Gets spans by time range
    * @param startTime Start of the time range
@@ -67,7 +224,7 @@ export class ResultSpanRegistry {
    * @returns Array of matching ResultSpans
    */
   public getSpansByTimeRange(startTime: Date, endTime: Date): RuntimeSpan[] {
-    return this.spans.filter(span => {
+    return this.registeredSpans.filter(span => {
       // If span has start time
       if (span.start) {
         const spanStartTime = span.start.timestamp.getTime();
@@ -81,7 +238,7 @@ export class ResultSpanRegistry {
       return false;
     });
   }
-  
+
   /**
    * Gets spans that contain a specific metric
    * @param effortName Name of the effort to filter by (optional)
@@ -89,7 +246,7 @@ export class ResultSpanRegistry {
    * @returns Array of matching ResultSpans
    */
   public getSpansByMetric(effortName?: string, metricType?: string): RuntimeSpan[] {
-    return this.spans.filter(span => {
+    return this.registeredSpans.filter(span => {
       // If no criteria provided, return all spans with metrics
       if (!effortName && !metricType) {
         return span.metrics.length > 0;
@@ -107,7 +264,7 @@ export class ResultSpanRegistry {
       });
     });
   }
-  
+
   /**
    * Aggregates metrics across spans
    * @param spans The spans to aggregate metrics from
@@ -148,7 +305,7 @@ export class ResultSpanRegistry {
     // Convert the map to an array
     return Array.from(metricsMap.values());
   }
-  
+
   /**
    * Creates a hierarchical view of spans based on their relationships
    * @param rootBlockKey The block key of the root span (optional)
@@ -163,10 +320,10 @@ export class ResultSpanRegistry {
     
     // If no root block key provided, use all top-level spans
     const rootSpans = rootBlockKey 
-      ? this.spans.filter(span => span.blockKey === rootBlockKey)
-      : this.spans.filter(span => {
+      ? this.registeredSpans.filter(span => span.blockKey === rootBlockKey)
+      : this.registeredSpans.filter(span => {
           // Spans with no parent references or that don't match any other span's blockKey
-          const isChild = this.spans.some(otherSpan => 
+          const isChild = this.registeredSpans.some(otherSpan => 
             otherSpan.children?.includes(span.blockKey || '')
           );
           return !isChild;
@@ -180,7 +337,7 @@ export class ResultSpanRegistry {
     
     return root;
   }
-  
+
   /**
    * Builds a tree of spans starting from a given span
    * @param span The span to start from
@@ -197,7 +354,7 @@ export class ResultSpanRegistry {
     if (span.children && span.children.length > 0) {
       span.children.forEach((childBlockKey: string) => {
         // Find child spans with matching blockKey
-        const childSpans = this.spans.filter(s => s.blockKey === childBlockKey);
+        const childSpans = this.registeredSpans.filter(s => s.blockKey === childBlockKey);
         
         // Add each child span as a node in the tree
         childSpans.forEach(childSpan => {
@@ -209,12 +366,14 @@ export class ResultSpanRegistry {
     
     return node;
   }
-  
+
   /**
-   * Clears all spans from the registry
+   * Clears all spans from the builder
    */
   public clear(): void {
     this.spans = [];
+    this.currentSpan = null;
+    this.registeredSpans = [];
   }
 }
 

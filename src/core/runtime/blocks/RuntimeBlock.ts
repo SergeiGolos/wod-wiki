@@ -10,6 +10,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
 import { ITimeSpan } from "@/core/ITimeSpan";
+import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
@@ -29,6 +30,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public parent?: IRuntimeBlock | undefined;
   public metricCompositionStrategy?: IMetricCompositionStrategy;
   
+  private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
   private _spans: RuntimeSpan[] = [];
   public handlers: EventHandler[] = [];
   
@@ -40,6 +42,14 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   // Added to implement addSpan method
   public addSpan(span: RuntimeSpan): void {
     this._spans.push(span);
+  }
+  
+  /**
+   * Get the ResultSpanBuilder to create and manage spans for this block
+   * @returns The ResultSpanBuilder instance for this block
+   */
+  public getSpanBuilder(): ResultSpanBuilder {
+    return this.spanBuilder.ForBlock(this);
   }
   
   public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
@@ -157,18 +167,15 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   // Lifecycle methods implementation
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    let currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
-    if (!currentSpan || (currentSpan.timeSpans.length > 0 && currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop)) {
-      currentSpan = new RuntimeSpan();
-      currentSpan.blockKey = this.blockKey; // Associate blockKey with the span
-      this._spans.push(currentSpan);
-    }
-
-    const newTimeSpan: ITimeSpan = { // Explicitly type newTimeSpan
-      start: { name: 'block_started', timestamp: new Date(), blockKey: this.blockKey.toString() },
-      blockKey: this.blockKey.toString() // Associate blockKey with the timeSpan
-    };
-    currentSpan.timeSpans.push(newTimeSpan);
+    const metrics = this.composeMetrics(runtime);
+    
+    // Simplified: Create a new span using the builder pattern
+    const span = this.getSpanBuilder()
+        .Create(metrics)
+        .Start()
+        .Current();
+      
+    this._spans.push(span);
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
@@ -177,11 +184,13 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
     const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
+    
     if (currentSpan && currentSpan.timeSpans.length > 0) {
-      const currentTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
-      if (!currentTimeSpan.stop) {
-        currentTimeSpan.stop = { name: 'block_stopped', timestamp: new Date(), blockKey: this.blockKey.toString() };
-      }
+      // Use the builder to stop the span
+      this.getSpanBuilder().Stop();
+    } else {
+      // If there's no current span or it has no timespans, this is an error condition
+      console.warn(`RuntimeBlock ${this.blockKey}: onStop called but no active timespan exists`);
     }
 
     // Call the abstract method for block-specific actions

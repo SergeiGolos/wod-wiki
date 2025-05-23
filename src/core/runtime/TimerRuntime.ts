@@ -9,14 +9,14 @@ import { TickEvent } from "./inputs/TickHandler";
 import { RuntimeJit } from "./RuntimeJit";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeStack } from "./RuntimeStack";
-import { ResultSpanRegistry } from "../metrics/ResultSpanRegistry";
+import { ResultSpanBuilder } from "../metrics/ResultSpanBuilder";
 
 
 export class TimerRuntime implements ITimerRuntimeIo {
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>;
   public trace: RuntimeStack;
-  public registry: ResultSpanRegistry;
+  public registry: ResultSpanBuilder;
 
   constructor(public code: string,
     public script: RuntimeScript,
@@ -26,7 +26,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public output$: Subject<OutputEvent>
   ) {
     this.trace = new RuntimeStack();
-    this.registry = new ResultSpanRegistry();
+    this.registry = new ResultSpanBuilder();
 
     this.init();
     this.tick$ = interval(50).pipe(
@@ -57,7 +57,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   init() {
     this.history = [];
     this.trace = new RuntimeStack();
-    this.registry = new ResultSpanRegistry();
+    this.registry = new ResultSpanBuilder();
     this.push(this.jit.root(this));
   }
 
