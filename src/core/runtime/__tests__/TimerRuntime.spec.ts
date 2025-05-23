@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Subject, Subscription } from 'rxjs';
 import { TimerRuntime } from '../TimerRuntime';
 import { RuntimeStack } from '../RuntimeStack';
@@ -10,17 +11,17 @@ import { BlockKey } from '../../BlockKey';
 import { JitStatement } from '../../JitStatement';
 
 // --- Mocks ---
-jest.mock('../RuntimeStack');
-jest.mock('../RuntimeScript');
-jest.mock('../RuntimeJit');
-jest.mock('../../JitStatement');
+vi.mock('../RuntimeStack');
+vi.mock('../RuntimeScript');
+vi.mock('../RuntimeJit');
+vi.mock('../../JitStatement');
 
-const mockApplyFn = jest.fn();
+const mockApplyFn = vi.fn();
 
 // Helper to create mock IRuntimeAction
 const createMockAction = (name: string): IRuntimeAction => ({
   name,
-  apply: jest.fn(),
+  apply: vi.fn(),
 });
 
 // Helper to create mock IRuntimeBlock
@@ -35,13 +36,13 @@ const createMockBlock = (name: string, blockKeySuffix: string = ''): IRuntimeBlo
     sources: [],
     spans: [],
     parent: undefined,
-    selectMany: jest.fn(() => []),
-    handle: jest.fn(() => []),
-    enter: jest.fn(() => []),
-    leave: jest.fn(() => []),
-    next: jest.fn(() => []),
-    onStart: jest.fn(() => []),
-    onStop: jest.fn(() => []),
+    selectMany: vi.fn(() => []),
+    handle: vi.fn(() => []),
+    enter: vi.fn(() => []),
+    leave: vi.fn(() => []),
+    next: vi.fn(() => []),
+    onStart: vi.fn(() => []),
+    onStop: vi.fn(() => []),
   };
 };
 
@@ -49,9 +50,9 @@ describe('TimerRuntime', () => {
   let runtime: TimerRuntime;
   let mockInput$: Subject<IRuntimeEvent>;
   let mockOutput$: Subject<any>;
-  let mockRuntimeStack: jest.Mocked<RuntimeStack>;
-  let mockRuntimeScript: jest.Mocked<RuntimeScript>;
-  let mockRuntimeJit: jest.Mocked<RuntimeJit>;
+  let mockRuntimeStack: vi.Mocked<RuntimeStack>;
+  let mockRuntimeScript: vi.Mocked<RuntimeScript>;
+  let mockRuntimeJit: vi.Mocked<RuntimeJit>;
   let mockRootBlock: IRuntimeBlock;
 
   beforeEach(() => {
@@ -59,13 +60,13 @@ describe('TimerRuntime', () => {
     mockOutput$ = new Subject<any>();
     
     // Create new instances of mocks for each test
-    mockRuntimeStack = new RuntimeStack() as jest.Mocked<RuntimeStack>;
-    mockRuntimeScript = new RuntimeScript({} as any) as jest.Mocked<RuntimeScript>;
-    mockRuntimeJit = new RuntimeJit({} as any, {} as any) as jest.Mocked<RuntimeJit>;
+    mockRuntimeStack = new RuntimeStack() as vi.Mocked<RuntimeStack>;
+    mockRuntimeScript = new RuntimeScript({} as any) as vi.Mocked<RuntimeScript>;
+    mockRuntimeJit = new RuntimeJit({} as any, {} as any) as vi.Mocked<RuntimeJit>;
 
     mockRootBlock = createMockBlock('root');
-    (mockRootBlock.enter as jest.Mock).mockReturnValue([createMockAction('rootEnter')]);
-    (mockRootBlock.onStart as jest.Mock).mockReturnValue([createMockAction('rootOnStart')]);
+    (mockRootBlock.enter as vi.Mock).mockReturnValue([createMockAction('rootEnter')]);
+    (mockRootBlock.onStart as vi.Mock).mockReturnValue([createMockAction('rootOnStart')]);
 
 
     // Setup mockRuntimeJit to return the root block
@@ -113,8 +114,8 @@ describe('TimerRuntime', () => {
     mockApplyFn.mockClear();
 
     // Initial push of root block happens in constructor, clear its mock calls for specific tests
-    (mockRootBlock.enter as jest.Mock).mockClear();
-    (mockRootBlock.onStart as jest.Mock).mockClear();
+    (mockRootBlock.enter as vi.Mock).mockClear();
+    (mockRootBlock.onStart as vi.Mock).mockClear();
     mockApplyFn.mockClear(); // Clear apply calls from constructor's root block push
   });
 
@@ -131,8 +132,8 @@ describe('TimerRuntime', () => {
       const blockA = createMockBlock('BlockA');
       const enterActions = [createMockAction('blockAEnter')];
       const onStartActions = [createMockAction('blockAOnStart')];
-      (blockA.enter as jest.Mock).mockReturnValue(enterActions);
-      (blockA.onStart as jest.Mock).mockReturnValue(onStartActions);
+      (blockA.enter as vi.Mock).mockReturnValue(enterActions);
+      (blockA.onStart as vi.Mock).mockReturnValue(onStartActions);
 
       runtime.push(blockA);
 
@@ -152,8 +153,8 @@ describe('TimerRuntime', () => {
       const parentBlock = createMockBlock('Parent');
       const parentEnterActions = [createMockAction('parentEnter')];
       const parentOnStartActions = [createMockAction('parentOnStart')];
-      (parentBlock.enter as jest.Mock).mockReturnValue(parentEnterActions);
-      (parentBlock.onStart as jest.Mock).mockReturnValue(parentOnStartActions);
+      (parentBlock.enter as vi.Mock).mockReturnValue(parentEnterActions);
+      (parentBlock.onStart as vi.Mock).mockReturnValue(parentOnStartActions);
       
       runtime.push(parentBlock); // Push parent first
       mockApplyFn.mockClear(); // Clear apply calls from parent push
@@ -161,8 +162,8 @@ describe('TimerRuntime', () => {
       const childBlock = createMockBlock('Child');
       const childEnterActions = [createMockAction('childEnter')];
       const childOnStartActions = [createMockAction('childOnStart')];
-      (childBlock.enter as jest.Mock).mockReturnValue(childEnterActions);
-      (childBlock.onStart as jest.Mock).mockReturnValue(childOnStartActions);
+      (childBlock.enter as vi.Mock).mockReturnValue(childEnterActions);
+      (childBlock.onStart as vi.Mock).mockReturnValue(childOnStartActions);
 
       runtime.push(childBlock); // Push child
 
@@ -190,8 +191,8 @@ describe('TimerRuntime', () => {
       const blockA = createMockBlock('BlockA');
       const onStopActions = [createMockAction('blockAOnStop')];
       const leaveActions = [createMockAction('blockALeave')];
-      (blockA.onStop as jest.Mock).mockReturnValue(onStopActions);
-      (blockA.leave as jest.Mock).mockReturnValue(leaveActions);
+      (blockA.onStop as vi.Mock).mockReturnValue(onStopActions);
+      (blockA.leave as vi.Mock).mockReturnValue(leaveActions);
       
       runtime.push(blockA); // Push then pop
       mockApplyFn.mockClear(); // Clear apply from push
@@ -216,10 +217,10 @@ describe('TimerRuntime', () => {
       const parentEnterActions = [createMockAction('parentEnterP')];
       const parentOnStopActions = [createMockAction('parentOnStopP')]; // For when parent itself might be popped
       const parentNextActions = [createMockAction('parentNextP')];
-      (parentBlock.onStart as jest.Mock).mockReturnValue(parentOnStartActions);
-      (parentBlock.enter as jest.Mock).mockReturnValue(parentEnterActions);
-      (parentBlock.onStop as jest.Mock).mockReturnValue(parentOnStopActions);
-      (parentBlock.next as jest.Mock).mockReturnValue(parentNextActions);
+      (parentBlock.onStart as vi.Mock).mockReturnValue(parentOnStartActions);
+      (parentBlock.enter as vi.Mock).mockReturnValue(parentEnterActions);
+      (parentBlock.onStop as vi.Mock).mockReturnValue(parentOnStopActions);
+      (parentBlock.next as vi.Mock).mockReturnValue(parentNextActions);
 
       runtime.push(parentBlock);
 
@@ -228,10 +229,10 @@ describe('TimerRuntime', () => {
       const childOnStartActions = [createMockAction('childOnStartC')];
       const childLeaveActions = [createMockAction('childLeaveC')];
       const childOnStopActions = [createMockAction('childOnStopC')];
-      (childBlock.enter as jest.Mock).mockReturnValue(childEnterActions);
-      (childBlock.onStart as jest.Mock).mockReturnValue(childOnStartActions);
-      (childBlock.leave as jest.Mock).mockReturnValue(childLeaveActions);
-      (childBlock.onStop as jest.Mock).mockReturnValue(childOnStopActions);
+      (childBlock.enter as vi.Mock).mockReturnValue(childEnterActions);
+      (childBlock.onStart as vi.Mock).mockReturnValue(childOnStartActions);
+      (childBlock.leave as vi.Mock).mockReturnValue(childLeaveActions);
+      (childBlock.onStop as vi.Mock).mockReturnValue(childOnStopActions);
       
       runtime.push(childBlock);
       mockApplyFn.mockClear(); // Clear apply calls from push operations

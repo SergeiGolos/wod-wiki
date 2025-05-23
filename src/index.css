@@ -15,3 +15,13 @@
     @apply outline-solarized-blue dark:outline-solarized-cyan outline-2 outline-offset-2;
   }
 }
+
+/* Fade-in animation for new efforts */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
