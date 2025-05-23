@@ -165,7 +165,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     return groupStatements;
   }
 
-  // Lifecycle methods implementation
+  // Lifecycle methods implementation 
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
     // Use the new metrics method instead of the deprecated composeMetrics
     const metrics = this.metrics(runtime);
@@ -184,36 +184,38 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
       };
       span.timeSpans.push(newTimeSpan);
     } else {
-      // Create a completely new span
-      span = this.getSpanBuilder()
-          .Create(metrics)
-          .Start()
-          .Current();
+      // Create a completely new span using a fresh builder
+      const builder = new ResultSpanBuilder();
+      
+      // Create, start, and get the new span
+      span = builder.Create(metrics).Start().Current();
         
       // Ensure blockKey is set
       if (span.timeSpans.length > 0 && span.timeSpans[0].start) {
         span.timeSpans[0].start.blockKey = this.blockKey.toString();
       }
       
+      // Store the span
       this._spans.push(span);
     }
 
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStart(runtime);
     return actions;
-  }
-
-  public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
+  }  public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
     const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
     
     if (currentSpan && currentSpan.timeSpans.length > 0) {
-      // Use the builder to stop the span
-      this.getSpanBuilder().Stop();
-      
-      // Ensure blockKey is set on the stop event
+      // Get the last timespan
       const lastTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
-      if (lastTimeSpan.stop) {
-        lastTimeSpan.stop.blockKey = this.blockKey.toString();
+      
+      // If it doesn't have a stop time yet, add one
+      if (!lastTimeSpan.stop) {
+        lastTimeSpan.stop = { 
+          name: 'block_stopped', 
+          timestamp: new Date(), 
+          blockKey: this.blockKey.toString() 
+        };
       }
     } else {
       // If there's no current span or it has no timespans, this is an error condition

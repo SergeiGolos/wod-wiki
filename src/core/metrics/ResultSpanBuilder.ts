@@ -79,6 +79,26 @@ export class ResultSpanBuilder {
   }
 
   /**
+   * Sets the current span to the provided RuntimeSpan
+   * @param span The RuntimeSpan to set as current
+   * @returns The builder instance for chaining
+   */
+  public SetCurrentSpan(span: RuntimeSpan): ResultSpanBuilder {
+    if (!span) {
+      throw new Error("Cannot set null or undefined as current span.");
+    }
+    
+    this.currentSpan = span;
+    
+    // If this span isn't already in the spans array, add it
+    if (!this.spans.includes(span)) {
+      this.spans.push(span);
+    }
+    
+    return this;
+  }
+
+  /**
    * Creates a start timespan for the current RuntimeSpan
    * @returns The builder instance for chaining
    */
