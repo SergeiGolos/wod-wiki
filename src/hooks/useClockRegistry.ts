@@ -1,6 +1,6 @@
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { OutputEvent } from "@/core/OutputEvent";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ISpanDuration } from "@/core/ISpanDuration";
 
 /**
@@ -11,12 +11,18 @@ import { ISpanDuration } from "@/core/ISpanDuration";
  * @returns An object mapping clock names to their current ISpanDuration objects
  */
 export function useClockRegistry(eventStream$: OutputEvent[]) {
-  // Create a registry to store the current state of all clocks
-  const clockRegistry = new Map<string, ISpanDuration>();
+  // Create state to track clock registry
+  const [clockRegistry, setClockRegistry] = useState<Map<string, ISpanDuration>>(
+    new Map<string, ISpanDuration>()
+  );
 
   // Process any incoming events
   useEffect(() => {
     if (!eventStream$ || eventStream$.length === 0) return;
+
+    // Create a new map to avoid mutating state directly
+    const newRegistry = new Map(clockRegistry);
+    let hasChanges = false;
 
     // Process each event in the stream
     for (const event of eventStream$) {
@@ -26,7 +32,8 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
           event.bag?.duration) {
         
         // Update the registry with the new duration
-        clockRegistry.set(event.bag.target, event.bag.duration);
+        newRegistry.set(event.bag.target, event.bag.duration);
+        hasChanges = true;
         
         // If the event includes a resultSpan, we can store additional metadata if needed
         if (event.bag.resultSpan) {
@@ -34,6 +41,11 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
           // For example, storing metrics, adding to a history, etc.
         }
       }
+    }
+
+    // Only update state if changes were made
+    if (hasChanges) {
+      setClockRegistry(newRegistry);
     }
   }, [eventStream$]);
 
