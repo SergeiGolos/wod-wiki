@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { JitStatement } from '../../../JitStatement';
 import { IRuntimeAction } from '../../../IRuntimeAction';
@@ -11,23 +12,23 @@ import { ITimeSpan } from '../../../ITimeSpan';
 // Mock IRuntimeAction for testing purposes
 const mockAction: IRuntimeAction = {
   name: 'mockAction',
-  apply: jest.fn(),
+  apply: vi.fn(),
 };
 
 const mockActionStart: IRuntimeAction = {
   name: 'mockActionStart',
-  apply: jest.fn(),
+  apply: vi.fn(),
 };
 
 const mockActionStop: IRuntimeAction = {
   name: 'mockActionStop',
-  apply: jest.fn(),
+  apply: vi.fn(),
 };
 
 // A concrete implementation of RuntimeBlock for testing
 class TestableRuntimeBlock extends RuntimeBlock {
-  public onBlockStartMock = jest.fn<IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStart]);
-  public onBlockStopMock = jest.fn<IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStop]);
+  public onBlockStartMock = vi.fn<() => IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStart]);
+  public onBlockStopMock = vi.fn<() => IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStop]);
 
   constructor(sources: JitStatement[] = []) {
     super(sources.length > 0 ? sources : [new JitStatement({} as any)]); // Ensure at least one source for BlockKey
@@ -223,8 +224,8 @@ describe('RuntimeBlock', () => {
     });
 
     it('should correctly compose metrics from sources when no strategy is set', () => {
-      const mockEffortFn1 = jest.fn().mockReturnValue({ effort: 'effort1' });
-      const mockEffortFn2 = jest.fn().mockReturnValue({ effort: 'effort2' });
+      const mockEffortFn1 = vi.fn().mockReturnValue({ effort: 'effort1' });
+      const mockEffortFn2 = vi.fn().mockReturnValue({ effort: 'effort2' });
 
       const mockSources = [
         new JitStatement({ id: 1, effort: mockEffortFn1 } as any),
@@ -256,7 +257,7 @@ describe('RuntimeBlock', () => {
         { sourceId: 'strat1', effort: 'strat_effort1', values: [] },
       ];
       const mockStrategy: IMetricCompositionStrategy = {
-        composeMetrics: jest.fn().mockReturnValue(mockStrategyMetrics),
+        composeMetrics: vi.fn().mockReturnValue(mockStrategyMetrics),
       };
 
       block = new TestableRuntimeBlock([new JitStatement({ id: 1 } as any)]);
@@ -269,7 +270,7 @@ describe('RuntimeBlock', () => {
     });
 
     it('should use default effort if effort fragment is undefined and no strategy', () => {
-      const mockEffortFn = jest.fn().mockReturnValue(undefined); // No effort fragment
+      const mockEffortFn = vi.fn().mockReturnValue(undefined); // No effort fragment
       const mockSources = [new JitStatement({ id: 1 } as any)];
       mockSources[0].effort = mockEffortFn;
 
