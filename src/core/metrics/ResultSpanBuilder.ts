@@ -166,21 +166,23 @@ export class ResultSpanBuilder {
   public ForBlock(block: IRuntimeBlock): ResultSpanBuilder {
     if (!block) return this;
     
+    const blockKeyString = block.blockKey.toString();
+    
     this.spans.forEach(span => {
-      span.blockKey = block.blockKey;
+      span.blockKey = blockKeyString;
       span.index = block.blockKey.index;
       span.leaf = block.leaf; // propagate leaf marker
       
       // Also associate block key with each timespan
       span.timeSpans.forEach(timeSpan => {
-        timeSpan.blockKey = block.blockKey.toString();
+        timeSpan.blockKey = blockKeyString;
         
         if (timeSpan.start) {
-          timeSpan.start.blockKey = block.blockKey.toString();
+          timeSpan.start.blockKey = blockKeyString;
         }
         
         if (timeSpan.stop) {
-          timeSpan.stop.blockKey = block.blockKey.toString();
+          timeSpan.stop.blockKey = blockKeyString;
         }
       });
     });
@@ -195,12 +197,9 @@ export class ResultSpanBuilder {
   public registerSpan(span: RuntimeSpan): void {
     if (!span) return;
     
-    // Convert blockKey to string if it's a BlockKey object
-    const blockKeyStr = this.getBlockKeyAsString(span.blockKey);
-    
     // Check if the span already exists by comparing key properties
     const existingIndex = this.registeredSpans.findIndex(s => 
-      this.getBlockKeyAsString(s.blockKey) === blockKeyStr && 
+      s.blockKey === span.blockKey && 
       s.index === span.index && 
       s.start?.timestamp.getTime() === span.start?.timestamp.getTime()
     );
@@ -241,7 +240,7 @@ export class ResultSpanBuilder {
   public getSpansByBlockKey(blockKey: string | BlockKey): RuntimeSpan[] {
     const blockKeyStr = this.getBlockKeyAsString(blockKey);
     return this.registeredSpans.filter(span => 
-      this.getBlockKeyAsString(span.blockKey) === blockKeyStr
+      span.blockKey === blockKeyStr
     );
   }
 
@@ -351,11 +350,11 @@ export class ResultSpanBuilder {
     
     // If no root block key provided, use all top-level spans
     const rootSpans = rootBlockKeyStr 
-      ? this.registeredSpans.filter(span => this.getBlockKeyAsString(span.blockKey) === rootBlockKeyStr)
+      ? this.registeredSpans.filter(span => span.blockKey === rootBlockKeyStr)
       : this.registeredSpans.filter(span => {
           // Spans with no parent references or that don't match any other span's blockKey
           const isChild = this.registeredSpans.some(otherSpan => 
-            otherSpan.children?.includes(this.getBlockKeyAsString(span.blockKey) || '')
+            otherSpan.children?.includes(span.blockKey || '')
           );
           return !isChild;
         });
@@ -386,7 +385,7 @@ export class ResultSpanBuilder {
       span.children.forEach((childBlockKey: string) => {
         // Find child spans with matching blockKey
         const childSpans = this.registeredSpans.filter(s => 
-          this.getBlockKeyAsString(s.blockKey) === childBlockKey
+          s.blockKey === childBlockKey
         );
         
         // Add each child span as a node in the tree
