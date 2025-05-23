@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WikiContainer } from '@/components/WikiContainer';
 import { WorkoutEntry } from './WorkbookStorage';
+import { WodRuntimeScript } from '@/core/WodRuntimeScript';
 
 interface WorkbookPageProps {
   workout: WorkoutEntry;
@@ -15,6 +16,7 @@ export const WorkbookPage: React.FC<WorkbookPageProps> = ({
 }) => {
   const [title, setTitle] = useState(workout.title);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<any>(null);
 
   // Update title when workout changes
   useEffect(() => {
@@ -45,6 +47,15 @@ export const WorkbookPage: React.FC<WorkbookPageProps> = ({
     }
   };
 
+  const handleScriptChange = (script?: WodRuntimeScript) => {
+    if (script && editorRef.current) {
+      const content = editorRef.current.getValue();
+      if (content !== workout.content) {
+        onContentChange(content);
+      }
+    }
+  };
+
   return (
     <div className="flex-grow flex flex-col overflow-hidden">
       {/* Title editor */}
@@ -66,12 +77,10 @@ export const WorkbookPage: React.FC<WorkbookPageProps> = ({
           id={workout.id}
           code={workout.content}
           className="m-4 border-gray-300"
-          onScriptCompiled={() => {
-            // Save content when compiled
-            const editorContent = (document.querySelector(`[data-path="${workout.id}"]`) as HTMLElement)?.innerText;
-            if (editorContent && editorContent !== workout.content) {
-              onContentChange(editorContent);
-            }
+          onScriptCompiled={handleScriptChange}
+          // Store a reference to the editor instance
+          onMount={(editor) => {
+            editorRef.current = editor;
           }}
         />
       </div>

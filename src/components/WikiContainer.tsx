@@ -32,6 +32,10 @@ interface WikiContainerProps {
    * Optional callback when results are updated
    */
   onResultsUpdated?: (results: RuntimeSpan[]) => void;
+  /**
+   * Optional callback when the editor is mounted
+   */
+  onMount?: (editor: any) => void;
   children?: React.ReactNode;
 }
 
@@ -41,6 +45,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   className = "",
   onScriptCompiled,
   onResultsUpdated,
+  onMount,
   outbound,
   children
 }) => {
@@ -109,6 +114,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       <WodWiki
         id={id}
         code={code}
+        onMount={onMount}
         onValueChange={handleScriptChange}
         cursor={cursor ?? undefined}        
       />
