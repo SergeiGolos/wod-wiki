@@ -88,7 +88,7 @@ export class ResultSpanBuilder {
     }
 
     const newTimeSpan: ITimeSpan = {
-      start: { name: 'span_started', timestamp: new Date() }
+      start: { name: 'block_started', timestamp: new Date() }
     };
 
     this.currentSpan.timeSpans.push(newTimeSpan);
@@ -111,7 +111,7 @@ export class ResultSpanBuilder {
 
     const currentTimeSpan = timeSpans[timeSpans.length - 1];
     if (!currentTimeSpan.stop) {
-      currentTimeSpan.stop = { name: 'span_stopped', timestamp: new Date() };
+      currentTimeSpan.stop = { name: 'block_stopped', timestamp: new Date() };
     }
 
     return this;
