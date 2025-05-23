@@ -1,11 +1,12 @@
 import { OutputEvent } from "@/core/OutputEvent";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { ResultSpan } from "@/core/ResultSpan"; // Import ResultSpan
 import { useState } from "react";
 import { EventSyncResult } from "@/core/runtime/EventSyncResult";
 
-export function useLocalResultSync(): EventSyncResult<RuntimeSpan[]> {
+export function useLocalResultSync(): EventSyncResult<ResultSpan[]> {
     
-    const [results, setResults] = useState<RuntimeSpan[]>([]);
+    const [results, setResults] = useState<ResultSpan[]>([]);
     const sync = (evnt: OutputEvent) => {
         if (evnt.eventType === "CLEAR_RESULTS") {
             setResults([]);
@@ -16,11 +17,11 @@ export function useLocalResultSync(): EventSyncResult<RuntimeSpan[]> {
             return;
         }
 
-        // Ensure evnt.bag.result is treated as a single ResultSpan to be added
-        // If evnt.bag.result could be an array, this logic might need adjustment
-        // based on how WriteResultAction actually populates it.
-        // Assuming evnt.bag.result is a single ResultSpan based on WriteResultAction's map.
-        setResults(prevResults => [...prevResults, evnt.bag.result as RuntimeSpan]);
+        // Ensure evnt.bag.result is treated as a single RuntimeSpan and convert to ResultSpan
+        const runtimeSpan = evnt.bag.result as RuntimeSpan;
+        const resultSpan = new ResultSpan(runtimeSpan);
+        
+        setResults(prevResults => [...prevResults, resultSpan]);
     };
 
     return [results, sync];
