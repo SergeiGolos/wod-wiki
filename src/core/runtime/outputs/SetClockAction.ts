@@ -13,10 +13,22 @@ export class SetClockAction extends OutputAction {
 
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
         const block = _runtime.trace.current();
-        const duration = block?.sources[0].duration(block.blockKey);
+        if (!block) {
+            return [];
+        }
+        
+        const duration = block.sources[0].duration(block.blockKey);
+        
+        // Get the current RuntimeSpan's timeSpans to ensure the timer shows as running
+        const latestRuntimeSpan = block.spans().length > 0 ? block.spans()[block.spans().length - 1] : undefined;
+        const timeSpans = latestRuntimeSpan?.timeSpans ?? [];
+        
         return [{
             eventType: this.eventType,
-            bag: { duration: new TimeSpanDuration(duration?.original ?? 0,'+', []), target: this.target },
+            bag: { 
+                duration: new TimeSpanDuration(duration?.original ?? 0, '+', timeSpans), 
+                target: this.target 
+            },
             timestamp: new Date()
         }];
     }
