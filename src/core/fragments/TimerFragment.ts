@@ -26,7 +26,8 @@ export class TimerFragment implements CodeFragment {
   hours: number;
   minutes: number;
   seconds: number;
-  original: number; // in m
+  original: number; // in ms
   type: string = "duration";
+  applyToMetric(_metric: import("../RuntimeMetric").RuntimeMetric, _rounds?: number): void {    
+  }
 }
-

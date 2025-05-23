@@ -21,7 +21,7 @@ export class PopulateMetricsAction implements IRuntimeAction {
     const currentSpan = this.block.spans[this.block.spans.length - 1];
     
     // Use the block's composition strategy to generate metrics
-    const metrics = this.block.composeMetrics(runtime);
+    const metrics = this.block.metrics(runtime);
     
     // Add metrics to the span
     if (metrics && metrics.length > 0) {

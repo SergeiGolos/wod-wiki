@@ -39,7 +39,7 @@ This ensures that every block has a strategy for composing metrics, which is use
 
 ```typescript
 public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
-  return this.metricCompositionStrategy!.composeMetrics(this, runtime);
+  return this.metricCompositionStrategy!.metrics(this, runtime);
 }
 ```
 

@@ -218,7 +218,7 @@ describe('RuntimeBlock', () => {
 
     it('should return an empty array if sources are empty and no strategy is set', () => {
       block = new TestableRuntimeBlock([]);
-      const metrics = block.composeMetrics(mockRuntime);
+      const metrics = block.metrics(mockRuntime);
       expect(metrics).toEqual([]);
     });
 
@@ -236,7 +236,7 @@ describe('RuntimeBlock', () => {
 
 
       block = new TestableRuntimeBlock(mockSources);
-      const metrics = block.composeMetrics(mockRuntime);
+      const metrics = block.metrics(mockRuntime);
 
       expect(metrics.length).toBe(2);
 
@@ -262,7 +262,7 @@ describe('RuntimeBlock', () => {
       block = new TestableRuntimeBlock([new JitStatement({ id: 1 } as any)]);
       block.metricCompositionStrategy = mockStrategy;
 
-      const metrics = block.composeMetrics(mockRuntime);
+      const metrics = block.metrics(mockRuntime);
 
       expect(mockStrategy.composeMetrics).toHaveBeenCalledWith(block, mockRuntime);
       expect(metrics).toBe(mockStrategyMetrics);
@@ -274,7 +274,7 @@ describe('RuntimeBlock', () => {
       mockSources[0].effort = mockEffortFn;
 
       block = new TestableRuntimeBlock(mockSources);
-      const metrics = block.composeMetrics(mockRuntime);
+      const metrics = block.metrics(mockRuntime);
 
       expect(metrics.length).toBe(1);
       expect(metrics[0].sourceId).toBe('1');

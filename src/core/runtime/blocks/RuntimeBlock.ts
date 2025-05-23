@@ -1,15 +1,12 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import type { RuntimeMetric } from "@/core/RuntimeMetric";
-import { IMetricCompositionStrategy } from "@/core/metrics/IMetricCompositionStrategy";
-import { MetricCompositionStrategy } from "@/core/metrics/strategies";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { BlockKey } from "@/core/BlockKey";
-import { ITimeSpan } from "@/core/ITimeSpan";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
 
@@ -23,14 +20,10 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     this.blockKey = new BlockKey();
     this.blockKey.push(this.sources, 0);
   }
+
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
-  
-  /**
-   * @deprecated Use metrics() method instead of composition strategies
-   */
-  public metricCompositionStrategy?: IMetricCompositionStrategy;
   
   public leaf: boolean = false; // indicates leaf-level block
   
@@ -201,19 +194,6 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     // Call the abstract method for block-specific actions
     const actions = this.onBlockStop(runtime);
     return actions;
-  }
-
-  /**
-   * Composes metrics for this runtime block.
-   * This method exists for backward compatibility and now delegates to the metrics method.
-   * 
-   * @deprecated Use metrics() instead
-   * @param runtime The timer runtime instance
-   * @returns An array of RuntimeMetric objects
-   */
-  public composeMetrics(runtime: ITimerRuntime): RuntimeMetric[] {
-    // Use the new metrics method instead of delegating to the strategy
-    return this.metrics(runtime);
   }
 
   /**

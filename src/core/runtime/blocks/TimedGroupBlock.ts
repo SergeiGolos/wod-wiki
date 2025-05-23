@@ -6,18 +6,14 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RuntimeMetric } from "@/core/RuntimeMetric";
-import { MetricsContext, MetricsRelationshipType, ResultSpanBuilder } from "@/core/metrics";
+import { ResultSpanBuilder } from "@/core/metrics";
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { SetClockAction } from "../outputs/SetClockAction"; // Added import
 import { LapFragment } from "@/core/fragments/LapFragment";
 import { getLap } from "./readers/getLap";
-import { StartEvent } from "../inputs/StartEvent";
 import { getDuration } from "./readers/getDuration";
-import { StartTimerAction } from "../actions/StartTimerAction";
-import { StopTimerAction } from "../actions/StopTimerAction";
-import { StopEvent } from "../inputs/StopEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetDurationAction } from "../outputs/SetDurationAction";
 

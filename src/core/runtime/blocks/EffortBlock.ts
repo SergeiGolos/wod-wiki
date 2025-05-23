@@ -1,8 +1,6 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
-import { MetricValue } from "@/core/MetricValue";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock"; 
 import { StopEvent } from "../inputs/StopEvent"; 
 import { WriteResultAction } from "../outputs/WriteResultAction";
@@ -14,7 +12,6 @@ import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
-import { PopulateMetricsAction } from "../actions/PopulateMetricsAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle

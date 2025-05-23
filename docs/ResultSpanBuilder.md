@@ -22,7 +22,7 @@ The `ResultSpanBuilder` exposes these key methods:
 ```typescript
 // Create a new span with metrics
 const builder = new ResultSpanBuilder()
-  .Create(block.composeMetrics(runtime))
+  .Create(block.metrics(runtime))
   .Start();
 
 // Record some metrics
