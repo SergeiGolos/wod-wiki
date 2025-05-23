@@ -2,9 +2,18 @@ import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { OutputEvent } from "@/core/OutputEvent";
 import { useEffect, useState } from "react";
 import { ISpanDuration } from "@/core/ISpanDuration";
+import { TimerState } from "@/core/runtime/outputs/SetTimerStateAction";
 
 /**
- * A React hook that listens for SET_CLOCK events with ResultSpan data
+ * Interface for the clock registry state
+ */
+interface ClockRegistryState {
+  durations: Map<string, ISpanDuration>;
+  states: Map<string, TimerState>;
+}
+
+/**
+ * A React hook that listens for SET_CLOCK and SET_TIMER_STATE events
  * and maintains a map of the current state of all clocks.
  * 
  * @param eventStream$ Stream of output events from the timer runtime
@@ -12,16 +21,18 @@ import { ISpanDuration } from "@/core/ISpanDuration";
  */
 export function useClockRegistry(eventStream$: OutputEvent[]) {
   // Create state to track clock registry
-  const [clockRegistry, setClockRegistry] = useState<Map<string, ISpanDuration>>(
-    new Map<string, ISpanDuration>()
-  );
+  const [clockRegistryState, setClockRegistryState] = useState<ClockRegistryState>({
+    durations: new Map<string, ISpanDuration>(),
+    states: new Map<string, TimerState>()
+  });
 
   // Process any incoming events
   useEffect(() => {
     if (!eventStream$ || eventStream$.length === 0) return;
 
-    // Create a new map to avoid mutating state directly
-    const newRegistry = new Map(clockRegistry);
+    // Create new maps to avoid mutating state directly
+    const newDurations = new Map(clockRegistryState.durations);
+    const newStates = new Map(clockRegistryState.states);
     let hasChanges = false;
 
     // Process each event in the stream
@@ -32,7 +43,7 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
           event.bag?.duration) {
         
         // Update the registry with the new duration
-        newRegistry.set(event.bag.target, event.bag.duration);
+        newDurations.set(event.bag.target, event.bag.duration);
         hasChanges = true;
         
         // If the event includes a resultSpan, we can store additional metadata if needed
@@ -41,11 +52,24 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
           // For example, storing metrics, adding to a history, etc.
         }
       }
+
+      // Handle SET_TIMER_STATE events
+      if (event.eventType === 'SET_TIMER_STATE' && 
+          event.bag?.target && 
+          event.bag?.state) {
+        
+        // Update the state registry with the new timer state
+        newStates.set(event.bag.target, event.bag.state);
+        hasChanges = true;
+      }
     }
 
     // Only update state if changes were made
     if (hasChanges) {
-      setClockRegistry(newRegistry);
+      setClockRegistryState({
+        durations: newDurations,
+        states: newStates
+      });
     }
   }, [eventStream$]);
 
@@ -53,13 +77,20 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
   useEffect(() => {
     const intervalId = setInterval(() => {
       // Force re-render to update displayed times
-      setClockRegistry(prev => new Map(prev));
+      setClockRegistryState(prev => ({
+        durations: new Map(prev.durations),
+        states: prev.states
+      }));
     }, 100);
     
     return () => clearInterval(intervalId);
   }, []);
 
-  return clockRegistry;
+  // Return both duration and state maps
+  return {
+    durations: clockRegistryState.durations,
+    states: clockRegistryState.states
+  };
 }
 
 /**
@@ -69,6 +100,17 @@ export function useClockRegistry(eventStream$: OutputEvent[]) {
  * @param clockName The name of the clock to retrieve
  * @returns The current duration for the specified clock, or undefined if not found
  */
-export function getClockDuration(clockRegistry: Map<string, ISpanDuration>, clockName: string): ISpanDuration | undefined {
-  return clockRegistry.get(clockName);
+export function getClockDuration(clockRegistry: { durations: Map<string, ISpanDuration> }, clockName: string): ISpanDuration | undefined {
+  return clockRegistry.durations.get(clockName);
+}
+
+/**
+ * Get the current state for a specific clock name
+ * 
+ * @param clockRegistry The registry of clock states
+ * @param clockName The name of the clock to retrieve
+ * @returns The current timer state for the specified clock, or undefined if not found
+ */
+export function getClockState(clockRegistry: { states: Map<string, TimerState> }, clockName: string): TimerState | undefined {
+  return clockRegistry.states.get(clockName);
 }
