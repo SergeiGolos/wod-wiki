@@ -190,7 +190,9 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
       // Create, start, and get the new span
       span = builder.Create(metrics).Start().Current();
         
-      // Ensure blockKey is set
+      // Ensure blockKey is set on the span and its timespan start
+      span.blockKey = this.blockKey.toString();
+      
       if (span.timeSpans.length > 0 && span.timeSpans[0].start) {
         span.timeSpans[0].start.blockKey = this.blockKey.toString();
       }
