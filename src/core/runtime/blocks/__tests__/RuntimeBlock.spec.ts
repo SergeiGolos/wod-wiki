@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, MockedFunction } from 'vitest'; // Added MockedFunction
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { JitStatement } from '../../../JitStatement';
 import { IRuntimeAction } from '../../../IRuntimeAction';
@@ -29,9 +29,8 @@ const mockActionStop: IRuntimeAction = {
 
 // A concrete implementation of RuntimeBlock for testing
 class TestableRuntimeBlock extends RuntimeBlock {
-  public metricCompositionStrategy?: IMetricCompositionStrategy;
-  public onBlockStartMock: MockedFunction< (runtime: ITimerRuntime) => IRuntimeAction[]>; 
-  public onBlockStopMock: MockedFunction< (runtime: ITimerRuntime) => IRuntimeAction[]>;
+  public onBlockStartMock = vi.fn<() => IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStart]);
+  public onBlockStopMock = vi.fn<() => IRuntimeAction[], [ITimerRuntime]>(() => [mockActionStop]);
 
   constructor(sources: JitStatement[] = []) {
     super(sources.length > 0 ? sources : [new JitStatement({ 
@@ -313,11 +312,9 @@ describe('RuntimeBlock', () => {
     });
 
     it('should use default effort if effort fragment is undefined and no strategy', () => {
-      const mockEffortFn = vi.fn().mockReturnValue(undefined); 
-      
-      const iCodeStmt: ICodeStatement = { id: 4, effort: mockEffortFn, meta: new ZeroIndexMeta(), fragments: [], children: [] } as any; // Changed to number
-      const mockSources = [new JitStatement(iCodeStmt)];
-      (mockSources[0].node as any).effort = mockEffortFn;
+      const mockEffortFn = vi.fn().mockReturnValue(undefined); // No effort fragment
+      const mockSources = [new JitStatement({ id: 1 } as any)];
+      mockSources[0].effort = mockEffortFn;
 
       // Mock the buildMetrics method to return the expected metrics
       const mockMetrics = [

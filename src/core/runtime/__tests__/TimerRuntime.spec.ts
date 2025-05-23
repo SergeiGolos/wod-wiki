@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach, Mocked } from 'vitest';
-import { Subject } from 'rxjs';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Subject, Subscription } from 'rxjs';
 import { TimerRuntime } from '../TimerRuntime';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeScript } from '../RuntimeScript';
@@ -11,28 +11,64 @@ import { BlockKey } from '../../BlockKey';
 import { JitStatement } from '../../JitStatement';
 import { RuntimeSpan } from '../RuntimeSpan';
 
-// Skip all tests in this file since they're failing due to complex mocking issues
-// and aren't directly related to the bug we're fixing
-describe.skip('TimerRuntime', () => {
+// --- Mocks ---
+vi.mock('../RuntimeStack');
+vi.mock('../RuntimeScript');
+vi.mock('../RuntimeJit');
+vi.mock('../../JitStatement');
+
+const mockApplyFn = vi.fn();
+
+// Helper to create mock IRuntimeAction
+const createMockAction = (name: string): IRuntimeAction => ({
+  name,
+  apply: vi.fn(),
+});
+
+// Helper to create mock IRuntimeBlock
+const createMockBlock = (name: string, blockKeySuffix: string = ''): IRuntimeBlock => {
+  const key = new BlockKey();
+  key.push([new JitStatement({ id: name, key: name } as any)], 0);
+  key.fragments[0].value += blockKeySuffix; // Make block keys unique for logging/debugging
+
+  return {
+    blockId: `mockId-${name}${blockKeySuffix}`,
+    blockKey: key,
+    sources: [],
+    spans: [],
+    parent: undefined,
+    selectMany: vi.fn(() => []),
+    handle: vi.fn(() => []),
+    enter: vi.fn(() => []),
+    leave: vi.fn(() => []),
+    next: vi.fn(() => []),
+    onStart: vi.fn(() => []),
+    onStop: vi.fn(() => []),
+  };
+};
+
+describe('TimerRuntime', () => {
   let runtime: TimerRuntime;
   let mockInput$: Subject<IRuntimeEvent>;
   let mockOutput$: Subject<any>;
-  let mockRuntimeStack: Mocked<RuntimeStack>; // Changed to Mocked<RuntimeStack>
-  let mockRuntimeScript: Mocked<RuntimeScript>; // Changed to Mocked<RuntimeScript>
-  let mockRuntimeJit: Mocked<RuntimeJit>; // Changed to Mocked<RuntimeJit>
+  let mockRuntimeStack: vi.Mocked<RuntimeStack>;
+  let mockRuntimeScript: vi.Mocked<RuntimeScript>;
+  let mockRuntimeJit: vi.Mocked<RuntimeJit>;
   let mockRootBlock: IRuntimeBlock;
 
   beforeEach(() => {
     mockInput$ = new Subject<IRuntimeEvent>();
     mockOutput$ = new Subject<any>();
     
-    mockRuntimeStack = new (RuntimeStack as any)() as Mocked<RuntimeStack>;
-    mockRuntimeScript = new (RuntimeScript as any)({} as any) as Mocked<RuntimeScript>;
-    mockRuntimeJit = new (RuntimeJit as any)({} as any) as Mocked<RuntimeJit>; // Corrected constructor call for RuntimeJit
+    // Create new instances of mocks for each test
+    mockRuntimeStack = new RuntimeStack() as vi.Mocked<RuntimeStack>;
+    mockRuntimeScript = new RuntimeScript({} as any) as vi.Mocked<RuntimeScript>;
+    mockRuntimeJit = new RuntimeJit({} as any, {} as any) as vi.Mocked<RuntimeJit>;
 
     mockRootBlock = createMockBlock('root');
-    (mockRootBlock.enter as Mocked<any>).mockReturnValue([createMockAction('rootEnter')]);
-    (mockRootBlock.onStart as Mocked<any>).mockReturnValue([createMockAction('rootOnStart')]);
+    (mockRootBlock.enter as vi.Mock).mockReturnValue([createMockAction('rootEnter')]);
+    (mockRootBlock.onStart as vi.Mock).mockReturnValue([createMockAction('rootOnStart')]);
+
 
     mockRuntimeJit.root.mockReturnValue(mockRootBlock);
     
@@ -71,9 +107,10 @@ describe.skip('TimerRuntime', () => {
     runtime.apply = mockApplyFn; 
     mockApplyFn.mockClear();
 
-    (mockRootBlock.enter as Mocked<any>).mockClear();
-    (mockRootBlock.onStart as Mocked<any>).mockClear();
-    mockApplyFn.mockClear(); 
+    // Initial push of root block happens in constructor, clear its mock calls for specific tests
+    (mockRootBlock.enter as vi.Mock).mockClear();
+    (mockRootBlock.onStart as vi.Mock).mockClear();
+    mockApplyFn.mockClear(); // Clear apply calls from constructor's root block push
   });
 
   afterEach(() => {
@@ -88,8 +125,8 @@ describe.skip('TimerRuntime', () => {
       const blockA = createMockBlock('BlockA');
       const enterActions = [createMockAction('blockAEnter')];
       const onStartActions = [createMockAction('blockAOnStart')];
-      (blockA.enter as Mocked<any>).mockReturnValue(enterActions);
-      (blockA.onStart as Mocked<any>).mockReturnValue(onStartActions);
+      (blockA.enter as vi.Mock).mockReturnValue(enterActions);
+      (blockA.onStart as vi.Mock).mockReturnValue(onStartActions);
 
       runtime.push(blockA);
 
@@ -107,8 +144,8 @@ describe.skip('TimerRuntime', () => {
       const parentBlock = createMockBlock('Parent');
       const parentEnterActions = [createMockAction('parentEnter')];
       const parentOnStartActions = [createMockAction('parentOnStart')];
-      (parentBlock.enter as Mocked<any>).mockReturnValue(parentEnterActions);
-      (parentBlock.onStart as Mocked<any>).mockReturnValue(parentOnStartActions);
+      (parentBlock.enter as vi.Mock).mockReturnValue(parentEnterActions);
+      (parentBlock.onStart as vi.Mock).mockReturnValue(parentOnStartActions);
       
       runtime.push(parentBlock); 
       mockApplyFn.mockClear(); 
@@ -116,8 +153,8 @@ describe.skip('TimerRuntime', () => {
       const childBlock = createMockBlock('Child');
       const childEnterActions = [createMockAction('childEnter')];
       const childOnStartActions = [createMockAction('childOnStart')];
-      (childBlock.enter as Mocked<any>).mockReturnValue(childEnterActions);
-      (childBlock.onStart as Mocked<any>).mockReturnValue(childOnStartActions);
+      (childBlock.enter as vi.Mock).mockReturnValue(childEnterActions);
+      (childBlock.onStart as vi.Mock).mockReturnValue(childOnStartActions);
 
       runtime.push(childBlock); 
 
@@ -164,10 +201,10 @@ describe.skip('TimerRuntime', () => {
       const parentEnterActions = [createMockAction('parentEnterP')];
       const parentOnStopActions = [createMockAction('parentOnStopP')]; 
       const parentNextActions = [createMockAction('parentNextP')];
-      (parentBlock.onStart as Mocked<any>).mockReturnValue(parentOnStartActions);
-      (parentBlock.enter as Mocked<any>).mockReturnValue(parentEnterActions);
-      (parentBlock.onStop as Mocked<any>).mockReturnValue(parentOnStopActions);
-      (parentBlock.next as Mocked<any>).mockReturnValue(parentNextActions);
+      (parentBlock.onStart as vi.Mock).mockReturnValue(parentOnStartActions);
+      (parentBlock.enter as vi.Mock).mockReturnValue(parentEnterActions);
+      (parentBlock.onStop as vi.Mock).mockReturnValue(parentOnStopActions);
+      (parentBlock.next as vi.Mock).mockReturnValue(parentNextActions);
 
       runtime.push(parentBlock);
 
@@ -176,10 +213,10 @@ describe.skip('TimerRuntime', () => {
       const childOnStartActions = [createMockAction('childOnStartC')];
       const childLeaveActions = [createMockAction('childLeaveC')];
       const childOnStopActions = [createMockAction('childOnStopC')];
-      (childBlock.enter as Mocked<any>).mockReturnValue(childEnterActions);
-      (childBlock.onStart as Mocked<any>).mockReturnValue(childOnStartActions);
-      (childBlock.leave as Mocked<any>).mockReturnValue(childLeaveActions);
-      (childBlock.onStop as Mocked<any>).mockReturnValue(childOnStopActions);
+      (childBlock.enter as vi.Mock).mockReturnValue(childEnterActions);
+      (childBlock.onStart as vi.Mock).mockReturnValue(childOnStartActions);
+      (childBlock.leave as vi.Mock).mockReturnValue(childLeaveActions);
+      (childBlock.onStop as vi.Mock).mockReturnValue(childOnStopActions);
       
       runtime.push(childBlock);
       mockApplyFn.mockClear(); 
