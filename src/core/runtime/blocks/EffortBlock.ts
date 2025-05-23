@@ -12,6 +12,8 @@ import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
+import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
+import { getDuration } from "../blocks/readers/getDuration";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -28,10 +30,17 @@ export class EffortBlock extends RuntimeBlock {
    * @returns Array of effort descriptions
    */  
   protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
-   return [       
+    // Determine if this effort block has a specific duration
+    const duration = this.selectMany(getDuration)[0];
+    const timerState = duration?.original 
+      ? TimerState.RUNNING_COUNTDOWN 
+      : TimerState.RUNNING_COUNTUP;
+    
+    return [       
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
-      new SetClockAction("runtime")
+      new SetClockAction("primary"),
+      new SetTimerStateAction(timerState, "primary")
     ];
   }
 
@@ -43,6 +52,7 @@ export class EffortBlock extends RuntimeBlock {
     return [
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
+      new SetTimerStateAction(TimerState.STOPPED, "primary"),
       new WriteResultAction(this.spans())
     ];
   }

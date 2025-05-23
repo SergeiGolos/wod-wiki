@@ -16,6 +16,7 @@ import { getLap } from "./readers/getLap";
 import { getDuration } from "./readers/getDuration";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetDurationAction } from "../outputs/SetDurationAction";
+import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
 
 export class TimedGroupBlock extends RuntimeBlock {
   // Local registry for child spans
@@ -108,6 +109,12 @@ export class TimedGroupBlock extends RuntimeBlock {
       new SetButtonsAction([completeButton], "runtime"),
     ];
 
+    // Add the SetTimerStateAction to set the timer to RUNNING_COUNTDOWN
+    const duration = this.selectMany(getDuration)[0];
+    if (duration?.original) {
+      actions.push(new SetTimerStateAction(TimerState.RUNNING_COUNTDOWN, "primary"));
+    }
+
     actions.push(...this.onNext(runtime)); // Push the first child/set of children
     
     return actions;
@@ -182,6 +189,11 @@ export class TimedGroupBlock extends RuntimeBlock {
       // If specific timing for children within this group's span was needed, 
       // it would require a different mechanism, not the now-simplified StartTimerAction.
       actionsToPush.push(new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary"));
+      
+      // Reset the timer state for the new interval if this is a repeating timer
+      if (duration?.original) {
+        actionsToPush.push(new SetTimerStateAction(TimerState.RUNNING_COUNTDOWN, "primary"));
+      }
     }
     return actionsToPush;
   }
@@ -229,6 +241,7 @@ export class TimedGroupBlock extends RuntimeBlock {
     const actions: IRuntimeAction[] = [
       new SetButtonsAction([], "system"),
       new SetButtonsAction([], "runtime"),
+      new SetTimerStateAction(TimerState.STOPPED, "primary"),
     ];
 
     const duration = this.selectMany(getDuration)[0];
