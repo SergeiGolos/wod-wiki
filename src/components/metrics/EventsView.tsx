@@ -15,7 +15,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
 }) => {
 
   // Sort results by timestamp (newest first)
-  const sortedResults = results.sort((a, b) => {
+  // Create a new array to avoid mutating the original results array
+  const sortedResults = [...results].sort((a, b) => {
     return (b[0].start?.timestamp?.getTime() || 0) - (a[0].start?.timestamp?.getTime() || 0);
   });
 
