@@ -32,7 +32,7 @@ interface WikiContainerProps {
    * Optional callback when results are updated
    */
   onResultsUpdated?: (results: RuntimeSpan[]) => void;
-  children: React.ReactNode[];
+  children?: React.ReactNode;
 }
 
 export const WikiContainer: React.FC<WikiContainerProps> = ({
@@ -40,6 +40,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   code = "",
   className = "",
   onScriptCompiled,
+  onResultsUpdated,
   outbound,
   children
 }) => {
@@ -58,6 +59,13 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   const [runtimeButtons, setRuntimeButtons] = useButtonSync("runtime");
 
   const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);   
+  
+  // Call onResultsUpdated when results change
+  useEffect(() => {
+    if (onResultsUpdated && results) {
+      onResultsUpdated(results);
+    }
+  }, [results, onResultsUpdated]);
   
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
@@ -87,7 +95,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
     return () => {
       dispose?.unsubscribe();
     };
-  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons]);
+  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons, setLabel]);
 
 
   // Create Chromecast button (now managed independently)
