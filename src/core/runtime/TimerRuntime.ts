@@ -9,12 +9,14 @@ import { TickEvent } from "./inputs/TickHandler";
 import { RuntimeJit } from "./RuntimeJit";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeStack } from "./RuntimeStack";
+import { ResultSpanRegistry } from "../metrics/ResultSpanRegistry";
 
 
 export class TimerRuntime implements ITimerRuntimeIo {
   public dispose: Subscription | undefined;
   public tick$: Observable<IRuntimeEvent>;
   public trace: RuntimeStack;
+  public registry: ResultSpanRegistry;
 
   constructor(public code: string,
     public script: RuntimeScript,
@@ -24,6 +26,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     public output$: Subject<OutputEvent>
   ) {
     this.trace = new RuntimeStack();
+    this.registry = new ResultSpanRegistry();
 
     this.init();
     this.tick$ = interval(50).pipe(
@@ -54,6 +57,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
   init() {
     this.history = [];
     this.trace = new RuntimeStack();
+    this.registry = new ResultSpanRegistry();
     this.push(this.jit.root(this));
   }
 
@@ -97,6 +101,9 @@ export class TimerRuntime implements ITimerRuntimeIo {
     collectedStartActions.forEach(actionArray => startActions = startActions.concat(actionArray));
     this.apply(startActions, pushedBlock); // Apply using the originally pushed block as source
 
+    // Register any spans from the block
+    this.registry.registerBlockSpans(pushedBlock);
+
     return this.trace.current() ?? pushedBlock;
   }
 
@@ -116,6 +123,9 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
       let leaveActions = poppedBlock.leave(this) ?? [];
       this.apply(leaveActions, poppedBlock);
+      
+      // Register any spans from the block before it's popped
+      this.registry.registerBlockSpans(poppedBlock);
     }
 
     let currentBlockAfterPop = this.trace.current(); // Use a new variable name

@@ -29,8 +29,18 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public parent?: IRuntimeBlock | undefined;
   public metricCompositionStrategy?: IMetricCompositionStrategy;
   
-  public spans: RuntimeSpan[] = [];
+  private _spans: RuntimeSpan[] = [];
   public handlers: EventHandler[] = [];
+  
+  // Updated to implement the spans() method from the interface
+  public spans(): RuntimeSpan[] {
+    return this._spans;
+  }
+  
+  // Added to implement addSpan method
+  public addSpan(span: RuntimeSpan): void {
+    this._spans.push(span);
+  }
   
   public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
     let results: T[] = [];
@@ -147,11 +157,11 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
 
   // Lifecycle methods implementation
   public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    let currentSpan = this.spans[this.spans.length - 1];
+    let currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
     if (!currentSpan || (currentSpan.timeSpans.length > 0 && currentSpan.timeSpans[currentSpan.timeSpans.length - 1].stop)) {
       currentSpan = new RuntimeSpan();
       currentSpan.blockKey = this.blockKey; // Associate blockKey with the span
-      this.spans.push(currentSpan);
+      this._spans.push(currentSpan);
     }
 
     const newTimeSpan: ITimeSpan = { // Explicitly type newTimeSpan
@@ -166,7 +176,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   }
 
   public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
-    const currentSpan = this.spans[this.spans.length - 1];
+    const currentSpan = this._spans.length > 0 ? this._spans[this._spans.length - 1] : undefined;
     if (currentSpan && currentSpan.timeSpans.length > 0) {
       const currentTimeSpan = currentSpan.timeSpans[currentSpan.timeSpans.length - 1];
       if (!currentTimeSpan.stop) {
