@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WorkbookNavigation } from './WorkbookNavigation';
 import { WorkbookPage } from './WorkbookPage';
 import { WorkoutEntry, workbookStorage } from './WorkbookStorage';
@@ -6,6 +6,7 @@ import { WorkoutEntry, workbookStorage } from './WorkbookStorage';
 export const Workbook: React.FC = () => {
   const [activeWorkout, setActiveWorkout] = useState<WorkoutEntry | null>(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   
   // Load initial workout when component mounts
   useEffect(() => {
@@ -45,13 +46,29 @@ export const Workbook: React.FC = () => {
     }
   };
 
+  // Debounced save function to prevent excessive storage operations
+  const saveWorkout = useCallback((updatedWorkout: WorkoutEntry) => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      workbookStorage.saveWorkout(updatedWorkout);
+      console.log(`Saved workout: ${updatedWorkout.title}`);
+    }, 500); // 500ms debounce
+    
+    setSaveTimeout(timeoutId);
+    
+    // Update state immediately for UI responsiveness
+    setActiveWorkout(updatedWorkout);
+  }, [saveTimeout]);
+
   // Update workout title
   const handleTitleChange = (title: string) => {
     if (!activeWorkout) return;
     
     const updatedWorkout = { ...activeWorkout, title };
-    workbookStorage.saveWorkout(updatedWorkout);
-    setActiveWorkout(updatedWorkout);
+    saveWorkout(updatedWorkout);
   };
 
   // Update workout content
@@ -59,14 +76,22 @@ export const Workbook: React.FC = () => {
     if (!activeWorkout) return;
     
     const updatedWorkout = { ...activeWorkout, content };
-    workbookStorage.saveWorkout(updatedWorkout);
-    setActiveWorkout(updatedWorkout);
+    saveWorkout(updatedWorkout);
   };
 
   // Toggle navigation collapse
   const handleToggleNav = () => {
     setIsNavCollapsed(!isNavCollapsed);
   };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
 
   return (
     <div className="flex h-full w-full bg-white overflow-hidden">

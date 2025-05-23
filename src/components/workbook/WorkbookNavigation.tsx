@@ -23,11 +23,18 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  // Function to refresh the workouts list
+  const refreshWorkouts = () => {
+    setWorkouts(workbookStorage.getWorkouts());
+    setRefreshCounter(prev => prev + 1);
+  };
 
   // Load workouts from storage
   useEffect(() => {
-    setWorkouts(workbookStorage.getWorkouts());
-  }, []);
+    refreshWorkouts();
+  }, [activeId]); // Refresh when active workout changes
 
   // Focus search input when nav expands
   useEffect(() => {
@@ -102,6 +109,7 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
                       e.stopPropagation(); // Prevent triggering onSelectWorkout
                       if (confirm(`Delete "${workout.title}"?`)) {
                         onDeleteWorkout(workout.id);
+                        refreshWorkouts();
                       }
                     }}
                     className="text-gray-400 hover:text-red-500"
@@ -118,7 +126,10 @@ export const WorkbookNavigation: React.FC<WorkbookNavigationProps> = ({
       {/* New workout button */}
       <div className="p-2 border-t border-gray-200">
         <button 
-          onClick={onCreateWorkout}
+          onClick={() => {
+            onCreateWorkout();
+            refreshWorkouts();
+          }}
           className={cn(
             "flex items-center justify-center hover:bg-blue-700 bg-blue-600 text-white rounded py-1 px-2 w-full",
             isCollapsed ? "px-0" : ""
