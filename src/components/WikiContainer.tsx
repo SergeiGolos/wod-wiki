@@ -6,7 +6,7 @@ import { WodRuntimeScript } from "@/core/WodRuntimeScript";
 import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
 import { OutputEvent } from "@/core/OutputEvent";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
-import { WodTimer } from "./clock/WodTimer";
+import { WodTimer, DefaultClockLayout } from "./clock";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
 import { encodeShareString } from "@/core/utils";
@@ -139,7 +139,9 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
       </div>
       {runtimeRef.current && (
         <>
-          <WodTimer label={label} primary={primary} total={total} />
+          <WodTimer label={label} primary={primary} total={total} events={output?.value}>
+            <DefaultClockLayout label={label} />
+          </WodTimer>
           <div className="p-1 flex justify-center">
           <ButtonRibbon buttons={runtimeButtons ?? []} setEvent={event => input.next(event)} />
           </div> 
