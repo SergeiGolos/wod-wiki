@@ -3,6 +3,7 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { RuntimeSpan } from "../RuntimeSpan";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { ITimeSpan } from "../ITimeSpan";
+import { BlockKey } from "../BlockKey";
 
 /**
  * Builder class for creating and managing RuntimeSpan objects.
@@ -194,9 +195,12 @@ export class ResultSpanBuilder {
   public registerSpan(span: RuntimeSpan): void {
     if (!span) return;
     
+    // Convert blockKey to string if it's a BlockKey object
+    const blockKeyStr = this.getBlockKeyAsString(span.blockKey);
+    
     // Check if the span already exists by comparing key properties
     const existingIndex = this.registeredSpans.findIndex(s => 
-      s.blockKey === span.blockKey && 
+      this.getBlockKeyAsString(s.blockKey) === blockKeyStr && 
       s.index === span.index && 
       s.start?.timestamp.getTime() === span.start?.timestamp.getTime()
     );
@@ -234,8 +238,11 @@ export class ResultSpanBuilder {
    * @param blockKey The block key to filter by
    * @returns Array of matching ResultSpans
    */
-  public getSpansByBlockKey(blockKey: string): RuntimeSpan[] {
-    return this.registeredSpans.filter(span => span.blockKey === blockKey);
+  public getSpansByBlockKey(blockKey: string | BlockKey): RuntimeSpan[] {
+    const blockKeyStr = this.getBlockKeyAsString(blockKey);
+    return this.registeredSpans.filter(span => 
+      this.getBlockKeyAsString(span.blockKey) === blockKeyStr
+    );
   }
 
   /**
@@ -332,20 +339,23 @@ export class ResultSpanBuilder {
    * @param rootBlockKey The block key of the root span (optional)
    * @returns A tree structure of spans
    */
-  public createHierarchicalView(rootBlockKey?: string): SpanNode {
+  public createHierarchicalView(rootBlockKey?: string | BlockKey): SpanNode {
     // Root node of the tree
     const root: SpanNode = {
       span: undefined,
       children: []
     };
     
+    // Convert rootBlockKey to string if it's provided
+    const rootBlockKeyStr = rootBlockKey ? this.getBlockKeyAsString(rootBlockKey) : undefined;
+    
     // If no root block key provided, use all top-level spans
-    const rootSpans = rootBlockKey 
-      ? this.registeredSpans.filter(span => span.blockKey === rootBlockKey)
+    const rootSpans = rootBlockKeyStr 
+      ? this.registeredSpans.filter(span => this.getBlockKeyAsString(span.blockKey) === rootBlockKeyStr)
       : this.registeredSpans.filter(span => {
           // Spans with no parent references or that don't match any other span's blockKey
           const isChild = this.registeredSpans.some(otherSpan => 
-            otherSpan.children?.includes(span.blockKey || '')
+            otherSpan.children?.includes(this.getBlockKeyAsString(span.blockKey) || '')
           );
           return !isChild;
         });
@@ -375,7 +385,9 @@ export class ResultSpanBuilder {
     if (span.children && span.children.length > 0) {
       span.children.forEach((childBlockKey: string) => {
         // Find child spans with matching blockKey
-        const childSpans = this.registeredSpans.filter(s => s.blockKey === childBlockKey);
+        const childSpans = this.registeredSpans.filter(s => 
+          this.getBlockKeyAsString(s.blockKey) === childBlockKey
+        );
         
         // Add each child span as a node in the tree
         childSpans.forEach(childSpan => {
@@ -395,6 +407,18 @@ export class ResultSpanBuilder {
     this.spans = [];
     this.currentSpan = null;
     this.registeredSpans = [];
+  }
+  
+  /**
+   * Helper method to convert a BlockKey object or string to a string
+   * @param blockKey The BlockKey object or string
+   * @returns The string representation of the BlockKey
+   * @private
+   */
+  private getBlockKeyAsString(blockKey?: string | BlockKey): string {
+    if (!blockKey) return '';
+    if (typeof blockKey === 'string') return blockKey;
+    return blockKey.toString();
   }
 }
 
