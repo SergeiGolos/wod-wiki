@@ -47,6 +47,8 @@ jobs:
         uses: Andrew-Chen-Wang/github-wiki-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          repository: SergeiGolos/wod-wiki.wiki  # Added .wiki suffix
+          github-server-url: https://github.com
           path: docs/
           commit-message: "Update wiki from docs folder"
         env:
