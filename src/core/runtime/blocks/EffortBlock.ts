@@ -26,6 +26,7 @@ export class EffortBlock extends RuntimeBlock {
     this.handlers.push(new CompleteHandler());
     // Set the metric composition strategy to properly extract metrics from fragments
     this.metricCompositionStrategy = new EffortMetricCompositionStrategy();
+    this.leaf = true; // mark as leaf-level block
   }
 
   /**
@@ -48,7 +49,6 @@ export class EffortBlock extends RuntimeBlock {
     return [
       new StopTimerAction(new StopEvent(new Date())),
       new SetButtonsAction([], "runtime"),
-      new PopulateMetricsAction(this),
       new WriteResultAction(this.spans())
     ];
   }

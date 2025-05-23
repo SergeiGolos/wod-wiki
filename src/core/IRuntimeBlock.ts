@@ -13,6 +13,9 @@ export interface IRuntimeBlock {
   blockId: string;  
   parent?: IRuntimeBlock | undefined;
 
+  // Leaf marker
+  leaf?: boolean;  // true if this block represents a leaf-level (effort) block
+
   // Use getter methods instead of direct properties for encapsulation
   sources: JitStatement[];  
   spans(): RuntimeSpan[];

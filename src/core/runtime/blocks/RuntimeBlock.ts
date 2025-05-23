@@ -29,6 +29,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
   public metricCompositionStrategy?: IMetricCompositionStrategy;
+  public leaf: boolean = false; // indicates leaf-level block
   
   private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();
   private _spans: RuntimeSpan[] = [];

@@ -148,6 +148,7 @@ export class ResultSpanBuilder {
     this.spans.forEach(span => {
       span.blockKey = block.blockKey;
       span.index = block.blockKey.index;
+      span.leaf = block.leaf; // propagate leaf marker
       
       // Also associate block key with each timespan
       span.timeSpans.forEach(timeSpan => {
