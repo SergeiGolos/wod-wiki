@@ -35,6 +35,7 @@ jobs:
         run: npm ci
 
       - name: Replace GA tag in manager-head.html
+        if: ${{ vars.G_TAG != '' }}
         run: |
           sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/manager-head.html
 
@@ -49,6 +50,8 @@ jobs:
         run: npm run build
 
       - name: Configure npm for default registry with token
+        # Only run when NPM_TOKEN is available
+        if: ${{ secrets.NPM_TOKEN != '' }}
         run: |
           # For the default NPM registry (npmjs.org)
           SCOPE=@bitcobblers
@@ -56,7 +59,8 @@ jobs:
           echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
 
       - name: Publish Package
-        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
+        # Only run when on main/tag AND NPM_TOKEN is available
+        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && secrets.NPM_TOKEN != '' }}  
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
