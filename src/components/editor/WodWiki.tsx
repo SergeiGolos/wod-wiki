@@ -15,7 +15,9 @@ interface WodWikiProps {
   code?: string;
   cursor?: IRuntimeBlock | undefined;  
   /** Optional value change handler */
-  onValueChange?: (classObject?: WodRuntimeScript) => void;    
+  onValueChange?: (classObject?: WodRuntimeScript) => void;
+  /** Optional callback when editor is mounted */
+  onMount?: (editor: any) => void;    
 }
 
 const tokens: WodWikiToken[] = [
@@ -30,7 +32,7 @@ const tokens: WodWikiToken[] = [
 
 
 
-export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: WodWikiProps) => {        
+export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
@@ -39,6 +41,9 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange }: Wo
       editorRef.current = editor;
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
+      if (onMount) {
+        onMount(editor);
+      }
       editor.onDidContentSizeChange(() => {
         handleContentSizeChange();
       });
