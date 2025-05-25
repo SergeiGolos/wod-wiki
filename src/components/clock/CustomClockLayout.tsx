@@ -12,18 +12,21 @@ export const CustomClockLayout: React.FC<CustomClockLayoutProps> = ({
   className 
 }) => {
   return (
-    <div className={cn("flex flex-col gap-4 w-full", className)}>
-      {/* Primary timer centered and large */}
+    <div className={cn("flex flex-col gap-4 w-full", className ?? "")}>      {/* Primary timer centered and large */}
       <div className="flex justify-center">
         <ClockAnchor 
           name="primary" 
           showRemaining={true}
+          showEffort={true}
           className="text-center"
-          render={(duration) => (
-            <div className="text-8xl font-mono font-bold text-blue-600">
-              {duration ? 
-                `${duration.minutes || 0}:${String(duration.seconds || 0).padStart(2, '0')}` : 
-                '--:--'}
+          render={(duration, _label, effort) => (
+            <div className="text-center">
+              {effort && <div className="text-2xl font-medium text-blue-600 mb-2">{effort}</div>}
+              <div className="text-8xl font-mono font-bold text-blue-600">
+                {duration ? 
+                  `${duration.minutes || 0}:${String(duration.seconds || 0).padStart(2, '0')}` : 
+                  '--:--'}
+              </div>
             </div>
           )}
         />
