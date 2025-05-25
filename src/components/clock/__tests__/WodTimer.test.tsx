@@ -1,11 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import { WodTimer } from '../WodTimer';
 import { OutputEvent } from '@/core/OutputEvent';
-import { TimeSpanDuration } from '@/core/TimeSpanDuration';
 import { TimerState } from '@/core/runtime/outputs/SetTimerStateAction';
 import { ISpanDuration } from '@/core/ISpanDuration';
 import React from 'react';
-import { vi } from 'vitest';
+import { vi, describe, test, expect } from 'vitest';
+
+// Mock ClockContext since we can't directly import it
+import { createContext } from 'react';
+
+// Create a mock ClockContext
+const ClockContext = createContext({
+  registry: {
+    durations: new Map<string, ISpanDuration>(),
+    states: new Map<string, TimerState>(),
+    efforts: new Map<string, string>()
+  },
+  isRunning: false,
+  isCountdown: false
+});
 
 // Mock child component that displays clock data from context
 const TestClockDisplay = () => {
@@ -21,38 +34,48 @@ const TestClockDisplay = () => {
   );
 };
 
-// Mock the ClockContext to avoid circular imports in tests
-import { createContext } from 'react';
-const ClockContext = createContext({
-  registry: {
-    durations: new Map(),
-    states: new Map()
-  },
-  isRunning: false,
-  isCountdown: false
+// Test component that inspects the effort
+const TestEffortDisplay = () => {
+  const clockContext = React.useContext(ClockContext);
+  return (
+    <div>
+      <div data-testid="primary-effort">
+        {clockContext.registry.efforts.get('primary') || 'none'}
+      </div>
+    </div>
+  );
+};
+
+// Create a mock implementation of the hooks
+vi.mock('@/hooks', () => {
+  return {
+    useClockRegistry: (events: OutputEvent[]) => {
+      const durations = new Map<string, ISpanDuration>();
+      const states = new Map<string, TimerState>();
+      const efforts = new Map<string, string>();
+
+      // Process the events
+      for (const event of events) {
+        if (event.eventType === 'SET_CLOCK' && event.bag?.target && event.bag?.duration) {
+          durations.set(event.bag.target, event.bag.duration);
+        }
+        else if (event.eventType === 'SET_TIMER_STATE' && event.bag?.target && event.bag?.state) {
+          states.set(event.bag.target, event.bag.state);
+        }
+        else if (event.eventType === 'SET_EFFORT' && event.bag?.target && event.bag?.effort) {
+          efforts.set(event.bag.target, event.bag.effort);
+        }
+      }
+
+      return { durations, states, efforts };
+    },
+    getClockState: (clockRegistry: any, name: string) => {
+      return clockRegistry.states.get(name);
+    }
+  };
 });
 
-// Mock the useClockRegistry hook
-vi.mock('@/hooks', () => ({
-  useClockRegistry: vi.fn((events) => {
-    const durations = new Map();
-    const states = new Map();
-    
-    // Process SET_CLOCK events
-    events.filter(e => e.eventType === 'SET_CLOCK' && e.bag?.target && e.bag?.duration)
-      .forEach(e => durations.set(e.bag.target, e.bag.duration));
-    
-    // Process SET_TIMER_STATE events
-    events.filter(e => e.eventType === 'SET_TIMER_STATE' && e.bag?.target && e.bag?.state)
-      .forEach(e => states.set(e.bag.target, e.bag.state));
-    
-    return { durations, states };
-  }),
-  getClockDuration: (registry, name) => registry.durations.get(name),
-  getClockState: (registry, name) => registry.states.get(name)
-}));
-
-describe.skip('WodTimer', () => {
+describe('WodTimer', () => {
   test('should properly handle countdown timer events', () => {
     // Create mock events that simulate a countdown timer
     const events: OutputEvent[] = [
@@ -162,5 +185,40 @@ describe.skip('WodTimer', () => {
     expect(screen.getByTestId('is-running').textContent).toBe('false');
     expect(screen.getByTestId('is-countdown').textContent).toBe('false');
     expect(screen.getByTestId('primary-available').textContent).toBe('true');
+  });
+  
+  test('should handle effort events', () => {
+    // Create mock events that include an effort
+    const events: OutputEvent[] = [
+      {
+        eventType: 'SET_CLOCK',
+        bag: { 
+          target: 'primary', 
+          duration: { 
+            original: 60000, 
+            elapsed: 10000, 
+            remaining: 50000, 
+            sign: '-' 
+          } as ISpanDuration 
+        },
+        timestamp: new Date()
+      },
+      {
+        eventType: 'SET_EFFORT',
+        bag: { 
+          target: 'primary',
+          effort: 'Work'
+        },
+        timestamp: new Date()
+      }
+    ];
+
+    render(
+      <WodTimer events={events}>
+        <TestEffortDisplay />
+      </WodTimer>
+    );
+
+    expect(screen.getByTestId('primary-effort').textContent).toBe('Work');
   });
 });
