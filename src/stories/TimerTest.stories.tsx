@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { expect } from '@storybook/test';
 import { userEvent, waitFor, within } from '@storybook/testing-library';
 import '../index.css';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { WodTimer } from '../components/clock/WodTimer';
 import { DefaultClockLayout } from '../components/clock/DefaultClockLayout';
 import { ISpanDuration } from '@/core/ISpanDuration';
@@ -11,6 +11,39 @@ import { OutputEvent } from '@/core/OutputEvent';
 import { startButton } from '@/components/buttons/timerButtons';
 import EffortSummaryCard from '@/components/metrics/EffortSummaryCard';
 import { RuntimeSpan } from '@/core/RuntimeSpan';
+import { IDuration } from '@/core/IDuration';
+
+// Helper function to create a valid ISpanDuration
+const createSpanDuration = (original: number, elapsed: number, remaining: number, sign: '-' | '+'): ISpanDuration => {
+  return {
+    days: 0,
+    hours: 0,
+    minutes: Math.floor(elapsed / 60000),
+    seconds: Math.floor((elapsed % 60000) / 1000),
+    milliseconds: elapsed % 1000,
+    original,
+    spans: [],
+    sign,
+    elapsed(): IDuration {
+      return {
+        days: 0,
+        hours: 0,
+        minutes: Math.floor(elapsed / 60000),
+        seconds: Math.floor((elapsed % 60000) / 1000),
+        milliseconds: elapsed % 1000
+      };
+    },
+    remaining(): IDuration {
+      return {
+        days: 0,
+        hours: 0,
+        minutes: Math.floor(remaining / 60000),
+        seconds: Math.floor((remaining % 60000) / 1000),
+        milliseconds: remaining % 1000
+      };
+    }
+  };
+};
 
 // Create a simple 5-second timer test component
 const SimpleTimerTest = () => {
@@ -20,14 +53,7 @@ const SimpleTimerTest = () => {
   const [spans, setSpans] = useState<[RuntimeSpan, boolean][]>([]);
   
   // Define the timer duration (5000ms = 5 seconds)
-  const timerDuration: ISpanDuration = {
-    original: 5000,
-    elapsed: 0,
-    remaining: 5000,
-    sign: '-',
-    elapsed: () => ({ seconds: 0, milliseconds: 0 }),
-    remaining: () => ({ seconds: 5, milliseconds: 0 }),
-  };
+  const timerDuration = createSpanDuration(5000, 0, 5000, '-');
 
   // Handle run button click
   const handleRunClick = () => {
@@ -64,24 +90,12 @@ const SimpleTimerTest = () => {
       elapsed += 1000;
       const remaining = Math.max(0, 5000 - elapsed);
       
-      // Update the clock event
+      // Update the clock event with a new span duration
       const updateClockEvent: OutputEvent = {
         eventType: 'SET_CLOCK',
         bag: {
           target: 'primary',
-          duration: {
-            ...timerDuration,
-            elapsed,
-            remaining,
-            elapsed: () => ({ 
-              seconds: Math.floor(elapsed / 1000),
-              milliseconds: elapsed % 1000
-            }),
-            remaining: () => ({
-              seconds: Math.floor(remaining / 1000), 
-              milliseconds: remaining % 1000
-            })
-          }
+          duration: createSpanDuration(5000, elapsed, remaining, '-')
         },
         timestamp: new Date()
       };
@@ -107,19 +121,16 @@ const SimpleTimerTest = () => {
         setIsTimerComplete(true);
         
         // Create a span for the completed timer
-        const newSpan: RuntimeSpan = {
-          id: "timer-test-span",
-          type: "effort",
-          metrics: [{
-            id: "timer-metric",
-            effort: "Timer",
-            values: []
-          }],
-          timeSpans: [{
-            start: { timestamp: now },
-            stop: { timestamp: new Date() }
-          }]
-        };
+        const newSpan = new RuntimeSpan();
+        newSpan.metrics = [{
+          sourceId: "timer-metric",
+          effort: "Timer",
+          values: []
+        }];
+        newSpan.timeSpans = [{
+          start: { name: 'start', timestamp: now },
+          stop: { name: 'stop', timestamp: new Date() }
+        }];
         
         setSpans([[newSpan, true]]);
       }
@@ -140,13 +151,11 @@ const SimpleTimerTest = () => {
         <div className="flex space-x-4 mb-4">
           <button
             data-testid="run-button"
-            className={`flex items-center px-4 py-2 rounded-md bg-blue-600 text-white focus:outline-none ${
-              isTimerRunning || isTimerComplete ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-            }`}
+            className="flex items-center px-4 py-2 rounded-md bg-blue-600 text-white focus:outline-none hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleRunClick}
             disabled={isTimerRunning || isTimerComplete}
           >
-            <startButton.icon className="w-5 h-5 mr-2" />
+            {startButton.icon && React.createElement(startButton.icon, { className: "w-5 h-5 mr-2" })}
             {startButton.label}
           </button>
           

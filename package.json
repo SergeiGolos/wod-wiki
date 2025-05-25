@@ -54,6 +54,7 @@
     "@storybook/react-vite": "^8.6.12",
     "@storybook/test": "^8.6.12",
     "@storybook/test-runner": "^0.22.0",
+    "@storybook/testing-library": "^0.2.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/pako": "^2.0.3",
