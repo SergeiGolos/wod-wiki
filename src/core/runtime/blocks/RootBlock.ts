@@ -47,8 +47,7 @@ export class RootBlock extends RuntimeBlock {
 
   /**
    * Implementation of the doNext hook method from the template pattern
-   */
-  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {    
+   */  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {    
     if (this._sourceIndex >=  this.children.length) {
       return [new PushEndBlockAction()];
     }
@@ -58,6 +57,7 @@ export class RootBlock extends RuntimeBlock {
     if (groupStatements.length == 0) {              
       return [new PopBlockAction()];
     }
+    
     this._sourceIndex += groupStatements.length;
     return [new PushStatementAction(groupStatements)];
   }

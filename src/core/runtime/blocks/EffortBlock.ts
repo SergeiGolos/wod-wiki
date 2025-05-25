@@ -28,8 +28,7 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Extract effort descriptions from the metrics for display purposes
    * @returns Array of effort descriptions
-   */  
-  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
+   */  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     // Determine if this effort block has a specific duration
     const duration = this.selectMany(getDuration)[0];
     const timerState = duration?.original 
@@ -40,13 +39,15 @@ export class EffortBlock extends RuntimeBlock {
     const metrics = this.metrics(runtime);
     const effortText = metrics.length > 0 ? metrics[0].effort : "Exercise";
     
-    return [       
+    const actions = [       
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
       new SetClockAction("primary"),
       new SetTimerStateAction(timerState, "primary"),
       new SetEffortAction(effortText, "primary")
     ];
+    
+    return actions;
   }
 
   protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {

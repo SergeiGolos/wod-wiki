@@ -10,7 +10,7 @@ interface ButtonRibbonProps {
 }
 
 export const ButtonRibbon: React.FC<ButtonRibbonProps> = ({ buttons, setEvent }) => {
-  
+  console.log(`🎀 ButtonRibbon rendered with ${buttons?.length || 0} buttons:`, buttons?.map(b => b.label) || []);
   
   /// TODO:  THis should be conifugred at the button not in the ribben
   const getButtonStyle = (button: IActionButton) => {

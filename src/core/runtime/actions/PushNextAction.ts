@@ -13,9 +13,13 @@ export class PushNextAction extends LeafNodeAction {
    * 
    * @param runtime The timer runtime
    * @param block The block to apply the action to
-   */
-  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+   */  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+    console.log(`🔄 PushNextAction.applyBlock() - calling next() on ${block.constructor.name} [${block.blockKey}]`);
+    
     const next = block.next(runtime);
+    
+    console.log(`🔄 PushNextAction.applyBlock() - block.next() returned ${next.length} actions:`, next.map(a => a.name));
+    
     runtime.apply(next, block);
   }
 }

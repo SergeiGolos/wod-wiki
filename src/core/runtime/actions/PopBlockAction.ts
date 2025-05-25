@@ -11,6 +11,15 @@ export class PopBlockAction implements IRuntimeAction {
     _input: Subject<IRuntimeEvent>,
     _output: Subject<OutputEvent>
   ): void {
-    runtime.pop();
+    const poppedBlock = runtime.pop();
+    
+    // After popping a block, call next() on the current block to continue execution
+    const currentBlock = runtime.trace.current();
+    if (currentBlock && poppedBlock) {
+      const nextActions = currentBlock.next(runtime);
+      if (nextActions && nextActions.length > 0) {
+        runtime.apply(nextActions, currentBlock);
+      }
+    }
   }
 }
