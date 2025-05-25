@@ -144,8 +144,28 @@ npm install react react-dom monaco-editor
 
 ## Testing
 
-Run tests using Vitest:
+### Unit Tests
+
+Run unit tests using Vitest:
 
 ```shell
 npm run test
 ```
+
+### Storybook Tests
+
+Run interaction tests in Storybook:
+
+1. First, make sure Storybook is running:
+
+```shell
+npm run dev
+```
+
+2. In a separate terminal, run the Storybook test runner:
+
+```shell
+npm run test-storybook
+```
+
+This will run all interaction tests defined in the stories using Playwright. The tests are defined in the `play` function of the stories, such as the timer test in `src/stories/TimerTest.stories.tsx`.
