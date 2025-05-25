@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { ISpanDuration } from "@/core/ISpanDuration";
-import { useClockRegistry, getClockDuration, getClockState } from "@/hooks";
+import { useClockRegistry, getClockState } from "@/hooks";
 import { OutputEvent } from "@/core/OutputEvent";
 import React, { useEffect } from "react";
 import { ClockContext } from "@/contexts/ClockContext";
@@ -9,8 +9,6 @@ import { TimerState } from "@/core/runtime/outputs/SetTimerStateAction";
 
 export interface WodTimerProps {
   className?: string;
-  /** Optional default label */
-  label?: string; 
   /** Default primary time span */
   primary?: ISpanDuration;
   /** Default total time span */
@@ -23,7 +21,6 @@ export interface WodTimerProps {
 
 export const WodTimer: React.FC<WodTimerProps> = ({
   className,
-  label,
   primary,
   total,
   events = [],
@@ -31,26 +28,13 @@ export const WodTimer: React.FC<WodTimerProps> = ({
 }) => {
   // Use the clock registry to get the latest durations and states from events
   const clockRegistry = useClockRegistry(events);
-  
-  // Initialize registry with props if provided
+    // Initialize registry with props if provided
   useEffect(() => {
     if (!clockRegistry) return;
     
-    // Create new maps to avoid mutating state directly
-    const newDurations = new Map(clockRegistry.durations);
-    let hasChanges = false;
-    
-    if (primary && !newDurations.has('primary')) {
-      newDurations.set('primary', primary);
-      hasChanges = true;
-    }
-    
-    if (total && !newDurations.has('total')) {
-      newDurations.set('total', total);
-      hasChanges = true;
-    }
-    
-    // Update interval is managed by useClockRegistry hook
+    // The useClockRegistry hook manages the registry state
+    // Initial values from props would need to be handled differently
+    // For now, the registry is managed entirely by events
   }, [primary, total, clockRegistry]);
 
   // Determine if timer is running based on state
@@ -60,15 +44,18 @@ export const WodTimer: React.FC<WodTimerProps> = ({
   
   // Determine if timer is showing countdown or countup
   const isCountdown = primaryState === TimerState.RUNNING_COUNTDOWN;
-
   // Provide the clock registry to all children via context
   return (
     <ClockContext.Provider value={{ 
-      registry: clockRegistry,
+      registry: {
+        durations: clockRegistry.durations,
+        states: clockRegistry.states,
+        efforts: clockRegistry.efforts
+      },
       isRunning,
       isCountdown
     }}>
-      <div className={cn("w-full flex flex-col items-center justify-center py-2 pb-2 px-1 bg-white", className)}>
+      <div className={cn("w-full flex flex-col items-center justify-center py-2 pb-2 px-1 bg-white", className ?? "")}>
         {children}
       </div>
     </ClockContext.Provider>
