@@ -8,6 +8,8 @@ import { completeButton, endButton, pauseButton } from "@/components/buttons/tim
 import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
+import { CompleteHandler } from "../inputs/CompleteEvent";
+import { LapHandler } from "../inputs/LapEvent";
 
 export class RepeatingBlock extends RuntimeBlock {
   private childIndex: number = 0;    
@@ -19,6 +21,10 @@ export class RepeatingBlock extends RuntimeBlock {
   ) {
     super(source);      
     this.lastLap = "";
+    
+    // Add specialized handlers for user interactions
+    this.handlers.push(new CompleteHandler());
+    this.handlers.push(new LapHandler());
   }
   
   /**

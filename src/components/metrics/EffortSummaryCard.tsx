@@ -1,7 +1,8 @@
-// src/components/analyrics/EffortSummaryCard.tsx
+// src/components/metrics/EffortSummaryCard.tsx
 import React from 'react';
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { XMarkIcon } from '@heroicons/react/20/solid';
+import { MetricValue } from "@/core/MetricValue";
 
 interface EffortSummaryCardProps {
   spansOptions: [RuntimeSpan, boolean][];
@@ -9,15 +10,48 @@ interface EffortSummaryCardProps {
   setSelectedEffortFilter: (effort: string) => void;
 }
 
+// Utility functions for extracting metric values from the new structure
+const getMetricValue = (span: RuntimeSpan, metricType: 'repetitions' | 'resistance' | 'distance'): MetricValue | undefined => {
+  for (const metric of span.metrics) {
+    const value = metric.values.find(v => v.type === metricType);
+    if (value) return value;
+  }
+  return undefined;
+};
+
+const calculateDurationMs = (span: RuntimeSpan): number => {
+  if (!span.timeSpans || span.timeSpans.length === 0) return 0;
+  
+  return span.timeSpans.reduce((total, timeSpan) => {
+    const start = timeSpan.start?.timestamp?.getTime();
+    const stop = timeSpan.stop?.timestamp?.getTime();
+    
+    if (!start) return total;
+    
+    // If no stop time, use current time for running spans
+    const endTime = stop || new Date().getTime();
+    const duration = endTime > start ? endTime - start : 0;
+    
+    return total + duration;
+  }, 0);
+};
+
 const EffortSummaryCard: React.FC<EffortSummaryCardProps> = ({ spansOptions, selectedEffortFilter, setSelectedEffortFilter }) => {  
   if (!spansOptions || spansOptions.length === 0 || !spansOptions[0][0].metrics || spansOptions[0][0].metrics.length === 0) {
     return null;
   }
 
-  const uniqueEfforts = Array.from(new Set(spansOptions.map(span => span[0].metrics?.[0]?.effort).filter(Boolean)));
+  // Extract unique efforts from all metrics across all spans
+  const uniqueEfforts = Array.from(new Set(
+    spansOptions.flatMap(([span]) => 
+      span.metrics.map(metric => metric.effort)
+    ).filter(Boolean)
+  ));
 
   const filteredSpans = selectedEffortFilter.length > 0
-    ? spansOptions.filter(span => selectedEffortFilter.includes(span[0].metrics?.[0]?.effort))
+    ? spansOptions.filter(([span]) => 
+        span.metrics.some(metric => selectedEffortFilter.includes(metric.effort))
+      )
     : spansOptions;
 
   if (!filteredSpans.length) {
@@ -29,25 +63,50 @@ const EffortSummaryCard: React.FC<EffortSummaryCardProps> = ({ spansOptions, sel
   }
 
   const numberOfSets = filteredSpans.length;
-  const totalReps = filteredSpans.reduce((total, span) => total + (span[0].metrics?.[0]?.repetitions?.value || 0), 0);
-
-  const resistanceMetric = filteredSpans[0][0].metrics[0].resistance;
-  const distanceMetric = filteredSpans[0][0].metrics[0].distance;
-  const resistanceUnit = resistanceMetric?.unit;
-  const distanceUnit = distanceMetric?.unit;
-
-  const totalWeightValue = filteredSpans.reduce((total, span) => total + (span[0].metrics?.[0]?.resistance?.value || 0) * (span[0].metrics?.[0]?.repetitions?.value || 0), 0);
-  const totalDistanceValue = filteredSpans.reduce((total, span) => total + (span[0].metrics?.[0]?.distance?.value || 0) * (span[0].metrics?.[0]?.repetitions?.value || 0), 0);
-
-  const totalDurationMs = filteredSpans.reduce((total, span) => {
-    const start = span[0].start?.timestamp?.getTime();
-    const end = span[0].stop?.timestamp?.getTime();
-    const duration = start && end && end > start ? end - start : 0;
-    return total + duration;
+  
+  // Calculate totals using the new metric structure
+  const totalReps = filteredSpans.reduce((total, [span]) => {
+    const repsValue = getMetricValue(span, 'repetitions');
+    return total + (repsValue?.value || 0);
   }, 0);
 
+  // Get units from first span that has the respective metrics
+  let resistanceUnit = '';
+  let distanceUnit = '';
+  
+  for (const [span] of filteredSpans) {
+    if (!resistanceUnit) {
+      const resistanceValue = getMetricValue(span, 'resistance');
+      if (resistanceValue) resistanceUnit = resistanceValue.unit;
+    }
+    if (!distanceUnit) {
+      const distanceValue = getMetricValue(span, 'distance');
+      if (distanceValue) distanceUnit = distanceValue.unit;
+    }
+    if (resistanceUnit && distanceUnit) break;
+  }
+
+  const totalWeightValue = filteredSpans.reduce((total, [span]) => {
+    const resistanceValue = getMetricValue(span, 'resistance');
+    const repsValue = getMetricValue(span, 'repetitions');
+    const weight = resistanceValue?.value || 0;
+    const reps = repsValue?.value || 0;
+    return total + (weight * reps);
+  }, 0);
+
+  const totalDistanceValue = filteredSpans.reduce((total, [span]) => {
+    const distanceValue = getMetricValue(span, 'distance');
+    const repsValue = getMetricValue(span, 'repetitions');
+    const distance = distanceValue?.value || 0;
+    const reps = repsValue?.value || 0;
+    return total + (distance * reps);
+  }, 0);
+
+  const totalDurationMs = filteredSpans.reduce((total, [span]) => {
+    return total + calculateDurationMs(span);
+  }, 0);
   const averageWeightUsedPerRep = totalReps > 0 ? totalWeightValue / totalReps : 0;
-  const averageTimePerRepSeconds = totalReps > 0 ? (totalDurationMs) / totalReps : 0;
+  const averageTimePerRepSeconds = totalReps > 0 ? (totalDurationMs / 1000) / totalReps : 0;
 
   const stats = [
     { id: 'sets', name: 'Sets', value: numberOfSets },

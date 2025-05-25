@@ -12,6 +12,7 @@ import { completeButton } from "@/components/buttons/timerButtons";
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { SetClockAction } from "../outputs/SetClockAction";
 import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
+import { SetEffortAction } from "../outputs/SetEffortAction";
 import { getDuration } from "../blocks/readers/getDuration";
 
 export class EffortBlock extends RuntimeBlock {
@@ -27,20 +28,26 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Extract effort descriptions from the metrics for display purposes
    * @returns Array of effort descriptions
-   */  
-  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
+   */  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     // Determine if this effort block has a specific duration
     const duration = this.selectMany(getDuration)[0];
     const timerState = duration?.original 
       ? TimerState.RUNNING_COUNTDOWN 
       : TimerState.RUNNING_COUNTUP;
     
-    return [       
+    // Get effort information from metrics to display in timer
+    const metrics = this.metrics(runtime);
+    const effortText = metrics.length > 0 ? metrics[0].effort : "Exercise";
+    
+    const actions = [       
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
       new SetClockAction("primary"),
-      new SetTimerStateAction(timerState, "primary")
+      new SetTimerStateAction(timerState, "primary"),
+      new SetEffortAction(effortText, "primary")
     ];
+    
+    return actions;
   }
 
   protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {

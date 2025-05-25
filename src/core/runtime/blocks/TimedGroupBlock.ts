@@ -17,6 +17,8 @@ import { getDuration } from "./readers/getDuration";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetDurationAction } from "../outputs/SetDurationAction";
 import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
+import { CompleteHandler } from "../inputs/CompleteEvent";
+import { LapHandler } from "../inputs/LapEvent";
 
 export class TimedGroupBlock extends RuntimeBlock {
   // Local registry for child spans
@@ -31,6 +33,10 @@ export class TimedGroupBlock extends RuntimeBlock {
     // Initialize state directly on the instance
     this.childIndex = 0; 
     this.lastLap = "";
+    
+    // Add specialized handlers for user interactions
+    this.handlers.push(new CompleteHandler());
+    this.handlers.push(new LapHandler());
   }
   
   private _updateSpanWithAggregatedChildMetrics(span: RuntimeSpan | undefined): void {

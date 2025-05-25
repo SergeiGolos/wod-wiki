@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import React from 'react';
-import { useClockContext, getClockByName } from '@/contexts/ClockContext';
+import { useClockContext, getClockByName, getClockEffortByName } from '@/contexts/ClockContext';
 import { IDuration } from '@/core/IDuration';
 import { cn } from '@/core/utils';
 
@@ -41,15 +41,13 @@ export const ClockDisplay: React.FC<ClockDisplayProps> = ({
   clock.push(`${pad(seconds)}`);
 
   if (!clock) { 
-    return (
-      <div className={cn("mx-auto flex items-center", className)}>
-        <span className="text-5xl md:text-6xl">--:--.-</span>
-      </div>
+    return (    <div className={cn("mx-auto flex items-center", className ?? "")}>
+      <span className="text-5xl md:text-6xl">--:--.-</span>
+    </div>
     );
   }
-
   return (
-    <div className={cn("mx-auto flex items-center", className)}>
+    <div className={cn("mx-auto flex items-center", className ?? "")}>
       <span className="text-5xl md:text-6xl">{clock.join(":")}</span>
       <span className="text-gray-600 text-4xl">.{pad(milliseconds).substring(0, 1)}</span>
     </div>
@@ -63,8 +61,10 @@ export interface ClockAnchorProps {
   showRemaining?: boolean;
   /** Optional label text to display with the time */
   label?: string;
+  /** When true, shows effort/exercise information alongside the timer */
+  showEffort?: boolean;
   /** Optional custom render function */
-  render?: (duration: IDuration | undefined, label?: string) => React.ReactNode;
+  render?: (duration: IDuration | undefined, label?: string, effort?: string) => React.ReactNode;
 }
 
 export const ClockAnchor: React.FC<ClockAnchorProps> = ({
@@ -72,10 +72,11 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   className,
   showRemaining = false,
   label,
+  showEffort = false,
   render,
-}) => {
-  const { registry } = useClockContext();
+}) => {  const { registry } = useClockContext();
   const spanDuration = getClockByName(registry, name);
+  const effort = showEffort ? getClockEffortByName(registry, name) : undefined;
   
   // Calculate what to display based on the span duration
   const displayDuration = spanDuration ? 
@@ -83,16 +84,14 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
       spanDuration.remaining() : 
       spanDuration.elapsed()) : 
     undefined;
-
   // Use custom render function if provided
   if (render) {
-    return <>{render(displayDuration, label)}</>;
-  }
-
-  // Default rendering with optional label
+    return <>{render(displayDuration, label, effort)}</>;
+  }  // Default rendering with optional label
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex flex-col", className ?? "")}>
       {label && <div className="text-sm uppercase tracking-wide text-gray-600">{label}</div>}
+      {effort && <div className="text-lg font-medium text-blue-600 mb-1">{effort}</div>}
       <ClockDisplay duration={displayDuration} />
     </div>
   );

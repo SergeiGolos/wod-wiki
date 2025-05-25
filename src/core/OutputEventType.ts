@@ -6,8 +6,11 @@ export type OutputEventType = 'SYSTEM' |
   'CLEAR_RESULTS' |
   'SET_DISPLAY' |
   'SET_CLOCK' |
+  'SET_TIMER_STATE' |
+  'SET_EFFORT' |
   'SET_TEXT' |
   'SET_SOUND' |
   'SET_DEBUG' |
   'SET_ERROR' |
-  'SET_IDLE';
+  'SET_IDLE' |
+  'SET_TIMER_STATE';

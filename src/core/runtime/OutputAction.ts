@@ -1,4 +1,3 @@
-import { ISpanDuration } from "../ISpanDuration";
 import { IRuntimeAction } from "../IRuntimeAction";
 import { OutputEvent } from "../OutputEvent";
 import { OutputEventType } from "../OutputEventType";
@@ -11,10 +10,13 @@ export abstract class OutputAction implements IRuntimeAction {
     }
     name: string;    
     abstract write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>) : OutputEvent[] ;
-    
-    apply(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>) {
+      apply(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>) {
         const events = this.write(_runtime, _input);
-        events.forEach(event => output.next(event));
+        console.log(`🚀 OutputAction.apply() - ${this.name} emitting ${events.length} events`);
+        events.forEach((event, index) => {
+            console.log(`   Event ${index + 1}: ${event.eventType}`, event.bag);
+            output.next(event);
+        });
     }
 }
 
