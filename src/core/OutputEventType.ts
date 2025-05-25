@@ -10,4 +10,5 @@ export type OutputEventType = 'SYSTEM' |
   'SET_SOUND' |
   'SET_DEBUG' |
   'SET_ERROR' |
-  'SET_IDLE';
+  'SET_IDLE' |
+  'SET_TIMER_STATE';
