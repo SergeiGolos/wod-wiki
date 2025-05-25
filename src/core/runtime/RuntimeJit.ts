@@ -15,6 +15,7 @@ import { RunHandler } from "./inputs/RunEvent";
 import { NextStatementHandler } from "./inputs/NextStatementEvent";
 import { DisplayHandler } from "./inputs/DisplayHandler";
 import { PushActionHandler } from "./inputs/PushActionEvent";
+import { SoundHandler } from "./inputs/SoundEvent";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJitStrategies } from "./RuntimeJitStrategies";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
@@ -54,6 +55,7 @@ export class RuntimeJit {
     new ResetHandler(),
     new EndHandler(),
     new DisplayHandler(),
+    new SoundHandler(), // Add SoundHandler for audio feedback
   ];
 
   /**

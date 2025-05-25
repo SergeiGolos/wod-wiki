@@ -30,12 +30,17 @@ export class TimerRuntime implements ITimerRuntimeIo {
 
     this.init();
     this.tick$ = interval(50).pipe(
-      map(() => new TickEvent()));
-
-    this.dispose = merge(this.input$, this.tick$)
+      map(() => new TickEvent()));    this.dispose = merge(this.input$, this.tick$)
       .subscribe(event => {
         const block = this.trace.current();
-        this.log(block!, event);
+        
+        // Handle case where no block is on the stack
+        if (!block) {
+          console.warn(`📣 Event ${event.name} received but no block is on the runtime stack`);
+          return;
+        }
+        
+        this.log(block, event);
         
         // Add enhanced logging for all non-tick events
         if (event.name !== "tick") {
@@ -45,25 +50,28 @@ export class TimerRuntime implements ITimerRuntimeIo {
           }
         }
         
-        const actions = block!.handle(this, event, this.jit.handlers)
+        const actions = block.handle(this, event, this.jit.handlers)
           .filter(arr_actions => arr_actions !== undefined)
           .flat() ?? [];
 
         if (actions.length > 0) {
-          this.apply(actions, block!);
+          this.apply(actions, block);
         }
       });
-  }
-  init() {
+  }  init() {
     this.history = [];
     this.trace = new RuntimeStack();
     this.registry = new ResultSpanBuilder();
-    
-    // Skip pushing the root block when running in a test
-    // This helps avoid issues with tests that expect to control the stack
+      // Always push the root block unless explicitly running in test environment
+    // This ensures the runtime stack is never empty during normal operation
     const rootBlock = this.jit.root(this);
-    if (rootBlock && process.env.NODE_ENV !== 'test') {
-      this.push(rootBlock);
+    if (rootBlock) {
+      // Check for testing environment using Vitest globals
+      const isTestEnv = typeof globalThis !== 'undefined' && 
+                       (globalThis as any).__vitest__ !== undefined;
+      if (!isTestEnv) {
+        this.push(rootBlock);
+      }
     }
   }
 
