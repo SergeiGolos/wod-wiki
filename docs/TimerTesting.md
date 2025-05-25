@@ -9,6 +9,35 @@ We use two main approaches for testing the WodTimer component:
 1. **Unit Tests**: Testing the component's logic and rendering in isolation
 2. **Storybook Interaction Tests**: Testing the component's behavior in response to user interactions
 
+## Running Tests
+
+### Unit Tests
+Run the unit tests with:
+```bash
+npm run test
+```
+
+Or to run a specific test file:
+```bash
+npx vitest run src/components/clock/__tests__/WodTimer.test.tsx
+```
+
+### Storybook Tests
+1. Start the Storybook server:
+```bash
+npm run dev
+```
+
+2. In another terminal, run the Storybook tests:
+```bash
+npm run test-storybook
+```
+
+Note: Before running Storybook tests for the first time, you might need to install the required browser dependencies:
+```bash
+npx playwright install --with-deps
+```
+
 ## Unit Testing
 
 Unit tests for the WodTimer component focus on verifying that the component correctly responds to various event types and updates its internal state accordingly.
