@@ -37,14 +37,44 @@ export class EffortBlock extends RuntimeBlock {
     
     // Get effort information from metrics to display in timer
     const metrics = this.metrics(runtime);
-    const effortText = metrics.length > 0 ? metrics[0].effort : "Exercise";
+    
+    // Format all metrics with their values
+    const effortTexts: string[] = [];
+    
+    if (metrics.length > 0) {
+      for (const metric of metrics) {
+        let effortText = metric.effort;
+        
+        // Add metric values to the display text if available
+        const reps = metric.values.find(v => v.type === "repetitions");
+        const resistance = metric.values.find(v => v.type === "resistance");
+        const distance = metric.values.find(v => v.type === "distance");
+        
+        if (reps || resistance || distance) {
+          const valueStrings: string[] = [];
+          
+          if (reps) valueStrings.push(`${reps.value}${reps.unit}`);
+          if (resistance) valueStrings.push(`${resistance.value}${resistance.unit}`);
+          if (distance) valueStrings.push(`${distance.value}${distance.unit}`);
+          
+          effortText += ` (${valueStrings.join(", ")})`;
+        }
+        
+        effortTexts.push(effortText);
+      }
+    } else {
+      effortTexts.push("Exercise");
+    }
+    
+    // Join all efforts with line breaks for multi-line display
+    const formattedEffort = effortTexts.join("\n");
     
     const actions = [       
       new StartTimerAction(new StartEvent(new Date())),
       new SetButtonsAction([completeButton], "runtime"),
       new SetClockAction("primary"),
       new SetTimerStateAction(timerState, "primary"),
-      new SetEffortAction(effortText, "primary")
+      new SetEffortAction(formattedEffort, "primary")
     ];
     
     return actions;

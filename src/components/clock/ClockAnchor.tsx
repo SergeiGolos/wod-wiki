@@ -91,8 +91,16 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   return (
     <div className={cn("flex flex-col", className ?? "")}>
       {label && <div className="text-sm uppercase tracking-wide text-gray-600">{label}</div>}
-      {effort && <div className="text-lg font-medium text-blue-600 mb-1">{effort}</div>}
-      <ClockDisplay duration={displayDuration} />
+      <div className="flex items-center">
+        {effort && (
+          <div className="flex flex-col mr-4">
+            {effort.split("\n").map((line, index) => (
+              <div key={index} className="text-lg font-medium text-blue-600">{line}</div>
+            ))}
+          </div>
+        )}
+        <ClockDisplay duration={displayDuration} />
+      </div>
     </div>
   );
 };
