@@ -21,9 +21,16 @@ export const CustomClockLayout: React.FC<CustomClockLayoutProps> = ({
           className="text-center"
           render={(duration, _label, effort) => (
             <div className="text-center">
-              {effort && <div className="text-2xl font-medium text-blue-600 mb-2">{effort}</div>}
-              <div className="text-8xl font-mono font-bold text-blue-600">
-                {duration ? 
+              <div className="flex items-center justify-center">
+                {effort && (
+                  <div className="flex flex-col mr-4">
+                    {effort.split("\n").map((line, index) => (
+                      <div key={index} className="text-2xl font-medium text-blue-600">{line}</div>
+                    ))}
+                  </div>
+                )}
+                <div className="text-8xl font-mono font-bold text-blue-600">
+                  {duration ? 
                   `${duration.minutes || 0}:${String(duration.seconds || 0).padStart(2, '0')}` : 
                   '--:--'}
               </div>

@@ -24,6 +24,9 @@ Successfully resolved the incompatibility between the clock display system and t
 - **Modified `EffortBlock.onEnter()`** (`src/core/runtime/blocks/EffortBlock.ts`)
   - Now emits `SetEffortAction` with effort text from metrics
   - Ensures effort information flows to the display system
+  - Enhanced to include ALL metrics, not just the first one
+  - Formats metrics to include values (reps, weight, distance)
+  - Joins multiple efforts with line breaks for multi-line display
 
 ### 5. Enhanced Registry System
 - **Extended `useClockRegistry`** (`src/hooks/useClockRegistry.ts`)
@@ -46,6 +49,9 @@ Successfully resolved the incompatibility between the clock display system and t
   - Added `showEffort` prop to control effort display
   - Updated render function to include effort parameter
   - Added effort display in default rendering with blue styling
+  - Positioned effort display to the LEFT of the clock (formerly above)
+  - Added support for displaying multiple efforts as a vertical list
+  - Added support for displaying metric values (reps, weight, distance)
 
 ## Usage Examples
 
