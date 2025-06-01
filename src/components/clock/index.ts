@@ -1,4 +1,4 @@
 export * from './WodTimer';
 export * from './ClockAnchor';
-export * from './DefaultClockLayout';
-export * from './CustomClockLayout';
+export * from './EffortAnchor';
+export * from './ClockFaceLayout';

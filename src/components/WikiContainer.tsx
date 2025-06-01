@@ -6,18 +6,13 @@ import { WodRuntimeScript } from "@/core/WodRuntimeScript";
 import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
 import { OutputEvent } from "@/core/OutputEvent";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
-import { WodTimer, DefaultClockLayout } from "./clock";
+import { WodTimer, ClockFaceLayout } from "./clock";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
 import { encodeShareString } from "@/core/utils";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
-import { ButtonRibbon } from "./buttons/ButtonRibbon";
-import { useLocalResultSync } from "@/components/syncs/useLocalResultSync";
-import { useClockDisplaySync } from "@/components/syncs/useClockDisplaySync";
-import { useLocalCursorSync } from "@/components/syncs/useLocalCursorSync";
-import { useButtonSync } from "@/components/syncs/useButtonSync";
-import { startButton } from "./buttons/timerButtons";
-import { useTextSync } from "./syncs/useTextSync";
+import { useResultsSync } from "./syncs/useResultsSync";
+import { useEventsSync } from "./syncs/useEventsSync";
 
 interface WikiContainerProps {
   id: string;
@@ -51,60 +46,36 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
 }) => {
   const [shareStatus, setShareStatus] = React.useState<string | null>(null);
   const editorRef = React.useRef<any>(null);
-  const { loadScript, runtimeRef, input, output } = useTimerRuntime({
+  const { loadScript, runtimeRef, input, output$ } = useTimerRuntime({
     onScriptCompiled,
-  });
-  
-  const [primary, setPrimary] = useClockDisplaySync("primary");
-  const [total, setTotal] = useClockDisplaySync("total");
-  const [label, setLabel] = useTextSync("label");
-  const [results, setResults] = useLocalResultSync();
-  const [cursor, setCursor] = useLocalCursorSync();  
-  const [systemButtons, setSystemButtons] = useButtonSync("system");
-  const [runtimeButtons, setRuntimeButtons] = useButtonSync("runtime");
-
-  const [edits, setEdits] = useState<RuntimeMetricEdit[]>([]);   
-  const [outputEvents, setOutputEvents] = useState<OutputEvent[]>([]);   
-  
-  // Call onResultsUpdated when results change
-  useEffect(() => {
-    if (onResultsUpdated && results) {
-      onResultsUpdated(results);
-    }
-  }, [results, onResultsUpdated]);
-  
+  });    
+  const [results, setResults] = useResultsSync();    
+  // const [cursor, setCursor] = useLocalCursorSync();
+  const [outputEvents, setOutputEvents] = useEventsSync();
+  const [registered, setRegistered] = useState<((input: OutputEvent) => void)[]>([]);
+  const [edits] = useState<RuntimeMetricEdit[]>([]);   
+   
   const handleScriptChange = (script?: WodRuntimeScript) => {
     if (script) {
       // Pass to runtime
       loadScript(script);
     }
   };
-
-  useEffect(() => {      
-    const dispose = output?.subscribe((event) => {        
-      // Handle SET_CLOCK events specifically
-      if (event.eventType === 'SET_CLOCK') {
-        // Process clock update
-      }
-      
+  useEffect(() => {
+    const dispose = output$?.subscribe((event) => {
       // Add event to output events list for timer
-      setOutputEvents(prev => [...prev.slice(-99), event]); // Keep last 100 events
-      
+      setOutputEvents(event); // Keep last 100 events
       // Process the event through all handlers
-      setPrimary(event);
-      setLabel(event);
-      setTotal(event);
       setResults(event);
-      setCursor(event);      
-      setSystemButtons(event);
-      setRuntimeButtons(event);
+      // setCursor(event);      
       outbound?.(event);
+      registered.forEach((handler) => handler(event));
     });
     
     return () => {
       dispose?.unsubscribe();
     };
-  }, [output, outbound, setPrimary, setTotal, setResults, setCursor, setSystemButtons, setRuntimeButtons, setLabel]);
+  }, [output$, registered]);
 
 
   // Create Chromecast button (now managed independently)
@@ -119,8 +90,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
         id={id}
         code={code}
         onMount={onMount}
-        onValueChange={handleScriptChange}
-        cursor={cursor ?? undefined}        
+        onValueChange={handleScriptChange}        
       />
       <div className="top-controls p-1 flex flex-row items-center divider-y border justify-between">
         {/* Left: Sound and screen lock toggles */}
@@ -150,21 +120,18 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
           </button>
           {shareStatus && (
             <span className="ml-2 text-green-600 text-sm">{shareStatus}</span>
-          )}
+          )}        
         </div>
-        <ButtonRibbon buttons={systemButtons && systemButtons.length > 0 ? systemButtons : [startButton]} 
-        setEvent={event => input.next(event)} />
       </div>
-      {runtimeRef.current && (
-        <>
-          <WodTimer label={label} primary={primary} total={total} events={outputEvents}>
-            <DefaultClockLayout label={label} />
-          </WodTimer>
-          <div className="p-1 flex justify-center">
-          <ButtonRibbon buttons={runtimeButtons ?? []} setEvent={event => input.next(event)} />
-          </div> 
-        </>
-      )}
+            
+      {/* Timer events are only passed when runtime exists */}      
+      <WodTimer events={outputEvents}>
+        <ClockFaceLayout 
+          input={input}
+          registerSyncs={setRegistered}
+          className="border-t border-gray-200"
+        />      
+      </WodTimer>      
       <ResultsDisplay className="border-t border-gray-200" runtime={runtimeRef} results={results ?? []} edits={edits} />
     </div>
   );

@@ -13,6 +13,8 @@ import { EndHandler } from "../inputs/EndEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RunHandler } from "../inputs/RunEvent";
+import { SetButtonAction } from "../outputs/SetButtonAction";
+import { startButton } from "@/components/buttons/timerButtons";
 
 /**
  * Represents the root of the execution tree.
@@ -42,7 +44,9 @@ export class RootBlock extends RuntimeBlock {
    */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {        
     this._sourceIndex = 0    
-    return [new PushIdleBlockAction()];
+    return [
+      new SetButtonAction("system",[startButton]),
+      new PushIdleBlockAction()];
   }
 
   /**

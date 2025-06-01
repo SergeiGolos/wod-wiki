@@ -1,8 +1,8 @@
 /** @jsxImportSource react */
 import React from 'react';
-import { useClockContext, getClockByName, getClockEffortByName } from '@/contexts/ClockContext';
 import { IDuration } from '@/core/IDuration';
 import { cn } from '@/core/utils';
+import { RuntimeSpan } from '@/core/RuntimeSpan';
 
 export interface ClockDisplayProps {
   duration: IDuration | undefined;
@@ -55,7 +55,7 @@ export const ClockDisplay: React.FC<ClockDisplayProps> = ({
 };
 
 export interface ClockAnchorProps {
-  name: string;
+  clock:  RuntimeSpan | undefined;
   className?: string;
   /** When true, shows remaining time instead of elapsed time (for countdown) */
   showRemaining?: boolean;
@@ -68,31 +68,65 @@ export interface ClockAnchorProps {
 }
 
 export const ClockAnchor: React.FC<ClockAnchorProps> = ({
-  name,
+  clock,
   className,
   showRemaining = false,
   label,
   showEffort = false,
   render,
-}) => {  const { registry } = useClockContext();
-  const spanDuration = getClockByName(registry, name);
-  const effort = showEffort ? getClockEffortByName(registry, name) : undefined;
+}) => {
   
-  // Calculate what to display based on the span duration
-  const displayDuration = spanDuration ? 
-    (showRemaining && spanDuration.sign === "-" ? 
-      spanDuration.remaining() : 
-      spanDuration.elapsed()) : 
-    undefined;
+  // Extract effort text from the RuntimeSpan metrics if showEffort is true
+  const effort = showEffort ? clock?.metrics?.[0]?.effort : undefined;  // Calculate duration from RuntimeSpan timeSpans
+  const calculateDuration = (span: RuntimeSpan | undefined): IDuration | undefined => {
+    if (!span?.timeSpans || span.timeSpans.length === 0) return undefined;
+    
+    const totalMs = span.timeSpans.reduce((total, timeSpan) => {
+      const startTime = timeSpan.start?.timestamp;
+      if (!startTime) return total;
+      
+      // Calculate elapsed time from timeSpans
+      const stopTime = timeSpan.stop?.timestamp ?? new Date();
+      return total + (stopTime.getTime() - startTime.getTime());
+    }, 0);
+    
+    // For countdown timers (when showRemaining is true), we need the target duration
+    // and subtract the elapsed time. For now, we'll show elapsed time until
+    // we have access to the target duration from the runtime context.
+    let displayMs = totalMs;
+    if (showRemaining) {
+      // TODO: Implement countdown logic when target duration is available
+      // This would require: targetDuration - elapsedTime
+      displayMs = totalMs; // Fallback to elapsed time for now
+    }
+    
+    // Convert milliseconds to Duration-like object
+    const totalSeconds = Math.floor(displayMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = displayMs % 1000;
+    
+    return {
+      days: 0,
+      hours,
+      minutes,
+      seconds,
+      milliseconds
+    };
+  };  const displayDuration = calculateDuration(clock);
+
   // Use custom render function if provided
   if (render) {
     return <>{render(displayDuration, label, effort)}</>;
-  }  // Default rendering with optional label
+  }
+  // Default rendering with optional label
   return (
     <div className={cn("flex flex-col", className ?? "")}>
       {label && <div className="text-sm uppercase tracking-wide text-gray-600">{label}</div>}
-      {effort && <div className="text-lg font-medium text-blue-600 mb-1">{effort}</div>}
-      <ClockDisplay duration={displayDuration} />
+      <div className="flex items-center">
+        <ClockDisplay duration={displayDuration} />
+      </div>
     </div>
   );
 };
