@@ -85,7 +85,7 @@ Successfully resolved the incompatibility between the clock display system and t
 
 ## Event Types Supported
 
-- `SET_CLOCK`: Timer duration updates (enhanced with effort info)
+- `SET_SPAN`: Timer duration updates (enhanced with effort info)
 - `SET_TIMER_STATE`: Timer state changes (running, paused, etc.)
 - `SET_EFFORT`: Dedicated effort/exercise information updates
 
@@ -119,7 +119,7 @@ The integration has been tested for:
 
 ## Architecture Benefits
 
-1. **Separation of Concerns**: Effort information has dedicated `SET_EFFORT` events while still being available in `SET_CLOCK` events
+1. **Separation of Concerns**: Effort information has dedicated `SET_EFFORT` events while still being available in `SET_SPAN` events
 2. **Backward Compatibility**: Existing timer functionality unchanged, effort display is opt-in
 3. **Extensible**: Easy to add more effort-related information in the future
 4. **Type Safe**: All changes maintain TypeScript type safety

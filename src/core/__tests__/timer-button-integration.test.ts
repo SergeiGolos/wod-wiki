@@ -5,8 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import { startButton, pauseButton, resetButton } from '@/components/buttons/timerButtons';
 import { RunEvent } from '@/core/runtime/inputs/RunEvent';
-import { StartEvent } from '@/core/runtime/inputs/StartEvent';
-import { StopEvent } from '@/core/runtime/inputs/StopEvent';
 
 describe('Timer and Button Integration Test', () => {
   it('should create proper events when button onClick is called', () => {

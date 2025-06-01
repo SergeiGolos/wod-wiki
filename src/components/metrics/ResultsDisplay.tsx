@@ -5,13 +5,13 @@ import { AnalyticsView } from './AnalyticsView';
 import { TabSelector, TabOption } from './TabSelector';
 import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
 import EffortSummaryCard from './EffortSummaryCard'; // Import the new component
 import { cn } from '@/core/utils';
-import { ResultSpan } from '@/core/ResultSpan';
+import { RuntimeSpan } from '@/core/RuntimeSpan';
+
 
 interface ResultsDisplayProps {  
-  results: ResultSpan[];
+  results: RuntimeSpan[];
   runtime: MutableRefObject<ITimerRuntime | undefined>;
   edits: RuntimeMetricEdit[];
   className?: string;
@@ -23,7 +23,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   edits,
   className = ""
 }) => {
-  const [computed, setComputed] = useState<[ResultSpan,  boolean][]>([]);
+  const [computed, setComputed] = useState<[RuntimeSpan,  boolean][]>([]);
   const [activeTab, setActiveTab] = useState<TabOption>('Efforts');  
   const [selectedEffortFilter, setSelectedEffortFilter] = useState<string[]>([]);    
   const toggleEffortFilter = (effort: string) => {
@@ -34,10 +34,10 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   useEffect(() => {
     if (!results) return;
-    const processedResults: [ResultSpan, boolean][] = [];
+    const processedResults: [RuntimeSpan, boolean][] = [];
     for (const result of results) {
       // Skip non-leaf spans
-      if (result.leaf !== true) continue;
+      if (result?.leaf !== true) continue;
       
       let hidden = false;
       if (selectedEffortFilter.length > 0 && !selectedEffortFilter.includes(result.metrics?.[0]?.effort)) {        

@@ -1,12 +1,11 @@
 import { ITimerRuntime } from "../ITimerRuntime";
 import { JitStatement } from "../JitStatement";
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { ICodeStatement } from "../CodeStatement";
 import { BlockEffortStrategy } from "./blocks/strategies/BlockEffortStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrategy";
 import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
-import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
+
 
 /**
  * Strategy manager for RuntimeBlock creation
@@ -19,7 +18,7 @@ export class RuntimeJitStrategies {
     this.addStrategy(new BlockRootStrategy());    
     // Repeaters are first to be selected.    
     this.addStrategy(new GroupRepeatingStrategy());
-    this.addStrategy(new GroupCountdownStrategy());  
+    ///this.addStrategy(new GroupCountdownStrategy());  
             
     // Single blocks are last to be selected.
     this.addStrategy(new BlockEffortStrategy());    
@@ -49,7 +48,7 @@ export class RuntimeJitStrategies {
     
     // Find the first strategy that can handle these nodes
     for (const strategy of this.strategies) {
-      if (strategy.canHandle(nodeArray)) {       
+      if (strategy.canHandle(nodeArray, runtime)) {       
         const block = strategy.compile(nodeArray, runtime);        
         if (block) {
           return block;

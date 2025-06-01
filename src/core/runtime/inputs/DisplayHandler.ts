@@ -15,7 +15,7 @@ export class DisplayHandler extends EventHandler {
   }
 
   /**
-   * Convert DisplayEvents to SET_CLOCK actions that update the UI
+   * Convert DisplayEvents to SET_SPAN actions that update the UI
    */
   protected handleEvent(
     _event: IRuntimeEvent,

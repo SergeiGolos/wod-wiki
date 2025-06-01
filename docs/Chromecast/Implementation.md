@@ -113,7 +113,7 @@ The Chromecast receiver integrates with the existing wod.wiki event system:
 
 2. **Event Processing**:
    The receiver handles various event types from the runtime:
-   - `SET_CLOCK`: Updates timer display
+   - `SET_SPAN`: Updates timer display
    - `SET_TEXT`: Updates exercise text
    - `SET_BUTTONS`: Updates available controls
    - `UPDATE_METRICS`: Updates workout metrics

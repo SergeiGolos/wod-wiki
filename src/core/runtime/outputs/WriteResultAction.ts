@@ -34,7 +34,7 @@ export class WriteResultAction extends OutputAction {
             console.log(`$$=== write_result : ${result.blockKey} (index: ${result?.index})`);
             return {
                 eventType: this.eventType,
-                bag: { result },
+                bag: { data:result },
                 timestamp: new Date()
             } as OutputEvent;
         });

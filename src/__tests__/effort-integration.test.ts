@@ -99,11 +99,11 @@ describe('Effort Integration Tests', () => {
         expect(updatedResult.current.efforts.get('primary')).toBe('Squats');
     });
 
-    it('should handle SET_CLOCK events with effort information', () => {
+    it('should handle SET_SPAN events with effort information', () => {
       const mockDuration = new TimeSpanDuration(30000, '+', []);
       
       const clockEvents: OutputEvent[] = [{
-        eventType: 'SET_CLOCK' as OutputEventType,
+        eventType: 'SET_SPAN' as OutputEventType,
         bag: {
           target: 'primary',
           duration: mockDuration,
@@ -144,8 +144,8 @@ describe('Effort Integration Tests', () => {
       const effortAction = new SetEffortAction('test', 'test-effort');
       const clockAction = new SetClockAction('test');
       
-      expect(['SET_EFFORT', 'SET_CLOCK']).toContain(effortAction.eventType);
-      expect(['SET_EFFORT', 'SET_CLOCK']).toContain(clockAction.eventType);
+      expect(['SET_EFFORT', 'SET_SPAN']).toContain(effortAction.eventType);
+      expect(['SET_EFFORT', 'SET_SPAN']).toContain(clockAction.eventType);
     });
   });
 
@@ -158,9 +158,9 @@ describe('Effort Integration Tests', () => {
           bag: { target: 'primary', effort: 'Jumping Jacks' },
           timestamp: new Date()
         },
-        // Runtime also emits SET_CLOCK with effort info
+        // Runtime also emits SET_SPAN with effort info
         {
-          eventType: 'SET_CLOCK' as OutputEventType,
+          eventType: 'SET_SPAN' as OutputEventType,
           bag: {
             target: 'primary',
             duration: new TimeSpanDuration(45000, '+', []),
@@ -187,7 +187,7 @@ describe('Effort Integration Tests', () => {
 
   describe('Edge cases', () => {    it('should handle events without effort information gracefully', () => {
       const events: OutputEvent[] = [{
-        eventType: 'SET_CLOCK' as OutputEventType,
+        eventType: 'SET_SPAN' as OutputEventType,
         bag: {
           target: 'primary',
           duration: new TimeSpanDuration(30000, '+', [])

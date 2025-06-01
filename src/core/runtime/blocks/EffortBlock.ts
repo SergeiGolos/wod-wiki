@@ -4,16 +4,13 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock"; 
 import { StopEvent } from "../inputs/StopEvent"; 
 import { StartTimerAction } from "../actions/StartTimerAction";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
-import { SetClockAction } from "../outputs/SetClockAction";
-import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
-import { SetEffortAction } from "../outputs/SetEffortAction";
-import { getDuration } from "../blocks/readers/getDuration";
+import { SetSpanAction } from "../outputs/SetSpanAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -30,21 +27,43 @@ export class EffortBlock extends RuntimeBlock {
    * @returns Array of effort descriptions
    */  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     // Determine if this effort block has a specific duration
-    const duration = this.selectMany(getDuration)[0];
-    const timerState = duration?.original 
-      ? TimerState.RUNNING_COUNTDOWN 
-      : TimerState.RUNNING_COUNTUP;
     
     // Get effort information from metrics to display in timer
     const metrics = this.metrics(runtime);
-    const effortText = metrics.length > 0 ? metrics[0].effort : "Exercise";
     
-    const actions = [       
+    // Format all metrics with their values
+    const effortTexts: string[] = [];
+    
+    if (metrics.length > 0) {
+      for (const metric of metrics) {
+        let effortText = metric.effort;
+        
+        // Add metric values to the display text if available
+        const reps = metric.values.find(v => v.type === "repetitions");
+        const resistance = metric.values.find(v => v.type === "resistance");
+        const distance = metric.values.find(v => v.type === "distance");
+        
+        if (reps || resistance || distance) {
+          const valueStrings: string[] = [];
+          
+          if (reps) valueStrings.push(`${reps.value}${reps.unit}`);
+          if (resistance) valueStrings.push(`${resistance.value}${resistance.unit}`);
+          if (distance) valueStrings.push(`${distance.value}${distance.unit}`);
+          
+          effortText += ` (${valueStrings.join(", ")})`;
+        }
+        
+        effortTexts.push(effortText);
+      }
+    } else {
+      effortTexts.push("Exercise");
+    }
+    
+    // Join all efforts with line breaks for multi-line display    
+    const actions = [
       new StartTimerAction(new StartEvent(new Date())),
-      new SetButtonsAction([completeButton], "runtime"),
-      new SetClockAction("primary"),
-      new SetTimerStateAction(timerState, "primary"),
-      new SetEffortAction(effortText, "primary")
+      new SetButtonAction("runtime", [completeButton]),
+      new SetSpanAction("primary", this.getSpanBuilder().Current()),
     ];
     
     return actions;
@@ -57,7 +76,7 @@ export class EffortBlock extends RuntimeBlock {
   }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StopTimerAction(new StopEvent(new Date())),
-      new SetButtonsAction([], "runtime"),      
+      new SetButtonAction("runtime", []),      
     ];
   }
 

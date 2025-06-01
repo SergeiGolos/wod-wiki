@@ -14,7 +14,7 @@ export class WriteLogAction extends OutputAction {
     write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
         return [{
             eventType: this.eventType,
-            bag: { log: this.log },
+            bag: { data: this.log },
             timestamp: new Date()
         }];
     }

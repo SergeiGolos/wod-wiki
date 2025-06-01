@@ -1,0 +1,23 @@
+{
+	"nodes":[
+		{"id":"430637c75d5233d9","x":-300,"y":240,"width":250,"height":60,"color":"4","type":"text","text":"### Workbooks"},
+		{"id":"577d5393571db96e","x":-300,"y":20,"width":250,"height":60,"color":"4","type":"text","text":"### Efforts"},
+		{"id":"d2f7f3eafe89638e","x":100,"y":240,"width":250,"height":60,"color":"4","type":"text","text":"### Metrics"},
+		{"id":"528e1e35490c7d2e","x":-300,"y":-210,"width":250,"height":60,"color":"3","type":"text","text":"### Statements\n"},
+		{"id":"4cdd80d6990474b4","x":-720,"y":240,"width":250,"height":60,"color":"3","type":"text","text":"### Analytics"},
+		{"id":"ecd656fb980997ee","x":-299,"y":427,"width":250,"height":60,"color":"4","type":"text","text":"### Insight"},
+		{"id":"853ee880f794521f","x":100,"y":-210,"width":250,"height":60,"color":"4","type":"text","text":"### Timers"},
+		{"id":"b46a655fe614c221","x":-720,"y":-210,"width":250,"height":60,"color":"4","type":"text","text":"### Markdown Syntax"}
+	],
+	"edges":[
+		{"id":"dcf5417c6c63305a","fromNode":"528e1e35490c7d2e","fromSide":"right","toNode":"853ee880f794521f","toSide":"left"},
+		{"id":"280278e47eecfea6","fromNode":"853ee880f794521f","fromSide":"bottom","toNode":"d2f7f3eafe89638e","toSide":"top"},
+		{"id":"d6d22d81b07bc1cd","fromNode":"b46a655fe614c221","fromSide":"right","toNode":"528e1e35490c7d2e","toSide":"left"},
+		{"id":"53110a5227157040","fromNode":"528e1e35490c7d2e","fromSide":"bottom","toNode":"577d5393571db96e","toSide":"top"},
+		{"id":"0070ec65645e0833","fromNode":"577d5393571db96e","fromSide":"right","toNode":"d2f7f3eafe89638e","toSide":"top"},
+		{"id":"87df7873b4c0560e","fromNode":"577d5393571db96e","fromSide":"bottom","toNode":"430637c75d5233d9","toSide":"top"},
+		{"id":"486f2b6da9e1deaa","fromNode":"430637c75d5233d9","fromSide":"bottom","toNode":"ecd656fb980997ee","toSide":"top"},
+		{"id":"7ed05121bf443e2d","fromNode":"4cdd80d6990474b4","fromSide":"bottom","toNode":"ecd656fb980997ee","toSide":"top"},
+		{"id":"734fde8414989b3e","fromNode":"d2f7f3eafe89638e","fromSide":"bottom","toNode":"ecd656fb980997ee","toSide":"top"}
+	]
+}

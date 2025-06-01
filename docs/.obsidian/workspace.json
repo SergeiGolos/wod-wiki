@@ -25,28 +25,21 @@
             "id": "d525150c2134bef8",
             "type": "leaf",
             "state": {
-              "type": "card-board-view",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "Plugin no longer active"
-            }
-          },
-          {
-            "id": "2eae734a00e32e85",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
+              "type": "canvas",
               "state": {
-                "file": "Welcome.md",
-                "mode": "source",
-                "source": false
+                "file": "Overview.canvas",
+                "viewState": {
+                  "x": 0,
+                  "y": 208.77794098554335,
+                  "zoom": -1.1666666666666665
+                }
               },
-              "icon": "lucide-file",
-              "title": "Welcome"
+              "icon": "lucide-layout-dashboard",
+              "title": "Overview"
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -166,13 +159,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Welcome.md",
+                "file": "Overview.canvas",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Welcome"
+              "title": "Outline of Overview"
             }
           }
         ],
@@ -180,7 +173,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 426.5
+    "width": 217.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -192,10 +185,16 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "2eae734a00e32e85",
+  "active": "2862666687f2c8b4",
   "lastOpenFiles": [
-    "StorybookTesting.md",
+    "Welcome.md",
+    "Overview.canvas",
+    "Working/ClockContextType-Analysis.md",
+    "Working/2025.04-19.chromecasting-push.md",
     "Working/effort-integration-implementation.md",
+    "RuntimeSpansUIPipeline.md",
+    "RuntimeBlocksAndEvents.md",
+    "StorybookTesting.md",
     "TimerStateManagement.md",
     "ResultSpanBuilder.md",
     "ResultSpanTimerUpdate.md",
@@ -214,12 +213,6 @@
     "worklog/2025-05-20.RuntimeActionsAnalysis.md",
     "worklog/2025-05-19.BlockBehaviorProposal.md",
     "worklog/2025-05-16.RuntimeMetricsSummary.md",
-    "worklog/2025-05-17.ApplicationArchitectureDeepDive.md",
-    "Working/2025-04-15.lap-timers-feature.md",
-    "Working/2025-05-01.ui-design-guide.kb.md",
-    "Working/2025-04-30.KB.md",
-    "worklog/2025-05-17.RuntimeInternals.md",
-    "worklog/2025-05-17.RuntimeMetricsDeepDive.md",
     "worklog",
     "Pasted Image 20250510105211_851.svg",
     "Reports",

@@ -5,7 +5,7 @@ import { IdleStatementNode } from "@/core/IdleStatementNode";
 import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { SaveHandler } from "../inputs/SaveEvent";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { resetButton, saveButton } from "@/components/buttons/timerButtons"; 
 import { ResetHandler } from "../inputs/ResetEvent";
 
@@ -27,11 +27,10 @@ export class DoneRuntimeBlock extends RuntimeBlock {
 
   /**
    * Implementation of the onEnter hook method from the template pattern
-   */
-  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
+   */  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
     return [  
-      new SetButtonsAction([resetButton, saveButton], "system"),
-      new SetButtonsAction([], "runtime"),      
+      new SetButtonAction("system", [resetButton, saveButton]),
+      new SetButtonAction("runtime", []),      
     ];
   }
 

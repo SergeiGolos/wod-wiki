@@ -5,7 +5,7 @@ import { WikiContainer } from '@/components/WikiContainer';
 import { JsonViewer } from '@textea/json-viewer';
 import { SoundProvider } from '@/contexts/SoundContext';
 import { ScreenProvider } from '@/contexts/ScreenContext';
-import { useLocalLogSync } from '@/components/syncs/useLocalLogSync';
+import { useEventsSync } from '@/components/syncs/useEventsSync';
 
 /**
  * 
@@ -20,8 +20,8 @@ interface EditorWithStateProps extends React.ComponentProps<typeof WikiContainer
 
 export const EditorWithState: React.FC<EditorWithStateProps> = ({ debug = false, ...props }) => {
   const [compiledScript, setCompiledScript] = useState<WodRuntimeScript | null>(null);
-  const [results, setResults] = useState<RuntimeSpan[]>([]);
-  const [logs, setLogs] = useLocalLogSync();
+  const [results, setResults] = useState<RuntimeSpan[]>([]);  
+  const [logs, setLogs] = useEventsSync();
   const [selectedTab, setSelectedTab] = useState<'script' | 'results' | 'logs'>('logs');
 
   return (
