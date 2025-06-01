@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { expect } from '@storybook/test';
+import { expect } from 'storybook/test';
 import { userEvent, waitFor, within } from '@storybook/testing-library';
 import '../index.css';
 import React, { useState } from 'react';

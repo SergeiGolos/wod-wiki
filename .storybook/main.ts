@@ -6,16 +6,12 @@ const config: StorybookConfig = {
   stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
   addons: [
     "@storybook/addon-links",
-    "@storybook/addon-essentials",
-    "@storybook/addon-interactions",
-    "storybook-dark-mode",
+    "@storybook/addon-docs",
+    // "storybook-dark-mode", // TODO: Re-enable once compatible with Storybook 9.x
   ],
   framework: {
     name: "@storybook/react-vite",
     options: {},
-  },
-  docs: {
-    autodocs: "tag",
   },
   // Add staticDirs configuration using the object syntax
   staticDirs: [

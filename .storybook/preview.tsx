@@ -21,12 +21,6 @@ const preview: Preview = {
         { name: 'paper', value: '#f5f1e4' }  // Journal paper color
       ],
     },
-    darkMode: {
-      current: 'light',
-      darkClass: 'dark',
-      lightClass: 'light',
-      stylePreview: true,
-    }
   },
   decorators: [
     (Story: StoryFn) => (
