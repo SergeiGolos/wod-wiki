@@ -1,14 +1,14 @@
-import { ITimeSpan } from "@/core/ITimeSpan";
 import { TimeSpanDuration } from "@/core/TimeSpanDuration";
 import { OutputEvent } from "@/core/OutputEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 import { OutputAction } from "../OutputAction";
+import { RuntimeSpan } from "@/core/RuntimeSpan";
 
 
 export class SetSpanAction extends OutputAction {
-    constructor(private spans: ITimeSpan[], private target: string) {
+    constructor(private target: string,private span: RuntimeSpan) {
         super('SET_SPAN');
     }
 
@@ -16,7 +16,7 @@ export class SetSpanAction extends OutputAction {
 
         return [{
             eventType: this.eventType,
-            bag: { duration: new TimeSpanDuration(0, '+', this.spans), target: this.target },
+            bag: { data:this.span,  duration: new TimeSpanDuration(0, '+', this.span.timeSpans), target: this.target },
             timestamp: new Date()
         }];
     }

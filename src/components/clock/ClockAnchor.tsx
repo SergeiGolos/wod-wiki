@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { IDuration } from '@/core/IDuration';
 import { cn } from '@/core/utils';
 import { RuntimeSpan } from '@/core/RuntimeSpan';
@@ -39,11 +39,11 @@ export const ClockDisplay: React.FC<ClockDisplayProps> = ({
   }
 
   clock.push(`${pad(seconds)}`);
-
-  if (!clock) { 
-    return (    <div className={cn("mx-auto flex items-center", className ?? "")}>
-      <span className="text-5xl md:text-6xl">--:--.-</span>
-    </div>
+  if (!duration) { 
+    return (
+      <div className={cn("mx-auto flex items-center", className ?? "")}>
+        <span className="text-5xl md:text-6xl">--:--.-</span>
+      </div>
     );
   }
   return (
@@ -75,19 +75,35 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   showEffort = false,
   render,
 }) => {
+  // State to trigger re-renders every 50ms for real-time updates
+  const [, setTick] = useState(0);
   
-  // Extract effort text from the RuntimeSpan metrics if showEffort is true
-  const effort = showEffort ? clock?.metrics?.[0]?.effort : undefined;  // Calculate duration from RuntimeSpan timeSpans
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(tick => tick + 1);
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+    // Extract effort text from the RuntimeSpan metrics if showEffort is true
+  const effort = showEffort ? clock?.metrics?.[0]?.effort : undefined;
+    // Calculate duration from RuntimeSpan timeSpans
   const calculateDuration = (span: RuntimeSpan | undefined): IDuration | undefined => {
     if (!span?.timeSpans || span.timeSpans.length === 0) return undefined;
-    
-    const totalMs = span.timeSpans.reduce((total, timeSpan) => {
+      const totalMs = span.timeSpans.reduce((total, timeSpan) => {
       const startTime = timeSpan.start?.timestamp;
       if (!startTime) return total;
       
       // Calculate elapsed time from timeSpans
-      const stopTime = timeSpan.stop?.timestamp ?? new Date();
-      return total + (stopTime.getTime() - startTime.getTime());
+      const startDate = typeof startTime === 'string' ? new Date(startTime) : startTime;
+      const stopTime = timeSpan.stop?.timestamp;
+      // Use current time if span is still active (no stop time)
+      const stopDate = stopTime 
+        ? (typeof stopTime === 'string' ? new Date(stopTime) : stopTime)
+        : new Date(); // Real-time calculation for active spans
+      
+      return total + (stopDate.getTime() - startDate.getTime());
     }, 0);
     
     // For countdown timers (when showRemaining is true), we need the target duration
@@ -111,22 +127,25 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
       days: 0,
       hours,
       minutes,
-      seconds,
-      milliseconds
+      seconds,      milliseconds
     };
-  };  const displayDuration = calculateDuration(clock);
+  };
+  
+  const displayDuration = calculateDuration(clock);
 
   // Use custom render function if provided
   if (render) {
     return <>{render(displayDuration, label, effort)}</>;
-  }
-  // Default rendering with optional label
+  }  // Default rendering with optional label and effort
   return (
     <div className={cn("flex flex-col", className ?? "")}>
       {label && <div className="text-sm uppercase tracking-wide text-gray-600">{label}</div>}
       <div className="flex items-center">
         <ClockDisplay duration={displayDuration} />
       </div>
+      {effort && showEffort && (
+        <div className="text-sm text-gray-700 mt-1">{effort}</div>
+      )}
     </div>
   );
 };
