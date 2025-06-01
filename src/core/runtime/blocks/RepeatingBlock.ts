@@ -5,7 +5,7 @@ import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
 import { CompleteHandler } from "../inputs/CompleteEvent";
@@ -29,12 +29,11 @@ export class RepeatingBlock extends RuntimeBlock {
   
   /**
    * Implementation of the doEnter hook method from the template pattern
-   */
-  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
+   */  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     const actions = this.next(runtime);    
     return [...actions, 
-      new SetButtonsAction([endButton, pauseButton], "system"),
-      new SetButtonsAction([completeButton], "runtime")];
+      new SetButtonAction("system", [endButton, pauseButton]),
+      new SetButtonAction("runtime", [completeButton])];
   }
 
   /**

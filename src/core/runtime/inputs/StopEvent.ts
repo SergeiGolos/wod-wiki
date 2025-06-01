@@ -3,7 +3,7 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StopTimerAction } from "../actions/StopTimerAction";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { endButton, resumeButton } from "@/components/buttons/timerButtons";
 
 export class StopEvent implements IRuntimeEvent {
@@ -25,7 +25,7 @@ export class StopHandler extends EventHandler {
     }
     return [
       new StopTimerAction(event),      
-      new SetButtonsAction([endButton, resumeButton], "system"),
+      new SetButtonAction("system", [endButton, resumeButton]),
     ];
   }
 }

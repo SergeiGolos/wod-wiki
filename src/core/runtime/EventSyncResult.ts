@@ -2,6 +2,6 @@ import { IRuntimeSync } from "../IRuntimeSync";
 
 
 export type EventSyncResult<T> = [
-    value: T | null,
+    value: T | undefined,
     handler: IRuntimeSync
 ];

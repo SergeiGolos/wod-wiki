@@ -1,14 +1,13 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { IdleStatementNode } from "@/core/IdleStatementNode";
 import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { startButton } from "@/components/buttons/timerButtons";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
-import { SetClockAction } from "../outputs/SetClockAction";
-import { SetTimeSpanAction } from "../outputs/SetTimeSpanAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { SetSpanAction } from "../outputs/SetSpanAction";
+import { ResultSpan } from "@/core/ResultSpan";
 
 export class IdleRuntimeBlock extends RuntimeBlock {
   constructor() {
@@ -22,12 +21,13 @@ export class IdleRuntimeBlock extends RuntimeBlock {
     ]);
   }
 
-  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {
+  protected onEnter(_runtime: ITimerRuntime): IRuntimeAction[] {    
+    const spans = this.getSpanBuilder();
+    
     return [
-      new SetButtonsAction([startButton], "system"), 
-      new SetButtonsAction([], "runtime"),
-      new SetClockAction("primary"),
-      new SetTimeSpanAction([], "total")
+      new SetButtonAction("system", [startButton]), 
+      new SetButtonAction("runtime", []),
+      new SetSpanAction("primary", spans.Current()),
     ];
   }
 

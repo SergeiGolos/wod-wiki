@@ -64,11 +64,11 @@ export function useTimerRuntime({
     }
     return cleanUp;
   }, [script]);
-
   return {
     loadScript: handleLoadScript,
     runtimeRef,
     input: inputRef.current,
     output: outputRef.current,
+    output$: outputRef.current // Add Observable version for ClockProvider
   };
 }

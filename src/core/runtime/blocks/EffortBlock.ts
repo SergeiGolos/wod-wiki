@@ -4,16 +4,13 @@ import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock"; 
 import { StopEvent } from "../inputs/StopEvent"; 
 import { StartTimerAction } from "../actions/StartTimerAction";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StartEvent } from "../inputs/StartEvent";
 import { completeButton } from "@/components/buttons/timerButtons"; 
 import { CompleteHandler } from "../inputs/CompleteEvent";
-import { SetClockAction } from "../outputs/SetClockAction";
-import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
-import { SetEffortAction } from "../outputs/SetEffortAction";
-import { getDuration } from "../blocks/readers/getDuration";
+import { SetSpanAction } from "../outputs/SetSpanAction";
 
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
@@ -30,10 +27,6 @@ export class EffortBlock extends RuntimeBlock {
    * @returns Array of effort descriptions
    */  protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     // Determine if this effort block has a specific duration
-    const duration = this.selectMany(getDuration)[0];
-    const timerState = duration?.original 
-      ? TimerState.RUNNING_COUNTDOWN 
-      : TimerState.RUNNING_COUNTUP;
     
     // Get effort information from metrics to display in timer
     const metrics = this.metrics(runtime);
@@ -66,15 +59,11 @@ export class EffortBlock extends RuntimeBlock {
       effortTexts.push("Exercise");
     }
     
-    // Join all efforts with line breaks for multi-line display
-    const formattedEffort = effortTexts.join("\n");
-    
-    const actions = [       
+    // Join all efforts with line breaks for multi-line display    
+    const actions = [
       new StartTimerAction(new StartEvent(new Date())),
-      new SetButtonsAction([completeButton], "runtime"),
-      new SetClockAction("primary"),
-      new SetTimerStateAction(timerState, "primary"),
-      new SetEffortAction(formattedEffort, "primary")
+      new SetButtonAction("runtime", [completeButton]),
+      new SetSpanAction("primary", this.getSpanBuilder().Current()),
     ];
     
     return actions;
@@ -87,7 +76,7 @@ export class EffortBlock extends RuntimeBlock {
   }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
     return [
       new StopTimerAction(new StopEvent(new Date())),
-      new SetButtonsAction([], "runtime"),      
+      new SetButtonAction("runtime", []),      
     ];
   }
 

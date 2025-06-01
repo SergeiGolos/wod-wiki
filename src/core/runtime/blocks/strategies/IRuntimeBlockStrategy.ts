@@ -12,7 +12,7 @@ export interface IRuntimeBlockStrategy {
    * @param nodes Array of precompiled nodes to check
    * @returns True if this strategy can handle the nodes
    */
-  canHandle(nodes: JitStatement[]): boolean;
+  canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean;
   
   /**
    * Compile statement nodes into a runtime block

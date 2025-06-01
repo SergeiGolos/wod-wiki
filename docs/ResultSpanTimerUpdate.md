@@ -8,12 +8,12 @@ This document explains the implementation of the ResultSpan -> Timer Update syst
 
 1. **SetResultSpanAction**
    - Extends `OutputAction` to update a named clock with a ResultSpan
-   - Sends a `SET_CLOCK` event with the ResultSpan's timeSpans converted into a TimeSpanDuration
+   - Sends a `SET_SPAN` event with the ResultSpan's timeSpans converted into a TimeSpanDuration
    - Includes the original ResultSpan in the event payload for additional context
 
 2. **useClockRegistry Hook**
    - Maintains a map of clock names to their current ISpanDuration objects
-   - Listens for `SET_CLOCK` events and updates the registry accordingly
+   - Listens for `SET_SPAN` events and updates the registry accordingly
    - Provides access to the current state of all clocks
 
 3. **WodTimer Component Updates**
