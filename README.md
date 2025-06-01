@@ -102,6 +102,8 @@ npm run build-storybook
 
 This will output the static Storybook site to the `storybook-static` directory.
 
+> **Note**: This project uses Storybook 9.0.4. The dark mode functionality is temporarily disabled pending community addon compatibility updates.
+
 ## Consuming the Package
 
 ### **Install the package:**
