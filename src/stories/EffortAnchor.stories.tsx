@@ -5,7 +5,7 @@ import { RuntimeSpan } from '../core/RuntimeSpan';
 import { RuntimeMetric } from '../core/RuntimeMetric';
 
 const meta: Meta<typeof EffortAnchor> = {
-  title: 'Clock/EffortAnchor',
+  title: 'Components/EffortAnchor',
   component: EffortAnchor,
   parameters: {
     layout: 'centered',
@@ -26,23 +26,48 @@ const meta: Meta<typeof EffortAnchor> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Helper function to create mock RuntimeSpan objects
-const createMockRuntimeSpan = (effort: string): RuntimeSpan => {
-  const metric: RuntimeMetric = {
-    effort,
-    values: [],
-    sourceId: 'mock-source'
-  };
+// Helper function to create mock RuntimeSpan objects with proper metric values
+const createMockRuntimeSpan = (metrics: Array<{
+  effort: string;
+  repetitions?: number;
+  resistance?: { value: number; unit: string };
+  distance?: { value: number; unit: string };
+}>): RuntimeSpan => {
+  const runtimeMetrics: RuntimeMetric[] = metrics.map((metric, index) => ({
+    effort: metric.effort,
+    sourceId: `mock-source-${index}`,
+    values: [
+      ...(metric.repetitions ? [{
+        type: 'repetitions' as const,
+        value: metric.repetitions,
+        unit: ''
+      }] : []),
+      ...(metric.resistance ? [{
+        type: 'resistance' as const,
+        value: metric.resistance.value,
+        unit: metric.resistance.unit
+      }] : []),
+      ...(metric.distance ? [{
+        type: 'distance' as const,
+        value: metric.distance.value,
+        unit: metric.distance.unit
+      }] : [])
+    ]
+  }));
   
   return {
-    metrics: [metric],
+    metrics: runtimeMetrics,
     timeSpans: []
   };
 };
 
 export const SimpleExercise: Story = {
   args: {
-    clock: createMockRuntimeSpan('Push-ups (10reps, 20kg)'),
+    clock: createMockRuntimeSpan([{
+      effort: 'Push-ups',
+      repetitions: 10,
+      resistance: { value: 20, unit: 'kg' }
+    }]),
   },
   decorators: [
     (Story) => (
@@ -53,9 +78,14 @@ export const SimpleExercise: Story = {
   ],
 };
 
-export const MultipleModifiers: Story = {
+export const WithDistance: Story = {
   args: {
-    clock: createMockRuntimeSpan('Weighted Run (5reps, 25kg, 400m)'),
+    clock: createMockRuntimeSpan([{
+      effort: 'Weighted Run',
+      repetitions: 5,
+      resistance: { value: 25, unit: 'kg' },
+      distance: { value: 400, unit: 'm' }
+    }]),
   },
   decorators: [
     (Story) => (
@@ -68,7 +98,53 @@ export const MultipleModifiers: Story = {
 
 export const MultipleExercises: Story = {
   args: {
-    clock: createMockRuntimeSpan('AMRAP\nBurpees (15reps)\nPull-ups (10reps, 20kg)\nRun (200m)'),
+    clock: createMockRuntimeSpan([
+      {
+        effort: 'Burpees',
+        repetitions: 15
+      },
+      {
+        effort: 'Pull-ups',
+        repetitions: 10,
+        resistance: { value: 20, unit: 'kg' }
+      },
+      {
+        effort: 'Run',
+        distance: { value: 200, unit: 'm' }
+      }
+    ]),
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-96 p-4 bg-white rounded-lg shadow">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const OnlyResistance: Story = {
+  args: {
+    clock: createMockRuntimeSpan([{
+      effort: 'Deadlift',
+      resistance: { value: 100, unit: 'kg' }
+    }]),
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-96 p-4 bg-white rounded-lg shadow">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const OnlyDistance: Story = {
+  args: {
+    clock: createMockRuntimeSpan([{
+      effort: 'Sprint',
+      distance: { value: 100, unit: 'm' }
+    }]),
   },
   decorators: [
     (Story) => (

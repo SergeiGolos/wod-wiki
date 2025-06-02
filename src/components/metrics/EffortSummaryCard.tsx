@@ -19,6 +19,16 @@ const getMetricValue = (span: RuntimeSpan, metricType: 'repetitions' | 'resistan
   return undefined;
 };
 
+// Utility function to sum all values of a given type across all metrics in a span
+const getTotalMetricValue = (span: RuntimeSpan, metricType: 'repetitions' | 'resistance' | 'distance'): number => {
+  let total = 0;
+  for (const metric of span.metrics) {
+    const values = metric.values.filter(v => v.type === metricType);
+    total += values.reduce((sum, v) => sum + v.value, 0);
+  }
+  return total;
+};
+
 const calculateDurationMs = (span: RuntimeSpan): number => {
   if (!span.timeSpans || span.timeSpans.length === 0) return 0;
   
@@ -63,11 +73,9 @@ const EffortSummaryCard: React.FC<EffortSummaryCardProps> = ({ spansOptions, sel
   }
 
   const numberOfSets = filteredSpans.length;
-  
-  // Calculate totals using the new metric structure
+    // Calculate totals using the new metric structure
   const totalReps = filteredSpans.reduce((total, [span]) => {
-    const repsValue = getMetricValue(span, 'repetitions');
-    return total + (repsValue?.value || 0);
+    return total + getTotalMetricValue(span, 'repetitions');
   }, 0);
 
   // Get units from first span that has the respective metrics
@@ -85,21 +93,42 @@ const EffortSummaryCard: React.FC<EffortSummaryCardProps> = ({ spansOptions, sel
     }
     if (resistanceUnit && distanceUnit) break;
   }
-
   const totalWeightValue = filteredSpans.reduce((total, [span]) => {
-    const resistanceValue = getMetricValue(span, 'resistance');
-    const repsValue = getMetricValue(span, 'repetitions');
-    const weight = resistanceValue?.value || 0;
-    const reps = repsValue?.value || 0;
-    return total + (weight * reps);
+    // Sum weight * reps for each metric in the span
+    let spanWeightTotal = 0;
+    for (const metric of span.metrics) {
+      const resistanceValues = metric.values.filter(v => v.type === 'resistance');
+      const repValues = metric.values.filter(v => v.type === 'repetitions');
+      
+      if (resistanceValues.length > 0 && repValues.length > 0) {
+        // Calculate weight moved as resistance * reps for each combination
+        resistanceValues.forEach(resistance => {
+          repValues.forEach(rep => {
+            spanWeightTotal += resistance.value * rep.value;
+          });
+        });
+      }
+    }
+    return total + spanWeightTotal;
   }, 0);
 
   const totalDistanceValue = filteredSpans.reduce((total, [span]) => {
-    const distanceValue = getMetricValue(span, 'distance');
-    const repsValue = getMetricValue(span, 'repetitions');
-    const distance = distanceValue?.value || 0;
-    const reps = repsValue?.value || 0;
-    return total + (distance * reps);
+    // Sum distance * reps for each metric in the span
+    let spanDistanceTotal = 0;
+    for (const metric of span.metrics) {
+      const distanceValues = metric.values.filter(v => v.type === 'distance');
+      const repValues = metric.values.filter(v => v.type === 'repetitions');
+      
+      if (distanceValues.length > 0 && repValues.length > 0) {
+        // Calculate total distance as distance * reps for each combination
+        distanceValues.forEach(distance => {
+          repValues.forEach(rep => {
+            spanDistanceTotal += distance.value * rep.value;
+          });
+        });
+      }
+    }
+    return total + spanDistanceTotal;
   }, 0);
 
   const totalDurationMs = filteredSpans.reduce((total, [span]) => {

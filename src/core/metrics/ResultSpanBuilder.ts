@@ -24,6 +24,7 @@ export class ResultSpanBuilder {
     span.blockKey = block.blockKey?.toString() ?? "";
     span.leaf = block.leaf;
     span.index = block.blockKey?.index;
+    span.duration = block.duration;
     span.metrics = [...metrics];
     span.timeSpans = [];
     this.spans.push(span);

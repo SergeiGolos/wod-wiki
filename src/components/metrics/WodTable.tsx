@@ -12,7 +12,7 @@ interface ExerciseMetricItem {
   index?: number;
   round: number;
   effort: string;
-  repetitions: number;
+  repetitions?: MetricValue;
   resistance?: MetricValue;
   distance?: MetricValue;
   duration: number;
@@ -21,19 +21,24 @@ interface ExerciseMetricItem {
 export const WodTable: React.FC<WodTableProps> = ({ results }) => {
   // State to track which sections are expanded
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-
   // Extract all metrics from result spans with the new structure
   const exerciseMetrics = results.flatMap(result => 
-    result.metrics.map(metric => ({
-      blockKey: result.blockKey,
-      index: result.index,
-      round: result.stack?.[0] || 0,
-      effort: metric.effort,
-      repetitions: metric.repetitions,
-      resistance: metric.resistance,
-      distance: metric.distance,
-      duration: result.duration ? result.duration() / 1000 : 0 // duration in seconds
-    }))
+    result.metrics.map(metric => {
+      // Extract metric values from the values array
+      const repetitionsValue = metric.values.find(v => v.type === 'repetitions');
+      const resistanceValue = metric.values.find(v => v.type === 'resistance');
+      const distanceValue = metric.values.find(v => v.type === 'distance');
+        return {
+        blockKey: result.blockKey,
+        index: result.index,
+        round: result.index || 0, // Use index as round number for now
+        effort: metric.effort,
+        repetitions: repetitionsValue,
+        resistance: resistanceValue,
+        distance: distanceValue,
+        duration: result.duration || 0 // duration is already in seconds
+      };
+    })
   );
 
   // Group metrics by effort type
@@ -43,11 +48,13 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
     }
     acc[metric.effort].push(metric);
     return acc;
-  }, {} as Record<string, ExerciseMetricItem[]>);
-
-  // Calculate totals for each effort group
+  }, {} as Record<string, ExerciseMetricItem[]>);  // Calculate totals for each effort group
   const effortGroups = Object.entries(groupedByEffort).map(([effort, metrics]) => {
-    const totalReps = metrics.reduce((sum, m) => sum + (m.repetitions?.value ?? 0), 0);
+    // Sum all repetitions from the MetricValue objects
+    const totalReps = metrics.reduce((sum, m) => {
+      return sum + (m.repetitions?.value ?? 0);
+    }, 0);
+    
     const totalTime = metrics.reduce((sum, m) => sum + m.duration, 0).toFixed(1);
     
     // Calculate average resistance if present
@@ -124,7 +131,7 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
           </tr>
         </thead>
         <tbody className="bg-white">
-          {effortGroups.map((group, groupIndex) => [
+          {effortGroups.map((group) => [
             // Group header with totals
             <tr 
               key={`group-${group.effort}`} 
@@ -163,9 +170,8 @@ export const WodTable: React.FC<WodTableProps> = ({ results }) => {
                   </td>
                   <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200">
                     {metric.effort}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
-                    {(metric.repetitions?.value ?? 0) > 0 ? metric.repetitions.value : '-'}
+                  </td>                  <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
+                    {(metric.repetitions?.value ?? 0) > 0 ? metric.repetitions?.value : '-'}
                   </td>
                   <td className="px-3 py-2 text-sm text-gray-500 border-r border-gray-200">
                     {formatMetricValue(metric.resistance)}

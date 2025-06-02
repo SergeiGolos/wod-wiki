@@ -141,9 +141,8 @@ The transformation of workout scripts into executable runtime blocks follows a c
    ```typescript
    {
      effort: string,
-     repetitions: number,
-     resistance?: MetricValue,
-     distance?: MetricValue
+     sourceId: string,
+     values: MetricValue[]
    }
    ```
 

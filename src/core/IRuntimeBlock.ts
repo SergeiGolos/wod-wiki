@@ -13,7 +13,7 @@ export interface IRuntimeBlock {
   blockKey: BlockKey;
   blockId: string;  
   parent?: IRuntimeBlock | undefined;
-
+  duration?: number | undefined;
   // Leaf marker
   leaf?: boolean;  // true if this block represents a leaf-level (effort) block
 
