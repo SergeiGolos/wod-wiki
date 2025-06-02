@@ -15,6 +15,7 @@ import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RunHandler } from "../inputs/RunEvent";
 import { SetButtonAction } from "../outputs/SetButtonAction";
 import { startButton } from "@/components/buttons/timerButtons";
+import { SetSpanAction } from "../outputs/SetSpanAction";
 
 /**
  * Represents the root of the execution tree.
@@ -44,6 +45,7 @@ export class RootBlock extends RuntimeBlock {
    */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {        
     this._sourceIndex = 0    
+    this.getSpanBuilder().Create(this, []);
     return [
       new SetButtonAction("system",[startButton]),
       new PushIdleBlockAction()];
@@ -52,18 +54,28 @@ export class RootBlock extends RuntimeBlock {
   /**
    * Implementation of the doNext hook method from the template pattern
    */  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {    
+    const builder = this.getSpanBuilder();    
     if (this._sourceIndex >=  this.children.length) {
-      return [new PushEndBlockAction()];
-    }
-  
-    const groupStatements = this.nextChildStatements(runtime, this._sourceIndex);
-    
+      builder.Stop();
+      return [              
+        //new SetSpanAction("total", builder.Current()),
+        new PushEndBlockAction()];
+    }  
+    const groupStatements = this.nextChildStatements(runtime, this._sourceIndex);    
     if (groupStatements.length == 0) {              
-      return [new PopBlockAction()];
+      builder.Stop();
+      return [
+        //new SetSpanAction("total", builder.Current()),
+        new PopBlockAction()];
     }
     
+    if (builder.Spans.length == 0) {
+        builder.Start();
+    }
     this._sourceIndex += groupStatements.length;
-    return [new PushStatementAction(groupStatements)];
+    return [
+      //new SetSpanAction("total", builder.Current()),
+      new PushStatementAction(groupStatements)];
   }
 
   /**

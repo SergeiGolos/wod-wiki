@@ -10,13 +10,11 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
 export class SetSpanAction extends OutputAction {
     constructor(private target: string,private span: RuntimeSpan) {
         super('SET_SPAN');
-    }
-
-    write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
+    }    write(_runtime: ITimerRuntime, _input: Subject<IRuntimeEvent>): OutputEvent[] {
 
         return [{
             eventType: this.eventType,
-            bag: { data:this.span,  duration: new TimeSpanDuration(0, '+', this.span.timeSpans), target: this.target },
+            bag: { data:this.span,  duration: new TimeSpanDuration(this.span.duration || 0, '+', this.span.timeSpans), target: this.target },
             timestamp: new Date()
         }];
     }

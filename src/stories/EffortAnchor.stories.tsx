@@ -5,7 +5,7 @@ import { RuntimeSpan } from '../core/RuntimeSpan';
 import { RuntimeMetric } from '../core/RuntimeMetric';
 
 const meta: Meta<typeof EffortAnchor> = {
-  title: 'Clock/EffortAnchor',
+  title: 'Components/EffortAnchor',
   component: EffortAnchor,
   parameters: {
     layout: 'centered',
