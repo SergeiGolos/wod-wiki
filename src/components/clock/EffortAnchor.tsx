@@ -12,85 +12,56 @@ export interface EffortDisplayProps {
 export const EffortDisplay: React.FC<EffortDisplayProps> = ({
   clock,
   className,
-}) => {
-  const effortText = clock?.metrics?.[0]?.effort;
-  if (!effortText) {
+}) => {  // Check if there are any metrics to display
+  if (!clock?.metrics || clock.metrics.length === 0) {
     return (
       <div className={cn("mx-auto flex items-center justify-center", className ?? "")}>
         <span className="text-2xl md:text-3xl text-gray-400">No exercise</span>
       </div>
     );
   }
-
-  // Parse effort lines to extract components
-  const effortLines = effortText.split('\n').filter(line => line.trim());
-  
-  return (
-    <div className={cn("mx-auto flex flex-col items-start", className ?? "")}>
-      {effortLines.map((line, index) => {
-        // Parse each line to extract effort, reps, resistance, and distance
-        // Expected format: "Exercise Name (10reps, 50kg, 100m)"
-        const match = line.match(/^(.+?)\s*(\([^)]+\))?$/);
+    return (
+    <div className={cn("mx-auto flex flex-col items-start space-y-3", className ?? "")}>
+      {clock.metrics.map((metric, metricIndex) => {
+        const effortText = metric.effort || `Exercise ${metricIndex + 1}`;
         
-        if (!match) {
-          return (
-            <div key={index} className="mb-1">
-              <span className="text-lg md:text-xl font-semibold text-gray-800">{line}</span>
-            </div>
-          );
-        }
-
-        const [, exerciseName, modifiersStr] = match;
-        const modifiers = modifiersStr ? modifiersStr.slice(1, -1) : ''; // Remove parentheses
+        // Extract values by type
+        const reps = metric.values.find(v => v.type === 'repetitions');
+        const resistance = metric.values.find(v => v.type === 'resistance');
+        const distance = metric.values.find(v => v.type === 'distance');
         
         return (
-          <div key={index} className="mb-2 last:mb-0">
-            {/* Exercise name */}
-            <div className="text-xl md:text-2xl font-bold text-blue-700 mb-1">
-              {exerciseName.trim()}
+          <div key={`${metric.sourceId}-${metricIndex}`} className="w-full">
+            <div className="flex flex-wrap items-center gap-2 text-lg md:text-xl">
+              {/* Repetitions with icon and styling */}
+              {reps && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800">
+                  <span className="mr-1">🔄</span>
+                  {reps.value}
+                </span>
+              )}
+              
+              {/* Effort text */}
+              <span className="font-semibold text-gray-800">
+                {effortText}
+              </span>
+              
+              {/* Resistance with icon and styling */}
+              {resistance && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-purple-100 text-purple-800">
+                  <span className="mr-1">💪</span>
+                  {resistance.value}{resistance.unit || ''}
+                </span>
+              )}
+              
+              {/* Distance with icon and styling */}
+              {distance && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800">
+                  <span className="mr-1">📏</span>
+                  {distance.value}{distance.unit || ''}
+                </span>
+              )}
             </div>
-            
-            {/* Modifiers (reps, weight, distance) */}
-            {modifiers && (
-              <div className="flex flex-wrap gap-3 text-sm md:text-base">
-                {modifiers.split(',').map((modifier, modIndex) => {
-                  const trimmed = modifier.trim();
-                  
-                  // Style different types of modifiers
-                  let bgColor = 'bg-gray-100';
-                  let textColor = 'text-gray-700';
-                  let icon = '';
-                  
-                  if (trimmed.includes('reps') || /^\d+$/.test(trimmed)) {
-                    bgColor = 'bg-green-100';
-                    textColor = 'text-green-800';
-                    icon = '🔄';
-                  } else if (trimmed.includes('kg') || trimmed.includes('lb') || trimmed.includes('lbs')) {
-                    bgColor = 'bg-purple-100';
-                    textColor = 'text-purple-800';
-                    icon = '💪';
-                  } else if (trimmed.includes('m') || trimmed.includes('km') || trimmed.includes('ft') || trimmed.includes('mi')) {
-                    bgColor = 'bg-blue-100';
-                    textColor = 'text-blue-800';
-                    icon = '📏';
-                  }
-                  
-                  return (
-                    <span
-                      key={modIndex}
-                      className={cn(
-                        "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                        bgColor,
-                        textColor
-                      )}
-                    >
-                      {icon && <span className="mr-1">{icon}</span>}
-                      {trimmed}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
           </div>
         );
       })}

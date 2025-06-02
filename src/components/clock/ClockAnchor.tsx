@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { IDuration } from '@/core/IDuration';
 import { cn } from '@/core/utils';
 import { RuntimeSpan } from '@/core/RuntimeSpan';
+import { Duration, SpanDuration } from '@/core/Duration';
 
 export interface ClockDisplayProps {
   duration: IDuration | undefined;
@@ -57,8 +58,7 @@ export const ClockDisplay: React.FC<ClockDisplayProps> = ({
 export interface ClockAnchorProps {
   clock:  RuntimeSpan | undefined;
   className?: string;
-  /** When true, shows remaining time instead of elapsed time (for countdown) */
-  showRemaining?: boolean;
+  /** When true, shows remaining time instead of elapsed time (for countdown) */  
   /** Optional label text to display with the time */
   label?: string;
   /** When true, shows effort/exercise information alongside the timer */
@@ -69,8 +69,7 @@ export interface ClockAnchorProps {
 
 export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   clock,
-  className,
-  showRemaining = false,
+  className,  
   label,
   showEffort = false,
   render,
@@ -88,50 +87,11 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
 
     // Extract effort text from the RuntimeSpan metrics if showEffort is true
   const effort = showEffort ? clock?.metrics?.[0]?.effort : undefined;
-    // Calculate duration from RuntimeSpan timeSpans
-  const calculateDuration = (span: RuntimeSpan | undefined): IDuration | undefined => {
-    if (!span?.timeSpans || span.timeSpans.length === 0) return undefined;
-      const totalMs = span.timeSpans.reduce((total, timeSpan) => {
-      const startTime = timeSpan.start?.timestamp;
-      if (!startTime) return total;
-      
-      // Calculate elapsed time from timeSpans
-      const startDate = typeof startTime === 'string' ? new Date(startTime) : startTime;
-      const stopTime = timeSpan.stop?.timestamp;
-      // Use current time if span is still active (no stop time)
-      const stopDate = stopTime 
-        ? (typeof stopTime === 'string' ? new Date(stopTime) : stopTime)
-        : new Date(); // Real-time calculation for active spans
-      
-      return total + (stopDate.getTime() - startDate.getTime());
-    }, 0);
-    
-    // For countdown timers (when showRemaining is true), we need the target duration
-    // and subtract the elapsed time. For now, we'll show elapsed time until
-    // we have access to the target duration from the runtime context.
-    let displayMs = totalMs;
-    if (showRemaining) {
-      // TODO: Implement countdown logic when target duration is available
-      // This would require: targetDuration - elapsedTime
-      displayMs = totalMs; // Fallback to elapsed time for now
-    }
-    
-    // Convert milliseconds to Duration-like object
-    const totalSeconds = Math.floor(displayMs / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = displayMs % 1000;
-    
-    return {
-      days: 0,
-      hours,
-      minutes,
-      seconds,      milliseconds
-    };
-  };
-  
-  const displayDuration = calculateDuration(clock);
+    // Calculate duration from RuntimeSpan timeSpans  
+  let displayDuration = new SpanDuration(clock?.timeSpans || []);
+  if (clock?.duration) {
+    displayDuration = new Duration(clock.duration - (displayDuration?.original || 0));  
+  }
 
   // Use custom render function if provided
   if (render) {

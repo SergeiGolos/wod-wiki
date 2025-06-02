@@ -20,8 +20,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     this.blockId = Math.random().toString(36).substring(2, 15);
     this.blockKey = new BlockKey();
     this.blockKey.push(this.sources, 0);    
+    this.duration = (this.sources && this.sources.length > 0)
+      ? this.sources[0].duration(this.blockKey).original
+      : undefined;
+      
   }
-
+  public duration?: number | undefined; // Duration of the block, if applicable
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
