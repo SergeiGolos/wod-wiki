@@ -5,6 +5,8 @@ import { BlockEffortStrategy } from "./blocks/strategies/BlockEffortStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrategy";
 import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
+import { BlockTimerStrategy } from "./blocks/strategies/BlockTimerStrategy";
+import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
 
 
 /**
@@ -16,11 +18,13 @@ export class RuntimeJitStrategies {
 
   constructor() {
     this.addStrategy(new BlockRootStrategy());    
-    // Repeaters are first to be selected.    
+    
+    // Group strategies (higher priority)
     this.addStrategy(new GroupRepeatingStrategy());
-    ///this.addStrategy(new GroupCountdownStrategy());  
+    this.addStrategy(new GroupCountdownStrategy()); // ← Add this
             
-    // Single blocks are last to be selected.
+    // Single block strategies (lower priority)
+    this.addStrategy(new BlockTimerStrategy()); // ← Add this
     this.addStrategy(new BlockEffortStrategy());    
   }
 

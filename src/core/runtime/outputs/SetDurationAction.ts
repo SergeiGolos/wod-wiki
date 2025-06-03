@@ -3,22 +3,19 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 
-export enum TimerState {
-  STOPPED = 'STOPPED',
-  RUNNING_COUNTDOWN = 'RUNNING_COUNTDOWN',
-  RUNNING_COUNTUP = 'RUNNING_COUNTUP',
-  PAUSED = 'PAUSED'
-}
-
-export class SetTimerStateAction extends OutputAction {
-  constructor(public state: TimerState, public name: string) {
-    super('SET_TIMER_STATE');
+/**
+ * Action to report duration information to the UI
+ * Used for progress bars and timer displays
+ */
+export class SetDurationAction extends OutputAction {
+  constructor(public duration: number, public timerName: string) {
+    super('SET_DURATION');
   }
 
   getData() {
     return {
-      name: this.name,
-      state: this.state
+      timerName: this.timerName,
+      duration: this.duration
     };
   }
 
@@ -26,8 +23,8 @@ export class SetTimerStateAction extends OutputAction {
     return [{
       eventType: this.eventType,
       bag: {
-        name: this.name,
-        state: this.state
+        timerName: this.timerName,
+        duration: this.duration
       },
       timestamp: new Date()
     }];

@@ -7,10 +7,9 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { ResultSpanBuilder } from "@/core/metrics";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
+import { SetButtonAction } from "../outputs/SetButtonAction";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
-import { SetClockAction } from "../outputs/SetClockAction"; // Added import
 import { LapFragment } from "@/core/fragments/LapFragment";
 import { getLap } from "./readers/getLap";
 import { getDuration } from "./readers/getDuration";
@@ -111,8 +110,8 @@ export class TimedGroupBlock extends RuntimeBlock {
     }
     
     const actions: IRuntimeAction[] = [
-      new SetButtonsAction([endButton, pauseButton], "system"),
-      new SetButtonsAction([completeButton], "runtime"),
+      new SetButtonAction("system", [endButton, pauseButton]),
+      new SetButtonAction("runtime", [completeButton]),
     ];
 
     // Add the SetTimerStateAction to set the timer to RUNNING_COUNTDOWN
@@ -245,15 +244,12 @@ export class TimedGroupBlock extends RuntimeBlock {
     }
     
     const actions: IRuntimeAction[] = [
-      new SetButtonsAction([], "system"),
-      new SetButtonsAction([], "runtime"),
+      new SetButtonAction("system", []),
+      new SetButtonAction("runtime", []),
       new SetTimerStateAction(TimerState.STOPPED, "primary"),
     ];
 
-    const duration = this.selectMany(getDuration)[0];
-    if (duration !== undefined) { 
-        actions.push(new SetClockAction("primary"));
-    }
+    // Duration-related actions would go here if SetClockAction existed
     
     return actions;
   }

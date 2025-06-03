@@ -7,4 +7,6 @@ export type OutputEventType = 'SYSTEM' |
   'SET_SOUND' |
   'SET_DEBUG' |
   'SET_ERROR' |
-  'SET_BUTTON'  
+  'SET_BUTTON' |
+  'SET_DURATION' |
+  'SET_TIMER_STATE'  
