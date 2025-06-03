@@ -19,6 +19,9 @@ export class BlockTimerStrategy implements IRuntimeBlockStrategy {
    * Criteria: Has duration, but no effort, reps, children, or rounds
    */
   canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean {
+    // Must have at least one node
+    if (nodes.length === 0) return false;
+    
     return nodes.every(node => {
       const hasDuration = node.durations().length > 0;
       const hasEffort = node.efforts().length > 0;

@@ -19,13 +19,13 @@ export class RuntimeJitStrategies {
   constructor() {
     this.addStrategy(new BlockRootStrategy());    
     
-    // Group strategies (higher priority)
-    this.addStrategy(new GroupRepeatingStrategy());
-    this.addStrategy(new GroupCountdownStrategy()); // ← Add this
-            
-    // Single block strategies (lower priority)
-    this.addStrategy(new BlockTimerStrategy()); // ← Add this
+    // Single block strategies first (will be lower priority due to unshift)
     this.addStrategy(new BlockEffortStrategy());    
+    this.addStrategy(new BlockTimerStrategy()); // ← Add this
+    
+    // Group strategies last (will be higher priority due to unshift)
+    this.addStrategy(new GroupCountdownStrategy()); // ← Add this
+    this.addStrategy(new GroupRepeatingStrategy());
   }
 
   /**

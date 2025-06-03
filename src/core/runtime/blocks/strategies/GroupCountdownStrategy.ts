@@ -19,6 +19,9 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
    * Criteria: Has duration AND has children (group scenario)
    */
   canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean {
+    // Must have at least one node
+    if (nodes.length === 0) return false;
+    
     return nodes.every(node => {
       const hasDuration = node.durations().length > 0;
       const hasChildren = node.children.length > 0;
