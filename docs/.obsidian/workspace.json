@@ -4,19 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "35155836121fe292",
+        "id": "0bdb14ab20467838",
         "type": "tabs",
         "children": [
           {
-            "id": "22e70bba34b37787",
+            "id": "086be68281dd6110",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Pasted Image 20250510105211_851.svg"
+                "file": "Interfaces/StartEvent.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted Image 20250510105211_851"
+              "icon": "lucide-file",
+              "title": "StartEvent"
             }
           }
         ]
@@ -110,12 +112,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Birds Eye Workflow.canvas",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from Birds Eye Workflow"
+              "title": "Outgoing links"
             }
           },
           {
@@ -139,21 +140,20 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Pasted Image 20250510105211_851.svg",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Pasted Image 20250510105211_851"
+              "title": "Outline"
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 2
       }
     ],
     "direction": "horizontal",
-    "width": 217.5
+    "width": 200
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -165,37 +165,39 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "2862666687f2c8b4",
+  "active": "086be68281dd6110",
   "lastOpenFiles": [
-    "RuntimeBlocksAnalysisReport_2025.md",
-    "README.md.md",
-    "RuntimeBlocks.md",
-    "Welcome.md",
-    "design.md",
-    "Syntax.md",
-    "ResultSpanBuilder.md",
-    "RuntimeActions.md",
-    "TimerStateManagement.md",
-    "Releases/0.5.0.md",
-    "StorybookTesting.md",
-    "RuntimeSpansUIPipeline.md",
-    "RuntimeBlocksImplementationPlan.md",
-    "worklog/2025-05-20.MetricsReportingRefactor.md",
-    "worklog/2025-05-17.RuntimeInternals.md",
-    "Working/ClockContextType-Analysis.md",
-    "RuntimeBlocksArchitectureDiagrams.md",
-    "Working/2025-04-15.lap-timers-feature.md",
-    "Overview.canvas",
-    "RuntimeBlocksAndEvents.md",
-    "Working/2025.04-19.chromecasting-push.md",
-    "Working/effort-integration-implementation.md",
-    "ResultSpanTimerUpdate.md",
-    "Core/Lifecycle.md",
-    "Core/Workflow.md",
-    "Core/Runtime.md",
-    "Components/ResultSpan.md",
-    "worklog",
+    "Interfaces/RuntimeBlock.md",
+    "Interfaces/StartEvent.md",
+    "Interfaces/RuntimeSolutionCanvas.canvas",
+    "Interfaces/PushNextAction.md",
+    "Interfaces/BubbleUpAction.md",
+    "Interfaces/AbstractRuntimeAction.md",
+    "Interfaces/LeafNodeAction.md",
+    "Interfaces/IRuntimeBlock.md",
     "Pasted Image 20250510105211_851.svg",
+    "Interfaces/Types",
+    "Interfaces/EffortBlock.md",
+    "Interfaces/TimerBlock.md",
+    "Interfaces/TimedGroupBlock.md",
+    "Interfaces/RepeatingBlock.md",
+    "Interfaces/RootBlock.md",
+    "Interfaces/IdleRuntimeBlock.md",
+    "Interfaces/DoneRuntimeBlock.md",
+    "Interfaces/IRuntimeAction.md",
+    "Interfaces/PopBlockAction.md",
+    "Interfaces/PushStatementAction.md",
+    "Interfaces/PushStatementWithTimerAction.md",
+    "Interfaces/PushEndBlockAction.md",
+    "Interfaces/PushIdleBlockAction.md",
+    "Interfaces/ResetAction.md",
+    "Interfaces/NotifyRuntimeAction.md",
+    "Interfaces/PlaySoundAction.md",
+    "Interfaces/IdleStatementAction.md",
+    "Interfaces/StartTimerAction.md",
+    "Interfaces",
+    "Overview.canvas",
+    "worklog",
     "Reports",
     "docs",
     "Core",
@@ -204,8 +206,6 @@
     "docs/Components",
     "Birds Eye Overview.canvas",
     "Birds Eye Workflow.canvas",
-    "Releases",
-    "Excalidraw/Data-Structure-Transformations.excalidraw",
-    "Excalidraw/User-Input-Events.excalidraw"
+    "Releases"
   ]
 }

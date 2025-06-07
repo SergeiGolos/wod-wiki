@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
@@ -18,8 +19,9 @@ import { StopEvent } from "../inputs/StopEvent";
  * Handles scenarios like "30s", "2m", "1m30s"
  */
 export class TimerBlock extends RuntimeBlock {
-  constructor(sources: JitStatement[]) {
-    super(sources);
+  constructor(compiledMetrics: RuntimeMetric[], sources?: JitStatement[]) {
+    // Pass compiled metrics to base class with optional legacy sources
+    super(compiledMetrics, sources);
     this.leaf = true; // Mark as leaf-level execution block
     
     // Add handler for user completion

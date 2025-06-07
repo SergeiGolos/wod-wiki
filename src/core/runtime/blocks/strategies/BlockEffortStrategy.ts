@@ -3,10 +3,12 @@ import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EffortBlock } from "../EffortBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 
 /**
- * Strategy for creating SingleBlock runtime blocks
+ * Strategy for creating EffortBlock runtime blocks
  * Handles simple statements with duration and metrics but no children or repetitions
+ * Phase 4: Updated to use pre-compiled metrics
  */
 
 export class BlockEffortStrategy implements IRuntimeBlockStrategy {
@@ -26,11 +28,12 @@ export class BlockEffortStrategy implements IRuntimeBlockStrategy {
              (hasEffort || hasRepetitions || hasDuration);
     });
   }
-
   compile(
-    nodes: JitStatement[],
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-    return new EffortBlock(nodes);
+    // Phase 4: Pass pre-compiled metrics to EffortBlock constructor
+    return new EffortBlock(compiledMetrics, legacySources);
   }
 }

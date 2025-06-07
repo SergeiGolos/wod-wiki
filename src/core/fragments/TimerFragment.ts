@@ -1,4 +1,4 @@
-import { CodeFragment } from "../CodeFragment";
+import { CodeFragment, FragmentType } from "../CodeFragment";
 import { CodeMetadata } from "../CodeMetadata";
 
 export class TimerFragment implements CodeFragment {
@@ -22,12 +22,11 @@ export class TimerFragment implements CodeFragment {
       this.days * 60 * 60 * 24) * 1000;
   }
 
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  original: number; // in ms
-  type: string = "duration";
-  applyToMetric(_metric: import("../RuntimeMetric").RuntimeMetric, _rounds?: number): void {    
-  }
+  readonly days: number;
+  readonly hours: number;
+  readonly minutes: number;
+  readonly seconds: number;
+  readonly original: number; // in ms
+  readonly type: string = "duration";
+  readonly fragmentType = FragmentType.Timer;
 }

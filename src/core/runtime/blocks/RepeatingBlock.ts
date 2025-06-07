@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PushStatementWithTimerAction } from "../actions/PushStatementWithTimerAction";
@@ -18,12 +19,12 @@ import { Duration } from "@/core/Duration";
 export class RepeatingBlock extends RuntimeBlock {
   private childIndex: number = 0;    
   private roundIndex: number = 0;
-  private lastLap: string;
-
-  constructor(
-    source: JitStatement[]    
+  private lastLap: string;  constructor(
+    compiledMetrics: RuntimeMetric[],
+    source?: JitStatement[]    
   ) {
-    super(source);      
+    // Pass compiled metrics to base class with optional legacy sources
+    super(compiledMetrics, source);      
     this.lastLap = "";
     
     // Add specialized handlers for user interactions
@@ -42,18 +43,17 @@ export class RepeatingBlock extends RuntimeBlock {
 
   /**
    * Implementation of the doNext hook method from the template pattern
-   */
-  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
+   */  protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
       return [new PopBlockAction()];
     }
     
-    const sourceNode = this.sources?.[0];
-    const rounds = sourceNode?.round(this.roundIndex);
-    
+    // TODO: During migration, use legacy sources for fragment-dependent operations
+    const sourceNode = this._legacySources?.[0];
+    const rounds = sourceNode?.round(this.roundIndex);    
     // Check if we've completed all rounds for the current child        
-    if (this.childIndex >= sourceNode?.children.length || this.lastLap === "-") {
+    if (this.childIndex >= (sourceNode?.children?.length || 0) || this.lastLap === "-") {
       this.childIndex = 0;   
       this.roundIndex += 1;             
     }

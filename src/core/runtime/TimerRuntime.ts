@@ -116,8 +116,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     return this.trace.current() ?? pushedBlock;
   }
   public pop(): IRuntimeBlock | undefined {    
-    console.log(`📚 TimerRuntime.pop() - popping current block`);
-    
+    console.log(`📚 TimerRuntime.pop() - popping current block`);    
     let poppedBlock = this.trace.pop(); // Keep this as poppedBlock
 
     if (poppedBlock) {

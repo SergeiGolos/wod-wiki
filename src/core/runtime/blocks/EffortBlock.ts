@@ -1,7 +1,8 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
-import { RuntimeBlock } from "./RuntimeBlock"; 
+import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { RuntimeBlock } from "./RuntimeBlock";
 import { StopEvent } from "../inputs/StopEvent"; 
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetButtonAction } from "../outputs/SetButtonAction";
@@ -15,9 +16,11 @@ import { SetSpanAction } from "../outputs/SetSpanAction";
 export class EffortBlock extends RuntimeBlock {
   // logger is inherited from AbstractBlockLifecycle
   constructor(
-    sources: JitStatement[],        
+    compiledMetrics: RuntimeMetric[],
+    sources?: JitStatement[],        
   ) {
-    super(sources);
+    // Pass compiled metrics to base class with optional legacy sources
+    super(compiledMetrics, sources);
     this.handlers.push(new CompleteHandler());
     this.leaf = true; // mark as leaf-level block
   }

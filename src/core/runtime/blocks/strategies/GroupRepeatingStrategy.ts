@@ -3,6 +3,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { RepeatingBlock } from "../RepeatingBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 
 /**
  * Strategy for the standard Repeat pattern (no operator)
@@ -24,19 +25,19 @@ export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {  canHandl
     return rounds.length > 0 && 
            rounds[0].count > 1 && 
            node.children.length > 0;
-  }
-
-  compile(
-    nodes: JitStatement[],
+  }  compile(
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[],
     _runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
     // Only handle the array if it contains exactly one node
-    if (nodes.length !== 1) {
+    if (legacySources.length !== 1) {
       console.warn('RepeatingBlockStrategy: Expected array with exactly one node');
       return undefined;
     }
     
-    return new RepeatingBlock([nodes[0]]);
+    // Phase 4: Pass pre-compiled metrics to RepeatingBlock constructor
+    return new RepeatingBlock(compiledMetrics, [legacySources[0]]);
   }
 }
 

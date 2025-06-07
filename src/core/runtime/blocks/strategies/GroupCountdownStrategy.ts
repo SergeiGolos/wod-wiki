@@ -3,6 +3,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { TimedGroupBlock } from "../TimedGroupBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 
 /**
  * Strategy for creating TimedGroupBlock runtime blocks for countdown scenarios
@@ -33,20 +34,22 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {  /**
       return hasDuration && hasChildren && !hasRounds;
     });
   }
-
   /**
    * Compile the nodes into a TimedGroupBlock
+   * Phase 4: Updated to receive pre-compiled metrics and legacy sources
    */
   compile(
-    nodes: JitStatement[],
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
     // TimedGroupBlock expects a single JitStatement
-    if (nodes.length !== 1) {
+    if (legacySources.length !== 1) {
       console.warn('GroupCountdownStrategy: Expected array with exactly one node');
       return undefined;
     }
-    
-    return new TimedGroupBlock([nodes[0]]);
+      // Phase 4: Pass pre-compiled metrics to TimedGroupBlock constructor
+    // For now, during migration, we still pass legacy sources for compatibility
+    return new TimedGroupBlock(compiledMetrics, legacySources);
   }
 }

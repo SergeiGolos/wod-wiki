@@ -17,12 +17,10 @@ export interface IRuntimeBlock {
   // Leaf marker
   leaf?: boolean;  // true if this block represents a leaf-level (effort) block
 
-  // Use getter methods instead of direct properties for encapsulation
-  sources: JitStatement[];  
+  // Pre-compiled metrics instead of raw statements
+  readonly compiledMetrics: RuntimeMetric[];
 
-  
   // Core methods  
-  
   selectMany<T>(fn: (node: JitStatement) => T[]): T[];  
   
   // Event handling
@@ -36,14 +34,12 @@ export interface IRuntimeBlock {
   // Lifecycle methods
   onStart(runtime: ITimerRuntime): IRuntimeAction[];
   onStop(runtime: ITimerRuntime): IRuntimeAction[];
-  
-  /**
+    /**
    * Generates a complete set of metrics for the runtime block.
-   * Uses the RuntimeMetricBuilder to collect and organize metrics by type.
-   * Includes effort, repetitions, distance, and resistance metrics.
+   * Returns the pre-compiled metrics that were provided during JIT compilation.
    * 
    * @param runtime The timer runtime instance
-   * @returns An array of RuntimeMetric objects
+   * @returns An array of pre-compiled RuntimeMetric objects
    */
   metrics(runtime: ITimerRuntime): RuntimeMetric[];
 }

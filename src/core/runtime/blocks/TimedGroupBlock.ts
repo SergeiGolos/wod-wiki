@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { PushStatementAction } from "../actions/PushStatementAction";
@@ -17,12 +18,14 @@ import { getDuration } from "./readers/getDuration";
 export class TimedGroupBlock extends RuntimeBlock {
   private childIndex: number = 0;
   private timerId?: string; // To store the timer ID if this block starts one
-
-  constructor(source: JitStatement[]) {
-    super(source);
-    const groupDuration = getDuration(this.sources[0])[0];
-    if (groupDuration && groupDuration.original) {
-      this.duration = groupDuration.original;
+  constructor(compiledMetrics: RuntimeMetric[], source?: JitStatement[]) {
+    super(compiledMetrics, source);    
+    const firstSource = this._legacySources?.[0];
+    if (firstSource) {
+      const groupDuration = getDuration(firstSource)[0];
+      if (groupDuration && groupDuration.original) {
+        this.duration = groupDuration.original;
+      }
     }
   }
 

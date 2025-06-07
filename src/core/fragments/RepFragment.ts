@@ -1,17 +1,8 @@
-import { CodeFragment } from "../CodeFragment";
+import { CodeFragment, FragmentType } from "../CodeFragment";
 import { CodeMetadata } from "../CodeMetadata";
 
 export class RepFragment implements CodeFragment {
   constructor(public reps?: number, public meta?: CodeMetadata) { }
-  type: string = "rep";
-  applyToMetric(metric: import("../RuntimeMetric").RuntimeMetric, rounds?: number): void {
-    if (typeof this.reps === "number") {
-      metric.values.push({
-        type: "repetitions",
-        value: this.reps,
-        unit: "reps",
-        round: rounds
-      });
-    }
-  }
+  readonly type: string = "rep";
+  readonly fragmentType = FragmentType.Rep;
 }

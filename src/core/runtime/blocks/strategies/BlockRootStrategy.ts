@@ -1,6 +1,7 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 import { RootBlock } from "../RootBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
@@ -14,12 +15,12 @@ export class BlockRootStrategy implements IRuntimeBlockStrategy {
     // Check if the single node has no parent (root node)
     return nodes[0].parent === undefined;
   }
-
   compile(
-    _nodes: JitStatement[],
+    _compiledMetrics: RuntimeMetric[],
+    _legacySources: JitStatement[],
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined {
-    // For root block, we ignore the nodes array and use the script's root
+    // For root block, we ignore the compiled metrics and use the script's root
     return new RootBlock(runtime.script.root);
   }
 }

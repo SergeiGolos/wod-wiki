@@ -7,7 +7,6 @@ import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { JitStatement } from "@/core/JitStatement";
 import { BlockKey } from "@/core/BlockKey";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
-import { RuntimeBlockMetrics } from "@/core/metrics/RuntimeBlockMetrics";
 import { WriteResultAction } from "../outputs/WriteResultAction";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 
@@ -16,16 +15,21 @@ import { RuntimeSpan } from "@/core/RuntimeSpan";
  * to leverage the template method pattern while maintaining backward compatibility
  */
 export abstract class RuntimeBlock implements IRuntimeBlock {  
-  constructor(public sources: JitStatement[]) {    
+  constructor(public compiledMetrics: RuntimeMetric[], legacySources?: JitStatement[]) {    
     this.blockId = Math.random().toString(36).substring(2, 15);
     this.blockKey = new BlockKey();
-    this.blockKey.push(this.sources, 0);    
-    this.duration = (this.sources && this.sources.length > 0)
-      ? this.sources[0].duration(this.blockKey).original
-      : undefined;
-      
-  }
-  public duration?: number | undefined; // Duration of the block, if applicable
+    
+    // For backward compatibility, we still need to handle sources for some operations
+    // TODO: This will be removed in future phases as we eliminate all fragment dependencies
+    if (legacySources && legacySources.length > 0) {
+      this.blockKey.push(legacySources, 0);    
+      this.duration = legacySources[0].duration(this.blockKey).original;
+      this._legacySources = legacySources;
+    } else {
+      // Use compiled metrics to determine duration (if available)
+      this.duration = undefined; // Will be calculated from metrics in future implementation
+    }
+  }  public duration?: number | undefined; // Duration of the block, if applicable
   public blockId: string;
   public blockKey: BlockKey;
   public parent?: IRuntimeBlock | undefined;
@@ -33,6 +37,9 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
   public leaf: boolean = false; // indicates leaf-level block  
   private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();  
   public handlers: EventHandler[] = [];
+    // Temporary property for backward compatibility during migration
+  // TODO: Remove this once all fragment-dependent operations are updated
+  protected _legacySources?: JitStatement[];
       
   /**
    * Get the ResultSpanBuilder to create and manage spans for this block
@@ -50,11 +57,14 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     // Access the private spans array directly without calling Build() to avoid auto-closing
     return [...(this.spanBuilder as any).spans];
   }
-  
-  public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
+    public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
     let results: T[] = [];
-    for (const source of this.sources) {
-      results = results.concat(fn(source));
+    // TODO: During migration, use legacy sources if available
+    // In future implementation, this method may need to be redesigned or removed
+    if (this._legacySources) {
+      for (const source of this._legacySources) {
+        results = results.concat(fn(source));
+      }
     }
     return results;
   }
@@ -128,10 +138,15 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
    * 
    * @param startIndex The index in `this.sources` to start looking for the compose group.
    * @returns An array of JitStatement objects belonging to the consecutive compose group.
-   */
-  public nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[] {
+   */  public nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[] {
     const groupStatements: JitStatement[] = [];
-    const sources = this.sources.flatMap(s => s.children);
+    
+    // TODO: During migration, use legacy sources if available
+    if (!this._legacySources) {
+      return groupStatements; // Return empty if no legacy sources available
+    }
+    
+    const sources = this._legacySources.flatMap((s: JitStatement) => s.children);
     if (startIndex < 0 || startIndex >= sources.length) {
       // Return empty if startIndex is out of bounds
       return groupStatements;
@@ -189,16 +204,15 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     
     return this.onBlockStop(runtime);      
   }
-   
-  /**
-   * Generates a complete set of metrics for this runtime block using the RuntimeMetricBuilder.
-   * This method provides a simplified way to collect metrics from fragments by type.
+     /**
+   * Returns the pre-compiled metrics for this runtime block.
+   * These metrics were compiled from fragments during JIT compilation.
    * 
-   * @param runtime The timer runtime instance
+   * @param runtime The timer runtime instance (kept for compatibility)
    * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
    */
   public metrics(runtime: ITimerRuntime): RuntimeMetric[] {    
-    // Otherwise use the utility class to build metrics from all sources
-    return RuntimeBlockMetrics.buildMetrics(runtime, this.sources);
+    // Return the pre-compiled metrics that were set during JIT compilation
+    return this.compiledMetrics;
   }
 }

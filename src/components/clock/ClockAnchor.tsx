@@ -70,8 +70,7 @@ export interface ClockAnchorProps {
 export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   clock,
   className,  
-  label,
-  showEffort = false,
+  label,  
   render,
 }) => {
   // State to trigger re-renders every 50ms for real-time updates

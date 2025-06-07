@@ -26,9 +26,9 @@ export const EffortDisplay: React.FC<EffortDisplayProps> = ({
         const effortText = metric.effort || `Exercise ${metricIndex + 1}`;
         
         // Extract values by type
-        const reps = metric.values.find(v => v.type === 'repetitions');
-        const resistance = metric.values.find(v => v.type === 'resistance');
-        const distance = metric.values.find(v => v.type === 'distance');
+        const reps = metric.values?.find(v => v.type === 'repetitions');
+        const resistance = metric.values?.find(v => v.type === 'resistance');
+        const distance = metric.values?.find(v => v.type === 'distance');
         
         return (
           <div key={`${metric.sourceId}-${metricIndex}`} className="w-full">

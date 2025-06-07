@@ -20,19 +20,30 @@ import { SkipHandler } from "./inputs/SkipEvent";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJitStrategies } from "./RuntimeJitStrategies";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
+import { FragmentCompilationManager } from "./strategies/FragmentCompilationManager";
+import { RuntimeMetric } from "../RuntimeMetric";
+import { BlockKey } from "../BlockKey";
 /**
  * Just-In-Time Compiler for Runtime Blocks
  * This class compiles StatementNodes into executable IRuntimeBlocks on demand.
+ * Phase 4: Now includes fragment compilation to separate metrics from block creation.
  */
 export class RuntimeJit {
   constructor(public script: RuntimeScript) {
     this.strategyManager = new RuntimeJitStrategies();
+    this.fragmentCompiler = new FragmentCompilationManager();
   }
   /**
    * Strategy manager for runtime block compilation
    * @private
    */
   private strategyManager: RuntimeJitStrategies;
+  
+  /**
+   * Fragment compilation manager for converting fragments to metrics
+   * @private
+   */
+  private fragmentCompiler: FragmentCompilationManager;
 
   idle(_runtime: ITimerRuntime): IRuntimeBlock {
     return new IdleRuntimeBlock();
@@ -66,13 +77,38 @@ export class RuntimeJit {
   registerStrategy(strategy: IRuntimeBlockStrategy): void {
     this.strategyManager.addStrategy(strategy);
   }
-
   /**
    * Compiles a statement node into a runtime block using registered strategies
+   * Phase 4: Now compiles fragments into metrics before block creation
    * @param node The statement node to compile
    * @returns A compiled runtime block or undefined if compilation fails
-   */
-  compile(node: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
-    return this.strategyManager.compile(node, runtime);
-  }  
+   */  compile(node: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
+    // Phase 4: Compile fragments into metrics before creating blocks
+    const compiledMetrics: RuntimeMetric[] = [];
+    
+    for (const statement of node) {
+      const metric = this.fragmentCompiler.compileStatementFragments(statement, {
+        runtimeState: {
+          isActive: false,
+          isPaused: false,
+          elapsedTime: 0,
+          currentRep: 1,
+          currentRound: 1
+        },        blockContext: {
+          blockKey: new BlockKey(),
+          childBlocks: [],
+          isRepeating: false,
+          iterationCount: 0
+        },
+        parentMetrics: [],
+        executionDepth: 0,
+        currentTime: 0,
+        currentRound: 1
+      });
+      compiledMetrics.push(metric);
+    }
+    
+    // Pass both compiled metrics and legacy sources to strategy manager
+    return this.strategyManager.compile(compiledMetrics, node, runtime);
+  }
 }

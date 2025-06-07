@@ -1,10 +1,12 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 
 /**
  * Interface for runtime block compilation strategies
  * Implements the Strategy pattern for different block types
+ * Phase 4: Updated to support pre-compiled metrics with legacy source compatibility
  */
 export interface IRuntimeBlockStrategy {
   /**
@@ -16,12 +18,15 @@ export interface IRuntimeBlockStrategy {
   
   /**
    * Compile statement nodes into a runtime block
-   * @param nodes Array of precompiled nodes to compile
+   * Phase 4: Now receives pre-compiled metrics and legacy sources
+   * @param compiledMetrics Pre-compiled metrics from fragment compilation
+   * @param legacySources Array of original statement nodes (for backward compatibility)
    * @param runtime The runtime instance   
    * @returns A compiled runtime block or undefined if compilation fails
    */
   compile(
-    nodes: JitStatement[], 
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[], 
     runtime: ITimerRuntime    
   ): IRuntimeBlock | undefined;
 }

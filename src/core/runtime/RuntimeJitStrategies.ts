@@ -7,6 +7,7 @@ import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrate
 import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
 import { BlockTimerStrategy } from "./blocks/strategies/BlockTimerStrategy";
 import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 
 /**
@@ -36,24 +37,26 @@ export class RuntimeJitStrategies {
     // Add to beginning so custom strategies take precedence        
     this.strategies.unshift(strategy);
   }
-
   /**
    * Compiles a collection of statement nodes into a runtime block using the appropriate strategy
-   * @param nodes The statement nodes to compile (can be a single node or multiple nodes)
+   * Phase 4: Now accepts pre-compiled metrics and legacy sources for gradual migration
+   * @param compiledMetrics The pre-compiled metrics from fragment compilation
+   * @param legacySources The original statement nodes (for backward compatibility)
    * @param runtime The runtime instance
    * @returns A compiled runtime block or undefined if no strategy matches
    */
   compile(
-    nodes: JitStatement[], 
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[], 
     runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {  
     // Convert to array if a single node is passed
-    const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
+    const nodeArray = Array.isArray(legacySources) ? legacySources : [legacySources];
     
     // Find the first strategy that can handle these nodes
     for (const strategy of this.strategies) {
       if (strategy.canHandle(nodeArray, runtime)) {       
-        const block = strategy.compile(nodeArray, runtime);        
+        const block = strategy.compile(compiledMetrics, nodeArray, runtime);        
         if (block) {
           return block;
         }

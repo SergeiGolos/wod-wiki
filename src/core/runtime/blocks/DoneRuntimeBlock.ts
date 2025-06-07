@@ -10,14 +10,15 @@ import { resetButton, saveButton } from "@/components/buttons/timerButtons";
 import { ResetHandler } from "../inputs/ResetEvent";
 
 export class DoneRuntimeBlock extends RuntimeBlock {
-  /** Unique identifier for this block */  
-  constructor(sources: JitStatement[] = [new IdleStatementNode({
+  /** Unique identifier for this block */    constructor(sources: JitStatement[] = [new IdleStatementNode({
     id: -1,
     children: [],
     meta: new ZeroIndexMeta(),
     fragments: []
   })]) {
-    super(sources);
+    // TODO: During migration, pass empty metrics and use sources as legacy sources
+    // In Phase 4, this will be updated to receive pre-compiled metrics from JIT
+    super([], sources);
     
     this.handlers = [
       new SaveHandler(),

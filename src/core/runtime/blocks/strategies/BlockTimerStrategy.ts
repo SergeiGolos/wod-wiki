@@ -3,10 +3,12 @@ import { JitStatement } from "@/core/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { TimerBlock } from "../TimerBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
+import { RuntimeMetric } from "@/core/RuntimeMetric";
 
 /**
  * Strategy for creating TimerBlock runtime blocks
  * Handles statements with duration only (no effort, reps, children, or rounds)
+ * Phase 4: Updated to use pre-compiled metrics
  * 
  * Examples:
  * - "30s"
@@ -33,14 +35,15 @@ export class BlockTimerStrategy implements IRuntimeBlockStrategy {
       return hasDuration && !hasEffort && !hasRepetitions && !hasChildren && !hasRounds;
     });
   }
-
   /**
    * Compile the nodes into a TimerBlock
-   */
-  compile(
-    nodes: JitStatement[],
+   * Phase 4: Updated to receive pre-compiled metrics and legacy sources
+   */  compile(
+    compiledMetrics: RuntimeMetric[],
+    legacySources: JitStatement[],
     _runtime: ITimerRuntime
   ): IRuntimeBlock | undefined {
-    return new TimerBlock(nodes);
+    // Phase 4: Pass pre-compiled metrics to TimerBlock constructor
+    return new TimerBlock(compiledMetrics, legacySources);
   }
 }

@@ -3,7 +3,6 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { RuntimeSpan } from "../RuntimeSpan";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { ITimeSpan } from "../ITimeSpan";
-import { BlockKey } from "../BlockKey";
 
 /**
  * Builder class for creating and managing RuntimeSpan objects.
