@@ -5,3 +5,6 @@ export * from './IResultSpanAggregate';
 export * from './ResultSpanAggregateBase';
 export * from './ResultSpanAggregator';
 export * from './ResultSpanAggregates';
+
+// New SOLID metrics framework
+export * from './framework';
