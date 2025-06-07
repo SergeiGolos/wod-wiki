@@ -3,25 +3,29 @@ import { EditorWithState } from '../components/EditorWithState';
 import { SoundProvider } from "/src/contexts/SoundContext";
 import { ScreenProvider } from "/src/contexts/ScreenContext";
 
-<Meta title="Tutorials/01 - Getting Started" />
+<Meta title="Tutorials/02 - Getting Started" />
 
-# Getting Started with WOD Wiki
+# Getting Started
 
-Welcome to WOD Wiki! This tutorial will help you get started with creating your first workout using our intuitive workout notation language.
+Now that you've seen the syntax overview, let's walk through creating your first workout step by step.
 
-## What is WOD Wiki?
+## Writing Your First Workout
 
-WOD Wiki is a powerful workout notation system that lets you create structured, easy-to-follow workout routines using simple text. It's perfect for:
+Let's start with a simple 5-minute warm-up. We'll build this step by step:
 
-- Personal workout tracking
-- Creating workout programs
-- Sharing workout routines with others
-- Following structured training plans
+### Step 1: Basic Timer
+```
+5:00 Warm-up
+```
 
-## Your First Workout
+### Step 2: Add Exercise Details
+```
+5:00 Warm-up
+  :30 Jump Rope
+  :30 Rest
+```
 
-Let's start with a simple 5-minute warm-up:
-
+### Step 3: Complete Structure
 ```
 5:00 Warm-up
   :30 Jump Rope
@@ -34,11 +38,25 @@ Let's start with a simple 5-minute warm-up:
   :30 Rest
 ```
 
-## How It Works
+## Basic Timers and Exercises
 
-1. **Timers**: Use `MM:SS` format for time-based exercises
-2. **Exercises**: Type the exercise name after the time
-3. **Rest**: Use `Rest` to indicate rest periods
+### Timer Formats
+- **Seconds only**: `:30` (30 seconds)
+- **Minutes and seconds**: `5:00` (5 minutes)
+- **Hours, minutes, seconds**: `1:15:00` (1 hour 15 minutes)
+
+### Exercise Naming
+- Type the exercise name after the timer
+- Use natural language: `Jump Rope`, `Push-ups`, `Air Squats`
+- Include rest periods: `Rest`, `Active Rest`
+
+### Basic Exercise Examples
+```
+:30 Plank
+1:00 Wall Sit
+:45 Mountain Climbers
+2:00 Easy Jog
+```
 
 ## Interactive Example
 
@@ -47,14 +65,51 @@ Try editing this example in the live editor below:
 <SoundProvider>
   <ScreenProvider>
     <EditorWithState 
-      code={"5:00 Warm-up\n  :30 Jump Rope\n  :30 Rest"}
+      code={"5:00 Warm-up\n  :30 Jump Rope\n  :30 Rest\n  :30 Arm Circles\n  :30 Rest"}
       height="200px"
     />
   </ScreenProvider>
 </SoundProvider>
 
+## Saving & Sharing Workouts
+
+### Copying Your Workout
+- Use the editor above to write your workout
+- Copy the text to save it anywhere (notes app, email, etc.)
+- Share the text with others - they can paste it into any wod.wiki editor
+
+### Common Workout Structure
+```
+# Workout Title - Date
+[:Setup] Equipment needed: Jump rope, mat
+
+# Warm-up
+5:00 Dynamic Warm-up
+  :30 Arm Circles
+  :30 Leg Swings
+  :30 Jumping Jacks
+  :30 Body Weight Squats
+
+# Main Workout  
+# (Your main exercises here)
+
+# Cool Down
+5:00 Static Stretching
+  :45 Hamstring Stretch
+  :45 Quad Stretch
+  :45 Shoulder Stretch
+```
+
+## Key Learning Points
+
+1. **Start Simple**: Begin with basic timers and exercise names
+2. **Use Natural Language**: Write exercises as you would say them
+3. **Include Rest**: Don't forget rest periods between exercises
+4. **Add Structure**: Use headers (`#`) to organize workout sections
+5. **Add Notes**: Use `[:text]` for special instructions
+
 ## Next Steps
 
-In the next tutorial, we'll explore how to create more complex workout structures with multiple exercises and rounds.
+Great! You've created your first workout. Next, we'll explore the core syntax elements in detail.
 
-[Next: Basic Workout Structures →](./02-Basic-Structures.mdx)
+[← Previous: Quick Reference](./01-Quick-Reference.mdx) | [Next: Core Syntax - Timers →](./03-Core-Syntax-Timers.mdx)
