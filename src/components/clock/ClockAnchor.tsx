@@ -84,9 +84,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
     
     return () => clearInterval(interval);
   }, []);
-
-    // Extract effort text from the RuntimeSpan metrics if showEffort is true
-  const effort = showEffort ? clock?.metrics?.[0]?.effort : undefined;
+      
     // Calculate duration from RuntimeSpan timeSpans  
   let displayDuration = new SpanDuration(clock?.timeSpans || []);
   if (clock?.duration) {
@@ -95,17 +93,14 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
 
   // Use custom render function if provided
   if (render) {
-    return <>{render(displayDuration, label, effort)}</>;
+    return <>{render(displayDuration, label)}</>;
   }  // Default rendering with optional label and effort
   return (
     <div className={cn("flex flex-col", className ?? "")}>
       {label && <div className="text-sm uppercase tracking-wide text-gray-600">{label}</div>}
       <div className="flex items-center">
         <ClockDisplay duration={displayDuration} />
-      </div>
-      {effort && showEffort && (
-        <div className="text-sm text-gray-700 mt-1">{effort}</div>
-      )}
+      </div>      
     </div>
   );
 };

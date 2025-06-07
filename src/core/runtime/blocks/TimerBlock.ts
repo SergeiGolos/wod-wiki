@@ -6,7 +6,7 @@ import { StartTimerAction } from "../actions/StartTimerAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { SetButtonAction } from "../outputs/SetButtonAction";
-import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
+
 import { SetDurationAction } from "../outputs/SetDurationAction";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { CompleteHandler } from "../inputs/CompleteEvent";
@@ -31,12 +31,9 @@ export class TimerBlock extends RuntimeBlock {
    * Sets up the timer state and UI controls
    */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-    const duration = this.duration;
-    const timerState = duration ? TimerState.RUNNING_COUNTDOWN : TimerState.RUNNING_COUNTUP;
-    
+    const duration = this.duration;   
     const actions: IRuntimeAction[] = [
       new StartTimerAction(new StartEvent()),
-      new SetTimerStateAction(timerState, "primary"),
       new SetButtonAction("system", [endButton, pauseButton]),
       new SetButtonAction("runtime", [completeButton])
     ];
@@ -62,8 +59,7 @@ export class TimerBlock extends RuntimeBlock {
    */
   protected onLeave(runtime: ITimerRuntime): IRuntimeAction[] {
     return [
-      new StopTimerAction(new StopEvent()),
-      new SetTimerStateAction(TimerState.STOPPED, "primary")
+      new StopTimerAction(new StopEvent()),      
     ];
   }
 

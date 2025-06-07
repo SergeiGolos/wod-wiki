@@ -3,13 +3,17 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
+import { PushStatementWithTimerAction } from "../actions/PushStatementWithTimerAction";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
 import { SetButtonAction } from "../outputs/SetButtonAction";
+
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { LapHandler } from "../inputs/LapEvent";
+import { getDuration } from "./readers/getDuration";
+import { Duration } from "@/core/Duration";
 
 export class RepeatingBlock extends RuntimeBlock {
   private childIndex: number = 0;    
@@ -56,14 +60,22 @@ export class RepeatingBlock extends RuntimeBlock {
   
     if (rounds && this.roundIndex >= rounds.count) {
       return [new PopBlockAction()];
-    } 
-    
-    const statements = this.nextChildStatements(runtime, this.childIndex);
+    }     const statements = this.nextChildStatements(runtime, this.childIndex);
     if (statements.length== 0) {
       return [new PopBlockAction()];
     }
     this.childIndex += statements.length;
-    return [new PushStatementAction(statements)];
+    
+    // Check if this RepeatingBlock has a duration that should be inherited by children
+    const blockDuration = sourceNode ? getDuration(sourceNode)[0] : undefined;
+    
+    if (blockDuration?.original) {
+      // Use timer inheritance action when this block has a duration
+      return [new PushStatementWithTimerAction(statements, new Duration(blockDuration.original), "primary")];
+    } else {
+      // Use normal push action when no timer inheritance needed
+      return [new PushStatementAction(statements)];
+    }
   } 
   
 
@@ -76,12 +88,14 @@ export class RepeatingBlock extends RuntimeBlock {
       new StopTimerAction(new StopEvent(new Date())),      
     ];
   }
-
   /**
    * Implementation of the onBlockStart hook method from the template pattern
    */
   protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return [];
+    const actions: IRuntimeAction[] = [];
+    
+    // Check if this RepeatingBlock has a duration - if so, set timer state to countdown            
+    return actions;
   }
 
   /**

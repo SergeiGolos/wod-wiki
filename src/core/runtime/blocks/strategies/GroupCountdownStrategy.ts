@@ -13,10 +13,11 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  * - "12m EMOM { 10 burpees }"
  * - "20m { run 400m; rest }"
  */
-export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
-  /**
+export class GroupCountdownStrategy implements IRuntimeBlockStrategy {  /**
    * Check if this strategy can handle the given nodes
-   * Criteria: Has duration AND has children (group scenario)
+   * Criteria: Has duration AND has children (group scenario) BUT NOT rounds
+   * This strategy handles pure time-limited scenarios like AMRAPs, EMOMs
+   * Rounds + time scenarios should be handled by GroupRepeatingStrategy
    */
   canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean {
     // Must have at least one node
@@ -25,8 +26,11 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
     return nodes.every(node => {
       const hasDuration = node.durations().length > 0;
       const hasChildren = node.children.length > 0;
+      const hasRounds = node.rounds().length > 0 && node.rounds()[0].count > 1;
       
-      return hasDuration && hasChildren;
+      // Only handle duration + children WITHOUT rounds
+      // This leaves rounds + time scenarios for GroupRepeatingStrategy
+      return hasDuration && hasChildren && !hasRounds;
     });
   }
 
@@ -43,6 +47,6 @@ export class GroupCountdownStrategy implements IRuntimeBlockStrategy {
       return undefined;
     }
     
-    return new TimedGroupBlock(nodes[0]);
+    return new TimedGroupBlock([nodes[0]]);
   }
 }

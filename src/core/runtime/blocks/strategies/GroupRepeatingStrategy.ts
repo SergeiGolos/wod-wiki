@@ -8,8 +8,7 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  * Strategy for the standard Repeat pattern (no operator)
  * Each child individually goes through all rounds before moving to the next child
  */
-export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: JitStatement[]): boolean {
+export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {  canHandle(nodes: JitStatement[]): boolean {
     // Only handle arrays with exactly one node
     if (nodes.length !== 1) {
       return false;
@@ -18,8 +17,10 @@ export class GroupRepeatingStrategy implements IRuntimeBlockStrategy {
     const node = nodes[0];
     const rounds = node.rounds();
     
-    // Only handle repeating blocks with rounds > 1 and no specific operator (standard Repeat pattern)
-    // Also ensure the node has children to repeat
+    // Handle repeating blocks with rounds > 1 and children
+    // This now includes both:
+    // 1. Pure rounds: "(3) { exercises }" - rounds only
+    // 2. Rounds + time: "(3) :5m { exercises }" - rounds with timer inheritance
     return rounds.length > 0 && 
            rounds[0].count > 1 && 
            node.children.length > 0;

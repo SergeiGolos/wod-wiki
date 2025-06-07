@@ -1,4 +1,4 @@
-import { PlayIcon, ArrowPathIcon, PauseIcon, FlagIcon, FolderArrowDownIcon } from "@heroicons/react/24/solid";
+import { PlayIcon, ArrowPathIcon, PauseIcon, FlagIcon, FolderArrowDownIcon, ForwardIcon } from "@heroicons/react/24/solid";
 import { IActionButton } from "@/core/IActionButton";
 import { RunEvent } from "@/core/runtime/inputs/RunEvent";
 import { StartEvent } from "@/core/runtime/inputs/StartEvent";
@@ -7,6 +7,7 @@ import { EndEvent } from "@/core/runtime/inputs/EndEvent";
 import { ResetEvent } from "@/core/runtime/inputs/ResetEvent";
 import { CompleteEvent } from "@/core/runtime/inputs/CompleteEvent";
 import { SaveEvent } from "@/core/runtime/inputs/SaveEvent";
+import { SkipEvent } from "@/core/runtime/inputs/SkipEvent";
 
 
 
@@ -52,10 +53,16 @@ export const startButton: IActionButton = {
     event: "complete",
     onClick: () => [new CompleteEvent()]
   };
-
   export const saveButton: IActionButton = {
     label: "Save",
     icon: FolderArrowDownIcon,
     event: "save",
     onClick: () => [new SaveEvent()]
+  };
+
+  export const skipButton: IActionButton = {
+    label: "Skip",
+    icon: ForwardIcon,
+    event: "skip",
+    onClick: () => [new SkipEvent()]
   };

@@ -19,6 +19,15 @@ export class ResultSpanBuilder {
    * @returns The builder instance for chaining
    */
   public Create(block: IRuntimeBlock, metrics: RuntimeMetric[]): ResultSpanBuilder {
+    // If there's an existing current span and it has timeSpans,
+    // check the last timeSpan. If it's not stopped, stop it now.
+    if (this.currentSpan && this.currentSpan.timeSpans.length > 0) {
+      const lastTimeSpan = this.currentSpan.timeSpans[this.currentSpan.timeSpans.length - 1];
+      if (!lastTimeSpan.stop) {
+        lastTimeSpan.stop = { name: 'auto_stopped_by_new_span', timestamp: new Date() };
+      }
+    }
+
     const span = new RuntimeSpan();
     span.blockId = block.blockId;
     span.blockKey = block.blockKey?.toString() ?? "";
