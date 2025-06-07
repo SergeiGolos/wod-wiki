@@ -74,8 +74,6 @@ The inputs directory contains event classes and their corresponding handlers tha
   - Updates UI to show workout completion.
   - May trigger result display or summary.
 
-- **LapEvent**: Marks the beginning or completion of a lap.
-  - Used for tracking rounds in repeating workouts.
 
 - **LapHandler**: Processes lap transitions.
   - Updates round counters and lap tracking.

@@ -6,12 +6,14 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `timestamp: Date` - The timestamp when the event occurred
+*   `name: string` - The name/type of the event
+*   `blockKey?: string` - Optional block key identifying which block the event relates to
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   None - This is a data interface with no methods
 
 ## Relationships
-*   **Implemented by**: `[[CompleteEvent]]`, `[[SkipEvent]]`, `[[TickEvent]]`, `[[StopEvent]]`, `[[StartEvent]]`, `[[SoundEvent]]`, `[[SaveEvent]]`, `[[RunEvent]]`, `[[ResetEvent]]`, `[[PushActionEvent]]`, `[[NextStatementEvent]]`, `[[LapEvent]]`, `[[EndEvent]]`, `[[DisplayEvent]]`
+*   **Implemented by**: `[[CompleteEvent]]`, `[[SkipEvent]]`, `[[TickEvent]]`, `[[StopEvent]]`, `[[StartEvent]]`, `[[SoundEvent]]`, `[[SaveEvent]]`, `[[RunEvent]]`, `[[ResetEvent]]`, `[[PushActionEvent]]`, `[[NextStatementEvent]]`, `[[EndEvent]]`, `[[DisplayEvent]]`
 *   **Extended by**: `[[IRuntimeLog]]`

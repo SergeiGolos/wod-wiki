@@ -6,11 +6,14 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `blockId: string` - The unique identifier of the block
+*   `blockKey: string` - The hierarchical key identifier of the block
+*   `timestamp: Date` - Inherited from IRuntimeEvent
+*   `name: string` - Inherited from IRuntimeEvent
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   None - This is a data interface with no methods
 
 ## Relationships
 *   **Extends**: `[[IRuntimeEvent]]`

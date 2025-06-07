@@ -1,14 +1,27 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { BubbleUpAction } from "./base/BubbleUpAction";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
+import { OutputEvent } from "@/core/OutputEvent";
+import { Subject } from "rxjs";
 
 /**
  * Action that stops a timer and propagates up the block hierarchy
  */
-export class StopTimerAction extends BubbleUpAction {
-  constructor(private event: IRuntimeEvent) {
-    super();
+export class StopTimerAction implements IRuntimeAction {
+  constructor(public event: IRuntimeEvent) {
+  
+  }
+  apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>): void {
+    const block = runtime.trace.current()!;
+    // Call the block's onStop method to handle the timer stop
+    console.log(`StopTimerAction executed for block: ${block.blockKey}, event: ${this.event.name} at ${this.event.timestamp}`);   
+    const actions = block.onStop(runtime);
+    
+    // Apply any additional actions that the block may have generated
+    if (actions.length > 0) {
+      runtime.apply(actions, block);
+    }      
   }
 
   name: string = "stop";
@@ -20,14 +33,6 @@ export class StopTimerAction extends BubbleUpAction {
    * @param block The block to apply the action to
    */
   protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
-    console.log(`StartTimerAction executed for block: ${block.blockKey}, event: ${this.event.name} at ${this.event.timestamp}`);
     
-    // Call the block's onStop method to handle the timer stop
-    const actions = block.onStop(runtime);
-    
-    // Apply any additional actions that the block may have generated
-    if (actions.length > 0) {
-      runtime.apply(actions, block);
-    }      
   }
 }

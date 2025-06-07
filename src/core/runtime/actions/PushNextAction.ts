@@ -1,11 +1,10 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { LeafNodeAction } from "./base/LeafNodeAction";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
 
 /**
  * Action that pushes the next action for the current block
  */
-export class PushNextAction extends LeafNodeAction {
+export class PushNextAction implements IRuntimeAction {
   name: string = "next";
 
   /**
@@ -13,7 +12,9 @@ export class PushNextAction extends LeafNodeAction {
    * 
    * @param runtime The timer runtime
    * @param block The block to apply the action to
-   */  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+   */ 
+  apply(runtime: ITimerRuntime): void {
+    const block = runtime.trace.current()!;
     console.log(`🔄 PushNextAction.applyBlock() - calling next() on ${block.constructor.name} [${block.blockKey}]`);
     
     const next = block.next(runtime);

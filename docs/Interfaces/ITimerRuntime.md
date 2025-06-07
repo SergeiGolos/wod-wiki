@@ -6,11 +6,19 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `code: string` - The workout code/script being executed
+*   `jit: RuntimeJit` - Just-in-time compiler for workout blocks
+*   `trace: RuntimeStack` - Stack of currently executing blocks
+*   `history: Array<IRuntimeLog>` - History of runtime events and logs
+*   `script: RuntimeScript` - The compiled runtime script
+*   `registry?: ResultSpanBuilder` - Optional registry for result spans
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   `apply(actions: IRuntimeAction[], source: IRuntimeBlock): void` - Applies a set of runtime actions from a source block
+*   `push(block: IRuntimeBlock | undefined): IRuntimeBlock` - Pushes a block onto the runtime stack
+*   `pop(): IRuntimeBlock | undefined` - Pops a block from the runtime stack
+*   `reset(): void` - Resets the runtime to initial state
 
 ## Relationships
 *   **Extended by**: `[[ITimerRuntimeIo]]`

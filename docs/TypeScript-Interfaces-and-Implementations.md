@@ -42,7 +42,6 @@ This document provides a comprehensive overview of all interfaces defined in the
 
 #### Abstract Base Classes:
 - `AbstractRuntimeAction` (abstract) - `src/core/runtime/actions/base/AbstractRuntimeAction.ts`
-  - `BubbleUpAction` (abstract) - `src/core/runtime/actions/base/BubbleUpAction.ts`
     - `GotoEndAction` - `src/core/runtime/actions/GotoEndAction.ts`
   - `LeafNodeAction` (abstract) - `src/core/runtime/actions/base/LeafNodeAction.ts`
 - `OutputAction` (abstract) - `src/core/runtime/OutputAction.ts`
@@ -69,7 +68,6 @@ This document provides a comprehensive overview of all interfaces defined in the
 - `ResetEvent` - `src/core/runtime/inputs/ResetEvent.ts`
 - `PushActionEvent` - `src/core/runtime/inputs/PushActionEvent.ts`
 - `NextStatementEvent` - `src/core/runtime/inputs/NextStatementEvent.ts`
-- `LapEvent` - `src/core/runtime/inputs/LapEvent.ts`
 - `EndEvent` - `src/core/runtime/inputs/EndEvent.ts`
 - `DisplayEvent` - `src/core/runtime/inputs/DisplayEvent.ts`
 
@@ -226,7 +224,6 @@ This document provides a comprehensive overview of all interfaces defined in the
 - `ResetHandler` - `src/core/runtime/inputs/ResetEvent.ts`
 - `PushActionHandler` - `src/core/runtime/inputs/PushActionEvent.ts`
 - `NextStatementHandler` - `src/core/runtime/inputs/NextStatementEvent.ts`
-- `LapHandler` - `src/core/runtime/inputs/LapEvent.ts`
 - `EndHandler` - `src/core/runtime/inputs/EndEvent.ts`
 - `DisplayHandler` - `src/core/runtime/inputs/DisplayHandler.ts`
 - `RestRemainderHandler` - `src/core/runtime/inputs/RestRemainderHandler.ts`

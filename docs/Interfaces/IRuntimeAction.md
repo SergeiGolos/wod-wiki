@@ -6,11 +6,11 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `name: string` - Unique identifier for the action
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   `apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>): void` - Executes the action with the given runtime context, input event stream, and output event stream
 
 ## Relationships
 *   **Implemented by**: `[[PopBlockAction]]`, `[[PushStatementAction]]`, `[[PushStatementWithTimerAction]]`, `[[PushEndBlockAction]]`, `[[PushIdleBlockAction]]`, `[[ResetAction]]`, `[[NotifyRuntimeAction]]`, `[[PlaySoundAction]]`, `[[IdleStatementAction]]`, `[[StartTimerAction]]`, `[[StopTimerAction]]`, `[[UpdateMetricsAction]]`, `[[PopulateMetricsAction]]`, `[[PushNextAction]]`, `[[AbstractRuntimeAction]]`, `[[OutputAction]]`

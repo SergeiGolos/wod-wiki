@@ -13,7 +13,6 @@ import { EndHandler } from "./inputs/EndEvent";
 import { RootBlock } from "./blocks/RootBlock";
 import { RunHandler } from "./inputs/RunEvent";
 import { NextStatementHandler } from "./inputs/NextStatementEvent";
-import { DisplayHandler } from "./inputs/DisplayHandler";
 import { PushActionHandler } from "./inputs/PushActionEvent";
 import { SoundHandler } from "./inputs/SoundEvent";
 import { SkipHandler } from "./inputs/SkipEvent";
@@ -65,7 +64,6 @@ export class RuntimeJit {
     new StopHandler(),
     new ResetHandler(),
     new EndHandler(),
-    new DisplayHandler(),
     new SoundHandler(), // Add SoundHandler for audio feedback
     new SkipHandler(), // Add SkipHandler for skipping rest periods
   ];

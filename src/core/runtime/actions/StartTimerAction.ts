@@ -1,14 +1,14 @@
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { BubbleUpAction } from "./base/BubbleUpAction";
+import { IRuntimeAction } from "@/core/IRuntimeAction";
 
 /**
  * Action that starts a timer and propagates up the block hierarchy
  */
-export class StartTimerAction extends BubbleUpAction {
-  constructor(private event: IRuntimeEvent) {
-    super();
+export class StartTimerAction implements IRuntimeAction {
+  constructor(public event: IRuntimeEvent) {
+   
   }
   
   name: string = "start";
@@ -19,7 +19,8 @@ export class StartTimerAction extends BubbleUpAction {
    * @param runtime The timer runtime
    * @param block The block to apply the action to
    */
-  protected applyBlock(runtime: ITimerRuntime, block: IRuntimeBlock): void {
+  protected apply(runtime: ITimerRuntime): void {
+    const block: IRuntimeBlock = runtime.trace.current()!;
     console.log(`StartTimerAction executed for block: ${block.blockKey}, event: ${this.event.name} at ${this.event.timestamp}`);
     const actions  = block.onStart(runtime);
 

@@ -12,7 +12,6 @@ import { SetButtonAction } from "../outputs/SetButtonAction";
 import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
 import { CompleteHandler } from "../inputs/CompleteEvent";
-import { LapHandler } from "../inputs/LapEvent";
 import { getDuration } from "./readers/getDuration";
 import { Duration } from "@/core/Duration";
 
@@ -28,8 +27,7 @@ export class RepeatingBlock extends RuntimeBlock {
     this.lastLap = "";
     
     // Add specialized handlers for user interactions
-    this.handlers.push(new CompleteHandler());
-    this.handlers.push(new LapHandler());
+    this.handlers.push(new CompleteHandler());    
   }
   
   /**

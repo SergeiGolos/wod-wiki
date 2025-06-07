@@ -6,11 +6,14 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `eventType: OutputEventType` - The type of output event this action produces
+*   `name: string` - The action name in format `out:${eventType}`
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   `constructor(eventType: OutputEventType)` - Creates a new OutputAction with the specified event type
+*   `abstract write(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>): OutputEvent[]` - Abstract method to generate output events (must be implemented by subclasses)
+*   `apply(runtime: ITimerRuntime, input: Subject<IRuntimeEvent>, output: Subject<OutputEvent>): void` - Applies the action by calling write() and emitting events to the output stream
 
 ## Relationships
 *   **Implements**: `[[IRuntimeAction]]`

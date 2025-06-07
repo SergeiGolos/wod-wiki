@@ -6,11 +6,14 @@
 
 ## Properties
 
-*   `(Details to be populated from source code)`
+*   `input$: Subject<IRuntimeEvent>` - RxJS subject for handling input events
+*   `tick$: Observable<IRuntimeEvent>` - RxJS observable for timer tick events
+*   `output$: Observable<OutputEvent>` - RxJS observable for output events
+*   Inherits all properties from `ITimerRuntime`
 
 ## Methods
 
-*   `(Details to be populated from source code)`
+*   Inherits all methods from `ITimerRuntime`
 
 ## Relationships
 *   **Extends**: `[[ITimerRuntime]]`
