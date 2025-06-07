@@ -1,0 +1,278 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/05 - Core Syntax - Exercises & Actions" />
+
+# Core Syntax: Exercises & Actions
+
+Learn how to name exercises effectively and use special actions to add instructions and structure to your workouts.
+
+## Exercise Names
+
+### Natural Language
+Write exercises as you would naturally say them:
+
+```
+Push-ups
+Air Squats  
+Pull-ups
+Kettlebell Swings
+Dumbbell Press
+Back Squats
+Mountain Climbers
+Jump Rope
+```
+
+### Multi-word Exercises
+Use spaces for complex exercise names:
+
+```
+Goblet Squats
+Romanian Deadlifts  
+Single Leg Deadlifts
+Russian Kettlebell Swings
+Overhead Walking Lunges
+Alternating Dumbbell Press
+Box Step Ups
+Wall Ball Shots
+```
+
+### Exercise Variations
+Include important details in the exercise name:
+
+```
+Wide Grip Pull-ups
+Diamond Push-ups
+Sumo Deadlifts
+Bulgarian Split Squats
+Single Arm Dumbbell Rows
+Pistol Squats (assisted)
+Handstand Push-ups (scaled)
+```
+
+## Special Actions (`[:text]`)
+
+Special actions provide instructions, setup notes, and transitions that aren't exercises themselves.
+
+### Setup Instructions
+```
+[:Setup] Get barbell, plates, and timer ready
+[:Equipment] 53lb kettlebell, 24" box, pull-up bar
+[:Warm-up] 5 minutes easy movement before starting
+```
+
+### Rest Periods
+```
+[:Rest] 2:00 between rounds
+[:Active Rest] Easy walk between sets  
+[:Complete Rest] Sit or lie down for full recovery
+```
+
+### Coaching Cues
+```
+[:Form] Focus on keeping chest up during squats
+[:Breathing] Exhale on the push, inhale on the return
+[:Pace] Maintain steady rhythm throughout
+```
+
+### Transitions
+```
+[:Transition] Move to pull-up bar
+[:Setup] Increase weight for next set
+[:Note] This should feel challenging but manageable
+```
+
+## Combining Elements
+
+### Reps + Exercise + Weight
+```
+5 Back Squats 185lb
+10 Dumbbell Press 35lb
+15 Kettlebell Swings 53lb
+```
+
+### Timer + Exercise + Details
+```
+:30 Plank (forearms)
+1:00 Wall Sit (back against wall)
+:45 Side Plank (each side)
+```
+
+### Rounds + Reps + Exercise + Weight
+```
+(3)
+  5 Deadlifts 225lb
+  10 Box Jumps 24"
+  15 Wall Balls 20lb
+```
+
+### Complex Combinations
+```
+(21-15-9) For Time:
+  Thrusters 95lb (front squat to push press)
+  Pull-ups (chest to bar)
+  
+[:Rest] 3:00
+
+EMOM 10:00
+  Min 1: 5 Power Cleans 135lb
+  Min 2: :30^ Max Burpees
+```
+
+## Interactive Examples
+
+Try combining different elements:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={`# Exercise & Action Examples
+
+[:Setup] Equipment needed: barbell, kettlebell, box
+
+# Warm-up
+5:00 Dynamic Movement
+  :30 Arm Circles
+  :30 Leg Swings
+  :30 Bodyweight Squats
+  :30 Push-ups
+
+[:Transition] Set up for main workout
+
+# Main Workout
+(3) 12:00
+  15 Thrusters 95lb
+  12 Pull-ups (chest to bar)
+  9 Burpees
+  
+[:Rest] 2:00 between rounds
+[:Coaching] Maintain steady pace
+
+# Finisher  
+5:00^ AMRAP
+  10 Kettlebell Swings 53lb
+  5 Burpees
+
+[:Cool Down] 5 minutes easy stretching`}
+      height="400px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Exercise Categories
+
+### Bodyweight Movements
+```
+Push-ups (various styles)
+Air Squats  
+Burpees
+Mountain Climbers
+Plank variations
+Lunges
+Jump Squats
+Bear Crawls
+```
+
+### Weightlifting
+```
+Back Squats
+Front Squats  
+Deadlifts
+Bench Press
+Overhead Press
+Power Cleans
+Snatches
+Thrusters
+```
+
+### Conditioning/Cardio
+```
+Running (various distances)
+Rowing  
+Bike/Cycling
+Jump Rope
+Box Jumps
+Battle Ropes
+Kettlebell Swings
+```
+
+### Gymnastics
+```
+Pull-ups
+Handstand Push-ups
+Ring Dips
+Muscle-ups  
+Toes to Bar
+L-sits
+Handstand Walks
+```
+
+## Best Practices
+
+### Exercise Naming
+- Use consistent terminology
+- Include important details (grip, stance, etc.)
+- Be specific when needed: "Wide Grip Pull-ups" vs "Pull-ups"
+- Use parentheses for scaling notes: "Push-ups (knee modified)"
+
+### Special Actions
+- Use setup actions before complex workouts
+- Include rest instructions for clarity
+- Add coaching cues for form reminders
+- Note equipment changes or transitions
+
+### Organization
+```
+# Proper Workout Structure
+[:Setup] Equipment and space preparation
+
+# Warm-up Section
+[:Coaching] Start easy, build intensity
+
+# Main Workout
+[:Form] Key movement patterns to focus on
+[:Rest] Recovery between intense efforts
+
+# Cool Down  
+[:Note] Focus on areas that feel tight
+```
+
+## Common Mistakes and Corrections
+
+### ❌ Incorrect Exercise Names
+```
+burpee                    # Use proper capitalization
+kb swings                 # Spell out "Kettlebell"
+pu                        # Don't abbreviate "Pull-ups"
+pushup                    # Use hyphen: "Push-ups"
+```
+
+### ✅ Correct Exercise Names  
+```
+Burpees
+Kettlebell Swings
+Pull-ups  
+Push-ups
+```
+
+### ❌ Unclear Actions
+```
+[get ready]               # Be more specific
+[rest]                    # Include duration
+[setup stuff]             # Specify equipment
+```
+
+### ✅ Clear Actions
+```
+[:Setup] Get 53lb kettlebell and timer ready
+[:Rest] 2:00 complete rest between rounds  
+[:Equipment] Move to pull-up bar area
+```
+
+## Next Steps
+
+Now that you understand exercises and actions, let's explore how to specify weights and distances for your movements.
+
+[← Previous: Core Syntax - Repetitions & Rounds](./04-Core-Syntax-Reps-Rounds.mdx) | [Next: Core Syntax - Weight & Distance →](./06-Core-Syntax-Weight-Distance.mdx)
