@@ -128,8 +128,7 @@ protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAc
 export class TimerBlock extends RuntimeBlock {
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
     return [
-      new StartTimerAction(new StartEvent()),
-      new SetTimerStateAction(TimerState.RUNNING_COUNTDOWN, "primary"),
+      new StartTimerAction(new StartEvent()),      
       new SetButtonAction("system", [endButton, pauseButton]),
       new SetButtonAction("runtime", [completeButton])
     ];
@@ -252,8 +251,7 @@ export class TimerBlock extends RuntimeBlock {
     const timerState = duration ? TimerState.RUNNING_COUNTDOWN : TimerState.RUNNING_COUNTUP;
     
     return [
-      new StartTimerAction(new StartEvent()),
-      new SetTimerStateAction(timerState, "primary"),
+      new StartTimerAction(new StartEvent()),      
       new SetDurationAction(duration || 0, "primary"),
       new SetButtonAction("system", [endButton, pauseButton]),
       new SetButtonAction("runtime", [completeButton])
@@ -262,8 +260,7 @@ export class TimerBlock extends RuntimeBlock {
   
   protected onLeave(runtime: ITimerRuntime): IRuntimeAction[] {
     return [
-      new StopTimerAction(new StopEvent()),
-      new SetTimerStateAction(TimerState.STOPPED, "primary")
+      new StopTimerAction(new StopEvent()),      
     ];
   }
   

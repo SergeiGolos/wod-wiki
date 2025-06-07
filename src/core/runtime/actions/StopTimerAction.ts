@@ -2,12 +2,6 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { BubbleUpAction } from "./base/BubbleUpAction";
-import { getDuration } from "../blocks/readers/getDuration";
-import { SetClockAction } from "../outputs/SetClockAction";
-import { SetResultSpanAction } from "../outputs/SetResultSpanAction";
-import { ResultSpan } from "@/core/ResultSpan";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
-import { ITimeSpan } from "@/core/ITimeSpan";
 
 /**
  * Action that stops a timer and propagates up the block hierarchy

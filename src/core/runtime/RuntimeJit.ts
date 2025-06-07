@@ -16,6 +16,7 @@ import { NextStatementHandler } from "./inputs/NextStatementEvent";
 import { DisplayHandler } from "./inputs/DisplayHandler";
 import { PushActionHandler } from "./inputs/PushActionEvent";
 import { SoundHandler } from "./inputs/SoundEvent";
+import { SkipHandler } from "./inputs/SkipEvent";
 import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJitStrategies } from "./RuntimeJitStrategies";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
@@ -44,7 +45,6 @@ export class RuntimeJit {
   root(runtime: ITimerRuntime): IRuntimeBlock {
     return new RootBlock(runtime.script.root);
   }
-
   handlers: EventHandler[] = [
     new PushActionHandler(),
     new RunHandler(),
@@ -56,6 +56,7 @@ export class RuntimeJit {
     new EndHandler(),
     new DisplayHandler(),
     new SoundHandler(), // Add SoundHandler for audio feedback
+    new SkipHandler(), // Add SkipHandler for skipping rest periods
   ];
 
   /**

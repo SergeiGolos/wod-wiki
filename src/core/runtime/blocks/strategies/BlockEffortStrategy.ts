@@ -10,7 +10,10 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
  */
 
 export class BlockEffortStrategy implements IRuntimeBlockStrategy {
-  canHandle(nodes: JitStatement[]): boolean {    
+  canHandle(nodes: JitStatement[]): boolean {
+    // Must have at least one node
+    if (nodes.length === 0) return false;
+    
     return nodes.every(node => {
       const rounds = node.rounds();
       const hasEffort = node.efforts().length > 0;

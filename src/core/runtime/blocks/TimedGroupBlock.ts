@@ -1,260 +1,93 @@
-import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
-import { TimeSpanDuration } from "@/core/TimeSpanDuration";
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { JitStatement } from "@/core/JitStatement";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
-import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
-import { ResultSpanBuilder } from "@/core/metrics";
-import { SetButtonsAction } from "../outputs/SetButtonsAction";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { PushStatementAction } from "../actions/PushStatementAction";
-import { SetClockAction } from "../outputs/SetClockAction"; // Added import
-import { LapFragment } from "@/core/fragments/LapFragment";
-import { getLap } from "./readers/getLap";
-import { getDuration } from "./readers/getDuration";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { PushStatementAction } from "../actions/PushStatementAction";
+import { PushStatementWithTimerAction } from "../actions/PushStatementWithTimerAction";
 import { SetDurationAction } from "../outputs/SetDurationAction";
-import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
-import { CompleteHandler } from "../inputs/CompleteEvent";
-import { LapHandler } from "../inputs/LapEvent";
+import { completeButton, endButton, pauseButton } from "@/components/buttons/timerButtons";
+import { SetButtonAction } from "../outputs/SetButtonAction";
+
+import { StopTimerAction } from "../actions/StopTimerAction";
+import { StopEvent } from "../inputs/StopEvent";
+import { Duration } from "@/core/Duration";
+import { getDuration } from "./readers/getDuration";
 
 export class TimedGroupBlock extends RuntimeBlock {
-  // Local registry for child spans
-  private childSpanRegistry = new ResultSpanBuilder();
-  private childIndex: number;
-  private lastLap: string;
-  
-  constructor(source: JitStatement /*, parentMetricsContext?: MetricsContext - Removed */) {
-    // Use the ADD relationship type for timed group blocks to aggregate metrics
-    super([source]); // Base RuntimeBlock constructor only takes sources
-    
-    // Initialize state directly on the instance
-    this.childIndex = 0; 
-    this.lastLap = "";
-    
-    // Add specialized handlers for user interactions
-    this.handlers.push(new CompleteHandler());
-    this.handlers.push(new LapHandler());
-  }
-  
-  private _updateSpanWithAggregatedChildMetrics(span: RuntimeSpan | undefined): void {
-    if (!span) return;
+  private childIndex: number = 0;
+  private timerId?: string; // To store the timer ID if this block starts one
 
-    // Aggregate metrics from child spans
-    const childSpans = this.childSpanRegistry.getAllSpans();
-    if (childSpans.length > 0) {
-      const aggregatedMetrics = this.childSpanRegistry.aggregateMetrics(childSpans);
-      if (!span.metrics) span.metrics = [];
-      
-      // Add aggregated metrics to the span
-      aggregatedMetrics.forEach((metric: RuntimeMetric) => {
-        const existingIndex = span.metrics.findIndex(m => 
-          m.sourceId === metric.sourceId && 
-          m.effort === metric.effort
-        );
-        
-        if (existingIndex >= 0) {
-          span.metrics[existingIndex] = metric;
-        } else {
-          span.metrics.push(metric);
-        }
-      });
-      
-      // Update child references (span.children is initialized in RuntimeSpan class)
-      childSpans.forEach((childSpan: RuntimeSpan) => {
-        if (childSpan.blockKey && !span.children.includes(childSpan.blockKey.toString())) {
-          span.children.push(childSpan.blockKey.toString());
-        }
-      });
+  constructor(source: JitStatement[]) {
+    super(source);
+    const groupDuration = getDuration(this.sources[0])[0];
+    if (groupDuration && groupDuration.original) {
+      this.duration = groupDuration.original;
     }
   }
 
-  /**
-   * Called when the block is entered. For TimedGroupBlock, core setup is in onBlockStart.
-   */
   protected onEnter(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`TimedGroupBlock: ${this.blockKey} onEnter`);
-    // Specific setup logic moved to onBlockStart.
-    return [];
-  }
-
-  /**
-   * Called when the block's specific timing/activity truly starts.
-   */
-  protected onBlockStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`TimedGroupBlock: ${this.blockKey} onBlockStart`);
-    this.childIndex = 0; // Reset child index for this run
-    this.lastLap = "";   // Reset last lap status
-
-    const currentSpan = this.spans[this.spans.length - 1];
-
-    if (currentSpan) {
-      currentSpan.label = this.sources[0]?.name ?? `TimedGroup: ${this.blockId}`;
-      const duration = this.selectMany(getDuration)[0];
-      if (duration?.original) {
-        const durationMetric: RuntimeMetric = {
-          sourceId: this.blockId,
-          effort: 'Group Duration',
-          values: [{
-            type: 'duration', 
-            value: duration.original,
-            unit: 'ms'
-          }]
-        };
-        if (!currentSpan.metrics) currentSpan.metrics = [];
-        currentSpan.metrics.push(durationMetric);
-      }
+    const actions: IRuntimeAction[] = [];
+    if (this.duration) {
+      // Placeholder for timerId generation
+      this.timerId = `timer_${Math.random().toString(36).substring(2, 9)}`;
+      actions.push(new SetDurationAction(this.duration, this.timerId));
+      actions.push(new SetButtonAction("system", [endButton, pauseButton]));
+      actions.push(new SetButtonAction("runtime", [completeButton]));
     } else {
-      console.warn(`TimedGroupBlock: ${this.blockKey} onBlockStart called but currentSpan is undefined.`);
+      actions.push(new SetButtonAction("system", [endButton]));
     }
     
-    const actions: IRuntimeAction[] = [
-      new SetButtonsAction([endButton, pauseButton], "system"),
-      new SetButtonsAction([completeButton], "runtime"),
-    ];
-
-    // Add the SetTimerStateAction to set the timer to RUNNING_COUNTDOWN
-    const duration = this.selectMany(getDuration)[0];
-    if (duration?.original) {
-      actions.push(new SetTimerStateAction(TimerState.RUNNING_COUNTDOWN, "primary"));
-    }
-
-    actions.push(...this.onNext(runtime)); // Push the first child/set of children
-    
+    actions.push(...this.onNext(runtime));
     return actions;
   }
-  
-  /**
-   * Called to process the next child or determine if the block should pop.
-   */
+
   protected onNext(runtime: ITimerRuntime): IRuntimeAction[] {
     const endEvent = runtime.history.find((event) => event.name === "end");
     if (endEvent) {
-      const currentSpan = this.spans[this.spans.length - 1];
-      if (currentSpan) {
-        this._updateSpanWithAggregatedChildMetrics(currentSpan);
-      }
-      return [new PopBlockAction()];
-    }
-    
-    if (this.childIndex !== undefined && 
-        this.sources[0] && 
-        (this.childIndex >= this.sources[0].children.length || this.lastLap === "-")) {
-      this.childIndex = 0;   
-      // this.index += 1; // Cannot use this.index from base like this
-    }          
-
-    const duration = this.selectMany(getDuration)[0];
-    const currentBlockSpan = this.spans[this.spans.length - 1];
-    const remaining = new TimeSpanDuration(
-      duration?.original ?? 0,
-      duration?.sign ?? '+',
-      currentBlockSpan?.timeSpans ?? []
-    ).remaining();
-
-    if ((remaining?.original != undefined) && (remaining.original <= 0)) {
       return [new PopBlockAction()];
     }
 
-    const statements: JitStatement[] = [];
-    let statement: JitStatement | undefined;
-    let laps: LapFragment | undefined;
-    
-    while (true) {      
-      if (this.childIndex !== undefined) {
-        this.childIndex += 1;
-      } else {
-        this.childIndex = 1; 
+    const statements = this.nextChildStatements(runtime, this.childIndex);
+
+    if (statements.length === 0) {
+      if (!this.duration) {
+        return [new PopBlockAction()];
       }
-      
-      const sourceNode = this.sources[0];
-      const currentChildIndex = this.childIndex - 1;
-      const childId = sourceNode?.children ? sourceNode.children[currentChildIndex] : undefined;
-      statement = childId !== undefined ? runtime.script.getId(childId)?.[0] : undefined;
-      
-      if (!statement) {
-        break;
-      }      
-
-      laps = getLap(statement)?.[0];
-      statements.push(statement);
-
-      if (laps?.image !=="+") {        
-        break;
-      }            
+      return []; 
     }
 
-    this.lastLap = laps?.image ?? "";
-    const actionsToPush: IRuntimeAction[] = [];
-    if (statements.length > 0) {
-      actionsToPush.push(new PushStatementAction(statements));
-      // StartTimerAction removed as child block timing is handled by their own onStart/onStop lifecycle methods,
-      // and the TimedGroupBlock's main span is managed by its own onBlockStart/onBlockStop.
-      // If specific timing for children within this group's span was needed, 
-      // it would require a different mechanism, not the now-simplified StartTimerAction.
-      actionsToPush.push(new SetDurationAction(duration?.original ?? 0, duration?.sign ?? '+', "primary"));
-      
-      // Reset the timer state for the new interval if this is a repeating timer
-      if (duration?.original) {
-        actionsToPush.push(new SetTimerStateAction(TimerState.RUNNING_COUNTDOWN, "primary"));
-      }
-    }
-    return actionsToPush;
-  }
+    this.childIndex += statements.length;
 
-  /**
-   * Register a child block's result spans with this group
-   */
-  public registerChildBlock(childBlock: IRuntimeBlock): void {
-    if (!childBlock) return;
-    
-    this.childSpanRegistry.registerBlockSpans(childBlock);
-    
-    const currentSpan = this.spans[this.spans.length - 1];
-    if (currentSpan) {
-      // currentSpan.children is initialized in RuntimeSpan class
-      if (childBlock.blockKey && !currentSpan.children.includes(childBlock.blockKey.toString())) {
-        currentSpan.children.push(childBlock.blockKey.toString());
-      }
-      this._updateSpanWithAggregatedChildMetrics(currentSpan);
-    }
-  }
-  
-  /**
-   * Called when the block is left. For TimedGroupBlock, core teardown is in onBlockStop.
-   */
-  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`TimedGroupBlock: ${this.blockKey} onLeave`);
-    // Specific teardown logic moved to onBlockStop.
-    return [];
-  }
-
-  /**
-   * Called when the block's specific timing/activity truly stops.
-   */
-  protected onBlockStop(runtime: ITimerRuntime): IRuntimeAction[] {
-    console.log(`TimedGroupBlock: ${this.blockKey} onBlockStop`);
-    const currentSpan = this.spans[this.spans.length - 1]; 
-
-    if (currentSpan) {
-      this._updateSpanWithAggregatedChildMetrics(currentSpan);
+    if (this.duration && this.timerId) {
+      return [
+        new PushStatementWithTimerAction(statements, new Duration(this.duration), this.timerId),
+      ];
     } else {
-      console.warn(`TimedGroupBlock: ${this.blockKey} onBlockStop called but currentSpan is undefined.`);
+      return [new PushStatementAction(statements)];
     }
-    
-    const actions: IRuntimeAction[] = [
-      new SetButtonsAction([], "system"),
-      new SetButtonsAction([], "runtime"),
-      new SetTimerStateAction(TimerState.STOPPED, "primary"),
-    ];
+  }
 
-    const duration = this.selectMany(getDuration)[0];
-    if (duration !== undefined) { 
-        actions.push(new SetClockAction("primary"));
+  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {
+    const actions: IRuntimeAction[] = [];
+    if (this.timerId) {
+      actions.push(new StopTimerAction(new StopEvent(new Date())));
     }
-    
     return actions;
+  }
+
+  protected onBlockStart(_runtime: ITimerRuntime): IRuntimeAction[] {
+    const actions: IRuntimeAction[] = [];
+    if (!(this.duration && this.timerId)) {          
+        this.timerId = `timer_${Math.random().toString(36).substring(2, 9)}`; // Placeholder
+        actions.push(new SetDurationAction(this.duration!, this.timerId));        
+        actions.push(new SetButtonAction("system", [endButton, pauseButton]));
+        actions.push(new SetButtonAction("runtime", [completeButton]));
+    }
+    return actions;
+  }
+
+  protected onBlockStop(_runtime: ITimerRuntime): IRuntimeAction[] {
+    return [];
   }
 }
