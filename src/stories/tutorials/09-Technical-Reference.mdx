@@ -1,0 +1,465 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/09 - Technical Reference" />
+
+# Technical Reference
+
+Understand the technical architecture behind wod.wiki, including parser stages, fragment classes, and how the system transforms text into executable workouts.
+
+## Parser Stages & Fragment Classes
+
+### Lexical Analysis
+
+The first stage breaks down raw text into tokens that the parser can understand:
+
+```typescript
+// Input text
+"5:00 Run"
+
+// Tokenized output
+[
+  { type: "TIME", value: "5:00" },
+  { type: "EXERCISE", value: "Run" }
+]
+```
+
+**Key Token Types:**
+- `TIME` - Timer values (`:30`, `5:00`, `1:15:00`)
+- `EXERCISE` - Exercise names and descriptions
+- `NUMBER` - Repetition counts and weights
+- `UNIT` - Weight and distance units (`lb`, `kg`, `m`, `km`)
+- `ROUND_START` - Round notation `(`
+- `ROUND_END` - Round notation `)`
+- `GROUP_START` - Group marker `-`
+- `GROUP_CONTINUE` - Group continuation `+`
+- `ACTION` - Special actions `[:text]`
+
+### Parsing & AST
+
+The parser takes tokens and builds an Abstract Syntax Tree (AST) that represents the workout structure:
+
+```typescript
+// Input: "(3) 10 Push-ups"
+// AST Structure:
+{
+  type: "RoundStatement",
+  rounds: 3,
+  children: [
+    {
+      type: "ExerciseStatement", 
+      reps: 10,
+      exercise: "Push-ups"
+    }
+  ]
+}
+```
+
+### Fragment Types
+
+The system uses several fragment classes to represent different workout elements:
+
+#### TimerFragment
+Represents time-based elements:
+
+```typescript
+interface TimerFragment {
+  duration: number;        // Total seconds
+  countUp: boolean;        // ^ modifier present
+  format: TimeFormat;      // :SS, MM:SS, or HH:MM:SS
+}
+
+// Examples:
+// "5:00"  → { duration: 300, countUp: false, format: "MM:SS" }
+// ":30^"  → { duration: 30, countUp: true, format: ":SS" }
+```
+
+#### RepFragment
+Represents repetition-based elements:
+
+```typescript
+interface RepFragment {
+  count: number;           // Number of repetitions
+  scheme?: number[];       // For complex schemes like (21-15-9)
+}
+
+// Examples:
+// "10"        → { count: 10 }
+// "(21-15-9)" → { count: 3, scheme: [21, 15, 9] }
+```
+
+#### ExerciseFragment
+Represents exercise names and descriptions:
+
+```typescript
+interface ExerciseFragment {
+  name: string;            // Primary exercise name
+  details?: string;        // Additional details in parentheses
+  equipment?: string;      // Equipment specifications
+}
+
+// Examples:
+// "Push-ups"           → { name: "Push-ups" }
+// "Pull-ups (strict)"  → { name: "Pull-ups", details: "strict" }
+```
+
+#### WeightFragment
+Represents weight specifications:
+
+```typescript
+interface WeightFragment {
+  amount: number;          // Numeric value
+  unit: WeightUnit;        // lb, kg, %, bw
+  isBodyweight?: boolean;  // True for bw unit
+  isPercentage?: boolean;  // True for % unit
+}
+
+// Examples:
+// "185lb" → { amount: 185, unit: "lb" }
+// "80%"   → { amount: 80, unit: "%", isPercentage: true }
+// "1.5bw" → { amount: 1.5, unit: "bw", isBodyweight: true }
+```
+
+#### DistanceFragment
+Represents distance measurements:
+
+```typescript
+interface DistanceFragment {
+  amount: number;          // Numeric value
+  unit: DistanceUnit;      // m, km, mi, yd, ft
+}
+
+// Examples:
+// "400m"  → { amount: 400, unit: "m" }
+// "1.5mi" → { amount: 1.5, unit: "mi" }
+```
+
+#### ActionFragment
+Represents special instructions and actions:
+
+```typescript
+interface ActionFragment {
+  type: ActionType;        // Setup, Rest, Transition, etc.
+  content: string;         // The instruction text
+}
+
+// Examples:
+// "[:Setup] Get equipment ready" → { type: "Setup", content: "Get equipment ready" }
+// "[:Rest] 2:00 between rounds"  → { type: "Rest", content: "2:00 between rounds" }
+```
+
+### StatementNode Details
+
+#### Basic Statement Structure
+```typescript
+interface StatementNode {
+  id: string;              // Unique identifier
+  type: StatementType;     // Timer, Exercise, Round, Group, etc.
+  fragments: Fragment[];   // Parsed components
+  children: StatementNode[]; // Nested statements
+  parent?: StatementNode;  // Parent reference
+  metadata: Metadata;      // Additional context
+}
+```
+
+#### Statement Types
+
+**TimerStatement**
+```typescript
+interface TimerStatement extends StatementNode {
+  type: "Timer";
+  timer: TimerFragment;
+  exercise?: ExerciseFragment;
+  
+  // Example: "5:00 Run"
+  // timer: { duration: 300, countUp: false }
+  // exercise: { name: "Run" }
+}
+```
+
+**ExerciseStatement**
+```typescript
+interface ExerciseStatement extends StatementNode {
+  type: "Exercise";
+  reps?: RepFragment;
+  exercise: ExerciseFragment;
+  weight?: WeightFragment;
+  distance?: DistanceFragment;
+  
+  // Example: "10 Deadlifts 185lb"
+  // reps: { count: 10 }
+  // exercise: { name: "Deadlifts" }
+  // weight: { amount: 185, unit: "lb" }
+}
+```
+
+**RoundStatement**
+```typescript
+interface RoundStatement extends StatementNode {
+  type: "Round";
+  rounds: RepFragment;
+  timer?: TimerFragment;
+  children: StatementNode[];
+  
+  // Example: "(3) 5:00"
+  // rounds: { count: 3 }
+  // timer: { duration: 300, countUp: false }
+  // children: [nested exercises]
+}
+```
+
+**GroupStatement**
+```typescript
+interface GroupStatement extends StatementNode {
+  type: "Group";
+  groupType: "start" | "continue";
+  children: StatementNode[];
+  
+  // Example: "- 10 Push-ups + 15 Air Squats"
+  // groupType: "start" for "-", "continue" for "+"
+  // children: [exercise statements]
+}
+```
+
+## Visual Representation & Styling
+
+### AST Visualization
+The parsed workout can be visualized as a tree structure:
+
+```
+RoundStatement (3 rounds)
+├── TimerStatement (5:00)
+│   └── ExerciseFragment (Run)
+├── ExerciseStatement
+│   ├── RepFragment (15)
+│   ├── ExerciseFragment (Thrusters)
+│   └── WeightFragment (95lb)
+└── ExerciseStatement
+    ├── RepFragment (10)
+    └── ExerciseFragment (Pull-ups)
+```
+
+### Runtime Compilation
+The AST is compiled into executable runtime blocks:
+
+```typescript
+// AST → Runtime Blocks
+TimerStatement → TimerBlock
+ExerciseStatement → ExerciseBlock  
+RoundStatement → RoundBlock
+GroupStatement → GroupBlock
+ActionStatement → ActionBlock
+```
+
+### Component Rendering
+Runtime blocks generate React components for display:
+
+```typescript
+// Runtime Block → UI Component
+TimerBlock → TimerDisplay
+ExerciseBlock → ExerciseItem
+RoundBlock → RoundContainer
+GroupBlock → GroupContainer
+ActionBlock → ActionDisplay
+```
+
+## Interactive Parser Explorer
+
+See how text is parsed into fragments and statements:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={`# Parser Analysis Examples
+
+# Simple Timer
+5:00 Run
+# → TimerStatement { timer: 300s, exercise: "Run" }
+
+# Complex Exercise  
+10 Deadlifts 185lb
+# → ExerciseStatement { reps: 10, exercise: "Deadlifts", weight: 185lb }
+
+# Round Structure
+(3) 12:00
+  400m Run
+  15 Thrusters 95lb
+# → RoundStatement { 
+#      rounds: 3, 
+#      timer: 720s,
+#      children: [TimerStatement, ExerciseStatement] 
+#    }
+
+# Group Structure
+- 10 Push-ups
++ 15 Air Squats  
+# → GroupStatement {
+#      type: "start",
+#      children: [ExerciseStatement, ExerciseStatement]
+#    }
+
+# Special Action
+[:Setup] Get barbell ready
+# → ActionStatement { type: "Setup", content: "Get barbell ready" }`}
+      height="400px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Error Handling & Validation
+
+### Syntax Errors
+The parser provides detailed error messages for invalid syntax:
+
+```typescript
+// Invalid time format
+"5.00 Run" 
+// Error: Invalid time format. Use MM:SS format (e.g., 5:00)
+
+// Invalid round notation  
+"3) Push-ups"
+// Error: Missing opening parenthesis. Use (3) for rounds.
+
+// Invalid weight unit
+"185pounds Deadlifts"
+// Error: Unknown weight unit. Use lb, kg, %, or bw.
+```
+
+### Semantic Validation
+The system validates logical consistency:
+
+```typescript
+// Conflicting elements
+"5:00 10 Push-ups"
+// Warning: Both timer and reps specified. Timer will take precedence.
+
+// Missing exercise
+"10 185lb"
+// Error: Exercise name required when reps and weight are specified.
+```
+
+### Runtime Validation
+During execution, the system validates runtime constraints:
+
+```typescript
+// Zero duration timer
+"0:00 Rest"
+// Warning: Zero duration timer detected. Consider removing.
+
+// Negative reps
+"-5 Push-ups"  
+// Error: Negative repetition count not allowed.
+```
+
+## Performance Considerations
+
+### Parsing Efficiency
+- **Lexical Analysis**: O(n) where n is input length
+- **Parsing**: O(n) for well-formed input
+- **AST Building**: O(n) nodes created
+
+### Memory Usage
+- Each statement node: ~200 bytes
+- Fragment objects: ~50-100 bytes each
+- Total memory: Linear with workout complexity
+
+### Runtime Performance
+- Block compilation: One-time cost at workout start
+- Execution overhead: Minimal per action
+- Timer precision: 100ms intervals
+
+## Extension Points
+
+### Adding New Fragment Types
+```typescript
+// Define new fragment interface
+interface SetFragment {
+  sets: number;
+  restBetween?: number;
+}
+
+// Add to parser grammar
+// Extend fragment union type
+// Implement rendering logic
+```
+
+### Custom Statement Types
+```typescript
+// Define new statement type
+interface SupersetStatement extends StatementNode {
+  type: "Superset";
+  exercises: ExerciseStatement[];
+  restBetween: number;
+}
+
+// Add parser rules
+// Implement runtime block
+// Create UI component
+```
+
+### Parser Extensions
+```typescript
+// Add new token types
+enum TokenType {
+  EXISTING_TOKENS,
+  CUSTOM_TOKEN = "CUSTOM"
+}
+
+// Extend grammar rules
+// Update AST builder
+// Test edge cases
+```
+
+## Debugging Tools
+
+### AST Inspector
+Debug mode shows the parsed structure:
+
+```json
+{
+  "type": "RoundStatement",
+  "rounds": { "count": 3 },
+  "children": [
+    {
+      "type": "ExerciseStatement",
+      "reps": { "count": 10 },
+      "exercise": { "name": "Push-ups" }
+    }
+  ]
+}
+```
+
+### Parser Tracing
+Enable detailed parsing logs:
+
+```typescript
+// Development mode logging
+Parser.enableTrace = true;
+
+// Output:
+// [LEXER] Token: TIME(5:00)
+// [LEXER] Token: EXERCISE(Run)  
+// [PARSER] Reduce: TimerStatement
+// [AST] Created: TimerStatement#1
+```
+
+### Runtime Monitoring
+Track execution state and performance:
+
+```typescript
+// Runtime metrics
+{
+  blocksExecuted: 15,
+  totalDuration: 1200,
+  averageBlockTime: 80,
+  memoryUsage: "2.4MB"
+}
+```
+
+## Next Steps
+
+You now understand the technical implementation of wod.wiki. Finally, let's explore the comprehensive appendix with full syntax tables and additional resources.
+
+[← Previous: Advanced Syntax & Features](./08-Advanced-Syntax-Features.mdx) | [Next: Appendix →](./10-Appendix.mdx)

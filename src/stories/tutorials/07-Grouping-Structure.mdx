@@ -1,0 +1,434 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/07 - Grouping & Structure" />
+
+# Grouping & Structure
+
+Learn how to organize complex workouts with groups, hierarchies, and advanced structural patterns for clear, executable workout programs.
+
+## Group Start (`-`) and Continue (`+`)
+
+### Basic Groups with `-`
+Use `-` to start a new exercise group that should be performed in sequence:
+
+```
+- 10 Push-ups
+- 15 Air Squats  
+- 20 Sit-ups
+```
+
+This creates a group where you do 10 push-ups, then 15 air squats, then 20 sit-ups in that order.
+
+### Continuing Groups with `+`
+Use `+` to add exercises to the previous group:
+
+```
+- 10 Push-ups
++ 15 Air Squats
++ 20 Sit-ups
+```
+
+This is equivalent to the previous example - all exercises are part of the same group.
+
+### Multiple Separate Groups
+```
+# Group 1
+- 10 Push-ups
++ 15 Air Squats
+
+# Group 2  
+- 20 Burpees
++ 25 Mountain Climbers
+
+# Group 3
+- :30 Plank
++ :30 Side Plank
+```
+
+## Round-robin and Composed Groups
+
+### Round-robin Pattern
+Alternate between exercises within a group:
+
+```
+(3) Round-robin
+- 5 Pull-ups
++ 10 Push-ups
++ 15 Air Squats
+
+# This means:
+# Round 1: 5 Pull-ups → 10 Push-ups → 15 Air Squats
+# Round 2: 5 Pull-ups → 10 Push-ups → 15 Air Squats  
+# Round 3: 5 Pull-ups → 10 Push-ups → 15 Air Squats
+```
+
+### Composed Group Structure
+```
+Superset A (3 rounds):
+- 8 Bench Press 185lb
++ 8 Bent Over Rows 135lb
+Rest 1:00
+
+Superset B (3 rounds):  
+- 12 Dumbbell Press 35lb
++ 12 Dumbbell Rows 35lb
+Rest 1:00
+```
+
+### Complex Group Patterns
+```
+(4) Circuit Training
+- Station 1: :45 Push-ups, :15 Rest
++ Station 2: :45 Air Squats, :15 Rest  
++ Station 3: :45 Plank, :15 Rest
++ Station 4: :45 Burpees, :15 Rest
+Rest 2:00 between rounds
+```
+
+## Nesting Workouts (Indentation and Hierarchy)
+
+### Basic Nesting with Indentation
+```
+5:00 Warm-up
+  :30 Arm Circles
+  :30 Leg Swings
+  :30 Jumping Jacks
+  :30 High Knees
+
+(3) Main Workout
+  400m Run
+  15 Thrusters 95lb
+  10 Pull-ups
+  Rest 2:00
+
+5:00 Cool Down
+  1:00 Walk
+  2:00 Static Stretching
+  2:00 Foam Rolling
+```
+
+### Multi-level Hierarchy
+```
+# Phase 1: Foundation
+Week 1-4 Base Building
+  Day 1: Upper Body
+    (3) Strength
+      5 Bench Press 80%
+      5 Rows 80%
+      Rest 2:00
+    (2) Accessory  
+      10 Dumbbell Press
+      10 Lat Pulldowns
+      Rest 1:00
+
+  Day 2: Lower Body
+    (3) Strength
+      5 Back Squats 80%
+      5 Romanian Deadlifts 80%
+      Rest 2:00
+```
+
+### Nested Rounds and Groups
+```
+(3) Main Rounds
+  (2) Strength Superset
+    - 5 Back Squats 185lb
+    + 5 Bench Press 135lb
+    Rest 1:00
+  
+  (1) Conditioning Block
+    5:00^ AMRAP
+      10 Burpees
+      15 Air Squats
+      20 Sit-ups
+  
+  Rest 3:00
+```
+
+## Advanced Grouping Patterns
+
+### Pyramid Structure
+```
+Pyramid Workout:
+  Round 1:
+    - 1 Burpee
+    + 2 Push-ups
+    + 3 Air Squats
+    
+  Round 2:  
+    - 2 Burpees
+    + 4 Push-ups
+    + 6 Air Squats
+    
+  Round 3:
+    - 3 Burpees  
+    + 6 Push-ups
+    + 9 Air Squats
+```
+
+### Ladder Patterns
+```
+Ascending Ladder:
+  (1-2-3-4-5)
+  - Deadlifts 185lb
+  + Box Jumps 24"
+  + Pull-ups
+  Rest 1:00 between rounds
+
+Descending Ladder:
+  (10-8-6-4-2)  
+  - Thrusters 95lb
+  + Burpees
+  Rest :30 between rounds
+```
+
+### Circuit Stations
+```
+(4) 20:00 Circuit (5:00 per station)
+  Station A: Max Effort
+    - Push-ups
+    + Air Squats
+    + Sit-ups
+    Rotate every 1:00
+    
+  Station B: Strength
+    - 5 Deadlifts 185lb
+    + Rest remainder
+    
+  Station C: Cardio
+    - :30^ Max Burpees
+    + :30 Rest
+    
+  Station D: Core
+    - :45 Plank variations
+    + :15 Rest
+```
+
+## Interactive Examples
+
+Try different grouping and structure patterns:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={`# Grouping & Structure Examples
+
+# Basic Groups
+- 10 Push-ups
++ 15 Air Squats
++ 20 Sit-ups
+
+# Nested Structure
+(3) Main Workout
+  400m Run
+  (2) Strength Circuit
+    - 5 Deadlifts 185lb
+    + 5 Push Press 95lb
+    Rest 1:00
+  Rest 2:00
+
+# Complex Hierarchy
+Phase 1: Conditioning
+  Week 1: Base Building
+    Day 1: Upper Focus
+      (3) 12:00
+        - 10 Pull-ups
+        + 15 Push-ups
+        + 20 Dips
+        Rest remainder
+    
+    Day 2: Lower Focus  
+      (5) 8:00
+        - 20 Air Squats
+        + 15 Lunges
+        + 10 Jump Squats
+        Rest remainder
+
+# Station Circuit
+(3) 15:00 Circuit
+  Station 1: Push Power
+    - :30^ Max Push-ups
+    + :30 Rest
+  Station 2: Pull Power
+    - :30^ Max Pull-ups  
+    + :30 Rest
+  Station 3: Leg Power
+    - :30^ Max Air Squats
+    + :30 Rest`}
+      height="450px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Real-World Structure Examples
+
+### CrossFit Class Structure
+```
+# Warm-up (10:00)
+General Warm-up
+  5:00 Easy Movement
+    :30 Arm Circles
+    :30 Leg Swings
+    :30 Torso Twists
+    :30 Easy Jog
+
+Specific Warm-up  
+  (2) Movement Prep
+    - 5 Air Squats
+    + 5 Push-ups
+    + 5 Ring Rows
+
+# Strength (15:00)
+Back Squat
+  (5) Build to heavy single
+    1 Back Squat @ increasing weight
+    Rest 2:00
+
+# Metcon (12:00)
+"Fran"  
+(21-15-9) For Time:
+  - Thrusters 95lb
+  + Pull-ups
+
+# Cool Down (5:00)
+Recovery
+  2:00 Walk
+  3:00 Static Stretching
+```
+
+### Powerlifting Session
+```
+# Squat Day
+Warm-up Protocol
+  General Mobility
+    5:00 Dynamic Movement
+  Specific Warm-up
+    (5) Progression
+      5 Air Squats
+      5 Goblet Squats 25lb
+      3 Back Squats 45lb
+      3 Back Squats 95lb
+      1 Back Squats 135lb
+
+Main Lift
+  Back Squat
+    (5) Work Sets
+      3 @ 80%
+      Rest 3:00
+
+Accessory Work
+  (3) Superset A
+    - 8 Romanian Deadlifts 135lb
+    + 8 Bulgarian Split Squats
+    Rest 2:00
+    
+  (3) Superset B  
+    - 12 Leg Curls
+    + 12 Leg Extensions
+    Rest 1:00
+```
+
+### Endurance Training
+```
+# Base Building Week
+Monday: Easy Distance
+  60:00 Easy Run
+    First 20:00: Easy pace
+    Middle 20:00: Comfortable pace  
+    Last 20:00: Easy pace
+
+Wednesday: Intervals
+  Warm-up
+    15:00 Easy build
+  
+  Main Set
+    (6) 3:00 Intervals
+      3:00 @ 5k pace
+      Rest 1:00 easy jog
+  
+  Cool Down
+    15:00 Easy
+
+Friday: Tempo
+  Warm-up  
+    15:00 Easy
+  Main Set
+    20:00 @ Half Marathon pace
+  Cool Down
+    10:00 Easy
+```
+
+## Best Practices
+
+### Clear Hierarchy
+- Use consistent indentation for nested elements
+- Group related exercises together
+- Separate major workout phases clearly
+
+### Logical Flow
+- Warm-up → Main Work → Cool Down
+- General → Specific preparation
+- High intensity → Lower intensity recovery
+
+### Practical Organization
+- Keep related exercises grouped
+- Use clear transitions between sections
+- Include rest and setup instructions
+
+## Common Mistakes and Corrections
+
+### ❌ Unclear Structure
+```
+10 Push-ups
+400m Run  
+5 Deadlifts 185lb
+15 Air Squats
+:30 Plank
+```
+
+### ✅ Clear Structure
+```
+Warm-up
+  400m Easy Run
+  
+Strength Block
+  5 Deadlifts 185lb
+  
+Conditioning Block
+  (2)
+    - 10 Push-ups
+    + 15 Air Squats
+    
+Core Finisher
+  :30 Plank
+```
+
+### ❌ Poor Grouping
+```
+- 10 Push-ups
+5 Deadlifts 185lb
++ 15 Air Squats
+:30 Plank
+```
+
+### ✅ Proper Grouping
+```
+# Strength  
+5 Deadlifts 185lb
+
+# Conditioning
+- 10 Push-ups
++ 15 Air Squats
+
+# Core
+:30 Plank
+```
+
+## Next Steps
+
+You now understand how to structure complex workouts with groups and hierarchies. Next, we'll explore advanced syntax features and real-world workout examples.
+
+[← Previous: Core Syntax - Weight & Distance](./06-Core-Syntax-Weight-Distance.mdx) | [Next: Advanced Syntax & Features →](./08-Advanced-Syntax-Features.mdx)

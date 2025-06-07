@@ -1,0 +1,370 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { EditorWithState } from '../components/EditorWithState';
+import { SoundProvider } from "/src/contexts/SoundContext";
+import { ScreenProvider } from "/src/contexts/ScreenContext";
+
+<Meta title="Tutorials/08 - Advanced Syntax & Features" />
+
+# Advanced Syntax & Features
+
+Explore sophisticated workout programming techniques, complex round schemes, and real-world workout examples used by athletes and coaches worldwide.
+
+## Complex Round Schemes
+
+### Pyramid Workouts
+Varying rep counts that increase and/or decrease across rounds:
+
+```
+(21-15-9) "Fran"
+  Thrusters 95lb
+  Pull-ups
+
+(1-2-3-4-5-4-3-2-1) Ladder
+  Push Press 95lb
+  Burpees
+
+(10-9-8-7-6-5-4-3-2-1) Descending
+  Deadlifts 185lb
+  Box Jumps 24"
+```
+
+### Custom Progressions
+```
+(5-10-15-20) Ascending Volume
+  Wall Balls 20lb
+  Kettlebell Swings 53lb
+
+(20-15-10-5) Descending Intensity  
+  Thrusters 95lb (increasing weight each round)
+  Pull-ups
+
+(3-5-7-5-3) Bell Curve
+  Heavy Deadlifts 315lb
+  Rest 3:00 between rounds
+```
+
+## Rest Periods & Action Labels
+
+### Structured Rest Protocols
+```
+(5) Strength Block
+  3 Back Squats 85%
+  Rest 3:00 (complete rest)
+  
+(3) Power Block  
+  5 Box Jumps 30"
+  Rest 2:00 (walk around)
+  
+(8) Conditioning Block
+  :30^ Max Burpees
+  Rest :30 (active recovery)
+```
+
+### Detailed Action Labels
+```
+[:Warm-up] 10 minutes general movement
+[:Equipment] Barbell, 45/25/10lb plates, timer
+[:Setup] Load barbell to working weight
+[:Form Check] Practice movement at light weight
+[:Rest Protocol] Complete rest between strength sets
+[:Scaling] Reduce weight by 20% if form breaks down
+[:Cool Down] 5 minutes walking and stretching
+```
+
+### Recovery Specifications
+```
+Workout A:
+  (5) Heavy Singles
+    1 Back Squat @ 90%+
+    Rest 3-5:00 (until fully recovered)
+    
+Workout B:
+  EMOM 20:00
+    Min 1: 15 Wall Balls 20lb
+    Min 2: 12 Burpees  
+    Min 3: 10 Pull-ups
+    Min 4: Rest
+```
+
+## Syntax Stacking (Elements on One Line)
+
+### Multiple Elements Combined
+```
+(3) 12:00 For Time:              # Rounds + Time Cap + Goal
+  400m Run                       # Distance + Exercise
+  21 Thrusters 95lb             # Reps + Exercise + Weight
+  12 Pull-ups (chest to bar)    # Reps + Exercise + Standard
+
+(5) :30^ Max Effort:             # Rounds + Time + Intensity
+  Burpees (count reps)          # Exercise + Tracking Note
+  Rest 1:30 (complete)          # Rest + Duration + Type
+```
+
+### Complex Time Domains
+```
+EMOM 15:00 (5 rounds):
+  Min 1: 5 Power Cleans 135lb (touch-and-go)
+  Min 2: 10 Burpees (no push-up)
+  Min 3: 15 Wall Balls 20lb (10ft target)
+
+Tabata 20:00 (8 exercises):
+  :20 Max Effort, :10 Complete Rest
+  Station 1: Air Squats
+  Station 2: Push-ups
+  Station 3: Sit-ups
+  Station 4: Burpees
+```
+
+## Real-world Workout Examples
+
+### Classic CrossFit Benchmarks
+
+**"Fran"**
+```
+(21-15-9) For Time:
+  Thrusters 95lb/65lb
+  Pull-ups
+  
+[:Standards] Thrusters: front squat to push press, full lockout
+[:Standards] Pull-ups: chin over bar, full extension at bottom
+[:Goal] Sub-5:00 for elite, sub-8:00 for intermediate
+```
+
+**"Helen"**
+```
+(3) For Time:
+  400m Run
+  21 Kettlebell Swings 53lb/35lb (American style)
+  12 Pull-ups
+  
+[:Strategy] Consistent pacing, don't go out too fast
+[:Scaling] Reduce KB weight or pull-up reps as needed
+```
+
+**"Murph"**
+```
+For Time (with 20lb/14lb vest):
+  1mi Run
+  (10-10-10) x 10 Rounds:
+    Pull-ups
+    Push-ups  
+    Air Squats
+  1mi Run
+  
+[:Partition] Break up middle as needed (e.g., 5-10-15 reps)
+[:Memorial] Lt. Michael Murphy, MOH recipient
+```
+
+### EMOM (Every Minute on the Minute)
+
+**Power Development**
+```
+EMOM 12:00:
+  Min 1: 3 Power Cleans 70%
+  Min 2: 5 Box Jumps 30"/24"
+  Min 3: 8 Burpees
+  Min 4: Rest
+  
+[:Focus] Explosive movement quality over speed
+[:Rest] Use minute 4 for complete recovery
+```
+
+**Conditioning EMOM**
+```
+EMOM 20:00:
+  Min 1: 15 Wall Balls 20lb
+  Min 2: 12 Calories Row
+  Min 3: 10 Burpees
+  Min 4: 8 Pull-ups
+  
+[:Strategy] Choose weights/reps for :40-:45 work windows
+[:Goal] Maintain consistent pace throughout
+```
+
+### AMRAP (As Many Rounds As Possible)
+
+**"Cindy"**
+```
+20:00^ AMRAP:
+  5 Pull-ups
+  10 Push-ups
+  15 Air Squats
+  
+[:Goal] 20+ rounds for elite, 15+ for intermediate
+[:Strategy] Steady pace, minimal rest between exercises
+```
+
+**Heavy AMRAP**
+```
+12:00^ AMRAP:
+  5 Deadlifts 225lb/155lb
+  10 Handstand Push-ups
+  15 Box Jumps 24"/20"
+  
+[:Scaling] Reduce weight, pike push-ups, step-ups
+[:Strategy] Manage fatigue on deadlifts early
+```
+
+### Tabata Intervals
+
+**Classic Tabata**
+```
+(8) Tabata 4:00:
+  :20 Max Air Squats
+  :10 Complete Rest
+  
+[:Protocol] All-out effort for 20 seconds
+[:Goal] Consistent rep count across all 8 rounds
+```
+
+**Multi-Movement Tabata**
+```
+(16) Tabata 8:00:
+  Rounds 1-4: :20 Push-ups, :10 Rest
+  Rounds 5-8: :20 Air Squats, :10 Rest  
+  Rounds 9-12: :20 Sit-ups, :10 Rest
+  Rounds 13-16: :20 Burpees, :10 Rest
+```
+
+### Strength Protocols
+
+**5/3/1 Method**
+```
+Week 1: Back Squat
+  (3) 5 @ 65%
+  (3) 5 @ 75%  
+  (1) 5+ @ 85% (AMRAP last set)
+  
+[:Rest] 3-5 minutes between sets
+[:Goal] Beat previous rep count on final set
+```
+
+**Westside Template**
+```
+Max Effort Upper:
+  Work up to 1RM Bench Press variation
+  Rest as needed
+  
+  (3) Superset:
+    - 8 Dumbbell Rows 80lb
+    + 8 Dumbbell Press 60lb
+    Rest 2:00
+```
+
+## Interactive Advanced Examples
+
+Try these complex workout structures:
+
+<SoundProvider>
+  <ScreenProvider>
+    <EditorWithState 
+      code={`# Advanced Syntax Examples
+
+[:Equipment] Barbell, KB, pull-up bar, timer
+[:Goal] Build strength-endurance
+
+# Strength Block
+(5) 3 Front Squats 80%
+  Rest 2:30 (walk around)
+
+[:Transition] Remove weight, get KB ready
+
+# Conditioning Block
+(21-15-9) For Time:
+  Thrusters 95lb (front squat to press)
+  Pull-ups (chest to bar)
+  
+[:Strategy] Break up movements early
+[:Goal] Sub-6:00
+
+# Finisher
+EMOM 8:00:
+  Min 1: :30^ Max KB Swings 53lb
+  Min 2: :30^ Max Burpees
+  
+[:Scaling] Reduce KB weight or time domain
+
+# Recovery
+5:00 Easy Walk
+  Focus on deep breathing
+  Light stretching as needed`}
+      height="450px"
+    />
+  </ScreenProvider>
+</SoundProvider>
+
+## Programming Strategies
+
+### Periodization Example
+```
+# Week 1: Volume Phase
+(5) 8 Back Squats 70%
+(4) 12 Romanian Deadlifts 60%
+
+# Week 2: Intensity Phase  
+(5) 5 Back Squats 80%
+(4) 8 Romanian Deadlifts 70%
+
+# Week 3: Peak Phase
+(3) 3 Back Squats 85%
+(3) 5 Romanian Deadlifts 75%
+
+# Week 4: Deload
+(3) 5 Back Squats 60%
+(3) 8 Romanian Deadlifts 50%
+```
+
+### Competition Preparation
+```
+# 8 Weeks Out: Volume
+High rep, moderate intensity
+
+# 4 Weeks Out: Intensity
+Lower reps, higher weights
+
+# 1 Week Out: Skill Practice
+Light weights, perfect technique
+
+# Competition Week: Maintain
+Very light, movement quality only
+```
+
+## Common Mistakes and Corrections
+
+### ❌ Overcomplicating Syntax
+```
+(3 rounds) for time of 12 minutes maximum:
+  400 meter run at moderate pace
+  21 thrusters with 95 pound barbell
+  12 pull-ups with chin over bar
+```
+
+### ✅ Clean, Effective Syntax
+```
+(3) 12:00 For Time:
+  400m Run
+  21 Thrusters 95lb
+  12 Pull-ups
+```
+
+### ❌ Unclear Instructions
+```
+Heavy deadlifts
+Some burpees
+Run a bit
+Rest when needed
+```
+
+### ✅ Specific Instructions
+```
+5 Deadlifts 85%
+20 Burpees (no push-up)
+400m Run (moderate pace)
+Rest 2:00 (complete recovery)
+```
+
+## Next Steps
+
+You've now mastered advanced syntax and seen real-world applications. Next, we'll dive into the technical aspects of how the system works under the hood.
+
+[← Previous: Grouping & Structure](./07-Grouping-Structure.mdx) | [Next: Technical Reference →](./09-Technical-Reference.mdx)
