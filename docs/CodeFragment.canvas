@@ -1,0 +1,27 @@
+{
+	"nodes":[
+		{"id":"codefragment","type":"file","file":"Interfaces/Source/CodeFragment.md","x":-1000,"y":-500,"width":400,"height":200},
+		{"id":"timerfragment","type":"file","file":"Interfaces/Source/Fragments/TimerFragment.md","x":-80,"y":-560,"width":400,"height":200},
+		{"id":"repfragment","type":"file","file":"Interfaces/Source/Fragments/RepFragment.md","x":-80,"y":-200,"width":400,"height":200},
+		{"id":"distancefragment","type":"file","file":"Interfaces/Source/Fragments/DistanceFragment.md","x":-80,"y":40,"width":400,"height":200},
+		{"id":"resistancefragment","type":"file","file":"Interfaces/Source/Fragments/ResistanceFragment.md","x":-80,"y":280,"width":400,"height":200},
+		{"id":"lapfragment","type":"file","file":"Interfaces/Source/Fragments/LapFragment.md","x":-80,"y":520,"width":400,"height":200},
+		{"id":"actionfragment","type":"file","file":"Interfaces/Source/Fragments/ActionFragment.md","x":-80,"y":800,"width":400,"height":200},
+		{"id":"incrementfragment","type":"file","file":"Interfaces/Source/Fragments/IncrementFragment.md","x":360,"y":-560,"width":400,"height":200},
+		{"id":"roundsfragment","type":"file","file":"Interfaces/Source/Fragments/RoundsFragment.md","x":-80,"y":-1240,"width":400,"height":200},
+		{"id":"effortfragment","type":"file","file":"Interfaces/Source/Fragments/EffortFragment.md","x":-80,"y":-800,"width":400,"height":200},
+		{"id":"textfragment","type":"file","file":"Interfaces/Source/Fragments/TextFragment.md","x":360,"y":-800,"width":400,"height":200}
+	],
+	"edges":[
+		{"id":"edge-timer","fromNode":"codefragment","fromSide":"right","toNode":"timerfragment","toSide":"left"},
+		{"id":"edge-rep","fromNode":"codefragment","fromSide":"right","toNode":"repfragment","toSide":"left"},
+		{"id":"edge-effort","fromNode":"codefragment","fromSide":"right","toNode":"effortfragment","toSide":"left"},
+		{"id":"edge-distance","fromNode":"codefragment","fromSide":"right","toNode":"distancefragment","toSide":"left"},
+		{"id":"edge-rounds","fromNode":"codefragment","fromSide":"right","toNode":"roundsfragment","toSide":"left"},
+		{"id":"edge-resistance","fromNode":"codefragment","fromSide":"right","toNode":"resistancefragment","toSide":"left"},
+		{"id":"edge-text","fromNode":"effortfragment","fromSide":"right","toNode":"textfragment","toSide":"left"},
+		{"id":"edge-action","fromNode":"codefragment","fromSide":"right","toNode":"actionfragment","toSide":"left"},
+		{"id":"edge-increment","fromNode":"codefragment","fromSide":"right","toNode":"incrementfragment","toSide":"left"},
+		{"id":"edge-lap","fromNode":"codefragment","fromSide":"right","toNode":"lapfragment","toSide":"left"}
+	]
+}

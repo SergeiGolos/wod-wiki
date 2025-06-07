@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "../EventHandler";
 import { PushNextAction } from "../actions/PushNextAction";
 import { StartTimerAction } from "../actions/StartTimerAction";
@@ -15,10 +16,10 @@ export class RunEvent implements IRuntimeEvent {
     name = 'run';
 }
 
-export class RunHandler extends EventHandler {
-  protected eventType: string = 'run';
+export class RunHandler implements EventHandler {
+  readonly eventType: string = 'run';
 
-  protected handleEvent(_event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {    
+  apply(_event: IRuntimeEvent, _runtime: ITimerRuntime, _block: IRuntimeBlock): IRuntimeAction[] {    
     return [
       new PushNextAction(),
     ];

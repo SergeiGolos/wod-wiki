@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { ResetAction } from "../actions/ResetAction";
 
@@ -12,10 +13,10 @@ export class ResetEvent implements IRuntimeEvent {
     name = 'reset';
 }
 
-export class ResetHandler extends EventHandler {
-  protected eventType: string = 'reset';
+export class ResetHandler implements EventHandler {
+  readonly eventType: string = 'reset';
 
-  protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {        
+  apply(event: IRuntimeEvent, _runtime: ITimerRuntime, _block: IRuntimeBlock): IRuntimeAction[] {        
     return [
       new ResetAction(event),                  
     ];

@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { PlaySoundAction } from "../actions/PlaySoundAction";
 import { EventHandler } from "../EventHandler";
 
@@ -12,10 +13,10 @@ export class SoundEvent implements IRuntimeEvent {
     name = 'sound';
 }
 
-export class SoundHandler extends EventHandler {
-  protected eventType: string = 'sound';
+export class SoundHandler implements EventHandler {
+  readonly eventType: string = 'sound';
 
-  protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
+  apply(event: IRuntimeEvent, _runtime: ITimerRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
     const soundEvent = event as SoundEvent;
     return [new PlaySoundAction(soundEvent.sound)];
   }

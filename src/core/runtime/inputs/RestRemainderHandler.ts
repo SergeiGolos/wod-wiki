@@ -1,27 +1,22 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "../EventHandler";
 import { Duration, SpanDuration } from "@/core/Duration";
 import { CompleteEvent } from "./CompleteEvent";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StartEvent } from "./StartEvent";
-
+import { SetTimerStateAction, TimerState } from "../outputs/SetTimerStateAction";
 import { SetButtonAction } from "../outputs/SetButtonAction";
 import { skipButton } from "@/components/buttons/timerButtons";
 import { SetSpanAction } from "../outputs/SetSpanAction";
 
-export class RestRemainderHandler extends EventHandler {
-    protected eventType: string = 'complete'; // This handler still listens for 'complete'
+export class RestRemainderHandler implements EventHandler {
+    readonly eventType: string = 'complete'; // This handler still listens for 'complete'
 
-    protected handleEvent(event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+    apply(event: IRuntimeEvent, runtime: ITimerRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         if (!(event instanceof CompleteEvent)) {
-            return [];
-        }
-
-        const block = runtime.trace.current();
-        if (!block) {
-            console.warn("RestRemainderHandler: No current block found.");
             return [];
         }
 

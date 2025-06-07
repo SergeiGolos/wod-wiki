@@ -8,6 +8,7 @@ import { JitStatement } from "@/core/JitStatement";
 import { BlockKey } from "@/core/BlockKey";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
 import { WriteResultAction } from "../outputs/WriteResultAction";
+import { WriteLogAction } from "../outputs/WriteLogAction";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 
 /**
@@ -102,7 +103,6 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     // Space for common code to run after the specific block's onNext logic
     return actions;
   }
-
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,
@@ -116,15 +116,25 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     }
     
     for (const handler of [...system, ...this.handlers]) {
-      const actions = handler.apply(event, runtime);
-      
-      // Only log non-tick handlers that actually generated actions
-      if (event.name !== "tick" && actions.length > 0) {
-        console.log(`🧩 Handler ${handler.constructor.name} triggered by ${event.name} in ${this.constructor.name}`);
-      }
-      
-      for (const action of actions) {
-        result.push(action);
+      // Check if this handler handles this event type
+      if (event.name === handler.eventType) {
+        const log = [];
+        
+        // Log event handling (except for tick events to reduce noise)
+        if (event.name !== "tick") {
+          log.push(new WriteLogAction({ blockId: this.blockId, blockKey: this.blockKey.toString(), ...event }));
+          console.log(`🔍 ${handler.constructor.name} handling ${event.name} event in block: ${this.constructor.name} [${this.blockKey}]`);
+        }
+        
+        // Get actions from the handler
+        const actions = handler.apply(event, runtime, this);
+        
+        // Log actions being returned (except for tick events)
+        if (event.name !== "tick" && actions.length > 0) {
+          console.log(`📃 ${handler.constructor.name} returning ${actions.length} actions: ${actions.map(a => a.name).join(', ')}`);
+        }
+        
+        result.push(...log, ...actions);
       }
     }
 

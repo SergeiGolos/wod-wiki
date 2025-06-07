@@ -1,6 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { SetButtonAction } from "../outputs/SetButtonAction";
@@ -14,10 +15,10 @@ export class StartEvent implements IRuntimeEvent {
     name = 'start';
 }
 
-export class StartHandler extends EventHandler {
-  protected eventType: string = 'start';
+export class StartHandler implements EventHandler {
+  readonly eventType: string = 'start';
 
-  protected handleEvent(event: IRuntimeEvent, _runtime: ITimerRuntime): IRuntimeAction[] {
+  apply(event: IRuntimeEvent, _runtime: ITimerRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
     return [
       new StartTimerAction(event),
       new SetButtonAction("system", [endButton, pauseButton]),

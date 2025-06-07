@@ -1,7 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "@/core/runtime/EventHandler";
 
 
@@ -21,10 +21,10 @@ export class SaveEvent implements IRuntimeEvent {
  * SOLID: Single responsibility (file generation), open for extension (different formats),
  * easy to test and maintain.
  */
-export class SaveHandler extends EventHandler {
-  protected eventType: string = 'save';
+export class SaveHandler implements EventHandler {
+  readonly eventType: string = 'save';
 
-  protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {
+  apply(_event: IRuntimeEvent, runtime: ITimerRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
     // 1. Get the workout script and all result spans
     // const allSpans = runtime.trace.spanRegistry.getAllSpans();
     let historyString = "";

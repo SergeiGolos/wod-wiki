@@ -1,11 +1,10 @@
-import { TimeSpanDuration } from "@/core/TimeSpanDuration";
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
+import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { CompleteEvent } from "./CompleteEvent";
-import { getDuration } from "../blocks/readers/getDuration";
 import { Duration, SpanDuration } from "@/core/Duration";
 
 export class TickEvent implements IRuntimeEvent {  
@@ -13,11 +12,10 @@ export class TickEvent implements IRuntimeEvent {
   name = 'tick';
 }
 
-export class TickHandler extends EventHandler {
-  protected eventType: string = 'tick';
+export class TickHandler implements EventHandler {
+  readonly eventType: string = 'tick';
 
-  protected handleEvent(_event: IRuntimeEvent, runtime: ITimerRuntime): IRuntimeAction[] {   
-    const block = runtime.trace.current();          
+  apply(_event: IRuntimeEvent, _runtime: ITimerRuntime, block: IRuntimeBlock): IRuntimeAction[] {   
     const duration = block?.duration;
     // If no duration fragment is associated with the block, or
     // if the fragment exists but its 'original' value is undefined 

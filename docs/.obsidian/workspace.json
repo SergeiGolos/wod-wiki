@@ -4,165 +4,24 @@
     "type": "split",
     "children": [
       {
-        "id": "0bdb14ab20467838",
+        "id": "f3267bed20dcc66b",
         "type": "tabs",
         "children": [
           {
-            "id": "086be68281dd6110",
+            "id": "0337523fb2f768ab",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Interfaces/Events/CompleteEvent.md",
+                "file": "Interfaces/MdTimerRuntime.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "CompleteEvent"
-            }
-          },
-          {
-            "id": "b38e26aa6b93447a",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/System/DoneRuntimeBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "DoneRuntimeBlock"
-            }
-          },
-          {
-            "id": "1c3ec9674bf0125e",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/EffortBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "EffortBlock"
-            }
-          },
-          {
-            "id": "9e916803aa232ba8",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/System/IdleRuntimeBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "IdleRuntimeBlock"
-            }
-          },
-          {
-            "id": "95b372153420f157",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/IRuntimeBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "IRuntimeBlock"
-            }
-          },
-          {
-            "id": "fee5d7cb7c2b737e",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/System/DoneRuntimeBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "DoneRuntimeBlock"
-            }
-          },
-          {
-            "id": "f319738e7511f158",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Actions/PushEndBlockAction.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "PushEndBlockAction"
-            }
-          },
-          {
-            "id": "b1c36e2ddb7e5f69",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/System/RootBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "RootBlock"
-            }
-          },
-          {
-            "id": "9b395bc5ed9014e5",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Events/SkipEvent.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "SkipEvent"
-            }
-          },
-          {
-            "id": "468294e09927b3be",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Blocks/Repeaters/RepeatingBlock.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "RepeatingBlock"
-            }
-          },
-          {
-            "id": "cb862e4ffd2b7ab8",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Interfaces/Events/PushActionEvent.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "PushActionEvent"
+              "title": "MdTimerRuntime"
             }
           }
-        ],
-        "currentTab": 10
+        ]
       }
     ],
     "direction": "vertical"
@@ -219,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 616.5
+    "width": 258.49999618530273
   },
   "right": {
     "id": "249689aca2c55076",
@@ -294,7 +153,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -306,48 +166,53 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "2862666687f2c8b4",
+  "active": "0337523fb2f768ab",
   "lastOpenFiles": [
-    "Interfaces/Events/NextStatementEvent.md",
-    "Interfaces/Events/CompleteEvent.md",
-    "Interfaces/Actions/IdleStatementAction.md",
-    "Interfaces/Events/EndEvent.md",
-    "Interfaces/Events/DisplayEvent.md",
-    "Interfaces/Events/PushActionEvent.md",
-    "Interfaces/Events/EndEvent 1.md",
-    "Interfaces/RuntimeBlock.md",
-    "Interfaces/Blocks/Repeaters/TimedGroupBlock.md",
-    "Interfaces/Blocks/System",
-    "Interfaces/Blocks/Repeaters/RepeatingBlock.md",
+    "Bird-Eye.canvas",
+    "Syntax.md",
+    "RuntimeSolutionCanvas.canvas",
+    "CodeFragment.canvas",
+    "RuntimeBlock.canvas",
+    "Interfaces/RuntimeMetric.canvas",
+    "Interfaces/ResultSpan.canvas",
+    "Interfaces/JitStatement.canvas",
+    "Interfaces/BlockKeyFragment.md",
+    "Interfaces/Source/Fragments/TextFragment.md",
+    "Interfaces/Results/RuntimeMetricEdit.md",
+    "Interfaces/Results/RuntimeMetric.md",
+    "Interfaces/Results/ResultSpanBuilder.md",
+    "Interfaces/Results/ResultSpanAggregator.md",
+    "Interfaces/Results/ResultSpanAggregates.md",
+    "Interfaces/Results/ResultSpanAggregateBase.md",
+    "Interfaces/Results/ResultSpan.md",
+    "Interfaces/Results",
+    "Interfaces/Source/CodeStatement.md",
+    "Interfaces/Source/CodeFragment.md",
+    "Interfaces/Source/TimerTokens.md",
+    "Interfaces/Source/Fragments/TimerFragment.md",
+    "Interfaces/Source/Fragments/ResistanceFragment.md",
+    "Interfaces/Source/Fragments/RepFragment.md",
+    "Interfaces/Source/Fragments/LapFragment.md",
+    "Interfaces/Source/Fragments/DistanceFragment.md",
+    "Interfaces/Events/EventHandler.md",
+    "Interfaces/Source/Fragments/IncrementFragment.md",
+    "Interfaces/Source/Fragments/EffortFragment.md",
+    "Interfaces/Source/Fragments/ActionFragment.md",
+    "Interfaces/Source/Fragments",
+    "Interfaces/Blocks/BlockTimerStrategy.md",
+    "Interfaces/TimerFragment.md",
+    "Interfaces/Source",
     "Interfaces/TimerRuntime.md",
+    "Interfaces/IFragmentCompilationStrategy.canvas",
+    "Interfaces/BlockKey.canvas",
+    "Interfaces/CodeFragment.canvas",
+    "Interfaces/Blocks/System",
     "Interfaces/Blocks/Repeaters",
-    "Interfaces/IRuntimeAction.md",
-    "Interfaces/Actions/ResetAction.md",
-    "Interfaces/OutputAction.md",
-    "Interfaces/Events/RunEvent.md",
-    "Interfaces/Blocks/TimerBlock.md",
-    "Interfaces/Actions/WriteResultAction.md",
-    "Interfaces/Events/TickEvent.md",
-    "Interfaces/Actions/StopTimerAction.md",
-    "Interfaces/Events/SkipEvent.md",
-    "Interfaces/Events/SoundEvent.md",
-    "Interfaces/Blocks/System/RootBlock.md",
-    "Interfaces/Actions/PushEndBlockAction.md",
-    "Interfaces/Actions/PushIdleBlockAction.md",
     "Interfaces/Actions",
-    "Interfaces/ITimerRuntimeIo.md",
-    "Interfaces/LapEvent.md",
     "Interfaces/Blocks",
     "Interfaces/Events",
-    "Interfaces/RuntimeSolutionCanvas.canvas",
     "Pasted Image 20250510105211_851.svg",
     "Interfaces/Types",
-    "Interfaces",
-    "Overview.canvas",
-    "worklog",
-    "Reports",
-    "docs",
-    "Birds Eye Overview.canvas",
-    "Birds Eye Workflow.canvas"
+    "Interfaces"
   ]
 }

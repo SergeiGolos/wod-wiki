@@ -13,9 +13,23 @@
 
 *   `constructor(timestamp?: Date)` - Creates a new RunEvent with optional timestamp (defaults to current time)
 
-## Related Classes
+## Associated Handler: RunHandler
 
-*   `RunHandler` - Event handler that processes RunEvent by pushing the next action
+**Description**: Handles run events by initiating execution flow.
+
+**Implementation**: `implements EventHandler`
+
+**Properties**:
+*   `eventType: string` - Always 'run'
+
+**Methods**:
+*   `apply(event: IRuntimeEvent, runtime: ITimerRuntime, block: IRuntimeBlock): IRuntimeAction[]` - Processes run events
+
+**Actions Generated**:
+*   `PushNextAction` - Pushes the next action in the execution sequence
+
+**Use Case**: Used to start or continue execution of workout sequences.
 
 ## Relationships
 *   **Implements**: `[[IRuntimeEvent]]`
+*   **Handler**: `RunHandler implements [[EventHandler]]`
