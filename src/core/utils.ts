@@ -1,5 +1,5 @@
-import { CodeFragment } from "./CodeFragment";
-import { ICodeStatement } from "./CodeStatement";
+import { CodeFragment } from "./types/CodeFragment";
+import { ICodeStatement } from "./ICodeStatement";
 import pako from "pako";
 import { Base64 } from "js-base64";
 

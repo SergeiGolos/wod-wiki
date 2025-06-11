@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SoundService } from '../components/syncs/services/SoundService';
+import { SoundService } from '../../services/SoundService';
 
 interface SoundContextType {
   soundEnabled: boolean;

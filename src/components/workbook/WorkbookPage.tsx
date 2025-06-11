@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WikiContainer } from '@/components/WikiContainer';
 import { WorkoutEntry } from './WorkbookStorage';
-import { WodRuntimeScript } from '@/core/WodRuntimeScript';
+import { IRuntimeScript } from '@/core/WodRuntimeScript';
 
 interface WorkbookPageProps {
   workout: WorkoutEntry;
@@ -47,7 +47,7 @@ export const WorkbookPage: React.FC<WorkbookPageProps> = ({
     }
   };
 
-  const handleScriptChange = (script?: WodRuntimeScript) => {
+  const handleScriptChange = (script?: IRuntimeScript) => {
     if (script && editorRef.current) {
       const content = editorRef.current.getValue();
       if (content !== workout.content) {

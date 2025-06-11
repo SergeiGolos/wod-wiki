@@ -1,4 +1,4 @@
-import { BlockKey } from "../BlockKey";
+import { BlockKey } from "../types/BlockKey";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**

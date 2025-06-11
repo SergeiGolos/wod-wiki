@@ -1,8 +1,8 @@
 import { ISpanDuration } from "./ISpanDuration";
 import { ITimeSpan } from "./ITimeSpan";
-import { Duration } from "./Duration";
+import { Duration } from "./types/Duration";
 import { IDuration } from "./IDuration";
-import { DurationSign } from "./DurationSign";
+import { DurationSign } from "./types/DurationSign";
 
 export class TimeSpanDuration extends Duration implements ISpanDuration {
   constructor(

@@ -7,21 +7,20 @@ import { ITimerRuntimeIo } from "../ITimerRuntimeIo";
 import { OutputEvent } from "../OutputEvent";
 import { TickEvent } from "./inputs/TickHandler";
 import { RuntimeJit } from "./RuntimeJit";
-import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeStack } from "./RuntimeStack";
 import { ResultSpanBuilder } from "../metrics/ResultSpanBuilder";
+import { IRuntimeScript } from "../WodRuntimeScript";
 
 
 export class TimerRuntime implements ITimerRuntimeIo {
   public dispose: Subscription | undefined;
-  public tick$: Observable<IRuntimeEvent>;
+  public tick$: Observable<IRuntimeEvent>;  
+  public history: Array<IRuntimeLog> = [];
   public trace: RuntimeStack;
   public registry: ResultSpanBuilder;
 
-  constructor(public code: string,
-    public script: RuntimeScript,
+  constructor(public script: IRuntimeScript,
     public jit: RuntimeJit,
-
     public input$: Subject<IRuntimeEvent>,
     public output$: Subject<OutputEvent>
   ) {
@@ -84,7 +83,7 @@ export class TimerRuntime implements ITimerRuntimeIo {
     }
   }
 
-  public history: Array<IRuntimeLog> = [];
+  
   public log(block: IRuntimeBlock, event: IRuntimeEvent) {
     if (event.name == "tick") {
       return;
@@ -134,15 +133,5 @@ export class TimerRuntime implements ITimerRuntimeIo {
     
     console.log(`📚 TimerRuntime.pop() - no block to pop`);
     return undefined; // Return undefined if no block was popped
-  }
-
-  reset() {
-    this.output$.next({
-      eventType: 'CLEAR_RESULTS',
-      timestamp: new Date(),
-      bag: {}
-    });
-
-    this.init();
   }
 }

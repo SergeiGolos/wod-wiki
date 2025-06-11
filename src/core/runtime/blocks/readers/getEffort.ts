@@ -1,5 +1,5 @@
 import { EffortFragment } from "@/core/fragments/EffortFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first effort fragment from a statement node

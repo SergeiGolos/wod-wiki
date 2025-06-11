@@ -1,6 +1,6 @@
-import { CodeFragment } from "./CodeFragment";
-import { JitStatement } from "./JitStatement";
-import { CodeMetadata } from "./CodeMetadata";
+import { CodeFragment } from "./types/CodeFragment";
+import { JitStatement } from "./types/JitStatement";
+import { CodeMetadata } from "./types/CodeMetadata";
 import { ZeroIndexMeta } from "./ZeroIndexMeta";
 
 export class IdleStatementNode extends JitStatement {

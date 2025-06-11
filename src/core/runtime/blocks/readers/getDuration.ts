@@ -1,6 +1,6 @@
-import { Duration } from "@/core/Duration";
+import { Duration } from "@/core/types/Duration";
 import { IDuration } from "@/core/IDuration";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 import { getTimer } from "./getTimer";
 
 export function getDuration(node: ICodeStatement): IDuration[] {

@@ -1,7 +1,7 @@
 import { RoundsFragment } from "../../fragments/RoundsFragment";
-import { RuntimeMetric } from "../../RuntimeMetric";
+import { RuntimeMetric } from "../../types/RuntimeMetric";
 import { IFragmentCompilationStrategy, FragmentCompilationContext } from "./IFragmentCompilationStrategy";
-import { FragmentType } from "../../CodeFragment";
+import { FragmentType } from "../../types/CodeFragment";
 
 export class RoundsMetricStrategy implements IFragmentCompilationStrategy<RoundsFragment> {
   readonly fragmentType = FragmentType.Rounds;

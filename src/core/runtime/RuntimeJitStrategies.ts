@@ -1,5 +1,5 @@
 import { ITimerRuntime } from "../ITimerRuntime";
-import { JitStatement } from "../JitStatement";
+import { JitStatement } from "../types/JitStatement";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockEffortStrategy } from "./blocks/strategies/BlockEffortStrategy";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
@@ -7,7 +7,7 @@ import { GroupRepeatingStrategy } from "./blocks/strategies/GroupRepeatingStrate
 import { BlockRootStrategy } from "./blocks/strategies/BlockRootStrategy";
 import { BlockTimerStrategy } from "./blocks/strategies/BlockTimerStrategy";
 import { GroupCountdownStrategy } from "./blocks/strategies/GroupCountdownStrategy";
-import { RuntimeMetric } from "../RuntimeMetric";
+import { RuntimeMetric } from "../types/RuntimeMetric";
 
 
 /**

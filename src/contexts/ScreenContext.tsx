@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { ScreenService } from '../components/syncs/services/ScreenService';
+import { ScreenService } from '../../services/ScreenService';
 
 interface ScreenContextProps {
   screenOnEnabled: boolean;

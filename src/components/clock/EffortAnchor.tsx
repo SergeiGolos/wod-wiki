@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import React from 'react';
 import { cn } from '@/core/utils';
-import { RuntimeSpan } from '@/core/RuntimeSpan';
+import { RuntimeSpan } from '@/core/types/RuntimeSpan';
 
 export interface EffortDisplayProps {
   clock?: RuntimeSpan | undefined;  

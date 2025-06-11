@@ -1,4 +1,3 @@
-# PushEndBlockAction
 
 **Description**: Action to push a special "end block" marker or state onto the runtime stack, signifying the completion of a block's execution.
 

@@ -2,10 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { WodWiki } from "./editor/WodWiki";
 import { useTimerRuntime } from "./useTimerRuntime";
-import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { IRuntimeScript } from "@/core/WodRuntimeScript";
 import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
 import { OutputEvent } from "@/core/OutputEvent";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { RuntimeSpan } from "@/core/types/RuntimeSpan";
 import { WodTimer, ClockFaceLayout } from "./clock";
 import { ResultsDisplay } from "./metrics/ResultsDisplay";
 import { cn } from "@/core/utils";
@@ -22,7 +22,7 @@ interface WikiContainerProps {
   /**
    * Optional callback when script is compiled
    */
-  onScriptCompiled?: (script: WodRuntimeScript) => void;
+  onScriptCompiled?: (script: IRuntimeScript) => void;
   /**
    * Optional callback when results are updated
    */
@@ -55,7 +55,7 @@ export const WikiContainer: React.FC<WikiContainerProps> = ({
   const [registered, setRegistered] = useState<((input: OutputEvent) => void)[]>([]);
   const [edits] = useState<RuntimeMetricEdit[]>([]);   
    
-  const handleScriptChange = (script?: WodRuntimeScript) => {
+  const handleScriptChange = (script?: IRuntimeScript) => {
     if (script) {
       // Pass to runtime
       loadScript(script);

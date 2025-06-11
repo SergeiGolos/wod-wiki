@@ -1,5 +1,3 @@
-# PopBlockAction
-
 **Description**: Action to remove the current block from the runtime stack.
 
 **Original Location**: `src/core/runtime/actions/PopBlockAction.ts`

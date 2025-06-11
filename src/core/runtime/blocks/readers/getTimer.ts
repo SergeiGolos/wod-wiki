@@ -1,4 +1,4 @@
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 import { TimerFragment } from "@/core/fragments/TimerFragment";
 
 /**

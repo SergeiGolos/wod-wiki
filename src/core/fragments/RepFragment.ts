@@ -1,5 +1,5 @@
-import { CodeFragment, FragmentType } from "../CodeFragment";
-import { CodeMetadata } from "../CodeMetadata";
+import { CodeFragment, FragmentType } from "../types/CodeFragment";
+import { CodeMetadata } from "../types/CodeMetadata";
 
 export class RepFragment implements CodeFragment {
   constructor(public reps?: number, public meta?: CodeMetadata) { }

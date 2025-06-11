@@ -1,4 +1,4 @@
-import { CodeMetadata } from "./CodeMetadata";
+import { CodeMetadata } from "./types/CodeMetadata";
 
 
 export class ZeroIndexMeta implements CodeMetadata {

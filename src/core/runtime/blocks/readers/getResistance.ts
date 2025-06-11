@@ -1,5 +1,5 @@
 import { ResistanceFragment } from "@/core/fragments/ResistanceFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first resistance fragment from a statement node

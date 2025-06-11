@@ -1,5 +1,5 @@
 import { LapFragment } from "@/core/fragments/LapFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first lap fragment from a statement node

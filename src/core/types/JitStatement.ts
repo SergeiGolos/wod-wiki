@@ -1,5 +1,5 @@
-import { CodeMetadata } from "./CodeMetadata";
-import { ICodeStatement } from "./CodeStatement";
+import { CodeMetadata } from "./types/CodeMetadata";
+import { ICodeStatement } from "./ICodeStatement";
 import { DistanceFragment } from "./fragments/DistanceFragment";
 import { EffortFragment } from "./fragments/EffortFragment";
 import { RepFragment } from "./fragments/RepFragment";
@@ -11,12 +11,12 @@ import { getEffort } from "./runtime/blocks/readers/getEffort";
 import { getResistance } from "./runtime/blocks/readers/getResistance";
 import { getRepetitions } from "./runtime/blocks/readers/getRepetitions";
 import { getRounds } from "./runtime/blocks/readers/getRounds";
-import { Duration } from "./Duration";
-import { CodeFragment } from "./CodeFragment";
+import { Duration } from "./types/Duration";
+import { CodeFragment } from "./types/CodeFragment";
 import { ZeroIndexMeta } from "./ZeroIndexMeta";
 import { IncrementFragment } from "./fragments/IncrementFragment";
 import { getIncrement } from "./runtime/blocks/readers/getIncrement";
-import { BlockKey } from "./BlockKey";
+import { BlockKey } from "./types/BlockKey";
 import { LapFragment } from "./fragments/LapFragment";
 import { getLap } from "./runtime/blocks/readers/getLap";
 

@@ -1,5 +1,5 @@
 import { ITimerRuntime } from "../ITimerRuntime";
-import { JitStatement } from "../JitStatement";
+import { JitStatement } from "../types/JitStatement";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { EventHandler } from "./EventHandler";
 
@@ -20,8 +20,8 @@ import { RuntimeScript } from "./RuntimeScript";
 import { RuntimeJitStrategies } from "./RuntimeJitStrategies";
 import { IRuntimeBlockStrategy } from "./blocks/strategies/IRuntimeBlockStrategy";
 import { FragmentCompilationManager } from "./strategies/FragmentCompilationManager";
-import { RuntimeMetric } from "../RuntimeMetric";
-import { BlockKey } from "../BlockKey";
+import { RuntimeMetric } from "../types/RuntimeMetric";
+import { BlockKey } from "../types/BlockKey";
 /**
  * Just-In-Time Compiler for Runtime Blocks
  * This class compiles StatementNodes into executable IRuntimeBlocks on demand.
@@ -109,4 +109,52 @@ export class RuntimeJit {
     // Pass both compiled metrics and legacy sources to strategy manager
     return this.strategyManager.compile(compiledMetrics, node, runtime);
   }
+
+  // /**
+  //  * Retrieves a sequence of consecutive child JitStatements that are part of a 'compose' group.
+  //  * Iteration starts from the given startIndex and continues as long as subsequent statements
+  //  * have a LapFragment with group type 'compose'.
+  //  * 
+  //  * @param startIndex The index in `this.sources` to start looking for the compose group.
+  //  * @returns An array of JitStatement objects belonging to the consecutive compose group.
+  //  */  public nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[] {
+  //   const groupStatements: JitStatement[] = [];
+    
+  //   // TODO: During migration, use legacy sources if available
+  //   if (!this._legacySources) {
+  //     return groupStatements; // Return empty if no legacy sources available
+  //   }
+    
+  //   const sources = this._legacySources.flatMap((s: JitStatement) => s.children);
+  //   if (startIndex < 0 || startIndex >= sources.length) {
+  //     // Return empty if startIndex is out of bounds
+  //     return groupStatements;
+  //   }
+    
+  //   // Get the first item and check its lap value
+  //   let current = runtime.script.getId(sources[startIndex])[0];
+  //   let increment = current.lap(startIndex);
+    
+  //   // Add the first item
+  //   groupStatements.push(current);
+    
+  //   // Only continue if increment is + and more items exist
+  //   let currentIndex = startIndex;
+  //   while (increment && increment.image === "+" && ++currentIndex < sources.length) {
+  //     // Get the next item
+  //     current = runtime.script.getId(sources[currentIndex])[0];
+  //     increment = current.lap(currentIndex);
+      
+  //     // Only add it if it has a + lap value
+  //     if (increment && increment.image === "+") {
+  //       groupStatements.push(current);
+  //     } else {
+  //       // If not +, stop the loop without incrementing or including
+  //       break;
+  //     }
+  //   }
+    
+  //   return groupStatements;
+  // }
+
 }

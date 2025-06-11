@@ -1,5 +1,6 @@
 import { CodeMetadata } from "./CodeMetadata";
 import { CodeFragment } from "./CodeFragment";
+import { ICodeStatement } from "../ICodeStatement";
 
 export abstract class CodeStatement implements ICodeStatement {
   abstract id: number;
@@ -10,11 +11,3 @@ export abstract class CodeStatement implements ICodeStatement {
   abstract isLeaf?: boolean;
 }
 
-export interface ICodeStatement {
-  id: number;
-  parent?: number;
-  children: number[];  
-  fragments: CodeFragment[];
-  isLeaf?: boolean;
-  meta: CodeMetadata;
-}

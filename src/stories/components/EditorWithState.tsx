@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { IRuntimeScript } from "@/core/WodRuntimeScript";
 import { RuntimeSpan } from "@/core/RuntimeSpan";
 import { WikiContainer } from '@/components/WikiContainer';
 import { JsonViewer } from '@textea/json-viewer';
@@ -19,7 +19,7 @@ interface EditorWithStateProps extends React.ComponentProps<typeof WikiContainer
 }
 
 export const EditorWithState: React.FC<EditorWithStateProps> = ({ debug = false, ...props }) => {
-  const [compiledScript, setCompiledScript] = useState<WodRuntimeScript | null>(null);
+  const [compiledScript, setCompiledScript] = useState<IRuntimeScript | null>(null);
   const [results, setResults] = useState<RuntimeSpan[]>([]);  
   const [logs, setLogs] = useEventsSync();
   const [selectedTab, setSelectedTab] = useState<'script' | 'results' | 'logs'>('logs');

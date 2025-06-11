@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { TimerBlock } from './TimerBlock';
-import { JitStatement } from '@/core/JitStatement';
+import { JitStatement } from '@/core/types/JitStatement';
 import { ITimerRuntime } from '@/core/ITimerRuntime';
 import { TimerState } from '../outputs/SetTimerStateAction';
 import { SetTimerStateAction } from '../outputs/SetTimerStateAction';
@@ -8,8 +8,8 @@ import { SetDurationAction } from '../outputs/SetDurationAction';
 import { StartTimerAction } from '../actions/StartTimerAction';
 import { SetButtonAction } from '../outputs/SetButtonAction';
 import { CompleteHandler } from '../inputs/CompleteEvent';
-import { Duration } from '@/core/Duration';
-import { BlockKey } from '@/core/BlockKey';
+import { Duration } from '@/core/types/Duration';
+import { BlockKey } from '@/core/types/BlockKey';
 
 // Mock implementation for JitStatement
 function createMockStatement(duration?: number): JitStatement {

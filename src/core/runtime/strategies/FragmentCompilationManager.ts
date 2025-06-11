@@ -1,6 +1,6 @@
-import { CodeFragment, FragmentType } from "../../CodeFragment";
-import { RuntimeMetric } from "../../RuntimeMetric";
-import { JitStatement } from "../../JitStatement";
+import { CodeFragment, FragmentType } from "../../types/CodeFragment";
+import { RuntimeMetric } from "../../types/RuntimeMetric";
+import { JitStatement } from "../../types/JitStatement";
 import { IFragmentCompilationStrategy, FragmentCompilationContext } from "./IFragmentCompilationStrategy";
 import { RepMetricStrategy } from "./RepMetricStrategy";
 import { EffortMetricStrategy } from "./EffortMetricStrategy";

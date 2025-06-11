@@ -1,6 +1,6 @@
-import { CodeFragment, FragmentType } from "../../CodeFragment";
-import { RuntimeMetric } from "../../RuntimeMetric";
-import { BlockKey } from "../../BlockKey";
+import { CodeFragment, FragmentType } from "../../types/CodeFragment";
+import { RuntimeMetric } from "../../types/RuntimeMetric";
+import { BlockKey } from "../../types/BlockKey";
 import { IRuntimeBlock } from "../../IRuntimeBlock";
 
 export interface IFragmentCompilationStrategy<TFragment extends CodeFragment> {

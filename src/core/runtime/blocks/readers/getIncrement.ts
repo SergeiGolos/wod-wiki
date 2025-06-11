@@ -1,5 +1,5 @@
 import { IncrementFragment } from "@/core/fragments/IncrementFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first increment fragment from a statement node

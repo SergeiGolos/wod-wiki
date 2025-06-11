@@ -1,5 +1,5 @@
 import { DistanceFragment } from "@/core/fragments/DistanceFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first distance fragment from a statement node

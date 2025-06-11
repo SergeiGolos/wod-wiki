@@ -1,7 +1,7 @@
 import { RepFragment } from "../../fragments/RepFragment";
-import { RuntimeMetric } from "../../RuntimeMetric";
+import { RuntimeMetric } from "../../types/RuntimeMetric";
 import { IFragmentCompilationStrategy, FragmentCompilationContext } from "./IFragmentCompilationStrategy";
-import { FragmentType } from "../../CodeFragment";
+import { FragmentType } from "../../types/CodeFragment";
 
 export class RepMetricStrategy implements IFragmentCompilationStrategy<RepFragment> {
   readonly fragmentType = FragmentType.Rep;

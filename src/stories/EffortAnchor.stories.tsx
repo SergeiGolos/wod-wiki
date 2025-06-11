@@ -1,8 +1,8 @@
 /** @jsxImportSource react */
 import type { Meta, StoryObj } from '@storybook/react';
 import { EffortAnchor } from '../components/clock/EffortAnchor';
-import { RuntimeSpan } from '../core/RuntimeSpan';
-import { RuntimeMetric } from '../core/RuntimeMetric';
+import { RuntimeSpan } from '../core/types/RuntimeSpan';
+import { RuntimeMetric } from '../core/types/RuntimeMetric';
 
 const meta: Meta<typeof EffortAnchor> = {
   title: 'Components/EffortAnchor',

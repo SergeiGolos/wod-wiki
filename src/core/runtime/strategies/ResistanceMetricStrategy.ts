@@ -1,7 +1,7 @@
 import { ResistanceFragment } from "../../fragments/ResistanceFragment";
-import { RuntimeMetric } from "../../RuntimeMetric";
+import { RuntimeMetric } from "../../types/RuntimeMetric";
 import { IFragmentCompilationStrategy, FragmentCompilationContext } from "./IFragmentCompilationStrategy";
-import { FragmentType } from "../../CodeFragment";
+import { FragmentType } from "../../types/CodeFragment";
 
 export class ResistanceMetricStrategy implements IFragmentCompilationStrategy<ResistanceFragment> {
   readonly fragmentType = FragmentType.Resistance;

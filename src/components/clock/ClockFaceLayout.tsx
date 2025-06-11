@@ -6,7 +6,7 @@ import { ButtonAnchor } from '@/components/buttons/ButtonAnchor';
 import { IRuntimeEvent } from '@/core/IRuntimeEvent';
 import { Subject } from 'rxjs';
 import { cn } from '@/core/utils';
-import { useClockSync } from '../syncs/useClockSync';
+import { useSpanSync } from "../syncs/useSpanSync";
 import { useButtonSync } from '../syncs/useButtonSync';
 import { OutputEvent } from '@/core/OutputEvent';
 
@@ -32,8 +32,8 @@ export const ClockFaceLayout: React.FC<ClockFaceLayoutProps> = ({
   registerSyncs
 }) => {
 
-  const [primary, syncPrimary] = useClockSync("primary");
-  const [total, syncTotal] = useClockSync("total");
+  const [primary, syncPrimary] = useSpanSync("primary");
+  const [total, syncTotal] = useSpanSync("total");
   const [system, syncSystem] = useButtonSync("system");
   const [runtime, syncRuntime] = useButtonSync("runtime");
   

@@ -1,6 +1,6 @@
-import { CodeFragment } from "./CodeFragment";
-import { CodeMetadata } from "./CodeMetadata";
-import { ICodeStatement } from "./CodeStatement";
+import { CodeFragment } from "./types/CodeFragment";
+import { CodeMetadata } from "./types/CodeMetadata";
+import { ICodeStatement } from "./ICodeStatement";
 import { ZeroIndexMeta } from "./ZeroIndexMeta";
 
 

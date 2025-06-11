@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { IRuntimeScript } from "@/core/WodRuntimeScript";
 import { OutputEvent } from "@/core/OutputEvent";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { RuntimeScript } from "@/core/runtime/RuntimeScript";
@@ -19,7 +19,7 @@ export interface UseTimerRuntimeProps {
   /**
    * Called when a script is compiled with the compiled script
    */
-  onScriptCompiled?: (script: WodRuntimeScript) => void;
+  onScriptCompiled?: (script: IRuntimeScript) => void;
 }
 
 export function useTimerRuntime({
@@ -30,10 +30,10 @@ export function useTimerRuntime({
   const inputRef = useRef<Subject<IRuntimeEvent>>(new Subject());
   const outputRef = useRef<Subject<OutputEvent>>(new Subject());
 
-  const [script, loadScript] = useState<WodRuntimeScript | undefined>();
+  const [script, loadScript] = useState<IRuntimeScript | undefined>();
 
   // Wraps the loadScript function to call onScriptCompiled
-  const handleLoadScript = (newScript: WodRuntimeScript | undefined) => {
+  const handleLoadScript = (newScript: IRuntimeScript | undefined) => {
     loadScript(newScript);
     if (newScript && onScriptCompiled) {
       onScriptCompiled(newScript);

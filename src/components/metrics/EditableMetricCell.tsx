@@ -1,4 +1,4 @@
-import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { RuntimeMetricEdit } from "@/core/types/RuntimeMetricEdit";
 import { MetricValue } from "@/core/MetricValue";
 import React, { useState, useEffect, useRef } from 'react';
 

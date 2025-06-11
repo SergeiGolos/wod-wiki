@@ -1,4 +1,3 @@
-# NotifyRuntimeAction
 
 **Description**: Action to send a notification or message within the runtime system, possibly for UI updates or logging.
 

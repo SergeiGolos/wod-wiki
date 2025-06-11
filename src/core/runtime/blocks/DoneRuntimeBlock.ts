@@ -1,6 +1,6 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 import { IdleStatementNode } from "@/core/IdleStatementNode";
 import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { SaveHandler } from "../inputs/SaveEvent";

@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { IDuration } from '@/core/IDuration';
 import { cn } from '@/core/utils';
-import { RuntimeSpan } from '@/core/RuntimeSpan';
-import { Duration, SpanDuration } from '@/core/Duration';
+import { RuntimeSpan } from '@/core/types/RuntimeSpan';
+import { Duration, SpanDuration } from '@/core/types/Duration';
 
 export interface ClockDisplayProps {
   duration: IDuration | undefined;

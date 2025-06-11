@@ -1,7 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { OutputEvent } from "@/core/OutputEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 

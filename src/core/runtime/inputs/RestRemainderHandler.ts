@@ -3,7 +3,7 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "../EventHandler";
-import { Duration, SpanDuration } from "@/core/Duration";
+import { Duration, SpanDuration } from "@/core/types/Duration";
 import { CompleteEvent } from "./CompleteEvent";
 import { StartTimerAction } from "../actions/StartTimerAction";
 import { StartEvent } from "./StartEvent";

@@ -3,13 +3,13 @@ import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { WodRuntimeScript } from "@/core/WodRuntimeScript";
+import { IRuntimeScript } from "@/core/WodRuntimeScript";
 import { MdTimerRuntime } from '@/core/parser/md-timer';
 
 export class WodWikiSyntaxInitializer {
   syntax: string = "wod-wiki-syntax";
   theme: string = "wod-wiki-theme";
-  objectCode: WodRuntimeScript | undefined;
+  objectCode: IRuntimeScript | undefined;
   hints: monaco.languages.InlayHint[] = [];
   runtime = new MdTimerRuntime();
   monacoInstance: typeof monaco | undefined;
@@ -18,7 +18,7 @@ export class WodWikiSyntaxInitializer {
   constructor(
     private tokenEngine: SemantcTokenEngine, 
     private suggestionEngine: SuggestionEngine,     
-    private onChange?: (script: WodRuntimeScript)=>void) {    
+    private onChange?: (script: IRuntimeScript)=>void) {    
   }
 
   options: editor.IStandaloneEditorConstructionOptions = {

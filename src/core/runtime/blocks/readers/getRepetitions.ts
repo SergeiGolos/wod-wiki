@@ -1,4 +1,4 @@
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 import { RepFragment } from "@/core/fragments/RepFragment";
 
 export function getRepetitions(node: ICodeStatement): RepFragment[] {

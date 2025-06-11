@@ -1,7 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { JitStatement } from "@/core/types/JitStatement";
+import { RuntimeMetric } from "@/core/types/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { PushStatementAction } from "../actions/PushStatementAction";
 import { PushStatementWithTimerAction } from "../actions/PushStatementWithTimerAction";
@@ -13,7 +13,7 @@ import { StopTimerAction } from "../actions/StopTimerAction";
 import { StopEvent } from "../inputs/StopEvent";
 import { CompleteHandler } from "../inputs/CompleteEvent";
 import { getDuration } from "./readers/getDuration";
-import { Duration } from "@/core/Duration";
+import { Duration } from "@/core/types/Duration";
 
 export class RepeatingBlock extends RuntimeBlock {
   private childIndex: number = 0;    

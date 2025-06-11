@@ -1,108 +1,43 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import type { RuntimeMetric } from "@/core/RuntimeMetric";
+import type { RuntimeMetric } from "@/core/types/RuntimeMetric";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { EventHandler } from "../EventHandler";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { JitStatement } from "@/core/JitStatement";
-import { BlockKey } from "@/core/BlockKey";
+import { JitStatement } from "@/core/types/JitStatement";
+import { BlockKey } from "@/core/types/BlockKey";
 import { ResultSpanBuilder } from "@/core/metrics/ResultSpanBuilder";
-import { WriteResultAction } from "../outputs/WriteResultAction";
 import { WriteLogAction } from "../outputs/WriteLogAction";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
 
 /**
  * Legacy base class for runtime blocks, now extends AbstractBlockLifecycle
  * to leverage the template method pattern while maintaining backward compatibility
  */
 export abstract class RuntimeBlock implements IRuntimeBlock {  
-  constructor(public compiledMetrics: RuntimeMetric[], legacySources?: JitStatement[]) {    
-    this.blockId = Math.random().toString(36).substring(2, 15);
-    this.blockKey = new BlockKey();
-    
-    // For backward compatibility, we still need to handle sources for some operations
-    // TODO: This will be removed in future phases as we eliminate all fragment dependencies
-    if (legacySources && legacySources.length > 0) {
-      this.blockKey.push(legacySources, 0);    
-      this.duration = legacySources[0].duration(this.blockKey).original;
-      this._legacySources = legacySources;
-    } else {
-      // Use compiled metrics to determine duration (if available)
-      this.duration = undefined; // Will be calculated from metrics in future implementation
-    }
-  }  public duration?: number | undefined; // Duration of the block, if applicable
-  public blockId: string;
-  public blockKey: BlockKey;
-  public parent?: IRuntimeBlock | undefined;
+  constructor(    
+    public key: BlockKey, 
+    public metrics: RuntimeMetric[],
+    public spans: ResultSpanBuilder = new ResultSpanBuilder(),
+    public parent?: IRuntimeBlock | undefined
+  ) {    
+    this.duration = undefined;
+  }
   
-  public leaf: boolean = false; // indicates leaf-level block  
-  private spanBuilder: ResultSpanBuilder = new ResultSpanBuilder();  
+  public duration?: number | undefined; // Duration of the block, if applicable
   public handlers: EventHandler[] = [];
-    // Temporary property for backward compatibility during migration
-  // TODO: Remove this once all fragment-dependent operations are updated
-  protected _legacySources?: JitStatement[];
       
-  /**
-   * Get the ResultSpanBuilder to create and manage spans for this block
-   * @returns The ResultSpanBuilder instance for this block
-   */
-  public getSpanBuilder(): ResultSpanBuilder {
-    return this.spanBuilder;
-  }
-  
-  /**
-   * Temporary method to access spans for testing compatibility
-   * @returns Array of RuntimeSpan objects from the span builder without auto-closing
-   */
-  public spans(): RuntimeSpan[] {
-    // Access the private spans array directly without calling Build() to avoid auto-closing
-    return [...(this.spanBuilder as any).spans];
-  }
-    public selectMany<T>(fn: (node: JitStatement) => T[]): T[] {
-    let results: T[] = [];
-    // TODO: During migration, use legacy sources if available
-    // In future implementation, this method may need to be redesigned or removed
-    if (this._legacySources) {
-      for (const source of this._legacySources) {
-        results = results.concat(fn(source));
-      }
-    }
-    return results;
-  }
-
   // Renamed original abstract methods to be protected hooks
-  protected abstract onEnter(runtime: ITimerRuntime): IRuntimeAction[];
-  protected abstract onLeave(runtime: ITimerRuntime): IRuntimeAction[];
   protected abstract onNext(runtime: ITimerRuntime): IRuntimeAction[];
-  // New protected abstract lifecycle methods
-  protected abstract onBlockStart(runtime: ITimerRuntime): IRuntimeAction[];
-  protected abstract onBlockStop(runtime: ITimerRuntime): IRuntimeAction[];
-
-  // New public wrapper methods providing space for common logic
-  public enter(runtime: ITimerRuntime): IRuntimeAction[] {    
-    console.log(`>>>>> doEnter >>>>>: ${this.blockKey} -- ${this.constructor.name}`);    
-    this.spanBuilder.Create(this, this.metrics(runtime) ?? []);
-    const actions = this.onEnter(runtime);
-    // Space for common code to run after the specific block's onEnter logic
-    return actions;
-  }
-
-  public leave(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Space for common code to run before the specific block's onLeave logic    
-    console.log(`<<<<< doLeave <<<<<: ${this.blockKey} -- ${this.constructor.name}`);
-    const actions = this.onLeave(runtime);    
-    // Space for common code to run after the specific block's onLeave logic
-    return [...actions, new WriteResultAction(this.spanBuilder.Build())];
-  }
-
+        
   public next(runtime: ITimerRuntime): IRuntimeAction[] {
     // Space for common code toonsole.log(`⚡ Action: ${action.name} run before the specific block's onNext logic
-    this.blockKey.index += 1;
-    console.log(`----- doNext -----: ${this.blockKey} -- ${this.constructor.name}`);
+    this.key.index += 1;
+    console.log(`----- doNext -----: ${this.key} -- ${this.constructor.name}`);
     const actions = this.onNext(runtime);
     // Space for common code to run after the specific block's onNext logic
     return actions;
   }
+
   public handle(
     runtime: ITimerRuntime,
     event: IRuntimeEvent,
@@ -112,7 +47,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     
     // Don't log tick events to reduce noise
     if (event.name !== "tick") {
-      console.log(`🔔 Event ${event.name} received by block: ${this.constructor.name} [${this.blockKey}]`);
+      console.log(`🔔 Event ${event.name} received by block: ${this.constructor.name} [${this.key}]`);
     }
     
     for (const handler of [...system, ...this.handlers]) {
@@ -122,8 +57,8 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
         
         // Log event handling (except for tick events to reduce noise)
         if (event.name !== "tick") {
-          log.push(new WriteLogAction({ blockId: this.blockId, blockKey: this.blockKey.toString(), ...event }));
-          console.log(`🔍 ${handler.constructor.name} handling ${event.name} event in block: ${this.constructor.name} [${this.blockKey}]`);
+          log.push(new WriteLogAction({ blockId: this.key.toString(), blockKey: this.key.toString(), ...event }));
+          console.log(`🔍 ${handler.constructor.name} handling ${event.name} event in block: ${this.constructor.name} [${this.key}]`);
         }
         
         // Get actions from the handler
@@ -186,43 +121,5 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
     }
     
     return groupStatements;
-  }
-
-  // Lifecycle methods implementation 
-  public onStart(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Ensure a span is created if none exists (for backward compatibility with tests)
-    try {
-      this.getSpanBuilder().Start();
-    } catch (error) {
-      // If Start() fails because no span exists, create one and try again
-      this.getSpanBuilder().Create(this, this.metrics(runtime) ?? []);
-      this.getSpanBuilder().Start();
-    }
-    
-    return this.onBlockStart(runtime);      
-  }
-
-  // Lifecycle methods implementation 
-  public onStop(runtime: ITimerRuntime): IRuntimeAction[] {
-    // Ensure we have a span to stop (defensive programming)
-    try {
-      this.getSpanBuilder().Stop();
-    } catch (error) {
-      // If we don't have a span, that's ok for stop operations
-      console.warn("onStop called but no active span to stop");
-    }
-    
-    return this.onBlockStop(runtime);      
-  }
-     /**
-   * Returns the pre-compiled metrics for this runtime block.
-   * These metrics were compiled from fragments during JIT compilation.
-   * 
-   * @param runtime The timer runtime instance (kept for compatibility)
-   * @returns An array of RuntimeMetric objects containing effort, repetitions, distance, and resistance
-   */
-  public metrics(runtime: ITimerRuntime): RuntimeMetric[] {    
-    // Return the pre-compiled metrics that were set during JIT compilation
-    return this.compiledMetrics;
   }
 }

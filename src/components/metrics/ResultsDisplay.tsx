@@ -3,7 +3,7 @@ import React, { MutableRefObject, useState, useEffect } from 'react';
 import { EventsView } from './EventsView';
 import { AnalyticsView } from './AnalyticsView';
 import { TabSelector, TabOption } from './TabSelector';
-import { RuntimeMetricEdit } from "@/core/RuntimeMetricEdit";
+import { RuntimeMetricEdit } from "@/core/types/RuntimeMetricEdit";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
 import EffortSummaryCard from './EffortSummaryCard'; // Import the new component
 import { cn } from '@/core/utils';

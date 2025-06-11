@@ -1,5 +1,5 @@
-import { JitStatement } from "../JitStatement";
-import { ICodeStatement } from "../CodeStatement";
+import { JitStatement } from "../types/JitStatement";
+import { ICodeStatement } from "../ICodeStatement";
 
 export class RuntimeScript {
   public root: JitStatement[] = [];

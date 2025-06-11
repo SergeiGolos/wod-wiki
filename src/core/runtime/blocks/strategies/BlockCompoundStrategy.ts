@@ -1,7 +1,7 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { RuntimeMetric } from "@/core/types/RuntimeMetric";
 import { EffortBlock } from "../EffortBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 

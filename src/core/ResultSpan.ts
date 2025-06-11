@@ -1,5 +1,5 @@
 import { RuntimeMetricEdit } from "./RuntimeMetricEdit";
-import { RuntimeSpan } from "./RuntimeSpan";
+import { RuntimeSpan } from "./types/RuntimeSpan";
 
 export class ResultSpan extends RuntimeSpan {
   constructor(span: RuntimeSpan) {

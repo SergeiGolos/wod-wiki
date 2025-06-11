@@ -1,5 +1,5 @@
-import { CodeFragment } from "../CodeFragment";
-import { ICodeStatement } from "../CodeStatement";
+import { CodeFragment } from "../types/CodeFragment";
+import { ICodeStatement } from "../ICodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";

@@ -1,5 +1,5 @@
-import { IDuration } from "./IDuration";
-import { ITimeSpan } from "./ITimeSpan";
+import { IDuration } from "../IDuration";
+import { ITimeSpan } from "../ITimeSpan";
 
 export class Duration implements IDuration {
   days?: number;

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GroupCountdownStrategy } from './GroupCountdownStrategy';
 import { TimedGroupBlock } from '../TimedGroupBlock';
-import { JitStatement } from '@/core/JitStatement';
+import { JitStatement } from '@/core/types/JitStatement';
 import { ITimerRuntime } from '@/core/ITimerRuntime';
-import { Duration } from '@/core/Duration';
-import { BlockKey } from '@/core/BlockKey';
+import { Duration } from '@/core/types/Duration';
+import { BlockKey } from '@/core/types/BlockKey';
 
 // Mock implementation for JitStatement
 function createMockStatement(options: {

@@ -1,5 +1,5 @@
 import { RoundsFragment } from "@/core/fragments/RoundsFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first rounds fragment from a statement node

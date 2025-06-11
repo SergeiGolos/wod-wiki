@@ -1,10 +1,10 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { OutputEvent } from "@/core/OutputEvent";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
-import { Duration } from "@/core/Duration";
+import { Duration } from "@/core/types/Duration";
 
 /**
  * Enhanced PushStatementAction that can inherit timer context from parent block

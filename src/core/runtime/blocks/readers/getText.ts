@@ -1,5 +1,5 @@
 import { TextFragment } from "@/core/fragments/TextFragment";
-import { ICodeStatement } from "@/core/CodeStatement";
+import { ICodeStatement } from "@/core/ICodeStatement";
 
 /**
  * Extracts the first text fragment from a statement node

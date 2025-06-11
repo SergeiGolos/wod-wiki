@@ -3,10 +3,10 @@ import { RuntimeJitStrategies } from './RuntimeJitStrategies';
 import { TimerBlock } from './blocks/TimerBlock';
 import { TimedGroupBlock } from './blocks/TimedGroupBlock';
 import { EffortBlock } from './blocks/EffortBlock';
-import { JitStatement } from '@/core/JitStatement';
+import { JitStatement } from '@/core/types/JitStatement';
 import { ITimerRuntime } from '@/core/ITimerRuntime';
-import { Duration } from '@/core/Duration';
-import { BlockKey } from '@/core/BlockKey';
+import { Duration } from '@/core/types/Duration';
+import { BlockKey } from '@/core/types/BlockKey';
 
 // Comprehensive mock for JitStatement with all required methods
 function createMockStatement(options: {

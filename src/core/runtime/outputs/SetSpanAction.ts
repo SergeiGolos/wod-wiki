@@ -4,7 +4,7 @@ import { ITimerRuntime } from "@/core/ITimerRuntime";
 import { IRuntimeEvent } from "@/core/IRuntimeEvent";
 import { Subject } from "rxjs";
 import { OutputAction } from "../OutputAction";
-import { RuntimeSpan } from "@/core/RuntimeSpan";
+import { RuntimeSpan } from "@/core/types/RuntimeSpan";
 
 
 export class SetSpanAction extends OutputAction {

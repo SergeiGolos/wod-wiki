@@ -1,5 +1,5 @@
 import { ActionFragment } from "@/core/fragments/ActionFragment";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 
 /**
  * Extracts the first action fragment from a runtime block

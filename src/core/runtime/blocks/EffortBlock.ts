@@ -1,7 +1,7 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { JitStatement } from "@/core/types/JitStatement";
+import { RuntimeMetric } from "@/core/types/RuntimeMetric";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { StopEvent } from "../inputs/StopEvent"; 
 import { StartTimerAction } from "../actions/StartTimerAction";
@@ -73,7 +73,7 @@ export class EffortBlock extends RuntimeBlock {
   }
 
   protected onNext(_runtime: ITimerRuntime): IRuntimeAction[] {
-    return this.blockKey.index >= 1 
+    return this.key.index >= 1 
     ? [new PopBlockAction()] 
     : [];
   }  protected onLeave(_runtime: ITimerRuntime): IRuntimeAction[] {

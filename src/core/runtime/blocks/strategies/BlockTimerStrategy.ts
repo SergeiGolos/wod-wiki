@@ -1,9 +1,9 @@
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { TimerBlock } from "../TimerBlock";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
-import { RuntimeMetric } from "@/core/RuntimeMetric";
+import { RuntimeMetric } from "@/core/types/RuntimeMetric";
 
 /**
  * Strategy for creating TimerBlock runtime blocks

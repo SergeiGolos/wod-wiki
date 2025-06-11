@@ -32,7 +32,7 @@ export class SaveHandler implements EventHandler {
     //   historyString = allSpans.map((span: RuntimeSpan) => JSON.stringify(span, null, 2)).join('\n\n');
     // }
 
-    const scriptText = `${runtime.code}\n\n${historyString}`;
+    const scriptText = `${runtime.script.source}\n\n${historyString}`;
     // 2. Generate a filename with timestamp
     const date = new Date();
     const iso = date.toISOString().replace(/[:.]/g, '-');

@@ -5,7 +5,7 @@ import { IRuntimeBlock } from "@/core/IRuntimeBlock";
 import { EventHandler } from "@/core/runtime/EventHandler";
 import { NotifyRuntimeAction } from "../actions/NotifyRuntimeAction";
 import { CompleteEvent } from "./CompleteEvent";
-import { Duration, SpanDuration } from "@/core/Duration";
+import { Duration, SpanDuration } from "@/core/types/Duration";
 
 export class TickEvent implements IRuntimeEvent {  
   timestamp: Date = new Date();

@@ -1,6 +1,6 @@
 import { IRuntimeAction } from "@/core/IRuntimeAction";
 import { ITimerRuntime } from "@/core/ITimerRuntime";
-import { JitStatement } from "@/core/JitStatement";
+import { JitStatement } from "@/core/types/JitStatement";
 // import { ZeroIndexMeta } from "@/core/ZeroIndexMeta"; // Removed unused import
 import { RuntimeBlock } from "./RuntimeBlock";
 import {
@@ -15,7 +15,6 @@ import { ZeroIndexMeta } from "@/core/ZeroIndexMeta";
 import { RunHandler } from "../inputs/RunEvent";
 import { SetButtonAction } from "../outputs/SetButtonAction";
 import { startButton } from "@/components/buttons/timerButtons";
-import { SetSpanAction } from "../outputs/SetSpanAction";
 
 /**
  * Represents the root of the execution tree.
