@@ -1,4 +1,4 @@
-import { CodeFragment } from "../types/CodeFragment";
+import { CodeFragment } from "../CodeFragment";
 import { ICodeStatement } from "../ICodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
