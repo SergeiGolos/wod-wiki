@@ -1,7 +1,7 @@
 import { CodeMetadata } from "./CodeMetadata";
 
 
-export interface CodeFragment {
+export interface ICodeFragment {
   readonly type: string; // Retained for now, will be replaced by fragmentType
   readonly meta?: CodeMetadata;
   readonly fragmentType: FragmentType;

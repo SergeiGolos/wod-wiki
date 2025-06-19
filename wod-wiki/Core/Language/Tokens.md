@@ -56,7 +56,7 @@ Tokens are ordered by priority in the `allTokens` array, with keywords appearing
 
 - Used by: [[Parser]] for grammar rule matching
 - Consumed by: [[Language Service]] during lexical analysis
-- Dependencies: Chevrotain lexer framework
+- Dependencies: `Chevrotain` lexer framework
 
 ## Processing Flow
 

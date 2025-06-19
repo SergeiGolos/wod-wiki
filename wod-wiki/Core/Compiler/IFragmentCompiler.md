@@ -5,7 +5,7 @@ Generic interface for fragment compilation strategies that transform CodeFragmen
 
 ## Generic Interface
 
-### IFragmentCompilationStrategy<TFragment extends CodeFragment>
+### IFragmentCompilationStrategy{TFragment extends CodeFragment}
 
 #### Properties
 

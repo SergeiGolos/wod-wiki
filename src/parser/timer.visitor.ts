@@ -1,4 +1,4 @@
-import { CodeFragment } from "../CodeFragment";
+import { ICodeFragment } from "../CodeFragment";
 import { ICodeStatement } from "../ICodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
@@ -82,7 +82,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   wodBlock(ctx: any): ICodeStatement {
-    let statement = { fragments: [] as CodeFragment[] } as ICodeStatement;
+    let statement = { fragments: [] as ICodeFragment[] } as ICodeStatement;
     const lapFragments = ctx.lap && this.visit(ctx.lap);
     statement.fragments.push(...(lapFragments || []));
     if (ctx.rounds) {
@@ -197,7 +197,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
   }
 
-  rounds(ctx: any): CodeFragment[] {
+  rounds(ctx: any): ICodeFragment[] {
     const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
     const groups = this.visit(ctx.sequence[0]);
     

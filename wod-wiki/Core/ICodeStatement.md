@@ -1,8 +1,7 @@
-
 Abstract base class and interface for statements in the workout script AST. Statements represent hierarchical logical units of workout instructions that contain collections of fragments. They form the structural backbone of the parsed workout script.
 
 ## Original Location
-`src/core/CodeStatement.ts`
+`src/ICodeStatement.ts`
 
 ## Abstract Class: CodeStatement
 
@@ -36,7 +35,7 @@ interface ICodeStatement {
 **Fragments**: Each statement contains an array of `CodeFragment` objects that represent the actual workout data (times, reps, efforts, etc.).
 
 **Relationships**:
-- Contains: [[ICodeFragment]] instances
-- Uses: [[CodeMetadata]] for source tracking
-- Part of: [[JitStatement]] compilation pipeline
+- Contains: [ICodeFragment](./ICodeFragment.md) instances
+- Uses: `CodeMetadata` for source tracking
+- Part of: [JitStatement](./Compiler/JitCompiler.md) compilation pipeline
 - Consumed by: Runtime compilation strategies
