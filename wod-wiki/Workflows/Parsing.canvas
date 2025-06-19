@@ -1,0 +1,20 @@
+{
+	"nodes":[
+		{"id":"d139ff875bc75060","type":"group","x":760,"y":-600,"width":560,"height":1560,"label":"WodScript"},
+		{"id":"85167cef462119e1","type":"file","file":"Core/Language/Parser.md","x":-800,"y":-426,"width":560,"height":986},
+		{"id":"24d82baf2168e6e7","type":"file","file":"Syntax.md","x":-1840,"y":-978,"width":800,"height":996},
+		{"id":"e9615a444028c23d","x":-1840,"y":240,"width":720,"height":400,"type":"file","file":"Core/Language/Tokens.md"},
+		{"id":"cf1a508af77cbe8c","x":40,"y":-426,"width":400,"height":1246,"type":"file","file":"Core/Language/Interpreter.md"},
+		{"id":"e506a6ba124896ea","x":833,"y":-538,"width":400,"height":400,"type":"file","file":"Core/IScript.md"},
+		{"id":"1f691bf3db588e81","type":"file","file":"Core/ICodeFragment.md","x":833,"y":480,"width":400,"height":400},
+		{"id":"601dc241c938f6d5","type":"file","file":"Core/ICodeStatement.md","x":833,"y":14,"width":400,"height":306}
+	],
+	"edges":[
+		{"id":"23f95d1936bbd3ed","fromNode":"24d82baf2168e6e7","fromSide":"right","toNode":"85167cef462119e1","toSide":"left"},
+		{"id":"1b70d86211adfdb8","fromNode":"601dc241c938f6d5","fromSide":"bottom","toNode":"1f691bf3db588e81","toSide":"top","label":"Has Many"},
+		{"id":"44f8cdc9564a6d65","fromNode":"e9615a444028c23d","fromSide":"right","toNode":"85167cef462119e1","toSide":"left"},
+		{"id":"f85d0b09c1e59aa3","fromNode":"e506a6ba124896ea","fromSide":"bottom","toNode":"601dc241c938f6d5","toSide":"top","label":"Has Many"},
+		{"id":"151c4533d305e2e3","fromNode":"85167cef462119e1","fromSide":"right","toNode":"cf1a508af77cbe8c","toSide":"left"},
+		{"id":"de89f0e68ba35ec6","fromNode":"cf1a508af77cbe8c","fromSide":"right","toNode":"d139ff875bc75060","toSide":"left"}
+	]
+}
