@@ -11,7 +11,7 @@
 		{"id":"13a9b20ee5049fad","type":"file","file":"Core/ICodeFragment.md","x":-720,"y":-2400,"width":400,"height":400},
 		{"id":"532dfbabc5fbca97","type":"file","file":"Core/Metrics/Metric.md","x":140,"y":280,"width":400,"height":400},
 		{"id":"53db56e5cf2dd5ff","type":"file","file":"Core/Runtime/Span.md","x":140,"y":-160,"width":400,"height":360},
-		{"id":"242bdd791648e3fb","type":"file","file":"Display State.md","x":1056,"y":-1007,"width":400,"height":400},
+		{"id":"242bdd791648e3fb","type":"file","file":"Birds-Eye.md","x":1056,"y":-1007,"width":400,"height":400},
 		{"id":"0b2603c07db1317b","type":"file","file":"Core/IRuntimeEvent.md","x":-860,"y":-1146,"width":400,"height":400},
 		{"id":"d9b3037ad7471ef3","type":"text","text":"# Tick Event\n","x":-860,"y":-648,"width":400,"height":177}
 	],

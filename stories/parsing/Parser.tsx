@@ -1,7 +1,7 @@
 import React from 'react';
-import { MdTimerRuntime } from '../src/parser/md-timer';
-import { ICodeStatement } from '../src/CodeStatement';
-import { ICodeFragment } from '../src/CodeFragment';
+import { MdTimerRuntime } from '../../src/parser/md-timer';
+import { ICodeStatement } from '../../src/CodeStatement';
+import { ICodeFragment } from '../../src/CodeFragment';
 
 const getFragmentColorClasses = (type: string) => {
     const colorMap: { [key: string]: string } = {
@@ -71,7 +71,7 @@ export const Parser = ({ text }: { text: string }) => {
     const runtime = new MdTimerRuntime();
     const script = runtime.read(text);
     const statements = script.statements;
-
+    
     return (
         <div className="p-4 font-sans">
             <div className="mb-4">                
