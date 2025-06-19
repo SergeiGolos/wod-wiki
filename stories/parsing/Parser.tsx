@@ -57,13 +57,16 @@ const FragmentVisualizer = ({ fragments }: { fragments: ICodeFragment[] }) => {
 const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
     const lineNumber = statement.meta?.line ?? 'N/A';
     const range = statement.meta ? `[${statement.meta.columnStart} - ${statement.meta.columnEnd}]` : 'N/A';
+    const paddingLeft = statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * 0.8}rem` : '0';
 
     return (
         <tr className="border-b border-gray-200 hover:bg-gray-50">
             <td className="p-3 align-top text-sm text-gray-500 w-16">{lineNumber}</td>
             <td className="p-3 align-top text-sm text-gray-500 w-24">{range}</td>
             <td className="p-3">
-                <FragmentVisualizer fragments={statement.fragments} />
+                <div style={{ paddingLeft }}>
+                    <FragmentVisualizer fragments={statement.fragments} />
+                </div>
             </td>
         </tr>
     );
