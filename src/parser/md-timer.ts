@@ -3,7 +3,7 @@ import { MdTimerInterpreter } from "./timer.visitor";
 import { MdTimerParse } from "./timer.parser";
 import { allTokens } from "./timer.tokens";
 import { ICodeStatement } from "../CodeStatement";
-import { IScript, WodRuntimeScript } from "../WodRuntimeScript";
+import { IScript, WodScript } from "../WodScript";
 
 export class MdTimerRuntime {
   lexer: Lexer;
@@ -19,7 +19,7 @@ export class MdTimerRuntime {
 
     const cst = parser.wodMarkdown();    
     const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);    
-    return new WodRuntimeScript(inputText, raw, parser.errors) as IScript;    
+    return new WodScript(inputText, raw, parser.errors) as IScript;    
   }
 }
 

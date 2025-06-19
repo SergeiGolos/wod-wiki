@@ -9,7 +9,7 @@ export interface IScript {
   getAt(index: number): ICodeStatement | undefined;
 }
 
-export class WodRuntimeScript implements IScript {
+export class WodScript implements IScript {
   source: string;
   statements: ICodeStatement[];
   errors: any[] | undefined;

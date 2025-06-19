@@ -1,4 +1,4 @@
-import { IScript } from "../WodRuntimeScript";
+import { IScript } from "../WodScript";
 import { WodWikiToken } from "./WodWiki";
 
 

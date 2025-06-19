@@ -3,7 +3,7 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
 import { ICodeFragment } from '../../src/CodeFragment';
 import { WodWiki } from '../../src/editor/WodWiki';
-import { IScript } from '../../src/WodRuntimeScript';
+import { IScript } from '../../src/WodScript';
 
 const getFragmentColorClasses = (type: string) => {
     const colorMap: { [key: string]: string } = {
@@ -96,7 +96,7 @@ export const Parser = ({ text }: { text: string }) => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Line</th>
-                                <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Range</th>
+                                <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Position</th>
                                 <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fragments Breakdown</th>
                             </tr>
                         </thead>
