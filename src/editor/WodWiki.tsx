@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
@@ -128,4 +128,4 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
         options={initializer.options}        
     />
     )
-  };   
+  };

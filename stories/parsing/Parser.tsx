@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
 import { ICodeFragment } from '../../src/CodeFragment';
+import { WodWiki } from '../../src/editor/WodWiki';
+import { IScript } from '../../src/WodRuntimeScript';
 
 const getFragmentColorClasses = (type: string) => {
     const colorMap: { [key: string]: string } = {
@@ -69,13 +71,21 @@ const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
 
 export const Parser = ({ text }: { text: string }) => {
     const runtime = new MdTimerRuntime();
-    const script = runtime.read(text);
+    const initialScript = runtime.read(text);
+    const [script, setScript] = useState<IScript>(initialScript);
+
+    const handleValueChange = (newScript?: IScript) => {
+        if (newScript) {
+            setScript(newScript);
+        }
+    };
+
     const statements = script.statements;
     
     return (
         <div className="p-4 font-sans">
-            <div className="mb-4">                
-                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm">{text}</pre>
+            <div className="mb-4">  
+                <WodWiki id="parser-editor" code={text} onValueChange={handleValueChange} />              
             </div>
             <div>                
                 <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md">
