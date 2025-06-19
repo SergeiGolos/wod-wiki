@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
-
-import { Editor}  from '@monaco-editor/react';
+import { editor } from 'monaco-editor';
+import Editor, { MonacoDiffEditor } from '@monaco-editor/react';
 import { Monaco } from '@monaco-editor/react';
 
 import { DefaultSuggestionService } from './SuggestionService';
@@ -48,10 +48,10 @@ const tokens: WodWikiToken[] = [
 
 export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange);      
-    const editorRef = useRef<IStandaloneCodeEditor | null>(null);
+    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
     const [height, setHeight] = useState(50); // Initial height
-    function handleMount(editor: Editor.IStandaloneCodeEditor, monaco: Monaco) {
+    function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
       editorRef.current = editor;
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
@@ -75,7 +75,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       initializer.handleBeforeMount(monaco);
     }
     
-    function handleEditorValidation(_markers: Editor.IMarker[]) {
+    function handleEditorValidation(_markers: editor.IMarker[]) {
       // model markers - processing removed
     }
         

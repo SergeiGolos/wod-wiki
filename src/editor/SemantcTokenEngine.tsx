@@ -1,5 +1,6 @@
-import { IRuntimeScript } from "@/core/WodRuntimeScript";
-import { WodWikiToken } from "@/core/WodWikiToken";
+import { IScript } from "../WodRuntimeScript";
+import { WodWikiToken } from "./WodWiki";
+
 
 export class SemantcTokenEngine {
   constructor(public tokens: WodWikiToken[]) {
@@ -18,7 +19,7 @@ export class SemantcTokenEngine {
     return this.tokenTypes.indexOf(type);
   }
 
-  write(_code: string, objectCode?: IRuntimeScript) {
+  write(_code: string, objectCode?: IScript) {
     if (!objectCode || !objectCode.statements) {
       return this.cache;
     }
