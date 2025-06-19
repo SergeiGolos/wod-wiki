@@ -1,7 +1,9 @@
-import { CodeFragment, FragmentType } from "../CodeFragment";
+import { ICodeFragment, FragmentType } from "../CodeFragment";
 import { CodeMetadata } from "../CodeMetadata";
 
-export class TimerFragment implements CodeFragment {
+export class TimerFragment implements ICodeFragment {
+  readonly value: number;
+
   constructor(public image: string, public meta: CodeMetadata) {
     const digits = this.image
       .split(":")
@@ -20,6 +22,8 @@ export class TimerFragment implements CodeFragment {
       this.minutes * 60 +
       this.hours * 60 * 60 +
       this.days * 60 * 60 * 24) * 1000;
+    
+    this.value = this.original;
   }
 
   readonly days: number;

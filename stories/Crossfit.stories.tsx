@@ -1,7 +1,7 @@
 import { Parser } from './Parser';
 
 export default {
-  title: 'WOD Wiki/Parser',
+  title: 'Parser/Crossfit',
   component: Parser,
 };
 

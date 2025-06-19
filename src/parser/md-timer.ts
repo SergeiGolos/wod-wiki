@@ -2,9 +2,8 @@ import { Lexer } from "chevrotain";
 import { MdTimerInterpreter } from "./timer.visitor";
 import { MdTimerParse } from "./timer.parser";
 import { allTokens } from "./timer.tokens";
-import { IRuntimeScript } from "../WodRuntimeScript";
-import { ICodeStatement } from "../ICodeStatement";
-
+import { ICodeStatement } from "../CodeStatement";
+import { IScript, WodRuntimeScript } from "../WodRuntimeScript";
 
 export class MdTimerRuntime {
   lexer: Lexer;
@@ -14,16 +13,13 @@ export class MdTimerRuntime {
     this.visitor = new MdTimerInterpreter();
   }
 
-  read(inputText: string): IRuntimeScript {    
+  read(inputText: string): IScript {    
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
     const cst = parser.wodMarkdown();    
     const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);    
-    return {
-      source: inputText,
-      statements: raw,
-    };
+    return new WodRuntimeScript(inputText, raw, parser.errors) as IScript;    
   }
 }
 

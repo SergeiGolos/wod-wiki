@@ -1,8 +1,8 @@
-import { ICodeStatement } from "./ICodeStatement";
+import { ICodeStatement } from "./CodeStatement";
 
 export interface IScript {
-  Source: string;
-  Statements: ICodeStatement[];
+  source: string;
+  statements: ICodeStatement[];
   errors?: any[] | undefined;
   from(ids: number[], index:number) : ICodeStatement[];
   getId(id: number): ICodeStatement | undefined;
@@ -10,13 +10,13 @@ export interface IScript {
 }
 
 export class WodRuntimeScript implements IScript {
-  Source: string;
-  Statements: ICodeStatement[];
+  source: string;
+  statements: ICodeStatement[];
   errors: any[] | undefined;
 
   constructor(source: string, statements: ICodeStatement[], errors: any[] = []) {
-    this.Source = source;
-    this.Statements = statements;
+    this.source = source;
+    this.statements = statements;
     this.errors = errors;
   }
 
@@ -25,10 +25,10 @@ export class WodRuntimeScript implements IScript {
   }
 
   getId(id: number): ICodeStatement | undefined {
-    return this.Statements.find(s => s.id === id);
+    return this.statements.find(s => s.id === id);
   }
 
   getAt(index: number): ICodeStatement | undefined {
-    return this.Statements[index];
+    return this.statements[index];
   }
 }

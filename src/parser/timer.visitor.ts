@@ -1,5 +1,5 @@
-import { ICodeFragment } from "../CodeFragment";
-import { ICodeStatement } from "../ICodeStatement";
+import { ICodeFragment, FragmentType } from "../CodeFragment";
+import { ICodeStatement } from "../CodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
@@ -59,7 +59,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
         if (stack.length > 0) {
           for (let parent of stack) {
-            const lapFragments = block.fragments.filter(f => f.type === 'lap');            
+            const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);            
             parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
             parent.block.children.push(block.id);
             block.parent = parent.block.id;
@@ -127,7 +127,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.push(new LapFragment('repeat', "", meta as any));
     }
 
-    statement.isLeaf = statement.fragments.filter(f => f.type === 'lap').length > 0;
+    statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Lap).length > 0;
     return statement;
   }
  

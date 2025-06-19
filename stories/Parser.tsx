@@ -1,6 +1,6 @@
 import React from 'react';
 import { MdTimerRuntime } from '../src/parser/md-timer';
-import { ICodeStatement } from '../src/ICodeStatement';
+import { ICodeStatement } from '../src/CodeStatement';
 import { ICodeFragment } from '../src/CodeFragment';
 
 const StatementRow = ({ statement }: { statement: ICodeStatement }) => {

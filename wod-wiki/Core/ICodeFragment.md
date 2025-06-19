@@ -4,6 +4,8 @@ Base interface for all code fragments parsed from workout scripts. Fragments rep
 `src/CodeFragment.ts`
 
 ## Properties
+- `image?: string` - Raw text representation of the fragment.
+- `value?: any` - The primary value of the fragment.
 - `type: string` — Legacy string identifier for the fragment type
 - `fragmentType: FragmentType` — Enum value for the fragment type (preferred)
 - `meta?: CodeMetadata` — Optional metadata (source position, etc.)
@@ -29,7 +31,8 @@ All fragment classes (e.g., `TimerFragment`, `RepFragment`) implement this inter
 **Original Location**: `src/fragments/ActionFragment.ts`
 
 #### Properties
-- `action: string` — The action keyword or label
+- `value: string` — The action keyword or label.
+- `image: string` — The action keyword or label.
 - `type: string = "action"`
 - `fragmentType: FragmentType.Action`
 - `meta?: CodeMetadata`
@@ -49,8 +52,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/DistanceFragment.ts`
 
 #### Properties
-- `value: string` — Distance value (e.g., `400`)
-- `units: string` — Distance units (e.g., `m`, `mile`)
+- `value: { amount: string, units: string }` — Object containing the distance value and units.
+- `image: string` — Combined representation (e.g., "100 m").
 - `type: string = "distance"`
 - `fragmentType: FragmentType.Distance`
 - `meta?: CodeMetadata`
@@ -70,7 +73,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/EffortFragment.ts`
 
 #### Properties
-- `effort: string` — Name of the exercise or effort
+- `value: string` — Name of the exercise or effort.
+- `image: string` — Name of the exercise or effort.
 - `type: string = "effort"`
 - `fragmentType: FragmentType.Effort`
 - `meta?: CodeMetadata`
@@ -90,8 +94,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/IncrementFragment.ts`
 
 #### Properties
-- `image: string` — The increment symbol (e.g., `^`)
-- `increment: number` — The increment value (`1` for `^`, `-1` for `-`)
+- `value: number` — The increment value (`1` for `^`, `-1` for `-`).
+- `image: string` — The increment symbol (e.g., `^`).
 - `type: string = "increment"`
 - `fragmentType: FragmentType.Increment`
 - `meta?: CodeMetadata`
@@ -111,6 +115,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/LapFragment.ts`
 
 #### Properties
+- `value: GroupType` — Grouping information.
+- `image: string` — Raw text representation.
 - `type: string = "lap"`
 - `fragmentType: FragmentType.Lap`
 - `meta?: CodeMetadata`
@@ -130,7 +136,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/RepFragment.ts`
 
 #### Properties
-- `reps?: number` — Number of repetitions
+- `value?: number` — Number of repetitions.
 - `type: string = "rep"`
 - `fragmentType: FragmentType.Rep`
 - `meta?: CodeMetadata`
@@ -150,8 +156,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/ResistanceFragment.ts`
 
 #### Properties
-- `value: string` — Resistance value (e.g., `50`)
-- `units: string` — Resistance units (e.g., `kg`, `lb`)
+- `value: { amount: string, units: string }` — Object containing the resistance value and units.
+- `image: string` — Combined representation (e.g., "45 lb").
 - `type: string = "resistance"`
 - `fragmentType: FragmentType.Resistance`
 - `meta?: CodeMetadata`
@@ -171,7 +177,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/RoundsFragment.ts`
 
 #### Properties
-- `count: number` — Number of rounds
+- `value: number` — Number of rounds.
+- `image: string` — String representation of the count.
 - `type: string = "rounds"`
 - `fragmentType: FragmentType.Rounds`
 - `meta?: CodeMetadata`
@@ -191,8 +198,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/TextFragment.ts`
 
 #### Properties
-- `text: string` — The text content
-- `level?: string` — Optional text level (e.g., heading)
+- `value: { text: string, level?: string }` — Object containing the text content and optional level.
+- `image: string` — The text content.
 - `type: string = "text"`
 - `fragmentType: FragmentType.Text`
 - `meta?: CodeMetadata`
@@ -212,11 +219,8 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 **Original Location**: `src/fragments/TimerFragment.ts`
 
 #### Properties
-- `days: number` — Days component
-- `hours: number` — Hours component
-- `minutes: number` — Minutes component
-- `seconds: number` — Seconds component
-- `original: number` — Total duration in milliseconds
+- `value: number` — Total duration in milliseconds.
+- `image: string` — The raw time string (e.g., "1:30:00").
 - `type: string = "duration"` — Legacy type
 - `fragmentType: FragmentType.Timer`
 - `meta?: CodeMetadata`
