@@ -137,3 +137,5 @@ storybook-static
 # IDE settings
 .vscode/
 .idea/
+
+*storybook.log

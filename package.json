@@ -1,0 +1,41 @@
+{
+  "name": "wod-wiki",
+  "version": "0.5.0",
+  "description": "A React component library for parsing, displaying, and executing workout definitions using a specialized syntax. Features include a Monaco Editor integration for editing workout scripts, a runtime engine for execution, and components styled with Tailwind CSS.",
+  "homepage": "https://github.com/SergeiGolos/wod-wiki#readme",
+  "bugs": {
+    "url": "https://github.com/SergeiGolos/wod-wiki/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SergeiGolos/wod-wiki.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.43.0",
+    "chevrotain": "^11.0.3"
+  },
+  "devDependencies": {
+    "@chromatic-com/storybook": "^4.0.0",
+    "@storybook/addon-a11y": "^9.0.12",
+    "@storybook/addon-docs": "^9.0.12",
+    "@storybook/addon-vitest": "^9.0.12",
+    "@storybook/react-vite": "^9.0.12",
+    "@vitest/browser": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "playwright": "^1.53.1",
+    "prop-types": "^15.8.1",
+    "rollup": "^4.41.0",
+    "rxjs": "^7.8.2",
+    "storybook": "^9.0.12",
+    "vite": "^6.3.5"
+  }
+}
