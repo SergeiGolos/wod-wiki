@@ -7,7 +7,7 @@ Base interface for all code fragments parsed from workout scripts. Fragments rep
 - `image?: string` - Raw text representation of the fragment.
 - `value?: any` - The primary value of the fragment.
 - `type: string` — Legacy string identifier for the fragment type
-- `fragmentType: FragmentType` — Enum value for the fragment type (preferred)
+- `type: FragmentType` — Enum value for the fragment type (preferred)
 - `meta?: CodeMetadata` — Optional metadata (source position, etc.)
 
 ## FragmentType Enum
