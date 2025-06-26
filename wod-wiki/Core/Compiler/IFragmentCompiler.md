@@ -9,9 +9,9 @@ Generic interface for fragment compilation strategies that transform CodeFragmen
 
 #### Properties
 
-##### fragmentType: FragmentType
+##### type: FragmentType
 ```typescript
-readonly fragmentType: FragmentType
+readonly type: FragmentType
 ```
 Identifies which fragment type this strategy handles (Effort, Rep, Distance, etc.)
 

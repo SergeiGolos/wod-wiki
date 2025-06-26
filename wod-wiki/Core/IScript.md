@@ -1,7 +1,8 @@
 ## Properties
 
-- `Statements` : Array of [ICodeStatement](ICodeStatement.md)
-- `Soruce` : original pre-compiled script.
+- `statements` : Array of [ICodeStatement](ICodeStatement.md)
+- `source` : original pre-compiled script.
+- `errors?`: any[] | undefined - Optional array of parsing or compilation errors
 
 ## Methods
 

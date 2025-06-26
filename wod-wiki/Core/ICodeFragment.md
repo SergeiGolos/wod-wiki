@@ -34,7 +34,7 @@ All fragment classes (e.g., `TimerFragment`, `RepFragment`) implement this inter
 - `value: string` — The action keyword or label.
 - `image: string` — The action keyword or label.
 - `type: string = "action"`
-- `fragmentType: FragmentType.Action`
+- `type: FragmentType.Action`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -55,7 +55,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: { amount: string, units: string }` — Object containing the distance value and units.
 - `image: string` — Combined representation (e.g., "100 m").
 - `type: string = "distance"`
-- `fragmentType: FragmentType.Distance`
+- `type: FragmentType.Distance`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -76,7 +76,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: string` — Name of the exercise or effort.
 - `image: string` — Name of the exercise or effort.
 - `type: string = "effort"`
-- `fragmentType: FragmentType.Effort`
+- `type: FragmentType.Effort`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -97,7 +97,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: number` — The increment value (`1` for `^`, `-1` for `-`).
 - `image: string` — The increment symbol (e.g., `^`).
 - `type: string = "increment"`
-- `fragmentType: FragmentType.Increment`
+- `type: FragmentType.Increment`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -118,7 +118,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: GroupType` — Grouping information.
 - `image: string` — Raw text representation.
 - `type: string = "lap"`
-- `fragmentType: FragmentType.Lap`
+- `type: FragmentType.Lap`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -138,7 +138,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 #### Properties
 - `value?: number` — Number of repetitions.
 - `type: string = "rep"`
-- `fragmentType: FragmentType.Rep`
+- `type: FragmentType.Rep`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -159,7 +159,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: { amount: string, units: string }` — Object containing the resistance value and units.
 - `image: string` — Combined representation (e.g., "45 lb").
 - `type: string = "resistance"`
-- `fragmentType: FragmentType.Resistance`
+- `type: FragmentType.Resistance`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -180,7 +180,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: number` — Number of rounds.
 - `image: string` — String representation of the count.
 - `type: string = "rounds"`
-- `fragmentType: FragmentType.Rounds`
+- `type: FragmentType.Rounds`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -201,7 +201,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: { text: string, level?: string }` — Object containing the text content and optional level.
 - `image: string` — The text content.
 - `type: string = "text"`
-- `fragmentType: FragmentType.Text`
+- `type: FragmentType.Text`
 - `meta?: CodeMetadata`
 
 #### Usage
@@ -222,7 +222,7 @@ Used in: [JitStatement](./Compiler/JitStatement.md), [ICodeStatement](./ICodeSta
 - `value: number` — Total duration in milliseconds.
 - `image: string` — The raw time string (e.g., "1:30:00").
 - `type: string = "duration"` — Legacy type
-- `fragmentType: FragmentType.Timer`
+- `type: FragmentType.Timer`
 - `meta?: CodeMetadata`
 
 #### Usage

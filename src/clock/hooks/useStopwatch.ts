@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { TimeSpan } from '../../CollectionSpan';
+import { CollectionSpan, TimeSpan } from '../../CollectionSpan';
 
 export interface TimeValue {
     value: string;
     label: string;
 }
 
-export const useStopwatch = (timeSpans: TimeSpan[]) => {
+export const useTimespan = (timeSpans: TimeSpan[]) => {
     const [timeUnits, setTimeUnits] = useState<TimeValue[]>([]);
 
     useEffect(() => {
