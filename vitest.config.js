@@ -12,7 +12,18 @@ const dirname =
 export default defineConfig({
   test: {
     projects: [
+      // Regular Node.js unit tests
       {
+        name: 'unit',
+        test: {
+          include: ['src/**/*.{test,spec}.{js,ts}'],
+          exclude: ['stories/**/*', 'src/**/*.stories.*'],
+          environment: 'node',
+        },
+      },
+      // Storybook component tests with Playwright
+      {
+        name: 'storybook',
         extends: true,
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config
@@ -20,13 +31,12 @@ export default defineConfig({
           storybookTest({ configDir: path.join(dirname, '.storybook') }),
         ],
         test: {
-          name: 'storybook',
           browser: {
-        enabled: true,
-        headless: true,
-        provider: 'playwright',
-        instances: [{ browser: 'chromium' }]
-      },
+            enabled: true,
+            headless: true,
+            provider: 'playwright',
+            instances: [{ browser: 'chromium' }]
+          },
           setupFiles: ['.storybook/vitest.setup.js'],
         },
       },
