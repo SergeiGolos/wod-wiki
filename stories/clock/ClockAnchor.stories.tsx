@@ -4,7 +4,7 @@ import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { CollectionSpan } from '../../src/CollectionSpan';
 
 const meta: Meta<typeof ClockAnchor> = {
-  title: 'Clock/Anchors/ClockAnchor',
+  title: 'Clock/Clock Anchor',
   component: ClockAnchor,
   decorators: [
     (Story) => (

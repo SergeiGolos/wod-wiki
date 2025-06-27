@@ -4,7 +4,7 @@ import { LabelAnchor } from '../../src/clock/anchors/LabelAnchor';
 import { CollectionSpan } from '../../src/CollectionSpan';
 
 const meta: Meta<typeof LabelAnchor> = {
-  title: 'Clock/Anchors/LabelAnchor',
+  title: 'Clock/Label Anchor',
   component: LabelAnchor,
   decorators: [
     (Story) => (

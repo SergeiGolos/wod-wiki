@@ -12,7 +12,7 @@ interface TimeDisplayProps {
 
 export const TimeDisplay: FC<TimeDisplayProps> = ({ timeUnits }) => {
     return (
-        <div className="flex gap-4 w-full max-w-xs">
+        <div className="flex gap-1 md:gap-2 w-full max-w-xs md:max-w-md">
             {timeUnits.map((unit, index) => (
                 <React.Fragment key={index}>
                     <TimeUnit value={unit.value} label={unit.label} />

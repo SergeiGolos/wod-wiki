@@ -6,7 +6,7 @@ import { MetricAnchor } from '../../src/clock/anchors/MetricAnchor';
 import { CollectionSpan, Metric } from '../../src/CollectionSpan';
 
 const meta: Meta = {
-  title: 'Clock/Compositions',
+  title: 'Clock/Default',
   decorators: [
     (Story) => (
         <div className="flex flex-col items-center justify-center flex-grow p-6 bg-gray-50">
@@ -19,9 +19,27 @@ const meta: Meta = {
 export default meta;
 
 const metrics: Metric[] = [
-  { sourceId: 1, values: [{ type: 'reps', value: 10 }, { type: 'weight', value: 50 }] },
-  { sourceId: 1, values: [{ type: 'reps', value: 12 }, { type: 'weight', value: 50 }] },
-  { sourceId: 2, values: [{ type: 'reps', value: 8 }, { type: 'weight', value: 60 }] },
+  { sourceId: 1, values: [{
+      type: 'reps', value: 10,
+      unit: ''
+  }, {
+      type: 'weight', value: 50,
+      unit: ''
+  }] },
+  { sourceId: 1, values: [{
+      type: 'reps', value: 12,
+      unit: ''
+  }, {
+      type: 'weight', value: 50,
+      unit: ''
+  }] },
+  { sourceId: 2, values: [{
+      type: 'reps', value: 8,
+      unit: ''
+  }, {
+      type: 'weight', value: 60,
+      unit: ''
+  }] },
 ];
 
 const defaultSpan: CollectionSpan = {

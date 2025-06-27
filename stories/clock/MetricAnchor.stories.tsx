@@ -4,7 +4,7 @@ import { MetricAnchor } from '../../src/clock/anchors/MetricAnchor';
 import { CollectionSpan, Metric } from '../../src/CollectionSpan';
 
 const meta: Meta<typeof MetricAnchor> = {
-  title: 'Clock/Anchors/MetricAnchor',
+  title: 'Clock/Metric Anchor',
   component: MetricAnchor,
   decorators: [
     (Story) => (
@@ -19,9 +19,27 @@ export default meta;
 type Story = StoryObj<typeof MetricAnchor>;
 
 const metrics: Metric[] = [
-  { sourceId: 1, values: [{ type: 'reps', value: 10 }, { type: 'weight', value: 50 }] },
-  { sourceId: 1, values: [{ type: 'reps', value: 12 }, { type: 'weight', value: 50 }] },
-  { sourceId: 2, values: [{ type: 'reps', value: 8 }, { type: 'weight', value: 60 }] },
+  { sourceId: 1, values: [{
+    type: 'reps', value: 10,
+    unit: ''
+  }, {
+    type: 'weight', value: 50,
+    unit: ''
+  }] },
+  { sourceId: 1, values: [{
+    type: 'reps', value: 12,
+    unit: ''
+  }, {
+    type: 'weight', value: 50,
+    unit: ''
+  }] },
+  { sourceId: 2, values: [{
+    type: 'reps', value: 8,
+    unit: ''
+  }, {
+    type: 'weight', value: 60,
+    unit: ''
+  }] },
 ];
 
 const defaultSpan: CollectionSpan = {
