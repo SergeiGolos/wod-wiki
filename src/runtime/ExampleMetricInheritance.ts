@@ -40,3 +40,42 @@ export class ProgressiveResistanceInheritance implements IMetricInheritance {
         }
     }
 }
+
+/**
+ * Example implementation for percentage-based progression.
+ * Applies a percentage multiplier to all metric values.
+ */
+export class PercentageProgressionInheritance implements IMetricInheritance {
+    constructor(private percentage: number) {}
+
+    /**
+     * Applies percentage progression to all metric values.
+     * @param metric The metric to compose with percentage progression
+     */
+    compose(metric: RuntimeMetric): void {
+        const multiplier = Math.max(0, this.percentage / 100);
+        for (const value of metric.values) {
+            value.value = Math.round(value.value * multiplier);
+        }
+    }
+}
+
+/**
+ * Example implementation for time-based adjustments.
+ * Adjusts time-related metrics by a fixed amount.
+ */
+export class TimeBasedInheritance implements IMetricInheritance {
+    constructor(private timeAdjustment: number) {}
+
+    /**
+     * Adjusts time metrics by the specified amount.
+     * @param metric The metric to compose with time adjustments
+     */
+    compose(metric: RuntimeMetric): void {
+        for (const value of metric.values) {
+            if (value.type === "time") {
+                value.value += this.timeAdjustment;
+            }
+        }
+    }
+}
