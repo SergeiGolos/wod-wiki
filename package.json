@@ -28,8 +28,10 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@playwright/test": "^1.53.1",
-    "@rollup/rollup-win32-x64-msvc": "^4.43.0",
     "chevrotain": "^11.0.3"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.43.0"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^9.0.12",
