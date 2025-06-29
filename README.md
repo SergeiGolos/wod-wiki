@@ -13,7 +13,7 @@ WOD Wiki has a mature foundation for parsing workout scripts and a set of core e
     *   **UI/UX:** Refined results display, responsive layouts, and editor syntax highlighting.
 *   **JIT (Just-In-Time) Compiler Architecture:**
     *   The architectural design is established, including phases for Fragment Compilation, Metric Inheritance, Block Creation, and Stack Execution.
-    *   A Storybook demonstration (`stories/runtime/JitCompiler.stories.tsx`) showcases this using mock components.
+    *   A Storybook demonstration ([stories/runtime/JitCompiler.stories.tsx](stories/runtime/JitCompiler.stories.tsx)) showcases this using mock components.
 *   **Metric Inheritance System:**
     *   The core system for metric inheritance (allowing parent blocks to influence child metrics) is implemented and tested.
     *   Includes `IMetricInheritance` interface, `MetricComposer`, `RuntimeMetric` types, and example patterns.
