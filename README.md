@@ -6,7 +6,7 @@ A React component library for parsing, displaying, and executing workout definit
 
 WOD Wiki has a mature foundation for parsing workout scripts and a set of core execution features (as of v0.5.0). Key implemented aspects include:
 
-*   **Workout Script Parsing:** A comprehensive syntax (see `wod-wiki/Syntax.md`) allows defining diverse workout structures. The parser translates these scripts into an internal representation.
+*   **Workout Script Parsing:** A comprehensive syntax (see [wod-wiki/Syntax.md](wod-wiki/Syntax.md)) allows defining diverse workout structures. The parser translates these scripts into an internal representation.
 *   **Workout Execution Core (v0.5.0):**
     *   **Results Tracking:** Robust tracking of metrics (effort, reps, resistance, distance) with inline editing, filtering, and exercise summary cards.
     *   **Audio Cues & ChromeCast Integration:** Sound effects for workout events and ability to cast workouts.
