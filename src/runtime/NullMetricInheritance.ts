@@ -1,4 +1,4 @@
-import { IMetricInheritance } from "../core/IMetricInheritance";
+import { IMetricInheritance } from "./IMetricInheritance";
 import { RuntimeMetric } from "./RuntimeMetric";
 
 /**
