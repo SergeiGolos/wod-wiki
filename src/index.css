@@ -2,26 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Initialize dark mode based on user preference */
-@media (prefers-color-scheme: dark) {
-  html.dark-mode-auto {
-    color-scheme: dark;
-  }
+table {
+    border-collapse: collapse;
+    width: 100%;
 }
 
-/* Custom focus styles that work with dark mode */
-@layer base {
-  :focus-visible {
-    @apply outline-solarized-blue dark:outline-solarized-cyan outline-2 outline-offset-2;
-  }
+th, td {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
 }
 
-/* Fade-in animation for new efforts */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.fade-in {
-  animation: fadeIn 0.5s ease-in-out;
+th {
+    background-color: #f2f2f2;
 }
