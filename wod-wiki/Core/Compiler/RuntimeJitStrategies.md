@@ -64,7 +64,7 @@ strategies.addStrategy(customStrategy);
 ## Relationships
 
 - Manages: [[IRuntimeBlockStrategy]] implementations
-- Used by: [[JitCompiler]] for block compilation
+- Used by: [[../Runtime/JitCompiler]] for block compilation
 - Coordinates: [[BlockEffortStrategy]], [[BlockTimerStrategy]], [[GroupRepeatingStrategy]], [[GroupCountdownStrategy]], [[BlockRootStrategy]]
 - Processes: [[JitStatement]] arrays into [[../ICodeBlock]] instances
 

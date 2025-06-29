@@ -6,7 +6,7 @@
 		{"id":"9cd6c7f25f59bb57","type":"file","file":"Core/ICodeBlock.md","x":-400,"y":-2236,"width":400,"height":400},
 		{"id":"8551f83fdf612846","type":"file","file":"Core/Metrics/Metric.md","x":-400,"y":-1600,"width":400,"height":400},
 		{"id":"23be74c5d4010a49","type":"file","file":"Core/Runtime/Stack.md","x":-1680,"y":-2880,"width":405,"height":400},
-		{"id":"09c5e3e3e6b1e491","type":"file","file":"Core/Compiler/JitCompiler.md","x":-1360,"y":-2236,"width":400,"height":400},
+		{"id":"09c5e3e3e6b1e491","type":"file","file":"Core/Runtime/JitCompiler.md","x":-1360,"y":-2236,"width":400,"height":400},
 		{"id":"bce1a52a9bb71cec","type":"file","file":"Core/Runtime/BlockKey.md","x":-800,"y":-2880,"width":400,"height":400},
 		{"id":"df06f9731475286d","type":"file","file":"Core/Compiler/IFragmentCompiler.md","x":-1360,"y":-1600,"width":400,"height":400}
 	],

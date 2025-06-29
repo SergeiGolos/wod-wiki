@@ -1,0 +1,47 @@
+[Speaker 1]
+The process of the jit compiler.
+
+[Speaker 1]
+It sits.
+
+[Speaker 1]
+In the runtime.
+
+[Speaker 1]
+The infinite compile consists of the code statements. That will need to be compiled. And the runtime block. Each statement.
+
+[Speaker 1]
+Nope, not the runtime block. Runtime stack, which is a collection of the runtime blocks. From the root. Going down to the most. The closest group, parent of the node that's about to be created.
+
+[Speaker 1]
+The
+
+[Speaker 1]
+Process of the compile consists of. Taking each of the statements. And breaking down. Their fragments into. Metric values.
+
+[Speaker 1]
+Once the
+
+[Speaker 1]
+Metric values for the existing statement are composed. They inherent. Inherit any of? The metrics that are passed down from the parents as modifiers.
+
+[Speaker 1]
+This
+
+[Speaker 1]
+Is something that the I runtime block needs to be able to support, so that when a new child. Grabbing items it will have.
+
+[Speaker 1]
+Some composable inheritance object. That represents a behavior of whether or not you should override. Delete. Or. Um. Create only. When there is a metric value that a child does or does not have? Once the metric value is composed for a given. Code statement. Each of those. Are composed as the runtime metrics for that runtime block.
+
+[Speaker 1]
+At that point,
+
+[Speaker 2]
+The runtime block has returned.
+
+[Speaker 1]
+And then the case of a real next statement
+
+[Speaker 2]
+Versus a? Virtualized statement. The on enter. Of the new runtime block. Is processed.

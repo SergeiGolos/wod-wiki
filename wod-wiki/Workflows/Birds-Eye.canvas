@@ -7,7 +7,7 @@
 		{"id":"df17eae69207dfb4","type":"file","file":"Core/Language/Language Service.md","x":1115,"y":-1440,"width":400,"height":200},
 		{"id":"8f47bc6059cd38aa","type":"text","text":"# Stage 2\n## Measure\n","x":-520,"y":-742,"width":370,"height":112},
 		{"id":"34886e3f58d3f143","type":"file","file":"Core/IScript.md","x":1078,"y":-844,"width":485,"height":316},
-		{"id":"6a5315a369233e4b","type":"file","file":"Core/Compiler/JitCompiler.md","x":2000,"y":-844,"width":400,"height":316},
+		{"id":"6a5315a369233e4b","type":"file","file":"Core/Runtime/JitCompiler.md","x":2000,"y":-844,"width":400,"height":316},
 		{"id":"e2271ff0cdd69f8a","type":"text","text":"# Wiki Editor","x":1190,"y":-1640,"width":250,"height":60},
 		{"id":"3357a97fdf9ee7d3","type":"text","text":"# Stage 1\n## Author Workout Markdown","x":-537,"y":-1669,"width":427,"height":119},
 		{"id":"512bec7e09fd63fe","type":"file","file":"Syntax.md","x":1116,"y":-1960,"width":400,"height":217},

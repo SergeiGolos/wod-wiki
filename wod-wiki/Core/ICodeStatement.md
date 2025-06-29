@@ -37,5 +37,5 @@ interface ICodeStatement {
 **Relationships**:
 - Contains: [ICodeFragment](./ICodeFragment.md) instances
 - Uses: `CodeMetadata` for source tracking
-- Part of: [JitStatement](./Compiler/JitCompiler.md) compilation pipeline
+- Part of: [JitStatement](Runtime/JitCompiler.md) compilation pipeline
 - Consumed by: Runtime compilation strategies

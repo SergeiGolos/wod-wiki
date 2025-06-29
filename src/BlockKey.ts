@@ -23,7 +23,7 @@ export class BlockKey {
   private _index: number;
   
   /** List of Source Ids of the child element of the block */
-  public children: string[];
+  public children: readonly string[];
 
   /**
    * Creates a new BlockKey instance

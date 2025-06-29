@@ -199,7 +199,7 @@ The manager maintains strategies for these fragment types:
 #### Relationships
 
 - Manages: [[IFragmentCompiler]] implementations
-- Used by: [[JitCompiler]] for fragment compilation during JIT compilation
+- Used by: [[../Runtime/JitCompiler]] for fragment compilation during JIT compilation
 - Processes: [[../ICodeFragment]] instances from [[JitStatement]] objects
 - Produces: [[../Metrics/Metric]] arrays and merged metrics
 

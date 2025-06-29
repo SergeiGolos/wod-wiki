@@ -1,10 +1,11 @@
-Holds the current active context of the current runtime.
+The `RuntimeStack` holds the current active context of the runtime. It maintains a stack of `IRuntimeBlock` instances, which represent the current execution path. The stack is the primary mechanism for managing the block hierarchy and the overall execution flow.
 ## Properties
 
-- Blocks : `IRuntimeBlock[]` Current block walking up the stack to the root node.
+- `Blocks`: An array of `IRuntimeBlock` instances representing the current execution stack, from the root node to the current block.
+
 ## Methods
 
-- Keys(): `BlockKey[]` the keys of the current block walking up the stack to the root node.
-- Current() : `IRuntimeBlock`  the top most node on the stack.
-- `Push(IRuntimeBlock) : void` given a runtime block, the block is pushd onto the stack and the old `Current()` block is set as a parent of the newly pushed current block  
-- `Pop(): IRuntimeBlock` pop the current object on the stack and and return it.
+- `Keys()`: Returns an array of `BlockKey`s for each block in the stack. This provides a complete snapshot of the current execution context.
+- `Current()`: Returns the `IRuntimeBlock` at the top of the stack, which is the currently executing block.
+- `Push(IRuntimeBlock)`: Pushes a new `IRuntimeBlock` onto the stack. The new block becomes the `Current` block, and its `parent` property is set to the previous `Current` block.
+- `Pop()`: Removes and returns the `Current` block from the stack. The previous block on the stack becomes the new `Current` block.
