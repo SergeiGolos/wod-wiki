@@ -37,35 +37,35 @@ jobs:
       - name: Replace GA tag in manager-head.html
         if: ${{ vars.G_TAG != '' }}
         run: |
-          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/manager-head.html
+          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
       - name: Run tests
-        run: npm test
+        run: npm run test
         # TODO: Pass all tests and remove this.
         # Continue on error in case there are test 
         # failures that shouldn't block the build
         continue-on-error: true
 
-      - name: Build Package      
-        run: npm run build
+      # - name: Build Package      
+      #   run: npm run build
 
-      - name: Configure npm for default registry with token
-        run: |
-          # For the default NPM registry (npmjs.org)
-          SCOPE=@bitcobblers
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN || '' }}" > .npmrc
-          echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
-        if: ${{ env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+      # - name: Configure npm for default registry with token
+      #   run: |
+      #     # For the default NPM registry (npmjs.org)
+      #     SCOPE=@bitcobblers
+      #     echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN || '' }}" > .npmrc
+      #     echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
+      #   if: ${{ env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}
+      #   env:
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
 
-      - name: Publish Package
-        # Only run when on main/tag
-        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}  
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+      # - name: Publish Package
+      #   # Only run when on main/tag
+      #   if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}  
+      #   run: npm publish --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
 
       - name: Build Storybook
         run: npm run build-storybook    
