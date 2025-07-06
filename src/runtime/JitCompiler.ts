@@ -52,6 +52,7 @@ interface EventHandler {
  * and block creation in the Wod.Wiki runtime system.
  */
 export class JitCompiler {
+  public isCompiling: boolean = false;
   public script: RuntimeScript;
   private strategyManager: RuntimeJitStrategies;
   private fragmentCompiler: FragmentCompilationManager;
@@ -115,20 +116,25 @@ export class JitCompiler {
    * @returns Compiled runtime block or undefined if compilation fails
    */
   compile(nodes: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
-    // Phase 1: Fragment Compilation - compile each statement's fragments into RuntimeMetric objects
-    const compiledMetrics: RuntimeMetric[] = [];
+    this.isCompiling = true;
+    try {
+      // Phase 1: Fragment Compilation - compile each statement's fragments into RuntimeMetric objects
+      const compiledMetrics: RuntimeMetric[] = [];
     
-    for (const statement of nodes) {
-      const context = this.createCompilationContext(runtime);
-      const metric = this.fragmentCompiler.compileStatementFragments(statement, context);
-      compiledMetrics.push(metric);
+      for (const statement of nodes) {
+        const context = this.createCompilationContext(runtime);
+        const metric = this.fragmentCompiler.compileStatementFragments(statement, context);
+        compiledMetrics.push(metric);
+      }
+
+      // Phase 2: Metric Inheritance - apply inheritance rules from parent blocks
+      const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
+
+      // Phase 3: Block Creation - use strategy pattern to create the appropriate block
+      return this.strategyManager.compile(composedMetrics, nodes, runtime);
+    } finally {
+      this.isCompiling = false;
     }
-
-    // Phase 2: Metric Inheritance - apply inheritance rules from parent blocks
-    const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
-
-    // Phase 3: Block Creation - use strategy pattern to create the appropriate block
-    return this.strategyManager.compile(composedMetrics, nodes, runtime);
   }
 
   /**

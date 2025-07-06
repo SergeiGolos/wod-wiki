@@ -4,7 +4,7 @@ import { RuntimeMetric, MetricValue } from '../../src/runtime/RuntimeMetric';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { IScript } from '../../src/WodScript';
 import { WodWiki } from '../../src/editor/WodWiki';
-import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { ScriptRuntime, RuntimeState } from '../../src/runtime/ScriptRuntime';
 import { WodScript } from '../../src/WodScript';
 
 const getMetricColorClasses = (type: string) => {
@@ -19,7 +19,7 @@ const getMetricColorClasses = (type: string) => {
   return colorMap[type] || 'bg-gray-200 border-gray-300 text-gray-800';
 };
 
-const RuntimeStackVisualizer = ({ runtime, simulationStep }: { runtime: ScriptRuntime | null; simulationStep: number }) => {
+const RuntimeStackVisualizer = ({ runtime, runtimeState }: { runtime: ScriptRuntime | null; runtimeState: RuntimeState }) => {
   if (!runtime || !runtime.stack || runtime.stack.blocks.length === 0) {
     return (
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-500">
@@ -35,20 +35,16 @@ const RuntimeStackVisualizer = ({ runtime, simulationStep }: { runtime: ScriptRu
     <div className="space-y-2">
       <h4 className="font-semibold text-gray-800 mb-3">
         Runtime Stack (Bottom to Top):
-        <span className="ml-2 text-sm font-normal text-blue-600">
-          Step {simulationStep + 1}/4
-        </span>
       </h4>
       {blocks.map((block, index) => {
         const isActive = index === currentIndex;
         const blockKey = block.key?.blockId || `block-${index}`;
         
-        // Add visual effects based on simulation step
         const getStepEffects = () => {
-          switch (simulationStep) {
-            case 1: return index === 0 ? 'animate-pulse' : '';
-            case 2: return 'border-green-500 bg-green-50';
-            case 3: return 'border-emerald-500 bg-emerald-50';
+          switch (runtimeState) {
+            case 'compiling': return 'animate-pulse';
+            case 'running': return 'border-green-500 bg-green-50';
+            case 'completed': return 'border-emerald-500 bg-emerald-50';
             default: return '';
           }
         };
@@ -56,11 +52,7 @@ const RuntimeStackVisualizer = ({ runtime, simulationStep }: { runtime: ScriptRu
         return (
           <div
             key={index}
-            className={`border rounded-lg p-3 transition-all duration-200 ${
-              isActive 
-                ? 'border-blue-500 bg-blue-50 shadow-md' 
-                : 'bg-gray-100 border-gray-200 opacity-75'
-            } ${getStepEffects()}`}
+            className={`border rounded-lg p-3 transition-all duration-200 ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'bg-gray-100 border-gray-200 opacity-75'} ${getStepEffects()}`}
             style={{ marginLeft: `${index * 20}px` }}
           >
             <div className="flex items-center justify-between">
@@ -162,7 +154,7 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
   const [script, setScript] = useState<IScript | null>(null);
   const [scriptRuntime, setScriptRuntime] = useState<ScriptRuntime | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [simulationStep, setSimulationStep] = useState(0);
+  const [runtimeState, setRuntimeState] = useState<RuntimeState>('idle');
 
   // Initialize the script and runtime
   useEffect(() => {
@@ -182,6 +174,18 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
     }
   }, [text]);
 
+  useEffect(() => {
+    if (scriptRuntime) {
+      const subscription = scriptRuntime.tick$.subscribe((state) => {
+        setRuntimeState(state);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [scriptRuntime]);
+
   const handleValueChange = (newScript?: IScript) => {
     if (newScript) {
       setScript(newScript);
@@ -198,23 +202,16 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
   };
 
   const handleNext = () => {
-    // Simulate different runtime scenarios by adding/removing blocks
     if (!scriptRuntime) return;
-    
-    const maxSteps = 4;
-    const nextStep = (simulationStep + 1) % maxSteps;
-    setSimulationStep(nextStep);
-    
-    // This is just for demonstration - in real usage, blocks would be managed by the runtime
-    console.log(`Simulation step ${nextStep}: Demonstrating stack at different execution phases`);
+    scriptRuntime.tick();
   };
 
   const getSimulationDescription = () => {
-    switch (simulationStep) {
-      case 0: return "Step 1: Initial state - Root block loaded on runtime stack";
-      case 1: return "Step 2: Compilation phase - JIT compiler processing statements (pulsing animation)";
-      case 2: return "Step 3: Execution phase - Runtime blocks actively processing (green highlighting)";
-      case 3: return "Step 4: Completion phase - Workout execution finished (emerald highlighting)";
+    switch (runtimeState) {
+      case 'idle': return "Step 1: Initial state - Root block loaded on runtime stack";
+      case 'compiling': return "Step 2: Compilation phase - JIT compiler processing statements (pulsing animation)";
+      case 'running': return "Step 3: Execution phase - Runtime blocks actively processing (green highlighting)";
+      case 'completed': return "Step 4: Completion phase - Workout execution finished (emerald highlighting)";
       default: return "Runtime stack demonstration";
     }
   };
@@ -257,7 +254,7 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
         <div className="xl:col-span-1">
           <h3 className="text-lg font-semibold mb-4">Runtime Stack Visualization:</h3>
           <div className="max-h-96 overflow-y-auto">
-            <RuntimeStackVisualizer runtime={scriptRuntime} simulationStep={simulationStep} />
+            <RuntimeStackVisualizer runtime={scriptRuntime} runtimeState={runtimeState} />
           </div>
         </div>
       </div>
@@ -292,7 +289,7 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
                 <span className="font-medium">Script Statements:</span> {scriptRuntime.script.statements.length}
               </div>
               <div>
-                <span className="font-medium">JIT Compiler:</span> Ready
+                <span className="font-medium">JIT Compiler:</span> {scriptRuntime.jit.isCompiling ? 'Compiling' : 'Ready'}
               </div>
             </div>
           </div>
