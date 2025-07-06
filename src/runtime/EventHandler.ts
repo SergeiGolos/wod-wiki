@@ -1,8 +1,11 @@
+import { IScriptRuntime } from "./IScriptRuntime";
+
 /**
  * Base interface for runtime events that can be handled by the system.
  */
 export interface IRuntimeEvent {
-  /** Name/type of the event */
+  /** Name/type of the event */  
+
   name: string;
   /** Timestamp when the event occurred */
   timestamp: number;
@@ -17,9 +20,12 @@ export interface IRuntimeAction {
   /** Type of action to perform */
   type: string;
   /** Target of the action (optional) */
-  target?: string;
+  target?: string;  
   /** Action payload/data */
   payload?: any;
+
+  do(script: IScriptRuntime): void;
+ 
 }
 
 /**

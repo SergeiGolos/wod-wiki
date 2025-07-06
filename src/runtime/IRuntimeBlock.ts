@@ -3,7 +3,7 @@ import { BlockKey } from "../BlockKey";
 import { IMetricInheritance } from "./IMetricInheritance";
 import { ResultSpanBuilder } from "./ResultSpanBuilder";
 import { EventHandler, IRuntimeAction } from "./EventHandler";
-import { ITimerRuntime } from "./ITimerRuntime";
+import { IScriptRuntime } from "./IScriptRuntime";
 
 export interface IRuntimeBlock {  
   // Block identity
@@ -20,10 +20,10 @@ export interface IRuntimeBlock {
    * @param runtime The runtime context in which the block is executed
    * @returns An array of actions to be performed by the runtime
    */
-  next(runtime: ITimerRuntime): IRuntimeAction[];
+  next(runtime: IScriptRuntime): IRuntimeAction[];
 
   
-  onEnter(runtime: ITimerRuntime): void;
+  onEnter(runtime: IScriptRuntime): void;
 
 
   // Metric inheritance
