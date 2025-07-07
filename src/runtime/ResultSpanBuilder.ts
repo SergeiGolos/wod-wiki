@@ -25,7 +25,7 @@ export interface ResultSpan {
  * Builder for managing result spans during block execution.
  * Provides methods to create, track, and manage execution spans.
  */
-export interface ResultSpanBuilder {
+export interface IResultSpanBuilder {
   /**
    * Creates a new result span for the given block.
    */

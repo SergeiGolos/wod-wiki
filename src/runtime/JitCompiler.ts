@@ -2,6 +2,7 @@ import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IMetricInheritance } from "./IMetricInheritance";
 import { MetricComposer } from "./MetricComposer";
+import { RootBlock } from "./blocks/RootBlock";
 
 // Placeholder interfaces - these will need to be implemented or imported from the actual codebase
 interface RuntimeScript {
@@ -88,16 +89,7 @@ export class JitCompiler {
    */
   root(): IRuntimeBlock {
     // Create a basic root block implementation
-    return {
-      key: { blockId: 'root', traceId: 'root-trace', sourceIds: [] } as any,
-      metrics: [],
-      spans: {} as any,
-      handlers: [],
-      parent: undefined,
-      next: () => [],
-      onEnter: () => {},
-      inherit: () => ({} as any)
-    };
+    return new RootBlock([]);
   }
 
   /**

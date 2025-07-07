@@ -175,8 +175,8 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
   }, [text]);
 
   useEffect(() => {
-    if (scriptRuntime) {
-      const subscription = scriptRuntime.tick$.subscribe((state) => {
+    if (scriptRuntime && scriptRuntime.emitter && typeof scriptRuntime.emitter.subscribe === 'function') {
+      const subscription = scriptRuntime.emitter.subscribe((state) => {
         setRuntimeState(state);
       });
 
