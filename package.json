@@ -22,8 +22,10 @@
     "test:watch": "vitest --project=unit",
     "test:storybook:watch": "vitest --project=storybook",
     "test:e2e": "npx playwright test",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "prestorybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
+    "storybook": "npm run prestorybook && storybook dev -p 6006",
+    "prebuild-storybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
+    "build-storybook": "npm run prebuild-storybook && storybook build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -40,6 +42,7 @@
     "@vitest/browser": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.21",
+    "dotenv-cli": "^8.0.0",
     "playwright": "^1.53.1",
     "postcss": "^8.5.6",
     "prop-types": "^15.8.1",

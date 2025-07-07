@@ -67,6 +67,12 @@ jobs:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
 
+      - name: Inject Google Analytics ID
+        if: ${{ vars.G_TAG != '' }}
+        env:
+          GA_ID: ${{ vars.G_TAG }}
+        run: node scripts/inject-ga-id.js
+
       - name: Build Storybook
         run: npm run build-storybook    
 
@@ -75,4 +81,4 @@ jobs:
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
-          path: storybook-static         
+          path: storybook-static
