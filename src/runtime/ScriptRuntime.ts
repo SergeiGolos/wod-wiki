@@ -16,8 +16,8 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     handle(event: IRuntimeEvent): void {                
-        var handlres = this.stack.blocks.flatMap(block => block.handlers)
-        var actions = handlres.find(handler => handler.canHandle(event))?.handle(event) ?? [];         
+        const handlres = this.stack.blocks.flatMap(block => block.handlers)
+        const actions = handlres.find(handler => handler.canHandle(event))?.handle(event) ?? [];
         for (const action of actions) {
             console.log('Applying action:', action, 'from source:', event);
             action.do(this);
