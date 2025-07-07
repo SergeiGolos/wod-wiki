@@ -5,11 +5,11 @@ export class RuntimeStack {
     private readonly _blocks: IRuntimeBlock[] = [];
 
     public get blocks(): readonly IRuntimeBlock[] {
-        return this._blocks.reverse();
+        return [...this._blocks].reverse();
     }
 
     public get keys(): BlockKey[] {
-        return this._blocks.reverse().map(b => b.key);
+        return [...this._blocks].reverse().map(b => b.key);
     }
 
     public get current(): IRuntimeBlock | undefined {
