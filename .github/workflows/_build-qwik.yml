@@ -41,6 +41,11 @@ jobs:
         # failures that shouldn't block the build
         continue-on-error: true
 
+      - name: Replace GA tag in manager-head.html
+        if: ${{ vars.G_TAG != '' }}
+        run: |
+          sed -i 's/__GA_ID__/${{ vars.G_TAG }}/g' .storybook/preview-head.html
+
       # - name: Build Package      
       #   run: npm run build
 
@@ -61,12 +66,7 @@ jobs:
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-      - name: Inject Google Analytics ID
-        if: ${{ vars.G_TAG != '' }}
-        env:
-          GA_ID: ${{ vars.G_TAG }}
-        run: node scripts/inject-ga-id.js
-
+     
       - name: Build Storybook
         run: npm run build-storybook    
 

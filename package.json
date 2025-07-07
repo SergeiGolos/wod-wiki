@@ -25,7 +25,7 @@
     "prestorybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
     "storybook": "npm run prestorybook && storybook dev -p 6006",
     "prebuild-storybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
-    "build-storybook": "npm run prebuild-storybook && storybook build"
+    "build-storybook": "npm run storybook build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
