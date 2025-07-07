@@ -33,12 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Replace GA tag in manager-head.html
-        if: ${{ vars.G_TAG != '' }}
-        run: |
-          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/preview-head.html
-
+    
       - name: Run tests
         run: npm run test
         # TODO: Pass all tests and remove this.
@@ -66,7 +61,6 @@ jobs:
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-
       - name: Inject Google Analytics ID
         if: ${{ vars.G_TAG != '' }}
         env:
