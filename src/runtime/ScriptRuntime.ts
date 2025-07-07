@@ -28,7 +28,7 @@ export class ScriptRuntime implements IScriptRuntime {
         const events = this.stack.current?.tick() ?? [];
         if (events.length > 0) {
             console.log('Tick events:', events);
-            for (var event of events) { 
+            for (const event of events) {
                 this.handle(event);
             }
         } 
