@@ -22,7 +22,7 @@ export interface IRuntimeAction {
   /** Target of the action (optional) */
   target?: string;  
   /** Action payload/data */
-  payload?: any;
+  payload?: unknown;
 
   do(script: IScriptRuntime): void;
  
