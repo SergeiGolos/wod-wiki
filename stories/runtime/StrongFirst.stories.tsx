@@ -1,8 +1,8 @@
-import { JitCompilerDemo } from "./JitCompilerDemo";
+import { RuntimeFixture } from "./RuntimeFixture";
 
 export default {
   title: 'Runtime/StrongFirst',
-  component: JitCompilerDemo,
+  component: RuntimeFixture,
 };
 
 export const SimpleAndSinister = {

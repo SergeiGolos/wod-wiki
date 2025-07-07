@@ -1,8 +1,8 @@
-import { JitCompilerDemo } from "./JitCompilerDemo";
+import { RuntimeFixture } from "./RuntimeFixture";
 
 export default {
   title: 'Runtime/Overview',
-  component: JitCompilerDemo,
+  component: RuntimeFixture,
 };
 
 // SINGLE STATEMENT EXAMPLES - Various Fragment Combinations

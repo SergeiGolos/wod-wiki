@@ -150,7 +150,7 @@ const RuntimeBlockDisplay = ({ block, isActive }: { block: IRuntimeBlock | null;
   );
 };
 
-export const JitCompilerDemo = ({ text }: { text: string }) => {
+export const RuntimeFixture = ({ text }: { text: string }) => {
   const [script, setScript] = useState<IScript | null>(null);
   const [scriptRuntime, setScriptRuntime] = useState<ScriptRuntime | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,17 +174,17 @@ export const JitCompilerDemo = ({ text }: { text: string }) => {
     }
   }, [text]);
 
-  useEffect(() => {
-    if (scriptRuntime && scriptRuntime.emitter && typeof scriptRuntime.emitter.subscribe === 'function') {
-      const subscription = scriptRuntime.emitter.subscribe((state) => {
-        setRuntimeState(state);
-      });
+  // useEffect(() => {
+  //   if (scriptRuntime && scriptRuntime.emitter && typeof scriptRuntime.emitter.subscribe === 'function') {
+  //     const subscription = scriptRuntime.emitter.subscribe((state) => {
+  //       setRuntimeState(state);
+  //     });
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [scriptRuntime]);
+  //     return () => {
+  //       subscription.unsubscribe();
+  //     };
+  //   }
+  // }, [scriptRuntime]);
 
   const handleValueChange = (newScript?: IScript) => {
     if (newScript) {
