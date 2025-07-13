@@ -2,47 +2,18 @@ import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IMetricInheritance } from "./IMetricInheritance";
 import { MetricComposer } from "./MetricComposer";
+import { RuntimeJitStrategies, IRuntimeBlockStrategy, JitStatement } from "./RuntimeJitStrategies";
+import { FragmentCompilationManager, FragmentCompilationContext } from "./FragmentCompilationManager";
+import { IdleRuntimeBlock } from "./IdleRuntimeBlock";
+import { DoneRuntimeBlock } from "./DoneRuntimeBlock";
+import { RootBlock } from "./RootBlock";
+import { BlockEffortStrategy } from "./BlockEffortStrategy";
+import { ITimerRuntime } from "./ITimerRuntime";
+import { EventHandler } from "./EventHandler";
 
-// Placeholder interfaces - these will need to be implemented or imported from the actual codebase
+// Placeholder interface for RuntimeScript - this will need to be implemented or imported
 interface RuntimeScript {
-  // Properties as needed
-}
-
-interface ITimerRuntime {
-  // Runtime properties and methods
-  stack?: RuntimeStack;
-}
-
-interface RuntimeStack {
-  // Stack methods for getting parent blocks
-  getParentBlocks(): IRuntimeBlock[];
-}
-
-interface JitStatement {
-  // Statement properties
-  fragments: any[];
-}
-
-interface IRuntimeBlockStrategy {
-  canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean;
-  compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined;
-}
-
-interface FragmentCompilationManager {
-  compileStatementFragments(statement: JitStatement, context: FragmentCompilationContext): RuntimeMetric;
-}
-
-interface FragmentCompilationContext {
-  // Context properties
-}
-
-interface RuntimeJitStrategies {
-  compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined;
-  addStrategy(strategy: IRuntimeBlockStrategy): void;
-}
-
-interface EventHandler {
-  // Event handler interface
+  statements: JitStatement[];
 }
 
 /**
@@ -59,35 +30,45 @@ export class JitCompiler {
 
   constructor(script: RuntimeScript) {
     this.script = script;
-    // Initialize strategy manager and fragment compiler
-    // These would need to be imported from their actual implementations
-    // this.strategyManager = new RuntimeJitStrategies();
-    // this.fragmentCompiler = new FragmentCompilationManager();
+    
+    // Initialize strategy manager and fragment compiler with concrete implementations
+    this.strategyManager = new RuntimeJitStrategies();
+    this.fragmentCompiler = new FragmentCompilationManager();
     this.handlers = []; // Initialize with actual handlers
+    
+    // Register default strategies
+    this.strategyManager.addStrategy(new BlockEffortStrategy());
   }
 
   /**
    * Creates an idle runtime block for when the system is not actively executing.
    */
   idle(runtime: ITimerRuntime): IRuntimeBlock {
-    // Return IdleRuntimeBlock instance
-    throw new Error("IdleRuntimeBlock not implemented yet");
+    return new IdleRuntimeBlock();
   }
 
   /**
    * Creates a completion block for when workout execution is finished.
    */
   end(runtime: ITimerRuntime): IRuntimeBlock {
-    // Return DoneRuntimeBlock instance
-    throw new Error("DoneRuntimeBlock not implemented yet");
+    return new DoneRuntimeBlock();
   }
 
   /**
    * Creates the root runtime block that serves as the top-level execution container.
    */
   root(runtime: ITimerRuntime): IRuntimeBlock {
-    // Return RootBlock instance with the script's root statements
-    throw new Error("RootBlock not implemented yet");
+    // Compile all statements from the script into child blocks
+    const childBlocks: IRuntimeBlock[] = [];
+    
+    for (const statement of this.script.statements) {
+      const compiledBlock = this.compile([statement], runtime);
+      if (compiledBlock) {
+        childBlocks.push(compiledBlock);
+      }
+    }
+    
+    return new RootBlock(childBlocks);
   }
 
   /**
@@ -147,8 +128,6 @@ export class JitCompiler {
    * Creates compilation context for fragment compilation.
    */
   private createCompilationContext(runtime: ITimerRuntime): FragmentCompilationContext {
-    // Create context with runtime and block state
-    // This would need to be implemented based on the actual context requirements
-    return {} as FragmentCompilationContext;
+    return FragmentCompilationManager.createContext(runtime, runtime.stack?.depth() || 0);
   }
 }
