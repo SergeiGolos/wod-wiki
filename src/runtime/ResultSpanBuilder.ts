@@ -51,3 +51,65 @@ export interface ResultSpanBuilder {
    */
   stop(): void;
 }
+
+/**
+ * Concrete implementation of ResultSpanBuilder for tracking execution spans.
+ */
+export class DefaultResultSpanBuilder implements ResultSpanBuilder {
+  private spans: ResultSpan[] = [];
+  private currentSpan?: ResultSpan;
+
+  create(blockKey: string, metrics: RuntimeMetric[]): ResultSpan {
+    const span: ResultSpan = {
+      blockKey,
+      timeSpan: {
+        blockKey,
+        metrics
+      },
+      metrics,
+      duration: 0
+    };
+    
+    this.spans.push(span);
+    this.currentSpan = span;
+    return span;
+  }
+
+  getSpans(): ResultSpan[] {
+    return [...this.spans];
+  }
+
+  close(): void {
+    if (this.currentSpan && this.currentSpan.timeSpan.start && !this.currentSpan.timeSpan.stop) {
+      this.currentSpan.timeSpan.stop = {
+        name: 'stop',
+        timestamp: Date.now()
+      };
+      
+      this.currentSpan.duration = this.currentSpan.timeSpan.stop.timestamp - 
+                                  this.currentSpan.timeSpan.start.timestamp;
+    }
+    this.currentSpan = undefined;
+  }
+
+  start(): void {
+    if (this.currentSpan && !this.currentSpan.timeSpan.start) {
+      this.currentSpan.timeSpan.start = {
+        name: 'start',
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  stop(): void {
+    if (this.currentSpan && this.currentSpan.timeSpan.start && !this.currentSpan.timeSpan.stop) {
+      this.currentSpan.timeSpan.stop = {
+        name: 'stop',
+        timestamp: Date.now()
+      };
+      
+      this.currentSpan.duration = this.currentSpan.timeSpan.stop.timestamp - 
+                                  this.currentSpan.timeSpan.start.timestamp;
+    }
+  }
+}

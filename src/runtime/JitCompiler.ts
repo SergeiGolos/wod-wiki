@@ -8,6 +8,7 @@ import { IdleRuntimeBlock } from "./IdleRuntimeBlock";
 import { DoneRuntimeBlock } from "./DoneRuntimeBlock";
 import { RootBlock } from "./RootBlock";
 import { BlockEffortStrategy } from "./BlockEffortStrategy";
+import { BlockTimerStrategy } from "./BlockTimerStrategy";
 import { ITimerRuntime } from "./ITimerRuntime";
 import { EventHandler } from "./EventHandler";
 
@@ -36,8 +37,9 @@ export class JitCompiler {
     this.fragmentCompiler = new FragmentCompilationManager();
     this.handlers = []; // Initialize with actual handlers
     
-    // Register default strategies
+    // Register default strategies in priority order (last added = highest priority)
     this.strategyManager.addStrategy(new BlockEffortStrategy());
+    this.strategyManager.addStrategy(new BlockTimerStrategy());
   }
 
   /**

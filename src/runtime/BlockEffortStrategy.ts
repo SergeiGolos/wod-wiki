@@ -4,7 +4,7 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { ITimerRuntime } from "./ITimerRuntime";
 import { BlockKey } from "../BlockKey";
 import { IMetricInheritance, NullMetricInheritance } from "./IMetricInheritance";
-import { ResultSpanBuilder } from "./ResultSpanBuilder";
+import { DefaultResultSpanBuilder } from "./ResultSpanBuilder";
 import { EventHandler, IRuntimeAction } from "./EventHandler";
 
 /**
@@ -13,7 +13,7 @@ import { EventHandler, IRuntimeAction } from "./EventHandler";
  */
 export class EffortRuntimeBlock implements IRuntimeBlock {
   readonly key: BlockKey;
-  readonly spans: ResultSpanBuilder;
+  readonly spans: DefaultResultSpanBuilder;
   handlers: EventHandler[] = [];
   metrics: RuntimeMetric[];
   parent?: IRuntimeBlock;
@@ -22,7 +22,7 @@ export class EffortRuntimeBlock implements IRuntimeBlock {
 
   constructor(metrics: RuntimeMetric[], key?: BlockKey) {
     this.key = key || new BlockKey();
-    this.spans = new ResultSpanBuilder();
+    this.spans = new DefaultResultSpanBuilder();
     this.metrics = metrics;
   }
 
