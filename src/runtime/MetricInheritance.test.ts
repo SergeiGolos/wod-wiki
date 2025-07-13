@@ -1,7 +1,7 @@
 
 import { describe, it, expect } from 'vitest';
-import { MetricComposer } from '../src/runtime/MetricComposer';
-import { OverrideMetricInheritance, IgnoreMetricInheritance, InheritMetricInheritance } from '../src/runtime/MetricInheritance';
+import { MetricComposer } from './MetricComposer';
+import { OverrideMetricInheritance, IgnoreMetricInheritance, InheritMetricInheritance } from './MetricInheritance';
 import { singleMetric, multipleMetrics, complexMetric } from './MetricComposer.fixture';
 
 describe('MetricInheritance', () => {
@@ -34,21 +34,35 @@ describe('MetricInheritance', () => {
     });
 
     describe('InheritMetricInheritance', () => {
-        it('should add to a single metric value', () => {
+        it('should not add when metric type already exists', () => {
             const composer = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
             const inheritance = [new InheritMetricInheritance([{ type: 'time', value: 300, unit: 's' }])];
             const result = composer.compose(inheritance);
-            expect(result[0].values[0].value).toBe(1500);
+            // Should not add since 'time' already exists - value remains unchanged
+            expect(result[0].values).toHaveLength(1);
+            expect(result[0].values[0].value).toBe(1200);
         });
 
-        it('should add to multiple metric values of the same type', () => {
+        it('should add new metric type when it does not exist', () => {
+            const composer = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
+            const inheritance = [new InheritMetricInheritance([{ type: 'distance', value: 500, unit: 'm' }])];
+            const result = composer.compose(inheritance);
+            // Should add 'distance' since it doesn't exist
+            expect(result[0].values).toHaveLength(2);
+            expect(result[0].values.find(v => v.type === 'distance')?.value).toBe(500);
+            expect(result[0].values.find(v => v.type === 'time')?.value).toBe(1200);
+        });
+
+        it('should not add when multiple metric values of same type exist', () => {
             const composer = new MetricComposer(JSON.parse(JSON.stringify(complexMetric)));
             const inheritance = [new InheritMetricInheritance([{ type: 'repetitions', value: 10, unit: '' }])];
             const result = composer.compose(inheritance);
             const reps = result[0].values.filter(v => v.type === 'repetitions');
-            expect(reps[0].value).toBe(31);
-            expect(reps[1].value).toBe(25);
-            expect(reps[2].value).toBe(19);
+            // Should not add since 'repetitions' already exists - values remain unchanged
+            expect(reps).toHaveLength(3);
+            expect(reps[0].value).toBe(21);
+            expect(reps[1].value).toBe(15);
+            expect(reps[2].value).toBe(9);
         });
     });
 
@@ -62,10 +76,25 @@ describe('MetricInheritance', () => {
             ];
             const result = composer.compose(inheritance);
             const reps = result[0].values.filter(v => v.type === 'repetitions');
-            expect(reps[0].value).toBe(31);
-            expect(reps[1].value).toBe(25);
-            expect(reps[2].value).toBe(19);
+            // InheritMetricInheritance does nothing since 'repetitions' already exists
+            expect(reps[0].value).toBe(21);
+            expect(reps[1].value).toBe(15);
+            expect(reps[2].value).toBe(9);
+            // OverrideMetricInheritance replaces resistance value
             expect(result[0].values.find(v => v.type === 'resistance')?.value).toBe(200);
+        });
+
+        it('should add new types and override existing ones', () => {
+            const composer = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
+            const inheritance = [
+                new InheritMetricInheritance([{ type: 'distance', value: 400, unit: 'm' }]), // Should add
+                new InheritMetricInheritance([{ type: 'time', value: 300, unit: 's' }]),     // Should not add
+                new OverrideMetricInheritance([{ type: 'time', value: 600, unit: 's' }])    // Should override
+            ];
+            const result = composer.compose(inheritance);
+            expect(result[0].values).toHaveLength(2);
+            expect(result[0].values.find(v => v.type === 'distance')?.value).toBe(400);
+            expect(result[0].values.find(v => v.type === 'time')?.value).toBe(600);
         });
     });
 });

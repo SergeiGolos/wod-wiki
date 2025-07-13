@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { IScriptRuntime } from './IScriptRuntime';
-import { parseWodLine, compilers } from '../../test/FragmentCompilationManager.fixture';
+import { compilers, parseWodLine } from './FragmentCompilationManager.fixture';
 
 describe('FragmentCompilationManager', () => {
     let manager: FragmentCompilationManager;

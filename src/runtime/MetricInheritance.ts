@@ -29,11 +29,10 @@ export class InheritMetricInheritance implements IMetricInheritance {
 
     compose(metric: RuntimeMetric): RuntimeMetric {
         this.valuesToAdd.forEach(valueToAdd => {
-            metric.values.forEach(existingValue => {
-                if (existingValue.type === valueToAdd.type) {
-                    existingValue.value += valueToAdd.value;
-                }
-            });
+            const exists = metric.values.some(existingValue => existingValue.type === valueToAdd.type);
+            if (!exists) {
+                metric.values.push({ ...valueToAdd });
+            }
         });
         return metric;
     }

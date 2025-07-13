@@ -1,11 +1,11 @@
 import { Lexer } from 'chevrotain';
-import { allTokens } from '../src/parser/timer.tokens';
-import { MdTimerParse } from '../src/parser/timer.parser';
-import { MdTimerInterpreter } from '../src/parser/timer.visitor';
-import { ICodeStatement } from '../src/CodeStatement';
-import { IFragmentCompiler } from '../src/runtime/FragmentCompilationManager';
-import { MetricValue } from '../src/runtime/RuntimeMetric';
-import { ICodeFragment } from '../src/CodeFragment';
+import { allTokens } from '../parser/timer.tokens';
+import { MdTimerParse } from '../parser/timer.parser';
+import { MdTimerInterpreter } from '../parser/timer.visitor';
+import { ICodeStatement } from '../CodeStatement';
+import { IFragmentCompiler } from './FragmentCompilationManager';
+import { MetricValue } from './RuntimeMetric';
+import { ICodeFragment } from '../CodeFragment';
 import { 
     ActionFragmentCompiler,
     DistanceFragmentCompiler,
@@ -17,7 +17,7 @@ import {
     RoundsFragmentCompiler,
     TextFragmentCompiler,
     TimerFragmentCompiler
-} from '../src/runtime/FragmentCompilers';
+} from './FragmentCompilers';
 
 const lexer = new Lexer(allTokens);
 const parser = new MdTimerParse();
