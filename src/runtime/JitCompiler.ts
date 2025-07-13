@@ -3,6 +3,8 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IMetricInheritance } from "./IMetricInheritance";
 import { MetricComposer } from "./MetricComposer";
 import { RootBlock } from "./blocks/RootBlock";
+import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 // Placeholder interfaces - these will need to be implemented or imported from the actual codebase
 interface RuntimeScript {
@@ -24,10 +26,6 @@ interface JitStatement {
   fragments: any[];
 }
 
-interface IRuntimeBlockStrategy {
-  canHandle(nodes: JitStatement[], runtime: ITimerRuntime): boolean;
-  compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined;
-}
 
 interface FragmentCompilationManager {
   compileStatementFragments(statement: JitStatement, context: FragmentCompilationContext): RuntimeMetric;
@@ -37,9 +35,26 @@ interface FragmentCompilationContext {
   // Context properties
 }
 
-interface RuntimeJitStrategies {
-  compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined;
-  addStrategy(strategy: IRuntimeBlockStrategy): void;
+export class RuntimeJitStrategies implements IRuntimeJitStrategies {
+  addStrategy(strategy: IRuntimeBlockStrategy): IRuntimeJitStrategies {
+    this.strategies.push(strategy);
+    return this as IRuntimeJitStrategies;
+  }
+  private strategies: IRuntimeBlockStrategy[] = []; 
+  public compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    for (const strategy of this.strategies) {
+      const block = strategy.compile(compiledMetrics, runtime);
+      if (block) {
+        return block;
+      }
+    }
+    return undefined; // No strategy could handle the compilation
+  }
+}
+
+interface IRuntimeJitStrategies {
+  compile(compiledMetrics: RuntimeMetric[], legacySources: JitStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
+  addStrategy(strategy: IRuntimeBlockStrategy): IRuntimeJitStrategies;
 }
 
 interface EventHandler {
@@ -55,15 +70,13 @@ interface EventHandler {
 export class JitCompiler {
   public isCompiling: boolean = false;
   public script: RuntimeScript;
-  private strategyManager: RuntimeJitStrategies;
+  private strategyManager: IRuntimeJitStrategies;
   private fragmentCompiler: FragmentCompilationManager;
-  
-  constructor(script: RuntimeScript) {
+
+  constructor(script: RuntimeScript, fragmentCompiler: FragmentCompilationManager, strategyManager: IRuntimeJitStrategies) {
     this.script = script;
-    // Initialize strategy manager and fragment compiler
-    // These would need to be imported from their actual implementations
-    // this.strategyManager = new RuntimeJitStrategies();
-    // this.fragmentCompiler = new FragmentCompilationManager();    
+    this.fragmentCompiler = fragmentCompiler;
+    this.strategyManager = strategyManager;
   }
 
   /**
@@ -105,14 +118,14 @@ export class JitCompiler {
    * @param runtime Timer runtime instance for context
    * @returns Compiled runtime block or undefined if compilation fails
    */
-  compile(nodes: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
+  compile(nodes: JitStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
     this.isCompiling = true;
     try {
       // Phase 1: Fragment Compilation - compile each statement's fragments into RuntimeMetric objects
       const compiledMetrics: RuntimeMetric[] = [];
     
       for (const statement of nodes) {
-        const context = this.createCompilationContext(runtime);
+        const context = this.createCompilationContext(runtime); 
         const metric = this.fragmentCompiler.compileStatementFragments(statement, context);
         compiledMetrics.push(metric);
       }
@@ -130,7 +143,7 @@ export class JitCompiler {
   /**
    * Applies metric inheritance rules from parent blocks in the runtime stack.
    */
-  private applyMetricInheritance(baseMetrics: RuntimeMetric[], runtime: ITimerRuntime): RuntimeMetric[] {
+  private applyMetricInheritance(baseMetrics: RuntimeMetric[], runtime: IScriptRuntime): RuntimeMetric[] {
     // Get inheritance stack from parent blocks
     const inheritanceStack: IMetricInheritance[] = [];
     
@@ -139,7 +152,9 @@ export class JitCompiler {
       
       // Build inheritance stack from outermost parent to immediate parent
       for (const parentBlock of parentBlocks) {
-        inheritanceStack.push(parentBlock.inherit());
+        parentBlock.inherit().forEach(inheritance => {
+          inheritanceStack.push(inheritance);
+        });
       }
     }
 
@@ -151,7 +166,7 @@ export class JitCompiler {
   /**
    * Creates compilation context for fragment compilation.
    */
-  private createCompilationContext(runtime: ITimerRuntime): FragmentCompilationContext {
+  private createCompilationContext(runtime: IScriptRuntime): FragmentCompilationContext {
     // Create context with runtime and block state
     // This would need to be implemented based on the actual context requirements
     return {} as FragmentCompilationContext;

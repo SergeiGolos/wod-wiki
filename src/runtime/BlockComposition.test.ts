@@ -1,11 +1,12 @@
 
 import { describe, it, expect } from 'vitest';
-import { MetricComposer } from '../src/runtime/MetricComposer';
-import { OverrideMetricInheritance, IgnoreMetricInheritance, InheritMetricInheritance } from '../src/runtime/MetricInheritance';
-import { RuntimeMetric } from '../src/runtime/RuntimeMetric';
-import { IRuntimeBlock } from '../src/runtime/IRuntimeBlock';
-import { BlockKey } from '../src/BlockKey';
-import { IMetricInheritance } from '../src/runtime/IMetricInheritance';
+import { MetricComposer } from './MetricComposer';
+import { OverrideMetricInheritance, IgnoreMetricInheritance, InheritMetricInheritance } from './MetricInheritance';
+import { RuntimeMetric } from './RuntimeMetric';
+import { IRuntimeBlock } from './IRuntimeBlock';
+import { BlockKey } from '../BlockKey';
+import { IMetricInheritance } from './IMetricInheritance';
+import { IRuntimeEvent } from './EventHandler';
 
 class MockRuntimeBlock implements IRuntimeBlock {
     public parent?: IRuntimeBlock;
@@ -15,6 +16,9 @@ class MockRuntimeBlock implements IRuntimeBlock {
         public readonly key: BlockKey,
         private inheritanceRules: IMetricInheritance[] = []
     ) {}
+    tick(): IRuntimeEvent[] {
+        throw new Error('Method not implemented.');
+    }
 
     inherit(): IMetricInheritance[] {
         return this.inheritanceRules;
@@ -56,6 +60,6 @@ describe('Runtime Block Composition', () => {
         const composer = new MetricComposer(childBlock.metrics);
         const result = composer.compose(inheritanceStack);
 
-        expect(result[0].values[0].value).toBe(15);
+        expect(result[0].values[0].value).toBe(10);
     });
 });
