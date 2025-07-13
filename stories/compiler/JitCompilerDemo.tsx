@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 
 // Mock types for demonstration (replace with real types when available)
-interface MockRuntimeBlock {
+export interface MockRuntimeBlock {
   displayName: string;
   description: string;
   blockType: 'Root' | 'Timer' | 'Effort' | 'Group' | 'Completion' | 'Idle';
@@ -12,7 +12,7 @@ interface MockRuntimeBlock {
   parentKey?: string;
 }
 
-interface MockRuntimeStack {
+export interface MockRuntimeStack {
   blocks: MockRuntimeBlock[];
   currentIndex: number;
 }
@@ -26,21 +26,7 @@ const blockColors: Record<string, string> = {
   Idle: 'bg-gray-100 border-gray-300',
 };
 
-function CompilationPhaseIndicator({ phase, totalPhases }: { phase: number; totalPhases: number }) {
-  const phases = [
-    'Fragment Compilation',
-    'Metric Inheritance',
-    'Block Creation',
-    'Stack Execution',
-  ];
-  return (
-    <div className="flex gap-2 items-center mb-4">
-      {phases.map((p, i) => (
-        <div key={p} className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all duration-200 ${i === phase ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-100 text-gray-700 border-gray-300'}`}>{p}</div>
-      ))}
-    </div>
-  );
-}
+
 
 function MetricValueDisplay({ metric }: { metric: { type: string; value: string | number; unit?: string } }) {
   return (
@@ -118,11 +104,14 @@ function CompactRuntimeStackVisualizer({ stack }: { stack: MockRuntimeStack }) {
   );
 }
 
-export const JitCompilerDemo: React.FC = () => {
-  // Mock state for demonstration
-  const [phase, setPhase] = useState(0);
-  const [script, setScript] = useState(`20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`);
-  const [stack, setStack] = useState<MockRuntimeStack>({
+export interface JitCompilerDemoProps {
+  initialScript?: string;
+  initialStack?: MockRuntimeStack;
+}
+
+export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
+  initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
+  initialStack = {
     blocks: [
       { displayName: 'Root Block', description: 'Main execution container', blockType: 'Root', depth: 0, metrics: [], key: 'root' },
       { displayName: 'Timer Block', description: '20:00 AMRAP', blockType: 'Timer', depth: 1, metrics: [{ type: 'time', value: '20:00' }], key: 'timer', parentKey: 'root' },
@@ -132,14 +121,11 @@ export const JitCompilerDemo: React.FC = () => {
       { displayName: 'Completion Block', description: 'Workout Complete', blockType: 'Completion', depth: 1, metrics: [], key: 'complete', parentKey: 'root' },
     ],
     currentIndex: 0,
-  });
-
-  const totalPhases = 4;
-
-  const handleNextPhase = () => {
-    if (phase < totalPhases - 1) setPhase(phase + 1);
-    else setPhase(0);
-  };
+  }
+}) => {
+  // Mock state for demonstration
+  const [script, setScript] = useState(initialScript);
+  const [stack, setStack] = useState<MockRuntimeStack>(initialStack);
 
   const handleNextBlock = () => {
     setStack((prev) => {
@@ -156,15 +142,13 @@ export const JitCompilerDemo: React.FC = () => {
           <label className="block text-xs font-semibold mb-1 text-gray-700">Workout Script</label>
           <ScriptEditor value={script} onChange={setScript} />
           <div className="flex gap-2 mt-2">
-            <button className="px-3 py-1 bg-blue-600 text-white rounded text-xs" onClick={handleNextPhase}>Next Phase</button>
             <button className="px-3 py-1 bg-green-600 text-white rounded text-xs" onClick={handleNextBlock}>Next Block</button>
           </div>
-          <CompilationPhaseIndicator phase={phase} totalPhases={totalPhases} />
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1 text-gray-700">Runtime Stack</label>
           <CompactRuntimeStackVisualizer stack={stack} />
-          <div className="mt-2 text-xs text-gray-500">Phase: {phase + 1} / {totalPhases} | Block: {stack.currentIndex + 1} / {stack.blocks.length}</div>
+          <div className="mt-2 text-xs text-gray-500">Block: {stack.currentIndex + 1} / {stack.blocks.length}</div>
         </div>
       </div>
     </div>
