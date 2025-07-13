@@ -259,7 +259,7 @@ Defines the contract for executable workout segments in the runtime system.
 *   `enter(runtime: ITimerRuntime): IRuntimeAction[]` - Public wrapper for block entry logic
 *   `leave(runtime: ITimerRuntime): IRuntimeAction[]` - Public wrapper for block exit logic
 *   `next(runtime: ITimerRuntime): IRuntimeAction[]` - Public wrapper for block progression logic
-*   `handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]` - Handles runtime events
+*   `handleEvent(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): HandlerResponse` - Handles runtime events and returns a HandlerResponse object
 *   `nextChildStatements(runtime: ITimerRuntime, startIndex: number): JitStatement[]` - Gets consecutive child statements in compose group
 *   `onStart(runtime: ITimerRuntime): IRuntimeAction[]` - Lifecycle method for block start
 *   `onStop(runtime: ITimerRuntime): IRuntimeAction[]` - Lifecycle method for block stop

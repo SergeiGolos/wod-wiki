@@ -1,101 +1,63 @@
-import { MetricComposer } from "./MetricComposer";
-import { NullMetricInheritance } from "./NullMetricInheritance";
-import { RoundsMetricInheritance, ProgressiveResistanceInheritance } from "./ExampleMetricInheritance";
-import { RuntimeMetric } from "./RuntimeMetric";
-import { describe, expect, test } from "vitest";
 
-describe("MetricComposer", () => {
-    const baseMetrics: RuntimeMetric[] = [
-        {
-            sourceId: "test-1",
-            effort: "Push-ups",
-            values: [
-                { type: "repetitions", value: 10, unit: "reps" }
-            ]
-        },
-        {
-            sourceId: "test-2", 
-            effort: "Squats",
-            values: [
-                { type: "repetitions", value: 15, unit: "reps" },
-                { type: "resistance", value: 100, unit: "lbs" }
-            ]
-        }
-    ];
+import { describe, it, expect } from 'vitest';
+import { MetricComposer } from './MetricComposer';
+import { OverrideMetricInheritance, IgnoreMetricInheritance, InheritMetricInheritance } from './MetricInheritance';
+import { singleMetric, multipleMetrics, complexMetric } from './MetricComposer.fixture';
+import { RuntimeMetric } from './RuntimeMetric';
 
-    test("should return unchanged metrics with no inheritance", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const result = composer.compose([]);
-        
-        expect(result).toHaveLength(2);
-        expect(result[0].values[0].value).toBe(10);
-        expect(result[1].values[0].value).toBe(15);
-        expect(result[1].values[1].value).toBe(100);
+describe('MetricComposer', () => {
+    it('should override a metric value', () => {
+        const composer = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
+        const inheritance = [new OverrideMetricInheritance([{ type: 'time', value: 600, unit: 's' }])];
+        const result = composer.compose(inheritance);
+        expect(result[0].values[0].value).toBe(600);
     });
 
-    test("should apply null inheritance without changes", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const nullInheritance = new NullMetricInheritance();
-        const result = composer.compose([nullInheritance]);
-        
-        expect(result).toHaveLength(2);
-        expect(result[0].values[0].value).toBe(10);
-        expect(result[1].values[0].value).toBe(15);
-        expect(result[1].values[1].value).toBe(100);
+    it('should ignore a metric type', () => {
+        const composer = new MetricComposer(JSON.parse(JSON.stringify(complexMetric)));
+        const inheritance = [new IgnoreMetricInheritance(['repetitions'])];
+        const result = composer.compose(inheritance);
+        expect(result[0].values.some(v => v.type === 'repetitions')).toBe(false);
     });
 
-    test("should multiply repetitions by rounds", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const roundsInheritance = new RoundsMetricInheritance(3);
-        const result = composer.compose([roundsInheritance]);
-        
-        expect(result).toHaveLength(2);
-        expect(result[0].values[0].value).toBe(30); // 10 * 3 rounds
-        expect(result[1].values[0].value).toBe(45); // 15 * 3 rounds
-        expect(result[1].values[1].value).toBe(100); // resistance unchanged
+    it('should inherit a metric value only if type is not present', () => {
+        // singleMetric has a 'time' value, so nothing should be added
+        const composer = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
+        const inheritance = [new InheritMetricInheritance([{ type: 'time', value: 300, unit: 's' }])];
+        const result = composer.compose(inheritance);
+        // Should not add a new value, should remain the same
+        expect(result[0].values.length).toBe(1);
+        expect(result[0].values[0].type).toBe('time');
+        expect(result[0].values[0].value).toBe(1200);
+
+        // If we inherit a type not present, it should be added
+        const composer2 = new MetricComposer(JSON.parse(JSON.stringify(singleMetric)));
+        const inheritance2 = [new InheritMetricInheritance([{ type: 'distance', value: 400, unit: 'm' }])];
+        const result2 = composer2.compose(inheritance2);
+        expect(result2[0].values.length).toBe(2);
+        expect(result2[0].values.some(v => v.type === 'distance' && v.value === 400)).toBe(true);
     });
 
-    test("should apply progressive resistance", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const progressiveInheritance = new ProgressiveResistanceInheritance(10, 3); // +10 lbs per round, currently round 3
-        const result = composer.compose([progressiveInheritance]);
-        
-        expect(result).toHaveLength(2);
-        expect(result[0].values[0].value).toBe(10); // repetitions unchanged
-        expect(result[1].values[0].value).toBe(15); // repetitions unchanged
-        expect(result[1].values[1].value).toBe(120); // 100 + (10 * (3-1)) = 120
+  
+    it('should not modify the original metric', () => {
+        const originalMetric = JSON.parse(JSON.stringify(singleMetric));
+        const composer = new MetricComposer(originalMetric);
+        const inheritance = [new OverrideMetricInheritance([{ type: 'time', value: 600, unit: 's' }])];
+        composer.compose(inheritance);
+        expect(originalMetric[0].values[0].value).toBe(1200);
     });
 
-    test("should chain multiple inheritance rules", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const roundsInheritance = new RoundsMetricInheritance(2);
-        const progressiveInheritance = new ProgressiveResistanceInheritance(5, 2);
-        const result = composer.compose([roundsInheritance, progressiveInheritance]);
-        
-        expect(result).toHaveLength(2);
-        expect(result[0].values[0].value).toBe(20); // 10 * 2 rounds
-        expect(result[1].values[0].value).toBe(30); // 15 * 2 rounds
-        expect(result[1].values[1].value).toBe(105); // 100 + (5 * (2-1)) = 105
-    });
-
-    test("should not mutate original metrics", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const roundsInheritance = new RoundsMetricInheritance(3);
-        composer.compose([roundsInheritance]);
-        
-        // Original metrics should be unchanged
-        expect(baseMetrics[0].values[0].value).toBe(10);
-        expect(baseMetrics[1].values[0].value).toBe(15);
-        expect(baseMetrics[1].values[1].value).toBe(100);
-    });
-
-    test("should return base metrics unchanged", () => {
-        const composer = new MetricComposer(baseMetrics);
-        const baseResult = composer.getBaseMetrics();
-        
-        expect(baseResult).toHaveLength(2);
-        expect(baseResult[0].values[0].value).toBe(10);
-        expect(baseResult[1].values[0].value).toBe(15);
-        expect(baseResult[1].values[1].value).toBe(100);
+    it('should handle multiple metrics and only add missing types', () => {
+        const composer = new MetricComposer(JSON.parse(JSON.stringify(multipleMetrics)));
+        const inheritance = [new InheritMetricInheritance([
+            { type: 'time', value: 100, unit: 's' },
+            { type: 'distance', value: 100, unit: 'm' },
+            { type: 'calories', value: 50, unit: 'kcal' }
+        ])];
+        const result = composer.compose(inheritance);
+        // 'time' and 'distance' already exist, so only 'calories' should be added
+        expect(result[0].values.some(v => v.type === 'calories' && v.value === 50)).toBe(true);
+        expect(result[0].values.some(v => v.type === 'time')).toBe(true);
+        expect(result[1].values.some(v => v.type === 'distance')).toBe(true);
     });
 });

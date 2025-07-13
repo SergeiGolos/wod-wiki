@@ -17,7 +17,7 @@ export class MetricComposer {
      */
     compose(inheritanceStack: IMetricInheritance[]): RuntimeMetric[] {
         // Create deep copies of base metrics to avoid mutation
-        const composedMetrics = this.baseMetrics.map(metric => ({
+        let composedMetrics = this.baseMetrics.map(metric => ({
             sourceId: metric.sourceId,
             effort: metric.effort,
             values: metric.values.map(value => ({ ...value }))
@@ -25,9 +25,9 @@ export class MetricComposer {
 
         // Apply inheritance rules from each parent in order
         for (const inheritance of inheritanceStack) {
-            for (const metric of composedMetrics) {
-                inheritance.compose(metric);
-            }
+            composedMetrics = composedMetrics.map(metric => {
+                return inheritance.compose(metric);
+            });
         }
 
         return composedMetrics;

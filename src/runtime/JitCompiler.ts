@@ -2,6 +2,7 @@ import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IMetricInheritance } from "./IMetricInheritance";
 import { MetricComposer } from "./MetricComposer";
+import { RootBlock } from "./blocks/RootBlock";
 
 // Placeholder interfaces - these will need to be implemented or imported from the actual codebase
 interface RuntimeScript {
@@ -52,6 +53,7 @@ interface EventHandler {
  * and block creation in the Wod.Wiki runtime system.
  */
 export class JitCompiler {
+  public isCompiling: boolean = false;
   public script: RuntimeScript;
   private strategyManager: RuntimeJitStrategies;
   private fragmentCompiler: FragmentCompilationManager;
@@ -85,9 +87,9 @@ export class JitCompiler {
   /**
    * Creates the root runtime block that serves as the top-level execution container.
    */
-  root(runtime: ITimerRuntime): IRuntimeBlock {
-    // Return RootBlock instance with the script's root statements
-    throw new Error("RootBlock not implemented yet");
+  root(): IRuntimeBlock {
+    // Create a basic root block implementation
+    return new RootBlock([]);
   }
 
   /**
@@ -106,20 +108,25 @@ export class JitCompiler {
    * @returns Compiled runtime block or undefined if compilation fails
    */
   compile(nodes: JitStatement[], runtime: ITimerRuntime): IRuntimeBlock | undefined {
-    // Phase 1: Fragment Compilation - compile each statement's fragments into RuntimeMetric objects
-    const compiledMetrics: RuntimeMetric[] = [];
+    this.isCompiling = true;
+    try {
+      // Phase 1: Fragment Compilation - compile each statement's fragments into RuntimeMetric objects
+      const compiledMetrics: RuntimeMetric[] = [];
     
-    for (const statement of nodes) {
-      const context = this.createCompilationContext(runtime);
-      const metric = this.fragmentCompiler.compileStatementFragments(statement, context);
-      compiledMetrics.push(metric);
+      for (const statement of nodes) {
+        const context = this.createCompilationContext(runtime);
+        const metric = this.fragmentCompiler.compileStatementFragments(statement, context);
+        compiledMetrics.push(metric);
+      }
+
+      // Phase 2: Metric Inheritance - apply inheritance rules from parent blocks
+      const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
+
+      // Phase 3: Block Creation - use strategy pattern to create the appropriate block
+      return this.strategyManager.compile(composedMetrics, nodes, runtime);
+    } finally {
+      this.isCompiling = false;
     }
-
-    // Phase 2: Metric Inheritance - apply inheritance rules from parent blocks
-    const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
-
-    // Phase 3: Block Creation - use strategy pattern to create the appropriate block
-    return this.strategyManager.compile(composedMetrics, nodes, runtime);
   }
 
   /**

@@ -33,18 +33,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Replace GA tag in manager-head.html
-        if: ${{ vars.G_TAG != '' }}
-        run: |
-          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/preview-head.html
-
+    
       - name: Run tests
         run: npm run test
         # TODO: Pass all tests and remove this.
         # Continue on error in case there are test 
         # failures that shouldn't block the build
         continue-on-error: true
+
+      - name: Replace GA tag in manager-head.html
+        if: ${{ vars.G_TAG != '' }}
+        run: |
+          sed -i 's/__GA_ID__/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
       # - name: Build Package      
       #   run: npm run build
@@ -66,7 +66,7 @@ jobs:
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-
+     
       - name: Build Storybook
         run: npm run build-storybook    
 
@@ -75,4 +75,4 @@ jobs:
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
-          path: storybook-static         
+          path: storybook-static

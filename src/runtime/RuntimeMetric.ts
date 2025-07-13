@@ -4,8 +4,8 @@
  * numeric value, and unit information.
  */
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time";
-  value: number;
+  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories";
+  value: number | undefined;
   unit: string;
 };
 

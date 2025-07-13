@@ -1,6 +1,6 @@
 import { CodeMetadata } from "./CodeMetadata";
 import { ICodeFragment } from "./CodeFragment";
-export interface ICodeStatement {
+export interface ICodeStatement {  
   id: number;
   parent?: number;
   children: number[];

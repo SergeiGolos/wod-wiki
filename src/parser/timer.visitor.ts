@@ -81,32 +81,27 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  wodBlock(ctx: any): ICodeStatement {
+  wodBlock(ctx: any): ICodeStatement[] {
     let statement = { fragments: [] as ICodeFragment[] } as ICodeStatement;
     const lapFragments = ctx.lap && this.visit(ctx.lap);
     statement.fragments.push(...(lapFragments || []));
-    if (ctx.rounds) {
-      statement.fragments.push(...this.visit(ctx.rounds));
-    }
 
-    // Trend Parsing
-    if (ctx.trend) {
-      statement.fragments.push(...this.visit(ctx.trend));
-    } else if (ctx.duration) {
-      statement.fragments.push(
-        new IncrementFragment(
-          "-",
-          this.getMeta([ctx.duration[0].children.Timer[0]])
-        )
-      );
-    }
+    const fragmentProducers = [
+      ctx.rounds,
+      ctx.trend,
+      ctx.duration,
+      ctx.action,
+      ctx.reps,
+      ctx.effort,
+      ctx.resistance,
+      ctx.distance
+    ];
 
-    ctx.duration && statement.fragments.push(...this.visit(ctx.duration));
-    ctx.action && statement.fragments.push(...this.visit(ctx.action));
-    ctx.reps && statement.fragments.push(...this.visit(ctx.reps));
-    ctx.effort && statement.fragments.push(...this.visit(ctx.effort));
-    ctx.resistance && statement.fragments.push(...this.visit(ctx.resistance));
-    ctx.distance && statement.fragments.push(...this.visit(ctx.distance));
+    for (const producer of fragmentProducers) {
+      if (producer) {
+        statement.fragments.push(...this.visit(producer));
+      }
+    }
 
     statement.meta = this.combineMeta(
       statement.fragments.map((fragment: any) => fragment.meta)
@@ -128,7 +123,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
 
     statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Lap).length > 0;
-    return statement;
+    return [statement];
   }
  
   action(ctx: any): ActionFragment[] {
@@ -194,7 +189,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     const effort = ctx.Identifier.map(
       (identifier: any) => identifier.image
     ).join(" ");
-    return [new EffortFragment(effort, this.getMeta(ctx.Identifier))];
+    const meta = this.getMeta(ctx.Identifier.concat(ctx.Comma || []));
+    return [new EffortFragment(effort, meta)];
   }
 
   rounds(ctx: any): ICodeFragment[] {
