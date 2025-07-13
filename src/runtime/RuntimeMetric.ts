@@ -5,7 +5,7 @@
  */
 export type MetricValue = {
   type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time";
-  value: any;
+  value: number | undefined;
   unit: string;
 };
 

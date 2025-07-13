@@ -6,7 +6,7 @@ import { ResultSpan, ResultSpanBuilder } from './ResultSpanBuilder';
 import { EventHandler, IRuntimeAction } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IMetricInheritance } from './IMetricInheritance';
-import { NullMetricInheritance } from './NullMetricInheritance';
+import { InheritMetricInheritance } from './MetricInheritance';
 import { RuntimeMetric } from './RuntimeMetric';
 
 class MockResultSpanBuilder implements ResultSpanBuilder {
@@ -43,7 +43,7 @@ class MockRuntimeBlock implements IRuntimeBlock {
     }
 
     inherit(): IMetricInheritance {
-        return new NullMetricInheritance();
+        return new InheritMetricInheritance([]);
     }
 }
 

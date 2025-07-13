@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FragmentCompilationManager, IFragmentCompilationContext } from './FragmentCompilationManager';
+import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { IScriptRuntime } from './IScriptRuntime';
 import { parseWodLine, compilers } from '../../test/FragmentCompilationManager.fixture';
 
 describe('FragmentCompilationManager', () => {
     let manager: FragmentCompilationManager;
-    let context: IFragmentCompilationContext;
+    let context: IScriptRuntime;
 
     beforeEach(() => {
         manager = new FragmentCompilationManager(compilers);
-        context = { runtime: {} as IScriptRuntime };
+        context = {} as IScriptRuntime; // Mock or create a proper context as needed
     });
 
     it('should compile "20:00 AMRAP"', () => {
