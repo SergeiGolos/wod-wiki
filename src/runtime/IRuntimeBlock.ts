@@ -24,5 +24,5 @@ export interface IRuntimeBlock {
     tick(): IRuntimeEvent[];
     
     // Metric inheritance
-    inherit(): IMetricInheritance;
+    inherit(): IMetricInheritance[];
 }

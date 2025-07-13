@@ -42,8 +42,8 @@ class MockRuntimeBlock implements IRuntimeBlock {
         // no-op
     }
 
-    inherit(): IMetricInheritance {
-        return new InheritMetricInheritance([]);
+    inherit(): IMetricInheritance[] {
+        return [new InheritMetricInheritance([])];
     }
 }
 

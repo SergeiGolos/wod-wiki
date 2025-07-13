@@ -26,8 +26,8 @@ export class RootBlock implements IRuntimeBlock {
         return [];
     }
 
-    public inherit(): IMetricInheritance {
+    public inherit(): IMetricInheritance[] {
         // Root block might not inherit much, or could provide base inheritance
-        return {} as IMetricInheritance;
+        return [] as IMetricInheritance[];
     }
 }

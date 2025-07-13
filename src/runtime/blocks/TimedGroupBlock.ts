@@ -24,8 +24,8 @@ export class TimedGroupBlock implements IRuntimeBlock {
         return [];
     }
 
-    public inherit(): IMetricInheritance {
+    public inherit(): IMetricInheritance[] {
         // Logic for metric inheritance for this block type
-        return {} as IMetricInheritance;
+        return [] as IMetricInheritance[];
     }
 }
