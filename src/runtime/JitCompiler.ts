@@ -57,15 +57,13 @@ export class JitCompiler {
   public script: RuntimeScript;
   private strategyManager: RuntimeJitStrategies;
   private fragmentCompiler: FragmentCompilationManager;
-  private handlers: EventHandler[];
-
+  
   constructor(script: RuntimeScript) {
     this.script = script;
     // Initialize strategy manager and fragment compiler
     // These would need to be imported from their actual implementations
     // this.strategyManager = new RuntimeJitStrategies();
-    // this.fragmentCompiler = new FragmentCompilationManager();
-    this.handlers = []; // Initialize with actual handlers
+    // this.fragmentCompiler = new FragmentCompilationManager();    
   }
 
   /**
