@@ -7,7 +7,7 @@ export interface MockRuntimeBlock {
   description: string;
   blockType: 'Root' | 'Timer' | 'Effort' | 'Group' | 'Completion' | 'Idle';
   depth: number;
-  metrics: { type: string; value: string | number; unit?: string }[];
+  metrics: { type: string; value?: string; unit?: string }[];
   key: string;
   parentKey?: string;
 }
@@ -28,7 +28,7 @@ const blockColors: Record<string, string> = {
 
 
 
-function MetricValueDisplay({ metric }: { metric: { type: string; value: string | number; unit?: string } }) {
+function MetricValueDisplay({ metric }: { metric: { type: string; value: string; unit?: string } }) {
   return (
     <div className="border rounded px-2 py-1 text-xs bg-white shadow-sm flex flex-col items-center">
       <span className="font-bold uppercase tracking-wider text-gray-600">{metric.type}</span>

@@ -2,8 +2,10 @@
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
-import { EffortBlock, CountdownParentBlock, RoundsParentBlock } from "./blocks";
+import { RoundsParentBlock } from "./blocks/RoundsParentBlock";
+import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
 import { BlockKey } from "../BlockKey";
+import { EffortBlock } from "./blocks/EffortBlock";
 
 // The default strategy that creates a simple EffortBlock.
 export class EffortStrategy implements IRuntimeBlockStrategy {

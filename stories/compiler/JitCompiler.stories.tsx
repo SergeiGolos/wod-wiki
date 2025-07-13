@@ -8,7 +8,9 @@ import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { BlockKey } from '../../src/BlockKey';
 import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
 import { CountdownStrategy, EffortStrategy, RoundsStrategy } from '../../src/runtime/strategies';
-import { CountdownParentBlock, EffortBlock, RoundsParentBlock } from '../../src/runtime/blocks';
+import { RoundsParentBlock } from "../../src/runtime/blocks/RoundsParentBlock";
+import { CountdownParentBlock } from "../../src/runtime/blocks/CountdownParentBlock";
+import { EffortBlock } from '../../src/runtime/blocks/EffortBlock';
 
 const meta: Meta<typeof JitCompilerDemo> = {
   title: 'Compiler/JIT Compiler Demo',
@@ -54,7 +56,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number): MockRuntimeBlock => {
         blockType = 'Effort';
     }
 
-    const metrics = block.metrics.flatMap(m => m.values.map(v => ({ type: v.type, value: v.value, unit: v.unit })));
+    const metrics = block.metrics.flatMap(m => m.values.map(v => ({ type: v.type as string, value: v.value?.toString(), unit: v.unit })));
 
     return {
         displayName: block.constructor.name.replace('Block', ''),

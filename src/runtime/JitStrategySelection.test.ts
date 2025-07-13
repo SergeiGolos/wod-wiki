@@ -2,8 +2,10 @@
 import { describe, it, expect } from 'vitest';
 import { RuntimeJitStrategies } from './RuntimeJitStrategies';
 import { EffortStrategy, CountdownStrategy, RoundsStrategy } from './strategies';
-import { EffortBlock, CountdownParentBlock, RoundsParentBlock } from './blocks';
 import { RuntimeMetric } from './RuntimeMetric';
+import { RoundsParentBlock } from "./blocks/RoundsParentBlock";
+import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
+import { EffortBlock } from './blocks/EffortBlock';
 
 describe('JIT Strategy Selection', () => {
     it('should select the CountdownStrategy for a countdown timer', () => {
