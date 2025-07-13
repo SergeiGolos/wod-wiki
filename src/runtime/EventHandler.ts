@@ -29,28 +29,36 @@ export interface IRuntimeAction {
 }
 
 /**
+ * Represents the result of an event handler's attempt to process an event.
+ */
+export interface HandlerResponse {
+  /** Whether this handler handled the event */
+  handled: boolean;
+  /** Whether to continue processing with other handlers (true = continue, false = break/stop) */
+  shouldContinue: boolean;
+  /** Actions to be performed by the runtime */
+  actions: IRuntimeAction[];
+}
+
+/**
  * Interface for handling runtime events and producing actions.
  * Each handler is responsible for a specific type of event processing.
+ *
+ * Instead of separate canHandle and handle methods, implementors should return a HandlerResponse
+ * indicating if the event was handled, whether to continue, and any actions to perform.
  */
 export interface EventHandler {
   /** Unique identifier for this handler */
   readonly id: string;
-  
+
   /** Name of the handler for logging/debugging */
   readonly name: string;
-  
+
   /**
-   * Determines if this handler can process the given event.
-   * @param event The event to check
-   * @returns True if this handler can process the event
-   */
-  canHandle(event: IRuntimeEvent): boolean;
-  
-  /**
-   * Handles the event and returns any actions to be performed.
+   * Handles the event and returns a HandlerResponse indicating the result.
    * @param event The event to handle
    * @param context Additional context for event processing
-   * @returns Array of actions to be performed by the runtime
+   * @returns HandlerResponse describing handling state, continuation, and actions
    */
-  handle(event: IRuntimeEvent, context?: any): IRuntimeAction[];
+  handleEvent(event: IRuntimeEvent, context?: any): HandlerResponse;
 }

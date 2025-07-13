@@ -15,15 +15,16 @@ An array of `RuntimeMetric` objects that store the compiled metrics for the bloc
 
 ## Methods
 
-### handle(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): IRuntimeAction[]
-Processes a runtime event and returns an array of `IRuntimeAction` objects to be executed by the runtime.
+
+### handleEvent(runtime: ITimerRuntime, event: IRuntimeEvent, system: EventHandler[]): HandlerResponse
+Processes a runtime event and returns a `HandlerResponse` object, indicating if the event was handled, whether to continue, and any actions to be executed by the runtime.
 
 **Parameters:**
 - `runtime`: The `ITimerRuntime` instance, providing access to the overall runtime state.
 - `event`: The `IRuntimeEvent` to be handled.
 - `system`: An array of system-level `EventHandler` objects.
 
-**Returns:** An array of `IRuntimeAction` objects to be executed.
+**Returns:** A `HandlerResponse` object describing handling state, continuation, and actions.
 
 ### next(runtime: ITimerRuntime): IRuntimeAction[]
 Advances the block to its next state or child block, returning an array of actions to be executed.
