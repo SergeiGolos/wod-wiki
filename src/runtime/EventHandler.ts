@@ -8,7 +8,7 @@ export interface IRuntimeEvent {
 
   name: string;
   /** Timestamp when the event occurred */
-  timestamp: number;
+  timestamp: Date;
   /** Additional event data */
   data?: any;
 }
