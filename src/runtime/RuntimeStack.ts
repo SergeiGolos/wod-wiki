@@ -20,17 +20,25 @@ export class RuntimeStack {
     }
 
     public push(block: IRuntimeBlock): void {
+        console.log(`📚 RuntimeStack.push() - Adding block: ${block.key.toString()}`);
+        console.log(`  📊 Stack depth before push: ${this._blocks.length}`);
         this._blocks.push(block);
+        console.log(`  📊 Stack depth after push: ${this._blocks.length}`);
+        console.log(`  🎯 New current block: ${this.current?.key.toString()}`);
     }
 
     public pop(): IRuntimeBlock | undefined {
-        return this._blocks.pop();
+        console.log(`📚 RuntimeStack.pop() - Removing top block`);
+        console.log(`  📊 Stack depth before pop: ${this._blocks.length}`);
+        const popped = this._blocks.pop();
+        console.log(`  📦 Popped block: ${popped?.key.toString() || 'None'}`);
+        console.log(`  📊 Stack depth after pop: ${this._blocks.length}`);
+        console.log(`  🎯 New current block: ${this.current?.key.toString() || 'None'}`);
+        return popped;
     }
 
-    public getParentBlocks(): readonly IRuntimeBlock[] {
-        if (this._blocks.length <= 1) {
-            return [];
-        }
-        return this._blocks.slice(0, this._blocks.length - 1);
+    public setBlocks(blocks: IRuntimeBlock[]): void {
+        this._blocks.length = 0;
+        this._blocks.push(...blocks);
     }
 }

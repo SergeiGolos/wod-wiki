@@ -9,6 +9,8 @@ import { CountdownStrategy, EffortStrategy, RoundsStrategy } from './strategies'
 import { compilers } from './FragmentCompilationManager.fixture';
 import { BlockKey } from '../BlockKey';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
+import { NextEvent } from './events/NextEvent';
+import { EffortBlock } from './blocks/EffortBlock';
 
 describe('ScriptRuntime', () => {
     it('should handle events by iterating through handlers', () => {
@@ -105,5 +107,30 @@ describe('ScriptRuntime', () => {
         expect(handler1.handleEvent).toHaveBeenCalledWith(event);
         expect(handler2.handleEvent).not.toHaveBeenCalled();
         expect(action1.do).toHaveBeenCalledWith(runtime);
+    });
+
+    it('should call the correct action when a NextEvent is handled by a block', () => {
+        // Arrange
+        const script = new WodScript('', [], []);
+        const fragmentCompiler = new FragmentCompilationManager(compilers);
+        const strategyManager = new RuntimeJitStrategies()
+            .addStrategy(new CountdownStrategy())
+            .addStrategy(new RoundsStrategy())
+            .addStrategy(new EffortStrategy());
+        const jitCompiler = new JitCompiler(script, fragmentCompiler, strategyManager);
+        const runtime = new ScriptRuntime(script, jitCompiler);
+
+        const block = new EffortBlock(new BlockKey('effort'), []);
+        const popSpy = vi.spyOn(runtime.stack, 'pop');
+
+        runtime.stack.push(block);
+
+        const event = new NextEvent();
+
+        // Act
+        runtime.handle(event);
+
+        // Assert
+        expect(popSpy).toHaveBeenCalled();
     });
 });

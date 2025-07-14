@@ -24,6 +24,7 @@
     "test:e2e": "npx playwright test",
     "prestorybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
     "storybook": "npm run prestorybook && storybook dev -p 6006",
+    "storybook:debug": "npm run prestorybook && set NODE_OPTIONS=--inspect=9229 && storybook dev -p 6006",
     "prebuild-storybook": "dotenv -e .env -- node scripts/inject-ga-id.js",
     "build-storybook": "npm run storybook build"
   },

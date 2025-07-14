@@ -8,7 +8,8 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 
 // Placeholder interfaces - these will need to be implemented or imported from the actual codebase
 interface RuntimeScript {
-  // Properties as needed
+  statements: any[]; // Array of statements from the script
+  source?: string;   // Optional source text
 }
 
 interface ITimerRuntime {
@@ -99,8 +100,16 @@ export class JitCompiler {
    * Creates the root runtime block that serves as the top-level execution container.
    */
   root(): IRuntimeBlock {
-    // Create a basic root block implementation
-    return new RootBlock([]);
+    console.log(`🌱 JitCompiler.root() - Creating root block from script statements`);
+    
+    // Get all statements that start at column position 0 (no indentation)
+    const rootStatements = this.script.statements
+      .filter(stmt => stmt.meta?.columnStart === 0)
+      .map(stmt => stmt.id.toString());
+    
+    console.log(`  📝 Found ${rootStatements.length} root-level statements: [${rootStatements.join(', ')}]`);
+    
+    return new RootBlock(rootStatements);
   }
 
   /**
