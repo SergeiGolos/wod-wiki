@@ -6,6 +6,10 @@ import { IScript } from '../../src/WodScript';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime, RuntimeState } from '../../src/runtime/ScriptRuntime';
 import { WodScript } from '../../src/WodScript';
+import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
+import { compilers } from '../../src/runtime/FragmentCompilationManager.fixture';
+import { RuntimeJitStrategies, JitCompiler } from '../../src/runtime/JitCompiler';
+import { CountdownStrategy, RoundsStrategy, EffortStrategy } from '../../src/runtime/strategies';
 
 const getMetricColorClasses = (type: string) => {
   const colorMap: { [key: string]: string } = {
@@ -164,8 +168,15 @@ export const RuntimeFixture = ({ text }: { text: string }) => {
       setScript(parsedScript);
       
       // Create ScriptRuntime with WodScript
-      const wodScript = new WodScript(text, parsedScript.statements);
-      const newScriptRuntime = new ScriptRuntime(wodScript);
+      const wodScript = new WodScript(text, parsedScript.statements);       
+      const fragmentCompiler = new FragmentCompilationManager(compilers);
+      const strategyManager = new RuntimeJitStrategies()
+          .addStrategy(new CountdownStrategy())
+          .addStrategy(new RoundsStrategy())
+          .addStrategy(new EffortStrategy());
+
+        const compiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
+        const newScriptRuntime = new ScriptRuntime(wodScript, compiler);
       setScriptRuntime(newScriptRuntime);
       setError(null);
     } catch (err) {
@@ -191,7 +202,14 @@ export const RuntimeFixture = ({ text }: { text: string }) => {
       setScript(newScript);
       try {
         const wodScript = new WodScript(text, newScript.statements);
-        const newScriptRuntime = new ScriptRuntime(wodScript);
+                const fragmentCompiler = new FragmentCompilationManager(compilers);
+                const strategyManager = new RuntimeJitStrategies()
+                    .addStrategy(new CountdownStrategy())
+                    .addStrategy(new RoundsStrategy())
+                    .addStrategy(new EffortStrategy());
+        
+        const compiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
+        const newScriptRuntime = new ScriptRuntime(wodScript, compiler);
         setScriptRuntime(newScriptRuntime);
         setError(null);
       } catch (err) {
