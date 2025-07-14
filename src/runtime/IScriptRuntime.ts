@@ -1,4 +1,3 @@
-import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
