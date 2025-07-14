@@ -1,8 +1,8 @@
-import { RuntimeFixture } from "./RuntimeFixture";
+import { JitCompilerDemo } from "../compiler/JitCompilerDemo";
 
 export default {
   title: 'Runtime/Overview',
-  component: RuntimeFixture,
+  component: JitCompilerDemo,
 };
 
 // SINGLE STATEMENT EXAMPLES - Various Fragment Combinations
@@ -10,42 +10,42 @@ export default {
 export const SingleStatementRepAction = {
   name: 'Single Statement: Rep + Action',
   args: {
-    text: `10 Burpees`
+    initialScript: `10 Burpees`
   },
 };
 
 export const SingleStatementRepActionResistance = {
   name: 'Single Statement: Rep + Action + Resistance',
   args: {
-    text: `5 Deadlifts 225lb`
+    initialScript: `5 Deadlifts 225lb`
   },
 };
 
 export const SingleStatementTimerAction = {
   name: 'Single Statement: Timer + Action',
   args: {
-    text: `30s Plank Hold`
+    initialScript: `30s Plank Hold`
   },
 };
 
 export const SingleStatementDistanceAction = {
   name: 'Single Statement: Distance + Action',
   args: {
-    text: `400m Run`
+    initialScript: `400m Run`
   },
 };
 
 export const SingleStatementTimerActionResistance = {
   name: 'Single Statement: Timer + Action + Resistance',
   args: {
-    text: `45s KB Swings 53lb`
+    initialScript: `45s KB Swings 53lb`
   },
 };
 
 export const SingleStatementActionOnly = {
   name: 'Single Statement: Action Only',
   args: {
-    text: `[Rest]`
+    initialScript: `[Rest]`
   },
 };
 
@@ -54,7 +54,7 @@ export const SingleStatementActionOnly = {
 export const GroupedWorkoutBasic = {
   name: 'Grouped Workout: Basic Round Structure',
   args: {
-    text: `(5)
+    initialScript: `(5)
   20 Pullups
   30 Pushups
   40 Situps`
@@ -64,7 +64,7 @@ export const GroupedWorkoutBasic = {
 export const GroupedWorkoutWithRest = {
   name: 'Grouped Workout: With Rest Between Rounds',
   args: {
-    text: `(5)
+    initialScript: `(5)
   + 20 Pullups
   + 30 Pushups
   + 40 Situps
@@ -77,7 +77,7 @@ export const GroupedWorkoutWithRest = {
 export const RepSchemeDescending = {
   name: 'Rep Scheme: Descending (21-15-9)',
   args: {
-    text: `(21-15-9) 
+    initialScript: `(21-15-9) 
   Thrusters 95lb
   Pullups`
   },
@@ -86,7 +86,7 @@ export const RepSchemeDescending = {
 export const RepSchemeAscending = {
   name: 'Rep Scheme: Ascending (9-15-21)',
   args: {
-    text: `(9-15-21)
+    initialScript: `(9-15-21)
   Box Jumps 24"
   Push Presses 75lb`
   },
@@ -95,7 +95,7 @@ export const RepSchemeAscending = {
 export const RepSchemePyramid = {
   name: 'Rep Scheme: Pyramid (1-2-3-4-5)',
   args: {
-    text: `(1-2-3-4-5)
+    initialScript: `(1-2-3-4-5)
   Muscle-ups
   Handstand Pushups`
   },
@@ -104,7 +104,7 @@ export const RepSchemePyramid = {
 export const RepSchemeComplex = {
   name: 'Rep Scheme: Complex (50-40-30-20-10)',
   args: {
-    text: `(50-40-30-20-10)
+    initialScript: `(50-40-30-20-10)
   Double-Unders
   Situps`
   },
@@ -115,7 +115,7 @@ export const RepSchemeComplex = {
 export const EMOMSingle = {
   name: 'EMOM: Single Exercise',
   args: {
-    text: `(12) :60 EMOM
+    initialScript: `(12) :60 EMOM
   5 Burpees`
   },
 };
@@ -123,7 +123,7 @@ export const EMOMSingle = {
 export const EMOMMultiple = {
   name: 'EMOM: Multiple Exercises',
   args: {
-    text: `(15) :60 EMOM
+    initialScript: `(15) :60 EMOM
   + 5 Pullups
   + 10 Pushups
   + 15 Air Squats`
@@ -133,7 +133,7 @@ export const EMOMMultiple = {
 export const EMOMComplex = {
   name: 'EMOM: Complex with Varying Reps',
   args: {
-    text: `(20) :60 EMOM
+    initialScript: `(20) :60 EMOM
   + 3 Deadlifts 315lb
   + 6 Hang Power Cleans 185lb
   + 9 Front Squats 135lb`
@@ -145,7 +145,7 @@ export const EMOMComplex = {
 export const RepTypeAddition = {
   name: 'Rep Type: Addition (+)',
   args: {
-    text: `(3)
+    initialScript: `(3)
   + 5 Pullups
   + 10 Pushups
   + 15 Squats`
@@ -155,7 +155,7 @@ export const RepTypeAddition = {
 export const RepTypeSubtraction = {
   name: 'Rep Type: Subtraction (-)',
   args: {
-    text: `(3)
+    initialScript: `(3)
   - 20 Burpees
   - 15 Box Jumps
   - 10 Muscle-ups`
@@ -165,7 +165,7 @@ export const RepTypeSubtraction = {
 export const RepTypeNone = {
   name: 'Rep Type: None (Standard)',
   args: {
-    text: `(5)
+    initialScript: `(5)
   10 Thrusters 95lb
   15 Pullups
   20 Box Jumps`
@@ -175,7 +175,7 @@ export const RepTypeNone = {
 export const RepTypeMixed = {
   name: 'Rep Type: Mixed (+/-/none)',
   args: {
-    text: `(4)
+    initialScript: `(4)
   + 5 Strict Pullups
   10 Regular Pushups
   - 15 Jumping Squats`
@@ -187,7 +187,7 @@ export const RepTypeMixed = {
 export const CountdownTimer = {
   name: 'Countdown Timer: AMRAP',
   args: {
-    text: `20:00 AMRAP
+    initialScript: `20:00 AMRAP
   5 Pullups
   10 Pushups
   15 Air Squats`
@@ -197,7 +197,7 @@ export const CountdownTimer = {
 export const CountdownTimerTabata = {
   name: 'Countdown Timer: Tabata Style',
   args: {
-    text: `(8) 20s/10s
+    initialScript: `(8) 20s/10s
   Burpees`
   },
 };
@@ -207,7 +207,7 @@ export const CountdownTimerTabata = {
 export const CountUpTimer = {
   name: 'Count Up: For Time',
   args: {
-    text: `For Time:
+    initialScript: `For Time:
   100 Burpees
   75 Situps
   50 Pushups
@@ -218,7 +218,7 @@ export const CountUpTimer = {
 export const CountDownCountUp = {
   name: 'Count Down + Count Up: Mixed Timing',
   args: {
-    text: `15:00 Time Cap
+    initialScript: `15:00 Time Cap
   For Time:
   (21-15-9)
   Deadlifts 225lb
@@ -229,7 +229,7 @@ export const CountDownCountUp = {
 export const IntervalTraining = {
   name: 'Interval: Count Down with Rest',
   args: {
-    text: `(5)
+    initialScript: `(5)
   4:00 Work
   + 20 Thrusters 95lb
   + 30 Pullups

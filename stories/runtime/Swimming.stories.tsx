@@ -1,13 +1,13 @@
-import { RuntimeFixture } from "./RuntimeFixture";
+import { JitCompilerDemo } from "../compiler/JitCompilerDemo";
 
 export default {
   title: 'Runtime/Swimming',
-  component: RuntimeFixture,
+  component: JitCompilerDemo,
 };
 
 export const BeginnerFriendlySwimming = {
   args: {
-    text: `(6) Warmup
+    initialScript: `(6) Warmup
   25m Swim
   :20 Rest
 
