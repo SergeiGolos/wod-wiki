@@ -10,8 +10,7 @@ export interface IRuntimeEvent {
   /** Timestamp when the event occurred */
   timestamp: Date;
   /** Additional event data */
-  data?: any;
-  runtime: IScriptRuntime;
+  data?: any;  
 }
 
 /**

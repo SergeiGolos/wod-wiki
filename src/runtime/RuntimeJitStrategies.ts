@@ -11,7 +11,7 @@ export class RuntimeJitStrategies {
         return this;
     }
 
-    """    public compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    public compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
         console.log(`  🔎 RuntimeJitStrategies.compile() - Attempting to find a strategy for metrics:`, metrics);
         for (const strategy of this.strategies) {
             console.log(`    - Trying strategy: ${strategy.constructor.name}`);
@@ -23,5 +23,5 @@ export class RuntimeJitStrategies {
         }
         console.log(`    - No strategy found.`);
         return undefined;
-    }""
+    }
 }
