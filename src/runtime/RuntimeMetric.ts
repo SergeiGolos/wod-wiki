@@ -17,8 +17,6 @@ export type MetricValue = {
 export interface RuntimeMetric {
   /** Identifier for the source statement/block */
   sourceId: string;
-  /** Name of the effort/exercise (if any) */
-  effort: string;
   /** Array of metric values (reps, distance, etc.) */
   values: MetricValue[];
 }
