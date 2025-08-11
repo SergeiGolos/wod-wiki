@@ -41,6 +41,7 @@
     "@storybook/addon-docs": "^9.1.1",
     "@storybook/addon-vitest": "^9.1.1",
     "@storybook/react-vite": "^9.1.1",
+  "@vitejs/plugin-react": "^4.3.1",
     "@types/node": "^22.0.0",
     "@vitest/browser": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",

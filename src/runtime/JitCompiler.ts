@@ -142,6 +142,8 @@ export class JitCompiler {
       // Phase 2: Metric Inheritance - apply inheritance rules from parent blocks
       const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
 
+      console.log(`  🔎 JitCompiler.compile() - Composed metrics:`, composedMetrics);
+
       // Phase 3: Block Creation - use strategy pattern to create the appropriate block
       return this.strategyManager.compile(composedMetrics, runtime, this.fragmentCompiler);
     } finally {
