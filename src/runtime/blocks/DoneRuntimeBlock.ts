@@ -26,4 +26,8 @@ export class DoneRuntimeBlock implements IRuntimeBlock {
     public inherit(): IMetricInheritance[] {
         return [];
     }
+
+    public isDone(): boolean { return true; }
+
+    public reset(): void {}
 }

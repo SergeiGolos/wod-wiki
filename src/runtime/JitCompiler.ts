@@ -104,7 +104,7 @@ export class JitCompiler {
     
     // Get all statements that start at column position 0 (no indentation)
     const rootStatements = this.script.statements
-      .filter(stmt => stmt.meta?.columnStart === 0)
+      .filter(stmt => stmt.meta?.columnStart === 1)
       .map(stmt => stmt.id.toString());
     
     console.log(`  📝 Found ${rootStatements.length} root-level statements: [${rootStatements.join(', ')}]`);
@@ -143,7 +143,7 @@ export class JitCompiler {
       const composedMetrics = this.applyMetricInheritance(compiledMetrics, runtime);
 
       // Phase 3: Block Creation - use strategy pattern to create the appropriate block
-      return this.strategyManager.compile(composedMetrics, nodes, runtime);
+      return this.strategyManager.compile(composedMetrics, runtime, this.fragmentCompiler);
     } finally {
       this.isCompiling = false;
     }

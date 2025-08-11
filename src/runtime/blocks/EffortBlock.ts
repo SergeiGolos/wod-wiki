@@ -26,4 +26,8 @@ export class EffortBlock implements IRuntimeBlock {
     public inherit(): IMetricInheritance[] {
         return [];
     }
+
+    public isDone(): boolean { return false; }
+
+    public reset(): void {}
 }

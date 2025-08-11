@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { RuntimeJitStrategies } from './RuntimeJitStrategies';
 import { EffortStrategy, CountdownStrategy, RoundsStrategy } from './strategies';
 import { RuntimeMetric } from './RuntimeMetric';
-import { RoundsParentBlock } from "./blocks/RoundsParentBlock";
+import { RepeatingBlock } from './blocks/RepeatingBlock';
 import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
 import { EffortBlock } from './blocks/EffortBlock';
 
@@ -37,7 +37,7 @@ describe('JIT Strategy Selection', () => {
         }];
         const block = strategies.compile(metrics);
 
-        expect(block).toBeInstanceOf(RoundsParentBlock);
+        expect(block).toBeInstanceOf(RepeatingBlock);
     });
 
     it('should select the EffortStrategy as the default', () => {

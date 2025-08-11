@@ -22,6 +22,10 @@ export interface IRuntimeBlock {
      * @returns An array of actions to be performed by the runtime
      */
     tick(): IRuntimeEvent[];
+
+    isDone(): boolean;
+
+    reset(): void;
     
     // Metric inheritance
     inherit(): IMetricInheritance[];

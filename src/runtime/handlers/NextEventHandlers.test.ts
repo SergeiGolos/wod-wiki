@@ -14,9 +14,10 @@ describe('NextEvent Handlers', () => {
             const handler = new EffortNextHandler();
             const block = new EffortBlock(new BlockKey('effort'), []);
             const event = new NextEvent();
+            event.runtime = { stack: { current: block } } as any;
 
             // Act
-            const response = handler.handleEvent(event, { currentBlock: block });
+            const response = handler.handleEvent(event, block);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -32,9 +33,10 @@ describe('NextEvent Handlers', () => {
             const block = new TimedGroupBlock(new BlockKey('group'), []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(true);
             const event = new NextEvent();
+            event.runtime = { stack: { current: block } } as any;
 
             // Act
-            const response = handler.handleEvent(event, { currentBlock: block });
+            const response = handler.handleEvent(event, block);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -48,9 +50,10 @@ describe('NextEvent Handlers', () => {
             const block = new TimedGroupBlock(new BlockKey('group'), []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(false);
             const event = new NextEvent();
+            event.runtime = { stack: { current: block } } as any;
 
             // Act
-            const response = handler.handleEvent(event, { currentBlock: block });
+            const response = handler.handleEvent(event, block);
 
             // Assert
             expect(response.handled).toBe(true);

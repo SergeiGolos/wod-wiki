@@ -19,4 +19,8 @@ export class CountdownParentBlock implements IRuntimeBlock {
     public spans: any;
     public handlers: any;
     public tick: any;
+
+    public isDone(): boolean { return false; }
+
+    public reset(): void {}
 }

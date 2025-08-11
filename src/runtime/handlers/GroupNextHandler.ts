@@ -18,9 +18,9 @@ export class GroupNextHandler implements EventHandler {
     public readonly id = 'GroupNextHandler';
     public readonly name = 'GroupNextHandler';
 
-    public handleEvent(event: IRuntimeEvent, context: { currentBlock: TimedGroupBlock }): HandlerResponse {
+    public handleEvent(event: IRuntimeEvent): HandlerResponse {
         if (event.name === 'NextEvent') {
-            const block = context.currentBlock;
+            const block = event.runtime.stack.current as TimedGroupBlock;
             const action = block.hasNextChild()
                 ? new AdvanceToNextChildAction()
                 : new PopBlockAction();

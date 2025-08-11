@@ -7,7 +7,7 @@ export class EffortNextHandler implements EventHandler {
     public readonly id = 'EffortNextHandler';
     public readonly name = 'EffortNextHandler';
 
-    public handleEvent(event: IRuntimeEvent, context: { currentBlock: EffortBlock }): HandlerResponse {
+    public handleEvent(event: IRuntimeEvent): HandlerResponse {
         if (event.name === 'NextEvent') {
             return {
                 handled: true,

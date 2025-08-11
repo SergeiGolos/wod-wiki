@@ -23,13 +23,15 @@ export class ScriptRuntime implements IScriptRuntime {
         const allActions: IRuntimeAction[] = [];
         const handlers = this.stack?.blocks.flatMap(block => block.handlers) ?? [];
 
+        event.runtime = this;
+
         console.log(`  🔍 Found ${handlers.length} handlers across ${this.stack.blocks.length} blocks`);
         
         for (let i = 0; i < handlers.length; i++) {
             const handler = handlers[i];
             console.log(`    🔧 Handler ${i + 1}/${handlers.length}: ${handler.name} (${handler.id})`);
             
-            const response = handler.handleEvent(event, { runtime: this });
+            const response = handler.handleEvent(event);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
             
             if (response.handled) {

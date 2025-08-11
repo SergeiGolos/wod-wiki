@@ -38,4 +38,8 @@ export class RootBlock implements IRuntimeBlock {
         console.log(`🌱 RootBlock.inherit() - Called`);
         return [];
     }
+
+    public isDone(): boolean { return false; }
+
+    public reset(): void {}
 }

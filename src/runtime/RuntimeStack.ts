@@ -41,4 +41,12 @@ export class RuntimeStack {
         this._blocks.length = 0;
         this._blocks.push(...blocks);
     }
+
+    public getParentBlocks(): IRuntimeBlock[] {
+        // Return all blocks except the current one (all parent blocks)
+        if (this._blocks.length <= 1) {
+            return [];
+        }
+        return [...this._blocks].slice(0, -1).reverse();
+    }
 }

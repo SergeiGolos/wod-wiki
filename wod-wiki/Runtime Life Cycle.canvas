@@ -4,7 +4,7 @@
 		{"id":"0b6862051a2f47ff","type":"text","text":"Pop `IRuntimeAction`","x":-100,"y":320,"width":250,"height":62},
 		{"id":"f68b99d84fc6a38a","type":"text","text":"Re-enter / Modify / Update `IRuntimeAction`","x":310,"y":100,"width":270,"height":100},
 		{"id":"8f088413bab4d6d3","type":"text","text":"Push `IRuntimeAction`","x":-350,"y":-400,"width":250,"height":60},
-		{"id":"145ce2b5d61257ce","x":310,"y":-400,"width":270,"height":60,"type":"text","text":"IEventHandler"}
+		{"id":"145ce2b5d61257ce","type":"text","text":"IEventHandler","x":310,"y":-400,"width":270,"height":60}
 	],
 	"edges":[
 		{"id":"826e72821d4cb79f","fromNode":"8f088413bab4d6d3","fromSide":"right","toNode":"f8cf3cefd6f7733e","toSide":"top","label":"Child `IRuntimeBlock`"},
