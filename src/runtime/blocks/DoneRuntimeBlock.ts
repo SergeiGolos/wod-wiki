@@ -6,11 +6,11 @@ import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IMetricInheritance } from "../IMetricInheritance";
 
 export class DoneRuntimeBlock implements IRuntimeBlock {
-    public key: BlockKey;
+    public readonly key: BlockKey;
+    public parent?: IRuntimeBlock;
     public spans: IResultSpanBuilder;
     public metrics: RuntimeMetric[];
     public handlers: EventHandler[];
-    public parent?: IRuntimeBlock | undefined;
 
     constructor() {
         this.key = new BlockKey('done', [], []);
@@ -20,12 +20,14 @@ export class DoneRuntimeBlock implements IRuntimeBlock {
     }
 
     public tick(): IRuntimeEvent[] {
-        // Done block doesn't have a direct tick logic, it represents a final state
         return [];
     }
 
-    public inherit(): IMetricInheritance {
-        // Done block might not inherit much, or could provide base inheritance
-        return {} as IMetricInheritance;
+    public inherit(): IMetricInheritance[] {
+        return [];
     }
+
+    public isDone(): boolean { return true; }
+
+    public reset(): void {}
 }

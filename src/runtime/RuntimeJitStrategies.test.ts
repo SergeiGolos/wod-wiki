@@ -3,6 +3,7 @@ import { RuntimeJitStrategies } from './RuntimeJitStrategies';
 import { IRuntimeBlockStrategy } from './IRuntimeBlockStrategy';
 import { RuntimeMetric } from './RuntimeMetric';
 import { IRuntimeBlock } from './IRuntimeBlock';
+import { IScriptRuntime } from './IScriptRuntime';
 import { BlockKey } from '../BlockKey';
 import { EventHandler } from './EventHandler';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
@@ -10,7 +11,7 @@ import { IResultSpanBuilder } from './ResultSpanBuilder';
 class MockStrategy implements IRuntimeBlockStrategy {
     constructor(private canHandle: boolean, private block: IRuntimeBlock | undefined) {}
 
-    compile(metrics: RuntimeMetric[]): IRuntimeBlock | undefined {
+    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
         return this.canHandle ? this.block : undefined;
     }
 }
@@ -21,9 +22,21 @@ class MockBlock implements IRuntimeBlock {
     metrics: RuntimeMetric[];
     key: BlockKey;
     parent?: IRuntimeBlock | undefined;
+    
+    constructor() {
+        this.spans = {} as IResultSpanBuilder;
+        this.handlers = [];
+        this.metrics = [];
+        this.key = new BlockKey('mock');
+    }
+    
     tick(): any {}
-    inherit(): any {}
+    inherit(): any { return []; }
+    isDone(): boolean { return false; }
+    reset(): void {}
 }
+
+const mockRuntime = {} as IScriptRuntime;
 
 describe('RuntimeJitStrategies', () => {
     let strategies: RuntimeJitStrategies;
@@ -33,7 +46,7 @@ describe('RuntimeJitStrategies', () => {
     });
 
     it('should return undefined if no strategy can handle the metrics', () => {
-        const block = strategies.compile([]);
+        const block = strategies.compile([], mockRuntime);
         expect(block).toBeUndefined();
     });
 
@@ -48,7 +61,7 @@ describe('RuntimeJitStrategies', () => {
         strategies.addStrategy(strategy2);
         strategies.addStrategy(strategy3);
 
-        const result = strategies.compile([]);
+        const result = strategies.compile([], mockRuntime);
 
         expect(result).toBe(block1);
     });
@@ -58,7 +71,7 @@ describe('RuntimeJitStrategies', () => {
         const strategy = new MockStrategy(true, block);
         strategies.addStrategy(strategy);
 
-        const result = strategies.compile([]);
+        const result = strategies.compile([], mockRuntime);
 
         expect(result).toBe(block);
     });
@@ -67,7 +80,7 @@ describe('RuntimeJitStrategies', () => {
         const strategy = new MockStrategy(false, undefined);
         strategies.addStrategy(strategy);
 
-        const result = strategies.compile([]);
+        const result = strategies.compile([], mockRuntime);
 
         expect(result).toBeUndefined();
     });
@@ -82,7 +95,7 @@ describe('RuntimeJitStrategies', () => {
         strategies.addStrategy(strategy2);
         strategies.addStrategy(strategy3);
 
-        const result = strategies.compile([]);
+        const result = strategies.compile([], mockRuntime);
 
         expect(result).toBe(block);
     });
@@ -96,7 +109,7 @@ describe('RuntimeJitStrategies', () => {
         strategies.addStrategy(strategy2);
         strategies.addStrategy(strategy3);
 
-        const result = strategies.compile([]);
+        const result = strategies.compile([], mockRuntime);
 
         expect(result).toBeUndefined();
     });

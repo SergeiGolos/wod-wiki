@@ -15,69 +15,77 @@ import { IScriptRuntime } from "./IScriptRuntime";
 export class ActionFragmentCompiler implements IFragmentCompiler {
     readonly type = 'action';
     compile(fragment: ActionFragment, context: IScriptRuntime): MetricValue[] {
-        return [];
+    if (!context?.options?.emitTags) return [];
+    const label = fragment.value?.toString().trim();
+    if (!label) return [];
+    return [{ type: 'action', value: undefined, unit: `action:${label}` }];
     }
 }
 
 export class DistanceFragmentCompiler implements IFragmentCompiler {
     readonly type = 'distance';
-    compile(fragment: DistanceFragment, context: IScriptRuntime): MetricValue[] {
-        return [{ type: 'distance', value: fragment.value.amount, unit: fragment.value.units }];
+    compile(fragment: DistanceFragment, _context: IScriptRuntime): MetricValue[] {
+    const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
+    return [{ type: 'distance', value: amount, unit: fragment.value.units }];
     }
 }
 
 export class EffortFragmentCompiler implements IFragmentCompiler {
     readonly type = 'effort';
     compile(fragment: EffortFragment, context: IScriptRuntime): MetricValue[] {
-        return [];
+    if (!context?.options?.emitTags) return [];
+    const label = fragment.value?.toString().trim();
+    if (!label) return [];
+    return [{ type: 'effort', value: undefined, unit: `effort:${label}` }];
     }
 }
 
 export class IncrementFragmentCompiler implements IFragmentCompiler {
     readonly type = 'increment';
-    compile(fragment: IncrementFragment, context: IScriptRuntime): MetricValue[] {
+    compile(_fragment: IncrementFragment, _context: IScriptRuntime): MetricValue[] {
         return [];
     }
 }
 
 export class LapFragmentCompiler implements IFragmentCompiler {
     readonly type = 'lap';
-    compile(fragment: LapFragment, context: IScriptRuntime): MetricValue[] {
+    compile(_fragment: LapFragment, _context: IScriptRuntime): MetricValue[] {
         return [];
     }
 }
 
 export class RepFragmentCompiler implements IFragmentCompiler {
     readonly type = 'rep';
-    compile(fragment: RepFragment, context: IScriptRuntime): MetricValue[] {
+    compile(fragment: RepFragment, _context: IScriptRuntime): MetricValue[] {
         return [{ type: 'repetitions', value: fragment.value, unit: '' }];
     }
 }
 
 export class ResistanceFragmentCompiler implements IFragmentCompiler {
     readonly type = 'resistance';
-    compile(fragment: ResistanceFragment, context: IScriptRuntime): MetricValue[] {
-        return [{ type: 'resistance', value: fragment.value.amount, unit: fragment.value.units }];
+    compile(fragment: ResistanceFragment, _context: IScriptRuntime): MetricValue[] {
+    const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
+    return [{ type: 'resistance', value: amount, unit: fragment.value.units }];
     }
 }
 
 export class RoundsFragmentCompiler implements IFragmentCompiler {
     readonly type = 'rounds';
-    compile(fragment: RoundsFragment, context: IScriptRuntime): MetricValue[] {
+    compile(fragment: RoundsFragment, _context: IScriptRuntime): MetricValue[] {
         return [{ type: 'rounds', value: fragment.value, unit: '' }];
     }
 }
 
 export class TextFragmentCompiler implements IFragmentCompiler {
     readonly type = 'text';
-    compile(fragment: TextFragment, context: IScriptRuntime): MetricValue[] {
+    compile(_fragment: TextFragment, _context: IScriptRuntime): MetricValue[] {
         return [];
     }
 }
 
 export class TimerFragmentCompiler implements IFragmentCompiler {
     readonly type = 'duration';
-    compile(fragment: TimerFragment, context: IScriptRuntime): MetricValue[] {
+    compile(fragment: TimerFragment, _context: IScriptRuntime): MetricValue[] {
         return [{ type: 'time', value: fragment.value, unit: 'ms' }];
     }
 }

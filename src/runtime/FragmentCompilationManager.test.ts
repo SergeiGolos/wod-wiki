@@ -30,14 +30,14 @@ describe('FragmentCompilationManager', () => {
         const statements = parseWodLine('400m Run');
         const metric = manager.compileStatementFragments(statements[0], context);
         expect(metric.effort).toBe('Run');
-        expect(metric.values).toEqual([{ type: 'distance', value: '400', unit: 'm' }]);
+    expect(metric.values).toEqual([{ type: 'distance', value: 400, unit: 'm' }]);
     });
 
     it('should compile "Thrusters 95lb"', () => {
         const statements = parseWodLine('Thrusters 95lb');
         const metric = manager.compileStatementFragments(statements[0], context);
         expect(metric.effort).toBe('Thrusters');
-        expect(metric.values).toEqual([{ type: 'resistance', value: '95', unit: 'lb' }]);
+    expect(metric.values).toEqual([{ type: 'resistance', value: 95, unit: 'lb' }]);
     });
 
     it('should compile "(21-15-9) Thrusters 95lb"', () => {
@@ -49,7 +49,7 @@ describe('FragmentCompilationManager', () => {
             { type: 'repetitions', value: 21, unit: '' },
             { type: 'repetitions', value: 15, unit: '' },
             { type: 'repetitions', value: 9, unit: '' },
-            { type: 'resistance', value: '95', unit: 'lb' }
+            { type: 'resistance', value: 95, unit: 'lb' }
         ]);
     });
 
@@ -59,7 +59,7 @@ describe('FragmentCompilationManager', () => {
         expect(metric.effort).toBe('Run');
         expect(metric.values).toEqual([
             { type: 'repetitions', value: 10, unit: '' },
-            { type: 'distance', value: '400', unit: 'm' }
+            { type: 'distance', value: 400, unit: 'm' }
         ]);
     });
 

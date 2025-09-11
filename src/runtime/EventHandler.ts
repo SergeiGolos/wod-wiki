@@ -10,7 +10,7 @@ export interface IRuntimeEvent {
   /** Timestamp when the event occurred */
   timestamp: Date;
   /** Additional event data */
-  data?: any;
+  data?: any;  
 }
 
 /**
@@ -60,5 +60,5 @@ export interface EventHandler {
    * @param context Additional context for event processing
    * @returns HandlerResponse describing handling state, continuation, and actions
    */
-  handleEvent(event: IRuntimeEvent, context?: any): HandlerResponse;
+  handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse;
 }

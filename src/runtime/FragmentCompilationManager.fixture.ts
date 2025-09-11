@@ -26,7 +26,7 @@ const interpreter = new MdTimerInterpreter();
 export function parseWodLine(line: string): ICodeStatement[] {
     const lexResult = lexer.tokenize(line);
     parser.input = lexResult.tokens;
-    const cst = parser.wodMarkdown();
+    const cst = (parser as any).wodMarkdown();
     if (parser.errors.length > 0) {
         throw new Error(`Parsing errors detected: ${parser.errors[0].message}`);
     }

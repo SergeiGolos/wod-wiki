@@ -1,18 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
+import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
+import { NextEvent } from '../../src/runtime/events/NextEvent';
+import { WodScript } from '../../src/WodScript';
+import { JitCompiler, RuntimeJitStrategies } from '../../src/runtime/JitCompiler';
+import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
+import { compilers } from '../../src/runtime/FragmentCompilationManager.fixture';
+import { CountdownStrategy, RoundsStrategy, EffortStrategy } from '../../src/runtime/strategies';
+import { MdTimerRuntime } from '../../src/parser/md-timer';
 
 // Mock types for demonstration (replace with real types when available)
-interface MockRuntimeBlock {
+export interface MockRuntimeBlock {
   displayName: string;
   description: string;
   blockType: 'Root' | 'Timer' | 'Effort' | 'Group' | 'Completion' | 'Idle';
   depth: number;
-  metrics: { type: string; value: string | number; unit?: string }[];
+  metrics: { type: string; value?: string; unit?: string }[];
   key: string;
   parentKey?: string;
 }
 
-interface MockRuntimeStack {
+export interface MockRuntimeStack {
   blocks: MockRuntimeBlock[];
   currentIndex: number;
 }
@@ -26,23 +35,9 @@ const blockColors: Record<string, string> = {
   Idle: 'bg-gray-100 border-gray-300',
 };
 
-function CompilationPhaseIndicator({ phase, totalPhases }: { phase: number; totalPhases: number }) {
-  const phases = [
-    'Fragment Compilation',
-    'Metric Inheritance',
-    'Block Creation',
-    'Stack Execution',
-  ];
-  return (
-    <div className="flex gap-2 items-center mb-4">
-      {phases.map((p, i) => (
-        <div key={p} className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all duration-200 ${i === phase ? 'bg-blue-600 text-white border-blue-700' : 'bg-gray-100 text-gray-700 border-gray-300'}`}>{p}</div>
-      ))}
-    </div>
-  );
-}
 
-function MetricValueDisplay({ metric }: { metric: { type: string; value: string | number; unit?: string } }) {
+
+function MetricValueDisplay({ metric }: { metric: { type: string; value: string; unit?: string } }) {
   return (
     <div className="border rounded px-2 py-1 text-xs bg-white shadow-sm flex flex-col items-center">
       <span className="font-bold uppercase tracking-wider text-gray-600">{metric.type}</span>
@@ -61,7 +56,7 @@ function RuntimeBlockDisplay({ block, isActive }: { block: MockRuntimeBlock; isA
       </div>
       <div className="text-xs text-gray-700 mb-1">{block.description}</div>
       <div className="flex gap-2 flex-wrap">
-        {block.metrics.map((m, i) => <MetricValueDisplay key={i} metric={m} />)}
+        {block.metrics.filter(m => m.value !== undefined).map((m, i) => <MetricValueDisplay key={i} metric={{ ...m, value: m.value! }} />)}
       </div>
       <div className="text-xs text-gray-400 mt-1">Key: {block.key} {block.parentKey && <>| Parent: {block.parentKey}</>}</div>
     </div>
@@ -100,7 +95,7 @@ function CompactRuntimeBlockDisplay({ block, isActive }: { block: MockRuntimeBlo
     <div className={`border rounded px-2 py-1 flex items-center gap-2 text-xs mb-1 ${blockColors[block.blockType]} ${isActive ? 'border-blue-600 bg-blue-50' : 'opacity-80'}`} style={{ marginLeft: `${block.depth * 12}px` }}>
       <span className="font-bold">{block.displayName}</span>
       <span className="text-gray-500">({block.blockType})</span>
-      {block.metrics.map((m, i) => (
+      {block.metrics.filter(m => m.value !== undefined).map((m, i) => (
         <span key={i} className="ml-2 px-1 bg-white border rounded text-gray-700 font-mono">{m.value}{m.unit ? ` ${m.unit}` : ''}</span>
       ))}
       {isActive && <span className="ml-2 text-blue-700 font-bold">&larr;</span>}
@@ -118,35 +113,86 @@ function CompactRuntimeStackVisualizer({ stack }: { stack: MockRuntimeStack }) {
   );
 }
 
-export const JitCompilerDemo: React.FC = () => {
-  // Mock state for demonstration
-  const [phase, setPhase] = useState(0);
-  const [script, setScript] = useState(`20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`);
-  const [stack, setStack] = useState<MockRuntimeStack>({
-    blocks: [
-      { displayName: 'Root Block', description: 'Main execution container', blockType: 'Root', depth: 0, metrics: [], key: 'root' },
-      { displayName: 'Timer Block', description: '20:00 AMRAP', blockType: 'Timer', depth: 1, metrics: [{ type: 'time', value: '20:00' }], key: 'timer', parentKey: 'root' },
-      { displayName: 'Effort Block', description: '5 Pullups', blockType: 'Effort', depth: 2, metrics: [{ type: 'repetitions', value: 5 }], key: 'effort1', parentKey: 'timer' },
-      { displayName: 'Effort Block', description: '10 Pushups', blockType: 'Effort', depth: 2, metrics: [{ type: 'repetitions', value: 10 }], key: 'effort2', parentKey: 'timer' },
-      { displayName: 'Effort Block', description: '15 Air Squats', blockType: 'Effort', depth: 2, metrics: [{ type: 'repetitions', value: 15 }], key: 'effort3', parentKey: 'timer' },
-      { displayName: 'Completion Block', description: 'Workout Complete', blockType: 'Completion', depth: 1, metrics: [], key: 'complete', parentKey: 'root' },
-    ],
-    currentIndex: 0,
-  });
+export interface JitCompilerDemoProps {
+  initialScript?: string;
+  runtime?: ScriptRuntime;
+}
 
-  const totalPhases = 4;
+const toMockBlock = (block: IRuntimeBlock, depth: number): MockRuntimeBlock => {
+    let blockType: MockRuntimeBlock['blockType'] = 'Idle';
+    if (block.constructor.name.includes('Countdown')) {
+        blockType = 'Timer';
+    } else if (block.constructor.name.includes('Rounds')) {
+        blockType = 'Group';
+    } else if (block.constructor.name.includes('Effort')) {
+        blockType = 'Effort';
+    }
 
-  const handleNextPhase = () => {
-    if (phase < totalPhases - 1) setPhase(phase + 1);
-    else setPhase(0);
+    const metrics = block.metrics.flatMap(m => m.values.map(v => ({ type: v.type as string, value: v.value?.toString(), unit: v.unit })));
+
+    return {
+        displayName: block.constructor.name.replace('Block', ''),
+        description: block.key.toString(),
+        blockType: blockType,
+        depth: depth,
+        metrics: metrics,
+        key: block.key.toString(),
+        parentKey: block.parent?.key.toString()
+    };
+};
+
+export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
+    initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
+    runtime: initialRuntime
+}) => {
+  const [script, setScript] = useState(initialScript);
+  
+  // Create a runtime if one wasn't provided
+  const createRuntime = (scriptText: string): ScriptRuntime => {
+    const mdRuntime = new MdTimerRuntime();
+    const wodScript = mdRuntime.read(scriptText) as WodScript;
+    const fragmentCompiler = new FragmentCompilationManager(compilers);
+    const strategyManager = new RuntimeJitStrategies()
+      .addStrategy(new CountdownStrategy())
+      .addStrategy(new RoundsStrategy())
+      .addStrategy(new EffortStrategy());
+    const jitCompiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
+    const runtime = new ScriptRuntime(wodScript, jitCompiler);
+    
+    // Initialize with the root block
+    console.log(`🌱 Creating and pushing root block to stack`);
+    const rootBlock = jitCompiler.root();
+    runtime.stack.push(rootBlock);
+    console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
+    
+    return runtime;
   };
+
+  const [runtime, setRuntime] = useState<ScriptRuntime>(() => 
+    initialRuntime || createRuntime(initialScript)
+  );
+
+  // Update runtime when script changes
+  useEffect(() => {
+    if (!initialRuntime) {
+      const newRuntime = createRuntime(script);
+      setRuntime(newRuntime);
+    }
+  }, [script, initialRuntime]);
 
   const handleNextBlock = () => {
-    setStack((prev) => {
-      const nextIndex = prev.currentIndex < prev.blocks.length - 1 ? prev.currentIndex + 1 : 0;
-      return { ...prev, currentIndex: nextIndex };
+    runtime.handle(new NextEvent());
+    setRuntime(prev => {
+        const newRuntime = new ScriptRuntime(prev.script, prev.jit);
+        newRuntime.stack.setBlocks([...prev.stack.blocks]);
+        return newRuntime;
     });
   };
+
+  const stack: MockRuntimeStack = {
+      blocks: runtime?.stack?.blocks?.map((b, i) => toMockBlock(b, i)) ?? [],
+      currentIndex: Math.max(0, (runtime?.stack?.blocks?.length ?? 1) - 1)
+  }
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
@@ -156,17 +202,16 @@ export const JitCompilerDemo: React.FC = () => {
           <label className="block text-xs font-semibold mb-1 text-gray-700">Workout Script</label>
           <ScriptEditor value={script} onChange={setScript} />
           <div className="flex gap-2 mt-2">
-            <button className="px-3 py-1 bg-blue-600 text-white rounded text-xs" onClick={handleNextPhase}>Next Phase</button>
             <button className="px-3 py-1 bg-green-600 text-white rounded text-xs" onClick={handleNextBlock}>Next Block</button>
           </div>
-          <CompilationPhaseIndicator phase={phase} totalPhases={totalPhases} />
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1 text-gray-700">Runtime Stack</label>
           <CompactRuntimeStackVisualizer stack={stack} />
-          <div className="mt-2 text-xs text-gray-500">Phase: {phase + 1} / {totalPhases} | Block: {stack.currentIndex + 1} / {stack.blocks.length}</div>
+          <div className="mt-2 text-xs text-gray-500">Block: {stack.currentIndex + 1} / {stack.blocks.length}</div>
         </div>
       </div>
     </div>
   );
 };
+

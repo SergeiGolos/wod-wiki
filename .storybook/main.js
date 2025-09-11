@@ -14,6 +14,17 @@ const config = {
   "framework": {
     "name": "@storybook/react-vite",
     "options": {}
+  },
+  "viteFinal": (config) => {
+    // Ensure source maps are generated for debugging
+    config.build = config.build || {};
+    config.build.sourcemap = true;
+    
+    // Enable CSS source maps
+    config.css = config.css || {};
+    config.css.devSourcemap = true;
+    
+    return config;
   }
 };
 export default config;

@@ -4,7 +4,7 @@
  * numeric value, and unit information.
  */
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories";
+  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort";
   value: number | undefined;
   unit: string;
 };
@@ -17,8 +17,6 @@ export type MetricValue = {
 export interface RuntimeMetric {
   /** Identifier for the source statement/block */
   sourceId: string;
-  /** Name of the effort/exercise (if any) */
-  effort: string;
   /** Array of metric values (reps, distance, etc.) */
   values: MetricValue[];
 }

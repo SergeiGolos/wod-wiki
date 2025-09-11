@@ -5,27 +5,29 @@ import { EventHandler, IRuntimeAction, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IMetricInheritance } from "../IMetricInheritance";
 
+import { EffortNextHandler } from "../handlers/EffortNextHandler";
+
 export class EffortBlock implements IRuntimeBlock {
-    public key: BlockKey;
+    public parent?: IRuntimeBlock;
     public spans: IResultSpanBuilder;
     public metrics: RuntimeMetric[];
     public handlers: EventHandler[];
-    public parent?: IRuntimeBlock | undefined;
 
-    constructor(metrics: RuntimeMetric[], key: BlockKey) {
+    constructor(public readonly key: BlockKey, metrics: RuntimeMetric[]) {
         this.metrics = metrics;
-        this.key = key;
         this.spans = {} as IResultSpanBuilder;
-        this.handlers = [];
+        this.handlers = [new EffortNextHandler()];
     }
 
     public tick(): IRuntimeEvent[] {
-        // Logic for effort block tick, e.g., updating display
         return [];
     }
 
-    public inherit(): IMetricInheritance {
-        // Logic for metric inheritance for this block type
-        return {} as IMetricInheritance;
+    public inherit(): IMetricInheritance[] {
+        return [];
     }
+
+    public isDone(): boolean { return false; }
+
+    public reset(): void {}
 }

@@ -8,11 +8,7 @@ export interface IFragmentCompiler {
     compile(fragment: ICodeFragment, runtime: IScriptRuntime): MetricValue[];
 }
 
-// This is a guess, we probably have a specific fragment for this.
-interface ITextFragment extends ICodeFragment {
-    type: 'text';
-    value: string;
-}
+// Note: Text fragments are handled by type guard checks without a local interface.
 
 export class FragmentCompilationManager {
     private readonly compilers: Map<string, IFragmentCompiler> = new Map();
@@ -45,10 +41,11 @@ export class FragmentCompilationManager {
             }
         }
 
+        const label = effort.trim();
         return {
             sourceId: statement.id?.toString(), // Assuming ICodeStatement has a key
-            effort: effort.trim(),
+            ...(label ? { effort: label } : {}),
             values: allValues
-        };
+        } as RuntimeMetric;
     }
 }

@@ -18,8 +18,7 @@ export class MetricComposer {
     compose(inheritanceStack: IMetricInheritance[]): RuntimeMetric[] {
         // Create deep copies of base metrics to avoid mutation
         let composedMetrics = this.baseMetrics.map(metric => ({
-            sourceId: metric.sourceId,
-            effort: metric.effort,
+            sourceId: metric.sourceId,            
             values: metric.values.map(value => ({ ...value }))
         }));
 
