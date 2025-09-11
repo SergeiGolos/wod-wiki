@@ -1,68 +1,87 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
 import type { IMemoryReference } from './memory';
+import { IRuntimeMemory } from './memory/IRuntimeMemory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
-import { EventHandler } from './EventHandler';
+import { EventHandler, IRuntimeEvent } from './EventHandler';
 import { RuntimeMetric } from './RuntimeMetric';
-import { IMetricInheritance } from './IMetricInheritance';
 import { BlockKey } from '../BlockKey';
 
 /**
- * Base implementation for runtime blocks that use memory for all state storage.
+ * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
  * All blocks should extend this class instead of implementing IRuntimeBlock directly.
  */
 export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
-    protected runtime?: IScriptRuntimeWithMemory;
-    private _initialMetrics: RuntimeMetric[];
-    
+    protected memory?: IRuntimeMemory;
+
     // Memory references for core runtime state
     private _spansRef?: IMemoryReference<IResultSpanBuilder>;
     private _handlersRef?: IMemoryReference<EventHandler[]>;
-    private _parentRef?: IMemoryReference<IRuntimeBlock>;
     private _metricsRef?: IMemoryReference<RuntimeMetric[]>;
 
-    constructor(public readonly key: BlockKey, metrics: RuntimeMetric[]) {
-        this._initialMetrics = metrics;
+    constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = []) {
         console.log(`🧠 RuntimeBlockWithMemoryBase created: ${key.toString()}`);
     }
 
     /**
-     * Sets the runtime context and initializes memory storage for core state
+     * Called when this block is pushed onto the runtime stack.
+     * Sets up initial state and registers event listeners.
      */
-    setRuntime(runtime: IScriptRuntimeWithMemory): void {
-        this.runtime = runtime;
-        
+    push(memory: IRuntimeMemory): IRuntimeEvent[] {
+        this.memory = memory;
+
         const ownerId = this.key.toString();
-        
+
         // Initialize core runtime state in memory
-        this._spansRef = runtime.memory.allocate<IResultSpanBuilder>(
-            'spans', 
-            this.createSpansBuilder(), 
-            ownerId
+        this._spansRef = memory.allocate<IResultSpanBuilder>(
+            'spans',
+            ownerId,
+            this.createSpansBuilder()
         );
-        
-        this._handlersRef = runtime.memory.allocate<EventHandler[]>(
-            'handlers', 
-            this.createInitialHandlers(), 
-            ownerId
+
+        this._handlersRef = memory.allocate<EventHandler[]>(
+            'handlers',
+            ownerId,
+            this.createInitialHandlers()
         );
-        
-        this._metricsRef = runtime.memory.allocate<RuntimeMetric[]>(
-            'metrics', 
-            [...this._initialMetrics], 
-            ownerId
-        );
-        
-        this._parentRef = runtime.memory.allocate<IRuntimeBlock>(
-            'parent', 
-            undefined, 
-            ownerId
+
+        this._metricsRef = memory.allocate<RuntimeMetric[]>(
+            'metrics',
+            ownerId,
+            [...this.initialMetrics]
         );
 
         // Call template method for subclass initialization
         this.initializeMemory();
-        
-        console.log(`🧠 RuntimeBlockWithMemoryBase initialized memory for: ${this.key.toString()}`);
+
+        console.log(`🧠 RuntimeBlockWithMemoryBase pushed and initialized memory for: ${this.key.toString()}`);
+
+        // Return initial events from subclass
+        return this.onPush();
+    }
+
+    /**
+     * Called when a child block completes execution.
+     * Determines the next block(s) to execute or signals completion.
+     */
+    next(_memory: IRuntimeMemory): IRuntimeBlock | undefined {
+        return this.onNext();
+    }
+
+    /**
+     * Called when this block is popped from the runtime stack.
+     * Handles completion logic, manages result spans, and cleans up resources.
+     */
+    pop(memory: IRuntimeMemory): void {
+        // Call subclass completion logic
+        this.onPop();
+
+        // Clean up all memory allocated by this block
+        const myMemory = this.getMyMemory();
+        console.log(`🧠 RuntimeBlockWithMemoryBase cleaning up ${myMemory.length} memory references for ${this.key.toString()}`);
+
+        for (const memRef of myMemory) {
+            memory.release(memRef);
+        }
     }
 
     /**
@@ -80,7 +99,51 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
      */
     protected abstract createInitialHandlers(): EventHandler[];
 
-    getSpans(): IResultSpanBuilder {
+    /**
+     * Template method called after push to return initial events
+     */
+    protected abstract onPush(): IRuntimeEvent[];
+
+    /**
+     * Template method called when determining next block after child completion
+     */
+    protected abstract onNext(): IRuntimeBlock | undefined;
+
+    /**
+     * Template method called before pop for completion logic
+     */
+    protected abstract onPop(): void;
+
+    /**
+     * Helper method to allocate memory for block-specific state
+     */
+    protected allocateMemory<T>(type: string, initialValue?: T): IMemoryReference<T> {
+        if (!this.memory) {
+            throw new Error(`Cannot allocate memory before block is pushed for ${this.key.toString()}`);
+        }
+
+        return this.memory.allocate<T>(
+            type,
+            this.key.toString(),
+            initialValue
+        );
+    }
+
+    /**
+     * Helper method to get memory references allocated by this block
+     */
+    protected getMyMemory(): IMemoryReference[] {
+        if (!this.memory) {
+            return [];
+        }
+
+        return this.memory.getByOwner(this.key.toString());
+    }
+
+    /**
+     * Gets the result spans builder from memory
+     */
+    protected getSpans(): IResultSpanBuilder {
         if (!this._spansRef || !this._spansRef.isValid()) {
             throw new Error(`Block ${this.key.toString()} spans not initialized or invalid`);
         }
@@ -91,7 +154,10 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         return spans;
     }
 
-    getHandlers(): EventHandler[] {
+    /**
+     * Gets the event handlers from memory
+     */
+    protected getHandlers(): EventHandler[] {
         if (!this._handlersRef || !this._handlersRef.isValid()) {
             throw new Error(`Block ${this.key.toString()} handlers not initialized or invalid`);
         }
@@ -102,7 +168,10 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         return handlers;
     }
 
-    getMetrics(): RuntimeMetric[] {
+    /**
+     * Gets the metrics from memory
+     */
+    protected getMetrics(): RuntimeMetric[] {
         if (!this._metricsRef || !this._metricsRef.isValid()) {
             throw new Error(`Block ${this.key.toString()} metrics not initialized or invalid`);
         }
@@ -112,68 +181,4 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         }
         return metrics;
     }
-
-    getParent(): IRuntimeBlock | undefined {
-        if (!this._parentRef || !this._parentRef.isValid()) {
-            return undefined;
-        }
-        return this._parentRef.get();
-    }
-
-    /**
-     * Sets the parent block reference in memory
-     */
-    protected setParent(parent: IRuntimeBlock | undefined): void {
-        if (this._parentRef && this._parentRef.isValid()) {
-            this._parentRef.set(parent);
-        }
-    }
-
-    /**
-     * Helper method to allocate memory for block-specific state
-     */
-    protected allocateMemory<T>(type: string, initialValue?: T): IMemoryReference<T> {
-        if (!this.runtime) {
-            throw new Error(`Cannot allocate memory before runtime is set for block ${this.key.toString()}`);
-        }
-        
-        return this.runtime.memory.allocate<T>(
-            type,
-            initialValue,
-            this.key.toString()
-        );
-    }
-
-    /**
-     * Helper method to get memory references allocated by this block
-     */
-    protected getMyMemory(): IMemoryReference[] {
-        if (!this.runtime) {
-            return [];
-        }
-        
-        return this.runtime.memory.getByOwner(this.key.toString());
-    }
-
-    /**
-     * Clean up all memory allocated by this block
-     */
-    cleanupMemory(): void {
-        if (!this.runtime) {
-            return;
-        }
-
-        const myMemory = this.getMyMemory();
-        console.log(`🧠 RuntimeBlockWithMemoryBase cleaning up ${myMemory.length} memory references for ${this.key.toString()}`);
-        
-        for (const memRef of myMemory) {
-            this.runtime.memory.release(memRef);
-        }
-    }
-
-    // Abstract methods that subclasses must implement
-    abstract tick(): import('./EventHandler').IRuntimeEvent[];
-    abstract isDone(): boolean;
-    abstract reset(): void;
-    abstract inherit(): IMetricInheritance[];
 }

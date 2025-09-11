@@ -9,6 +9,9 @@ export interface IMemoryReference<T = any> {
     /** Type identifier for the stored data */
     readonly type: string;
     
+    /** Owner identifier for this memory reference */
+    readonly ownerId: string;
+    
     /** Gets the current value stored at this memory location */
     get(): T | undefined;
     

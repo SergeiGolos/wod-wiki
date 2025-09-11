@@ -62,8 +62,8 @@ describe('ScriptRuntimeWithMemory', () => {
         });
 
         it('should provide debug memory snapshot', () => {
-            runtime.memory.allocate<string>('string-type', 'value1', 'owner1');
-            runtime.memory.allocate<number>('number-type', 42, 'owner2');
+            runtime.memory.allocate<string>('string-type', 'owner1', 'value1');
+            runtime.memory.allocate<number>('number-type', 'owner2', 42);
 
             const snapshot = runtime.getMemorySnapshot();
 

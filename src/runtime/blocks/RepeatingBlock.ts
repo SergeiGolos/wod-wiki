@@ -2,9 +2,9 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 import type { IMemoryReference } from "../memory";
 
 interface LoopState {
@@ -22,8 +22,8 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
     }
 
     protected initializeMemory(): void {
-        // Find rounds metric value
-        const roundsMetric = this.getMetrics().find(m => 
+        // Find rounds metric value from initial metrics
+        const roundsMetric = this.initialMetrics.find(m =>
             m.values.some(v => v.type === 'rounds')
         );
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
@@ -103,33 +103,44 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
         console.log(`🔄 RepeatingBlock - Advanced to child ${state.currentChildIndex}, rounds remaining: ${state.remainingRounds}`);
     }
 
-    public tick(): IRuntimeEvent[] {
-        return [];
-    }
-
-    public isDone(): boolean {
-        const state = this.getLoopState();
-        return state.remainingRounds <= 0;
-    }
 
     public reset(): void {
-        // Find rounds metric value
-        const roundsMetric = this.getMetrics().find(m => 
+        // Find rounds metric value from initial metrics
+        const roundsMetric = this.initialMetrics.find(m =>
             m.values.some(v => v.type === 'rounds')
         );
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
-        
+
         // Reset state in memory
         this.setLoopState({
             remainingRounds: initialRounds,
             currentChildIndex: -1,
             childStatements: []
         });
-        
+
         console.log(`🔄 RepeatingBlock reset with ${initialRounds} rounds`);
     }
 
-    public inherit(): IMetricInheritance[] {
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`🔄 RepeatingBlock.onPush() - Block pushed to stack`);
         return [];
+    }
+
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`🔄 RepeatingBlock.onNext() - Determining next block after child completion`);
+
+        if (this.hasNextChild()) {
+            this.advanceToNextChild();
+            // Return a placeholder - actual implementation would create the next child block
+            return undefined; // TODO: Implement actual child block creation
+        }
+
+        // No more children, signal completion
+        return undefined;
+    }
+
+    protected onPop(): void {
+        console.log(`🔄 RepeatingBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for repeating block
     }
 }

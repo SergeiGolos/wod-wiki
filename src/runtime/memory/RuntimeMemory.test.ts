@@ -20,7 +20,7 @@ describe('RuntimeMemory', () => {
         });
 
         it('should allow setting and getting values', () => {
-            const ref = memory.allocate<number>('number', 42);
+            const ref = memory.allocate<number>('number', 'test-owner', 42);
 
             expect(ref.get()).toBe(42);
 
@@ -118,8 +118,8 @@ describe('RuntimeMemory', () => {
 
     describe('debug functionality', () => {
         it('should create memory snapshot', () => {
-            const ref1 = memory.allocate<string>('string-type', 'value1', 'owner1');
-            const ref2 = memory.allocate<number>('number-type', 42, 'owner2');
+            const ref1 = memory.allocate<string>('string-type', 'owner1', 'value1');
+            const ref2 = memory.allocate<number>('number-type', 'owner2', 42);
 
             const snapshot = memory.getMemorySnapshot();
 
@@ -136,9 +136,9 @@ describe('RuntimeMemory', () => {
         });
 
         it('should get entries by type', () => {
-            const ref1 = memory.allocate<string>('string-type', 'value1');
-            const ref2 = memory.allocate<string>('string-type', 'value2');
-            const ref3 = memory.allocate<number>('number-type', 42);
+            const ref1 = memory.allocate<string>('string-type', 'owner1', 'value1');
+            const ref2 = memory.allocate<string>('string-type', 'owner2', 'value2');
+            const ref3 = memory.allocate<number>('number-type', 'owner3', 42);
 
             const stringEntries = memory.getByType('string-type');
             const numberEntries = memory.getByType('number-type');

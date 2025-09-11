@@ -1,57 +1,31 @@
 import { BlockKey } from "../BlockKey";
-import { EventHandler, IRuntimeEvent } from "./EventHandler";
-import { IMetricInheritance } from "./IMetricInheritance";
-import { IResultSpanBuilder } from "./ResultSpanBuilder";
-import { RuntimeMetric } from "./RuntimeMetric";
-import { IScriptRuntimeWithMemory } from "./IScriptRuntimeWithMemory";
+import { IRuntimeEvent } from "./EventHandler";
+import { IRuntimeMemory } from "./memory/IRuntimeMemory";
 
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
 
-    // Core implementation - all state is now stored in memory
     /**
-     * Sets the runtime context for this block. Called when block is pushed to stack.
-     * All blocks must now use memory for state storage instead of instance variables.
+     * Called when this block is pushed onto the runtime stack.
+     * Sets up initial state and registers event listeners.
+     * @param memory The runtime memory system
+     * @returns Array of events to emit after push
      */
-    setRuntime(runtime: IScriptRuntimeWithMemory): void;
+    push(memory: IRuntimeMemory): IRuntimeEvent[];
 
     /**
-     * Gets the result spans builder from memory
+     * Called when a child block completes execution.
+     * Determines the next block(s) to execute or signals completion.
+     * @param memory The runtime memory system
+     * @returns The next block to execute, or undefined if this block should pop
      */
-    getSpans(): IResultSpanBuilder;
+    next(memory: IRuntimeMemory): IRuntimeBlock | undefined;
 
     /**
-     * Gets the event handlers from memory
+     * Called when this block is popped from the runtime stack.
+     * Handles completion logic, manages result spans, and cleans up resources.
+     * @param memory The runtime memory system
      */
-    getHandlers(): EventHandler[];
-
-    /**
-     * Gets the metrics (may still be passed during construction)
-     */
-    getMetrics(): RuntimeMetric[];
-
-    /**
-     * Gets the parent block reference from memory
-     */
-    getParent(): IRuntimeBlock | undefined;
-
-    /**
-     * Executes the block logic and returns a list of actions to perform.
-     * @param runtime The runtime context in which the block is executed
-     * @returns An array of actions to be performed by the runtime
-     */
-    tick(): IRuntimeEvent[];
-
-    isDone(): boolean;
-
-    reset(): void;
-    
-    /**
-     * Clean up memory allocated by this block
-     */
-    cleanupMemory(): void;
-    
-    // Metric inheritance
-    inherit(): IMetricInheritance[];
+    pop(memory: IRuntimeMemory): void;
 }

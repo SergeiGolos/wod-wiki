@@ -1,9 +1,9 @@
 import { BlockKey } from "../../BlockKey";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { RootNextHandler } from "../handlers/RootNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**
  * Root block adapted to the memory model. This ensures setRuntime() exists
@@ -39,17 +39,19 @@ export class RootBlock extends RuntimeBlockWithMemoryBase {
         return handlers;
     }
 
-    public tick(): IRuntimeEvent[] {
-        console.log(`🌱 RootBlock.tick() - Called`);
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`🌱 RootBlock.onPush() - Block pushed to stack`);
         return [];
     }
 
-    public inherit(): IMetricInheritance[] {
-        console.log(`🌱 RootBlock.inherit() - Called`);
-        return [];
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`🌱 RootBlock.onNext() - Determining next block after child completion`);
+        // Root block typically doesn't have a next block
+        return undefined;
     }
 
-    public isDone(): boolean { return false; }
-
-    public reset(): void {}
+    protected onPop(): void {
+        console.log(`🌱 RootBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for root block
+    }
 }

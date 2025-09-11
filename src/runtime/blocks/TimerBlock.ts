@@ -2,8 +2,8 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 export class TimerBlock extends RuntimeBlockWithMemoryBase {
 
@@ -33,19 +33,19 @@ export class TimerBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    public tick(): IRuntimeEvent[] {
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`⏱️ TimerBlock.onPush() - Block pushed to stack`);
         return [];
     }
 
-    public inherit(): IMetricInheritance[] {
-        return [];
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`⏱️ TimerBlock.onNext() - Determining next block after child completion`);
+        // Timer blocks typically don't have child blocks
+        return undefined;
     }
 
-    public isDone(): boolean { 
-        return false; 
-    }
-
-    public reset(): void {
-        console.log(`⏱️ TimerBlock reset: ${this.key.toString()}`);
+    protected onPop(): void {
+        console.log(`⏱️ TimerBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for timer block
     }
 }

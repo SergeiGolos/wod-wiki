@@ -2,7 +2,7 @@ import { IMemoryReference } from './IMemoryReference';
 
 // Interface for the memory allocator to avoid circular dependency
 interface IMemoryAllocator {
-    allocate<T>(type: string, initialValue?: T, ownerId?: string, parent?: MemoryReference): IMemoryReference<T>;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference): IMemoryReference<T>;
 }
 
 /**
@@ -17,6 +17,7 @@ export class MemoryReference<T = any> implements IMemoryReference<T> {
     constructor(
         public readonly id: string,
         public readonly type: string,
+        public readonly ownerId: string,
         private readonly memory: IMemoryAllocator,
         initialValue?: T,
         parent?: MemoryReference
@@ -50,7 +51,7 @@ export class MemoryReference<T = any> implements IMemoryReference<T> {
         if (!this._isValid) {
             throw new Error(`Cannot create child on invalid memory reference ${this.id}`);
         }
-        return this.memory.allocate(type, initialValue, undefined, this);
+        return this.memory.allocate(type, this.ownerId, initialValue, this);
     }
 
     /** Internal method for cleanup - not part of the public interface */

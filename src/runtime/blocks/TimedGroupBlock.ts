@@ -2,7 +2,6 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import type { IMemoryReference } from "../memory";
@@ -79,23 +78,27 @@ export class TimedGroupBlock extends RuntimeBlockWithMemoryBase {
         // to activate the next child block.
     }
 
-    public tick(): IRuntimeEvent[] {
-        return [];
-    }
-
-    public inherit(): IMetricInheritance[] {
-        return [];
-    }
-
-    public isDone(): boolean { 
-        return false; 
-    }
-
     public reset(): void {
         this.setGroupState({
             childBlocks: [],
             currentChildIndex: -1
         });
         console.log(`⏱️ TimedGroupBlock reset: ${this.key.toString()}`);
+    }
+
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`⏱️ TimedGroupBlock.onPush() - Block pushed to stack`);
+        return [];
+    }
+
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`⏱️ TimedGroupBlock.onNext() - Determining next block after child completion`);
+        // TODO: Implement logic to return next child block or undefined if done
+        return undefined;
+    }
+
+    protected onPop(): void {
+        console.log(`⏱️ TimedGroupBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for timed group block
     }
 }

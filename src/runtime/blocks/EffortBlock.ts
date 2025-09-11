@@ -2,9 +2,9 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 export class EffortBlock extends RuntimeBlockWithMemoryBase {
 
@@ -33,19 +33,19 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase {
         return [new EffortNextHandler()];
     }
 
-    public tick(): IRuntimeEvent[] {
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`💪 EffortBlock.onPush() - Block pushed to stack`);
         return [];
     }
 
-    public inherit(): IMetricInheritance[] {
-        return [];
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`💪 EffortBlock.onNext() - Determining next block after child completion`);
+        // Effort blocks typically don't have child blocks
+        return undefined;
     }
 
-    public isDone(): boolean { 
-        return false; 
-    }
-
-    public reset(): void {
-        console.log(`💪 EffortBlock reset: ${this.key.toString()}`);
+    protected onPop(): void {
+        console.log(`💪 EffortBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for effort block
     }
 }

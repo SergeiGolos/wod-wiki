@@ -10,22 +10,19 @@ import { MemoryReference } from './MemoryReference';
 export class RuntimeMemory implements IRuntimeMemory {
     private _references: Map<string, MemoryReference> = new Map();
     private _ownerIndex: Map<string, Set<string>> = new Map();
-    private _nextId: number = 0;
 
-    allocate<T>(type: string, initialValue?: T, ownerId?: string, parent?: MemoryReference): IMemoryReference<T> {
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference): IMemoryReference<T> {
         const id = this._generateId();
-        const reference = new MemoryReference<T>(id, type, this as any, initialValue, parent);
+        const reference = new MemoryReference<T>(id, type, ownerId, this as any, initialValue, parent);
         
         this._references.set(id, reference);
         
-        if (ownerId) {
-            if (!this._ownerIndex.has(ownerId)) {
-                this._ownerIndex.set(ownerId, new Set());
-            }
-            this._ownerIndex.get(ownerId)!.add(id);
+        if (!this._ownerIndex.has(ownerId)) {
+            this._ownerIndex.set(ownerId, new Set());
         }
+        this._ownerIndex.get(ownerId)!.add(id);
         
-        console.log(`🧠 RuntimeMemory.allocate() - Allocated ${type} memory [${id}]${ownerId ? ` for owner ${ownerId}` : ''}`);
+        console.log(`🧠 RuntimeMemory.allocate() - Allocated ${type} memory [${id}] for owner ${ownerId}`);
         
         return reference;
     }
@@ -77,6 +74,61 @@ export class RuntimeMemory implements IRuntimeMemory {
         return Array.from(this._references.values()).filter(ref => ref.isValid());
     }
 
+    searchReferences<T>(criteria: { ownerId?: string; type?: string }): IMemoryReference<T>[] {
+        const results: IMemoryReference<T>[] = [];
+        
+        for (const [id, ref] of this._references.entries()) {
+            if (!ref.isValid()) continue;
+            
+            // Check if this reference matches the criteria
+            let matches = true;
+            
+            if (criteria.ownerId !== undefined) {
+                // Find the owner of this reference
+                let refOwnerId: string | undefined;
+                for (const [ownerId, refIds] of this._ownerIndex.entries()) {
+                    if (refIds.has(id)) {
+                        refOwnerId = ownerId;
+                        break;
+                    }
+                }
+                if (refOwnerId !== criteria.ownerId) {
+                    matches = false;
+                }
+            }
+            
+            if (criteria.type !== undefined && ref.type !== criteria.type) {
+                matches = false;
+            }
+            
+            if (matches) {
+                results.push(ref as IMemoryReference<T>);
+            }
+        }
+        
+        return results;
+    }
+
+    clean(ownerId: string): void {
+        const refIds = this._ownerIndex.get(ownerId);
+        if (!refIds) return;
+        
+        console.log(`🧠 RuntimeMemory.clean() - Cleaning up all memory for owner ${ownerId}`);
+        
+        // Create a copy of the set to avoid modification during iteration
+        const idsToRelease = Array.from(refIds);
+        
+        for (const id of idsToRelease) {
+            const ref = this._references.get(id);
+            if (ref) {
+                this.release(ref);
+            }
+        }
+        
+        // Remove the owner from the index
+        this._ownerIndex.delete(ownerId);
+    }
+
     createSnapshot(): Record<string, any> {
         const snapshot: Record<string, any> = {};
         
@@ -116,7 +168,7 @@ export class RuntimeMemory implements IRuntimeMemory {
     }
 
     private _generateId(): string {
-        return `mem_${++this._nextId}_${Date.now().toString(36)}`;
+        return crypto.randomUUID();
     }
 }
 
@@ -131,11 +183,15 @@ class RuntimeMemoryDebugView implements IDebugMemoryView {
         const byType: Record<string, number> = {};
         const byOwner: Record<string, number> = {};
         
-        for (const [id, ref] of this.memory['_references'].entries()) {
+        // Access private properties through type assertion
+        const references = (this.memory as any)['_references'] as Map<string, MemoryReference>;
+        const ownerIndex = (this.memory as any)['_ownerIndex'] as Map<string, Set<string>>;
+        
+        for (const [id, ref] of references.entries()) {
             if (ref.isValid()) {
                 // Find owner
                 let ownerId: string | undefined;
-                for (const [owner, refIds] of this.memory['_ownerIndex'].entries()) {
+                for (const [owner, refIds] of ownerIndex.entries()) {
                     if (refIds.has(id)) {
                         ownerId = owner;
                         break;
@@ -182,6 +238,9 @@ class RuntimeMemoryDebugView implements IDebugMemoryView {
         const entryMap = new Map<string, DebugMemoryEntry>();
         const roots: DebugMemoryNode[] = [];
         
+        // Access private properties through type assertion
+        const references = (this.memory as any)['_references'] as Map<string, MemoryReference>;
+        
         // Create entry map for quick lookup
         for (const entry of entries) {
             entryMap.set(entry.id, entry);
@@ -192,7 +251,7 @@ class RuntimeMemoryDebugView implements IDebugMemoryView {
         
         for (const entry of entries) {
             if (!visited.has(entry.id)) {
-                const ref = this.memory['_references'].get(entry.id);
+                const ref = references.get(entry.id);
                 if (ref && !ref._getParent()) {
                     // This is a root node
                     const node = this._buildHierarchyNode(entry, entryMap, visited);

@@ -4,7 +4,7 @@ import type { IRuntimeMemory, IDebugMemoryView } from './memory';
 import { RuntimeMemory } from './memory';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
-import { IRuntimeEvent } from './EventHandler';
+import { IRuntimeEvent, EventHandler } from './EventHandler';
 
 /**
  * Script runtime implementation with memory separation support.
@@ -29,29 +29,33 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
     }
 
     /**
-     * Enhanced stack management with automatic memory cleanup and runtime setup
+     * Enhanced stack management with automatic memory cleanup and push/pop lifecycle
      */
     private _setupMemoryAwareStack(): void {
-        // Override stack operations to handle memory setup and cleanup
+        // Override stack operations to handle push/pop lifecycle
         const originalPop = this.stack.pop.bind(this.stack);
         const originalPush = this.stack.push.bind(this.stack);
-        
+
         this.stack.pop = () => {
             const poppedBlock = originalPop();
-            
+
             if (poppedBlock) {
-                console.log(`🧠 ScriptRuntimeWithMemory - Cleaning up memory for popped block: ${poppedBlock.key.toString()}`);
-                poppedBlock.cleanupMemory();
+                console.log(`🧠 ScriptRuntimeWithMemory - Popping block: ${poppedBlock.key.toString()}`);
+                poppedBlock.pop(this.memory);
             }
-            
+
             return poppedBlock;
         };
 
         this.stack.push = (block) => {
-            // Set up the runtime context for all blocks
-            block.setRuntime(this);
+            console.log(`🧠 ScriptRuntimeWithMemory - Pushing block: ${block.key.toString()}`);
+            const events = block.push(this.memory);
             originalPush(block);
-            console.log(`🧠 ScriptRuntimeWithMemory - Set up runtime context for block: ${block.key.toString()}`);
+
+            // Handle any events emitted during push
+            for (const event of events) {
+                this.handle(event);
+            }
         };
     }
 
@@ -62,19 +66,25 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
         console.log(`🎯 ScriptRuntimeWithMemory.handle() - Processing event: ${event.name}`);
         console.log(`  📚 Stack depth: ${this.stack.blocks.length}`);
         console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
-        
-        const allActions: import('./EventHandler').IRuntimeAction[] = [];
-        const handlers = this.stack.current?.getHandlers() ?? [];
 
-        console.log(`  🔍 Found ${handlers.length} handlers on current block`);
-        
+        const allActions: import('./EventHandler').IRuntimeAction[] = [];
+
+        // Get handlers from memory for the current block
+        const currentBlockKey = this.stack.current?.key?.toString();
+        const handlers = currentBlockKey ?
+            this.memory.searchReferences<EventHandler[]>({ ownerId: currentBlockKey, type: 'handlers' })
+                .flatMap(ref => ref.get() || []) :
+            [];
+
+        console.log(`  🔍 Found ${handlers.length} handlers for current block`);
+
         for (let i = 0; i < handlers.length; i++) {
             const handler = handlers[i];
             console.log(`    🔧 Handler ${i + 1}/${handlers.length}: ${handler.name} (${handler.id})`);
-            
+
             const response = handler.handleEvent(event, this);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
-            
+
             if (response.handled) {
                 allActions.push(...response.actions);
                 console.log(`      📦 Added ${response.actions.length} actions to queue`);

@@ -1,35 +1,44 @@
 import { IRuntimeBlock } from "../IRuntimeBlock";
-
-import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../BlockKey";
-import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeAction, IRuntimeEvent } from "../EventHandler";
+import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
+import { EventHandler } from "../EventHandler";
+import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 
-export class IdleRuntimeBlock implements IRuntimeBlock {
-    public readonly key: BlockKey;
-    public parent?: IRuntimeBlock;
-    public spans: IResultSpanBuilder;
-    public metrics: RuntimeMetric[];
-    public handlers: EventHandler[];
-
+export class IdleRuntimeBlock extends RuntimeBlockWithMemoryBase {
     constructor() {
-        this.key = new BlockKey('idle', [], []);
-        this.spans = {} as IResultSpanBuilder;
-        this.metrics = [];
-        this.handlers = [];
+        super(new BlockKey('idle', [], []), []);
     }
 
-    public tick(): IRuntimeEvent[] {
+    protected initializeMemory(): void {
+        // No additional memory needed for idle block
+    }
+
+    protected createSpansBuilder(): IResultSpanBuilder {
+        return {
+            create: () => ({ blockKey: this.key.toString(), timeSpan: {}, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
+
+    protected createInitialHandlers(): EventHandler[] {
         return [];
     }
 
-    public inherit(): IMetricInheritance[] {
+    protected onPush(): IRuntimeEvent[] {
         return [];
     }
 
-    public isDone(): boolean { return false; }
+    protected onNext(): IRuntimeBlock | undefined {
+        // Idle block never completes, so never return a next block
+        return undefined;
+    }
 
-    public reset(): void {}
+    protected onPop(): void {
+        // Handle completion logic for idle block
+        console.log(`IdleRuntimeBlock ${this.key.toString()} completed`);
+    }
 }

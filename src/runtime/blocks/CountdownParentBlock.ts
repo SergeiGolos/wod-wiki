@@ -1,9 +1,9 @@
 import { BlockKey } from "../../BlockKey";
-import { IMetricInheritance } from "../IMetricInheritance";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 // Parent block for countdown-based workouts adapted to the memory model.
 export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
@@ -32,8 +32,19 @@ export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    public tick(): IRuntimeEvent[] { return []; }
-    public inherit(): IMetricInheritance[] { return []; }
-    public isDone(): boolean { return false; }
-    public reset(): void {}
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`⏳ CountdownParentBlock.onPush() - Block pushed to stack`);
+        return [];
+    }
+
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`⏳ CountdownParentBlock.onNext() - Determining next block after child completion`);
+        // For countdown blocks, typically no next block (single execution)
+        return undefined;
+    }
+
+    protected onPop(): void {
+        console.log(`⏳ CountdownParentBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for countdown block
+    }
 }

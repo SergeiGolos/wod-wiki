@@ -5,35 +5,52 @@ import { RuntimeMetric } from './RuntimeMetric';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntime } from './IScriptRuntime';
 import { BlockKey } from '../BlockKey';
-import { EventHandler } from './EventHandler';
+import { EventHandler, IRuntimeEvent } from './EventHandler';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
+import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
 
 class MockStrategy implements IRuntimeBlockStrategy {
     constructor(private canHandle: boolean, private block: IRuntimeBlock | undefined) {}
 
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(_metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         return this.canHandle ? this.block : undefined;
     }
 }
 
-class MockBlock implements IRuntimeBlock {
-    spans: IResultSpanBuilder;
-    handlers: EventHandler[];
-    metrics: RuntimeMetric[];
-    key: BlockKey;
-    parent?: IRuntimeBlock | undefined;
-    
+class MockBlock extends RuntimeBlockWithMemoryBase {
     constructor() {
-        this.spans = {} as IResultSpanBuilder;
-        this.handlers = [];
-        this.metrics = [];
-        this.key = new BlockKey('mock');
+        super(new BlockKey('mock'), []);
     }
-    
-    tick(): any {}
-    inherit(): any { return []; }
-    isDone(): boolean { return false; }
-    reset(): void {}
+
+    protected initializeMemory(): void {
+        // Mock implementation
+    }
+
+    protected createSpansBuilder(): IResultSpanBuilder {
+        return {
+            create: () => ({ blockKey: this.key.toString(), timeSpan: {}, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
+
+    protected createInitialHandlers(): EventHandler[] {
+        return [];
+    }
+
+    protected onPush(): IRuntimeEvent[] {
+        return [];
+    }
+
+    protected onNext(): IRuntimeBlock | undefined {
+        return undefined;
+    }
+
+    protected onPop(): void {
+        // Mock completion
+    }
 }
 
 const mockRuntime = {} as IScriptRuntime;

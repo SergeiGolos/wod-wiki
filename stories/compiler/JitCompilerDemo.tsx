@@ -217,7 +217,9 @@ const toMockBlock = (block: IRuntimeBlock, depth: number): MockRuntimeBlock => {
         blockType = 'Effort';
     }
 
-    const metrics = block.getMetrics().flatMap(m => m.values.map(v => ({ type: v.type as string, value: v.value?.toString(), unit: v.unit })));
+    // For the new interface, we can't directly access metrics and parent
+    // We'll use placeholder data for the demo
+    const metrics: { type: string; value?: string; unit?: string }[] = [];
 
     return {
         displayName: block.constructor.name.replace('Block', ''),
@@ -226,7 +228,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number): MockRuntimeBlock => {
         depth: depth,
         metrics: metrics,
         key: block.key.toString(),
-        parentKey: block.getParent()?.key.toString()
+        parentKey: undefined // Can't access parent in new interface
     };
 };
 
