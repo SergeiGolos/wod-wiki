@@ -10,7 +10,7 @@ import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilatio
 import { compilers } from '../../src/runtime/FragmentCompilationManager.fixture';
 import { CountdownStrategy, RoundsStrategy, EffortStrategy } from '../../src/runtime/strategies';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { DebugMemorySnapshot, DebugMemoryEntry } from '../../src/runtime/memory/IDebugMemoryView';
+import { DebugMemorySnapshot } from '../../src/runtime/memory/IDebugMemoryView';
 
 // Mock types for demonstration (replace with real types when available)
 export interface MockRuntimeBlock {
@@ -39,41 +39,11 @@ const blockColors: Record<string, string> = {
 
 
 
-function MetricValueDisplay({ metric }: { metric: { type: string; value: string; unit?: string } }) {
-  return (
-    <div className="border rounded px-2 py-1 text-xs bg-white shadow-sm flex flex-col items-center">
-      <span className="font-bold uppercase tracking-wider text-gray-600">{metric.type}</span>
-      <span className="font-mono text-base">{metric.value} {metric.unit}</span>
-    </div>
-  );
-}
+// (unused) MetricValueDisplay kept for potential future detailed UI
 
-function RuntimeBlockDisplay({ block, isActive }: { block: MockRuntimeBlock; isActive: boolean }) {
-  return (
-    <div className={`border-2 rounded-lg p-3 mb-2 transition-all duration-200 ${blockColors[block.blockType]} ${isActive ? 'border-blue-600 shadow-lg' : 'opacity-80'}`} style={{ marginLeft: `${block.depth * 20}px` }}>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="font-bold text-sm">{block.displayName}</span>
-        <span className="text-xs text-gray-500">({block.blockType})</span>
-        {isActive && <span className="ml-2 text-blue-700 font-bold">&larr; CURRENT</span>}
-      </div>
-      <div className="text-xs text-gray-700 mb-1">{block.description}</div>
-      <div className="flex gap-2 flex-wrap">
-        {block.metrics.filter(m => m.value !== undefined).map((m, i) => <MetricValueDisplay key={i} metric={{ ...m, value: m.value! }} />)}
-      </div>
-      <div className="text-xs text-gray-400 mt-1">Key: {block.key} {block.parentKey && <>| Parent: {block.parentKey}</>}</div>
-    </div>
-  );
-}
+// (unused) Detailed block display kept for future use
 
-function RuntimeStackVisualizer({ stack }: { stack: MockRuntimeStack }) {
-  return (
-    <div>
-      {stack.blocks.map((block, i) => (
-        <RuntimeBlockDisplay key={block.key} block={block} isActive={i === stack.currentIndex} />
-      ))}
-    </div>
-  );
-}
+// (unused) Full-size stack visualizer kept for future use
 
 // Editor component for editing the workout script
 function ScriptEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {

@@ -1,0 +1,18 @@
+{
+	"nodes":[
+		{"id":"8ac0af7dc26412bf","x":-100,"y":20,"width":250,"height":60,"type":"text","text":"RuntimeBlock"},
+		{"id":"8bc5b8be1f3bbf44","x":-100,"y":-148,"width":250,"height":60,"type":"text","text":"JIT"},
+		{"id":"b03de04ab13dc36c","x":-100,"y":-320,"width":250,"height":60,"type":"text","text":"Script"},
+		{"id":"a1a1b85edfee0ca2","x":520,"y":-300,"width":265,"height":270,"type":"text","text":"Memory\n---\nMemoryBlock\n- BlockId\n- Spans\n- Properties:\n- CodeBlocks[]"},
+		{"id":"86058eb47fdc9e24","x":840,"y":40,"width":250,"height":318,"type":"text","text":"- Empty Stack []\n- Jit -> Rounds\n- Rounds push() \n- index:0\n- \n- Jit --> child\n- child push()"},
+		{"id":"bd4dbd25c1ebdbc2","x":1160,"y":-410,"width":340,"height":380,"type":"text","text":"RuntimeBlock\n\nPush(Memory)  -\n-  setup state\n- register Pop Listener\n\nNext(Memory) - when child completes \n- can push child or children onto the stack\n- can pop itself\n\nPop(Memory) \n- handles the complete event\n- presence spans\n- cleans up memory and events"}
+	],
+	"edges":[
+		{"id":"e2524061125f39fb","fromNode":"b03de04ab13dc36c","fromSide":"bottom","toNode":"8bc5b8be1f3bbf44","toSide":"top"},
+		{"id":"3366f677e159f0aa","fromNode":"8bc5b8be1f3bbf44","fromSide":"bottom","toNode":"8ac0af7dc26412bf","toSide":"top"},
+		{"id":"8fbe38e690b0a644","fromNode":"8ac0af7dc26412bf","fromSide":"right","toNode":"a1a1b85edfee0ca2","toSide":"left"},
+		{"id":"31d854a7ae1c10cc","fromNode":"b03de04ab13dc36c","fromSide":"right","toNode":"a1a1b85edfee0ca2","toSide":"left"},
+		{"id":"1b9004d1a50c8896","fromNode":"8bc5b8be1f3bbf44","fromSide":"right","toNode":"a1a1b85edfee0ca2","toSide":"left"},
+		{"id":"a96b557e19d5a933","fromNode":"bd4dbd25c1ebdbc2","fromSide":"left","toNode":"a1a1b85edfee0ca2","toSide":"right"}
+	]
+}
