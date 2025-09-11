@@ -3,6 +3,7 @@ import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
 import { IRuntimeEvent, EventHandler, IRuntimeAction } from './EventHandler';
+import { run } from 'node:test';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -21,9 +22,7 @@ export class ScriptRuntime implements IScriptRuntime {
         console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
         
         const allActions: IRuntimeAction[] = [];
-        const handlers = this.stack?.blocks.flatMap(block => block.handlers) ?? [];
-
-        event.runtime = this;
+        const handlers = this.stack.current?.handlers ?? [];
 
         console.log(`  🔍 Found ${handlers.length} handlers across ${this.stack.blocks.length} blocks`);
         
@@ -31,7 +30,7 @@ export class ScriptRuntime implements IScriptRuntime {
             const handler = handlers[i];
             console.log(`    🔧 Handler ${i + 1}/${handlers.length}: ${handler.name} (${handler.id})`);
             
-            const response = handler.handleEvent(event);
+            const response = handler.handleEvent(event, this);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
             
             if (response.handled) {

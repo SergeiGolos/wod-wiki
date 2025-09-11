@@ -8,6 +8,22 @@ export class RuntimeStack {
         return [...this._blocks].reverse();
     }
 
+    /**
+     * Returns the stack from top (current) to bottom. Alias of `blocks`.
+     * Useful when you want to render the active frame first.
+     */
+    public get blocksTopFirst(): readonly IRuntimeBlock[] {
+        return this.blocks;
+    }
+
+    /**
+     * Returns the stack from bottom (root) to top (current).
+     * Useful when you want to index into the root as position 0.
+     */
+    public get blocksBottomFirst(): readonly IRuntimeBlock[] {
+        return [...this._blocks];
+    }
+
     public get keys(): BlockKey[] {
         return [...this._blocks].reverse().map(b => b.key);
     }
@@ -47,6 +63,7 @@ export class RuntimeStack {
         if (this._blocks.length <= 1) {
             return [];
         }
-        return [...this._blocks].slice(0, -1).reverse();
+    // Order from outermost parent (root) to immediate parent
+    return [...this._blocks].slice(0, -1);
     }
 }

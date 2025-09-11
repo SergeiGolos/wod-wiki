@@ -60,5 +60,5 @@ export interface EventHandler {
    * @param context Additional context for event processing
    * @returns HandlerResponse describing handling state, continuation, and actions
    */
-  handleEvent(event: IRuntimeEvent): HandlerResponse;
+  handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse;
 }

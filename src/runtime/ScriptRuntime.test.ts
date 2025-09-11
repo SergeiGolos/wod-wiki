@@ -45,7 +45,9 @@ describe('ScriptRuntime', () => {
             tick: () => [],
             inherit: () => [],
             spans: {} as IResultSpanBuilder,
-            metrics: []
+            metrics: [],
+            isDone: () => false,
+            reset: () => {}
         };
 
         runtime.stack.push(block);
@@ -56,8 +58,8 @@ describe('ScriptRuntime', () => {
         runtime.handle(event);
 
         // Assert
-        expect(handler1.handleEvent).toHaveBeenCalledWith(event);
-        expect(handler2.handleEvent).toHaveBeenCalledWith(event);
+    expect(handler1.handleEvent).toHaveBeenCalledWith(event, runtime);
+    expect(handler2.handleEvent).toHaveBeenCalledWith(event, runtime);
         expect(action1.do).toHaveBeenCalledWith(runtime);
         expect(action2.do).toHaveBeenCalledWith(runtime);
     });
@@ -93,7 +95,9 @@ describe('ScriptRuntime', () => {
             tick: () => [],
             inherit: () => [],
             spans: {} as IResultSpanBuilder,
-            metrics: []
+            metrics: [],
+            isDone: () => false,
+            reset: () => {}
         };
 
         runtime.stack.push(block);
@@ -104,7 +108,7 @@ describe('ScriptRuntime', () => {
         runtime.handle(event);
 
         // Assert
-        expect(handler1.handleEvent).toHaveBeenCalledWith(event);
+    expect(handler1.handleEvent).toHaveBeenCalledWith(event, runtime);
         expect(handler2.handleEvent).not.toHaveBeenCalled();
         expect(action1.do).toHaveBeenCalledWith(runtime);
     });
