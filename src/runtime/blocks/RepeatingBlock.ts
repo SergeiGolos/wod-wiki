@@ -5,7 +5,7 @@ import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IMetricInheritance } from "../IMetricInheritance";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
-import { IMemoryReference } from "../memory";
+import type { IMemoryReference } from "../memory";
 
 interface LoopState {
     remainingRounds: number;

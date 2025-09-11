@@ -1,6 +1,6 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
-import { IMemoryReference } from './memory';
+import type { IMemoryReference } from './memory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { EventHandler } from './EventHandler';
 import { RuntimeMetric } from './RuntimeMetric';

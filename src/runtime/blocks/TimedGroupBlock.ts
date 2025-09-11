@@ -5,7 +5,7 @@ import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IMetricInheritance } from "../IMetricInheritance";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
-import { IMemoryReference } from "../memory";
+import type { IMemoryReference } from "../memory";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 
 interface GroupState {

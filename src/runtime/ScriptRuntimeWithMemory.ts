@@ -1,6 +1,7 @@
 import { ScriptRuntime } from './ScriptRuntime';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
-import { IRuntimeMemory, IDebugMemoryView, RuntimeMemory } from './memory';
+import type { IRuntimeMemory, IDebugMemoryView } from './memory';
+import { RuntimeMemory } from './memory';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
 import { IRuntimeEvent } from './EventHandler';

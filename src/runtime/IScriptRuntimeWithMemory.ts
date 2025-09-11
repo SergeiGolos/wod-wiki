@@ -1,5 +1,5 @@
 import { IScriptRuntime } from './IScriptRuntime';
-import { IRuntimeMemory, IDebugMemoryView } from './memory';
+import type { IRuntimeMemory, IDebugMemoryView } from './memory';
 
 /**
  * Extended script runtime interface that supports memory separation.

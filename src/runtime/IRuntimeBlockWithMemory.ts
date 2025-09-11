@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from "./IRuntimeBlock";
-import { IMemoryReference } from "./memory";
+import type { IMemoryReference } from "./memory";
 
 /**
  * Extended runtime block interface that supports memory allocation and management.
