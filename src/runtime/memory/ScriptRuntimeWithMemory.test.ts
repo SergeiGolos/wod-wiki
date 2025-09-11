@@ -43,7 +43,6 @@ describe('ScriptRuntimeWithMemory', () => {
         mockCompiler = {} as JitCompiler;
         
         runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
-        runtime.initialize();
     });
 
     describe('memory integration', () => {

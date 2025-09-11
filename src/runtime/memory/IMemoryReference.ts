@@ -13,7 +13,7 @@ export interface IMemoryReference<T = any> {
     get(): T | undefined;
     
     /** Sets the value at this memory location */
-    set(value: T): void;
+    set(value: T | undefined): void;
     
     /** Checks if the memory location still exists and is valid */
     isValid(): boolean;
