@@ -1,22 +1,36 @@
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeAction, IRuntimeEvent } from "../EventHandler";
+import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IMetricInheritance } from "../IMetricInheritance";
-
+import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
 
-export class EffortBlock implements IRuntimeBlock {
-    public parent?: IRuntimeBlock;
-    public spans: IResultSpanBuilder;
-    public metrics: RuntimeMetric[];
-    public handlers: EventHandler[];
+export class EffortBlock extends RuntimeBlockWithMemoryBase {
 
-    constructor(public readonly key: BlockKey, metrics: RuntimeMetric[]) {
-        this.metrics = metrics;
-        this.spans = {} as IResultSpanBuilder;
-        this.handlers = [new EffortNextHandler()];
+    constructor(key: BlockKey, metrics: RuntimeMetric[]) {
+        super(key, metrics);
+        console.log(`💪 EffortBlock created for key: ${key.toString()}`);
+    }
+
+    protected initializeMemory(): void {
+        // EffortBlocks might need to store effort-specific state in memory
+        console.log(`💪 EffortBlock initialized memory for: ${this.key.toString()}`);
+    }
+
+    protected createSpansBuilder(): IResultSpanBuilder {
+        // Create a simple spans builder - this should be replaced with actual implementation
+        return {
+            create: () => ({ blockKey: '', timeSpan: {}, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
+
+    protected createInitialHandlers(): EventHandler[] {
+        return [new EffortNextHandler()];
     }
 
     public tick(): IRuntimeEvent[] {
@@ -27,7 +41,11 @@ export class EffortBlock implements IRuntimeBlock {
         return [];
     }
 
-    public isDone(): boolean { return false; }
+    public isDone(): boolean { 
+        return false; 
+    }
 
-    public reset(): void {}
+    public reset(): void {
+        console.log(`💪 EffortBlock reset: ${this.key.toString()}`);
+    }
 }
