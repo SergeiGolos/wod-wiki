@@ -93,8 +93,26 @@ export class TimedGroupBlock extends RuntimeBlockWithMemoryBase {
 
     protected onNext(): IRuntimeBlock | undefined {
         console.log(`⏱️ TimedGroupBlock.onNext() - Determining next block after child completion`);
-        // TODO: Implement logic to return next child block or undefined if done
-        return undefined;
+        
+        if (!this.hasNextChild()) {
+            console.log(`⏱️ TimedGroupBlock.onNext() - No more children, signaling completion`);
+            return undefined;
+        }
+
+        // Advance to the next child
+        this.advanceToNextChild();
+        
+        // Get the current child block from the childBlocks array
+        const state = this.getGroupState();
+        if (state.currentChildIndex < 0 || state.currentChildIndex >= state.childBlocks.length) {
+            console.log(`⏱️ TimedGroupBlock.onNext() - Invalid child index: ${state.currentChildIndex}`);
+            return undefined;
+        }
+
+        const currentChildBlock = state.childBlocks[state.currentChildIndex];
+        console.log(`⏱️ TimedGroupBlock.onNext() - Returning child block: ${currentChildBlock.key.toString()}`);
+        
+        return currentChildBlock;
     }
 
     protected onPop(): void {
