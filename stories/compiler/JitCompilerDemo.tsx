@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { ScriptRuntimeWithMemory } from '../../src/runtime/ScriptRuntimeWithMemory';
@@ -59,11 +59,15 @@ function ScriptEditor({
   highlightedLine?: number;
 }) {
   // Create cursor metadata for line highlighting
-  const cursor: CodeMetadata | undefined = highlightedLine ? {
-    stack: [{
-      meta: { line: highlightedLine }
-    }]
-  } as CodeMetadata : undefined;
+  const cursor: CodeMetadata | undefined = highlightedLine
+    ? ({
+        stack: [
+          {
+            meta: { line: highlightedLine },
+          },
+        ],
+      } as unknown as CodeMetadata)
+    : undefined;
 
   return (
     <div className="mb-2">
@@ -152,6 +156,7 @@ interface MemoryTableEntry {
   type: string;
   owner: string;
   value: string;
+  rawValue: any;
   isValid: boolean;
   children: number;
   associatedBlockKey?: string; // Link to the runtime block that owns this memory
@@ -161,12 +166,36 @@ interface MemoryTableEntry {
 function MemoryVisualizationTable({ 
   entries, 
   hoveredBlockKey, 
-  onMemoryHover 
+  onMemoryHover,
+  hideOwnerColumn,
 }: { 
   entries: MemoryTableEntry[]; 
   hoveredBlockKey?: string;
   onMemoryHover: (entryId?: string, blockKey?: string) => void;
+  hideOwnerColumn?: boolean;
 }) {
+  const safeJSONStringify = (value: any): string => {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(
+        value,
+  (_key, val) => {
+          if (typeof val === 'object' && val !== null) {
+            if (seen.has(val)) return '[Circular]';
+            seen.add(val);
+          }
+          return val;
+        },
+        2
+      );
+    } catch {
+      try {
+        return String(value);
+      } catch {
+        return '[unserializable]';
+      }
+    }
+  };
   return (
     <div className="bg-white border rounded-lg overflow-hidden">
       <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 border-b">
@@ -177,7 +206,9 @@ function MemoryVisualizationTable({
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               <th className="text-left px-2 py-1 font-semibold">Type</th>
-              <th className="text-left px-2 py-1 font-semibold">Owner</th>
+              {!hideOwnerColumn && (
+                <th className="text-left px-2 py-1 font-semibold">Owner</th>
+              )}
               <th className="text-left px-2 py-1 font-semibold">Value</th>
               <th className="text-center px-2 py-1 font-semibold">Children</th>
             </tr>
@@ -202,9 +233,20 @@ function MemoryVisualizationTable({
                     }`}></span>
                     {entry.type}
                   </td>
-                  <td className="px-2 py-1 text-gray-600 font-mono">{entry.owner || '-'}</td>
+                  {!hideOwnerColumn && (
+                    <td className="px-2 py-1 text-gray-600 font-mono">{entry.owner || '-'}</td>
+                  )}
                   <td className="px-2 py-1 text-gray-800 font-mono max-w-32 truncate" title={entry.value}>
-                    {entry.value}
+                    {entry.rawValue && typeof entry.rawValue === 'object' ? (
+                      <details>
+                        <summary className="cursor-pointer select-none">{entry.value}</summary>
+                        <pre className="mt-1 p-2 bg-gray-50 rounded border max-h-40 overflow-auto whitespace-pre-wrap break-words">
+                          {safeJSONStringify(entry.rawValue)}
+                        </pre>
+                      </details>
+                    ) : (
+                      entry.value
+                    )}
                   </td>
                   <td className="px-2 py-1 text-center">{entry.children}</td>
                 </tr>
@@ -238,16 +280,18 @@ function GroupedMemoryVisualization({
     id: entry.id,
     type: entry.type,
     owner: entry.ownerId || '',
-    value: formatMemoryValue(entry.value),
+    value: formatMemoryValue(entry.type, entry.value),
+    rawValue: entry.value,
     isValid: entry.isValid,
     children: entry.children.length,
     associatedBlockKey: entry.ownerId // Owner ID is the block key
   }));
 
-  // Group by type
-  const groupedByType = memoryEntries.reduce((acc, entry) => {
-    if (!acc[entry.type]) acc[entry.type] = [];
-    acc[entry.type].push(entry);
+  // Group by owner for compact visualization
+  const groupedByOwner = memoryEntries.reduce((acc, entry) => {
+    const owner = entry.owner || 'unknown-owner';
+    if (!acc[owner]) acc[owner] = [] as MemoryTableEntry[];
+    acc[owner].push(entry);
     return acc;
   }, {} as Record<string, MemoryTableEntry[]>);
 
@@ -255,18 +299,16 @@ function GroupedMemoryVisualization({
     <div className="space-y-3">
       <div className="flex justify-between items-center text-xs text-gray-600">
         <span>Total Memory: {snapshot.totalAllocated} entries</span>
-        <span>By Type: {Object.keys(snapshot.summary.byType).join(', ')}</span>
+        <span>Owners: {Object.keys(groupedByOwner).length}</span>
       </div>
-      
-      {Object.entries(groupedByType).map(([type, entries]) => (
-        <div key={type}>
-          <div className="text-xs font-semibold text-gray-700 mb-1">
-            {type} ({entries.length})
-          </div>
+      {Object.entries(groupedByOwner).map(([owner, entries]) => (
+        <div key={owner} className="border rounded-md p-2">
+          <div className="text-xs font-semibold text-gray-800 mb-2">Owner: {owner}</div>
           <MemoryVisualizationTable 
-            entries={entries} 
+            entries={entries}
             hoveredBlockKey={hoveredBlockKey}
             onMemoryHover={onMemoryHover}
+            hideOwnerColumn
           />
         </div>
       ))}
@@ -274,7 +316,7 @@ function GroupedMemoryVisualization({
   );
 }
 
-function formatMemoryValue(value: any): string {
+function formatMemoryValue(type: string, value: any): string {
   if (value === null || value === undefined) {
     return 'null';
   }
@@ -291,12 +333,42 @@ function formatMemoryValue(value: any): string {
     return `Array[${value.length}]`;
   }
   if (typeof value === 'object') {
-    const keys = Object.keys(value);
-    if (keys.length === 0) return '{}';
-    if (keys.length <= 2) {
-      return `{${keys.join(', ')}}`;
+    try {
+      if (type === 'metric-entry') {
+        const me = value as any;
+        return `metric ${me.type}: ${me.value ?? '-'}${me.unit ? ' ' + me.unit : ''} (src:${me.sourceId}, blk:${me.blockId})`;
+      }
+      if (type === 'loop-state') {
+        const rr = (value as any).remainingRounds;
+        const idx = (value as any).currentChildIndex;
+        const childCount = Array.isArray((value as any).childStatements) ? (value as any).childStatements.length : 2;
+        return `rounds: ${rr}, child: ${Math.max(0, idx) + 1}/${childCount}`;
+      }
+      if (type === 'group-state') {
+        const idx = (value as any).currentChildIndex;
+        const childCount = Array.isArray((value as any).childBlocks) ? (value as any).childBlocks.length : 0;
+        return `child: ${Math.max(0, idx) + 1}/${childCount}`;
+      }
+      if (type === 'metrics' || type === 'metrics-snapshot') {
+        const m = value as any[];
+        return `metrics: ${Array.isArray(m) ? m.length : 0}`;
+      }
+      if (type === 'spans') {
+        return 'spans-builder';
+      }
+      if (type === 'handlers') {
+        const arr = value as any[];
+        return `handlers: ${Array.isArray(arr) ? arr.length : 0}`;
+      }
+      const keys = Object.keys(value);
+      if (keys.length === 0) return '{}';
+      if (keys.length <= 2) {
+        return `{${keys.join(', ')}}`;
+      }
+      return `{${keys.slice(0, 2).join(', ')}...}`;
+    } catch {
+      return '{…}';
     }
-    return `{${keys.slice(0, 2).join(', ')}...}`;
   }
   return String(value).substring(0, 30);
 }
@@ -319,7 +391,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
     // Estimate line number based on block key and script content
     // This is a simple heuristic - in a real implementation, this would come from the compiler
     let lineNumber: number | undefined;
-    const blockKey = block.key.toString();
+  // Note: key available via block.key.toString() if needed for mapping
     
     // Try to find the line that corresponds to this block
     // Look for patterns that might match the block type
@@ -361,6 +433,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const [hoveredBlockKey, setHoveredBlockKey] = useState<string>();
   const [hoveredMemoryBlockKey, setHoveredMemoryBlockKey] = useState<string>();
   const [highlightedLine, setHighlightedLine] = useState<number>();
+  // Used to force a re-render after mutating the runtime in-place
+  const [, setStepVersion] = useState(0);
   
   // Create a runtime if one wasn't provided
   const createRuntime = (scriptText: string): ScriptRuntimeWithMemory => {
@@ -403,30 +477,27 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
   // Handle memory hover - highlights associated runtime block
   const handleMemoryHover = (entryId?: string, blockKey?: string) => {
+    // Mark param as used to satisfy strict TS noUnusedParameters
+    void entryId;
     setHoveredMemoryBlockKey(blockKey);
   };
 
   const handleNextBlock = () => {
+    // Execute one step on the existing runtime instance
     runtime.handle(new NextEvent());
-    setRuntime(prev => {
-        if (prev instanceof ScriptRuntimeWithMemory) {
-            const newRuntime = new ScriptRuntimeWithMemory(prev.script, prev.jit);
-            newRuntime.stack.setBlocks([...prev.stack.blocks]);
-            return newRuntime;
-        } else {
-            const newRuntime = new ScriptRuntime(prev.script, prev.jit);
-            newRuntime.stack.setBlocks([...prev.stack.blocks]);
-            return newRuntime;
-        }
-    });
+    // Force a re-render without reconstructing the runtime (preserves memory/state)
+    setStepVersion(v => v + 1);
   };
 
   // Parse script into lines for line number mapping
   const scriptLines = script.split('\n');
 
+  // Render stack in a canonical order: bottom (root) -> top (current)
+  const blocksBottomFirst = runtime?.stack?.blocksBottomFirst ?? [];
   const stack: MockRuntimeStack = {
-      blocks: runtime?.stack?.blocks?.map((b, i) => toMockBlock(b, i, scriptLines)) ?? [],
-      currentIndex: Math.max(0, (runtime?.stack?.blocks?.length ?? 1) - 1)
+    blocks: blocksBottomFirst.map((b, i) => toMockBlock(b, i, scriptLines)),
+    // Active is always the top-of-stack: last item in bottom-first view
+    currentIndex: Math.max(0, blocksBottomFirst.length - 1)
   }
 
   // Get memory snapshot if using ScriptRuntimeWithMemory
@@ -436,42 +507,46 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   return (
     <div className="p-4 max-w-7xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Stack & Memory Visualization Debug Harness</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div>
-          <label className="block text-sm font-semibold mb-2 text-gray-700">
-            📝 Workout Script Editor
-          </label>
-          <ScriptEditor 
-            value={script} 
-            onChange={setScript}
-            highlightedLine={highlightedLine}
-          />
-          <div className="flex gap-2 mt-3">
-            <button 
-              className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors" 
-              onClick={handleNextBlock}
-            >
-              ▶️ Next Block
-            </button>
-          </div>
-          {highlightedLine && (
-            <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-              💡 Highlighting line {highlightedLine}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Left column: Editor on top, Stack below */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              📝 Workout Script Editor
+            </label>
+            <ScriptEditor 
+              value={script} 
+              onChange={setScript}
+              highlightedLine={highlightedLine}
+            />
+            <div className="flex gap-2 mt-3">
+              <button 
+                className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors" 
+                onClick={handleNextBlock}
+              >
+                ▶️ Next Block
+              </button>
             </div>
-          )}
+            {highlightedLine && (
+              <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                💡 Highlighting line {highlightedLine}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              📚 Runtime Stack (Execution)
+            </label>
+            <CompactRuntimeStackVisualizer 
+              stack={stack}
+              hoveredMemoryBlockKey={hoveredMemoryBlockKey}
+              onBlockHover={handleBlockHover}
+            />
+          </div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-semibold mb-2 text-gray-700">
-            📚 Runtime Stack (Execution)
-          </label>
-          <CompactRuntimeStackVisualizer 
-            stack={stack}
-            hoveredMemoryBlockKey={hoveredMemoryBlockKey}
-            onBlockHover={handleBlockHover}
-          />
-        </div>
-        
+
+        {/* Right column: Memory next to both editor and stack */}
         <div>
           <label className="block text-sm font-semibold mb-2 text-gray-700">
             🧠 Memory Space (Allocation)
@@ -483,7 +558,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
           />
         </div>
       </div>
-      
+
       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">💡 Debug Harness Features</h3>
         <ul className="text-xs text-blue-700 space-y-1">

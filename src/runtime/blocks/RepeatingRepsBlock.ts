@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+// import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RepeatingBlock } from "./RepeatingBlock";
 import { IPromotePublicBehavior } from "../behaviors/IPromotePublicBehavior";
@@ -40,7 +40,7 @@ export class RepeatingRepsBlock extends RepeatingBlock implements IPromotePublic
         this._publicMetricsRef = this.allocateMemory<RuntimeMetric[]>(
             'metrics-snapshot', 
             this.createPublicMetricsSnapshot(), 
-            'public'
+            'private'
         );
 
         // Track current reps count per round (public for children)

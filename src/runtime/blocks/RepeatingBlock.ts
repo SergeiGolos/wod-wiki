@@ -29,10 +29,14 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
 
         // Allocate memory for loop state (private)
+        // Initialize with placeholder children if parser hasn't provided them yet.
+        // This allows the demo to visualize per-child stepping (e.g., Fran has 2 children per round).
+        const initialChildStatements: any[] = [];
+
         this._loopStateRef = this.allocateMemory<LoopState>('loop-state', {
             remainingRounds: initialRounds,
             currentChildIndex: -1,
-            childStatements: []
+            childStatements: initialChildStatements
         }, 'private');
 
         // Allocate memory for segments tracking (private)
@@ -102,30 +106,45 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
 
     public hasNextChild(): boolean {
         const state = this.getLoopState();
-        
-        // Check if there are more children in the current round
-        if (state.currentChildIndex < state.childStatements.length - 1) {
-            return true;
-        }
-        
-        // Check if there are more rounds to execute
+
+        // Fallback: assume two children when child list is unknown/empty (helps demo like Fran)
+        const childCount = state.childStatements.length > 0 ? state.childStatements.length : 2;
+
+        if (state.remainingRounds <= 0) return false;
+
+        // If there are children remaining in this round
+        if (state.currentChildIndex < childCount - 1) return true;
+
+        // If we've reached end-of-children but still have more rounds
         return state.remainingRounds > 1;
     }
 
     public advanceToNextChild(): void {
         const state = this.getLoopState();
-        state.currentChildIndex++;
-        
-        // If we've completed all children in this round
-        if (state.currentChildIndex >= state.childStatements.length) {
+        const childCount = state.childStatements.length > 0 ? state.childStatements.length : 2;
+
+        if (state.remainingRounds <= 0 || childCount <= 0) {
+            // Nothing to do
+            this.setLoopState(state);
+            return;
+        }
+
+        if (state.currentChildIndex < childCount - 1) {
+            // Advance within the current round
+            state.currentChildIndex++;
+        } else {
+            // End of current round
             console.log(`🔄 RepeatingBlock - Round completed, ${state.remainingRounds - 1} rounds remaining`);
             state.remainingRounds--;
-            state.currentChildIndex = 0; // Reset to first child for next round
+            if (state.remainingRounds > 0) {
+                // Start next round at first child
+                state.currentChildIndex = 0;
+            }
         }
-        
+
         // Save the updated state to memory
         this.setLoopState(state);
-        
+
         console.log(`🔄 RepeatingBlock - Advanced to child ${state.currentChildIndex}, rounds remaining: ${state.remainingRounds}`);
     }
 

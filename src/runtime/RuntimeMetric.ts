@@ -20,3 +20,20 @@ export interface RuntimeMetric {
   /** Array of metric values (reps, distance, etc.) */
   values: MetricValue[];
 }
+
+/**
+ * Flattened metric entry stored in memory so UI/debuggers can see per-value metrics
+ * without needing to parse composite RuntimeMetric objects.
+ */
+export interface MetricEntry {
+  /** Identifier for the originating statement/fragment */
+  sourceId: string;
+  /** Runtime block id that owns this metric entry */
+  blockId: string;
+  /** Metric type */
+  type: MetricValue['type'];
+  /** Numeric or undefined value */
+  value: number | undefined;
+  /** Unit string */
+  unit: string;
+}

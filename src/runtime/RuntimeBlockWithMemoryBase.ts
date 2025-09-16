@@ -3,7 +3,7 @@ import type { IMemoryReference } from './memory';
 import { IRuntimeMemory } from './memory/IRuntimeMemory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { EventHandler, IRuntimeEvent } from './EventHandler';
-import { RuntimeMetric } from './RuntimeMetric';
+import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
 
@@ -18,7 +18,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     // Memory references for core runtime state
     private _spansRef?: IMemoryReference<IResultSpanBuilder>;
     private _handlersRef?: IMemoryReference<EventHandler[]>;
-    private _metricsRef?: IMemoryReference<RuntimeMetric[]>;
+    private _metricsRef?: IMemoryReference<RuntimeMetric[]>; // kept for compatibility; prefer metric-entry
 
     constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = []) {
         console.log(`🧠 RuntimeBlockWithMemoryBase created: ${key.toString()}`);
@@ -53,14 +53,37 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
             this.createInitialHandlers()
         );
 
+        // For new memory model, avoid storing arrays as a single memory object.
+        // Keep a private reference only if needed for legacy paths.
         this._metricsRef = memory.allocate<RuntimeMetric[]>(
             'metrics',
             ownerId,
-            [...this.initialMetrics]
+            [...this.initialMetrics],
+            undefined,
+            'private'
         );
 
         // Call template method for subclass initialization
         this.initializeMemory();
+
+        // Publish flattened metric entries to memory for easier inspection and linking
+        try {
+            const metrics = [...this.initialMetrics];
+            for (const m of metrics) {
+                for (const mv of m.values) {
+                    const entry: MetricEntry = {
+                        sourceId: m.sourceId,
+                        blockId: ownerId,
+                        type: mv.type,
+                        value: mv.value,
+                        unit: mv.unit,
+                    };
+                    memory.allocate<MetricEntry>('metric-entry', ownerId, entry, undefined, 'public');
+                }
+            }
+        } catch (e) {
+            console.log(`⚠️ Failed to publish metric entries for ${ownerId}:`, e);
+        }
 
         console.log(`🧠 RuntimeBlockWithMemoryBase pushed and initialized memory for: ${this.key.toString()}`);
 
