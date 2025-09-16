@@ -5,8 +5,8 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { RepeatingBlock } from './blocks/RepeatingBlock';
 import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
-import { BlockKey } from "../BlockKey";
 import { EffortBlock } from "./blocks/EffortBlock";
+import { BlockKey } from "../BlockKey";
 
 // The default strategy that creates a simple EffortBlock.
 export class EffortStrategy implements IRuntimeBlockStrategy {

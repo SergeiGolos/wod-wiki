@@ -11,6 +11,9 @@ export interface IMemoryReference<T = any> {
     
     /** Owner identifier for this memory reference */
     readonly ownerId: string;
+
+    /** Visibility of this memory reference relative to child owners */
+    readonly visibility: 'public' | 'private';
     
     /** Gets the current value stored at this memory location */
     get(): T | undefined;
@@ -22,5 +25,5 @@ export interface IMemoryReference<T = any> {
     isValid(): boolean;
     
     /** Creates a child reference that will be cleaned up when this reference is cleaned up */
-    createChild<C = any>(type: string, initialValue?: C): IMemoryReference<C>;
+    createChild<C = any>(type: string, initialValue?: C, visibility?: 'public' | 'private'): IMemoryReference<C>;
 }

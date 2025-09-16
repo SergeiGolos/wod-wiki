@@ -9,7 +9,7 @@ export interface IRuntimeMemory {
      * Allocates a new memory location and returns a reference to it.
      * This memory will be automatically cleaned up when the associated stack item is removed.
      */
-    allocate<T>(type: string, ownerId: string, initialValue?: T): IMemoryReference<T>;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: IMemoryReference | undefined, visibility?: 'public' | 'private'): IMemoryReference<T>;
     
     /**
      * Gets a memory reference by its ID.
@@ -22,6 +22,12 @@ export interface IRuntimeMemory {
      * Returns an array of matching references (empty if none found).
      */
     searchReferences<T>(criteria: { ownerId?: string; type?: string }): IMemoryReference<T>[];
+    
+    /**
+     * Returns references visible to a given owner, walking up the owner chain.
+     * Includes the owner's own references (both private and public) and public references from ancestors.
+     */
+    getVisibleFor(ownerId: string, ancestors: string[]): IMemoryReference[];
     
     /**
      * Manually releases a memory reference and all its children.

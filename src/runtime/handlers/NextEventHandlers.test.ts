@@ -28,7 +28,7 @@ describe('NextEvent Handlers', () => {
         it('should return an AdvanceToNextChildAction if there is a next child', () => {
             // Arrange
             const handler = new GroupNextHandler();
-            const block = new TimedGroupBlock(new BlockKey('group'), []);
+            const block = new TimedGroupBlock('group', []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(true);
             const event = new NextEvent();
             const mockRuntime = { 
@@ -47,7 +47,7 @@ describe('NextEvent Handlers', () => {
         it('should return a PopBlockAction if there is no next child', () => {
             // Arrange
             const handler = new GroupNextHandler();
-            const block = new TimedGroupBlock(new BlockKey('group'), []);
+            const block = new TimedGroupBlock('group', []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(false);
             const event = new NextEvent();
             const mockRuntime = { 

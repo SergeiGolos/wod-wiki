@@ -123,7 +123,7 @@ The JIT provides rich context for compilation including:
     currentRound: 1
   },
   blockContext: {
-    blockKey: new BlockKey(),
+    blockKey: UUID(),
     childBlocks: [],
     isRepeating: false,
     iterationCount: 0

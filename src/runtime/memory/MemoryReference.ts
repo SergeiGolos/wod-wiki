@@ -2,7 +2,7 @@ import { IMemoryReference } from './IMemoryReference';
 
 // Interface for the memory allocator to avoid circular dependency
 interface IMemoryAllocator {
-    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference): IMemoryReference<T>;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference, visibility?: 'public' | 'private'): IMemoryReference<T>;
 }
 
 /**
@@ -13,6 +13,7 @@ export class MemoryReference<T = any> implements IMemoryReference<T> {
     private _isValid: boolean = true;
     private _children: Set<MemoryReference> = new Set();
     private _parent?: MemoryReference;
+    public readonly visibility: 'public' | 'private';
 
     constructor(
         public readonly id: string,
@@ -20,10 +21,12 @@ export class MemoryReference<T = any> implements IMemoryReference<T> {
         public readonly ownerId: string,
         private readonly memory: IMemoryAllocator,
         initialValue?: T,
-        parent?: MemoryReference
+        parent?: MemoryReference,
+        visibility: 'public' | 'private' = 'private'
     ) {
         this._value = initialValue;
         this._parent = parent;
+        this.visibility = visibility;
         if (parent) {
             parent._children.add(this);
         }
@@ -47,11 +50,11 @@ export class MemoryReference<T = any> implements IMemoryReference<T> {
         return this._isValid;
     }
 
-    createChild<C = any>(type: string, initialValue?: C): IMemoryReference<C> {
+    createChild<C = any>(type: string, initialValue?: C, visibility: 'public' | 'private' = 'private'): IMemoryReference<C> {
         if (!this._isValid) {
             throw new Error(`Cannot create child on invalid memory reference ${this.id}`);
         }
-        return this.memory.allocate(type, this.ownerId, initialValue, this);
+        return this.memory.allocate(type, this.ownerId, initialValue, this, visibility);
     }
 
     /** Internal method for cleanup - not part of the public interface */

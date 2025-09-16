@@ -1,10 +1,17 @@
 import { BlockKey } from "../BlockKey";
 import { IRuntimeEvent } from "./EventHandler";
 import { IRuntimeMemory } from "./memory/IRuntimeMemory";
+import { IScriptRuntimeWithMemory } from "./IScriptRuntimeWithMemory";
 
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
+
+    /**
+     * Sets the runtime context for this block
+     * @param runtime The script runtime with memory support
+     */
+    setRuntime?(runtime: IScriptRuntimeWithMemory): void;
 
     /**
      * Called when this block is pushed onto the runtime stack.

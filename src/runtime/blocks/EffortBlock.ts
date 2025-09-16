@@ -1,10 +1,10 @@
-import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
 import { IRuntimeBlock } from "../IRuntimeBlock";
+import { BlockKey } from "../../BlockKey";
 
 export class EffortBlock extends RuntimeBlockWithMemoryBase {
 

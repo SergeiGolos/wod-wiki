@@ -13,7 +13,7 @@ import { IMetricInheritance } from './IMetricInheritance';
  * instead of as class properties.
  */
 class ExerciseBlock extends RuntimeBlockWithMemoryBase {
-    key = new BlockKey('exercise');
+    key = 'exercise';
     spans = {} as IResultSpanBuilder;
     handlers: EventHandler[] = [];
     metrics: RuntimeMetric[] = [];

@@ -4,21 +4,27 @@ import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RootNextHandler } from "../handlers/RootNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { IRuntimeBlock } from "../IRuntimeBlock";
+import type { IMemoryReference } from "../memory";
 
 /**
  * Root block adapted to the memory model. This ensures setRuntime() exists
  * so ScriptRuntimeWithMemory can push it safely.
  */
 export class RootBlock extends RuntimeBlockWithMemoryBase {
+    private _children: string[];
+    private _statementIndexRef?: IMemoryReference<number>;
+
     constructor(children: string[]) {
         console.log(`🌱 RootBlock constructor - Creating with children: [${children.join(', ')}]`);
-        const key = new BlockKey('root', children, []);
+        const key = new BlockKey('root');
         super(key, []);
+        this._children = children;
         console.log(`🌱 RootBlock created with key: ${this.key.toString()}`);
     }
 
     protected initializeMemory(): void {
-        // No additional memory for now; handlers/spans/metrics handled by base
+        // Initialize statement index in memory
+        this._statementIndexRef = this.allocateMemory<number>('statement-index', 0);
         console.log(`🌱 RootBlock.initializeMemory()`);
     }
 
@@ -37,6 +43,33 @@ export class RootBlock extends RuntimeBlockWithMemoryBase {
         const handlers = [new RootNextHandler()];
         console.log(`  🔧 Registered ${handlers.length} handlers: ${handlers.map(h => h.name).join(', ')}`);
         return handlers;
+    }
+
+    /**
+     * Get the current statement index from memory
+     */
+    public getStatementIndex(): number {
+        if (!this._statementIndexRef || !this._statementIndexRef.isValid()) {
+            return 0;
+        }
+        return this._statementIndexRef.get() || 0;
+    }
+
+    /**
+     * Set the current statement index in memory
+     */
+    public setStatementIndex(index: number): void {
+        if (this._statementIndexRef && this._statementIndexRef.isValid()) {
+            this._statementIndexRef.set(index);
+        }
+    }
+
+    /**
+     * Increment the statement index in memory
+     */
+    public incrementStatementIndex(): void {
+        const currentIndex = this.getStatementIndex();
+        this.setStatementIndex(currentIndex + 1);
     }
 
     protected onPush(): IRuntimeEvent[] {

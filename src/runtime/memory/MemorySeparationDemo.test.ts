@@ -10,11 +10,11 @@ describe('Memory Separation Demonstration', () => {
         // 1. Allocate memory for different "blocks" (simulating stack items)
         console.log('1. Allocating memory for different runtime blocks...');
         
-        const blockAMemory = memory.allocate<{ name: string; reps: number }>('exercise-state', 
-            { name: 'Push-ups', reps: 0 }, 'blockA');
+        const blockAMemory = memory.allocate<{ name: string; reps: number }>('exercise-state', 'blockA',
+            { name: 'Push-ups', reps: 0 });
         
-        const blockBMemory = memory.allocate<{ name: string; reps: number }>('exercise-state',
-            { name: 'Squats', reps: 0 }, 'blockB');
+        const blockBMemory = memory.allocate<{ name: string; reps: number }>('exercise-state', 'blockB',
+            { name: 'Squats', reps: 0 });
         
         // 2. Create child memory allocations
         console.log('2. Creating child memory allocations...');

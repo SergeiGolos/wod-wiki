@@ -11,7 +11,7 @@ describe('RuntimeMemory', () => {
 
     describe('basic allocation', () => {
         it('should allocate memory and return a valid reference', () => {
-            const ref = memory.allocate<string>('test-type', 'initial-value');
+            const ref = memory.allocate<string>('test-type', 'test-owner', 'initial-value');
 
             expect(ref.isValid()).toBe(true);
             expect(ref.type).toBe('test-type');
@@ -29,9 +29,9 @@ describe('RuntimeMemory', () => {
         });
 
         it('should track references by owner', () => {
-            const ref1 = memory.allocate<string>('type1', 'value1', 'owner1');
-            const ref2 = memory.allocate<string>('type2', 'value2', 'owner1');
-            const ref3 = memory.allocate<string>('type3', 'value3', 'owner2');
+            const ref1 = memory.allocate<string>('type1', 'owner1', 'value1');
+            const ref2 = memory.allocate<string>('type2', 'owner1', 'value2');
+            const ref3 = memory.allocate<string>('type3', 'owner2', 'value3');
 
             const owner1Refs = memory.getByOwner('owner1');
             const owner2Refs = memory.getByOwner('owner2');
@@ -45,7 +45,7 @@ describe('RuntimeMemory', () => {
 
     describe('memory cleanup', () => {
         it('should invalidate memory reference when released', () => {
-            const ref = memory.allocate<string>('test-type', 'test-value');
+            const ref = memory.allocate<string>('test-type', 'test-owner', 'test-value');
 
             expect(ref.isValid()).toBe(true);
 
@@ -56,16 +56,16 @@ describe('RuntimeMemory', () => {
         });
 
         it('should throw error when trying to set value on invalid reference', () => {
-            const ref = memory.allocate<string>('test-type', 'test-value');
+            const ref = memory.allocate<string>('test-type', 'test-owner', 'test-value');
             memory.release(ref);
 
             expect(() => ref.set('new-value')).toThrow();
         });
 
         it('should clean up all references owned by an owner', () => {
-            const ref1 = memory.allocate<string>('type1', 'value1', 'owner1');
-            const ref2 = memory.allocate<string>('type2', 'value2', 'owner1');
-            const ref3 = memory.allocate<string>('type3', 'value3', 'owner2');
+            const ref1 = memory.allocate<string>('type1', 'owner1', 'value1');
+            const ref2 = memory.allocate<string>('type2', 'owner1', 'value2');
+            const ref3 = memory.allocate<string>('type3', 'owner2', 'value3');
 
             // Release by owner
             const owner1Refs = memory.getByOwner('owner1');
@@ -84,7 +84,7 @@ describe('RuntimeMemory', () => {
 
     describe('child references', () => {
         it('should create child references', () => {
-            const parent = memory.allocate<string>('parent', 'parent-value');
+            const parent = memory.allocate<string>('parent', 'parent-owner', 'parent-value');
             const child = parent.createChild<number>('child', 42);
 
             expect(child.isValid()).toBe(true);
@@ -93,7 +93,7 @@ describe('RuntimeMemory', () => {
         });
 
         it('should invalidate children when parent is released', () => {
-            const parent = memory.allocate<string>('parent', 'parent-value');
+            const parent = memory.allocate<string>('parent', 'parent-owner', 'parent-value');
             const child1 = parent.createChild<number>('child1', 1);
             const child2 = parent.createChild<number>('child2', 2);
 
@@ -109,7 +109,7 @@ describe('RuntimeMemory', () => {
         });
 
         it('should not allow creating children on invalid references', () => {
-            const parent = memory.allocate<string>('parent', 'parent-value');
+            const parent = memory.allocate<string>('parent', 'parent-owner', 'parent-value');
             memory.release(parent);
 
             expect(() => parent.createChild<number>('child', 42)).toThrow();
@@ -150,7 +150,7 @@ describe('RuntimeMemory', () => {
         });
 
         it('should build memory hierarchy', () => {
-            const parent = memory.allocate<string>('parent', 'parent-value', 'owner1');
+            const parent = memory.allocate<string>('parent', 'parent-owner', 'parent-value');
             const child1 = parent.createChild<string>('child', 'child1-value');
             const child2 = parent.createChild<string>('child', 'child2-value');
 
@@ -162,6 +162,37 @@ describe('RuntimeMemory', () => {
             
             const childIds = hierarchy.roots[0].children.map(c => c.entry.id).sort();
             expect(childIds).toEqual([child1.id, child2.id].sort());
+        });
+    });
+
+    describe('visibility (public/private)', () => {
+        it('should default to private visibility', () => {
+            const ref = memory.allocate<string>('state', 'owner1', 'v1');
+            expect((ref as any).visibility).toBe('private');
+        });
+
+        it('should allow marking references as public', () => {
+            const ref = memory.allocate<string>('config', 'owner1', 'v', undefined, 'public');
+            expect((ref as any).visibility).toBe('public');
+        });
+
+        it('should expose ancestor public refs via getVisibleFor', () => {
+            // Simulate a stack ancestry: root -> group -> current
+            const rootPub = memory.allocate<string>('shared', 'root', 'r', undefined, 'public');
+            const rootPriv = memory.allocate<string>('secret', 'root', 's', undefined, 'private');
+            const groupPub = memory.allocate<string>('shared', 'group', 'g', undefined, 'public');
+            const groupPriv = memory.allocate<string>('secret', 'group', 'gs', undefined, 'private');
+            const currentOwn = memory.allocate<string>('own', 'current', 'c');
+
+            const visible = memory.getVisibleFor('current', ['root', 'group']);
+
+            const ids = new Set(visible.map(v => v.id));
+            expect(ids.has((rootPub as any).id)).toBe(true);
+            expect(ids.has((groupPub as any).id)).toBe(true);
+            expect(ids.has((currentOwn as any).id)).toBe(true);
+            // Private ancestor refs should not be visible
+            expect(ids.has((rootPriv as any).id)).toBe(false);
+            expect(ids.has((groupPriv as any).id)).toBe(false);
         });
     });
 });

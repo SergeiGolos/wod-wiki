@@ -11,9 +11,9 @@ export class RuntimeMemory implements IRuntimeMemory {
     private _references: Map<string, MemoryReference> = new Map();
     private _ownerIndex: Map<string, Set<string>> = new Map();
 
-    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference): IMemoryReference<T> {
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: MemoryReference, visibility: 'public' | 'private' = 'private'): IMemoryReference<T> {
         const id = this._generateId();
-        const reference = new MemoryReference<T>(id, type, ownerId, this as any, initialValue, parent);
+        const reference = new MemoryReference<T>(id, type, ownerId, this as any, initialValue, parent, visibility);
         
         this._references.set(id, reference);
         
@@ -107,6 +107,21 @@ export class RuntimeMemory implements IRuntimeMemory {
         }
         
         return results;
+    }
+
+    /**
+     * Returns references visible to a given owner, considering ancestry order from root to immediate parent.
+     */
+    getVisibleFor(ownerId: string, ancestors: string[]): IMemoryReference[] {
+        const visible: IMemoryReference[] = [];
+        // Own refs (both private and public)
+        visible.push(...this.getByOwner(ownerId));
+        // Ancestors: only public
+        for (const anc of ancestors) {
+            const refs = this.getByOwner(anc).filter(r => (r as MemoryReference).visibility === 'public');
+            visible.push(...refs);
+        }
+        return visible;
     }
 
     clean(ownerId: string): void {

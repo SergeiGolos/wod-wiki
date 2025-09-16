@@ -49,6 +49,12 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
 
         this.stack.push = (block) => {
             console.log(`🧠 ScriptRuntimeWithMemory - Pushing block: ${block.key.toString()}`);
+            
+            // Set runtime context for memory-aware blocks
+            if (block.setRuntime) {
+                block.setRuntime(this);
+            }
+            
             const events = block.push(this.memory);
             originalPush(block);
 

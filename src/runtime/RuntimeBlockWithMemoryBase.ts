@@ -5,6 +5,7 @@ import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { EventHandler, IRuntimeEvent } from './EventHandler';
 import { RuntimeMetric } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
+import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
 
 /**
  * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
@@ -12,6 +13,7 @@ import { BlockKey } from '../BlockKey';
  */
 export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     protected memory?: IRuntimeMemory;
+    protected runtime?: IScriptRuntimeWithMemory;
 
     // Memory references for core runtime state
     private _spansRef?: IMemoryReference<IResultSpanBuilder>;
@@ -20,6 +22,13 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
 
     constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = []) {
         console.log(`🧠 RuntimeBlockWithMemoryBase created: ${key.toString()}`);
+    }
+
+    /**
+     * Sets the runtime context for this block
+     */
+    setRuntime(runtime: IScriptRuntimeWithMemory): void {
+        this.runtime = runtime;
     }
 
     /**
@@ -117,7 +126,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     /**
      * Helper method to allocate memory for block-specific state
      */
-    protected allocateMemory<T>(type: string, initialValue?: T): IMemoryReference<T> {
+    protected allocateMemory<T>(type: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): IMemoryReference<T> {
         if (!this.memory) {
             throw new Error(`Cannot allocate memory before block is pushed for ${this.key.toString()}`);
         }
@@ -125,7 +134,9 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         return this.memory.allocate<T>(
             type,
             this.key.toString(),
-            initialValue
+            initialValue,
+            undefined,
+            visibility
         );
     }
 
@@ -138,6 +149,24 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         }
 
         return this.memory.getByOwner(this.key.toString());
+    }
+
+    /**
+     * Helper to get memory visible to this block: own refs (all) + public from ancestors
+     */
+    protected getVisibleMemory(): IMemoryReference[] {
+        if (!this.memory || !this.runtime) return [];
+        const ownerId = this.key.toString();
+        // Determine ancestry from runtime stack
+        const ancestors = this.runtime.stack.getParentBlocks().map(b => b.key.toString());
+        return this.memory.getVisibleFor(ownerId, ancestors);
+    }
+
+    /**
+     * Helper to find visible references by type
+     */
+    protected findVisibleByType<T = any>(type: string): IMemoryReference<T>[] {
+        return this.getVisibleMemory().filter(r => r.type === type) as IMemoryReference<T>[];
     }
 
     /**

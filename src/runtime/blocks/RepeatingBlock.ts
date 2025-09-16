@@ -92,9 +92,6 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
             console.log(`🔄 RepeatingBlock - Round completed, ${state.remainingRounds - 1} rounds remaining`);
             state.remainingRounds--;
             state.currentChildIndex = 0; // Reset to first child for next round
-            
-            // Update the BlockKey index to reflect the new round
-            this.key.add(1);
         }
         
         // Save the updated state to memory
