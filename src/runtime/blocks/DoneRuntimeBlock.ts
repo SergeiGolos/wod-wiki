@@ -7,7 +7,7 @@ import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 
 export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
     constructor() {
-        super('done', []);
+        super(new BlockKey('done'), []);
     }
 
     protected initializeMemory(): void {

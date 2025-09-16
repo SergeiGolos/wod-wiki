@@ -3,10 +3,11 @@ import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { EventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { BlockKey } from "../../BlockKey";
 
 export class IdleRuntimeBlock extends RuntimeBlockWithMemoryBase {
     constructor() {
-        super(n'idle', []);
+        super(new BlockKey('idle'), []);
     }
 
     protected initializeMemory(): void {

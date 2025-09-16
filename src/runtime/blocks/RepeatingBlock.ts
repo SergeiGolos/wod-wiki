@@ -6,15 +6,15 @@ import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import type { IMemoryReference } from "../memory";
+import { IRepeatingBlockBehavior, LoopState } from "../behaviors/IRepeatingBlockBehavior";
 
-interface LoopState {
-    remainingRounds: number;
-    currentChildIndex: number;
-    childStatements: any[];
-}
-
-export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
+export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepeatingBlockBehavior {
     private _loopStateRef?: IMemoryReference<LoopState>;
+    private _segmentsTotalRef?: IMemoryReference<number>;
+    private _segmentsPerRoundRef?: IMemoryReference<number>;
+    private _segmentsRoundIndexRef?: IMemoryReference<number>;
+    private _segmentsTotalIndexRef?: IMemoryReference<number>;
+    private _currentRoundRef?: IMemoryReference<number>; // public if children need to see round index
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
@@ -28,14 +28,34 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
         );
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
 
-        // Allocate memory for loop state
+        // Allocate memory for loop state (private)
         this._loopStateRef = this.allocateMemory<LoopState>('loop-state', {
             remainingRounds: initialRounds,
             currentChildIndex: -1,
             childStatements: []
-        });
+        }, 'private');
+
+        // Allocate memory for segments tracking (private)
+        this._segmentsTotalRef = this.allocateMemory<number>('segments.total', 0, 'private');
+        this._segmentsPerRoundRef = this.allocateMemory<number>('segments.per-round', 0, 'private');
+        this._segmentsRoundIndexRef = this.allocateMemory<number>('segments.round-index', 0, 'private');
+        this._segmentsTotalIndexRef = this.allocateMemory<number>('segments.total-index', 0, 'private');
+
+        // Optional: make current round public if children need to see the round index
+        const needsPublicRound = this.shouldExposeCurrentRound();
+        if (needsPublicRound) {
+            this._currentRoundRef = this.allocateMemory<number>('current-round', 1, 'public');
+        }
 
         console.log(`🔄 RepeatingBlock initialized with ${initialRounds} rounds in memory`);
+    }
+
+    /**
+     * Determine if current round should be exposed publicly for children
+     * Override in subclasses if needed
+     */
+    protected shouldExposeCurrentRound(): boolean {
+        return false; // Default: keep round private
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {
@@ -53,7 +73,7 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
         return [new GroupNextHandler()];
     }
 
-    private getLoopState(): LoopState {
+    public getLoopState(): LoopState {
         if (!this._loopStateRef || !this._loopStateRef.isValid()) {
             throw new Error(`RepeatingBlock ${this.key.toString()} loop state not initialized`);
         }
@@ -64,11 +84,20 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase {
         return state;
     }
 
-    private setLoopState(state: LoopState): void {
+    public setLoopState(state: LoopState): void {
         if (!this._loopStateRef || !this._loopStateRef.isValid()) {
             throw new Error(`RepeatingBlock ${this.key.toString()} loop state not initialized`);
         }
         this._loopStateRef.set(state);
+
+        // Update current round if it's being tracked publicly
+        if (this._currentRoundRef) {
+            const totalRounds = this.initialMetrics.find(m =>
+                m.values.some(v => v.type === 'rounds')
+            )?.values.find(v => v.type === 'rounds')?.value || 1;
+            const currentRound = totalRounds - state.remainingRounds + 1;
+            this._currentRoundRef.set(currentRound);
+        }
     }
 
     public hasNextChild(): boolean {

@@ -5,8 +5,25 @@ import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
+import { IPublicSpanBehavior } from "../behaviors/IPublicSpanBehavior";
+import { IInheritMetricsBehavior } from "../behaviors/IInheritMetricsBehavior";
+import type { IMemoryReference } from "../memory";
 
-export class EffortBlock extends RuntimeBlockWithMemoryBase {
+/**
+ * EffortBlock - Single effort unit
+ * 
+ * Behaviors:
+ * - PublicSpanBehavior
+ * - InheritMetricsBehavior
+ * - NextEventHandler → Pop on Next (EffortNextHandler)
+ * 
+ * Selection conditions:
+ * - Default when no other specialized strategy matches
+ * - Presence of action/effort/distance/resistance/etc. without control metrics (rounds/time) is typical
+ */
+export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSpanBehavior, IInheritMetricsBehavior {
+    private _publicSpanRef?: IMemoryReference<IResultSpanBuilder>;
+    private _inheritedMetricsRef?: IMemoryReference<RuntimeMetric[]>;
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
@@ -14,19 +31,69 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase {
     }
 
     protected initializeMemory(): void {
-        // EffortBlocks might need to store effort-specific state in memory
+        // Initialize public span for children to reference
+        this._publicSpanRef = this.allocateMemory<IResultSpanBuilder>(
+            'span-root', 
+            this.createPublicSpan(), 
+            'public'
+        );
+
+        // Initialize inherited metrics from parent's public metrics
+        this._inheritedMetricsRef = this.allocateMemory<RuntimeMetric[]>(
+            'inherited-metrics', 
+            this.getInheritedMetrics(), 
+            'public'
+        );
+
         console.log(`💪 EffortBlock initialized memory for: ${this.key.toString()}`);
     }
 
-    protected createSpansBuilder(): IResultSpanBuilder {
-        // Create a simple spans builder - this should be replaced with actual implementation
+    public createPublicSpan(): IResultSpanBuilder {
         return {
-            create: () => ({ blockKey: '', timeSpan: {}, metrics: [], duration: 0 }),
+            create: () => ({ 
+                blockKey: this.key.toString(), 
+                timeSpan: {}, 
+                metrics: this.getInheritedMetrics(), 
+                duration: 0 
+            }),
             getSpans: () => [],
-            close: () => {},
-            start: () => {},
-            stop: () => {}
+            close: () => {
+                console.log(`💪 EffortBlock effort completed`);
+            },
+            start: () => {
+                console.log(`💪 EffortBlock effort started`);
+            },
+            stop: () => {
+                console.log(`💪 EffortBlock effort stopped`);
+            }
         };
+    }
+
+    public getPublicSpanReference(): IMemoryReference<IResultSpanBuilder> | undefined {
+        return this._publicSpanRef;
+    }
+
+    public getInheritedMetrics(): RuntimeMetric[] {
+        // Get parent's public metrics-snapshot if available
+        const parentPublicMetrics = this.findVisibleByType<RuntimeMetric[]>('metrics-snapshot');
+        
+        if (parentPublicMetrics.length > 0) {
+            // Use parent's public metrics snapshot
+            const parentMetrics = parentPublicMetrics[0].get() || [];
+            return [...this.initialMetrics, ...parentMetrics];
+        }
+
+        // Fallback to own metrics if no parent metrics available
+        return [...this.initialMetrics];
+    }
+
+    public getInheritedMetricsReference(): IMemoryReference<RuntimeMetric[]> | undefined {
+        return this._inheritedMetricsRef;
+    }
+
+    protected createSpansBuilder(): IResultSpanBuilder {
+        // Use the public span as the primary spans builder
+        return this.createPublicSpan();
     }
 
     protected createInitialHandlers(): EventHandler[] {
