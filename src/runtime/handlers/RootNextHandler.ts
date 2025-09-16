@@ -38,7 +38,7 @@ export class RootNextHandler implements EventHandler {
             console.log(`  📝 Next statement to compile: ${nextStatement.id} (line ${nextStatement.meta?.line})`);
             
             // For grouped statements, include all child statements in the compilation
-            const statementsToCompile = [nextStatement];            
+            const statementsToCompile = [nextStatement];
             // Create a PushBlockAction to compile these statements and add the resulting block to the stack
             const pushAction = new PushBlockAction(statementsToCompile);
             

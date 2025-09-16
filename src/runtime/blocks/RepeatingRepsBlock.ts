@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+// import { EventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RepeatingBlock } from "./RepeatingBlock";
 import { IPromotePublicBehavior } from "../behaviors/IPromotePublicBehavior";
@@ -40,7 +40,7 @@ export class RepeatingRepsBlock extends RepeatingBlock implements IPromotePublic
         this._publicMetricsRef = this.allocateMemory<RuntimeMetric[]>(
             'metrics-snapshot', 
             this.createPublicMetricsSnapshot(), 
-            'public'
+            'private'
         );
 
         // Track current reps count per round (public for children)
@@ -104,6 +104,32 @@ export class RepeatingRepsBlock extends RepeatingBlock implements IPromotePublic
         // Update public metrics snapshot
         if (this._publicMetricsRef) {
             this._publicMetricsRef.set(this.createPublicMetricsSnapshot());
+        }
+
+        // Also publish/update a single-object 'metric' entry for current reps to avoid array-only storage
+        if (this.memory) {
+            const ownerId = this.key.toString();
+            const currentRepsSourceId = 'current-reps';
+            const existing = this.memory
+                .searchReferences<any>({ ownerId, type: 'metric' })
+                .find(ref => {
+                    const v = ref.get();
+                    return v && v.sourceId === currentRepsSourceId && v.blockId === ownerId && v.type === 'repetitions';
+                });
+
+            const metricEntry = {
+                sourceId: currentRepsSourceId,
+                blockId: ownerId,
+                type: 'repetitions' as const,
+                value: totalReps,
+                unit: 'reps'
+            };
+
+            if (existing) {
+                existing.set(metricEntry);
+            } else {
+                this.memory.allocate('metric', ownerId, metricEntry, undefined, 'public');
+            }
         }
 
         console.log(`🔁 RepeatingRepsBlock updated reps count: ${totalReps}`);

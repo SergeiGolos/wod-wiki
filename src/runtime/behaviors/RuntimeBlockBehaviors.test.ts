@@ -41,10 +41,10 @@ describe('Runtime Block Lifecycle Alignment', () => {
             expect(loopState.remainingRounds).toBe(3);
             expect(loopState.currentChildIndex).toBe(-1);
 
-            // Should have public metrics snapshot
+            // Should have metrics snapshot (now private to enforce single-object memory ethos)
             const publicMetricsRef = block.getPublicMetricsReference();
             expect(publicMetricsRef).toBeDefined();
-            expect(publicMetricsRef!.visibility).toBe('public');
+            expect(publicMetricsRef!.visibility).toBe('private');
 
             // Test behavior methods
             expect(block.hasNextChild()).toBe(true);
@@ -132,10 +132,10 @@ describe('Runtime Block Lifecycle Alignment', () => {
             expect(publicSpanRef).toBeDefined();
             expect(publicSpanRef!.visibility).toBe('public');
 
-            // Should have inherited metrics reference
+            // Should have inherited metrics reference (private in new model)
             const inheritedMetricsRef = block.getInheritedMetricsReference();
             expect(inheritedMetricsRef).toBeDefined();
-            expect(inheritedMetricsRef!.visibility).toBe('public');
+            expect(inheritedMetricsRef!.visibility).toBe('private');
 
             // Should inherit own metrics when no parent metrics available
             const inheritedMetrics = block.getInheritedMetrics();
@@ -199,17 +199,17 @@ describe('Runtime Block Lifecycle Alignment', () => {
             runtime.stack.push(parentBlock);
             runtime.stack.push(childBlock);
 
-            // Parent should have public metrics-snapshot
+            // Parent should have metrics-snapshot (private in new model)
             const parentPublicMetrics = parentBlock.getPublicMetricsReference();
             expect(parentPublicMetrics).toBeDefined();
-            expect(parentPublicMetrics!.visibility).toBe('public');
+            expect(parentPublicMetrics!.visibility).toBe('private');
 
-            // Child should be able to see parent's public memory
+            // Child should be able to see parent's public metric items
             const visibleMemory = childBlock['getVisibleMemory']();
-            const publicMetricsFromParent = visibleMemory.filter(ref => 
-                ref.type === 'metrics-snapshot' && ref.visibility === 'public'
+            const publicMetricEntriesFromParent = visibleMemory.filter(ref => 
+                ref.type === 'metric' && ref.visibility === 'public'
             );
-            expect(publicMetricsFromParent.length).toBeGreaterThan(0);
+            expect(publicMetricEntriesFromParent.length).toBeGreaterThan(0);
         });
     });
 });

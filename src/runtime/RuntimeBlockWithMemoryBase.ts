@@ -3,7 +3,7 @@ import type { IMemoryReference } from './memory';
 import { IRuntimeMemory } from './memory/IRuntimeMemory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { EventHandler, IRuntimeEvent } from './EventHandler';
-import { RuntimeMetric } from './RuntimeMetric';
+import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
 
@@ -17,8 +17,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
 
     // Memory references for core runtime state
     private _spansRef?: IMemoryReference<IResultSpanBuilder>;
-    private _handlersRef?: IMemoryReference<EventHandler[]>;
-    private _metricsRef?: IMemoryReference<RuntimeMetric[]>;
+    // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
 
     constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = []) {
         console.log(`🧠 RuntimeBlockWithMemoryBase created: ${key.toString()}`);
@@ -42,25 +41,38 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
 
         // Initialize core runtime state in memory
         this._spansRef = memory.allocate<IResultSpanBuilder>(
-            'spans',
+            'span-builder',
             ownerId,
             this.createSpansBuilder()
         );
 
-        this._handlersRef = memory.allocate<EventHandler[]>(
-            'handlers',
-            ownerId,
-            this.createInitialHandlers()
-        );
-
-        this._metricsRef = memory.allocate<RuntimeMetric[]>(
-            'metrics',
-            ownerId,
-            [...this.initialMetrics]
-        );
+        // Handlers: allocate one entry per handler to avoid arrays in memory
+        const initialHandlers = this.createInitialHandlers();
+        for (const h of initialHandlers) {
+            memory.allocate<EventHandler>('handler', ownerId, h, undefined, 'private');
+        }
 
         // Call template method for subclass initialization
         this.initializeMemory();
+
+        // Publish flattened metric entries to memory for easier inspection and linking
+        try {
+            const metrics = [...this.initialMetrics];
+            for (const m of metrics) {
+                for (const mv of m.values) {
+                    const entry: MetricEntry = {
+                        sourceId: m.sourceId,
+                        blockId: ownerId,
+                        type: mv.type,
+                        value: mv.value,
+                        unit: mv.unit,
+                    };
+                    memory.allocate<MetricEntry>('metric', ownerId, entry, undefined, 'public');
+                }
+            }
+        } catch (e) {
+            console.log(`⚠️ Failed to publish metric entries for ${ownerId}:`, e);
+        }
 
         console.log(`🧠 RuntimeBlockWithMemoryBase pushed and initialized memory for: ${this.key.toString()}`);
 
@@ -170,6 +182,14 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     }
 
     /**
+     * Helper to allocate a JSON-like state object under the canonical 'state' type.
+     * Use distinct subtypes by convention via a state object key if needed.
+     */
+    protected allocateState<T extends object>(initial: T, visibility: 'public' | 'private' = 'private'): IMemoryReference<T> {
+        return this.allocateMemory<T>('state', initial, visibility);
+    }
+
+    /**
      * Gets the result spans builder from memory
      */
     protected getSpans(): IResultSpanBuilder {
@@ -187,27 +207,17 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
      * Gets the event handlers from memory
      */
     protected getHandlers(): EventHandler[] {
-        if (!this._handlersRef || !this._handlersRef.isValid()) {
-            throw new Error(`Block ${this.key.toString()} handlers not initialized or invalid`);
-        }
-        const handlers = this._handlersRef.get();
-        if (!handlers) {
-            throw new Error(`Block ${this.key.toString()} handlers is null/undefined`);
-        }
-        return handlers;
+        if (!this.memory) return [];
+        // Collect all handler entries owned by this block
+        const refs = this.memory.searchReferences<EventHandler>({ ownerId: this.key.toString(), type: 'handler' });
+        return refs.map(r => r.get()).filter(Boolean) as EventHandler[];
     }
 
     /**
      * Gets the metrics from memory
      */
     protected getMetrics(): RuntimeMetric[] {
-        if (!this._metricsRef || !this._metricsRef.isValid()) {
-            throw new Error(`Block ${this.key.toString()} metrics not initialized or invalid`);
-        }
-        const metrics = this._metricsRef.get();
-        if (!metrics) {
-            throw new Error(`Block ${this.key.toString()} metrics is null/undefined`);
-        }
-        return metrics;
+        // Avoid array storage in memory; derive from constructor input for now
+        return [...this.initialMetrics];
     }
 }

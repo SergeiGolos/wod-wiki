@@ -23,6 +23,17 @@ const config = {
     // Enable CSS source maps
     config.css = config.css || {};
     config.css.devSourcemap = true;
+
+    // Deduplicate React to avoid multiple copies during Vitest/Storybook tests
+    config.resolve = config.resolve || {};
+    config.resolve.dedupe = Array.from(
+      new Set([...(config.resolve.dedupe || []), 'react', 'react-dom'])
+    );
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      react: require('path').resolve(process.cwd(), 'node_modules/react'),
+      'react-dom': require('path').resolve(process.cwd(), 'node_modules/react-dom'),
+    };
     
     return config;
   }

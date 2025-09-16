@@ -42,7 +42,7 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
         this._inheritedMetricsRef = this.allocateMemory<RuntimeMetric[]>(
             'inherited-metrics', 
             this.getInheritedMetrics(), 
-            'public'
+            'private'
         );
 
         console.log(`💪 EffortBlock initialized memory for: ${this.key.toString()}`);
@@ -74,11 +74,27 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
     }
 
     public getInheritedMetrics(): RuntimeMetric[] {
-        // Get parent's public metrics-snapshot if available
+    // Preferred path: compose from visible metric items (single-object references)
+    const metricEntries = this.findVisibleByType<any>('metric');
+        if (metricEntries.length > 0) {
+            const entries = metricEntries
+                .map(ref => ref.get())
+                .filter(Boolean) as Array<{ sourceId: string; type: any; value: any; unit: string }>;
+
+            // Group by sourceId to form RuntimeMetric objects
+            const bySource = new Map<string, RuntimeMetric>();
+            for (const e of entries) {
+                const rm = bySource.get(e.sourceId) || { sourceId: e.sourceId, values: [] };
+                rm.values.push({ type: e.type, value: e.value, unit: e.unit });
+                bySource.set(e.sourceId, rm);
+            }
+            // Use visible metric values as the source of truth to avoid duplicates
+            return Array.from(bySource.values());
+        }
+
+        // Fallback: legacy public metrics array if present
         const parentPublicMetrics = this.findVisibleByType<RuntimeMetric[]>('metrics-snapshot');
-        
         if (parentPublicMetrics.length > 0) {
-            // Use parent's public metrics snapshot
             const parentMetrics = parentPublicMetrics[0].get() || [];
             return [...this.initialMetrics, ...parentMetrics];
         }

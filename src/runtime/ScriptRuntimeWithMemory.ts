@@ -75,11 +75,12 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
 
         const allActions: import('./EventHandler').IRuntimeAction[] = [];
 
-        // Get handlers from memory for the current block
+        // Get handlers from memory for the current block (one entry per handler)
         const currentBlockKey = this.stack.current?.key?.toString();
         const handlers = currentBlockKey ?
-            this.memory.searchReferences<EventHandler[]>({ ownerId: currentBlockKey, type: 'handlers' })
-                .flatMap(ref => ref.get() || []) :
+            this.memory.searchReferences<EventHandler>({ ownerId: currentBlockKey, type: 'handler' })
+                .map(ref => ref.get())
+                .filter(Boolean) as EventHandler[] :
             [];
 
         console.log(`  🔍 Found ${handlers.length} handlers for current block`);
