@@ -74,8 +74,8 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
     }
 
     public getInheritedMetrics(): RuntimeMetric[] {
-        // Preferred path: compose from visible metric-entry items (single-object references)
-        const metricEntries = this.findVisibleByType<any>('metric-entry');
+    // Preferred path: compose from visible metric items (single-object references)
+    const metricEntries = this.findVisibleByType<any>('metric');
         if (metricEntries.length > 0) {
             const entries = metricEntries
                 .map(ref => ref.get())
@@ -88,7 +88,7 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
                 rm.values.push({ type: e.type, value: e.value, unit: e.unit });
                 bySource.set(e.sourceId, rm);
             }
-            // Use visible metric-entry values as the source of truth to avoid duplicates
+            // Use visible metric values as the source of truth to avoid duplicates
             return Array.from(bySource.values());
         }
 

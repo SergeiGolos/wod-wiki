@@ -334,7 +334,7 @@ function formatMemoryValue(type: string, value: any): string {
   }
   if (typeof value === 'object') {
     try {
-      if (type === 'metric-entry') {
+  if (type === 'metric') {
         const me = value as any;
         return `metric ${me.type}: ${me.value ?? '-'}${me.unit ? ' ' + me.unit : ''} (src:${me.sourceId}, blk:${me.blockId})`;
       }

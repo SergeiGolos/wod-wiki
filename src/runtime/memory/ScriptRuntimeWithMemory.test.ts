@@ -115,8 +115,8 @@ describe('ScriptRuntimeWithMemory', () => {
             expect(memRef.isValid()).toBe(true);
             expect(memRef.type).toBe('block-state');
             expect(memRef.get()).toBe('initial-state');
-            // There are 3 core allocations (spans, handlers, metrics) plus this one
-            expect(block.testGetMyMemory()).toHaveLength(4);
+            // Core allocations: only span-builder per block; plus this one
+            expect(block.testGetMyMemory()).toHaveLength(2);
             const myIds = new Set(block.testGetMyMemory().map(r => r.id));
             expect(myIds.has(memRef.id)).toBe(true);
         });
@@ -180,8 +180,8 @@ describe('ScriptRuntimeWithMemory', () => {
 
             // Get debug view without affecting execution
             const snapshot = runtime.debugMemory.getMemorySnapshot();
-            // Each pushed block creates 3 core allocations; two blocks push 6, plus 2 own refs = 8
-            expect(snapshot.entries).toHaveLength(8);
+            // Each pushed block creates 1 core allocation; two blocks push 2, plus 2 own refs = 4
+            expect(snapshot.entries).toHaveLength(4);
             
             // Verify original references are still valid during debugging
             expect(mem1.isValid()).toBe(true);

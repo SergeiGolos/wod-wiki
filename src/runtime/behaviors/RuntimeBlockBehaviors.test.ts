@@ -204,10 +204,10 @@ describe('Runtime Block Lifecycle Alignment', () => {
             expect(parentPublicMetrics).toBeDefined();
             expect(parentPublicMetrics!.visibility).toBe('private');
 
-            // Child should be able to see parent's public metric-entry items
+            // Child should be able to see parent's public metric items
             const visibleMemory = childBlock['getVisibleMemory']();
             const publicMetricEntriesFromParent = visibleMemory.filter(ref => 
-                ref.type === 'metric-entry' && ref.visibility === 'public'
+                ref.type === 'metric' && ref.visibility === 'public'
             );
             expect(publicMetricEntriesFromParent.length).toBeGreaterThan(0);
         });
