@@ -15,7 +15,17 @@ describe('Runtime Block Lifecycle Alignment', () => {
 
     beforeEach(() => {
         memory = new RuntimeMemory();
-        runtime = new ScriptRuntimeWithMemory();
+        
+        // Create a script with parent-child hierarchy for testing
+        const script = {
+            statements: [
+                { id: 'test-source', meta: { columnStart: 1 }, children: ['child1', 'child2'], fragments: [] },
+                { id: 'child1', meta: { columnStart: 5 }, children: [], fragments: [] },
+                { id: 'child2', meta: { columnStart: 5 }, children: [], fragments: [] }
+            ]
+        } as any;
+        
+        runtime = new ScriptRuntimeWithMemory(script, {} as any, memory);
     });
 
     describe('RepeatingRepsBlock', () => {

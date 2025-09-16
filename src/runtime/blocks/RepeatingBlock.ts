@@ -28,15 +28,13 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
         );
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
 
-        // Allocate memory for loop state (private)
-        // Initialize with placeholder children if parser hasn't provided them yet.
-        // This allows the demo to visualize per-child stepping (e.g., Fran has 2 children per round).
-        const initialChildStatements: any[] = [];
+        // Identify child statements for this block using the same pattern as RootNextHandler
+        const childStatements = this.identifyChildStatements();
 
         this._loopStateRef = this.allocateMemory<LoopState>('loop-state', {
             remainingRounds: initialRounds,
             currentChildIndex: -1,
-            childStatements: initialChildStatements
+            childStatements: childStatements
         }, 'private');
 
         // Allocate memory for segments tracking (private)
@@ -52,6 +50,60 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
         }
 
         console.log(`🔄 RepeatingBlock initialized with ${initialRounds} rounds in memory`);
+    }
+
+    /**
+     * Identify child statements for this repeating block from the script.
+     * Child statements are those that are indented (higher columnStart) 
+     * and appear after this block's statement in the script.
+     */
+    private identifyChildStatements(): any[] {
+        if (!this.runtime || !this.runtime.script) {
+            console.log(`🔄 RepeatingBlock - No runtime or script available for child identification`);
+            return [];
+        }
+
+        // Get this block's source statement from the runtime by matching sourceId
+        const sourceId = this.initialMetrics[0]?.sourceId;
+        if (!sourceId) {
+            console.log(`🔄 RepeatingBlock - No source ID available for child identification`);
+            return [];
+        }
+
+        const statements = this.runtime.script.statements || [];
+        const parentStatement = statements.find(stmt => stmt.id.toString() === sourceId);
+        if (!parentStatement) {
+            console.log(`🔄 RepeatingBlock - Parent statement not found for sourceId: ${sourceId}`);
+            return [];
+        }
+
+        const parentColumnStart = parentStatement.meta?.columnStart || 1;
+        const parentIndex = statements.indexOf(parentStatement);
+
+        // Find child statements that:
+        // 1. Appear after the parent statement in the script
+        // 2. Have greater columnStart (are indented relative to parent)
+        // 3. Are not children of other statements at the same or deeper level
+        const childStatements: any[] = [];
+        
+        for (let i = parentIndex + 1; i < statements.length; i++) {
+            const stmt = statements[i];
+            const stmtColumnStart = stmt.meta?.columnStart || 1;
+            
+            // If we encounter a statement at the same or lesser indentation level, 
+            // we've moved out of this block's children
+            if (stmtColumnStart <= parentColumnStart) {
+                break;
+            }
+            
+            // If this is a direct child (immediately one level deeper)
+            if (stmtColumnStart === parentColumnStart + 4) { // Assuming 4-space indentation
+                childStatements.push(stmt);
+            }
+        }
+
+        console.log(`🔄 RepeatingBlock - Identified ${childStatements.length} child statements for block ${this.key.toString()}: [${childStatements.map(s => s.id).join(', ')}]`);
+        return childStatements;
     }
 
     /**
@@ -107,10 +159,13 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
     public hasNextChild(): boolean {
         const state = this.getLoopState();
 
-        // Fallback: assume two children when child list is unknown/empty (helps demo like Fran)
-        const childCount = state.childStatements.length > 0 ? state.childStatements.length : 2;
-
         if (state.remainingRounds <= 0) return false;
+
+        const childCount = state.childStatements.length;
+        if (childCount === 0) {
+            console.log(`🔄 RepeatingBlock - No child statements found, no next child available`);
+            return false;
+        }
 
         // If there are children remaining in this round
         if (state.currentChildIndex < childCount - 1) return true;
@@ -121,7 +176,7 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
 
     public advanceToNextChild(): void {
         const state = this.getLoopState();
-        const childCount = state.childStatements.length > 0 ? state.childStatements.length : 2;
+        const childCount = state.childStatements.length;
 
         if (state.remainingRounds <= 0 || childCount <= 0) {
             // Nothing to do
@@ -174,14 +229,43 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
     protected onNext(): IRuntimeBlock | undefined {
         console.log(`🔄 RepeatingBlock.onNext() - Determining next block after child completion`);
 
-        if (this.hasNextChild()) {
-            this.advanceToNextChild();
-            // Return a placeholder - actual implementation would create the next child block
-            return undefined; // TODO: Implement actual child block creation
+        if (!this.hasNextChild()) {
+            console.log(`🔄 RepeatingBlock.onNext() - No more children, signaling completion`);
+            return undefined;
         }
 
-        // No more children, signal completion
-        return undefined;
+        // Advance to the next child
+        this.advanceToNextChild();
+        
+        // Get the current child statement to compile
+        const state = this.getLoopState();
+        if (state.currentChildIndex < 0 || state.currentChildIndex >= state.childStatements.length) {
+            console.log(`🔄 RepeatingBlock.onNext() - Invalid child index: ${state.currentChildIndex}`);
+            return undefined;
+        }
+
+        const currentChildStatement = state.childStatements[state.currentChildIndex];
+        console.log(`🔄 RepeatingBlock.onNext() - Compiling child statement: ${currentChildStatement.id}`);
+
+        // Use the JIT compiler to compile the child statement into a runtime block
+        if (!this.runtime || !this.runtime.jit) {
+            console.log(`🔄 RepeatingBlock.onNext() - No runtime or JIT compiler available`);
+            return undefined;
+        }
+
+        try {
+            const compiledChildBlock = this.runtime.jit.compile([currentChildStatement], this.runtime);
+            if (compiledChildBlock) {
+                console.log(`🔄 RepeatingBlock.onNext() - Successfully compiled child block: ${compiledChildBlock.key.toString()}`);
+                return compiledChildBlock;
+            } else {
+                console.log(`🔄 RepeatingBlock.onNext() - Failed to compile child statement`);
+                return undefined;
+            }
+        } catch (error) {
+            console.log(`🔄 RepeatingBlock.onNext() - Error compiling child statement: ${error}`);
+            return undefined;
+        }
     }
 
     protected onPop(): void {
