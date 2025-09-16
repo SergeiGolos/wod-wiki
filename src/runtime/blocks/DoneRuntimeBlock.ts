@@ -1,33 +1,44 @@
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
-import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler,IRuntimeEvent } from "../EventHandler";
+import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { IMetricInheritance } from "../IMetricInheritance";
+import { EventHandler } from "../EventHandler";
+import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 
-export class DoneRuntimeBlock implements IRuntimeBlock {
-    public readonly key: BlockKey;
-    public parent?: IRuntimeBlock;
-    public spans: IResultSpanBuilder;
-    public metrics: RuntimeMetric[];
-    public handlers: EventHandler[];
-
+export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
     constructor() {
-        this.key = new BlockKey('done', [], []);
-        this.spans = {} as IResultSpanBuilder;
-        this.metrics = [];
-        this.handlers = [];
+        super(new BlockKey('done'), []);
     }
 
-    public tick(): IRuntimeEvent[] {
+    protected initializeMemory(): void {
+        // No additional memory needed for done block
+    }
+
+    protected createSpansBuilder(): IResultSpanBuilder {
+        return {
+            create: () => ({ blockKey: this.key.toString(), timeSpan: {}, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
+
+    protected createInitialHandlers(): EventHandler[] {
         return [];
     }
 
-    public inherit(): IMetricInheritance[] {
+    protected onPush(): IRuntimeEvent[] {
         return [];
     }
 
-    public isDone(): boolean { return true; }
+    protected onNext(): IRuntimeBlock | undefined {
+        // Done block signals completion by returning undefined
+        return undefined;
+    }
 
-    public reset(): void {}
+    protected onPop(): void {
+        // Handle completion logic for done block
+        console.log(`DoneRuntimeBlock ${this.key.toString()} completed`);
+    }
 }

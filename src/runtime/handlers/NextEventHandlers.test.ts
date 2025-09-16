@@ -12,12 +12,10 @@ describe('NextEvent Handlers', () => {
         it('should return a PopBlockAction when it handles a NextEvent', () => {
             // Arrange
             const handler = new EffortNextHandler();
-            const block = new EffortBlock(new BlockKey('effort'), []);
             const event = new NextEvent();
-            event.runtime = { stack: { current: block } } as any;
 
             // Act
-            const response = handler.handleEvent(event, block);
+            const response = handler.handleEvent(event);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -30,13 +28,15 @@ describe('NextEvent Handlers', () => {
         it('should return an AdvanceToNextChildAction if there is a next child', () => {
             // Arrange
             const handler = new GroupNextHandler();
-            const block = new TimedGroupBlock(new BlockKey('group'), []);
+            const block = new TimedGroupBlock('group', []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(true);
             const event = new NextEvent();
-            event.runtime = { stack: { current: block } } as any;
+            const mockRuntime = { 
+                stack: { current: block } 
+            } as any;
 
             // Act
-            const response = handler.handleEvent(event, block);
+            const response = handler.handleEvent(event, mockRuntime);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -47,13 +47,15 @@ describe('NextEvent Handlers', () => {
         it('should return a PopBlockAction if there is no next child', () => {
             // Arrange
             const handler = new GroupNextHandler();
-            const block = new TimedGroupBlock(new BlockKey('group'), []);
+            const block = new TimedGroupBlock('group', []);
             vi.spyOn(block, 'hasNextChild').mockReturnValue(false);
             const event = new NextEvent();
-            event.runtime = { stack: { current: block } } as any;
+            const mockRuntime = { 
+                stack: { current: block } 
+            } as any;
 
             // Act
-            const response = handler.handleEvent(event, block);
+            const response = handler.handleEvent(event, mockRuntime);
 
             // Assert
             expect(response.handled).toBe(true);

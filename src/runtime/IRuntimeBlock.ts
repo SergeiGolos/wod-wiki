@@ -1,32 +1,38 @@
 import { BlockKey } from "../BlockKey";
-import { EventHandler, IRuntimeAction, IRuntimeEvent } from "./EventHandler";
-import { IMetricInheritance } from "./IMetricInheritance";
-import { IScriptRuntime } from "./IScriptRuntime";
-import { IResultSpanBuilder } from "./ResultSpanBuilder";
-import { RuntimeMetric } from "./RuntimeMetric";
+import { IRuntimeEvent } from "./EventHandler";
+import { IRuntimeMemory } from "./memory/IRuntimeMemory";
+import { IScriptRuntimeWithMemory } from "./IScriptRuntimeWithMemory";
 
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
 
-    readonly spans: IResultSpanBuilder;
-
-    handlers: EventHandler[];
-    metrics: RuntimeMetric[];
-    parent?: IRuntimeBlock | undefined;
-
-    // Block implementation
     /**
-     * Executes the block logic and returns a list of actions to perform.
-     * @param runtime The runtime context in which the block is executed
-     * @returns An array of actions to be performed by the runtime
+     * Sets the runtime context for this block
+     * @param runtime The script runtime with memory support
      */
-    tick(): IRuntimeEvent[];
+    setRuntime?(runtime: IScriptRuntimeWithMemory): void;
 
-    isDone(): boolean;
+    /**
+     * Called when this block is pushed onto the runtime stack.
+     * Sets up initial state and registers event listeners.
+     * @param memory The runtime memory system
+     * @returns Array of events to emit after push
+     */
+    push(memory: IRuntimeMemory): IRuntimeEvent[];
 
-    reset(): void;
-    
-    // Metric inheritance
-    inherit(): IMetricInheritance[];
+    /**
+     * Called when a child block completes execution.
+     * Determines the next block(s) to execute or signals completion.
+     * @param memory The runtime memory system
+     * @returns The next block to execute, or undefined if this block should pop
+     */
+    next(memory: IRuntimeMemory): IRuntimeBlock | undefined;
+
+    /**
+     * Called when this block is popped from the runtime stack.
+     * Handles completion logic, manages result spans, and cleans up resources.
+     * @param memory The runtime memory system
+     */
+    pop(memory: IRuntimeMemory): void;
 }

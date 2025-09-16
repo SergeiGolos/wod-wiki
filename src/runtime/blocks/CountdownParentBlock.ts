@@ -1,26 +1,50 @@
 import { BlockKey } from "../../BlockKey";
-import { IMetricInheritance } from "../IMetricInheritance";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IResultSpanBuilder } from "../ResultSpanBuilder";
+import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
-// A simple block for a basic effort with no special inheritance.
-// A parent block for countdown-based workouts.
-
-export class CountdownParentBlock implements IRuntimeBlock {
-    public parent?: IRuntimeBlock;
-    public metrics: RuntimeMetric[];
-
-    constructor(public readonly key: BlockKey, metrics: RuntimeMetric[]) {
-        this.metrics = metrics;
+// Parent block for countdown-based workouts adapted to the memory model.
+export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
+    constructor(key: BlockKey, metrics: RuntimeMetric[]) {
+        super(key, metrics);
+        console.log(`⏳ CountdownParentBlock created for key: ${key.toString()}`);
     }
 
-    inherit(): IMetricInheritance[] { return []; } // No direct metric inheritance
+    protected initializeMemory(): void {
+        // No extra memory yet
+        console.log(`⏳ CountdownParentBlock.initializeMemory()`);
+    }
 
-    public spans: any;
-    public handlers: any;
-    public tick: any;
+    protected createSpansBuilder(): IResultSpanBuilder {
+        return {
+            create: () => ({ blockKey: '', timeSpan: {}, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => {},
+            start: () => {},
+            stop: () => {}
+        };
+    }
 
-    public isDone(): boolean { return false; }
+    protected createInitialHandlers(): EventHandler[] {
+        // Handlers to manage countdown progression would go here
+        return [];
+    }
 
-    public reset(): void {}
+    protected onPush(): IRuntimeEvent[] {
+        console.log(`⏳ CountdownParentBlock.onPush() - Block pushed to stack`);
+        return [];
+    }
+
+    protected onNext(): IRuntimeBlock | undefined {
+        console.log(`⏳ CountdownParentBlock.onNext() - Determining next block after child completion`);
+        // For countdown blocks, typically no next block (single execution)
+        return undefined;
+    }
+
+    protected onPop(): void {
+        console.log(`⏳ CountdownParentBlock.onPop() - Block popped from stack, cleaning up`);
+        // Handle completion logic for countdown block
+    }
 }
