@@ -12,6 +12,7 @@ import { IRuntimeEvent, EventHandler } from './EventHandler';
  */
 export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRuntimeWithMemory {
     private _memory: RuntimeMemory;
+    private _lastUpdatedBlocks: Set<string> = new Set();
 
     constructor(script: WodScript, compiler: JitCompiler) {
         super(script, compiler);
@@ -67,6 +68,7 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
 
     /**
      * Override handle to work with memory-based handlers
+     * UNIFIED EVENT PROCESSING: Events are processed against ALL handlers in memory
      */
     handle(event: IRuntimeEvent): void {
         console.log(`🎯 ScriptRuntimeWithMemory.handle() - Processing event: ${event.name}`);
@@ -74,20 +76,31 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
         console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
 
         const allActions: import('./EventHandler').IRuntimeAction[] = [];
+        const updatedBlocks = new Set<string>();
 
-        // Get handlers from memory for the current block (one entry per handler)
-        const currentBlockKey = this.stack.current?.key?.toString();
-        const handlers = currentBlockKey ?
-            this.memory.searchReferences<EventHandler>({ ownerId: currentBlockKey, type: 'handler' })
-                .map(ref => ref.get())
-                .filter(Boolean) as EventHandler[] :
-            [];
+        // UNIFIED HANDLER PROCESSING: Get ALL handlers from memory (not just current block)
+        const allHandlers = this.memory.searchReferences<EventHandler>({ type: 'handler' })
+            .map(ref => ref.get())
+            .filter(Boolean) as EventHandler[];
 
-        console.log(`  🔍 Found ${handlers.length} handlers for current block`);
+        console.log(`  🔍 Found ${allHandlers.length} handlers across ALL blocks in memory`);
 
-        for (let i = 0; i < handlers.length; i++) {
-            const handler = handlers[i];
-            console.log(`    🔧 Handler ${i + 1}/${handlers.length}: ${handler.name} (${handler.id})`);
+        // Process ALL handlers in memory, tracking which blocks are updated
+        for (let i = 0; i < allHandlers.length; i++) {
+            const handler = allHandlers[i];
+            
+            // Find the owner of this handler to track updates
+            let handlerOwnerId: string | undefined;
+            for (const [ownerId, refIds] of (this.memory as any)._ownerIndex.entries()) {
+                const handlerRef = this.memory.searchReferences<EventHandler>({ ownerId, type: 'handler' })
+                    .find(ref => ref.get() === handler);
+                if (handlerRef) {
+                    handlerOwnerId = ownerId;
+                    break;
+                }
+            }
+            
+            console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id}) from block: ${handlerOwnerId || 'unknown'}`);
 
             const response = handler.handleEvent(event, this);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
@@ -95,6 +108,11 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
             if (response.handled) {
                 allActions.push(...response.actions);
                 console.log(`      📦 Added ${response.actions.length} actions to queue`);
+                
+                // Track which block was updated
+                if (handlerOwnerId) {
+                    updatedBlocks.add(handlerOwnerId);
+                }
             }
             if (!response.shouldContinue) {
                 console.log(`      🛑 Handler requested stop - breaking execution chain`);
@@ -113,6 +131,18 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
         console.log(`🏁 ScriptRuntimeWithMemory.handle() completed for event: ${event.name}`);
         console.log(`  📊 Final stack depth: ${this.stack.blocks.length}`);
         console.log(`  🎯 Final current block: ${this.stack.current?.key?.toString() || 'None'}`);
+        console.log(`  🔄 Updated blocks: [${Array.from(updatedBlocks).join(', ')}]`);
+        
+        // Store updated blocks for consumers to query
+        this._lastUpdatedBlocks = updatedBlocks;
+    }
+
+    /**
+     * Gets the blocks that were updated during the last event processing.
+     * This allows consumers to make decisions about what state needs to be updated in the UI.
+     */
+    public getLastUpdatedBlocks(): string[] {
+        return Array.from(this._lastUpdatedBlocks);
     }
 
     /**
