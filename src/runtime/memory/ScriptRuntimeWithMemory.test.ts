@@ -3,7 +3,7 @@ import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
 import { RuntimeBlockWithMemoryBase } from '../RuntimeBlockWithMemoryBase';
 import { WodScript } from '../../WodScript';
 import { JitCompiler } from '../JitCompiler';
-import { IEventHandler, IRuntimeEvent } from '../EventHandler';
+import { IEventHandler, IRuntimeLog } from '../EventHandler';
 import { IResultSpanBuilder } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { IMetricInheritance } from '../IMetricInheritance';
@@ -31,14 +31,18 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
     protected createInitialHandlers(): IEventHandler[] {
         return [];
     }
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(runtime: any): IRuntimeLog[] {
+        void runtime;
+        return [{ level: 'debug', message: 'test push', timestamp: new Date() }];
+    }
+    protected onNext(runtime: any): IRuntimeLog[] {
+        void runtime;
         return [];
     }
-    protected onNext(): IRuntimeBlock | undefined {
-        return undefined;
-    }
-    protected onPop(): void {
+    protected onPop(runtime: any): IRuntimeLog[] {
+        void runtime;
         // No-op for testing
+        return [{ level: 'debug', message: 'test pop', timestamp: new Date() }];
     }
 
     // Public test helpers

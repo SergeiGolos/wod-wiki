@@ -1,9 +1,9 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IEventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
-import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IScriptRuntime } from "../IScriptRuntime";
 
 // Parent block for countdown-based workouts adapted to the memory model.
 export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
@@ -32,19 +32,23 @@ export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏳ CountdownParentBlock.onPush() - Block pushed to stack`);
+        void runtime;
+        return [{ level: 'info', message: 'countdown push', timestamp: new Date(), context: { key: this.key.toString() } }];
+    }
+
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
+        console.log(`⏳ CountdownParentBlock.onNext() - Determining next block after child completion`);
+        void runtime;
+        // For countdown blocks, no scheduling here
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        console.log(`⏳ CountdownParentBlock.onNext() - Determining next block after child completion`);
-        // For countdown blocks, typically no next block (single execution)
-        return undefined;
-    }
-
-    protected onPop(): void {
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏳ CountdownParentBlock.onPop() - Block popped from stack, cleaning up`);
+        void runtime;
         // Handle completion logic for countdown block
+        return [{ level: 'info', message: 'countdown pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }

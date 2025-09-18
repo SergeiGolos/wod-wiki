@@ -29,12 +29,12 @@ describe('RepeatingBlock Child Statements', () => {
         ]);
         
         const jitCompiler = {} as JitCompiler; // Mock JIT compiler
-        memory = new RuntimeMemory();
-        runtime = new ScriptRuntimeWithMemory(script, jitCompiler, memory);
+    memory = new RuntimeMemory();
+    runtime = new ScriptRuntimeWithMemory(script, jitCompiler);
         
         block = new RepeatingBlock(key, metrics);
-        block.setRuntime(runtime);
-        block.push(memory);
+    block.setRuntime(runtime);
+    block.push(runtime);
     });
 
     it('should identify and store child statements during initialization', () => {
@@ -48,8 +48,8 @@ describe('RepeatingBlock Child Statements', () => {
         ];
         
         const testBlock = new RepeatingBlock(key, metrics);
-        testBlock.setRuntime(runtime);
-        testBlock.push(memory);
+    testBlock.setRuntime(runtime);
+    testBlock.push(runtime);
         
         // Get the loop state to check if child statements are populated
         const loopState = testBlock.getLoopState();
@@ -71,8 +71,8 @@ describe('RepeatingBlock Child Statements', () => {
         ];
         
         const testBlock = new RepeatingBlock(key, metrics);
-        testBlock.setRuntime(runtime);
-        testBlock.push(memory);
+    testBlock.setRuntime(runtime);
+    testBlock.push(runtime);
         
         // Initially should have next child (child index starts at -1)
         expect(testBlock.hasNextChild()).toBe(true);
@@ -115,58 +115,5 @@ describe('RepeatingBlock Child Statements', () => {
         expect(testBlock.hasNextChild()).toBe(false);
     });
 
-    it('should compile and return child blocks when onNext() is called', () => {
-        // Set up a mock JIT compiler that tracks compilation calls
-        const compiledBlocks: any[] = [];
-        const mockJitCompiler = {
-            compile: (statements: any[], runtime: any) => {
-                const statement = statements[0];
-                const mockCompiledBlock = {
-                    key: { toString: () => `compiled-${statement.id}` },
-                    sourceId: statement.id
-                };
-                compiledBlocks.push(mockCompiledBlock);
-                return mockCompiledBlock;
-            }
-        } as any;
-        
-        // Create runtime with mock JIT compiler
-        const script = new WodScript('test script', [
-            { id: 1, meta: { columnStart: 1 }, children: [2, 3], fragments: [] } as any,
-            { id: 2, meta: { columnStart: 5 }, children: [], fragments: [] } as any,
-            { id: 3, meta: { columnStart: 5 }, children: [], fragments: [] } as any
-        ]);
-        const mockRuntime = new ScriptRuntimeWithMemory(script, mockJitCompiler, memory);
-        
-        // Create block with child statements
-        const key = new BlockKey('test-repeating');
-        const metrics: RuntimeMetric[] = [
-            {
-                sourceId: '1',
-                values: [{ type: 'rounds', value: 1, unit: 'rounds' }]
-            }
-        ];
-        
-        const testBlock = new RepeatingBlock(key, metrics);
-        testBlock.setRuntime(mockRuntime);
-        testBlock.push(memory);
-        
-        // Call onNext() should compile and return the first child block
-        const firstChildBlock = testBlock.onNext();
-        expect(firstChildBlock).toBeDefined();
-        expect(firstChildBlock!.key.toString()).toBe('compiled-2');
-        expect(compiledBlocks).toHaveLength(1);
-        expect(compiledBlocks[0].sourceId).toBe(2);
-        
-        // Call onNext() again should compile and return the second child block
-        const secondChildBlock = testBlock.onNext();
-        expect(secondChildBlock).toBeDefined();
-        expect(secondChildBlock!.key.toString()).toBe('compiled-3');
-        expect(compiledBlocks).toHaveLength(2);
-        expect(compiledBlocks[1].sourceId).toBe(3);
-        
-        // Call onNext() again should return undefined (no more children)
-        const noMoreChildren = testBlock.onNext();
-        expect(noMoreChildren).toBeUndefined();
-    });
+    // Note: onNext no longer returns child blocks directly; scheduling moved to runtime/handlers.
 });

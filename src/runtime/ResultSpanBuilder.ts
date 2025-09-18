@@ -29,7 +29,7 @@ export interface IResultSpanBuilder {
   /**
    * Creates a new result span for the given block.
    */
-  create(blockKey: string, metrics: RuntimeMetric[]): ResultSpan;
+  create(blockKey?: string, metrics?: RuntimeMetric[]): ResultSpan;
   
   /**
    * Gets the current active spans.

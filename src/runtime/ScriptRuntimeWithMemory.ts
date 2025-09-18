@@ -1,6 +1,6 @@
 import { ScriptRuntime } from './ScriptRuntime';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
-import type { IRuntimeMemory, IDebugMemoryView } from './memory';
+import type { IDebugMemoryView } from './memory';
 import { RuntimeMemory } from './memory';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
@@ -16,14 +16,14 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
 
     constructor(script: WodScript, compiler: JitCompiler) {
         super(script, compiler);
-        this._memory = new RuntimeMemory();
+    this._memory = new RuntimeMemory();
+    // Bind base class public property to our internal memory instance
+    (this as any).memory = this._memory;
         this._setupMemoryAwareStack();
         console.log(`🧠 ScriptRuntimeWithMemory created with memory system`);
     }
 
-    get memory(): IRuntimeMemory {
-        return this._memory;
-    }
+    // No memory accessor override; base class public property is assigned in constructor
 
     get debugMemory(): IDebugMemoryView {
         return this._memory.getDebugView();
@@ -42,7 +42,12 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
 
             if (poppedBlock) {
                 console.log(`🧠 ScriptRuntimeWithMemory - Popping block: ${poppedBlock.key.toString()}`);
-                poppedBlock.pop(this.memory);
+                const resp = poppedBlock.pop(this);
+                if (Array.isArray(resp)) {
+                    for (const log of resp as any[]) {
+                        console.log(`[pop]`, log);
+                    }
+                }
             }
 
             return poppedBlock;
@@ -51,17 +56,22 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
         this.stack.push = (block) => {
             console.log(`🧠 ScriptRuntimeWithMemory - Pushing block: ${block.key.toString()}`);
             
-            // Set runtime context for memory-aware blocks
-            if (block.setRuntime) {
-                block.setRuntime(this);
+            // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)
+            if (typeof (block as any).setRuntime === 'function') {
+                (block as any).setRuntime(this);
             }
             
-            const events = block.push(this.memory);
+            const eventsOrLogs = block.push(this);
             originalPush(block);
 
             // Handle any events emitted during push
-            for (const event of events) {
-                this.handle(event);
+            if (Array.isArray(eventsOrLogs) && eventsOrLogs.length > 0) {
+                const first = eventsOrLogs[0] as any;
+                if (first && typeof first.name === 'string') {
+                    for (const event of eventsOrLogs as any[]) this.handle(event);
+                } else {
+                    for (const log of eventsOrLogs as any[]) console.log(`[push]`, log);
+                }
             }
         };
     }
@@ -91,7 +101,7 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
             
             // Find the owner of this handler to track updates
             let handlerOwnerId: string | undefined;
-            for (const [ownerId, refIds] of (this.memory as any)._ownerIndex.entries()) {
+            for (const [ownerId] of (this.memory as any)._ownerIndex.entries()) {
                 const handlerRef = this.memory.searchReferences<IEventHandler>({ ownerId, type: 'handler' })
                     .find(ref => ref.get() === handler);
                 if (handlerRef) {

@@ -1,11 +1,12 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IEventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import type { IMemoryReference } from "../memory";
 import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IScriptRuntime } from "../IScriptRuntime";
 
 interface GroupState {
     childBlocks: IRuntimeBlock[];
@@ -86,37 +87,24 @@ export class TimedGroupBlock extends RuntimeBlockWithMemoryBase {
         console.log(`⏱️ TimedGroupBlock reset: ${this.key.toString()}`);
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏱️ TimedGroupBlock.onPush() - Block pushed to stack`);
+        void runtime;
+        return [{ level: 'info', message: 'group push', timestamp: new Date(), context: { key: this.key.toString() } }];
+    }
+
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
+        console.log(`⏱️ TimedGroupBlock.onNext() - Determining next block after child completion`);
+        void runtime;
+        
+        // Scheduling responsibility has moved out; just log
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        console.log(`⏱️ TimedGroupBlock.onNext() - Determining next block after child completion`);
-        
-        if (!this.hasNextChild()) {
-            console.log(`⏱️ TimedGroupBlock.onNext() - No more children, signaling completion`);
-            return undefined;
-        }
-
-        // Advance to the next child
-        this.advanceToNextChild();
-        
-        // Get the current child block from the childBlocks array
-        const state = this.getGroupState();
-        if (state.currentChildIndex < 0 || state.currentChildIndex >= state.childBlocks.length) {
-            console.log(`⏱️ TimedGroupBlock.onNext() - Invalid child index: ${state.currentChildIndex}`);
-            return undefined;
-        }
-
-        const currentChildBlock = state.childBlocks[state.currentChildIndex];
-        console.log(`⏱️ TimedGroupBlock.onNext() - Returning child block: ${currentChildBlock.key.toString()}`);
-        
-        return currentChildBlock;
-    }
-
-    protected onPop(): void {
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏱️ TimedGroupBlock.onPop() - Block popped from stack, cleaning up`);
+        void runtime;
         // Handle completion logic for timed group block
+        return [{ level: 'info', message: 'group pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }

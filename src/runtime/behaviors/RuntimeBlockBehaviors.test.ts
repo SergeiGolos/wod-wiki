@@ -6,16 +6,12 @@ import { EffortBlock } from '../blocks/EffortBlock';
 import { TimerBlock } from '../blocks/TimerBlock';
 import { BlockKey } from '../../BlockKey';
 import { RuntimeMetric } from '../RuntimeMetric';
-import { RuntimeMemory } from '../memory/RuntimeMemory';
 import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
 
 describe('Runtime Block Lifecycle Alignment', () => {
-    let memory: RuntimeMemory;
     let runtime: ScriptRuntimeWithMemory;
 
     beforeEach(() => {
-        memory = new RuntimeMemory();
-        
         // Create a script with parent-child hierarchy for testing
         const script = {
             statements: [
@@ -25,7 +21,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
             ]
         } as any;
         
-        runtime = new ScriptRuntimeWithMemory(script, {} as any, memory);
+        runtime = new ScriptRuntimeWithMemory(script as any, {} as any);
     });
 
     describe('RepeatingRepsBlock', () => {
@@ -44,7 +40,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
             block.setRuntime(runtime);
             
             // Test push behavior
-            block.push(memory);
+            block.push(runtime);
 
             // Should have private loop-state
             const loopState = block.getLoopState();
@@ -77,7 +73,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
 
             const block = new RepeatingTimedBlock(new BlockKey('test-timed'), metrics);
             block.setRuntime(runtime);
-            block.push(memory);
+            block.push(runtime);
 
             // Should have public span reference
             const publicSpanRef = block.getPublicSpanReference();
@@ -106,7 +102,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
 
             const block = new RepeatingCountdownBlock(new BlockKey('test-countdown'), metrics);
             block.setRuntime(runtime);
-            block.push(memory);
+            block.push(runtime);
 
             // Should initialize countdown properly
             expect(block.isCountdownExpired()).toBe(false);
@@ -135,7 +131,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
 
             const block = new EffortBlock(new BlockKey('test-effort'), metrics);
             block.setRuntime(runtime);
-            block.push(memory);
+            block.push(runtime);
 
             // Should have public span reference
             const publicSpanRef = block.getPublicSpanReference();
@@ -166,7 +162,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
 
             const block = new TimerBlock(new BlockKey('test-timer'), metrics);
             block.setRuntime(runtime);
-            block.push(memory);
+            block.push(runtime);
 
             // Should have public span reference
             const publicSpanRef = block.getPublicSpanReference();

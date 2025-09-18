@@ -1,19 +1,16 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IEventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import type { IMemoryReference } from "../memory";
 import { IRepeatingBlockBehavior, LoopState } from "../behaviors/IRepeatingBlockBehavior";
+import { IScriptRuntime } from "../IScriptRuntime";
 
 export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepeatingBlockBehavior {
     private _loopStateRef?: IMemoryReference<LoopState>;
-    private _segmentsTotalRef?: IMemoryReference<number>;
-    private _segmentsPerRoundRef?: IMemoryReference<number>;
-    private _segmentsRoundIndexRef?: IMemoryReference<number>;
-    private _segmentsTotalIndexRef?: IMemoryReference<number>;
+    // Removed unused segment counters; can be reintroduced when needed
     private _currentRoundRef?: IMemoryReference<number>; // public if children need to see round index
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
@@ -37,11 +34,7 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
             childStatements: childStatements
         }, 'private');
 
-        // Allocate memory for segments tracking (private)
-        this._segmentsTotalRef = this.allocateMemory<number>('segments.total', 0, 'private');
-        this._segmentsPerRoundRef = this.allocateMemory<number>('segments.per-round', 0, 'private');
-        this._segmentsRoundIndexRef = this.allocateMemory<number>('segments.round-index', 0, 'private');
-        this._segmentsTotalIndexRef = this.allocateMemory<number>('segments.total-index', 0, 'private');
+    // Allocate other tracking state here in future as needed
 
         // Optional: make current round public if children need to see the round index
         const needsPublicRound = this.shouldExposeCurrentRound();
@@ -221,55 +214,23 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
         console.log(`🔄 RepeatingBlock reset with ${initialRounds} rounds`);
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`🔄 RepeatingBlock.onPush() - Block pushed to stack`);
+        void runtime;
+        return [{ level: 'info', message: 'repeating push', timestamp: new Date(), context: { key: this.key.toString() } }];
+    }
+
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
+        console.log(`🔄 RepeatingBlock.onNext() - Determining next block after child completion`);
+        // Scheduling and JIT compilation are handled by runtime/handlers now; just log progression
+        void runtime;
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        console.log(`🔄 RepeatingBlock.onNext() - Determining next block after child completion`);
-
-        if (!this.hasNextChild()) {
-            console.log(`🔄 RepeatingBlock.onNext() - No more children, signaling completion`);
-            return undefined;
-        }
-
-        // Advance to the next child
-        this.advanceToNextChild();
-        
-        // Get the current child statement to compile
-        const state = this.getLoopState();
-        if (state.currentChildIndex < 0 || state.currentChildIndex >= state.childStatements.length) {
-            console.log(`🔄 RepeatingBlock.onNext() - Invalid child index: ${state.currentChildIndex}`);
-            return undefined;
-        }
-
-        const currentChildStatement = state.childStatements[state.currentChildIndex];
-        console.log(`🔄 RepeatingBlock.onNext() - Compiling child statement: ${currentChildStatement.id}`);
-
-        // Use the JIT compiler to compile the child statement into a runtime block
-        if (!this.runtime || !this.runtime.jit) {
-            console.log(`🔄 RepeatingBlock.onNext() - No runtime or JIT compiler available`);
-            return undefined;
-        }
-
-        try {
-            const compiledChildBlock = this.runtime.jit.compile([currentChildStatement], this.runtime);
-            if (compiledChildBlock) {
-                console.log(`🔄 RepeatingBlock.onNext() - Successfully compiled child block: ${compiledChildBlock.key.toString()}`);
-                return compiledChildBlock;
-            } else {
-                console.log(`🔄 RepeatingBlock.onNext() - Failed to compile child statement`);
-                return undefined;
-            }
-        } catch (error) {
-            console.log(`🔄 RepeatingBlock.onNext() - Error compiling child statement: ${error}`);
-            return undefined;
-        }
-    }
-
-    protected onPop(): void {
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`🔄 RepeatingBlock.onPop() - Block popped from stack, cleaning up`);
+        void runtime;
         // Handle completion logic for repeating block
+        return [{ level: 'info', message: 'repeating pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }

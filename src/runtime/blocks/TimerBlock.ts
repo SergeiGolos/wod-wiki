@@ -1,12 +1,12 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IEventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IPublicSpanBehavior } from "../behaviors/IPublicSpanBehavior";
 import { IInheritMetricsBehavior } from "../behaviors/IInheritMetricsBehavior";
 import type { IMemoryReference } from "../memory";
+import { IScriptRuntime } from "../IScriptRuntime";
 
 /**
  * TimerBlock - Basic timing unit
@@ -123,8 +123,9 @@ export class TimerBlock extends RuntimeBlockWithMemoryBase implements IPublicSpa
         return [];
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏱️ TimerBlock.onPush() - Starting timer`);
+        void runtime;
         
         // Start the timer
         const span = this.getPublicSpanReference()?.get();
@@ -138,23 +139,25 @@ export class TimerBlock extends RuntimeBlockWithMemoryBase implements IPublicSpa
             console.log(`⏱️ TimerBlock scheduled for ${duration}ms`);
         }
 
+        return [{ level: 'info', message: 'timer push', timestamp: new Date(), context: { key: this.key.toString() } }];
+    }
+
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
+        console.log(`⏱️ TimerBlock.onNext() - Timer completed, popping`);
+        void runtime;
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        console.log(`⏱️ TimerBlock.onNext() - Timer completed, popping`);
-        // Timer blocks pop after completion
-        return undefined;
-    }
-
-    protected onPop(): void {
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`⏱️ TimerBlock.onPop() - Stopping timer`);
+        void runtime;
         
         // Stop the timer
         const span = this.getPublicSpanReference()?.get();
         if (span) {
             span.stop();
         }
+        return [{ level: 'info', message: 'timer pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 
     /**

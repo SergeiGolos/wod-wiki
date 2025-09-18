@@ -1,5 +1,5 @@
 import { IScriptRuntime } from "../IScriptRuntime";
-import { IRuntimeEvent, HandlerResponse, IRuntimeLog } from "../EventHandler";
+import { IRuntimeLog } from "../EventHandler";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**

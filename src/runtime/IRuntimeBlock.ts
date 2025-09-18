@@ -2,11 +2,10 @@ import { BlockKey } from "../BlockKey";
 import { IRuntimeLog } from "./EventHandler";
 import { IScriptRuntime } from "./IScriptRuntime";
 
-
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
-    readonly sourceId: string[];
+    readonly sourceId: string[];        
 
     /**
      * Called when this block is pushed onto the runtime stack.
@@ -29,5 +28,5 @@ export interface IRuntimeBlock {
      * Handles completion logic, manages result spans, and cleans up resources.
      * @param memory The runtime memory system
      */
-    pop(memory: IScriptRuntime): IRuntimeLog[];
+    pop(memory: IScriptRuntime ): IRuntimeLog[];
 }

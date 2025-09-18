@@ -1,10 +1,10 @@
 import { BlockKey } from "../../BlockKey";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IRuntimeEvent } from "../EventHandler";
+import { IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { IScriptRuntime } from "../IScriptRuntime";
 
 // A parent block for rounds-based workouts.
 
@@ -33,19 +33,22 @@ export class RoundsParentBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    protected onPush(): IRuntimeEvent[] {
-        // Return initial events when pushed
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
+        // Return initial logs when pushed
+        void runtime;
+        return [{ level: 'info', message: 'rounds push', timestamp: new Date(), context: { key: this.key.toString() } }];
+    }
+
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
+        // Determine next block after child completion
+        void runtime;
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        // Determine next block after child completion
-        // For now, signal completion by returning undefined
-        return undefined;
-    }
-
-    protected onPop(): void {
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         // Handle completion logic
+        void runtime;
         console.log(`RoundsParentBlock ${this.key.toString()} completed`);
+        return [{ level: 'info', message: 'rounds pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }
