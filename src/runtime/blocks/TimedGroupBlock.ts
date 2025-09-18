@@ -2,7 +2,7 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import type { IMemoryReference } from "../memory";
 import { IRuntimeBlock } from "../IRuntimeBlock";
@@ -13,7 +13,7 @@ interface GroupState {
     currentChildIndex: number;
 }
 
-export class TimedGroupBlock extends RuntimeBlockWithMemoryBase {
+export class TimedGroupBlock extends RuntimeBlock {
     private _groupStateRef?: IMemoryReference<GroupState>;
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {

@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import type { IMemoryReference } from "../memory";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
@@ -12,7 +12,7 @@ import { IScriptRuntime } from "../IScriptRuntime";
  * It identifies immediate child statements from the script via indentation, and
  * cycles through them for a fixed number of rounds.
  */
-export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRuntimeBlock {
+export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
     private _loopStateRef?: IMemoryReference<{ remainingRounds: number; currentChildIndex: number; childStatements: any[]; }>
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {

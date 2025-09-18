@@ -6,12 +6,15 @@ import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBlock } from './IRuntimeBlock';
+import { IBehavior } from './behaviors/IBehavior';
+import { runOnNext, runOnPop, runOnPush } from './behaviors/runBehaviorHooks';
 
 /**
  * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
- * All blocks should extend this class instead of implementing IRuntimeBlock directly.
+ * All blocks extend this class and are based on behaviors with access to memory.
+ * Combines functionality from BehavioralMemoryBlockBase and RuntimeBlockWithMemoryBase.
  */
-export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
+export abstract class RuntimeBlock implements IRuntimeBlock {
     protected memory?: IRuntimeMemory;
     protected runtime?: IScriptRuntime;
     public readonly sourceId: string[];
@@ -20,12 +23,15 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     private _spansRef?: IMemoryReference<IResultSpanBuilder>;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
 
-    constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = []) {
+    constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = [], public readonly behaviors: IBehavior[] = []) {
         // Derive source ids from initial metrics (unique, preserve insertion order)
         const ids = Array.from(new Set(initialMetrics.map(m => m.sourceId)));
         this.sourceId = ids;
-        console.log(`🧠 RuntimeBlockWithMemoryBase created: ${key.toString()}`);
+        console.log(`🧠 RuntimeBlock created: ${key.toString()}`);
     }
+
+    /** Optional accessor used by helpers to discover behaviors */
+    getBehaviors(): IBehavior[] { return this.behaviors; }
 
     /**
      * Sets the runtime context for this block
@@ -80,7 +86,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
             console.log(`⚠️ Failed to publish metric entries for ${ownerId}:`, e);
         }
 
-        console.log(`🧠 RuntimeBlockWithMemoryBase pushed and initialized memory for: ${this.key.toString()}`);
+        console.log(`🧠 RuntimeBlock pushed and initialized memory for: ${this.key.toString()}`);
 
         // Return initial logs from subclass
         return this.onPush(runtime);
@@ -105,7 +111,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         // Clean up all memory allocated by this block
         const mem = (runtime as any).memory as IRuntimeMemory;
         const myMemory = this.getMyMemory();
-        console.log(`🧠 RuntimeBlockWithMemoryBase cleaning up ${myMemory.length} memory references for ${this.key.toString()}`);
+        console.log(`🧠 RuntimeBlock cleaning up ${myMemory.length} memory references for ${this.key.toString()}`);
 
         for (const memRef of myMemory) {
             mem.release(memRef);
@@ -124,32 +130,47 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
 
     /**
      * Template method for subclasses to initialize their own memory allocations
+     * Default implementation is no-op, subclasses may override to add extra allocations
      */
-    protected abstract initializeMemory(): void;
+    protected initializeMemory(): void {}
 
     /**
      * Template method for subclasses to create their spans builder
+     * Default implementation provides a basic spans builder
      */
-    protected abstract createSpansBuilder(): IResultSpanBuilder;
+    protected createSpansBuilder(): IResultSpanBuilder {
+        return {
+            create: () => ({ blockKey: this.key.toString(), timeSpan: { blockKey: this.key.toString() }, metrics: [], duration: 0 }),
+            getSpans: () => [],
+            close: () => void 0,
+            start: () => void 0,
+            stop: () => void 0,
+        };
+    }
 
     /**
      * Template method for subclasses to create their initial event handlers
+     * Default implementation returns no built-in handlers; subclasses can override
      */
-    protected abstract createInitialHandlers(): IEventHandler[];
+    protected createInitialHandlers(): IEventHandler[] { return []; }
 
     /**
      * Template method called after push to return initial events
+     * Default implementation delegates to behavior hooks
      */
-    protected abstract onPush(runtime: IScriptRuntime): IRuntimeLog[];
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] { return runOnPush(runtime, this); }
 
     /**
      * Template method called when determining next block after child completion
+     * Default implementation delegates to behavior hooks
      */
-    protected abstract onNext(runtime: IScriptRuntime): IRuntimeLog[];
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] { return runOnNext(runtime, this); }
+
     /**
      * Template method called before pop for completion logic
+     * Default implementation delegates to behavior hooks
      */
-    protected abstract onPop(runtime: IScriptRuntime): IRuntimeLog[];
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] { return runOnPop(runtime, this); }
 
     /**
      * Helper method to allocate memory for block-specific state

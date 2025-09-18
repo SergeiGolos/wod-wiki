@@ -5,7 +5,7 @@ import { IScriptRuntime } from "./IScriptRuntime";
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
-    readonly sourceId: number[];        
+    readonly sourceId: string[];        
 
     /**
      * Called when this block is pushed onto the runtime stack.

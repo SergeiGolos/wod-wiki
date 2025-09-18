@@ -2,11 +2,11 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 
 // Parent block for countdown-based workouts adapted to the memory model.
-export class CountdownParentBlock extends RuntimeBlockWithMemoryBase {
+export class CountdownParentBlock extends RuntimeBlock {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
         console.log(`⏳ CountdownParentBlock created for key: ${key.toString()}`);

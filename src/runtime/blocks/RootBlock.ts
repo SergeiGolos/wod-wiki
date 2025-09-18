@@ -2,7 +2,7 @@ import { BlockKey } from "../../BlockKey";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RootNextHandler } from "../handlers/RootNextHandler";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import type { IMemoryReference } from "../memory";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IAllocateSpanBehavior } from "../behaviors/IAllocateSpanBehavior";
@@ -30,7 +30,7 @@ import { IRuntimeBlock } from "../IRuntimeBlock";
  * - JournalOnPopBehavior
  * - EndOnPopBehavior
  */
-export class RootBlock extends RuntimeBlockWithMemoryBase {
+export class RootBlock extends RuntimeBlock {
     
     private _spanRef?: IMemoryReference<IResultSpanBuilder>;
     private _childrenGroupsRef?: IMemoryReference<string[][]>;
