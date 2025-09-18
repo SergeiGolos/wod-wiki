@@ -3,9 +3,9 @@ import { BlockKey } from "../../BlockKey";
 import { IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IEventHandler } from "../EventHandler";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 
-export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
+export class DoneRuntimeBlock extends RuntimeBlock {
     constructor() {
         super(new BlockKey('done'), []);
     }

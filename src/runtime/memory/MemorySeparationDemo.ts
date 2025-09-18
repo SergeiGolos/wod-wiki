@@ -1,5 +1,5 @@
 import { ScriptRuntime } from "../ScriptRuntime";
-import { RuntimeBlockWithMemoryBase } from '../RuntimeBlockWithMemoryBase';
+import { RuntimeBlock } from '../RuntimeBlock';
 import { WodScript } from '../../WodScript';
 import { JitCompiler } from '../JitCompiler';
 import { BlockKey } from '../../BlockKey';
@@ -12,7 +12,7 @@ import { IMetricInheritance } from '../IMetricInheritance';
  * Example block that demonstrates memory separation by storing its state in memory
  * instead of as class properties.
  */
-class ExerciseBlock extends RuntimeBlockWithMemoryBase {
+class ExerciseBlock extends RuntimeBlock {
     key = 'exercise';
     spans = {} as IResultSpanBuilder;
     handlers: EventHandler[] = [];

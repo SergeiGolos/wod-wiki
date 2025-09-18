@@ -3,12 +3,12 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IEventHandler } from "../EventHandler";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 
 // A parent block for rounds-based workouts.
 
-export class RoundsParentBlock extends RuntimeBlockWithMemoryBase {
+export class RoundsParentBlock extends RuntimeBlock {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
     }

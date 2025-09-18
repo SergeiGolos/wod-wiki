@@ -4,7 +4,7 @@ import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
 import { BlockKey } from "../../BlockKey";
 import type { IMemoryReference } from "../memory";
-import { BehavioralMemoryBlockBase } from "./BehavioralMemoryBlockBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
 import { InheritMetricsBehavior } from "../behaviors/InheritMetricsBehavior";
 import type { IRuntimeMemory } from "../memory/IRuntimeMemory";
@@ -21,7 +21,7 @@ import type { IRuntimeMemory } from "../memory/IRuntimeMemory";
  * - Default when no other specialized strategy matches
  * - Presence of action/effort/distance/resistance/etc. without control metrics (rounds/time) is typical
  */
-export class EffortBlock extends BehavioralMemoryBlockBase {
+export class EffortBlock extends RuntimeBlock {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
         console.log(`💪 EffortBlock created for key: ${key.toString()}`);

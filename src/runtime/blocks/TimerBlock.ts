@@ -2,7 +2,7 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { BehavioralMemoryBlockBase } from "./BehavioralMemoryBlockBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
 import { InheritMetricsBehavior } from "../behaviors/InheritMetricsBehavior";
 import { DurationEventBehavior } from "../behaviors/DurationEventBehavior";
@@ -21,7 +21,7 @@ import type { IMemoryReference } from "../memory";
  * - time: value > 0 (timed) and rounds not present
  * - If time < 0, prefer CountdownParentBlock instead
  */
-export class TimerBlock extends BehavioralMemoryBlockBase {
+export class TimerBlock extends RuntimeBlock {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
         console.log(`⏱️ TimerBlock created for key: ${key.toString()}`);

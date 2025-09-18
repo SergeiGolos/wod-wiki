@@ -2,7 +2,7 @@ import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { IAllocateSpanBehavior } from "../behaviors/IAllocateSpanBehavior";
 import { IDurationEventBehavior } from "../behaviors/IDurationEventBehavior";
 import { IPopOnNextBehavior } from "../behaviors/IPopOnNextBehavior";
@@ -21,7 +21,7 @@ import { IScriptRuntime } from "../IScriptRuntime";
  * - JournalOnPopBehavior
  * - AllocateMetrics
  */
-export class TimeBoundBlock extends RuntimeBlockWithMemoryBase 
+export class TimeBoundBlock extends RuntimeBlock 
     implements IAllocateSpanBehavior, IDurationEventBehavior, IPopOnNextBehavior, IJournalOnPopBehavior, IAllocateMetricsBehavior {
     
     private _spanRef?: IMemoryReference<IResultSpanBuilder>;

@@ -3,7 +3,7 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
-import { BehavioralMemoryBlockBase } from "./BehavioralMemoryBlockBase";
+import { RuntimeBlock } from "../RuntimeBlock";
 import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
 import { AllocateChildrenBehavior } from "../behaviors/AllocateChildrenBehavior";
 import { AllocateIndexBehavior } from "../behaviors/AllocateIndexBehavior";
@@ -27,7 +27,7 @@ import { IRuntimeBlock } from "../IRuntimeBlock";
  * - StopOnPopBehavior
  * - JournalOnPopBehavior
  */
-export class BoundedLoopingBlock extends BehavioralMemoryBlockBase {
+export class BoundedLoopingBlock extends RuntimeBlock {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
         console.log(`🔄 BoundedLoopingBlock created for key: ${key.toString()}`);
