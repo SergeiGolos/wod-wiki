@@ -4,11 +4,9 @@ import { JitCompiler, RuntimeJitStrategies } from './JitCompiler';
 import { compilers, parseWodLine } from './FragmentCompilationManager.fixture';
 import { IScriptRuntime } from './IScriptRuntime';  
 import { RuntimeStack } from './RuntimeStack';
-import { IRuntimeBlock } from './IRuntimeBlock';
-import { BlockKey } from '../BlockKey';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { CountdownStrategy, EffortStrategy, RoundsStrategy } from './strategies';
-import { WodScript } from '@/WodScript';
+import { WodScript } from '../WodScript';
 
 describe('JitCompiler with Block Composition', () => {
     it('should compile a child block and inherit metrics from its parent on the stack', () => {

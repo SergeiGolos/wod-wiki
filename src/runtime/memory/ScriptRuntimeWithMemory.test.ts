@@ -7,7 +7,6 @@ import { IEventHandler, IRuntimeLog } from '../EventHandler';
 import { IResultSpanBuilder } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { IMetricInheritance } from '../IMetricInheritance';
-import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../BlockKey';
 
 // Mock implementations for testing

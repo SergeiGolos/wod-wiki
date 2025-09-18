@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { IRuntimeEvent } from "../EventHandler";
+import { IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
@@ -28,17 +28,18 @@ export class IdleRuntimeBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(): IRuntimeLog[] {
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
+    protected onNext(): IRuntimeLog[] {
         // Idle block never completes, so never return a next block
-        return undefined;
+        return [];
     }
 
-    protected onPop(): void {
+    protected onPop(): IRuntimeLog[] {
         // Handle completion logic for idle block
         console.log(`IdleRuntimeBlock ${this.key.toString()} completed`);
+        return [];
     }
 }

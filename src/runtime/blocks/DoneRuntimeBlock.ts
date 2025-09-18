@@ -1,6 +1,6 @@
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
-import { IRuntimeEvent } from "../EventHandler";
+import { IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
@@ -28,17 +28,18 @@ export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
         return [];
     }
 
-    protected onPush(): IRuntimeEvent[] {
+    protected onPush(): IRuntimeLog[] {
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
-        // Done block signals completion by returning undefined
-        return undefined;
+    protected onNext(): IRuntimeLog[] {
+        // Done block signals completion by returning empty logs
+        return [];
     }
 
-    protected onPop(): void {
+    protected onPop(): IRuntimeLog[] {
         // Handle completion logic for done block
         console.log(`DoneRuntimeBlock ${this.key.toString()} completed`);
+        return [];
     }
 }

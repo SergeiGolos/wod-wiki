@@ -7,7 +7,7 @@ import { StopEvent } from './events/StopEvent';
 import { TickEvent } from './events/TickEvent';
 import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
 import { BlockKey } from '../BlockKey';
-import { IRuntimeEvent, IEventHandler, HandlerResponse } from './EventHandler';
+import { IRuntimeEvent, IEventHandler, HandlerResponse, IRuntimeLog } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { StartHandler } from './handlers/StartHandler';
 import { StopHandler } from './handlers/StopHandler';
@@ -47,9 +47,18 @@ class WorkoutBlock extends RuntimeBlockWithMemoryBase {
         ];
     }
 
-    protected onPush(): IRuntimeEvent[] { return []; }
-    protected onNext() { return undefined; }
-    protected onPop(): void {}
+    protected onPush(runtime: IScriptRuntime): IRuntimeLog[] { 
+        void runtime; 
+        return []; 
+    }
+    protected onNext(runtime: IScriptRuntime): IRuntimeLog[] { 
+        void runtime; 
+        return []; 
+    }
+    protected onPop(runtime: IScriptRuntime): IRuntimeLog[] { 
+        void runtime; 
+        return []; 
+    }
     protected initializeMemory(): void {}
 }
 

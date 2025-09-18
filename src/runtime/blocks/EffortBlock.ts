@@ -121,14 +121,15 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
         return [];
     }
 
-    protected onNext(): IRuntimeBlock | undefined {
+    protected onNext(): IRuntimeLog[] {
         console.log(`💪 EffortBlock.onNext() - Determining next block after child completion`);
         // Effort blocks typically don't have child blocks
-        return undefined;
+        return [];
     }
 
-    protected onPop(): void {
+    protected onPop(): IRuntimeLog[] {
         console.log(`💪 EffortBlock.onPop() - Block popped from stack, cleaning up`);
         // Handle completion logic for effort block
+        return [];
     }
 }

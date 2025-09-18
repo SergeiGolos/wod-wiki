@@ -3,9 +3,6 @@ import { allTokens } from '../parser/timer.tokens';
 import { MdTimerParse } from '../parser/timer.parser';
 import { MdTimerInterpreter } from '../parser/timer.visitor';
 import { ICodeStatement } from '../CodeStatement';
-import { IFragmentCompiler } from './FragmentCompilationManager';
-import { MetricValue } from './RuntimeMetric';
-import { ICodeFragment } from '../CodeFragment';
 import { 
     ActionFragmentCompiler,
     DistanceFragmentCompiler,
