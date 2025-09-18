@@ -21,3 +21,19 @@ export type { IAllocateMetricsBehavior } from './IAllocateMetricsBehavior';
 export type { IAllocateSpanBehavior } from './IAllocateSpanBehavior';
 
 export { runOnPush, runOnNext, runOnPop } from './runBehaviorHooks';
+
+// Concrete behavior classes
+export { AllocateChildrenBehavior } from './AllocateChildrenBehavior';
+export { AllocateIndexBehavior } from './AllocateIndexBehavior';
+export { NextChildBehavior } from './NextChildBehavior';
+export { NoLoopBehavior } from './NoLoopBehavior';
+export { BoundLoopBehavior } from './BoundLoopBehavior';
+export { DurationEventBehavior } from './DurationEventBehavior';
+export { CompleteEventBehavior } from './CompleteEventBehavior';
+export { OnEventEndBehavior } from './OnEventEndBehavior';
+export { PopOnNextBehavior } from './PopOnNextBehavior';
+export { StopOnPopBehavior } from './StopOnPopBehavior';
+export { JournalOnPopBehavior } from './JournalOnPopBehavior';
+export { EndOnPopBehavior } from './EndOnPopBehavior';
+export { AllocateMetricsBehavior } from './AllocateMetricsBehavior';
+export { AllocateSpanBehavior } from './AllocateSpanBehavior';

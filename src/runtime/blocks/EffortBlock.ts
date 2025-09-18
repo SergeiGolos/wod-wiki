@@ -1,13 +1,12 @@
 import { RuntimeMetric } from "../RuntimeMetric";
-import { IEventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
-import { IPublicSpanBehavior } from "../behaviors/IPublicSpanBehavior";
-import { IInheritMetricsBehavior } from "../behaviors/IInheritMetricsBehavior";
 import type { IMemoryReference } from "../memory";
+import { BehavioralMemoryBlockBase } from "./BehavioralMemoryBlockBase";
+import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
+import type { IRuntimeMemory } from "../memory/IRuntimeMemory";
 
 /**
  * EffortBlock - Single effort unit
@@ -21,8 +20,7 @@ import type { IMemoryReference } from "../memory";
  * - Default when no other specialized strategy matches
  * - Presence of action/effort/distance/resistance/etc. without control metrics (rounds/time) is typical
  */
-export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSpanBehavior, IInheritMetricsBehavior {
-    private _publicSpanRef?: IMemoryReference<IResultSpanBuilder>;
+export class EffortBlock extends BehavioralMemoryBlockBase {
     private _inheritedMetricsRef?: IMemoryReference<RuntimeMetric[]>;
 
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
@@ -31,20 +29,19 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
     }
 
     protected initializeMemory(): void {
-        // Initialize public span for children to reference
-        this._publicSpanRef = this.allocateMemory<IResultSpanBuilder>(
-            'span-root', 
-            this.createPublicSpan(), 
-            'public'
-        );
+        // Compose behaviors: Allocate a public span and inherit metrics snapshot
+        const spanBehavior = new AllocateSpanBehavior({
+            visibility: 'public',
+            factory: () => this.createPublicSpan(),
+        });
+        this.getBehaviors().push(spanBehavior);
 
-        // Initialize inherited metrics from parent's public metrics
+        // Allocate inherited metrics snapshot as a private array
         this._inheritedMetricsRef = this.allocateMemory<RuntimeMetric[]>(
-            'inherited-metrics', 
-            this.getInheritedMetrics(), 
+            'inherited-metrics',
+            this.getInheritedMetrics(),
             'private'
         );
-
         console.log(`💪 EffortBlock initialized memory for: ${this.key.toString()}`);
     }
 
@@ -70,7 +67,10 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
     }
 
     public getPublicSpanReference(): IMemoryReference<IResultSpanBuilder> | undefined {
-        return this._publicSpanRef;
+        const mem = (this as any).memory as IRuntimeMemory | undefined;
+        if (!mem) return undefined;
+        const refs = mem.searchReferences<IResultSpanBuilder>({ ownerId: this.key.toString(), type: 'span-root' });
+        return refs[0];
     }
 
     public getInheritedMetrics(): RuntimeMetric[] {
@@ -107,29 +107,13 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
         return this._inheritedMetricsRef;
     }
 
-    protected createSpansBuilder(): IResultSpanBuilder {
-        // Use the public span as the primary spans builder
-        return this.createPublicSpan();
-    }
+    protected createSpansBuilder(): IResultSpanBuilder { return this.createPublicSpan(); }
 
     protected createInitialHandlers(): IEventHandler[] {
         return [new EffortNextHandler()];
     }
 
-    protected onPush(): IRuntimeEvent[] {
-        console.log(`💪 EffortBlock.onPush() - Block pushed to stack`);
-        return [];
-    }
-
-    protected onNext(): IRuntimeLog[] {
-        console.log(`💪 EffortBlock.onNext() - Determining next block after child completion`);
-        // Effort blocks typically don't have child blocks
-        return [];
-    }
-
-    protected onPop(): IRuntimeLog[] {
-        console.log(`💪 EffortBlock.onPop() - Block popped from stack, cleaning up`);
-        // Handle completion logic for effort block
-        return [];
-    }
+    protected onPush(runtime: any): IRuntimeLog[] { const logs = super.onPush(runtime); console.log(`💪 EffortBlock.onPush() - Block pushed to stack`); return logs; }
+    protected onNext(runtime: any): IRuntimeLog[] { const logs = super.onNext(runtime); console.log(`💪 EffortBlock.onNext() - Determining next block after child completion`); return logs; }
+    protected onPop(runtime: any): IRuntimeLog[] { const logs = super.onPop(runtime); console.log(`💪 EffortBlock.onPop() - Block popped from stack, cleaning up`); return logs; }
 }

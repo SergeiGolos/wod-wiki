@@ -26,7 +26,8 @@ function runBehaviorHook(hook: HookName, runtime: IScriptRuntime, block: IRuntim
     if (typeof fn !== "function") continue;
 
     try {
-      const logs = fn(runtime, block) ?? [];
+      // Call the hook with the behavior instance as `this` to preserve context for class methods
+      const logs = fn.call(behavior as any, runtime, block) ?? [];
       for (const log of logs) {
         logToConsole(behavior, hook, block, log);
         allLogs.push(log);
