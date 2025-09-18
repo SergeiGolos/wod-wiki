@@ -5,7 +5,6 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
 import { EffortBlock } from "./blocks/EffortBlock";
-import { TimerBlock } from "./blocks/TimerBlock";
 import { BlockKey } from "../BlockKey";
 import { BoundedLoopingParentBlock } from "./blocks/BoundedLoopingParentBlock";
 import { TimeBoundedLoopingBlock } from "./blocks/TimeBoundedLoopingBlock";
