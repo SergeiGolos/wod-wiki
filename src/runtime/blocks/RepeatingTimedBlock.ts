@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RepeatingBlock } from "./RepeatingBlock";
 import { IPublicSpanBehavior } from "../behaviors/IPublicSpanBehavior";
@@ -92,7 +92,7 @@ export class RepeatingTimedBlock extends RepeatingBlock implements IPublicSpanBe
         return this.createPublicSpan();
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         // TODO: Add DurationEventHandler for duration elapsed → Pop
         const handlers = super.createInitialHandlers();
         // handlers.push(new DurationEventHandler());

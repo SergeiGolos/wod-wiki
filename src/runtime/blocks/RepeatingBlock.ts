@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
@@ -125,7 +125,7 @@ export class RepeatingBlock extends RuntimeBlockWithMemoryBase implements IRepea
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [new GroupNextHandler()];
     }
 

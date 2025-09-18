@@ -3,7 +3,7 @@ import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
 import { RuntimeBlockWithMemoryBase } from '../RuntimeBlockWithMemoryBase';
 import { WodScript } from '../../WodScript';
 import { JitCompiler } from '../JitCompiler';
-import { EventHandler, IRuntimeEvent } from '../EventHandler';
+import { IEventHandler, IRuntimeEvent } from '../EventHandler';
 import { IResultSpanBuilder } from '../ResultSpanBuilder';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { IMetricInheritance } from '../IMetricInheritance';
@@ -28,7 +28,7 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
             stop: () => {}
         };
     }
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [];
     }
     protected onPush(): IRuntimeEvent[] {

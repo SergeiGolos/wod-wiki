@@ -3,6 +3,7 @@ import { RuntimeMetric } from "../../src/runtime/RuntimeMetric";
 export const singleMetric: RuntimeMetric[] = [
     {
         sourceId: "test",
+        blockId
         effort: "Test Effort",
         values: [
             { type: "time", value: 1200, unit: "s" }

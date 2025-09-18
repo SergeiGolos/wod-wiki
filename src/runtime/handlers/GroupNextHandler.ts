@@ -1,4 +1,4 @@
-import { EventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from "../EventHandler";
+import { IEventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from "../EventHandler";
 import { NextEvent } from "../events/NextEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { TimedGroupBlock } from "../blocks/TimedGroupBlock";
@@ -14,11 +14,11 @@ class AdvanceToNextChildAction implements IRuntimeAction {
     }
 }
 
-export class GroupNextHandler implements EventHandler {
+export class GroupNextHandler implements IEventHandler {
     public readonly id = 'GroupNextHandler';
     public readonly name = 'GroupNextHandler';
 
-    public handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
+    public handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
         if (event.name === 'NextEvent') {
             const block = runtime.stack.current as TimedGroupBlock;
             const action = block.hasNextChild()

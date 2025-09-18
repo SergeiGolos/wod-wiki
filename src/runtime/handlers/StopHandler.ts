@@ -1,4 +1,4 @@
-import { EventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
+import { IEventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
 import { StopAllSpansAction } from '../actions/StopAllSpansAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 
@@ -7,11 +7,11 @@ import { IScriptRuntime } from '../IScriptRuntime';
  * This is a system-wide event that affects ALL spans in memory.
  * When a stop event occurs, ALL spans in memory should be stopped.
  */
-export class StopHandler implements EventHandler {
+export class StopHandler implements IEventHandler {
     public readonly id = 'StopHandler';
     public readonly name = 'StopHandler';
 
-    public handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
+    public handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
         if (event.name === 'stop') {
             console.log(`🔴 StopHandler - Processing global stop event`);
             return {

@@ -4,7 +4,7 @@ import type { IRuntimeMemory, IDebugMemoryView } from './memory';
 import { RuntimeMemory } from './memory';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
-import { IRuntimeEvent, EventHandler } from './EventHandler';
+import { IRuntimeEvent, IEventHandler } from './EventHandler';
 
 /**
  * Script runtime implementation with memory separation support.
@@ -79,9 +79,9 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
         const updatedBlocks = new Set<string>();
 
         // UNIFIED HANDLER PROCESSING: Get ALL handlers from memory (not just current block)
-        const allHandlers = this.memory.searchReferences<EventHandler>({ type: 'handler' })
+        const allHandlers = this.memory.searchReferences<IEventHandler>({ type: 'handler' })
             .map(ref => ref.get())
-            .filter(Boolean) as EventHandler[];
+            .filter(Boolean) as IEventHandler[];
 
         console.log(`  🔍 Found ${allHandlers.length} handlers across ALL blocks in memory`);
 
@@ -92,7 +92,7 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
             // Find the owner of this handler to track updates
             let handlerOwnerId: string | undefined;
             for (const [ownerId, refIds] of (this.memory as any)._ownerIndex.entries()) {
-                const handlerRef = this.memory.searchReferences<EventHandler>({ ownerId, type: 'handler' })
+                const handlerRef = this.memory.searchReferences<IEventHandler>({ ownerId, type: 'handler' })
                     .find(ref => ref.get() === handler);
                 if (handlerRef) {
                     handlerOwnerId = ownerId;
@@ -102,7 +102,7 @@ export class ScriptRuntimeWithMemory extends ScriptRuntime implements IScriptRun
             
             console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id}) from block: ${handlerOwnerId || 'unknown'}`);
 
-            const response = handler.handleEvent(event, this);
+            const response = handler.handler(event, this);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
 
             if (response.handled) {

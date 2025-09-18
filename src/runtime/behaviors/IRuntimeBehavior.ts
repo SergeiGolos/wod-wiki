@@ -1,18 +1,17 @@
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeEvent, HandlerResponse } from "../EventHandler";
-import { IRuntimeMemory } from "../memory/IRuntimeMemory";
+import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IBehavior } from "./IBehavior";
 
 /**
- * Behavior contract for composition over inheritance.
- * Blocks can declare a list of behaviors; behaviors can react to lifecycle and runtime events.
+ * DEPRECATED: Prefer IBehavior which passes the block instance and runtime into each hook.
+ * This interface is maintained temporarily for backwards compatibility and will be removed.
  */
-export interface IRuntimeBehavior {
-  /** Called once when the behavior is attached to a block and runtime is set */
-  onAttach(runtime: IScriptRuntime, blockKey: string): void;
-  /** Called when the owning block is pushed */
-  onPush(memory: IRuntimeMemory): void;
-  /** Called when the owning block is popped */
-  onPop(memory: IRuntimeMemory): void;
-  /** Generic event hook; return a handler response if the behavior handles it */
-  onEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse | undefined;
-}
+export type IRuntimeBehavior = IBehavior<IRuntimeBlock> & {
+  /**
+   * Legacy signature shim
+   * Note: Implementations should migrate to IBehavior.onAttach(runtime, block)
+   */
+  onAttach?(runtime: IScriptRuntime, blockOrKey: IRuntimeBlock | string): void;
+  onEvent?(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse | undefined;
+};

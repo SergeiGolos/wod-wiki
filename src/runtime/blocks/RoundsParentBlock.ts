@@ -3,7 +3,7 @@ import { IRuntimeBlock } from "../IRuntimeBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { EventHandler } from "../EventHandler";
+import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 
 // A parent block for rounds-based workouts.
@@ -28,7 +28,7 @@ export class RoundsParentBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         // Return initial event handlers
         return [];
     }

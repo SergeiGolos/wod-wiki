@@ -1,5 +1,12 @@
 import { IScriptRuntime } from "./IScriptRuntime";
 
+export interface IRuntimeLog {
+  message: string;
+  level: 'info' | 'warning' | 'error' | 'debug';
+  timestamp: Date;
+  context?: any;
+}
+
 /**
  * Base interface for runtime events that can be handled by the system.
  */
@@ -47,7 +54,7 @@ export interface HandlerResponse {
  * Instead of separate canHandle and handle methods, implementors should return a HandlerResponse
  * indicating if the event was handled, whether to continue, and any actions to perform.
  */
-export interface EventHandler {
+export interface IEventHandler {
   /** Unique identifier for this handler */
   readonly id: string;
 
@@ -60,5 +67,5 @@ export interface EventHandler {
    * @param context Additional context for event processing
    * @returns HandlerResponse describing handling state, continuation, and actions
    */
-  handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse;
+  handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse;
 }

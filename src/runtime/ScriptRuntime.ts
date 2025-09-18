@@ -3,6 +3,7 @@ import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
 import { IRuntimeEvent } from './EventHandler';
+import { IRuntimeMemory, RuntimeMemory } from './memory';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -12,8 +13,11 @@ export class ScriptRuntime implements IScriptRuntime {
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
         this.stack = new RuntimeStack();
+        this.memory = new RuntimeMemory();
         this.jit = compiler;
     }
+    options?: { emitTags?: boolean; } | undefined;
+    memory: IRuntimeMemory;
 
     handle(event: IRuntimeEvent): void {
         console.log(`🎯 ScriptRuntime.handle() - Processing event: ${event.name}`);

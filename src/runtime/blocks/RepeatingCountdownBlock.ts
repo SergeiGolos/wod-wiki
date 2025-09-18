@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RepeatingBlock } from "./RepeatingBlock";
 import { IPublicSpanBehavior } from "../behaviors/IPublicSpanBehavior";
@@ -96,7 +96,7 @@ export class RepeatingCountdownBlock extends RepeatingBlock implements IPublicSp
         return this.createPublicSpan();
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         // TODO: Add DurationEventHandler for countdown tick → Next
         const handlers = super.createInitialHandlers();
         // handlers.push(new CountdownTickHandler());

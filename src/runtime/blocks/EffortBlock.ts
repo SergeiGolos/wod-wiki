@@ -1,5 +1,5 @@
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { EffortNextHandler } from "../handlers/EffortNextHandler";
@@ -112,7 +112,7 @@ export class EffortBlock extends RuntimeBlockWithMemoryBase implements IPublicSp
         return this.createPublicSpan();
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [new EffortNextHandler()];
     }
 

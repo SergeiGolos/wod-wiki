@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { EventHandler } from "../EventHandler";
+import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { BlockKey } from "../../BlockKey";
 
@@ -24,7 +24,7 @@ export class IdleRuntimeBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [];
     }
 

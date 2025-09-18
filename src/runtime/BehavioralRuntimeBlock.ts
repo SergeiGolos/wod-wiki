@@ -1,6 +1,6 @@
 import { RuntimeBlockWithMemoryBase } from "./RuntimeBlockWithMemoryBase";
-import { IRuntimeBehavior } from "./behaviors/IRuntimeBehavior";
-import { IRuntimeEvent, EventHandler, HandlerResponse } from "./EventHandler";
+import { IBehavior } from "./behaviors/IBehavior";
+import { IRuntimeEvent, IEventHandler, HandlerResponse } from "./EventHandler";
 import { IResultSpanBuilder } from "./ResultSpanBuilder";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { BlockKey } from "../BlockKey";
@@ -11,7 +11,7 @@ import { IScriptRuntimeWithMemory } from "./IScriptRuntimeWithMemory";
  * It adapts behavior onEvent responses to the runtime's action pipeline.
  */
 export class BehavioralRuntimeBlock extends RuntimeBlockWithMemoryBase {
-  constructor(key: BlockKey, metrics: RuntimeMetric[], private readonly behaviors: IRuntimeBehavior[]) {
+  constructor(key: BlockKey, metrics: RuntimeMetric[], private readonly behaviors: IBehavior[]) {
     super(key, metrics);
   }
 
@@ -19,7 +19,8 @@ export class BehavioralRuntimeBlock extends RuntimeBlockWithMemoryBase {
   setRuntime(runtime: IScriptRuntimeWithMemory): void {
     super.setRuntime(runtime);
     for (const b of this.behaviors) {
-      b.onAttach(runtime, this.key.toString());
+      // Optional hook
+      b.onAttach?.(runtime, this);
     }
   }
 
@@ -43,18 +44,18 @@ export class BehavioralRuntimeBlock extends RuntimeBlockWithMemoryBase {
     };
   }
 
-  protected createInitialHandlers(): EventHandler[] {
+  protected createInitialHandlers(): IEventHandler[] {
     // Bridge: wrap behaviors to EventHandlers so ScriptRuntimeWithMemory can dispatch.
     const self = this;
     return [
       {
         id: `BehaviorBridge:${this.key.toString()}`,
         name: `BehaviorBridge`,
-        handleEvent(event: IRuntimeEvent, runtime: IScriptRuntimeWithMemory): HandlerResponse {
+        handler(event: IRuntimeEvent, runtime: IScriptRuntimeWithMemory): HandlerResponse {
           // Fan-out to behaviors; collect first decisive response or merge actions
           const allActions: HandlerResponse["actions"] = [];
           for (const b of self.behaviors) {
-            const resp = b.onEvent(event, runtime);
+            const resp = b.onEvent?.(event, runtime, self as any);
             if (resp?.handled) {
               allActions.push(...resp.actions);
               if (!resp.shouldContinue) {
@@ -66,24 +67,35 @@ export class BehavioralRuntimeBlock extends RuntimeBlockWithMemoryBase {
             ? { handled: true, shouldContinue: true, actions: allActions }
             : { handled: false, shouldContinue: true, actions: [] };
         },
-      } as EventHandler,
+      } as IEventHandler,
     ];
   }
 
   protected onPush(): IRuntimeEvent[] {
+    const events: IRuntimeEvent[] = [];
     for (const b of this.behaviors) {
-      if (this.memory) b.onPush(this.memory);
+      if (this.runtime) {
+        const resp = b.onPush?.(this.runtime, this as any);
+        if (Array.isArray(resp)) events.push(...resp);
+      }
     }
-    return [];
+    return events;
   }
 
   protected onNext() {
+    // Allow behaviors to decide next block; first non-undefined wins
+    if (this.runtime) {
+      for (const b of this.behaviors) {
+        const next = b.onNext?.(this.runtime, this as any);
+        if (next) return next;
+      }
+    }
     return undefined;
   }
 
   protected onPop(): void {
     for (const b of this.behaviors) {
-      if (this.memory) b.onPop(this.memory);
+      if (this.runtime) b.onPop?.(this.runtime, this as any);
     }
   }
 }

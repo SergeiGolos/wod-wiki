@@ -15,7 +15,7 @@ describe('NextEvent Handlers', () => {
             const event = new NextEvent();
 
             // Act
-            const response = handler.handleEvent(event);
+            const response = handler.handler(event);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -36,7 +36,7 @@ describe('NextEvent Handlers', () => {
             } as any;
 
             // Act
-            const response = handler.handleEvent(event, mockRuntime);
+            const response = handler.handler(event, mockRuntime);
 
             // Assert
             expect(response.handled).toBe(true);
@@ -55,7 +55,7 @@ describe('NextEvent Handlers', () => {
             } as any;
 
             // Act
-            const response = handler.handleEvent(event, mockRuntime);
+            const response = handler.handler(event, mockRuntime);
 
             // Assert
             expect(response.handled).toBe(true);

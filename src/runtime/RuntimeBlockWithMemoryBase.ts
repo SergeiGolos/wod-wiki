@@ -2,7 +2,7 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import type { IMemoryReference } from './memory';
 import { IRuntimeMemory } from './memory/IRuntimeMemory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
-import { EventHandler, IRuntimeEvent } from './EventHandler';
+import { IEventHandler, IRuntimeEvent } from './EventHandler';
 import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
@@ -49,7 +49,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
         // Handlers: allocate one entry per handler to avoid arrays in memory
         const initialHandlers = this.createInitialHandlers();
         for (const h of initialHandlers) {
-            memory.allocate<EventHandler>('handler', ownerId, h, undefined, 'private');
+            memory.allocate<IEventHandler>('handler', ownerId, h, undefined, 'private');
         }
 
         // Call template method for subclass initialization
@@ -118,7 +118,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     /**
      * Template method for subclasses to create their initial event handlers
      */
-    protected abstract createInitialHandlers(): EventHandler[];
+    protected abstract createInitialHandlers(): IEventHandler[];
 
     /**
      * Template method called after push to return initial events
@@ -206,11 +206,11 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     /**
      * Gets the event handlers from memory
      */
-    protected getHandlers(): EventHandler[] {
+    protected getHandlers(): IEventHandler[] {
         if (!this.memory) return [];
         // Collect all handler entries owned by this block
-        const refs = this.memory.searchReferences<EventHandler>({ ownerId: this.key.toString(), type: 'handler' });
-        return refs.map(r => r.get()).filter(Boolean) as EventHandler[];
+        const refs = this.memory.searchReferences<IEventHandler>({ ownerId: this.key.toString(), type: 'handler' });
+        return refs.map(r => r.get()).filter(Boolean) as IEventHandler[];
     }
 
     /**

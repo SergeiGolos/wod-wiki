@@ -8,7 +8,7 @@ import { StartEvent } from './events/StartEvent';
 import { StopEvent } from './events/StopEvent';
 import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
 import { BlockKey } from '../BlockKey';
-import { IRuntimeEvent, EventHandler } from './EventHandler';
+import { IRuntimeEvent, IEventHandler } from './EventHandler';
 
 // Mock block for testing spans
 class MockSpanBlock extends RuntimeBlockWithMemoryBase {
@@ -36,7 +36,7 @@ class MockSpanBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [new StartHandler(), new StopHandler()];
     }
 

@@ -7,7 +7,7 @@ import { StopEvent } from './events/StopEvent';
 import { TickEvent } from './events/TickEvent';
 import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
 import { BlockKey } from '../BlockKey';
-import { IRuntimeEvent, EventHandler, HandlerResponse } from './EventHandler';
+import { IRuntimeEvent, IEventHandler, HandlerResponse } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { StartHandler } from './handlers/StartHandler';
 import { StopHandler } from './handlers/StopHandler';
@@ -39,7 +39,7 @@ class WorkoutBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [
             new WorkoutEventHandler(this.workoutType, this.key.toString(), this),
             new StartHandler(),
@@ -54,7 +54,7 @@ class WorkoutBlock extends RuntimeBlockWithMemoryBase {
 }
 
 // Handler that responds to all workout events
-class WorkoutEventHandler implements EventHandler {
+class WorkoutEventHandler implements IEventHandler {
     public readonly id: string;
     public readonly name: string;
     private block: WorkoutBlock; // Store reference to the block
@@ -65,7 +65,7 @@ class WorkoutEventHandler implements EventHandler {
         this.block = block;
     }
 
-    handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
+    handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
         console.log(`📝 ${this.workoutType} handler processing ${event.name} event`);
         
         // Respond to all events but handle them differently

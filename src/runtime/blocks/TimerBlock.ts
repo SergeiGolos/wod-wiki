@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { IRuntimeBlock } from "../IRuntimeBlock";
@@ -117,7 +117,7 @@ export class TimerBlock extends RuntimeBlockWithMemoryBase implements IPublicSpa
         return this.createPublicSpan();
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         // TODO: Add DurationEventHandler for duration elapsed → Next
         // TODO: Add NextEventHandler → Pop after Next
         return [];

@@ -1,4 +1,4 @@
-import { EventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
+import { IEventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
 import { StartAllSpansAction } from '../actions/StartAllSpansAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 
@@ -7,11 +7,11 @@ import { IScriptRuntime } from '../IScriptRuntime';
  * This is a system-wide event that affects ALL spans in memory.
  * When a start event occurs, ALL spans in memory should be started.
  */
-export class StartHandler implements EventHandler {
+export class StartHandler implements IEventHandler {
     public readonly id = 'StartHandler';
     public readonly name = 'StartHandler';
 
-    public handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
+    public handler(event: IRuntimeEvent, _runtime: IScriptRuntime): HandlerResponse {
         if (event.name === 'start') {
             console.log(`🟢 StartHandler - Processing global start event`);
             return {

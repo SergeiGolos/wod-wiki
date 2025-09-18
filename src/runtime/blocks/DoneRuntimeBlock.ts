@@ -2,7 +2,7 @@ import { IRuntimeBlock } from "../IRuntimeBlock";
 import { BlockKey } from "../../BlockKey";
 import { IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { EventHandler } from "../EventHandler";
+import { IEventHandler } from "../EventHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 
 export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
@@ -24,7 +24,7 @@ export class DoneRuntimeBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [];
     }
 

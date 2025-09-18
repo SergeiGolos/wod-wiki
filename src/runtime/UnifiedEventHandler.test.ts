@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ScriptRuntimeWithMemory } from './ScriptRuntimeWithMemory';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
-import { EventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from './EventHandler';
+import { IEventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { StartEvent } from './events/StartEvent';
 import { StopEvent } from './events/StopEvent';
@@ -27,7 +27,7 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [new TestEventHandler(this.handlerName, this.key.toString())];
     }
 
@@ -38,7 +38,7 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
 }
 
 // Test handler that can handle multiple event types
-class TestEventHandler implements EventHandler {
+class TestEventHandler implements IEventHandler {
     public readonly id: string;
     public readonly name: string;
     public handledEvents: IRuntimeEvent[] = [];
@@ -48,7 +48,7 @@ class TestEventHandler implements EventHandler {
         this.id = `${name}-${blockKey}`;
     }
 
-    handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
+    handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
         // Record that this handler processed the event
         this.handledEvents.push(event);
         
@@ -161,11 +161,11 @@ describe('Unified Runtime Event Handler', () => {
         expect(handler).toBeDefined();
 
         // Mock the handler to verify it receives the correct parameters
-        const originalHandleEvent = handler!.handleEvent;
+        const originalHandleEvent = handler!.handler;
         let receivedEvent: IRuntimeEvent | undefined;
         let receivedRuntime: IScriptRuntime | undefined;
 
-        handler!.handleEvent = (event: IRuntimeEvent, runtimeParam: IScriptRuntime): HandlerResponse => {
+        handler!.handler = (event: IRuntimeEvent, runtimeParam: IScriptRuntime): HandlerResponse => {
             receivedEvent = event;
             receivedRuntime = runtimeParam;
             return originalHandleEvent.call(handler, event, runtimeParam);

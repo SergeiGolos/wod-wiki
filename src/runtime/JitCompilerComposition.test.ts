@@ -8,6 +8,7 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../BlockKey';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { CountdownStrategy, EffortStrategy, RoundsStrategy } from './strategies';
+import { WodScript } from '@/WodScript';
 
 describe('JitCompiler with Block Composition', () => {
     it('should compile a child block and inherit metrics from its parent on the stack', () => {
@@ -26,7 +27,7 @@ describe('JitCompiler with Block Composition', () => {
             .addStrategy(new RoundsStrategy())
             .addStrategy(new EffortStrategy());
 
-        const compiler = new JitCompiler(parsedScript, fragmentCompiler, strategyManager);
+        const compiler = new JitCompiler(new WodScript(script, parsedScript), fragmentCompiler, strategyManager);
         const parent = compiler.compile([parsedScript[0]], runtime);
 
         runtime.stack.push(parent!);

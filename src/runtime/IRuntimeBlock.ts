@@ -1,17 +1,12 @@
 import { BlockKey } from "../BlockKey";
-import { IRuntimeEvent } from "./EventHandler";
-import { IRuntimeMemory } from "./memory/IRuntimeMemory";
-import { IScriptRuntimeWithMemory } from "./IScriptRuntimeWithMemory";
+import { IRuntimeLog } from "./EventHandler";
+import { IScriptRuntime } from "./IScriptRuntime";
+
 
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
-
-    /**
-     * Sets the runtime context for this block
-     * @param runtime The script runtime with memory support
-     */
-    setRuntime?(runtime: IScriptRuntimeWithMemory): void;
+    readonly sourceId: string[];
 
     /**
      * Called when this block is pushed onto the runtime stack.
@@ -19,7 +14,7 @@ export interface IRuntimeBlock {
      * @param memory The runtime memory system
      * @returns Array of events to emit after push
      */
-    push(memory: IRuntimeMemory): IRuntimeEvent[];
+    push(memory: IScriptRuntime): IRuntimeLog[];
 
     /**
      * Called when a child block completes execution.
@@ -27,12 +22,12 @@ export interface IRuntimeBlock {
      * @param memory The runtime memory system
      * @returns The next block to execute, or undefined if this block should pop
      */
-    next(memory: IRuntimeMemory): IRuntimeBlock | undefined;
+    next(memory: IScriptRuntime): IRuntimeLog[];
 
     /**
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, manages result spans, and cleans up resources.
      * @param memory The runtime memory system
      */
-    pop(memory: IRuntimeMemory): void;
+    pop(memory: IScriptRuntime): IRuntimeLog[];
 }

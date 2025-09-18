@@ -1,6 +1,6 @@
 import { BlockKey } from "../../BlockKey";
 import { RuntimeMetric } from "../RuntimeMetric";
-import { EventHandler, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, IRuntimeEvent } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
@@ -41,7 +41,7 @@ export class TimedGroupBlock extends RuntimeBlockWithMemoryBase {
         };
     }
 
-    protected createInitialHandlers(): EventHandler[] {
+    protected createInitialHandlers(): IEventHandler[] {
         return [new GroupNextHandler()];
     }
 

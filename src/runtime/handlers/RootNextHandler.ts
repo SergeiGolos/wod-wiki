@@ -1,13 +1,13 @@
-import { EventHandler, HandlerResponse, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, HandlerResponse, IRuntimeEvent } from "../EventHandler";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { PushBlockAction } from "../actions/PushBlockAction";
 import { RootBlock } from "../blocks/RootBlock";
 
-export class RootNextHandler implements EventHandler {
+export class RootNextHandler implements IEventHandler {
     public readonly id = 'RootNextHandler';
     public readonly name = 'Root Next Handler';    
 
-    public handleEvent(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {        
+    public handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {        
         if (event.name === 'NextEvent') {            
             const root = runtime.stack.current as RootBlock;                        
             const currentIndex = root.getStatementIndex();

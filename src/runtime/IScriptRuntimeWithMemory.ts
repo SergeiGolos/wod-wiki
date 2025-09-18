@@ -1,14 +1,11 @@
 import { IScriptRuntime } from './IScriptRuntime';
-import type { IRuntimeMemory, IDebugMemoryView } from './memory';
+import type { IDebugMemoryView } from './memory';
 
 /**
  * Extended script runtime interface that supports memory separation.
  * This allows for independent debugging and state inspection.
  */
-export interface IScriptRuntimeWithMemory extends IScriptRuntime {
-    /** The separate memory system for runtime state */
-    readonly memory: IRuntimeMemory;
-    
+export interface IScriptRuntimeWithMemory extends IScriptRuntime {    
     /** Debug interface for inspecting memory state */
     readonly debugMemory: IDebugMemoryView;
 }

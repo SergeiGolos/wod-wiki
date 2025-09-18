@@ -1,13 +1,13 @@
-import { EventHandler, HandlerResponse, IRuntimeEvent } from "../EventHandler";
+import { IEventHandler, HandlerResponse, IRuntimeEvent } from "../EventHandler";
 import { NextEvent } from "../events/NextEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
 import { EffortBlock } from "../blocks/EffortBlock";
 
-export class EffortNextHandler implements EventHandler {
+export class EffortNextHandler implements IEventHandler {
     public readonly id = 'EffortNextHandler';
     public readonly name = 'EffortNextHandler';
 
-    public handleEvent(event: IRuntimeEvent): HandlerResponse {
+    public handler(event: IRuntimeEvent): HandlerResponse {
         if (event.name === 'NextEvent') {
             return {
                 handled: true,
