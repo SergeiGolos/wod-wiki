@@ -1,15 +1,17 @@
 import { IEventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from "../EventHandler";
-import { NextEvent } from "../events/NextEvent";
 import { PopBlockAction } from "../actions/PopBlockAction";
-import { TimedGroupBlock } from "../blocks/TimedGroupBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 
 class AdvanceToNextChildAction implements IRuntimeAction {
     public readonly type = 'AdvanceToNextChild';
     public do(runtime: IScriptRuntime): void {
-        const currentBlock = runtime.stack.current as TimedGroupBlock;
-        if (currentBlock && typeof currentBlock.advanceToNextChild === 'function') {
-            currentBlock.advanceToNextChild();
+        const currentBlock = runtime.stack.current;
+        if (currentBlock && typeof (currentBlock as any).advanceToNextChild === 'function') {
+            console.log(`  ⏩ Advancing to next child in ${currentBlock.constructor.name}`);
+            (currentBlock as any).advanceToNextChild();
+        } else {
+            console.warn(`  ⚠️ Current block doesn't implement advanceToNextChild: ${currentBlock?.constructor.name || 'undefined'}`);
         }
     }
 }
@@ -20,8 +22,22 @@ export class GroupNextHandler implements IEventHandler {
 
     public handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {
         if (event.name === 'NextEvent') {
-            const block = runtime.stack.current as TimedGroupBlock;
-            const action = block.hasNextChild()
+            const block = runtime.stack.current;
+            
+            // Check if this is a block with child iteration capabilities
+            if (!block || typeof (block as any).hasNextChild !== 'function') {
+                console.log(`  ⏭️ GroupNextHandler skipping - current block doesn't implement child iteration: ${block?.constructor.name || 'undefined'}`);
+                return {
+                    handled: false,
+                    shouldContinue: true,
+                    actions: []
+                };
+            }
+            
+            console.log(`  🔄 GroupNextHandler handling NextEvent for ${block.constructor.name}`);
+            
+            const hasNext = (block as any).hasNextChild();
+            const action = hasNext
                 ? new AdvanceToNextChildAction()
                 : new PopBlockAction();
 

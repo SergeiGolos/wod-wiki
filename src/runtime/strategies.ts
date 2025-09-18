@@ -3,29 +3,36 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
-import { RepeatingBlock } from './blocks/RepeatingBlock';
-import { RepeatingRepsBlock } from './blocks/RepeatingRepsBlock';
-import { RepeatingTimedBlock } from './blocks/RepeatingTimedBlock';
-import { RepeatingCountdownBlock } from './blocks/RepeatingCountdownBlock';
 import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
 import { EffortBlock } from "./blocks/EffortBlock";
 import { TimerBlock } from "./blocks/TimerBlock";
 import { BlockKey } from "../BlockKey";
+import { BoundedLoopingParentBlock } from "./blocks/BoundedLoopingParentBlock";
+import { TimeBoundedLoopingBlock } from "./blocks/TimeBoundedLoopingBlock";
+import { TimeBoundBlock } from "./blocks/TimeBoundBlock";
 
-// The default strategy that creates a simple EffortBlock.
+/**
+ * The default strategy that creates a simple EffortBlock for repetition-based workouts.
+ */
 export class EffortStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         // This is the default, so it always returns a block.
+        console.log(`  🧠 EffortStrategy considering metrics:`, metrics);
         return new EffortBlock(new BlockKey('effort'), metrics);
     }
 }
 
-// A strategy that creates a CountdownParentBlock if it sees a countdown timer.
+/**
+ * A strategy that creates a CountdownParentBlock for countdown timers.
+ */
 export class CountdownStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         const hasCountdownTimer = metrics.some(m => 
             m.values.some(v => v.type === 'time' && v.value !== undefined && v.value < 0)
         );
+        
+        console.log(`  🧠 CountdownStrategy - has countdown timer: ${hasCountdownTimer}`);
+        
         if (hasCountdownTimer) {
             return new CountdownParentBlock(new BlockKey('countdown'), metrics);
         }
@@ -33,9 +40,12 @@ export class CountdownStrategy implements IRuntimeBlockStrategy {
     }
 }
 
-// A strategy that creates a RoundsParentBlock if it sees a rounds metric.
+/**
+ * A strategy that creates a BoundedLoopingParentBlock for multiple rounds.
+ * This is the base implementation for repeating blocks that use rounds.
+ */
 export class RoundsStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         const hasMultipleRounds = metrics.some(m => 
             m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
         );
@@ -45,34 +55,27 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             m.values.some(v => v.type === 'time' && v.value !== undefined && v.value < 0)
         );
         
-        if (hasMultipleRounds && !hasCountdownTimer) {
-            return new RepeatingBlock(new BlockKey('rounds'), metrics);
+        // Check for no positive timer (time > 0)
+        const hasPositiveTimer = metrics.some(m => 
+            m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
+        );
+        
+        console.log(`  🧠 RoundsStrategy - has multiple rounds: ${hasMultipleRounds}, has countdown: ${hasCountdownTimer}, has timer: ${hasPositiveTimer}`);
+        
+        // Only handle pure rounds with no timer component
+        if (hasMultipleRounds && !hasCountdownTimer && !hasPositiveTimer) {
+            return new BoundedLoopingParentBlock(new BlockKey('rounds'), metrics);
         }
         return undefined;
     }
 }
 
-// NEW: A strategy that creates RepeatingRepsBlock when rounds > 1 AND repetitions present
-export class RepeatingRepsStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
-        const hasMultipleRounds = metrics.some(m => 
-            m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
-        );
-        
-        const hasRepetitions = metrics.some(m => 
-            m.values.some(v => v.type === 'repetitions' && v.value !== undefined)
-        );
-        
-        if (hasMultipleRounds && hasRepetitions) {
-            return new RepeatingRepsBlock(new BlockKey('repeating-reps'), metrics);
-        }
-        return undefined;
-    }
-}
-
-// NEW: A strategy that creates RepeatingTimedBlock when rounds > 1 AND time > 0
-export class RepeatingTimedStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+/**
+ * A strategy that creates a TimeBoundedLoopingBlock when rounds > 1 AND time > 0
+ * This is for timed rounds like "5 rounds, each for 1 minute"
+ */
+export class TimeBoundedRoundsStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         const hasMultipleRounds = metrics.some(m => 
             m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
         );
@@ -81,16 +84,21 @@ export class RepeatingTimedStrategy implements IRuntimeBlockStrategy {
             m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
         );
         
+        console.log(`  🧠 TimeBoundedRoundsStrategy - has multiple rounds: ${hasMultipleRounds}, has positive time: ${hasPositiveTime}`);
+        
         if (hasMultipleRounds && hasPositiveTime) {
-            return new RepeatingTimedBlock(new BlockKey('repeating-timed'), metrics);
+            return new TimeBoundedLoopingBlock(new BlockKey('timed-rounds'), metrics);
         }
         return undefined;
     }
 }
 
-// NEW: A strategy that creates RepeatingCountdownBlock when rounds > 1 AND time < 0
-export class RepeatingCountdownStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+/**
+ * A strategy that creates a CountdownParentBlock combined with BoundedLoopingParentBlock
+ * when rounds > 1 AND time < 0. For countdown-based rounds.
+ */
+export class CountdownRoundsStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         const hasMultipleRounds = metrics.some(m => 
             m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
         );
@@ -99,16 +107,22 @@ export class RepeatingCountdownStrategy implements IRuntimeBlockStrategy {
             m.values.some(v => v.type === 'time' && v.value !== undefined && v.value < 0)
         );
         
+        console.log(`  🧠 CountdownRoundsStrategy - has multiple rounds: ${hasMultipleRounds}, has countdown time: ${hasCountdownTime}`);
+        
         if (hasMultipleRounds && hasCountdownTime) {
-            return new RepeatingCountdownBlock(new BlockKey('repeating-countdown'), metrics);
+            // For now, handle with CountdownParentBlock - can be extended with a specialized implementation
+            return new CountdownParentBlock(new BlockKey('countdown-rounds'), metrics);
         }
         return undefined;
     }
 }
 
-// NEW: A strategy that creates TimerBlock when time > 0 AND NOT rounds > 1
+/**
+ * A strategy that creates TimerBlock when time > 0 AND NOT rounds > 1
+ * This is for simple timer-based workouts like "Work for 2 minutes"
+ */
 export class TimerStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         const hasPositiveTime = metrics.some(m => 
             m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
         );
@@ -117,8 +131,33 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
         );
         
+        console.log(`  🧠 TimerStrategy - has positive time: ${hasPositiveTime}, has multiple rounds: ${hasMultipleRounds}`);
+        
         if (hasPositiveTime && !hasMultipleRounds) {
             return new TimerBlock(new BlockKey('timer'), metrics);
+        }
+        return undefined;
+    }
+}
+
+/**
+ * A strategy that creates TimeBoundBlock when time > 0 AND NOT rounds > 1
+ * This is an alternative implementation for simple time-bound workouts
+ */
+export class TimeBoundStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+        const hasPositiveTime = metrics.some(m => 
+            m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
+        );
+        
+        const hasMultipleRounds = metrics.some(m => 
+            m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
+        );
+        
+        console.log(`  🧠 TimeBoundStrategy - has positive time: ${hasPositiveTime}, has multiple rounds: ${hasMultipleRounds}`);
+        
+        if (hasPositiveTime && !hasMultipleRounds) {
+            return new TimeBoundBlock(new BlockKey('time-bound'), metrics);
         }
         return undefined;
     }

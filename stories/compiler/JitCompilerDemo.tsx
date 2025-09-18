@@ -8,7 +8,7 @@ import { WodScript } from '../../src/WodScript';
 import { JitCompiler, RuntimeJitStrategies } from '../../src/runtime/JitCompiler';
 import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
 import { compilers } from '../../src/runtime/FragmentCompilationManager.fixture';
-import { CountdownStrategy, RoundsStrategy, EffortStrategy } from '../../src/runtime/strategies';
+import { CountdownStrategy, RoundsStrategy, EffortStrategy, TimerStrategy, TimeBoundStrategy, TimeBoundedRoundsStrategy, CountdownRoundsStrategy } from '../../src/runtime/strategies';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { DebugMemorySnapshot } from '../../src/runtime/memory/IDebugMemoryView';
 import { CodeMetadata } from '../../src/CodeMetadata';
@@ -442,9 +442,14 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     const wodScript = mdRuntime.read(scriptText) as WodScript;
     const fragmentCompiler = new FragmentCompilationManager(compilers);
     const strategyManager = new RuntimeJitStrategies()
+      // Add strategies in order of precedence (most specific to most general)
+      .addStrategy(new CountdownRoundsStrategy())
+      .addStrategy(new TimeBoundedRoundsStrategy())
       .addStrategy(new CountdownStrategy())
+      .addStrategy(new TimerStrategy())
+      .addStrategy(new TimeBoundStrategy()) 
       .addStrategy(new RoundsStrategy())
-      .addStrategy(new EffortStrategy());
+      .addStrategy(new EffortStrategy()); // Fallback strategy
     const jitCompiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
     const runtime = new ScriptRuntimeWithMemory(wodScript, jitCompiler);
     

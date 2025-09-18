@@ -63,7 +63,7 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
         
         // AllocateIndex
         this._loopIndexRef = this.allocateMemory<number>('loop-index', 0, 'private');
-        this._childIndexRef = this.allocateMemory<number>('child-index', -1, 'private');
+        this._childIndexRef = this.allocateMemory<number>('child-index', 0, 'private');
         
         // NoLoopBehavior
         this._passCompleteRef = this.allocateMemory<boolean>('pass-complete', false, 'private');

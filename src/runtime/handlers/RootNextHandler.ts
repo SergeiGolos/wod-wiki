@@ -8,9 +8,25 @@ export class RootNextHandler implements IEventHandler {
     public readonly name = 'Root Next Handler';    
 
     public handler(event: IRuntimeEvent, runtime: IScriptRuntime): HandlerResponse {        
-        if (event.name === 'NextEvent') {            
+        if (event.name === 'NextEvent') {
+            // Check if the current block is actually a RootBlock before proceeding
+            if (!(runtime.stack.current instanceof RootBlock)) {
+                console.log(`  ⏭️ RootNextHandler skipping - current block is not a RootBlock: ${runtime.stack.current?.constructor.name}`);
+                return {
+                    handled: false,
+                    shouldContinue: true,
+                    actions: []
+                };
+            }
+            
             const root = runtime.stack.current as RootBlock;                        
-            const currentIndex = root.getStatementIndex();
+            let currentIndex = root.getStatementIndex();
+            
+            // Handle initial -1 case or ensure valid index
+            if (currentIndex < 0) {
+                currentIndex = 0;
+                root.setStatementIndex(0);
+            }
             console.log(`  🎯 RootNextHandler handling NextEvent - current statement index: ${currentIndex}`);
             if (!runtime) {
                 console.log(`  ❌ No runtime context available`);
@@ -35,6 +51,16 @@ export class RootNextHandler implements IEventHandler {
             }
             
             const nextStatement = rootStatements[currentIndex];
+            
+            if (!nextStatement) {
+                console.log(`  ❌ No statement found at index ${currentIndex}`);
+                return {
+                    handled: true,
+                    shouldContinue: false,
+                    actions: []
+                };
+            }
+            
             console.log(`  📝 Next statement to compile: ${nextStatement.id} (line ${nextStatement.meta?.line})`);
             
             // For grouped statements, include all child statements in the compilation
