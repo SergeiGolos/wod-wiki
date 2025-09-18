@@ -1,6 +1,5 @@
 import { IRuntimeAction } from "../EventHandler";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { IScriptRuntimeWithMemory } from "../IScriptRuntimeWithMemory";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 
 /**
@@ -15,15 +14,13 @@ export class StopAllSpansAction implements IRuntimeAction {
     public do(runtime: IScriptRuntime): void {
         console.log(`🔴 StopAllSpansAction - Stopping all spans in memory at ${this.timestamp.toISOString()}`);
         
-        // Cast to memory-aware runtime to access memory
-        const memoryRuntime = runtime as IScriptRuntimeWithMemory;
-        if (!memoryRuntime.memory) {
+        if (!runtime.memory) {
             console.warn(`⚠️ StopAllSpansAction - No memory available on runtime`);
             return;
         }
 
         // Find all span builders in memory
-        const spanBuilderRefs = memoryRuntime.memory.searchReferences<IResultSpanBuilder>({ type: 'span-builder' });
+        const spanBuilderRefs = runtime.memory.searchReferences<IResultSpanBuilder>({ type: 'span-builder' });
         
         console.log(`🔍 StopAllSpansAction - Found ${spanBuilderRefs.length} span builders in memory`);
         

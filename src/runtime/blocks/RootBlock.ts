@@ -8,7 +8,7 @@ import { IScriptRuntime } from "../IScriptRuntime";
 
 /**
  * Root block adapted to the memory model. This ensures setRuntime() exists
- * so ScriptRuntimeWithMemory can push it safely.
+ * so ScriptRuntime can push it safely.
  */
 export class RootBlock extends RuntimeBlockWithMemoryBase {
     private _childrenRef?: IMemoryReference<string[]>;

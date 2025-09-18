@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScriptRuntimeWithMemory } from './ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "./ScriptRuntime";
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
 import { StartHandler } from './handlers/StartHandler';
@@ -57,14 +57,14 @@ class MockSpanBlock extends RuntimeBlockWithMemoryBase {
 }
 
 describe('Global Start/Stop Event Handlers', () => {
-    let runtime: ScriptRuntimeWithMemory;
+    let runtime: ScriptRuntime;
     let mockScript: WodScript;
     let mockCompiler: JitCompiler;
 
     beforeEach(() => {
         mockScript = {} as WodScript;
         mockCompiler = {} as JitCompiler;
-        runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
+        runtime = new ScriptRuntime(mockScript, mockCompiler);
     });
 
     it('should start ALL spans in memory when start event occurs', () => {

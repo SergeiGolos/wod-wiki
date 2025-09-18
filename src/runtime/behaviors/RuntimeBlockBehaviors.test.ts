@@ -6,10 +6,10 @@ import { EffortBlock } from '../blocks/EffortBlock';
 import { TimerBlock } from '../blocks/TimerBlock';
 import { BlockKey } from '../../BlockKey';
 import { RuntimeMetric } from '../RuntimeMetric';
-import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "../ScriptRuntime";
 
 describe('Runtime Block Lifecycle Alignment', () => {
-    let runtime: ScriptRuntimeWithMemory;
+    let runtime: ScriptRuntime;
 
     beforeEach(() => {
         // Create a script with parent-child hierarchy for testing
@@ -21,7 +21,7 @@ describe('Runtime Block Lifecycle Alignment', () => {
             ]
         } as any;
         
-        runtime = new ScriptRuntimeWithMemory(script as any, {} as any);
+        runtime = new ScriptRuntime(script as any, {} as any);
     });
 
     describe('RepeatingRepsBlock', () => {

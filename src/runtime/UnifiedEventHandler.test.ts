@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScriptRuntimeWithMemory } from './ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "./ScriptRuntime";
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
 import { IEventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from './EventHandler';
@@ -83,14 +83,14 @@ class TestAction implements IRuntimeAction {
 }
 
 describe('Unified Runtime Event Handler', () => {
-    let runtime: ScriptRuntimeWithMemory;
+    let runtime: ScriptRuntime;
     let mockScript: WodScript;
     let mockCompiler: JitCompiler;
 
     beforeEach(() => {
         mockScript = {} as WodScript;
         mockCompiler = {} as JitCompiler;
-        runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
+        runtime = new ScriptRuntime(mockScript, mockCompiler);
     });
 
     it('should process events against ALL handlers in memory, not just current block', () => {
