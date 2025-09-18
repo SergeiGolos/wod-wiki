@@ -30,9 +30,7 @@ import { IRuntimeBlock } from "../IRuntimeBlock";
  * - JournalOnPopBehavior
  * - EndOnPopBehavior
  */
-export class RootBlock extends RuntimeBlockWithMemoryBase 
-    implements IAllocateSpanBehavior, IAllocateChildrenBehavior, IAllocateIndexBehavior, INextChildBehavior, 
-               INoLoopBehavior, IOnEventEndBehavior, IStopOnPopBehavior, IJournalOnPopBehavior, IEndOnPopBehavior {
+export class RootBlock extends RuntimeBlockWithMemoryBase {
     
     private _spanRef?: IMemoryReference<IResultSpanBuilder>;
     private _childrenGroupsRef?: IMemoryReference<string[][]>;

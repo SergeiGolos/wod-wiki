@@ -2,7 +2,7 @@
  * A reference to a memory location that can be passed between components.
  * This allows processes to reference memory without directly coupling to it.
  */
-export interface IMemoryReference<T = any> {
+export interface IMemoryReference<T = any>  {
     /** Unique identifier for this memory reference */
     readonly id: string;
     

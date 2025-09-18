@@ -4,7 +4,7 @@ export interface IScript {
   source: string;
   statements: ICodeStatement[];
   errors?: any[] | undefined;
-  from(ids: number[], index:number) : ICodeStatement[];
+  getIds(ids: number[]) : ICodeStatement[];
   getId(id: number): ICodeStatement | undefined;
   getAt(index: number): ICodeStatement | undefined;
 }
@@ -20,8 +20,8 @@ export class WodScript implements IScript {
     this.errors = errors;
   }
 
-  from(ids: number[], index: number): ICodeStatement[] {
-    throw new Error("Method not implemented.");
+  getIds(ids: number[]): ICodeStatement[] {
+    return ids.map(id => this.getId(id)).filter(Boolean) as ICodeStatement[];
   }
 
   getId(id: number): ICodeStatement | undefined {
