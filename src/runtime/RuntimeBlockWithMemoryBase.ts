@@ -4,7 +4,6 @@ import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { IEventHandler, IRuntimeLog } from './EventHandler';
 import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
-import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBlock } from './IRuntimeBlock';
 
@@ -14,7 +13,7 @@ import { IRuntimeBlock } from './IRuntimeBlock';
  */
 export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     protected memory?: IRuntimeMemory;
-    protected runtime?: IScriptRuntimeWithMemory;
+    protected runtime?: IScriptRuntime;
     public readonly sourceId: string[];
 
     // Memory references for core runtime state
@@ -31,7 +30,7 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
     /**
      * Sets the runtime context for this block
      */
-    setRuntime(runtime: IScriptRuntimeWithMemory): void {
+    setRuntime(runtime: IScriptRuntime): void {
         this.runtime = runtime;
     }
 
@@ -41,8 +40,8 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock {
      */
     push(runtime: IScriptRuntime): IRuntimeLog[] {
         // Bind runtime and memory
-        this.runtime = runtime as unknown as IScriptRuntimeWithMemory;
-        this.memory = (runtime as any).memory as IRuntimeMemory;
+        this.runtime = runtime;
+        this.memory = runtime.memory;
 
         const ownerId = this.key.toString();
 

@@ -9,7 +9,7 @@ import {
     EffortStrategy
 } from '../strategies';
 import { RuntimeMetric } from '../RuntimeMetric';
-import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "../ScriptRuntime";
 import { RepeatingRepsBlock } from '../blocks/RepeatingRepsBlock';
 import { RepeatingTimedBlock } from '../blocks/RepeatingTimedBlock';
 import { RepeatingCountdownBlock } from '../blocks/RepeatingCountdownBlock';
@@ -19,10 +19,10 @@ import { CountdownParentBlock } from '../blocks/CountdownParentBlock';
 import { EffortBlock } from '../blocks/EffortBlock';
 
 describe('Selection Strategy Priority', () => {
-    let runtime: ScriptRuntimeWithMemory;
+    let runtime: ScriptRuntime;
 
     beforeEach(() => {
-        runtime = new ScriptRuntimeWithMemory();
+        runtime = new ScriptRuntime();
     });
 
     describe('RepeatingRepsStrategy', () => {

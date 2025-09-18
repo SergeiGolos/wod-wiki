@@ -3,7 +3,7 @@ import { RepeatingBlock } from './RepeatingBlock';
 import { BlockKey } from '../../BlockKey';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { RuntimeMemory } from '../memory/RuntimeMemory';
-import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "../ScriptRuntime";
 import { WodScript } from '../../WodScript';
 
 describe('Child Block Execution Integration', () => {
@@ -54,7 +54,7 @@ describe('Child Block Execution Integration', () => {
         } as any;
         
         const memory = new RuntimeMemory();
-        const runtime = new ScriptRuntimeWithMemory(script, mockJitCompiler, memory);
+        const runtime = new ScriptRuntime(script, mockJitCompiler, memory);
         console.log('  ✅ Runtime and memory system initialized');
 
         // 3. Create the repeating block 

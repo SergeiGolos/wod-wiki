@@ -1,5 +1,5 @@
 import { ScriptRuntime } from './ScriptRuntime';
-import { IScriptRuntimeWithMemory } from './IScriptRuntimeWithMemory';
+import { ScriptRuntime } from "./ScriptRuntime";
 import type { IDebugMemoryView } from './memory';
 import { RuntimeMemory } from './memory';
 import { WodScript } from '../WodScript';

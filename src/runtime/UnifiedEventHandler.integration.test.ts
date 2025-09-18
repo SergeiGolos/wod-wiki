@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ScriptRuntimeWithMemory } from './ScriptRuntimeWithMemory';
+import { ScriptRuntime } from './ScriptRuntime';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
 import { StartEvent } from './events/StartEvent';
@@ -109,7 +109,7 @@ describe('Unified Runtime Event Handler Integration', () => {
     it('should demonstrate complete unified event processing across multiple workout blocks', () => {
         const mockScript = {} as WodScript;
         const mockCompiler = {} as JitCompiler;
-        const runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
+        const runtime = new ScriptRuntime(mockScript, mockCompiler);
 
         // Create multiple workout blocks representing different exercises
         const squatsBlock = new WorkoutBlock(new BlockKey('squats', 1), 'Squats');

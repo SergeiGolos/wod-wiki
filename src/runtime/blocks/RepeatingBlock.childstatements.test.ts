@@ -3,14 +3,14 @@ import { RepeatingBlock } from './RepeatingBlock';
 import { BlockKey } from '../../BlockKey';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { RuntimeMemory } from '../memory/RuntimeMemory';
-import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
+import { ScriptRuntime } from "../ScriptRuntime";
 import { JitCompiler } from '../JitCompiler';
 import { WodScript } from '../../WodScript';
 
 describe('RepeatingBlock Child Statements', () => {
     let block: RepeatingBlock;
     let memory: RuntimeMemory;
-    let runtime: ScriptRuntimeWithMemory;
+    let runtime: ScriptRuntime;
 
     beforeEach(() => {
         const key = new BlockKey('test-repeating');
@@ -30,7 +30,7 @@ describe('RepeatingBlock Child Statements', () => {
         
         const jitCompiler = {} as JitCompiler; // Mock JIT compiler
     memory = new RuntimeMemory();
-    runtime = new ScriptRuntimeWithMemory(script, jitCompiler);
+    runtime = new ScriptRuntime(script, jitCompiler);
         
         block = new RepeatingBlock(key, metrics);
     block.setRuntime(runtime);

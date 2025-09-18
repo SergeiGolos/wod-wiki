@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ScriptRuntimeWithMemory } from '../ScriptRuntimeWithMemory';
+import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeBlockWithMemoryBase } from '../RuntimeBlockWithMemoryBase';
 import { WodScript } from '../../WodScript';
 import { JitCompiler } from '../JitCompiler';
@@ -55,8 +55,8 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
     }
 }
 
-describe('ScriptRuntimeWithMemory', () => {
-    let runtime: ScriptRuntimeWithMemory;
+describe('ScriptRuntime', () => {
+    let runtime: ScriptRuntime;
     let mockScript: WodScript;
     let mockCompiler: JitCompiler;
 
@@ -65,7 +65,7 @@ describe('ScriptRuntimeWithMemory', () => {
         mockScript = {} as WodScript;
         mockCompiler = {} as JitCompiler;
         
-        runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
+        runtime = new ScriptRuntime(mockScript, mockCompiler);
     });
 
     describe('memory integration', () => {

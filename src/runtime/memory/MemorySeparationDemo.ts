@@ -1,12 +1,12 @@
-import { ScriptRuntimeWithMemory } from './ScriptRuntimeWithMemory';
-import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
-import { WodScript } from '../WodScript';
-import { JitCompiler } from './JitCompiler';
-import { BlockKey } from '../BlockKey';
-import { EventHandler, IRuntimeEvent } from './EventHandler';
-import { IResultSpanBuilder } from './ResultSpanBuilder';
-import { RuntimeMetric } from './RuntimeMetric';
-import { IMetricInheritance } from './IMetricInheritance';
+import { ScriptRuntime } from "../ScriptRuntime";
+import { RuntimeBlockWithMemoryBase } from '../RuntimeBlockWithMemoryBase';
+import { WodScript } from '../../WodScript';
+import { JitCompiler } from '../JitCompiler';
+import { BlockKey } from '../../BlockKey';
+import { EventHandler, IRuntimeEvent } from '../EventHandler';
+import { IResultSpanBuilder } from '../ResultSpanBuilder';
+import { RuntimeMetric } from '../RuntimeMetric';
+import { IMetricInheritance } from '../IMetricInheritance';
 
 /**
  * Example block that demonstrates memory separation by storing its state in memory
@@ -132,7 +132,7 @@ export function demonstrateMemorySeparation(): void {
     // Create runtime with memory separation
     const mockScript = {} as WodScript;
     const mockCompiler = {} as JitCompiler;
-    const runtime = new ScriptRuntimeWithMemory(mockScript, mockCompiler);
+    const runtime = new ScriptRuntime(mockScript, mockCompiler);
     runtime.initialize();
 
     console.log('1. Creating exercise blocks...');
