@@ -138,10 +138,10 @@ describe('Runtime Block Lifecycle Alignment', () => {
             expect(publicSpanRef).toBeDefined();
             expect(publicSpanRef!.visibility).toBe('public');
 
-            // Should have inherited metrics reference (private in new model)
+            // Should have inherited metrics reference (public so children can access)
             const inheritedMetricsRef = block.getInheritedMetricsReference();
             expect(inheritedMetricsRef).toBeDefined();
-            expect(inheritedMetricsRef!.visibility).toBe('private');
+            expect(inheritedMetricsRef!.visibility).toBe('public');
 
             // Should inherit own metrics when no parent metrics available
             const inheritedMetrics = block.getInheritedMetrics();
