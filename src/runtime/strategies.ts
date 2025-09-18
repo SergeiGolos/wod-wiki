@@ -9,6 +9,8 @@ import { BlockKey } from "../BlockKey";
 import { BoundedLoopingParentBlock } from "./blocks/BoundedLoopingParentBlock";
 import { TimeBoundedLoopingBlock } from "./blocks/TimeBoundedLoopingBlock";
 import { TimeBoundBlock } from "./blocks/TimeBoundBlock";
+import { BoundedLoopingBlock } from "./blocks/BoundedLoopingBlock";
+import { TimerBlock } from "./blocks/TimerBlock";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -157,6 +159,60 @@ export class TimeBoundStrategy implements IRuntimeBlockStrategy {
         
         if (hasPositiveTime && !hasMultipleRounds) {
             return new TimeBoundBlock(new BlockKey('time-bound'), metrics);
+        }
+        return undefined;
+    }
+}
+
+/**
+ * Legacy compatibility exports expected by tests
+ * - BoundedLoopingStrategy → returns a pure BoundedLoopingBlock when rounds > 1 and no timers
+ * - BoundedLoopingParentStrategy → rounds > 1 AND repetitions present → BoundedLoopingParentBlock
+ * - TimeBoundedLoopingStrategy → rounds > 1 AND time > 0 → TimeBoundedLoopingBlock
+ */
+export class BoundedLoopingStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+        const hasMultipleRounds = metrics.some(m => 
+            m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
+        );
+        const hasCountdownTimer = metrics.some(m => 
+            m.values.some(v => v.type === 'time' && v.value !== undefined && v.value < 0)
+        );
+        const hasPositiveTimer = metrics.some(m => 
+            m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
+        );
+        if (hasMultipleRounds && !hasCountdownTimer && !hasPositiveTimer) {
+            return new BoundedLoopingBlock(new BlockKey('rounds'), metrics);
+        }
+        return undefined;
+    }
+}
+
+export class BoundedLoopingParentStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+        const hasMultipleRounds = metrics.some(m => 
+            m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
+        );
+        const hasReps = metrics.some(m => 
+            m.values.some(v => v.type === 'repetitions' && v.value !== undefined && v.value > 0)
+        );
+        if (hasMultipleRounds && hasReps) {
+            return new BoundedLoopingParentBlock(new BlockKey('rounds'), metrics);
+        }
+        return undefined;
+    }
+}
+
+export class TimeBoundedLoopingStrategy implements IRuntimeBlockStrategy {
+    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+        const hasMultipleRounds = metrics.some(m => 
+            m.values.some(v => v.type === 'rounds' && v.value !== undefined && v.value > 1)
+        );
+        const hasPositiveTime = metrics.some(m => 
+            m.values.some(v => v.type === 'time' && v.value !== undefined && v.value > 0)
+        );
+        if (hasMultipleRounds && hasPositiveTime) {
+            return new TimeBoundedLoopingBlock(new BlockKey('timed-rounds'), metrics);
         }
         return undefined;
     }

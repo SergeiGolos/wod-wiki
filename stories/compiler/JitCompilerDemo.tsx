@@ -448,8 +448,12 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
       .addStrategy(new CountdownStrategy())
       .addStrategy(new TimerStrategy())
       .addStrategy(new TimeBoundStrategy()) 
-      .addStrategy(new RoundsStrategy())
+      .addStrategy(new RoundsStrategy()) // Repeating rounds
       .addStrategy(new EffortStrategy()); // Fallback strategy
+      
+    // Don't override console.log - it causes infinite recursion
+    // Just use the standard console.log
+    
     const jitCompiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
     const runtime = new ScriptRuntimeWithMemory(wodScript, jitCompiler);
     

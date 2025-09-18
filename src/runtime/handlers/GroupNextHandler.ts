@@ -1,7 +1,7 @@
 import { IEventHandler, HandlerResponse, IRuntimeEvent, IRuntimeAction } from "../EventHandler";
 import { PopBlockAction } from "../actions/PopBlockAction";
+import { PushBlockAction } from "../actions/PushBlockAction";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 
 class AdvanceToNextChildAction implements IRuntimeAction {
     public readonly type = 'AdvanceToNextChild';
@@ -10,6 +10,25 @@ class AdvanceToNextChildAction implements IRuntimeAction {
         if (currentBlock && typeof (currentBlock as any).advanceToNextChild === 'function') {
             console.log(`  ⏩ Advancing to next child in ${currentBlock.constructor.name}`);
             (currentBlock as any).advanceToNextChild();
+            
+            // After advancing, check if there's a child to push onto the stack
+            if (typeof (currentBlock as any).getCurrentChildGroup === 'function') {
+                const childGroup = (currentBlock as any).getCurrentChildGroup();
+                if (childGroup && childGroup.length > 0) {
+                    console.log(`  🔄 Found child group with ${childGroup.length} statements - compiling and pushing to stack`);
+                    
+                    // Get the actual statements from the script
+                    const statements = childGroup.map((id: string) => {
+                        return runtime.script.statements.find((stmt: any) => stmt.id?.toString() === id);
+                    }).filter(Boolean);
+                    
+                    if (statements.length > 0) {
+                        console.log(`  📦 Pushing ${statements.length} child statements to stack`);
+                        // Create a push action for the child statements and execute it immediately
+                        new PushBlockAction(statements).do(runtime);
+                    }
+                }
+            }
         } else {
             console.warn(`  ⚠️ Current block doesn't implement advanceToNextChild: ${currentBlock?.constructor.name || 'undefined'}`);
         }

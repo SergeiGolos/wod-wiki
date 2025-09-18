@@ -268,9 +268,53 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
      * and appear after this block's statement in the script.
      */
     private identifyChildStatements(): any[] {
-        // This is a placeholder - in the real implementation, this would
-        // interact with the script to find child statements
-        return [];
+        if (!this.runtime || !this.runtime.script) {
+            console.log(`🔄 BoundedLoopingBlock - No runtime or script available for child identification`);
+            return [];
+        }
+
+        // Get this block's source statement from the runtime by matching sourceId
+        const sourceId = this.initialMetrics[0]?.sourceId;
+        if (!sourceId) {
+            console.log(`🔄 BoundedLoopingBlock - No source ID available for child identification`);
+            return [];
+        }
+
+        const statements = this.runtime.script.statements || [];
+        const parentStatement = statements.find(stmt => stmt.id?.toString() === sourceId);
+        if (!parentStatement) {
+            console.log(`🔄 BoundedLoopingBlock - Parent statement not found for sourceId: ${sourceId}`);
+            return [];
+        }
+
+        const parentColumnStart = parentStatement.meta?.columnStart || 1;
+        const parentIndex = statements.indexOf(parentStatement);
+
+        // Find child statements that:
+        // 1. Appear after the parent statement in the script
+        // 2. Have greater columnStart (are indented relative to parent)
+        // 3. Are not children of other statements at the same or deeper level
+        const childStatements: any[] = [];
+        
+        for (let i = parentIndex + 1; i < statements.length; i++) {
+            const stmt = statements[i];
+            const stmtColumnStart = stmt.meta?.columnStart || 1;
+            
+            // If we encounter a statement at the same or lesser indentation level, 
+            // we've moved out of this block's children
+            if (stmtColumnStart <= parentColumnStart) {
+                break;
+            }
+            
+            // If this is a direct child (immediately one level deeper)
+            if (stmtColumnStart === parentColumnStart + 2 || stmtColumnStart === parentColumnStart + 4) {
+                childStatements.push(stmt);
+            }
+        }
+
+        // Safely log only the IDs without trying to log the full objects
+        console.log(`🔄 BoundedLoopingBlock - Identified ${childStatements.length} child statements for block ${this.key.toString()}: [${childStatements.map(s => s.id?.toString() || 'unknown').join(', ')}]`);
+        return childStatements;
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {

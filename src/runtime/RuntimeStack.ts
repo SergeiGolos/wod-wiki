@@ -36,7 +36,8 @@ export class RuntimeStack {
     }
 
     public push(block: IRuntimeBlock): void {
-        console.log(`📚 RuntimeStack.push() - Adding block: ${block.key.toString()}`);
+        const blockKey = block.key.toString();
+        console.log(`📚 RuntimeStack.push() - Adding block: ${blockKey}`);
         console.log(`  📊 Stack depth before push: ${this._blocks.length}`);
         this._blocks.push(block);
         console.log(`  📊 Stack depth after push: ${this._blocks.length}`);
@@ -47,7 +48,8 @@ export class RuntimeStack {
         console.log(`📚 RuntimeStack.pop() - Removing top block`);
         console.log(`  📊 Stack depth before pop: ${this._blocks.length}`);
         const popped = this._blocks.pop();
-        console.log(`  📦 Popped block: ${popped?.key.toString() || 'None'}`);
+        const poppedKey = popped ? popped.key.toString() : 'None';
+        console.log(`  📦 Popped block: ${poppedKey}`);
         console.log(`  📊 Stack depth after pop: ${this._blocks.length}`);
         console.log(`  🎯 New current block: ${this.current?.key.toString() || 'None'}`);
         return popped;
