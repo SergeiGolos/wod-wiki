@@ -32,7 +32,7 @@ class TestBlock extends RuntimeBlockWithMemoryBase {
     }
 
     protected onPush(runtime: IScriptRuntime): import('./EventHandler').IRuntimeLog[] { void runtime; return []; }
-    protected onNext(runtime: IScriptRuntime) { void runtime; return []; }
+    protected onNext(runtime: IScriptRuntime): import('./EventHandler').IRuntimeLog[] { void runtime; return []; }
     protected onPop(runtime: IScriptRuntime): import('./EventHandler').IRuntimeLog[] { void runtime; return []; }
     protected initializeMemory(): void {}
 }
@@ -95,9 +95,9 @@ describe('Unified Runtime Event Handler', () => {
 
     it('should process events against ALL handlers in memory, not just current block', () => {
         // Create multiple blocks with different handlers
-    const block1 = new TestBlock(new BlockKey('block1', 1), 'Handler1');
-    const block2 = new TestBlock(new BlockKey('block2', 2), 'Handler2');
-    const block3 = new TestBlock(new BlockKey('block3', 3), 'Handler3');
+    const block1 = new TestBlock(new BlockKey('block1'), 'Handler1');
+    const block2 = new TestBlock(new BlockKey('block2'), 'Handler2');
+    const block3 = new TestBlock(new BlockKey('block3'), 'Handler3');
 
         // Push all blocks to create handlers in memory
         runtime.stack.push(block1);
@@ -137,8 +137,8 @@ describe('Unified Runtime Event Handler', () => {
     });
 
     it('should track which blocks were updated during event processing', () => {
-    const block1 = new TestBlock(new BlockKey('test-block-1', 1), 'TestHandler1');
-    const block2 = new TestBlock(new BlockKey('test-block-2', 2), 'TestHandler2');
+    const block1 = new TestBlock(new BlockKey('test-block-1'), 'TestHandler1');
+    const block2 = new TestBlock(new BlockKey('test-block-2'), 'TestHandler2');
 
         runtime.stack.push(block1);
         runtime.stack.push(block2);
@@ -156,7 +156,7 @@ describe('Unified Runtime Event Handler', () => {
     });
 
     it('should provide event, timestamp, stack, script, and memory reference to handlers', () => {
-    const block = new TestBlock(new BlockKey('test-block', 1), 'TestHandler');
+    const block = new TestBlock(new BlockKey('test-block'), 'TestHandler');
         runtime.stack.push(block);
 
         const handler = runtime.memory.searchReferences<TestEventHandler>({ ownerId: 'test-block', type: 'handler' })[0]?.get();
