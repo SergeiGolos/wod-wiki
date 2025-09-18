@@ -3,86 +3,75 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
 import { GroupNextHandler } from "../handlers/GroupNextHandler";
-import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
+import { BehavioralMemoryBlockBase } from "./BehavioralMemoryBlockBase";
+import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
+import { AllocateChildrenBehavior } from "../behaviors/AllocateChildrenBehavior";
+import { AllocateIndexBehavior } from "../behaviors/AllocateIndexBehavior";
+import { NextChildBehavior } from "../behaviors/NextChildBehavior";
+import { BoundLoopBehavior } from "../behaviors/BoundLoopBehavior";
+import { StopOnPopBehavior } from "../behaviors/StopOnPopBehavior";
+import { JournalOnPopBehavior } from "../behaviors/JournalOnPopBehavior";
 import type { IMemoryReference } from "../memory";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { IAllocateSpanBehavior } from "../behaviors/IAllocateSpanBehavior";
-import { IAllocateChildrenBehavior } from "../behaviors/IAllocateChildrenBehavior";
-import { IAllocateIndexBehavior } from "../behaviors/IAllocateIndexBehavior";
-import { INextChildBehavior } from "../behaviors/INextChildBehavior";
-import { IBoundLoopBehavior } from "../behaviors/IBoundLoopBehavior";
-import { IStopOnPopBehavior } from "../behaviors/IStopOnPopBehavior";
-import { IJournalOnPopBehavior } from "../behaviors/IJournalOnPopBehavior";
 
 /**
  * BoundedLoopingBlock - Has a defined number of rounds to execute the child blocks before exiting.
  * 
  * Behaviors Used:
  * - AllocateSpanBehavior
- * - AllocateChildren
- * - AllocateIndex
+ * - AllocateChildrenBehavior
+ * - AllocateIndexBehavior
  * - NextChildBehavior
  * - BoundLoopBehavior
  * - StopOnPopBehavior
  * - JournalOnPopBehavior
  */
-export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase 
-    implements IAllocateSpanBehavior, IAllocateChildrenBehavior, IAllocateIndexBehavior, INextChildBehavior, 
-               IBoundLoopBehavior, IStopOnPopBehavior, IJournalOnPopBehavior {
-    
-    private _spanRef?: IMemoryReference<IResultSpanBuilder>;
-    private _childrenGroupsRef?: IMemoryReference<string[][]>;
-    private _loopIndexRef?: IMemoryReference<number>;
-    private _childIndexRef?: IMemoryReference<number>;
-    private _remainingIterationsRef?: IMemoryReference<number>;
-    private _totalIterationsRef?: IMemoryReference<number>;
-    private _activeTimersRef?: IMemoryReference<string[]>;
-    private _journalingEnabledRef?: IMemoryReference<boolean>;
-
+export class BoundedLoopingBlock extends BehavioralMemoryBlockBase {
     constructor(key: BlockKey, metrics: RuntimeMetric[]) {
         super(key, metrics);
         console.log(`🔄 BoundedLoopingBlock created for key: ${key.toString()}`);
     }
 
     protected initializeMemory(): void {
-        // AllocateSpanBehavior
-        this.initializeSpan('private');
-        
         // Find rounds metric value from initial metrics
         const roundsMetric = this.initialMetrics.find(m =>
             m.values.some(v => v.type === 'rounds')
         );
         const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
 
-        // AllocateChildren
-        const childrenGroups = this.parseChildrenGroups(this.identifyChildStatements());
-        this._childrenGroupsRef = this.allocateMemory<string[][]>('children-groups', childrenGroups, 'private');
-        
-        // AllocateIndex
-        this._loopIndexRef = this.allocateMemory<number>('loop-index', 0, 'private');
-        this._childIndexRef = this.allocateMemory<number>('child-index', -1, 'private');
-        
-        // BoundLoopBehavior
-        this._remainingIterationsRef = this.allocateMemory<number>('remaining-iterations', initialRounds, 'private');
-        this._totalIterationsRef = this.allocateMemory<number>('total-iterations', initialRounds, 'private');
-        
-        // StopOnPopBehavior
-        this._activeTimersRef = this.allocateMemory<string[]>('active-timers', [], 'private');
-        
-        // JournalOnPopBehavior
-        this._journalingEnabledRef = this.allocateMemory<boolean>('journaling-enabled', true, 'private');
+        // Compose behaviors
+        const spanBehavior = new AllocateSpanBehavior({
+            visibility: 'private',
+            factory: () => this.createSpan(),
+        });
+        const childrenBehavior = new AllocateChildrenBehavior();
+        const indexBehavior = new AllocateIndexBehavior();
+        const nextChildBehavior = new NextChildBehavior();
+        const boundLoopBehavior = new BoundLoopBehavior(initialRounds);
+        const stopOnPopBehavior = new StopOnPopBehavior();
+        const journalOnPopBehavior = new JournalOnPopBehavior();
 
-        console.log(`🔄 BoundedLoopingBlock initialized with ${initialRounds} rounds and ${childrenGroups.length} child groups`);
+        this.behaviors.push(spanBehavior);
+        this.behaviors.push(childrenBehavior);
+        this.behaviors.push(indexBehavior);
+        this.behaviors.push(nextChildBehavior);
+        this.behaviors.push(boundLoopBehavior);
+        this.behaviors.push(stopOnPopBehavior);
+        this.behaviors.push(journalOnPopBehavior);
+
+        console.log(`🔄 BoundedLoopingBlock initialized with ${initialRounds} rounds`);
     }
 
-    // IAllocateSpanBehavior implementation
+    // Helper methods that delegate to behaviors
     public getSpan(): IResultSpanBuilder | undefined {
-        return this._spanRef?.get();
+        const spanBehavior = this.behaviors.find(b => b instanceof AllocateSpanBehavior) as AllocateSpanBehavior;
+        return spanBehavior?.getSpan();
     }
 
     public setSpan(span: IResultSpanBuilder): void {
-        this._spanRef?.set(span);
+        const spanBehavior = this.behaviors.find(b => b instanceof AllocateSpanBehavior) as AllocateSpanBehavior;
+        spanBehavior?.setSpan(span);
     }
 
     public createSpan(): IResultSpanBuilder {
@@ -109,216 +98,139 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
     }
 
     public getSpanReference(): IMemoryReference<IResultSpanBuilder> | undefined {
-        return this._spanRef;
+        const spanBehavior = this.behaviors.find(b => b instanceof AllocateSpanBehavior) as AllocateSpanBehavior;
+        return spanBehavior?.getSpanReference();
     }
 
-    public initializeSpan(visibility: 'public' | 'private'): void {
-        this._spanRef = this.allocateMemory<IResultSpanBuilder>(
-            'span', 
-            this.createSpan(), 
-            visibility
-        );
-    }
-
-    // IAllocateChildrenBehavior implementation
+    // Helper methods for children behavior
     public getChildrenGroups(): string[][] {
-        return this._childrenGroupsRef?.get() || [];
+        const childrenBehavior = this.behaviors.find(b => b instanceof AllocateChildrenBehavior) as AllocateChildrenBehavior;
+        return childrenBehavior?.getChildrenGroups() ?? [];
     }
 
     public getChildrenGroupsReference(): IMemoryReference<string[][]> | undefined {
-        return this._childrenGroupsRef;
+        const childrenBehavior = this.behaviors.find(b => b instanceof AllocateChildrenBehavior) as AllocateChildrenBehavior;
+        return childrenBehavior?.getChildrenGroupsReference();
     }
 
-    public parseChildrenGroups(childSourceIds: any[]): string[][] {
-        // For now, treat each child as its own group
-        // Future enhancement: parse lap fragments ("+" / "-" / " ") to group properly
-        return childSourceIds.map(child => {
-            // Ensure we convert the statement ID to string for consistent storage
-            const childId = typeof child === 'string' ? child : (child.id || child.sourceId || 'unknown').toString();
-            return [childId];
-        });
-    }
-
-    // IAllocateIndexBehavior implementation
+    // Helper methods for index behavior
     public getLoopIndex(): number {
-        return this._loopIndexRef?.get() || 0;
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        return indexBehavior?.getLoopIndex() ?? 0;
     }
 
     public setLoopIndex(index: number): void {
-        this._loopIndexRef?.set(index);
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        indexBehavior?.setLoopIndex(index);
     }
 
     public getChildIndex(): number {
-        return this._childIndexRef?.get() || -1;
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        return indexBehavior?.getChildIndex() ?? -1;
     }
 
     public setChildIndex(index: number): void {
-        this._childIndexRef?.set(index);
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        indexBehavior?.setChildIndex(index);
     }
 
     public getLoopIndexReference(): IMemoryReference<number> | undefined {
-        return this._loopIndexRef;
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        return indexBehavior?.getLoopIndexReference();
     }
 
     public getChildIndexReference(): IMemoryReference<number> | undefined {
-        return this._childIndexRef;
+        const indexBehavior = this.behaviors.find(b => b instanceof AllocateIndexBehavior) as AllocateIndexBehavior;
+        return indexBehavior?.getChildIndexReference();
     }
 
-    // INextChildBehavior implementation
+    // Helper methods for next child behavior
     public hasNextChild(): boolean {
-        const groups = this.getChildrenGroups();
-        const currentIndex = this.getChildIndex();
-        return currentIndex + 1 < groups.length;
+        const nextChildBehavior = this.behaviors.find(b => b instanceof NextChildBehavior) as NextChildBehavior;
+        return nextChildBehavior?.hasNextChild() ?? false;
     }
 
     public getNextChild(): IRuntimeBlock | undefined {
-        if (!this.hasNextChild()) {
-            return undefined;
-        }
-        
-        // Advance to next child
-        this.advanceToNextChild();
-        
-        const currentGroup = this.getCurrentChildGroup();
-        if (!currentGroup || currentGroup.length === 0) {
-            return undefined;
-        }
-        
-        // For now, return undefined as we need JIT compilation context
-        // This will be handled by the runtime system
-        return undefined;
+        const nextChildBehavior = this.behaviors.find(b => b instanceof NextChildBehavior) as NextChildBehavior;
+        return nextChildBehavior?.getNextChild();
     }
 
     public advanceToNextChild(): void {
-        const currentIndex = this.getChildIndex();
-        this.setChildIndex(currentIndex + 1);
+        const nextChildBehavior = this.behaviors.find(b => b instanceof NextChildBehavior) as NextChildBehavior;
+        nextChildBehavior?.advanceToNextChild();
     }
 
     public getCurrentChildGroup(): string[] | undefined {
-        const groups = this.getChildrenGroups();
-        const currentIndex = this.getChildIndex();
-        
-        if (currentIndex >= 0 && currentIndex < groups.length) {
-            return groups[currentIndex];
-        }
-        
-        return undefined;
+        const nextChildBehavior = this.behaviors.find(b => b instanceof NextChildBehavior) as NextChildBehavior;
+        return nextChildBehavior?.getCurrentChildGroup();
     }
 
-    // IBoundLoopBehavior implementation
+    // Helper methods for bound loop behavior
     public getRemainingIterations(): number {
-        return this._remainingIterationsRef?.get() || 0;
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        return boundLoopBehavior?.getRemainingIterations() ?? 0;
     }
 
     public setRemainingIterations(count: number): void {
-        this._remainingIterationsRef?.set(count);
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        boundLoopBehavior?.setRemainingIterations(count);
     }
 
     public getTotalIterations(): number {
-        return this._totalIterationsRef?.get() || 0;
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        return boundLoopBehavior?.getTotalIterations() ?? 0;
     }
 
     public decrementIterations(): void {
-        const current = this.getRemainingIterations();
-        this.setRemainingIterations(Math.max(0, current - 1));
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        boundLoopBehavior?.decrementIterations();
     }
 
     public hasMoreIterations(): boolean {
-        return this.getRemainingIterations() > 0;
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        return boundLoopBehavior?.hasMoreIterations() ?? false;
     }
 
     public getRemainingIterationsReference(): IMemoryReference<number> | undefined {
-        return this._remainingIterationsRef;
+        const boundLoopBehavior = this.behaviors.find(b => b instanceof BoundLoopBehavior) as BoundLoopBehavior;
+        return boundLoopBehavior?.getRemainingIterationsReference();
     }
 
-    // IStopOnPopBehavior implementation
+    // Helper methods for stop on pop behavior
     public stopTimers(): void {
-        const timers = this.getActiveTimerIds();
-        console.log(`🔄 BoundedLoopingBlock stopping ${timers.length} timers`);
-        // Implementation would stop actual timers
-        this._activeTimersRef?.set([]);
+        const stopOnPopBehavior = this.behaviors.find(b => b instanceof StopOnPopBehavior) as StopOnPopBehavior;
+        stopOnPopBehavior?.stopTimers();
     }
 
     public areTimersRunning(): boolean {
-        return this.getActiveTimerIds().length > 0;
+        const stopOnPopBehavior = this.behaviors.find(b => b instanceof StopOnPopBehavior) as StopOnPopBehavior;
+        return stopOnPopBehavior?.areTimersRunning() ?? false;
     }
 
     public getActiveTimerIds(): string[] {
-        return this._activeTimersRef?.get() || [];
+        const stopOnPopBehavior = this.behaviors.find(b => b instanceof StopOnPopBehavior) as StopOnPopBehavior;
+        return stopOnPopBehavior?.getActiveTimerIds() ?? [];
     }
 
-    // IJournalOnPopBehavior implementation
+    // Helper methods for journal behavior
     public writeToJournal(): void {
-        console.log(`🔄 BoundedLoopingBlock writing to journal`);
-        // Implementation would write metrics and spans to persistent storage
+        const journalBehavior = this.behaviors.find(b => b instanceof JournalOnPopBehavior) as JournalOnPopBehavior;
+        journalBehavior?.writeToJournal();
     }
 
     public getJournalEntries(): any[] {
-        return [];
+        const journalBehavior = this.behaviors.find(b => b instanceof JournalOnPopBehavior) as JournalOnPopBehavior;
+        return journalBehavior?.getJournalEntries() ?? [];
     }
 
     public isJournalingEnabled(): boolean {
-        return this._journalingEnabledRef?.get() || false;
+        const journalBehavior = this.behaviors.find(b => b instanceof JournalOnPopBehavior) as JournalOnPopBehavior;
+        return journalBehavior?.isJournalingEnabled() ?? false;
     }
 
     public setJournalingEnabled(enabled: boolean): void {
-        this._journalingEnabledRef?.set(enabled);
-    }
-
-    // Legacy compatibility methods (from RepeatingBlock)
-    /**
-     * Identify child statements for this repeating block from the script.
-     * Child statements are those that are indented (higher columnStart) 
-     * and appear after this block's statement in the script.
-     */
-    private identifyChildStatements(): any[] {
-        if (!this.runtime || !this.runtime.script) {
-            console.log(`🔄 BoundedLoopingBlock - No runtime or script available for child identification`);
-            return [];
-        }
-
-        // Get this block's source statement from the runtime by matching sourceId
-        const sourceId = this.initialMetrics[0]?.sourceId;
-        if (!sourceId) {
-            console.log(`🔄 BoundedLoopingBlock - No source ID available for child identification`);
-            return [];
-        }
-
-        const statements = this.runtime.script.statements || [];
-        const parentStatement = statements.find(stmt => stmt.id?.toString() === sourceId);
-        if (!parentStatement) {
-            console.log(`🔄 BoundedLoopingBlock - Parent statement not found for sourceId: ${sourceId}`);
-            return [];
-        }
-
-        const parentColumnStart = parentStatement.meta?.columnStart || 1;
-        const parentIndex = statements.indexOf(parentStatement);
-
-        // Find child statements that:
-        // 1. Appear after the parent statement in the script
-        // 2. Have greater columnStart (are indented relative to parent)
-        // 3. Are not children of other statements at the same or deeper level
-        const childStatements: any[] = [];
-        
-        for (let i = parentIndex + 1; i < statements.length; i++) {
-            const stmt = statements[i];
-            const stmtColumnStart = stmt.meta?.columnStart || 1;
-            
-            // If we encounter a statement at the same or lesser indentation level, 
-            // we've moved out of this block's children
-            if (stmtColumnStart <= parentColumnStart) {
-                break;
-            }
-            
-            // If this is a direct child (immediately one level deeper)
-            if (stmtColumnStart === parentColumnStart + 2 || stmtColumnStart === parentColumnStart + 4) {
-                childStatements.push(stmt);
-            }
-        }
-
-        // Safely log only the IDs without trying to log the full objects
-        console.log(`🔄 BoundedLoopingBlock - Identified ${childStatements.length} child statements for block ${this.key.toString()}: [${childStatements.map(s => s.id?.toString() || 'unknown').join(', ')}]`);
-        return childStatements;
+        const journalBehavior = this.behaviors.find(b => b instanceof JournalOnPopBehavior) as JournalOnPopBehavior;
+        journalBehavior?.setJournalingEnabled(enabled);
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {
@@ -332,17 +244,23 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
     protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`🔄 BoundedLoopingBlock.onPush() - Starting bounded loop`);
         
-        // Start the span
+        // Let behaviors handle the push
+        const logs = super.onPush(runtime);
+        
+        // Start the span through span behavior
         const span = this.getSpan();
         if (span) {
             span.start();
         }
         
-        return [{ level: 'info', message: 'bounded loop push', timestamp: new Date(), context: { key: this.key.toString() } }];
+        return [...logs, { level: 'info', message: 'bounded loop push', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 
     protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`🔄 BoundedLoopingBlock.onNext() - Processing next iteration`);
+        
+        // Let behaviors handle the next logic first
+        const logs = super.onNext(runtime);
         
         // Check if we've completed a round and need to loop
         if (!this.hasNextChild()) {
@@ -355,7 +273,7 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
             // Check if we have more iterations
             if (!this.hasMoreIterations()) {
                 console.log(`🔄 BoundedLoopingBlock completed all ${this.getTotalIterations()} iterations`);
-                return [];
+                return logs;
             }
             
             // Increment loop index for new round
@@ -364,13 +282,16 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
             console.log(`🔄 BoundedLoopingBlock starting round ${currentLoop + 1}`);
         }
         
-        return [];
+        return logs;
     }
 
     protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
         console.log(`🔄 BoundedLoopingBlock.onPop() - Cleaning up bounded loop`);
         
-        // Stop all timers
+        // Let behaviors handle the pop logic first
+        const logs = super.onPop(runtime);
+        
+        // Stop all timers through stop behavior
         this.stopTimers();
         
         // Stop the span
@@ -379,11 +300,11 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
             span.stop();
         }
         
-        // Journal metrics and spans
+        // Journal metrics and spans through journal behavior
         if (this.isJournalingEnabled()) {
             this.writeToJournal();
         }
         
-        return [{ level: 'info', message: 'bounded loop pop', timestamp: new Date(), context: { key: this.key.toString() } }];
+        return [...logs, { level: 'info', message: 'bounded loop pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }
