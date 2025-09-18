@@ -132,7 +132,11 @@ export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase
     public parseChildrenGroups(childSourceIds: any[]): string[][] {
         // For now, treat each child as its own group
         // Future enhancement: parse lap fragments ("+" / "-" / " ") to group properly
-        return childSourceIds.map(child => [typeof child === 'string' ? child : child.id || child.sourceId || 'unknown']);
+        return childSourceIds.map(child => {
+            // Ensure we convert the statement ID to string for consistent storage
+            const childId = typeof child === 'string' ? child : (child.id || child.sourceId || 'unknown').toString();
+            return [childId];
+        });
     }
 
     // IAllocateIndexBehavior implementation

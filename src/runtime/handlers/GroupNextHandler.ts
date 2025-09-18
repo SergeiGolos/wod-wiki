@@ -15,11 +15,13 @@ class AdvanceToNextChildAction implements IRuntimeAction {
             if (typeof (currentBlock as any).getCurrentChildGroup === 'function') {
                 const childGroup = (currentBlock as any).getCurrentChildGroup();
                 if (childGroup && childGroup.length > 0) {
-                    console.log(`  🔄 Found child group with ${childGroup.length} statements - compiling and pushing to stack`);
+                    console.log(`  🔄 Found child group with ${childGroup.length} statements: [${childGroup.join(', ')}]`);
                     
                     // Get the actual statements from the script
                     const statements = childGroup.map((id: string) => {
-                        return runtime.script.statements.find((stmt: any) => stmt.id?.toString() === id);
+                        // Parse the string ID back to number for statement lookup
+                        const statementId = parseInt(id, 10);
+                        return runtime.script.statements.find((stmt: any) => stmt.id === statementId);
                     }).filter(Boolean);
                     
                     if (statements.length > 0) {
