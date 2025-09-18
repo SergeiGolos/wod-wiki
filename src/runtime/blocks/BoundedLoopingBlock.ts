@@ -1,86 +1,79 @@
 import { BlockKey } from "../../BlockKey";
+import { RuntimeMetric } from "../RuntimeMetric";
 import { IEventHandler, IRuntimeLog } from "../EventHandler";
 import { IResultSpanBuilder } from "../ResultSpanBuilder";
-import { RootNextHandler } from "../handlers/RootNextHandler";
+import { GroupNextHandler } from "../handlers/GroupNextHandler";
 import { RuntimeBlockWithMemoryBase } from "../RuntimeBlockWithMemoryBase";
 import type { IMemoryReference } from "../memory";
 import { IScriptRuntime } from "../IScriptRuntime";
+import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IAllocateSpanBehavior } from "../behaviors/IAllocateSpanBehavior";
 import { IAllocateChildrenBehavior } from "../behaviors/IAllocateChildrenBehavior";
 import { IAllocateIndexBehavior } from "../behaviors/IAllocateIndexBehavior";
 import { INextChildBehavior } from "../behaviors/INextChildBehavior";
-import { INoLoopBehavior } from "../behaviors/INoLoopBehavior";
-import { IOnEventEndBehavior } from "../behaviors/IOnEventEndBehavior";
+import { IBoundLoopBehavior } from "../behaviors/IBoundLoopBehavior";
 import { IStopOnPopBehavior } from "../behaviors/IStopOnPopBehavior";
 import { IJournalOnPopBehavior } from "../behaviors/IJournalOnPopBehavior";
-import { IEndOnPopBehavior } from "../behaviors/IEndOnPopBehavior";
-import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**
- * Root block adapted to the memory model and aligned with the new behavior specification.
+ * BoundedLoopingBlock - Has a defined number of rounds to execute the child blocks before exiting.
  * 
  * Behaviors Used:
  * - AllocateSpanBehavior
  * - AllocateChildren
  * - AllocateIndex
  * - NextChildBehavior
- * - NoLoopBehavior
- * - OnEventEndBehavior
+ * - BoundLoopBehavior
  * - StopOnPopBehavior
  * - JournalOnPopBehavior
- * - EndOnPopBehavior
  */
-export class RootBlock extends RuntimeBlockWithMemoryBase 
+export class BoundedLoopingBlock extends RuntimeBlockWithMemoryBase 
     implements IAllocateSpanBehavior, IAllocateChildrenBehavior, IAllocateIndexBehavior, INextChildBehavior, 
-               INoLoopBehavior, IOnEventEndBehavior, IStopOnPopBehavior, IJournalOnPopBehavior, IEndOnPopBehavior {
+               IBoundLoopBehavior, IStopOnPopBehavior, IJournalOnPopBehavior {
     
     private _spanRef?: IMemoryReference<IResultSpanBuilder>;
     private _childrenGroupsRef?: IMemoryReference<string[][]>;
     private _loopIndexRef?: IMemoryReference<number>;
     private _childIndexRef?: IMemoryReference<number>;
-    private _passCompleteRef?: IMemoryReference<boolean>;
-    private _endEventRef?: IMemoryReference<boolean>;
-    private _journalingEnabledRef?: IMemoryReference<boolean>;
-    private _endOnPopRef?: IMemoryReference<boolean>;
+    private _remainingIterationsRef?: IMemoryReference<number>;
+    private _totalIterationsRef?: IMemoryReference<number>;
     private _activeTimersRef?: IMemoryReference<string[]>;
-    private _childrenInit: string[];
+    private _journalingEnabledRef?: IMemoryReference<boolean>;
 
-    constructor(children: string[]) {
-        console.log(`🌱 RootBlock constructor - Creating with children: [${children.join(', ')}]`);
-        const key = new BlockKey('root');
-        super(key, []);
-        this._childrenInit = children;
-        console.log(`🌱 RootBlock created with key: ${this.key.toString()}`);
+    constructor(key: BlockKey, metrics: RuntimeMetric[]) {
+        super(key, metrics);
+        console.log(`🔄 BoundedLoopingBlock created for key: ${key.toString()}`);
     }
 
     protected initializeMemory(): void {
         // AllocateSpanBehavior
-        this.initializeSpan('public');
+        this.initializeSpan('private');
         
+        // Find rounds metric value from initial metrics
+        const roundsMetric = this.initialMetrics.find(m =>
+            m.values.some(v => v.type === 'rounds')
+        );
+        const initialRounds = roundsMetric?.values.find(v => v.type === 'rounds')?.value || 1;
+
         // AllocateChildren
-        const childrenGroups = this.parseChildrenGroups(this._childrenInit);
+        const childrenGroups = this.parseChildrenGroups(this.identifyChildStatements());
         this._childrenGroupsRef = this.allocateMemory<string[][]>('children-groups', childrenGroups, 'private');
         
         // AllocateIndex
         this._loopIndexRef = this.allocateMemory<number>('loop-index', 0, 'private');
-        this._childIndexRef = this.allocateMemory<number>('child-index', 0, 'private');
+        this._childIndexRef = this.allocateMemory<number>('child-index', -1, 'private');
         
-        // NoLoopBehavior
-        this._passCompleteRef = this.allocateMemory<boolean>('pass-complete', false, 'private');
-        
-        // OnEventEndBehavior
-        this._endEventRef = this.allocateMemory<boolean>('end-event-received', false, 'private');
+        // BoundLoopBehavior
+        this._remainingIterationsRef = this.allocateMemory<number>('remaining-iterations', initialRounds, 'private');
+        this._totalIterationsRef = this.allocateMemory<number>('total-iterations', initialRounds, 'private');
         
         // StopOnPopBehavior
         this._activeTimersRef = this.allocateMemory<string[]>('active-timers', [], 'private');
         
         // JournalOnPopBehavior
         this._journalingEnabledRef = this.allocateMemory<boolean>('journaling-enabled', true, 'private');
-        
-        // EndOnPopBehavior
-        this._endOnPopRef = this.allocateMemory<boolean>('end-on-pop', true, 'private');
-        
-        console.log(`🌱 RootBlock.initializeMemory() - Initialized with ${childrenGroups.length} child groups`);
+
+        console.log(`🔄 BoundedLoopingBlock initialized with ${initialRounds} rounds and ${childrenGroups.length} child groups`);
     }
 
     // IAllocateSpanBehavior implementation
@@ -104,13 +97,13 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
             }),
             getSpans: () => [],
             close: () => {
-                console.log(`🌱 RootBlock span completed`);
+                console.log(`🔄 BoundedLoopingBlock span completed`);
             },
             start: () => {
-                console.log(`🌱 RootBlock span started`);
+                console.log(`🔄 BoundedLoopingBlock span started`);
             },
             stop: () => {
-                console.log(`🌱 RootBlock span stopped`);
+                console.log(`🔄 BoundedLoopingBlock span stopped`);
             }
         };
     }
@@ -136,10 +129,14 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
         return this._childrenGroupsRef;
     }
 
-    public parseChildrenGroups(childSourceIds: string[]): string[][] {
+    public parseChildrenGroups(childSourceIds: any[]): string[][] {
         // For now, treat each child as its own group
         // Future enhancement: parse lap fragments ("+" / "-" / " ") to group properly
-        return childSourceIds.map(id => [id]);
+        return childSourceIds.map(child => {
+            // Ensure we convert the statement ID to string for consistent storage
+            const childId = typeof child === 'string' ? child : (child.id || child.sourceId || 'unknown').toString();
+            return [childId];
+        });
     }
 
     // IAllocateIndexBehavior implementation
@@ -208,43 +205,36 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
         return undefined;
     }
 
-    // INoLoopBehavior implementation
-    public isPassComplete(): boolean {
-        return this._passCompleteRef?.get() || false;
+    // IBoundLoopBehavior implementation
+    public getRemainingIterations(): number {
+        return this._remainingIterationsRef?.get() || 0;
     }
 
-    public markPassComplete(): void {
-        this._passCompleteRef?.set(true);
+    public setRemainingIterations(count: number): void {
+        this._remainingIterationsRef?.set(count);
     }
 
-    public resetPassState(): void {
-        this._passCompleteRef?.set(false);
+    public getTotalIterations(): number {
+        return this._totalIterationsRef?.get() || 0;
     }
 
-    // IOnEventEndBehavior implementation
-    public isEndEventReceived(): boolean {
-        return this._endEventRef?.get() || false;
+    public decrementIterations(): void {
+        const current = this.getRemainingIterations();
+        this.setRemainingIterations(Math.max(0, current - 1));
     }
 
-    public markEndEventReceived(): void {
-        this._endEventRef?.set(true);
-        console.log(`🌱 RootBlock end event received`);
+    public hasMoreIterations(): boolean {
+        return this.getRemainingIterations() > 0;
     }
 
-    public resetEndEventState(): void {
-        this._endEventRef?.set(false);
-    }
-
-    public handleEndEvent(): void {
-        console.log(`🌱 RootBlock handling end event - stopping and popping all children`);
-        this.markEndEventReceived();
-        // Implementation would stop all children and trigger shutdown
+    public getRemainingIterationsReference(): IMemoryReference<number> | undefined {
+        return this._remainingIterationsRef;
     }
 
     // IStopOnPopBehavior implementation
     public stopTimers(): void {
         const timers = this.getActiveTimerIds();
-        console.log(`🌱 RootBlock stopping ${timers.length} timers`);
+        console.log(`🔄 BoundedLoopingBlock stopping ${timers.length} timers`);
         // Implementation would stop actual timers
         this._activeTimersRef?.set([]);
     }
@@ -259,7 +249,7 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
 
     // IJournalOnPopBehavior implementation
     public writeToJournal(): void {
-        console.log(`🌱 RootBlock writing to journal`);
+        console.log(`🔄 BoundedLoopingBlock writing to journal`);
         // Implementation would write metrics and spans to persistent storage
     }
 
@@ -275,45 +265,60 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
         this._journalingEnabledRef?.set(enabled);
     }
 
-    // IEndOnPopBehavior implementation
-    public shouldEndOnPop(): boolean {
-        return this._endOnPopRef?.get() || false;
-    }
-
-    public markForEndOnPop(): void {
-        this._endOnPopRef?.set(true);
-    }
-
-    public triggerProgramEnd(): void {
-        console.log(`🌱 RootBlock triggering program end`);
-        this.markForEndOnPop();
-        // Implementation would end the program
-    }
-
-    public resetEndOnPopState(): void {
-        this._endOnPopRef?.set(false);
-    }
-
-    // Legacy compatibility methods
+    // Legacy compatibility methods (from RepeatingBlock)
     /**
-     * Get the current statement index from memory (legacy compatibility)
+     * Identify child statements for this repeating block from the script.
+     * Child statements are those that are indented (higher columnStart) 
+     * and appear after this block's statement in the script.
      */
-    public getStatementIndex(): number {
-        return this.getChildIndex();
-    }
+    private identifyChildStatements(): any[] {
+        if (!this.runtime || !this.runtime.script) {
+            console.log(`🔄 BoundedLoopingBlock - No runtime or script available for child identification`);
+            return [];
+        }
 
-    /**
-     * Set the current statement index in memory (legacy compatibility)
-     */
-    public setStatementIndex(index: number): void {
-        this.setChildIndex(index);
-    }
+        // Get this block's source statement from the runtime by matching sourceId
+        const sourceId = this.initialMetrics[0]?.sourceId;
+        if (!sourceId) {
+            console.log(`🔄 BoundedLoopingBlock - No source ID available for child identification`);
+            return [];
+        }
 
-    /**
-     * Increment the statement index in memory (legacy compatibility)
-     */
-    public incrementStatementIndex(): void {
-        this.advanceToNextChild();
+        const statements = this.runtime.script.statements || [];
+        const parentStatement = statements.find(stmt => stmt.id?.toString() === sourceId);
+        if (!parentStatement) {
+            console.log(`🔄 BoundedLoopingBlock - Parent statement not found for sourceId: ${sourceId}`);
+            return [];
+        }
+
+        const parentColumnStart = parentStatement.meta?.columnStart || 1;
+        const parentIndex = statements.indexOf(parentStatement);
+
+        // Find child statements that:
+        // 1. Appear after the parent statement in the script
+        // 2. Have greater columnStart (are indented relative to parent)
+        // 3. Are not children of other statements at the same or deeper level
+        const childStatements: any[] = [];
+        
+        for (let i = parentIndex + 1; i < statements.length; i++) {
+            const stmt = statements[i];
+            const stmtColumnStart = stmt.meta?.columnStart || 1;
+            
+            // If we encounter a statement at the same or lesser indentation level, 
+            // we've moved out of this block's children
+            if (stmtColumnStart <= parentColumnStart) {
+                break;
+            }
+            
+            // If this is a direct child (immediately one level deeper)
+            if (stmtColumnStart === parentColumnStart + 2 || stmtColumnStart === parentColumnStart + 4) {
+                childStatements.push(stmt);
+            }
+        }
+
+        // Safely log only the IDs without trying to log the full objects
+        console.log(`🔄 BoundedLoopingBlock - Identified ${childStatements.length} child statements for block ${this.key.toString()}: [${childStatements.map(s => s.id?.toString() || 'unknown').join(', ')}]`);
+        return childStatements;
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {
@@ -321,48 +326,54 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
     }
 
     protected createInitialHandlers(): IEventHandler[] {
-        const handlers = [new RootNextHandler()];
-        console.log(`  🔧 Registered ${handlers.length} handlers: ${handlers.map(h => h.name).join(', ')}`);
-        return handlers;
+        return [new GroupNextHandler()];
     }
 
     protected onPush(runtime: IScriptRuntime): IRuntimeLog[] {
-        console.log(`🌱 RootBlock.onPush() - Block pushed to stack`);
+        console.log(`🔄 BoundedLoopingBlock.onPush() - Starting bounded loop`);
         
-        // Start the root span
+        // Start the span
         const span = this.getSpan();
         if (span) {
             span.start();
         }
         
-        return [{ level: 'info', message: 'root push', timestamp: new Date(), context: { key: this.key.toString() } }];
+        return [{ level: 'info', message: 'bounded loop push', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 
     protected onNext(runtime: IScriptRuntime): IRuntimeLog[] {
-        console.log(`🌱 RootBlock.onNext() - Determining next block after child completion`);
+        console.log(`🔄 BoundedLoopingBlock.onNext() - Processing next iteration`);
         
-        // Check if we should end due to external event
-        if (this.isEndEventReceived()) {
-            this.handleEndEvent();
-            return [];
-        }
-        
-        // Check if single pass is complete
+        // Check if we've completed a round and need to loop
         if (!this.hasNextChild()) {
-            this.markPassComplete();
-            console.log(`🌱 RootBlock single pass complete`);
+            // Reset child index for next round
+            this.setChildIndex(-1);
+            
+            // Decrement remaining iterations
+            this.decrementIterations();
+            
+            // Check if we have more iterations
+            if (!this.hasMoreIterations()) {
+                console.log(`🔄 BoundedLoopingBlock completed all ${this.getTotalIterations()} iterations`);
+                return [];
+            }
+            
+            // Increment loop index for new round
+            const currentLoop = this.getLoopIndex();
+            this.setLoopIndex(currentLoop + 1);
+            console.log(`🔄 BoundedLoopingBlock starting round ${currentLoop + 1}`);
         }
         
         return [];
     }
 
     protected onPop(runtime: IScriptRuntime): IRuntimeLog[] {
-        console.log(`🌱 RootBlock.onPop() - Block popped from stack, cleaning up`);
+        console.log(`🔄 BoundedLoopingBlock.onPop() - Cleaning up bounded loop`);
         
         // Stop all timers
         this.stopTimers();
         
-        // Stop the root span
+        // Stop the span
         const span = this.getSpan();
         if (span) {
             span.stop();
@@ -373,11 +384,6 @@ export class RootBlock extends RuntimeBlockWithMemoryBase
             this.writeToJournal();
         }
         
-        // End program if marked for end on pop
-        if (this.shouldEndOnPop()) {
-            this.triggerProgramEnd();
-        }
-        
-        return [{ level: 'info', message: 'root pop', timestamp: new Date(), context: { key: this.key.toString() } }];
+        return [{ level: 'info', message: 'bounded loop pop', timestamp: new Date(), context: { key: this.key.toString() } }];
     }
 }

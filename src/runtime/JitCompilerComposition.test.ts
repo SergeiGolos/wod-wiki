@@ -5,7 +5,7 @@ import { compilers, parseWodLine } from './FragmentCompilationManager.fixture';
 import { IScriptRuntime } from './IScriptRuntime';  
 import { RuntimeStack } from './RuntimeStack';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
-import { CountdownStrategy, EffortStrategy, RoundsStrategy } from './strategies';
+import { CountdownStrategy, EffortStrategy, BoundedLoopingStrategy } from './strategies';
 import { WodScript } from '../WodScript';
 
 describe('JitCompiler with Block Composition', () => {
@@ -22,7 +22,7 @@ describe('JitCompiler with Block Composition', () => {
         const fragmentCompiler = new FragmentCompilationManager(compilers);
         const strategyManager = new RuntimeJitStrategies()
             .addStrategy(new CountdownStrategy())
-            .addStrategy(new RoundsStrategy())
+            .addStrategy(new BoundedLoopingStrategy())
             .addStrategy(new EffortStrategy());
 
         const compiler = new JitCompiler(new WodScript(script, parsedScript), fragmentCompiler, strategyManager);

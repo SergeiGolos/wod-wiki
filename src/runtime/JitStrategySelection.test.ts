@@ -1,9 +1,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { RuntimeJitStrategies } from './RuntimeJitStrategies';
-import { EffortStrategy, CountdownStrategy, RoundsStrategy } from './strategies';
+import { EffortStrategy, CountdownStrategy, BoundedLoopingStrategy } from './strategies';
 import { RuntimeMetric } from './RuntimeMetric';
-import { RepeatingBlock } from './blocks/RepeatingBlock';
+import { BoundedLoopingBlock } from './blocks/BoundedLoopingBlock';
 import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
 import { EffortBlock } from './blocks/EffortBlock';
 
@@ -11,7 +11,7 @@ describe('JIT Strategy Selection', () => {
     it('should select the CountdownStrategy for a countdown timer', () => {
         const strategies = new RuntimeJitStrategies();
         strategies.addStrategy(new CountdownStrategy());
-        strategies.addStrategy(new RoundsStrategy());
+        strategies.addStrategy(new BoundedLoopingStrategy());
         strategies.addStrategy(new EffortStrategy());
 
         const metrics: RuntimeMetric[] = [{
@@ -24,10 +24,10 @@ describe('JIT Strategy Selection', () => {
         expect(block).toBeInstanceOf(CountdownParentBlock);
     });
 
-    it('should select the RoundsStrategy for a rounds-based workout', () => {
+    it('should select the BoundedLoopingStrategy for a rounds-based workout', () => {
         const strategies = new RuntimeJitStrategies();
         strategies.addStrategy(new CountdownStrategy());
-        strategies.addStrategy(new RoundsStrategy());
+        strategies.addStrategy(new BoundedLoopingStrategy());
         strategies.addStrategy(new EffortStrategy());
 
         const metrics: RuntimeMetric[] = [{
@@ -37,13 +37,13 @@ describe('JIT Strategy Selection', () => {
         }];
         const block = strategies.compile(metrics);
 
-        expect(block).toBeInstanceOf(RepeatingBlock);
+        expect(block).toBeInstanceOf(BoundedLoopingBlock);
     });
 
     it('should select the EffortStrategy as the default', () => {
         const strategies = new RuntimeJitStrategies();
         strategies.addStrategy(new CountdownStrategy());
-        strategies.addStrategy(new RoundsStrategy());
+        strategies.addStrategy(new BoundedLoopingStrategy());
         strategies.addStrategy(new EffortStrategy());
 
         const metrics: RuntimeMetric[] = [{
