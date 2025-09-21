@@ -2,9 +2,10 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IAllocateIndexBehavior } from './IAllocateIndexBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class AllocateIndexBehavior implements IAllocateIndexBehavior {
+
+export class AllocateIndexBehavior implements IBehavior {
   private loopIndexRef?: IMemoryReference<number>;
   private childIndexRef?: IMemoryReference<number>;
 

@@ -4,7 +4,6 @@ import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
 import { IRuntimeEvent, IEventHandler } from './EventHandler';
 import { IRuntimeMemory, RuntimeMemory } from './memory';
-import type { IDebugMemoryView } from './memory';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -22,10 +21,6 @@ export class ScriptRuntime implements IScriptRuntime {
         console.log(`🧠 ScriptRuntime created with memory system`);
     }
     options?: { emitTags?: boolean; } | undefined;
-
-    get debugMemory(): IDebugMemoryView {
-        return this.memory.getDebugView();
-    }
 
     /**
      * Enhanced stack management with automatic memory cleanup and push/pop lifecycle
@@ -83,28 +78,18 @@ export class ScriptRuntime implements IScriptRuntime {
         const updatedBlocks = new Set<string>();
 
         // UNIFIED HANDLER PROCESSING: Get ALL handlers from memory (not just current block)
-        const allHandlers = this.memory.searchReferences<IEventHandler>({ type: 'handler' })
-            .map(ref => ref.get())
+        const handlerRefs = this.memory.search({ type: 'handler', id: null, ownerId: null, visibility: null });
+        const allHandlers = handlerRefs
+            .map(ref => this.memory.get(ref as any))
             .filter(Boolean) as IEventHandler[];
 
         console.log(`  🔍 Found ${allHandlers.length} handlers across ALL blocks in memory`);
 
-        // Process ALL handlers in memory, tracking which blocks are updated
+        // Process ALL handlers in memory
         for (let i = 0; i < allHandlers.length; i++) {
             const handler = allHandlers[i];
             
-            // Find the owner of this handler to track updates
-            let handlerOwnerId: string | undefined;
-            for (const [ownerId] of (this.memory as any)._ownerIndex.entries()) {
-                const handlerRef = this.memory.searchReferences<IEventHandler>({ ownerId, type: 'handler' })
-                    .find(ref => ref.get() === handler);
-                if (handlerRef) {
-                    handlerOwnerId = ownerId;
-                    break;
-                }
-            }
-            
-            console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id}) from block: ${handlerOwnerId || 'unknown'}`);
+            console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id})`);
 
             const response = handler.handler(event, this);
             console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
@@ -112,11 +97,6 @@ export class ScriptRuntime implements IScriptRuntime {
             if (response.handled) {
                 allActions.push(...response.actions);
                 console.log(`      📦 Added ${response.actions.length} actions to queue`);
-                
-                // Track which block was updated
-                if (handlerOwnerId) {
-                    updatedBlocks.add(handlerOwnerId);
-                }
             }
             if (!response.shouldContinue) {
                 console.log(`      🛑 Handler requested stop - breaking execution chain`);
@@ -147,20 +127,6 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public getLastUpdatedBlocks(): string[] {
         return Array.from(this._lastUpdatedBlocks);
-    }
-
-    /**
-     * Gets a debug snapshot of the current memory state
-     */
-    public getMemorySnapshot() {
-        return this.memory.getMemorySnapshot();
-    }
-
-    /**
-     * Gets memory hierarchy for debugging
-     */
-    public getMemoryHierarchy() {
-        return this.memory.getMemoryHierarchy();
     }
     
     tick(): IRuntimeEvent[] {

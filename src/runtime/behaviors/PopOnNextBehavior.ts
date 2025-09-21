@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IPopOnNextBehavior } from './IPopOnNextBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class PopOnNextBehavior implements IPopOnNextBehavior {
+export class PopOnNextBehavior implements IBehavior {
   private popRef?: IMemoryReference<boolean>;
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {

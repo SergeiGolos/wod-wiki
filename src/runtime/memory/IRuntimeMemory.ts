@@ -1,5 +1,6 @@
-import { IMemoryReference } from './IMemoryReference';
+import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 
+export type Nullable<T> = { [K in keyof T]: T[K] | null };
 /**
  * The main runtime memory interface that manages separate memory from the execution stack.
  * This enables debugging and state inspection independently of program execution flow.
@@ -9,53 +10,30 @@ export interface IRuntimeMemory {
      * Allocates a new memory location and returns a reference to it.
      * This memory will be automatically cleaned up when the associated stack item is removed.
      */
-    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: IMemoryReference | undefined, visibility?: 'public' | 'private' | undefined): IMemoryReference<T>;
-    
+    allocate<T>(type: string, ownerId: string, visibility: 'public' | 'private'): TypedMemoryReference<T>;
+        
     /**
      * Gets a memory reference by its ID.
      * Returns undefined if the reference doesn't exist or has been cleaned up.
      */
-    getReference<T>(id: string): IMemoryReference<T> | undefined;
+    get<T>(reference: TypedMemoryReference<T>): T | undefined;
+
+    /**
+     * Sets the value of a memory reference.
+     * Throws an error if the reference is invalid.
+     **/
+    set<T>(reference: TypedMemoryReference<T>, value: T): void;
     
     /**
      * Searches for memory references that match the given criteria.
      * Returns an array of matching references (empty if none found).
+     * the search is based on any non-null fields in the crieteria object.
      */
-    searchReferences<T>(criteria: { ownerId?: string; type?: string }): IMemoryReference<T>[];
-    
-    /**
-     * Returns references visible to a given owner, walking up the owner chain.
-     * Includes the owner's own references (both private and public) and public references from ancestors.
-     */
-    getVisibleFor(ownerId: string, ancestors: string[]): IMemoryReference[];
+    search(criteria: Nullable<IMemoryReference>): IMemoryReference[];
     
     /**
      * Manually releases a memory reference and all its children.
      * This is automatically called when stack items are removed.
      */
-    release<T>(reference: IMemoryReference<T>): void;
-    
-    /**
-     * Cleans up all memory references owned by a specific owner.
-     * This is called when a node/owner is being cleaned up.
-     */
-    clean(ownerId: string): void;
-    
-    /**
-     * Gets all memory references owned by a specific owner (typically a stack block).
-     * This is used for automatic cleanup when blocks are popped from the stack.
-     */
-    getByOwner(ownerId: string): IMemoryReference[];
-    
-    /**
-     * Gets all currently allocated memory references for debugging purposes.
-     * This enables independent viewing of the application's memory state.
-     */
-    getAllReferences(): IMemoryReference[];
-    
-    /**
-     * Creates a snapshot of the current memory state for debugging.
-     * This allows debugging tools to inspect memory without affecting execution.
-     */
-    createSnapshot(): Record<string, any>;
+    release(reference: IMemoryReference): void;
 }

@@ -20,12 +20,12 @@ export class WodScript implements IScript {
     this.errors = errors;
   }
 
-  getIds(ids: number[]): ICodeStatement[] {
+  getIds(ids: number[] | string[]): ICodeStatement[] {
     return ids.map(id => this.getId(id)).filter(Boolean) as ICodeStatement[];
   }
 
-  getId(id: number): ICodeStatement | undefined {
-    return this.statements.find(s => s.id === id);
+  getId(id: number | string): ICodeStatement | undefined {
+    return this.statements.find(s => s.id.toString() === id.toString());
   }
 
   getAt(index: number): ICodeStatement | undefined {

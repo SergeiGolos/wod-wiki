@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { INoLoopBehavior } from './INoLoopBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class NoLoopBehavior implements INoLoopBehavior {
+export class NoLoopBehavior implements IBehavior {
   private passCompleteRef?: IMemoryReference<boolean>;
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {

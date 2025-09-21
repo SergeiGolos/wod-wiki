@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IJournalOnPopBehavior } from './IJournalOnPopBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class JournalOnPopBehavior implements IJournalOnPopBehavior {
+export class JournalOnPopBehavior implements IBehavior {
   private entriesRef?: IMemoryReference<any[]>;
   private enabledRef?: IMemoryReference<boolean>;
 

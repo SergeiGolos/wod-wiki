@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IOnEventEndBehavior } from './IOnEventEndBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class OnEventEndBehavior implements IOnEventEndBehavior {
+export class OnEventEndBehavior implements IBehavior {
   private endRef?: IMemoryReference<boolean>;
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {

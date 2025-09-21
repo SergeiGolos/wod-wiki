@@ -1,5 +1,5 @@
-import { IEventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
 import { PopBlockAction } from '../actions/PopBlockAction';
+import { IEventHandler, HandlerResponse, IRuntimeEvent } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 
 /**

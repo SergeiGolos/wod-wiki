@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IStopOnPopBehavior } from './IStopOnPopBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class StopOnPopBehavior implements IStopOnPopBehavior {
+export class StopOnPopBehavior implements IBehavior {
   private timersRef?: IMemoryReference<string[]>;
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {

@@ -2,10 +2,10 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IInheritMetricsBehavior } from './IInheritMetricsBehavior';
 import { RuntimeMetric } from '../RuntimeMetric';
+import { IBehavior } from '../IBehavior';
 
-export class InheritMetricsBehavior implements IInheritMetricsBehavior {
+export class InheritMetricsBehavior implements IBehavior {
   private inheritedMetricsRef?: IMemoryReference<RuntimeMetric[]>;
 
   constructor(private readonly initialMetrics: RuntimeMetric[] = []) {}
@@ -63,6 +63,6 @@ export class InheritMetricsBehavior implements IInheritMetricsBehavior {
 
   private findVisibleByType<T>(runtime: IScriptRuntime, block: IRuntimeBlock, type: string): IMemoryReference<T>[] {
     // Search for visible memory references of the given type
-    return runtime.memory.searchReferences<T>({ type, visibility: 'public' });
+    return runtime.memory.search({ type, id: null, ownerId: null, visibility: null }) as any;
   }
 }

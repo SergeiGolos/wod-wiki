@@ -105,9 +105,12 @@ describe('Unified Runtime Event Handler', () => {
         runtime.stack.push(block3);
 
         // Get references to handlers for testing
-        const handler1 = runtime.memory.searchReferences<TestEventHandler>({ ownerId: 'block1', type: 'handler' })[0]?.get();
-        const handler2 = runtime.memory.searchReferences<TestEventHandler>({ ownerId: 'block2', type: 'handler' })[0]?.get();
-        const handler3 = runtime.memory.searchReferences<TestEventHandler>({ ownerId: 'block3', type: 'handler' })[0]?.get();
+        const handler1Refs = runtime.memory.search({ ownerId: 'block1', type: 'handler', id: null, visibility: null });
+        const handler1 = handler1Refs.length > 0 ? runtime.memory.get(handler1Refs[0] as any) : undefined;
+        const handler2Refs = runtime.memory.search({ ownerId: 'block2', type: 'handler', id: null, visibility: null });
+        const handler2 = handler2Refs.length > 0 ? runtime.memory.get(handler2Refs[0] as any) : undefined;
+        const handler3Refs = runtime.memory.search({ ownerId: 'block3', type: 'handler', id: null, visibility: null });
+        const handler3 = handler3Refs.length > 0 ? runtime.memory.get(handler3Refs[0] as any) : undefined;
 
         expect(handler1).toBeDefined();
         expect(handler2).toBeDefined();
@@ -159,7 +162,8 @@ describe('Unified Runtime Event Handler', () => {
     const block = new TestBlock(new BlockKey('test-block'), 'TestHandler');
         runtime.stack.push(block);
 
-        const handler = runtime.memory.searchReferences<TestEventHandler>({ ownerId: 'test-block', type: 'handler' })[0]?.get();
+        const handlerRefs = runtime.memory.search({ ownerId: 'test-block', type: 'handler', id: null, visibility: null });
+        const handler = handlerRefs.length > 0 ? runtime.memory.get(handlerRefs[0] as any) : undefined;
         expect(handler).toBeDefined();
 
         // Mock the handler to verify it receives the correct parameters

@@ -1,6 +1,6 @@
-import { IScriptRuntime } from "../IScriptRuntime";
-import { IRuntimeLog } from "../EventHandler";
-import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeLog } from "./EventHandler";
+import { IRuntimeBlock } from "./IRuntimeBlock";
 
 /**
  * Generic, composable behavior contract applied to runtime blocks.
