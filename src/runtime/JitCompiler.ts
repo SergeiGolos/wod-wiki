@@ -105,7 +105,7 @@ export class JitCompiler {
     // Get all statements that start at column position 0 (no indentation)
     const rootStatements = this.script.statements
       .filter(stmt => stmt.meta?.columnStart === 1)
-      .map(stmt => stmt.id.toString());
+      .map(stmt => stmt.id.toString()); // Convert numeric IDs to strings for block system
     
     console.log(`  📝 Found ${rootStatements.length} root-level statements: [${rootStatements.join(', ')}]`);
     

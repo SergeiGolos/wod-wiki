@@ -43,7 +43,7 @@ export class FragmentCompilationManager {
 
         const label = effort.trim();
         return {
-            sourceId: statement.id?.toString(), // Assuming ICodeStatement has a key
+            sourceId: statement.id?.toString(), // Convert numeric position ID to string for sourceId
             ...(label ? { effort: label } : {}),
             values: allValues
         } as RuntimeMetric;
