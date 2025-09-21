@@ -7,7 +7,6 @@ import type { IMemoryReference } from "../memory";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { AllocateSpanBehavior } from "../behaviors/AllocateSpanBehavior";
 import { InheritMetricsBehavior } from "../behaviors/InheritMetricsBehavior";
-import type { IRuntimeMemory } from "../memory/IRuntimeMemory";
 
 /**
  * EffortBlock - Single effort unit
@@ -33,10 +32,10 @@ export class EffortBlock extends RuntimeBlock {
             visibility: 'public',
             factory: () => this.createPublicSpan(),
         });
-        const inheritBehavior = new InheritMetricsBehavior(this.initialMetrics);
+        //const inheritBehavior = new InheritMetricsBehavior(this.initialMetrics);
         
         this.behaviors.push(spanBehavior);
-        this.behaviors.push(inheritBehavior);
+        //this.behaviors.push(inheritBehavior);
         
         console.log(`💪 EffortBlock initialized memory for: ${this.key.toString()}`);
     }

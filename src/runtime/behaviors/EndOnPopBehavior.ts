@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IEndOnPopBehavior } from './IEndOnPopBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class EndOnPopBehavior implements IEndOnPopBehavior {
+export class EndOnPopBehavior implements IBehavior {
   private endOnPopRef?: IMemoryReference<boolean>;
 
   constructor(private readonly defaultState: boolean = true) {}

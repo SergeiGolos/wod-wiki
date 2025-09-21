@@ -1,10 +1,10 @@
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { INextChildBehavior } from './INextChildBehavior';
 import type { IMemoryReference } from '../memory';
+import { IBehavior } from '../IBehavior';
 
-export class NextChildBehavior implements INextChildBehavior {
+export class NextChildBehavior implements IBehavior {
   private childGroupsRef?: IMemoryReference<string[][]>;
   private childIndexRef?: IMemoryReference<number>;
 

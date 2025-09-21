@@ -6,8 +6,8 @@ import { RuntimeMetric, MetricEntry } from './RuntimeMetric';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { IBehavior } from './behaviors/IBehavior';
-import { runOnNext, runOnPop, runOnPush } from './behaviors/runBehaviorHooks';
+import { IBehavior } from './IBehavior';
+import { runOnNext, runOnPop, runOnPush } from './runBehaviorHooks';
 
 /**
  * Base implementation for runtime blocks using the new Push/Next/Pop pattern.

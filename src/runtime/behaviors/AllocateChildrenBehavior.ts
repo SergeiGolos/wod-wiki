@@ -2,7 +2,7 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IBehavior } from './IBehavior';
+import { IBehavior } from '../IBehavior';
 import { FragmentType } from '../../CodeFragment';
 
 /**

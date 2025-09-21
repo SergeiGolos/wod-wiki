@@ -5,15 +5,6 @@ import { RootNextHandler } from "../handlers/RootNextHandler";
 import { RuntimeBlock } from "../RuntimeBlock";
 import type { IMemoryReference } from "../memory";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { IAllocateSpanBehavior } from "../behaviors/IAllocateSpanBehavior";
-import { IAllocateChildrenBehavior } from "../behaviors/IAllocateChildrenBehavior";
-import { IAllocateIndexBehavior } from "../behaviors/IAllocateIndexBehavior";
-import { INextChildBehavior } from "../behaviors/INextChildBehavior";
-import { INoLoopBehavior } from "../behaviors/INoLoopBehavior";
-import { IOnEventEndBehavior } from "../behaviors/IOnEventEndBehavior";
-import { IStopOnPopBehavior } from "../behaviors/IStopOnPopBehavior";
-import { IJournalOnPopBehavior } from "../behaviors/IJournalOnPopBehavior";
-import { IEndOnPopBehavior } from "../behaviors/IEndOnPopBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**

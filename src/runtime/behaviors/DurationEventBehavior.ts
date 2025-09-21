@@ -2,9 +2,9 @@ import type { IMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IDurationEventBehavior } from './IDurationEventBehavior';
+import { IBehavior } from '../IBehavior';
 
-export class DurationEventBehavior implements IDurationEventBehavior {
+export class DurationEventBehavior implements IBehavior {
   private durationRef?: IMemoryReference<number>;
   private startTimeRef?: IMemoryReference<Date>;
   private elapsedRef?: IMemoryReference<number>;

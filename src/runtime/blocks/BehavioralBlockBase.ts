@@ -2,8 +2,8 @@ import { BlockKey } from "../../BlockKey";
 import { IRuntimeLog } from "../EventHandler";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { IBehavior } from "../behaviors/IBehavior";
-import { runOnNext, runOnPop, runOnPush } from "../behaviors/runBehaviorHooks";
+import { IBehavior } from "../IBehavior";
+import { runOnNext, runOnPop, runOnPush } from "../runBehaviorHooks";
 
 /**
  * Minimal base runtime block that delegates lifecycle hooks to attached behaviors.

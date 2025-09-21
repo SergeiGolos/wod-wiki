@@ -1,6 +1,6 @@
-import { IScriptRuntime } from "../IScriptRuntime";
-import { IRuntimeLog } from "../EventHandler";
-import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeLog } from "./EventHandler";
+import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IBehavior } from "./IBehavior";
 
 type HookName = "onPush" | "onNext" | "onPop";
