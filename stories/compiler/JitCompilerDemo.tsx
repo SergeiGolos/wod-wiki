@@ -509,9 +509,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     currentIndex: Math.max(0, blocksBottomFirst.length - 1)
   }
 
-  // Get memory snapshot if using ScriptRuntimeWithMemory
-  const memorySnapshot = runtime instanceof ScriptRuntimeWithMemory ? 
-    runtime.getMemorySnapshot() : null;
+  // Memory snapshot no longer available in simplified interface
+  const memorySnapshot = null;
 
   return (
     <div className="p-4 max-w-7xl mx-auto">

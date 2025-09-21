@@ -20,12 +20,12 @@ export class StartAllSpansAction implements IRuntimeAction {
         }
 
         // Find all span builders in memory
-        const spanBuilderRefs = runtime.memory.searchReferences<IResultSpanBuilder>({ type: 'span-builder' });
+        const spanBuilderRefs = runtime.memory.search({ type: 'span-builder', id: null, ownerId: null, visibility: null });
         
         console.log(`🔍 StartAllSpansAction - Found ${spanBuilderRefs.length} span builders in memory`);
         
         for (const spanRef of spanBuilderRefs) {
-            const spanBuilder = spanRef.get();
+            const spanBuilder = runtime.memory.get(spanRef as any);
             if (spanBuilder) {
                 try {
                     spanBuilder.start();

@@ -63,6 +63,6 @@ export class InheritMetricsBehavior implements IBehavior {
 
   private findVisibleByType<T>(runtime: IScriptRuntime, block: IRuntimeBlock, type: string): IMemoryReference<T>[] {
     // Search for visible memory references of the given type
-    return runtime.memory.searchReferences<T>({ type});
+    return runtime.memory.search({ type, id: null, ownerId: null, visibility: null }) as any;
   }
 }
