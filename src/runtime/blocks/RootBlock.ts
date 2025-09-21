@@ -36,42 +36,15 @@ export class RootBlock extends RuntimeBlock {
 
     constructor(children: string[]) {
         console.log(`🌱 RootBlock constructor - Creating with children: [${children.join(', ')}]`);
+        
+        
+        
         const key = new BlockKey('root');
         super(key, []);
         this._childrenInit = children;
         console.log(`🌱 RootBlock created with key: ${this.key.toString()}`);
     }
-
-    protected initializeMemory(): void {
-        // AllocateSpanBehavior
-        this.initializeSpan('public');
-        
-        // AllocateChildren
-        const childrenGroups = this.parseChildrenGroups(this._childrenInit);
-        this._childrenGroupsRef = this.allocateMemory<string[][]>('children-groups', childrenGroups, 'private');
-        
-        // AllocateIndex
-        this._loopIndexRef = this.allocateMemory<number>('loop-index', 0, 'private');
-        this._childIndexRef = this.allocateMemory<number>('child-index', 0, 'private');
-        
-        // NoLoopBehavior
-        this._passCompleteRef = this.allocateMemory<boolean>('pass-complete', false, 'private');
-        
-        // OnEventEndBehavior
-        this._endEventRef = this.allocateMemory<boolean>('end-event-received', false, 'private');
-        
-        // StopOnPopBehavior
-        this._activeTimersRef = this.allocateMemory<string[]>('active-timers', [], 'private');
-        
-        // JournalOnPopBehavior
-        this._journalingEnabledRef = this.allocateMemory<boolean>('journaling-enabled', true, 'private');
-        
-        // EndOnPopBehavior
-        this._endOnPopRef = this.allocateMemory<boolean>('end-on-pop', true, 'private');
-        
-        console.log(`🌱 RootBlock.initializeMemory() - Initialized with ${childrenGroups.length} child groups`);
-    }
-
+    
     // IAllocateSpanBehavior implementation
     public getSpan(): IResultSpanBuilder | undefined {
         return this._spanRef?.get();

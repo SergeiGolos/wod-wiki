@@ -4,6 +4,7 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IBehavior } from '../IBehavior';
 import { FragmentType } from '../../CodeFragment';
+import { ICodeStatement } from '@/CodeStatement';
 
 /**
  * Concrete AllocateChildrenBehavior. Parses child statements for a block and
@@ -13,17 +14,14 @@ import { FragmentType } from '../../CodeFragment';
 export class AllocateChildrenBehavior implements IBehavior {
   private childrenGroupsRef?: IMemoryReference<string[][]> | undefined = undefined;
 
-  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {
-    const codeBlocks = runtime.script.getIds(block.sourceId);
-    const children = runtime.script.getIds(codeBlocks?.flatMap(cb => cb.children || []) || []);
-    
-    // Grouping rules:
-    // - If a child has lap '-' (round) OR no lap fragment -> it is its own group
-    // - Any consecutive '+' (compose) laps are grouped together
-    const groups: string[][] = [];
-    let currentComposeGroup: string[] | null = null;
+  constructor(private childIds: string[] = []) {
+  }
 
-    const getLapType = (stmt: any): 'compose' | 'round' | 'none' => {
+  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {    
+    const children = runtime.script.getIds(this.childIds);    
+    const groups: string[][] = [];    
+    
+    const getLapType = (stmt: ICodeStatement): 'compose' | 'round' | 'none' => {
       const lap = (stmt.fragments || []).find((f: any) => f.fragmentType === FragmentType.Lap);
       if (!lap) return 'none';
       const v = (lap.value as string) || '';
@@ -32,32 +30,21 @@ export class AllocateChildrenBehavior implements IBehavior {
       return 'none';
     };
 
+    let current: string[] = [];
     for (const child of children) {
       const idStr = String(child.id);
-      const lapType = getLapType(child);
-
+      const lapType = getLapType(child);       
+      current.push(idStr);
       if (lapType === 'compose') {
-        // Start or extend a compose run
-        if (!currentComposeGroup) currentComposeGroup = [];
-        currentComposeGroup.push(idStr);
-      } else {
-        // Close any pending compose group
-        if (currentComposeGroup && currentComposeGroup.length > 0) {
-          groups.push(currentComposeGroup);
-          currentComposeGroup = null;
-        }
-        // '-' (round) or 'none' always form their own group
-        groups.push([idStr]);
+        continue;
       }
-    }
-
-    // Flush trailing compose group if present
-    if (currentComposeGroup && currentComposeGroup.length > 0) {
-      groups.push(currentComposeGroup);
+      
+      groups.push([idStr]);
+      current = [];      
     }
 
     this.childrenGroupsRef = runtime.memory.allocate<string[][]>(
-      'children-groups',
+      'children',
       block.key.toString(),
       groups,
       undefined,
@@ -69,10 +56,8 @@ export class AllocateChildrenBehavior implements IBehavior {
   onPop(runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeLog[] { 
     runtime.memory.release(this.childrenGroupsRef!);
     this.childrenGroupsRef = undefined;
-    return []; }
-  onNext(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeLog[] { return []; }
-
-  // Accessors for other components/blocks to read the groups
-  getChildrenGroups(): string[][] { return this.childrenGroupsRef?.get() ?? []; }
-  getChildrenGroupsReference(): IMemoryReference<string[][]> | undefined { return this.childrenGroupsRef; }
+    return []; 
+  }
+  
+  onNext(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeLog[] { return []; }  
 }
