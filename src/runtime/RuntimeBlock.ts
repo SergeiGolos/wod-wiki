@@ -1,4 +1,4 @@
-import type { IMemoryReference } from './memory';
+import type { IMemoryReference, TypedMemoryReference } from './memory';
 import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { IRuntimeLog } from './EventHandler';
 import { BlockKey } from '../BlockKey';
@@ -12,17 +12,13 @@ import { RuntimeMetric } from './RuntimeMetric';
  * All blocks extend this class and are based on behaviors with access to memory.
  * Combines functionality from BehavioralMemoryBlockBase and RuntimeBlockWithMemoryBase.
  */
-export abstract class RuntimeBlock implements IRuntimeBlock {
-    public readonly sourceId: string[];
-    
+export abstract class RuntimeBlock implements IRuntimeBlock {        
+    public readonly behaviors: IBehavior[] = []
     // Memory references for core runtime state
-    protected _spansRef?: IMemoryReference<IResultSpanBuilder>;
+    protected _spansRef?: TypedMemoryReference<IResultSpanBuilder>;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
 
-    constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = [], public readonly behaviors: IBehavior[] = []) {
-        // Derive source ids from initial metrics (unique, preserve insertion order)
-        const ids = Array.from(new Set(initialMetrics.map(m => m.sourceId)));
-        this.sourceId = ids;
+    constructor(public readonly key: BlockKey, public readonly sourceId: string[] = []) {                
         console.log(`🧠 RuntimeBlock created: ${key.toString()}`);
     }
     
@@ -31,7 +27,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
      * Sets up initial state and registers event listeners.
      */
     push(runtime: IScriptRuntime): IRuntimeLog[] {
-        
+        const logs = [];
+        for (const behavior of this.behaviors) {
+            const result = behavior?.onPush?.(runtime, this);
+            if (result) { logs.push(...result); }
+        }
+        return logs;
     }
 
     /**
@@ -39,7 +40,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
      * Determines the next block(s) to execute or signals completion.
      */
     next(runtime: IScriptRuntime): IRuntimeLog[] {
-        return this.onNext(runtime);
+        const logs = [];
+        for (const behavior of this.behaviors) {
+            const result = behavior?.onNext?.(runtime, this);
+            if (result) { logs.push(...result); }
+        }
+        return logs;    
     }
 
     /**
@@ -47,6 +53,11 @@ export abstract class RuntimeBlock implements IRuntimeBlock {
      * Handles completion logic, manages result spans, and cleans up resources.
      */
     pop(runtime: IScriptRuntime): IRuntimeLog[] {
-        
-    }    
+       const logs = [];
+        for (const behavior of this.behaviors) {
+            const result = behavior?.onPop?.(runtime, this);
+            if (result) { logs.push(...result); }
+        }
+        return logs;
+    }
 }
