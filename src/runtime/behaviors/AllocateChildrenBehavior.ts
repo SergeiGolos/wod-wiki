@@ -1,4 +1,4 @@
-import type { IMemoryReference } from '../memory';
+import type { IMemoryReference, TypedMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -12,7 +12,7 @@ import { ICodeStatement } from '@/CodeStatement';
  * own group; customize parseChildrenGroups for more advanced rules.
  */
 export class AllocateChildrenBehavior implements IBehavior {
-  private childrenGroupsRef?: IMemoryReference<string[][]> | undefined = undefined;
+  private childrenGroupsRef?: TypedMemoryReference<string[][]> | undefined = undefined;
 
   constructor(private childIds: string[] = []) {
   }
@@ -20,7 +20,7 @@ export class AllocateChildrenBehavior implements IBehavior {
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {    
     const children = runtime.script.getIds(this.childIds);    
     const groups: string[][] = [];    
-    
+
     const getLapType = (stmt: ICodeStatement): 'compose' | 'round' | 'none' => {
       const lap = (stmt.fragments || []).find((f: any) => f.fragmentType === FragmentType.Lap);
       if (!lap) return 'none';
@@ -46,10 +46,9 @@ export class AllocateChildrenBehavior implements IBehavior {
     this.childrenGroupsRef = runtime.memory.allocate<string[][]>(
       'children',
       block.key.toString(),
-      groups,
-      undefined,
       'private'
     );
+    runtime.memory.set(this.childrenGroupsRef, groups);
     return [{ level: 'debug', message: 'allocated children groups', timestamp: new Date(), context: { count: groups.length } }];
   }
 
