@@ -26,11 +26,11 @@ export class RuntimeMemory implements IRuntimeMemory {
     }
 
     // Allocates a new memory location and returns a reference to it.
-    allocate<T>(): TypedMemoryReference<T> {
+    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: IMemoryReference, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
         const id = this._generateId();
-        // ownerId/type omitted in the simplified interface; default to empty strings
-        const ref = new TypedMemoryReference<T>(id, '', '');
-        this._references.push({ ref, data: undefined });
+        const ref = new TypedMemoryReference<T>(id, ownerId, type);
+        ref.visibility = visibility;
+        this._references.push({ ref, data: initialValue });
         return ref;
     }
 
