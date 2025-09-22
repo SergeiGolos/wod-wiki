@@ -1,50 +1,93 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: N/A → 1.0.0
+- Modified principles: Initial adoption (all principles added)
+- Added sections: Core Principles; Quality Gates; Development Workflow; Governance
+- Removed sections: None
+- Templates requiring updates:
+	✅ .specify/templates/plan-template.md (footer version and path)
+	✅ .specify/templates/spec-template.md (reviewed - no changes needed)
+	✅ .specify/templates/tasks-template.md (reviewed - no changes needed)
+	✅ .specify/templates/agent-file-template.md (reviewed - no changes needed)
+- Follow-up TODOs: None
+-->
+
+# WOD Wiki Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Tests-First and Continuous Verification (NON-NEGOTIABLE)
+WOD Wiki MUST practice TDD. For any user-visible behavior or public API:
+- Write unit tests (Vitest) and/or interaction tests (Storybook test runner) that FAIL
+	before implementation.
+- Every PR MUST include tests covering new behavior and regression fixes.
+- Critical UI flows MUST have Storybook interaction tests; core language/runtime logic
+	MUST have deterministic unit and integration tests.
+Rationale: Prevent regressions in the workout language, editor, and runtime while
+enabling safe refactors.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Language-as-Contract (WodScript Stability)
+The WodScript grammar, tokens, and semantics define a contract with users:
+- Any breaking change to syntax or semantics REQUIRES a Major version and a documented
+	migration path.
+- Grammar and visitors MUST be documented and reflected in examples and Storybook.
+- Deprecations MUST be announced one Minor ahead, with tests demonstrating old and new
+	behaviors until removal.
+Rationale: Workout definitions are content users keep; stability preserves value.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Deterministic Runtime and Time Control
+Runtime execution MUST be deterministic and reproducible:
+- Inject clocks/timers; forbid implicit reliance on system time in logic.
+- No hidden global state; state transitions must be explicit and observable.
+- Event ordering MUST be well-defined; asynchronous behavior MUST preserve determinism
+	in outcomes.
+Rationale: Reliable results, predictable audio cues, and reproducible runs.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Observability and Debuggability
+The system MUST be inspectable during development and usage:
+- Structured logging and traceable event IDs for key runtime transitions.
+- Developer-mode diagnostics in Storybook to visualize parser trees and runtime events.
+- Errors MUST be actionable: clear messages, context, and failing input excerpts.
+Rationale: Faster feedback loops and simpler issue reproduction.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. API Surface, SemVer, and Simplicity
+Keep the public API small, composable, and versioned via SemVer:
+- Public modules and types MUST be explicitly exported and documented.
+- Breaking changes REQUIRE Major version; additive changes are Minor; fixes/wording are
+	Patch.
+- Prefer small, orthogonal features over complex all-in-ones (YAGNI, avoid incidental
+	complexity).
+Rationale: Stability for consumers and maintainable evolution.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Quality Gates
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+The following gates MUST pass on every change:
+- Lint and Typecheck: No new TypeScript errors or ESLint critical issues.
+- Tests: Unit tests (Vitest) and Storybook interaction tests pass in CI.
+- Determinism: New runtime features include tests that assert deterministic outcomes.
+- Docs: Public API changes and language changes are reflected in README/Storybook
+	examples and, where relevant, migration notes.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Use the `.specify` templates to plan and track work:
+- Spec first: Use `spec-template.md` to produce clear, testable requirements.
+- Plan: Use `plan-template.md` and perform a Constitution Check; if violations are
+	necessary, document them under Complexity Tracking.
+- Tasks: Generate `tasks.md` from the plan; follow TDD ordering (tests must fail before
+	implementation).
+- Reviews: PRs MUST justify any Constitution deviations and include tests and docs.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution supersedes other ad-hoc practices where in conflict.
+- Amendment procedure: Open a PR labeled "governance" with a rationale, version bump
+	proposal (SemVer), and migration/communication plan.
+- Versioning policy (for this document):
+	- MAJOR: Backward-incompatible governance or principle redefinitions/removals.
+	- MINOR: New principle/section or materially expanded guidance.
+	- PATCH: Clarifications/wording/typos with no semantic change.
+- Compliance review: During planning and PR review, run the Constitution Check and
+	document outcomes. Violations MUST be justified or resolved before merge.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-09-22 | **Last Amended**: 2025-09-22
