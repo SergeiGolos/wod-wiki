@@ -79,6 +79,20 @@ export abstract class RuntimeBlockWithMemoryBase implements IRuntimeBlock, IRunt
             (this as any).initializeMemory();
         }
         
+        // Allocate initial handlers to memory if createInitialHandlers exists
+        if (typeof (this as any).createInitialHandlers === 'function') {
+            const handlers = (this as any).createInitialHandlers();
+            for (const handler of handlers) {
+                this.allocateMemory('handler', handler, 'private');
+            }
+        }
+        
+        // Allocate span builder to memory if createSpansBuilder exists
+        if (typeof (this as any).createSpansBuilder === 'function') {
+            const spanBuilder = (this as any).createSpansBuilder();
+            this.allocateMemory('span-builder', spanBuilder, 'private');
+        }
+        
         // Base implementation - derived classes should override
         return [];
     }
