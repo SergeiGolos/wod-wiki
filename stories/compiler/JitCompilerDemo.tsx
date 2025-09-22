@@ -205,6 +205,7 @@ function MemoryVisualizationTable({
         <table className="w-full text-xs">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
+              <th className="text-left px-2 py-1 font-semibold">ID</th>
               <th className="text-left px-2 py-1 font-semibold">Type</th>
               {!hideOwnerColumn && (
                 <th className="text-left px-2 py-1 font-semibold">Owner</th>
@@ -227,6 +228,9 @@ function MemoryVisualizationTable({
                   onMouseEnter={() => onMemoryHover(entry.id, entry.associatedBlockKey)}
                   onMouseLeave={() => onMemoryHover()}
                 >
+                  <td className="px-2 py-1 text-gray-500 font-mono max-w-24 truncate" title={entry.id}>
+                    {entry.id}
+                  </td>
                   <td className="px-2 py-1">
                     <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
                       entry.isValid ? 'bg-green-400' : 'bg-red-400'
@@ -509,8 +513,49 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     currentIndex: Math.max(0, blocksBottomFirst.length - 1)
   }
 
-  // Memory snapshot no longer available in simplified interface
-  const memorySnapshot = null;
+  // Build a debug-like memory snapshot from the current memory interface
+  const memorySnapshot: DebugMemorySnapshot | null = (() => {
+    try {
+      const mem: any = (runtime as any)?.memory;
+      if (!mem || typeof mem.search !== 'function' || typeof mem.get !== 'function') return null;
+
+      // Get all references by passing fully-null criteria
+  const allRefs = mem.search({ id: null, ownerId: null, type: null, visibility: null }) as Array<{ id: string; ownerId?: string; type?: string; visibility?: 'public' | 'private' }>;
+
+      const entries = allRefs.map(ref => {
+        // Recreate a typed reference so we can call memory.get()
+        const typedRef = { id: ref.id, ownerId: ref.ownerId ?? '', type: ref.type ?? '', visibility: ref.visibility ?? 'private' } as any;
+        const value = mem.get(typedRef);
+        return {
+          id: ref.id,
+          type: ref.type ?? 'unknown',
+          ownerId: ref.ownerId ?? '',
+          value,
+          isValid: true,
+          children: [] as string[],
+        };
+      });
+
+      // Summaries
+      const byType: Record<string, number> = {};
+      const byOwner: Record<string, number> = {};
+      for (const e of entries) {
+        byType[e.type] = (byType[e.type] ?? 0) + 1;
+        const owner = e.ownerId ?? '';
+        byOwner[owner] = (byOwner[owner] ?? 0) + 1;
+      }
+
+      const snapshot: DebugMemorySnapshot = {
+        timestamp: Date.now(),
+        entries,
+        totalAllocated: entries.length,
+        summary: { byType, byOwner },
+      };
+      return snapshot;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
