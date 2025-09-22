@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question / Support
+    url: https://github.com/bitcobblers/wod-wiki/discussions
+    about: Please use GitHub Discussions for questions and general support.

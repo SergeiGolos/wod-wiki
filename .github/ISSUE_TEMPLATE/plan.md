@@ -1,14 +1,24 @@
 ---
-name: Agent – Plan
-about: Planning and breakdown (milestones, tasks, estimates)
-title: "[plan]: "
-assignees: ""
+name: Plan
+about: Use the plan prompt to outline a concrete approach before coding
+title: "[Plan] <short title>"
+labels:
+  - ai
+  - prompt:plan
+assignees: []
 ---
-## Issue Prompt
 
+## Objective
+What outcome should the plan achieve?
 
+## Context
+Background, constraints, and assumptions.
 
-## System Prompt
+## Deliverables
+Artifacts the plan should produce (e.g., task list, milestones, risks).
 
-- agent=plan
-- instruction_file=.instructions/__plan.md
+## Scope / Boundaries
+What is in and out of scope.
+
+Reference prompt: .github/prompts/plan.prompt.md
+<!-- prompt: plan -->
