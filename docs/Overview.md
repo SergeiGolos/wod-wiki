@@ -3,13 +3,15 @@
 A newcomer-friendly map of how the system works today, with links to deeper docs and runnable examples.
 
 ## Table of Contents
-- Parsing
-- Runtime & Debugging
-- Display / UI
-- Metrics Collection
-- Interfaces (reference)
-- Specification Discovery
-- Version & Changes
+- [Parsing](#parsing)
+- [Runtime & Debugging](#runtime--debugging)
+- [Display / UI](#display--ui)
+- [Metrics Collection](#metrics-collection)
+- [Interfaces (reference)](#interfaces-reference)
+- [Specification Discovery](#specification-discovery)
+- [Version & Changes](#version--changes)
+
+**💡 New**: **[Comprehensive Language Documentation](./language/)** - Complete WodScript syntax guide with detailed examples, fragment-to-metric mappings, and inheritance patterns.
 
 ```mermaid
 graph TD
@@ -24,13 +26,32 @@ graph TD
 ```
 
 ## Parsing
-Concepts: tokens, grammar, visitor, fragments → internal representation.
-- Guide: [docs/language/Guide.md](./language/Guide.md)
-- Source: [src/parser/timer.tokens.ts](../src/parser/timer.tokens.ts), [src/parser/timer.parser.ts](../src/parser/timer.parser.ts), [src/parser/timer.visitor.ts](../src/parser/timer.visitor.ts), [src/parser/md-timer.ts](../src/parser/md-timer.ts)
-- Examples: [src/WodScript.test.ts](../src/WodScript.test.ts)
+WodScript language: tokens → grammar → fragments → executable blocks.
 
-Try it
-- Open stories/parsing in Storybook (if present), or run unit tests to see parsing expectations.
+**Key concepts**: 
+- **Tokens**: Lexical elements (numbers, timers, identifiers, symbols)
+- **Grammar**: Parsing rules for workout structures (rounds, exercises, timing)
+- **Fragments**: Typed data structures (RepFragment, EffortFragment, TimerFragment, etc.)
+- **Visitor**: AST traversal converting parse trees to fragments
+- **Metrics**: Automatic collection and inheritance of workout parameters
+
+**Documentation**: 
+- **Comprehensive Guide**: [docs/language/Guide.md](./language/Guide.md) - Complete syntax reference with examples
+- **Quick Reference**: [docs/language/QuickReference.md](./language/QuickReference.md) - Syntax cheat sheet
+
+**Source**: 
+- Tokens: [src/parser/timer.tokens.ts](../src/parser/timer.tokens.ts) - Lexical patterns and token definitions
+- Grammar: [src/parser/timer.parser.ts](../src/parser/timer.parser.ts) - Parsing rules and structure
+- Visitor: [src/parser/timer.visitor.ts](../src/parser/timer.visitor.ts) - AST traversal and fragment creation
+- Runtime: [src/parser/md-timer.ts](../src/parser/md-timer.ts) - Execution engine
+
+**Examples & Tests**: 
+- Unit tests: [src/WodScript.test.ts](../src/WodScript.test.ts) - Basic parsing validation
+- Integration tests: [src/runtime/FragmentCompilationManager.test.ts](../src/runtime/FragmentCompilationManager.test.ts) - End-to-end examples
+- Story examples: [stories/parsing/](../stories/parsing/) - Comprehensive workout definitions
+- Real workouts: [stories/workouts/crossfit.ts](../stories/workouts/crossfit.ts) - CrossFit benchmark WODs
+
+**Try it**: Open Storybook parsing stories or run `npm run test:unit` to see parsing in action.
 
 ## Runtime & Debugging
 Deterministic execution with injected time and explicit event ordering.
