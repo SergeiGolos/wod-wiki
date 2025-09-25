@@ -5,33 +5,52 @@ import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IBehavior } from './IBehavior';
 import { RuntimeMetric } from './RuntimeMetric';
-import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
+import { IRuntimeBlock } from './IRuntimeBlock';
 
 /**
  * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
  * All blocks extend this class and are based on behaviors with access to memory.
  * Combines functionality from BehavioralMemoryBlockBase and RuntimeBlockWithMemoryBase.
  */
-export abstract class RuntimeBlock extends RuntimeBlockWithMemoryBase {        
+export abstract class RuntimeBlock implements IRuntimeBlock{        
     public readonly behaviors: IBehavior[] = []
-    
-    // Memory references for core runtime state
-    protected _spansRef?: TypedMemoryReference<IResultSpanBuilder>;
+    public readonly key: BlockKey;    
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
+    private _memory: IMemoryReference[] = [];
 
-    constructor(public readonly key: BlockKey, protected initialMetrics: RuntimeMetric[] = [], public readonly sourceId: string[] = []) {                
-        super(key, sourceId);
-        console.log(`🧠 RuntimeBlock created: ${key.toString()}`);
-    }
+    constructor(protected _runtime: IScriptRuntime, 
+        protected initialMetrics: RuntimeMetric[] = [], 
+        public readonly sourceId: string[] = []) 
+    {         
+        this.key = new BlockKey();
+        console.log(`🧠 RuntimeBlock created: ${this.key.toString()}`);    
+    }    
     
+    /**
+     * Allocates memory for this block's state.
+     * The memory will be automatically cleaned up when the block is popped from the stack.
+     */
+    allocateMemory<T>(type: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
+        if (!this._runtime) {
+            throw new Error(`Cannot allocate memory: runtime not set for block ${this.key.toString()}`);
+        }
+
+        const ref = this._runtime.memory.allocate<T>(type, this.key.toString(), initialValue, visibility);
+        
+        // Add a get/set methods to the reference that use the runtime memory
+        (ref as any).get = () => this._runtime!.memory.get<T>(ref);
+        (ref as any).set = (value: T) => this._runtime!.memory.set<T>(ref, value);
+        
+        this._memory.push(ref);
+        return ref;
+    }
+
+
     /**
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      */
     push(runtime: IScriptRuntime): IRuntimeLog[] {
-        // Call parent push first (which handles initializeMemory)
-        const parentLogs = super.push(runtime);
-        
         // Then call behaviors
         const logs = [];
         for (const behavior of this.behaviors) {
@@ -39,8 +58,6 @@ export abstract class RuntimeBlock extends RuntimeBlockWithMemoryBase {
             if (result) { logs.push(...result); }
         }
         
-        // Combine logs
-        logs.push(...parentLogs);
         return logs;
     }
 
@@ -69,10 +86,13 @@ export abstract class RuntimeBlock extends RuntimeBlockWithMemoryBase {
             if (result) { logs.push(...result); }
         }
 
-        // Then call parent cleanup (memory management)
-        const parentLogs = super.pop(runtime);
-        logs.push(...parentLogs);
-        
+        // Clean up memory allocated for this block
+        for (const memRef of this._memory) {
+            // Logic around saving this to long term storage
+            this._runtime.memory.release(memRef);
+        }
+
+        // Then call parent cleanup (memory management)                        
         return logs;
     }
 }

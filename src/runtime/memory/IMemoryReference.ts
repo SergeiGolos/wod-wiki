@@ -12,20 +12,23 @@ export interface IMemoryReference {
     readonly visibility: 'public' | 'private';
 }
 
-
 export class TypedMemoryReference<T>  implements IMemoryReference {    
+    public readonly id: string = crypto.randomUUID();
+
     constructor(
-        public readonly id: string,
+        private readonly _memory: IRuntimeMemory,
         public readonly ownerId: string,
-        public readonly type: string
+        public readonly type: string,
+        public visibility: "public" | "private" = 'private',
+
     ) {
-        this.visibility = 'private';    
     }
-        
-    visibility: "public" | "private";
-    
-    get(memory : IRuntimeMemory): T | undefined {
-        return memory.get<T>(this)
+            
+    get(): T | undefined {
+        return this._memory.get<T>(this)
     }
 
+    set(value: T): void {
+        this._memory.set<T>(this, value);
+    }
 }

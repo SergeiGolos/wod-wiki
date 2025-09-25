@@ -10,30 +10,14 @@ export class RuntimeMemory implements IRuntimeMemory {
     // Linear storage for memory locations
     private _references: MemoryLocation[] = [];
 
-    // Simple ID generator (uses crypto.randomUUID when available, falls back to counter)
-    private _idCounter = 0;
-    private _generateId(): string {
-        try {
-            // @ts-ignore - crypto may exist in runtime
-            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-                // @ts-ignore
-                return crypto.randomUUID();
-            }
-        } catch {
-            // ignore
-        }
-        return `mem_${Date.now()}_${++this._idCounter}`;
-    }
-
     // Allocates a new memory location and returns a reference to it.
-    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: IMemoryReference, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
-        const id = this._generateId();
-        const ref = new TypedMemoryReference<T>(id, ownerId, type);
-        ref.visibility = visibility;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
+        const ref = new TypedMemoryReference<T>(this, ownerId, type, visibility);        
         this._references.push({ ref, data: initialValue });
         return ref;
     }
 
+    
     // Gets the value for a given reference, or undefined if not found.
     get<T>(reference: TypedMemoryReference<T>): T | undefined {
         const loc = this._references.find(l => l.ref.id === reference.id);

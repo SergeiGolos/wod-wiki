@@ -10,7 +10,7 @@ export interface IRuntimeMemory {
      * Allocates a new memory location and returns a reference to it.
      * This memory will be automatically cleaned up when the associated stack item is removed.
      */
-    allocate<T>(type: string, ownerId: string, initialValue?: T, parent?: IMemoryReference, visibility?: 'public' | 'private'): TypedMemoryReference<T>;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility?: 'public' | 'private'): TypedMemoryReference<T>;
         
     /**
      * Gets a memory reference by its ID.
