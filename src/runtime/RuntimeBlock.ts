@@ -30,17 +30,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
      * Allocates memory for this block's state.
      * The memory will be automatically cleaned up when the block is popped from the stack.
      */
-    allocateMemory<T>(type: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
+    protected allocateMemory<T>(type: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
         if (!this._runtime) {
             throw new Error(`Cannot allocate memory: runtime not set for block ${this.key.toString()}`);
         }
 
         const ref = this._runtime.memory.allocate<T>(type, this.key.toString(), initialValue, visibility);
-        
-        // Add a get/set methods to the reference that use the runtime memory
-        (ref as any).get = () => this._runtime!.memory.get<T>(ref);
-        (ref as any).set = (value: T) => this._runtime!.memory.set<T>(ref, value);
-        
         this._memory.push(ref);
         return ref;
     }
@@ -86,13 +81,16 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
             if (result) { logs.push(...result); }
         }
 
-        // Clean up memory allocated for this block
-        for (const memRef of this._memory) {
-            // Logic around saving this to long term storage
-            this._runtime.memory.release(memRef);
-        }
+    
 
         // Then call parent cleanup (memory management)                        
         return logs;
+    }
+
+    dispose(): void {
+        // Clean up all allocated memory references
+        for (const memRef of this._memory) {
+            this._runtime.memory.release(memRef);
+        }
     }
 }

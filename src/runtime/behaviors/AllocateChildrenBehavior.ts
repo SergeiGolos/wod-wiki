@@ -1,4 +1,4 @@
-import type { IMemoryReference, TypedMemoryReference } from '../memory';
+import type { TypedMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -6,19 +6,23 @@ import { IBehavior } from '../IBehavior';
 import { FragmentType } from '../../CodeFragment';
 import { ICodeStatement } from '@/CodeStatement';
 
+
 /**
  * Concrete AllocateChildrenBehavior. Parses child statements for a block and
  * groups them into lap groups. Minimal default grouping places each child in its
  * own group; customize parseChildrenGroups for more advanced rules.
  */
-export class AllocateChildrenBehavior implements IBehavior {
-  private childrenGroupsRef?: TypedMemoryReference<string[][]> | undefined = undefined;
-
-  constructor(private childIds: string[] = []) {
+export class AllocateChildrenBehavior implements IBehavior {  
+  constructor(private childrenGroupsRef?: TypedMemoryReference<string[][]>) {    
   }
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {    
-    const children = runtime.script.getIds(this.childIds);    
+    
+    
+    const blockSource = runtime.script.getId(block.sourceId);    
+    const children = runtime.script.statements.filter(s => s.indentation === 1 && blockSource.some(bs => bs.id === s.parentId));
+    if (!blockSource) {
+    
     const groups: string[][] = [];    
 
     const getLapType = (stmt: ICodeStatement): 'compose' | 'round' | 'none' => {

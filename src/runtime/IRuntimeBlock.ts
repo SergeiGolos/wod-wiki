@@ -5,7 +5,7 @@ import { IScriptRuntime } from "./IScriptRuntime";
 export interface IRuntimeBlock {
     // Block identity
     readonly key: BlockKey;
-    readonly sourceId: string[];        
+    readonly sourceId: number[];        
 
     /**
      * Called when this block is pushed onto the runtime stack.
@@ -29,4 +29,10 @@ export interface IRuntimeBlock {
      * @param memory The runtime memory system
      */
     pop(memory: IScriptRuntime ): IRuntimeLog[];
+
+    /**
+     * Cleans up any resources held by this block.
+     * Called when the block is popped from the stack.
+     */
+    dispose(): void;
 }

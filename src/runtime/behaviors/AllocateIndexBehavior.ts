@@ -1,26 +1,37 @@
-import type { IMemoryReference } from '../memory';
+import type { IMemoryReference, TypedMemoryReference } from '../memory';
 import { IRuntimeLog } from '../EventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IBehavior } from '../IBehavior';
 
+export type LoopIndexState = { remainingRounds: number; currentChildIndex: number; childStatements: any[]; };
+
 
 export class AllocateIndexBehavior implements IBehavior {
-  private loopIndexRef?: IMemoryReference<number>;
-  private childIndexRef?: IMemoryReference<number>;
+
+  constructor(
+    private loopRef: TypedMemoryReference<LoopIndexState>,
+    private childRef: TypedMemoryReference<number[][]>
+  ) { }
 
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeLog[] {
-    this.loopIndexRef = runtime.memory.allocate<number>('loop-index', block.key.toString(), 0, undefined, 'private');
-    this.childIndexRef = runtime.memory.allocate<number>('child-index', block.key.toString(), -1, undefined, 'private');
+    this.loopRef.set({ remainingRounds: 0, currentChildIndex: -1, childStatements: [] });
     return [{ level: 'debug', message: 'allocated loop/child indices', timestamp: new Date() }];
   }
-  onNext(): IRuntimeLog[] { return []; }
-  onPop(): IRuntimeLog[] { return []; }
+  onNext(): IRuntimeLog[] {
+    let current = this.loopRef.get();
+    let children = this.childRef.get() || [];
+    if (!current) {
+      return [{ level: 'error', message: 'loop index state not initialized', timestamp: new Date() }];
+    }
 
-  getLoopIndex(): number { return this.loopIndexRef?.get() ?? 0; }
-  setLoopIndex(index: number): void { this.loopIndexRef?.set(index); }
-  getChildIndex(): number { return this.childIndexRef?.get() ?? -1; }
-  setChildIndex(index: number): void { this.childIndexRef?.set(index); }
-  getLoopIndexReference(): IMemoryReference<number> | undefined { return this.loopIndexRef; }
-  getChildIndexReference(): IMemoryReference<number> | undefined { return this.childIndexRef; }
+    current.currentChildIndex += 1;
+    if (children.length >= current.childStatements.length) {
+      current.remainingRounds += 1;
+      current.currentChildIndex = 0;
+    }
+
+    return [];
+  }
+  onPop(): IRuntimeLog[] { return []; }
 }
