@@ -1,11 +1,11 @@
-import type { IMemoryReference, TypedMemoryReference } from './memory';
-import { IResultSpanBuilder } from './ResultSpanBuilder';
 import { IRuntimeLog } from './EventHandler';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
-import { IBehavior } from './IBehavior';
+import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { RuntimeMetric } from './RuntimeMetric';
 import { IRuntimeBlock } from './IRuntimeBlock';
+import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import { IRuntimeAction } from './IRuntimeAction';
 
 /**
  * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
@@ -20,7 +20,7 @@ export type AllocateRequest<T> = {
 };
 
 export abstract class RuntimeBlock implements IRuntimeBlock{        
-    protected readonly behaviors: IBehavior[] = []
+    protected readonly behaviors: IRuntimeBehavior[] = []
     public readonly key: BlockKey;    
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
@@ -52,46 +52,43 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      */
-    push(runtime: IScriptRuntime): IRuntimeLog[] {
+    push(): IRuntimeAction[] {
         // Then call behaviors
-        const logs = [];
+        const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(runtime, this);
-            if (result) { logs.push(...result); }
+            const result = behavior?.onPush?.(this._runtime, this);
+            if (result) { actions.push(...result); }
         }
         
-        return logs;
+        return actions;
     }
 
     /**
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      */
-    next(runtime: IScriptRuntime): IRuntimeLog[] {
-        const logs = [];
+    next(): IRuntimeAction[] {
+        const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(runtime, this);
-            if (result) { logs.push(...result); }
+            const result = behavior?.onNext?.(this._runtime, this);
+            if (result) { actions.push(...result); }
         }
-        return logs;    
+        return actions;
     }
 
     /**
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, manages result spans, and cleans up resources.
      */
-    pop(runtime: IScriptRuntime): IRuntimeLog[] {
+    pop(): IRuntimeAction[] {
         // Call behavior cleanup first
-        const logs = [];
+        const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(runtime, this);
-            if (result) { logs.push(...result); }
+            const result = behavior?.onPop?.(this._runtime, this);
+            if (result) { actions.push(...result); }
         }
-
-    
-
-        // Then call parent cleanup (memory management)                        
-        return logs;
+        
+        return actions;
     }
 
     dispose(): void {

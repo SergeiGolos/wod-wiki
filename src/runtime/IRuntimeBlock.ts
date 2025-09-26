@@ -1,6 +1,5 @@
 import { BlockKey } from "../BlockKey";
-import { IRuntimeLog } from "./EventHandler";
-import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeAction } from "./IRuntimeAction";
 
 export interface IRuntimeBlock {
     // Block identity
@@ -13,7 +12,7 @@ export interface IRuntimeBlock {
      * @param memory The runtime memory system
      * @returns Array of events to emit after push
      */
-    push(memory: IScriptRuntime): IRuntimeLog[];
+    push(): IRuntimeAction[];
 
     /**
      * Called when a child block completes execution.
@@ -21,14 +20,14 @@ export interface IRuntimeBlock {
      * @param memory The runtime memory system
      * @returns The next block to execute, or undefined if this block should pop
      */
-    next(memory: IScriptRuntime): IRuntimeLog[];
+    next(): IRuntimeAction[];
 
     /**
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, manages result spans, and cleans up resources.
      * @param memory The runtime memory system
      */
-    pop(memory: IScriptRuntime ): IRuntimeLog[];
+    pop(): IRuntimeAction[];
 
     /**
      * Cleans up any resources held by this block.

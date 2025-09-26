@@ -1,7 +1,8 @@
+import { ICodeStatement } from "@/CodeStatement";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
-import { RuntimeMetric } from "./RuntimeMetric";
 
 export interface IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
+    match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean;
+    compile(statements: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock;
 }

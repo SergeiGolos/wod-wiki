@@ -3,7 +3,9 @@ import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
 import { IRuntimeEvent, IEventHandler } from './EventHandler';
-import { IRuntimeMemory, RuntimeMemory } from './memory';
+import { IRuntimeAction } from './IRuntimeAction';
+import { IRuntimeMemory } from './IRuntimeMemory';
+import { RuntimeMemory } from './RuntimeMemory';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -35,7 +37,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
             if (poppedBlock) {
                 console.log(`🧠 ScriptRuntime - Popping block: ${poppedBlock.key.toString()}`);
-                const resp = poppedBlock.pop(this);
+                const resp = poppedBlock.pop();
                 if (Array.isArray(resp)) {
                     for (const log of resp as any[]) {
                         console.log(`[pop]`, log);
@@ -54,7 +56,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 (block as any).setRuntime(this);
             }
             
-            const eventsOrLogs = block.push(this);
+            const eventsOrLogs = block.push();
             originalPush(block);
 
             // Handle any events emitted during push
@@ -74,7 +76,7 @@ export class ScriptRuntime implements IScriptRuntime {
         console.log(`  📚 Stack depth: ${this.stack.blocks.length}`);
         console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
 
-        const allActions: import('./EventHandler').IRuntimeAction[] = [];
+        const allActions: IRuntimeAction[] = [];
         const updatedBlocks = new Set<string>();
 
         // UNIFIED HANDLER PROCESSING: Get ALL handlers from memory (not just current block)
@@ -92,13 +94,13 @@ export class ScriptRuntime implements IScriptRuntime {
             console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id})`);
 
             const response = handler.handler(event, this);
-            console.log(`      ✅ Response - handled: ${response.handled}, shouldContinue: ${response.shouldContinue}, actions: ${response.actions.length}`);
+            console.log(`      ✅ Response - handled: ${response.handled}, abort: ${response.abort}, actions: ${response.actions.length}`);
 
             if (response.handled) {
                 allActions.push(...response.actions);
                 console.log(`      📦 Added ${response.actions.length} actions to queue`);
             }
-            if (!response.shouldContinue) {
+            if (response.abort) {
                 console.log(`      🛑 Handler requested stop - breaking execution chain`);
                 break;
             }
