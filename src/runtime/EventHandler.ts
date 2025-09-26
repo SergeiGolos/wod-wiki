@@ -1,3 +1,4 @@
+import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from "./IScriptRuntime";
 
 export interface IRuntimeLog {
@@ -21,28 +22,13 @@ export interface IRuntimeEvent {
 }
 
 /**
- * Interface for actions that can be performed by the runtime in response to events.
- */
-export interface IRuntimeAction {
-  /** Type of action to perform */
-  type: string;
-  /** Target of the action (optional) */
-  target?: string;  
-  /** Action payload/data */
-  payload?: unknown;
-
-  do(script: IScriptRuntime): void;
- 
-}
-
-/**
  * Represents the result of an event handler's attempt to process an event.
  */
-export interface HandlerResponse {
+export type HandlerResponse = {
   /** Whether this handler handled the event */
   handled: boolean;
-  /** Whether to continue processing with other handlers (true = continue, false = break/stop) */
-  shouldContinue: boolean;
+  /** Whether to continue processing with other handlers (false = continue, true = abort/break/stop) */
+  abort: boolean;
   /** Actions to be performed by the runtime */
   actions: IRuntimeAction[];
 }

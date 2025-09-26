@@ -27,7 +27,6 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 - `npm run test:watch` - Run unit tests in watch mode
 - `npm run test:e2e` - Run end-to-end tests with Playwright
 
-**EXPECTED TEST STATUS**: Some tests have known failures (4 failed modules with missing RuntimeBlockWithMemoryBase, 1 integration test failure). This is expected in the current development state. Focus on not introducing NEW test failures.
 
 ### TypeScript Compilation
 - `npx tsc --noEmit` - Type check without emitting files (has 369 known errors - this is expected)
@@ -99,8 +98,6 @@ docs/                  # Project documentation (auto-published to GitHub Wiki)
 1. **Playwright Browser Download**: `npm run setup` may fail downloading Chromium browsers. This is expected in some environments and does not affect core development.
 
 2. **TypeScript Errors**: 369 TypeScript errors exist in the codebase. Do not attempt to fix unless directly related to your changes.
-
-3. **Test Failures**: 4 test modules fail due to missing `RuntimeBlockWithMemoryBase` file, and 1 integration test fails. These are baseline failures.
 
 4. **ESLint**: No ESLint configuration is present. Code style is enforced through TypeScript and manual review.
 

@@ -145,7 +145,8 @@ export class JitCompiler {
       console.log(`  🔎 JitCompiler.compile() - Composed metrics:`, composedMetrics);
 
       // Phase 3: Block Creation - use strategy pattern to create the appropriate block
-      return this.strategyManager.compile(composedMetrics, runtime, this.fragmentCompiler);
+      // Note: Blocks created here use constructor-based initialization (no lifecycle method calls needed)
+      return this.strategyManager.compile(composedMetrics, nodes, runtime);
     } finally {
       this.isCompiling = false;
     }
