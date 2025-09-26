@@ -2,18 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { ScriptRuntime } from './ScriptRuntime';
 import { WodScript } from '../WodScript';
 import { JitCompiler } from './JitCompiler';
-import { StartEvent } from './events/StartEvent';
-import { StopEvent } from './events/StopEvent';
-import { TickEvent } from './events/TickEvent';
-import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
 import { BlockKey } from '../BlockKey';
 import { IRuntimeEvent, IEventHandler, HandlerResponse, IRuntimeLog } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
-import { StartHandler } from './handlers/StartHandler';
-import { StopHandler } from './handlers/StopHandler';
 
 // Mock block that simulates a workout block with timing and state
-class WorkoutBlock extends RuntimeBlockWithMemoryBase {
+class WorkoutBlock extends RuntimeBlock {
     public spanStarted = false;
     public spanStopped = false;
     public ticksReceived = 0;

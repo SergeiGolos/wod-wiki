@@ -1,4 +1,3 @@
-import { IRuntimeLog } from './EventHandler';
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
@@ -7,11 +6,6 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
 
-/**
- * Base implementation for runtime blocks using the new Push/Next/Pop pattern.
- * All blocks extend this class and are based on behaviors with access to memory.
- * Combines functionality from BehavioralMemoryBlockBase and RuntimeBlockWithMemoryBase.
- */
 
 export type AllocateRequest<T> = { 
     type: string; 
@@ -87,7 +81,7 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
             const result = behavior?.onPop?.(this._runtime, this);
             if (result) { actions.push(...result); }
         }
-        
+
         return actions;
     }
 

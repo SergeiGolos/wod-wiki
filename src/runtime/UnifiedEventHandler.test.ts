@@ -5,15 +5,11 @@ import { JitCompiler } from './JitCompiler';
 import { IEventHandler, HandlerResponse, IRuntimeEvent } from './EventHandler';
 import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from './IScriptRuntime';
-import { StartEvent } from './events/StartEvent';
-import { StopEvent } from './events/StopEvent';
-import { TickEvent } from './events/TickEvent';
-import { RuntimeBlockWithMemoryBase } from './RuntimeBlockWithMemoryBase';
-import { BlockKey } from '../BlockKey';
-import { IRuntimeEvent as IEvent } from './EventHandler';
+import { RuntimeBlock } from './RuntimeBlock';
+import { BlockKey } from '@/BlockKey';
 
 // Mock block that creates a test handler
-class TestBlock extends RuntimeBlockWithMemoryBase {
+class TestBlock extends RuntimeBlock {
     constructor(key: BlockKey, private handlerName: string = 'Handler') {
         super(key);
     }
