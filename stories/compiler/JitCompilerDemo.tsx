@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
-import { NextEvent } from '../../src/runtime/events/NextEvent';
 import { WodScript } from '../../src/WodScript';
 import { JitCompiler, RuntimeJitStrategies } from '../../src/runtime/JitCompiler';
 import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
-import { compilers } from '../../src/runtime/FragmentCompilationManager.fixture';
 import { CountdownStrategy, RoundsStrategy, EffortStrategy, TimerStrategy, TimeBoundStrategy, TimeBoundedRoundsStrategy, CountdownRoundsStrategy } from '../../src/runtime/strategies';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { DebugMemorySnapshot } from '../../src/runtime/memory/IDebugMemoryView';
 import { CodeMetadata } from '../../src/CodeMetadata';
 
 // Mock types for demonstration (replace with real types when available)
@@ -267,7 +264,7 @@ function GroupedMemoryVisualization({
   hoveredBlockKey, 
   onMemoryHover 
 }: { 
-  snapshot: DebugMemorySnapshot | null;
+  snapshot: any | null;
   hoveredBlockKey?: string;
   onMemoryHover: (entryId?: string, blockKey?: string) => void;
 }) {

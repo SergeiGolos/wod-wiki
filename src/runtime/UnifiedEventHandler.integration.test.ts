@@ -5,6 +5,7 @@ import { JitCompiler } from './JitCompiler';
 import { BlockKey } from '../BlockKey';
 import { IRuntimeEvent, IEventHandler, HandlerResponse, IRuntimeLog } from './EventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
+import { RuntimeBlock } from './RuntimeBlock';
 
 // Mock block that simulates a workout block with timing and state
 class WorkoutBlock extends RuntimeBlock {

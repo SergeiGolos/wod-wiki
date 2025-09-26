@@ -90,5 +90,6 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
         for (const memRef of this._memory) {
             this._runtime.memory.release(memRef);
         }
+        console.log(`🧠 RuntimeBlock disposed: ${this.key.toString()}`);
     }
 }

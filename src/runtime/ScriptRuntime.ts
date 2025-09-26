@@ -25,10 +25,13 @@ export class ScriptRuntime implements IScriptRuntime {
     options?: { emitTags?: boolean; } | undefined;
 
     /**
-     * Enhanced stack management with automatic memory cleanup and push/pop lifecycle
+     * Enhanced stack management with constructor-based initialization and consumer-managed disposal.
+     * Updated to support the new lifecycle pattern where:
+     * - Initialization happens in block constructors (not during push)
+     * - Cleanup happens via consumer-managed dispose() calls (not during pop)
      */
     private _setupMemoryAwareStack(): void {
-        // Override stack operations to handle push/pop lifecycle
+        // Override stack operations for logging and runtime context setup only
         const originalPop = this.stack.pop.bind(this.stack);
         const originalPush = this.stack.push.bind(this.stack);
 
@@ -36,16 +39,11 @@ export class ScriptRuntime implements IScriptRuntime {
             const poppedBlock = originalPop();
 
             if (poppedBlock) {
-                console.log(`🧠 ScriptRuntime - Popping block: ${poppedBlock.key.toString()}`);
-                const resp = poppedBlock.pop();
-                if (Array.isArray(resp)) {
-                    for (const log of resp as any[]) {
-                        console.log(`[pop]`, log);
-                    }
-                }
+                console.log(`🧠 ScriptRuntime - Popped block: ${poppedBlock.key.toString()}`);
+                console.log(`  ⚠️  Consumer must call dispose() on this block when finished`);
             }
 
-            return poppedBlock;
+            return poppedBlock; // Consumer responsibility to dispose
         };
 
         this.stack.push = (block) => {
@@ -56,18 +54,10 @@ export class ScriptRuntime implements IScriptRuntime {
                 (block as any).setRuntime(this);
             }
             
-            const eventsOrLogs = block.push();
+            // Push block (no lifecycle method calls - constructor-based initialization)
             originalPush(block);
-
-            // Handle any events emitted during push
-            if (Array.isArray(eventsOrLogs) && eventsOrLogs.length > 0) {
-                const first = eventsOrLogs[0] as any;
-                if (first && typeof first.name === 'string') {
-                    for (const event of eventsOrLogs as any[]) this.handle(event);
-                } else {
-                    for (const log of eventsOrLogs as any[]) console.log(`[push]`, log);
-                }
-            }
+            
+            console.log(`  ✅ Block pushed with constructor-based initialization`);
         };
     }
 
@@ -129,6 +119,58 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public getLastUpdatedBlocks(): string[] {
         return Array.from(this._lastUpdatedBlocks);
+    }
+
+    /**
+     * Helper method to safely pop and dispose a block following the new lifecycle pattern.
+     * This demonstrates the consumer-managed dispose pattern.
+     */
+    public popAndDispose(): void {
+        const poppedBlock = this.stack.pop();
+        
+        if (poppedBlock) {
+            console.log(`🧠 ScriptRuntime.popAndDispose() - Disposing block: ${poppedBlock.key.toString()}`);
+            
+            // Consumer responsibility: call dispose() on the popped block
+            try {
+                poppedBlock.dispose();
+                console.log(`  ✅ Block disposed successfully`);
+            } catch (error) {
+                console.error(`  ❌ Error disposing block: ${error}`);
+                // Continue execution despite dispose error
+            }
+        } else {
+            console.log(`🧠 ScriptRuntime.popAndDispose() - No block to pop`);
+        }
+    }
+
+    /**
+     * Emergency cleanup method that disposes all blocks in the stack.
+     * Useful for shutdown or error recovery scenarios.
+     */
+    public disposeAllBlocks(): void {
+        console.log(`🧠 ScriptRuntime.disposeAllBlocks() - Cleaning up ${this.stack.blocks.length} blocks`);
+        
+        const disposeErrors: Error[] = [];
+        
+        while (this.stack.blocks.length > 0) {
+            const block = this.stack.pop();
+            if (block) {
+                try {
+                    block.dispose();
+                    console.log(`  ✅ Disposed: ${block.key.toString()}`);
+                } catch (error) {
+                    disposeErrors.push(error as Error);
+                    console.error(`  ❌ Error disposing ${block.key.toString()}: ${error}`);
+                }
+            }
+        }
+        
+        if (disposeErrors.length > 0) {
+            console.warn(`🧠 ScriptRuntime.disposeAllBlocks() - ${disposeErrors.length} dispose errors occurred`);
+        } else {
+            console.log(`🧠 ScriptRuntime.disposeAllBlocks() - All blocks disposed successfully`);
+        }
     }
     
     tick(): IRuntimeEvent[] {

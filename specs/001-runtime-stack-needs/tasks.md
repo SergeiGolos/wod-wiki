@@ -30,35 +30,35 @@
 - Include exact file paths in descriptions
 
 ## Phase 3.1: Setup
-- [ ] T001 Verify TypeScript configuration supports interface changes in tsconfig.json
-- [ ] T002 [P] Install additional Vitest testing utilities if needed
-- [ ] T003 [P] Configure Storybook for runtime stack demonstrations
+- [x] T001 Verify TypeScript configuration supports interface changes in tsconfig.json
+- [x] T002 [P] Install additional Vitest testing utilities if needed
+- [x] T003 [P] Configure Storybook for runtime stack demonstrations
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test RuntimeStack.push() behavior in src/runtime/RuntimeStack.contract.test.ts
-- [ ] T005 [P] Contract test RuntimeStack.pop() lifecycle in src/runtime/RuntimeStack.contract.test.ts
-- [ ] T006 [P] Contract test RuntimeStack.current() method in src/runtime/RuntimeStack.contract.test.ts
-- [ ] T007 [P] Contract test RuntimeStack.graph() ordering in src/runtime/RuntimeStack.contract.test.ts
-- [ ] T008 [P] Integration test constructor-based initialization in src/runtime/RuntimeStack.integration.test.ts
-- [ ] T009 [P] Integration test consumer-managed dispose pattern in src/runtime/RuntimeStack.integration.test.ts
-- [ ] T010 [P] Integration test stack lifecycle with nested blocks in src/runtime/RuntimeStack.integration.test.ts
+- [x] T004 [P] Contract test RuntimeStack.push() behavior in src/runtime/RuntimeStack.contract.test.ts
+- [x] T005 [P] Contract test RuntimeStack.pop() lifecycle in src/runtime/RuntimeStack.contract.test.ts
+- [x] T006 [P] Contract test RuntimeStack.current() method in src/runtime/RuntimeStack.contract.test.ts
+- [x] T007 [P] Contract test RuntimeStack.graph() ordering in src/runtime/RuntimeStack.contract.test.ts
+- [x] T008 [P] Integration test constructor-based initialization in src/runtime/RuntimeStack.integration.test.ts
+- [x] T009 [P] Integration test consumer-managed dispose pattern in src/runtime/RuntimeStack.integration.test.ts
+- [x] T010 [P] Integration test stack lifecycle with nested blocks in src/runtime/RuntimeStack.integration.test.ts
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T011 [P] Update IRuntimeBlock interface with dispose() method in src/runtime/IRuntimeBlock.ts
-- [ ] T013 Update RuntimeStack.push() to remove initialization calls in src/runtime/RuntimeStack.ts
-- [ ] T014 Update RuntimeStack.pop() to remove cleanup calls in src/runtime/RuntimeStack.ts
-- [ ] T015 Maintain RuntimeStack.current() method compatibility in src/runtime/RuntimeStack.ts
-- [ ] T016 Preserve RuntimeStack.graph() ordering behavior in src/runtime/RuntimeStack.ts
-- [ ] T017 [P] Update existing IRuntimeBlock implementations with dispose method in src/runtime/RuntimeBlock.ts
-- [ ] T018 [P] Add error handling for invalid blocks in RuntimeStack operations in src/runtime/RuntimeStack.ts
+- [x] T011 [P] Update IRuntimeBlock interface with dispose() method in src/runtime/IRuntimeBlock.ts
+- [x] T013 Update RuntimeStack.push() to remove initialization calls in src/runtime/RuntimeStack.ts
+- [x] T014 Update RuntimeStack.pop() to remove cleanup calls in src/runtime/RuntimeStack.ts
+- [x] T015 Maintain RuntimeStack.current() method compatibility in src/runtime/RuntimeStack.ts
+- [x] T016 Preserve RuntimeStack.graph() ordering behavior in src/runtime/RuntimeStack.ts
+- [x] T017 [P] Update existing IRuntimeBlock implementations with dispose method in src/runtime/RuntimeBlock.ts
+- [x] T018 [P] Add error handling for invalid blocks in RuntimeStack operations in src/runtime/RuntimeStack.ts
 
 ## Phase 3.4: Integration
-- [ ] T019 [P] Create Storybook story for RuntimeStack lifecycle in stories/runtime/RuntimeStack.stories.tsx
-- [ ] T020 [P] Update JitCompiler to use constructor-based initialization in src/runtime/JitCompiler.ts
-- [ ] T021 Update ScriptRuntime to handle dispose() calls after pop operations in src/runtime/ScriptRuntime.ts
-- [ ] T022 [P] Add console logging for lifecycle operations in RuntimeStack in src/runtime/RuntimeStack.ts
-- [ ] T023 [P] Update FragmentCompilers to implement new IRuntimeBlock interface in src/runtime/FragmentCompilers.ts
+- [x] T019 [P] Create Storybook story for RuntimeStack lifecycle in stories/runtime/RuntimeStack.stories.tsx
+- [x] T020 [P] Update JitCompiler to use constructor-based initialization in src/runtime/JitCompiler.ts
+- [x] T021 Update ScriptRuntime to handle dispose() calls after pop operations in src/runtime/ScriptRuntime.ts
+- [x] T022 [P] Add console logging for lifecycle operations in RuntimeStack in src/runtime/RuntimeStack.ts
+- [x] T023 [P] Update FragmentCompilers to implement new IRuntimeBlock interface in src/runtime/FragmentCompilers.ts
 
 ## Phase 3.5: Polish
 - [ ] T024 [P] Unit tests for dispose() method implementations in src/runtime/RuntimeStack.unit.test.ts
