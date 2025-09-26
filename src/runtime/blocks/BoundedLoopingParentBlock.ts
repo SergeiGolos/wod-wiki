@@ -32,7 +32,7 @@ export class BoundedLoopingParentBlock extends BoundedLoopingBlock implements IP
         
         // PromotePublic behavior - create public metrics snapshot
         const publicMetrics = this.createPublicMetricsSnapshot();
-        this._publicMetricsRef = this.allocateMemory<RuntimeMetric[]>(
+        this._publicMetricsRef = this.allocate<RuntimeMetric[]>(
             'metrics-snapshot', 
             publicMetrics, 
             'public'

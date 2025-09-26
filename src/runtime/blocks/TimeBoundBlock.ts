@@ -47,18 +47,18 @@ export class TimeBoundBlock extends RuntimeBlock
         );
         const duration = timeMetric?.values.find(v => v.type === 'time')?.value || 0;
         
-        this._durationRef = this.allocateMemory<number>('duration', duration, 'private');
-        this._startTimeRef = this.allocateMemory<Date>('start-time', new Date(), 'private');
-        this._elapsedTimeRef = this.allocateMemory<number>('elapsed-time', 0, 'private');
+        this._durationRef = this.allocate<number>('duration', duration, 'private');
+        this._startTimeRef = this.allocate<Date>('start-time', new Date(), 'private');
+        this._elapsedTimeRef = this.allocate<number>('elapsed-time', 0, 'private');
         
         // AllocateMetrics
         this.initializeMetrics(this.initialMetrics);
         
         // PopOnNextBehavior
-        this._popOnNextRef = this.allocateMemory<boolean>('pop-on-next', false, 'private');
+        this._popOnNextRef = this.allocate<boolean>('pop-on-next', false, 'private');
         
         // JournalOnPopBehavior
-        this._journalingEnabledRef = this.allocateMemory<boolean>('journaling-enabled', true, 'private');
+        this._journalingEnabledRef = this.allocate<boolean>('journaling-enabled', true, 'private');
 
         console.log(`⏰ TimeBoundBlock initialized with ${duration}ms duration`);
     }
@@ -104,7 +104,7 @@ export class TimeBoundBlock extends RuntimeBlock
     }
 
     public initializeSpan(visibility: 'public' | 'private'): void {
-        this._spanRef = this.allocateMemory<IResultSpanBuilder>(
+        this._spanRef = this.allocate<IResultSpanBuilder>(
             'span', 
             this.createSpan(), 
             visibility
@@ -213,7 +213,7 @@ export class TimeBoundBlock extends RuntimeBlock
     }
 
     public initializeMetrics(initialMetrics: RuntimeMetric[]): void {
-        this._metricsRef = this.allocateMemory<RuntimeMetric[]>('metrics', initialMetrics, 'private');
+        this._metricsRef = this.allocate<RuntimeMetric[]>('metrics', initialMetrics, 'private');
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {

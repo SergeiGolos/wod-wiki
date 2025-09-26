@@ -12,8 +12,8 @@ export class RepeatingTimedBlock extends RepeatingBlock {
         super.initializeMemory();
         const timeMetric = this.initialMetrics.find(m => m.values.some(v => v.type === 'time' && (v.value ?? 0) > 0));
         const duration = timeMetric?.values.find(v => v.type === 'time')?.value || 0;
-        this._durationRef = this.allocateMemory('duration', duration, 'private');
-        this._publicSpanRef = this.allocateMemory('span-root', this.createPublicSpan(), 'public');
+        this._durationRef = this.allocate('duration', duration, 'private');
+        this._publicSpanRef = this.allocate('span-root', this.createPublicSpan(), 'public');
     }
 
     public createPublicSpan(): IResultSpanBuilder {

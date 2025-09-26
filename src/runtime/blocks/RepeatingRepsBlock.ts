@@ -9,7 +9,7 @@ export class RepeatingRepsBlock extends RepeatingBlock {
     protected initializeMemory(): void {
         super.initializeMemory();
         // In the new model, tests expect metrics snapshot to be private
-        this._publicMetricsRef = this.allocateMemory('metrics-snapshot', [...this.initialMetrics], 'private');
+        this._publicMetricsRef = this.allocate('metrics-snapshot', [...this.initialMetrics], 'private');
     }
 
     public getPublicMetricsReference() {

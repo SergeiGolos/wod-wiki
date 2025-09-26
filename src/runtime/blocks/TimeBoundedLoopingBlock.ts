@@ -39,9 +39,9 @@ export class TimeBoundedLoopingBlock extends BoundedLoopingBlock implements IDur
         );
         const duration = timeMetric?.values.find(v => v.type === 'time')?.value || 0;
         
-        this._durationRef = this.allocateMemory<number>('duration', duration, 'private');
-        this._startTimeRef = this.allocateMemory<Date>('start-time', new Date(), 'private');
-        this._elapsedTimeRef = this.allocateMemory<number>('elapsed-time', 0, 'private');
+        this._durationRef = this.allocate<number>('duration', duration, 'private');
+        this._startTimeRef = this.allocate<Date>('start-time', new Date(), 'private');
+        this._elapsedTimeRef = this.allocate<number>('elapsed-time', 0, 'private');
 
         console.log(`🔄⏰ TimeBoundedLoopingBlock initialized with ${duration}ms duration`);
     }

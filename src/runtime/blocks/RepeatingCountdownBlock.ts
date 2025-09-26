@@ -8,7 +8,7 @@ export class RepeatingCountdownBlock extends RepeatingBlock {
         super.initializeMemory();
         const timeMetric = this.initialMetrics.find(m => m.values.some(v => v.type === 'time' && (v.value ?? 0) < 0));
         const total = Math.abs(timeMetric?.values.find(v => v.type === 'time')?.value || 0);
-        this._remainingRef = this.allocateMemory('countdown-remaining', total, 'private');
+        this._remainingRef = this.allocate('countdown-remaining', total, 'private');
     }
 
     public tickCountdown(ms: number): boolean {

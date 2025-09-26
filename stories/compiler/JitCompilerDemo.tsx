@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
-import { ScriptRuntimeWithMemory } from '../../src/runtime/ScriptRuntimeWithMemory';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
 import { WodScript } from '../../src/WodScript';
@@ -275,7 +274,7 @@ function GroupedMemoryVisualization({
   if (!snapshot) {
     return (
       <div className="bg-gray-100 border rounded-lg p-4 text-center text-gray-500 text-sm">
-        No memory data available (using ScriptRuntime instead of ScriptRuntimeWithMemory)
+        No memory data available (using ScriptRuntime instead of ScriptRuntime)
       </div>
     );
   }
@@ -379,7 +378,7 @@ function formatMemoryValue(type: string, value: any): string {
 
 export interface JitCompilerDemoProps {
   initialScript?: string;
-  runtime?: ScriptRuntime | ScriptRuntimeWithMemory;
+  runtime?: ScriptRuntime ;
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
@@ -441,7 +440,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const [, setStepVersion] = useState(0);
   
   // Create a runtime if one wasn't provided
-  const createRuntime = (scriptText: string): ScriptRuntimeWithMemory => {
+  const createRuntime = (scriptText: string): ScriptRuntime => {
     const mdRuntime = new MdTimerRuntime();
     const wodScript = mdRuntime.read(scriptText) as WodScript;
     const fragmentCompiler = new FragmentCompilationManager(compilers);
@@ -459,7 +458,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     // Just use the standard console.log
     
     const jitCompiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
-    const runtime = new ScriptRuntimeWithMemory(wodScript, jitCompiler);
+    const runtime = new ScriptRuntime(wodScript, jitCompiler);
     
     // Initialize with the root block
     console.log(`🌱 Creating and pushing root block to stack`);
@@ -470,7 +469,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     return runtime;
   };
 
-  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntimeWithMemory>(() => 
+  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => 
     initialRuntime || createRuntime(initialScript)
   );
 

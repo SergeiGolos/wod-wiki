@@ -43,13 +43,13 @@ export class TimedBlock extends RuntimeBlock
         this.initializeMetrics(this.initialMetrics);
         
         // PopOnNextBehavior
-        this._popOnNextRef = this.allocateMemory<boolean>('pop-on-next', false, 'private');
+        this._popOnNextRef = this.allocate<boolean>('pop-on-next', false, 'private');
         
         // JournalOnPopBehavior
-        this._journalingEnabledRef = this.allocateMemory<boolean>('journaling-enabled', true, 'private');
+        this._journalingEnabledRef = this.allocate<boolean>('journaling-enabled', true, 'private');
         
         // CompleteEventBehavior
-        this._completeEventRef = this.allocateMemory<boolean>('complete-event-received', false, 'private');
+        this._completeEventRef = this.allocate<boolean>('complete-event-received', false, 'private');
 
         console.log(`⏱️ TimedBlock initialized`);
     }
@@ -91,7 +91,7 @@ export class TimedBlock extends RuntimeBlock
     }
 
     public initializeSpan(visibility: 'public' | 'private'): void {
-        this._spanRef = this.allocateMemory<IResultSpanBuilder>(
+        this._spanRef = this.allocate<IResultSpanBuilder>(
             'span', 
             this.createSpan(), 
             visibility
@@ -174,7 +174,7 @@ export class TimedBlock extends RuntimeBlock
     }
 
     public initializeMetrics(initialMetrics: RuntimeMetric[]): void {
-        this._metricsRef = this.allocateMemory<RuntimeMetric[]>('metrics', initialMetrics, 'private');
+        this._metricsRef = this.allocate<RuntimeMetric[]>('metrics', initialMetrics, 'private');
     }
 
     protected createSpansBuilder(): IResultSpanBuilder {

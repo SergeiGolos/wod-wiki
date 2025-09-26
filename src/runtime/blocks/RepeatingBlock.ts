@@ -14,9 +14,7 @@ export class RepeatingBlock extends RuntimeBlock implements IRuntimeBlock {
     private readonly _loopStateRef?: TypedMemoryReference<{ remainingRounds: number; currentChildIndex: number; childStatements: any[]; }>
 
     constructor(runtime: IScriptRuntime, metrics: RuntimeMetric[]) {
-        super(runtime, metrics);
-        new 
-
+        super(runtime, metrics);    
     }
 
 }

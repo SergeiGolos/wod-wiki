@@ -23,7 +23,7 @@ export class TimedGroupBlock extends RuntimeBlock {
 
     protected initializeMemory(): void {
         // Allocate memory for group state (child blocks and current index)
-        this._groupStateRef = this.allocateMemory<GroupState>('group-state', {
+        this._groupStateRef = this.allocate<GroupState>('group-state', {
             childBlocks: [],
             currentChildIndex: -1
         });

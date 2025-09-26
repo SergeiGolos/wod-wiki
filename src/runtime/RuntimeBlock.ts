@@ -12,15 +12,22 @@ import { IRuntimeBlock } from './IRuntimeBlock';
  * All blocks extend this class and are based on behaviors with access to memory.
  * Combines functionality from BehavioralMemoryBlockBase and RuntimeBlockWithMemoryBase.
  */
+
+export type AllocateRequest<T> = { 
+    type: string; 
+    visibility?: 'public' | 'private'; 
+    initialValue?: T 
+};
+
 export abstract class RuntimeBlock implements IRuntimeBlock{        
-    public readonly behaviors: IBehavior[] = []
+    protected readonly behaviors: IBehavior[] = []
     public readonly key: BlockKey;    
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
 
     constructor(protected _runtime: IScriptRuntime, 
         protected initialMetrics: RuntimeMetric[] = [], 
-        public readonly sourceId: string[] = []) 
+        public readonly sourceId: number[] = []) 
     {         
         this.key = new BlockKey();
         console.log(`🧠 RuntimeBlock created: ${this.key.toString()}`);    
@@ -30,12 +37,12 @@ export abstract class RuntimeBlock implements IRuntimeBlock{
      * Allocates memory for this block's state.
      * The memory will be automatically cleaned up when the block is popped from the stack.
      */
-    protected allocateMemory<T>(type: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
+    protected allocate<T>(request: AllocateRequest<T>): TypedMemoryReference<T> {
         if (!this._runtime) {
             throw new Error(`Cannot allocate memory: runtime not set for block ${this.key.toString()}`);
         }
 
-        const ref = this._runtime.memory.allocate<T>(type, this.key.toString(), initialValue, visibility);
+        const ref = this._runtime.memory.allocate<T>(request.type, this.key.toString(), request.initialValue, request.visibility || 'private');
         this._memory.push(ref);
         return ref;
     }
