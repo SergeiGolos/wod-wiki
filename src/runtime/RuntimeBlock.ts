@@ -13,7 +13,7 @@ export type AllocateRequest<T> = {
     initialValue?: T 
 };
 
-export abstract class RuntimeBlock implements IRuntimeBlock{        
+export class RuntimeBlock implements IRuntimeBlock{        
     protected readonly behaviors: IRuntimeBehavior[] = []
     public readonly key: BlockKey;    
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').

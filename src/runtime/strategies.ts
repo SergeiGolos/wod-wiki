@@ -3,23 +3,21 @@ import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
-import { CountdownParentBlock } from "./blocks/CountdownParentBlock";
-import { EffortBlock } from "./blocks/EffortBlock";
 import { BlockKey } from "../BlockKey";
-import { BoundedLoopingParentBlock } from "./blocks/BoundedLoopingParentBlock";
-import { TimeBoundedLoopingBlock } from "./blocks/TimeBoundedLoopingBlock";
-import { TimeBoundBlock } from "./blocks/TimeBoundBlock";
-import { BoundedLoopingBlock } from "./blocks/BoundedLoopingBlock";
-import { TimerBlock } from "./blocks/TimerBlock";
+import { ICodeStatement } from "@/CodeStatement";
+import { RuntimeBlock } from "./RuntimeBlock";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
  */
 export class EffortStrategy implements IRuntimeBlockStrategy {
-    compile(metrics: RuntimeMetric[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean {
+        return false;
+    }
+    compile(code: ICodeStatement[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
         // This is the default, so it always returns a block.
-        console.log(`  🧠 EffortStrategy considering metrics:`, metrics);
-        return new EffortBlock(new BlockKey('effort'), metrics);
+        console.log(`  🧠 EffortStrategy considering code:`, code);
+        return new RuntimeBlock(new BlockKey('effort'), code);
     }
 }
 
