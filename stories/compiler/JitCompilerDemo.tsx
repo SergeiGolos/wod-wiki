@@ -3,11 +3,10 @@ import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { WodScript } from '../../src/WodScript';
-import { JitCompiler, RuntimeJitStrategies } from '../../src/runtime/JitCompiler';
-import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
-import { CountdownStrategy, RoundsStrategy, EffortStrategy, TimerStrategy, TimeBoundStrategy, TimeBoundedRoundsStrategy, CountdownRoundsStrategy } from '../../src/runtime/strategies';
+import { JitCompiler } from '../../src/runtime/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/CodeMetadata';
+import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 
 // Mock types for demonstration (replace with real types when available)
 export interface MockRuntimeBlock {
@@ -270,13 +269,13 @@ function GroupedMemoryVisualization({
 }) {
   if (!snapshot) {
     return (
-      <div className="bg-gray-100 border rounded-lg p-4 text-center text-gray-500 text-sm">
+      <div className="bg-gray-100 border rounded-lg p-4 text-center text-gray-500 text-sm">        
         No memory data available (using ScriptRuntime instead of ScriptRuntime)
       </div>
     );
   }
 
-  const memoryEntries: MemoryTableEntry[] = snapshot.entries.map(entry => ({
+  const memoryEntries: MemoryTableEntry[] = snapshot.entries.map((entry: any) => ({
     id: entry.id,
     type: entry.type,
     owner: entry.ownerId || '',
@@ -375,7 +374,7 @@ function formatMemoryValue(type: string, value: any): string {
 
 export interface JitCompilerDemoProps {
   initialScript?: string;
-  runtime?: ScriptRuntime ;
+  runtime?: ScriptRuntime;
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
@@ -439,36 +438,35 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   // Create a runtime if one wasn't provided
   const createRuntime = (scriptText: string): ScriptRuntime => {
     const mdRuntime = new MdTimerRuntime();
-    const wodScript = mdRuntime.read(scriptText) as WodScript;
-    const fragmentCompiler = new FragmentCompilationManager(compilers);
-    const strategyManager = new RuntimeJitStrategies()
-      // Add strategies in order of precedence (most specific to most general)
-      .addStrategy(new CountdownRoundsStrategy())
-      .addStrategy(new TimeBoundedRoundsStrategy())
-      .addStrategy(new CountdownStrategy())
-      .addStrategy(new TimerStrategy())
-      .addStrategy(new TimeBoundStrategy()) 
-      .addStrategy(new RoundsStrategy()) // Repeating rounds
-      .addStrategy(new EffortStrategy()); // Fallback strategy
+    const wodScript = mdRuntime.read(scriptText) as WodScript;    
+    // const strategyManager = new RuntimeJitStrategies()
+    //   // Add strategies in order of precedence (most specific to most general)
+    //   .addStrategy(new CountdownRoundsStrategy())
+    //   .addStrategy(new TimeBoundedRoundsStrategy())
+    //   .addStrategy(new CountdownStrategy())
+    //   .addStrategy(new TimerStrategy())
+    //   .addStrategy(new TimeBoundStrategy()) 
+    //   .addStrategy(new RoundsStrategy()) // Repeating rounds
+    //   .addStrategy(new EffortStrategy()); // Fallback strategy
       
     // Don't override console.log - it causes infinite recursion
     // Just use the standard console.log
-    
-    const jitCompiler = new JitCompiler(wodScript, fragmentCompiler, strategyManager);
+
+    const jitCompiler = new JitCompiler([]);
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
     
     // Initialize with the root block
     console.log(`🌱 Creating and pushing root block to stack`);
-    const rootBlock = jitCompiler.root();
+    const rootBlock = new RuntimeBlock(runtime);
     runtime.stack.push(rootBlock);
     console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
     
     return runtime;
   };
 
-  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => 
-    initialRuntime || createRuntime(initialScript)
-  );
+  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => {
+    return initialRuntime || createRuntime(initialScript);
+  });
 
   // Update runtime when script changes
   useEffect(() => {
@@ -493,7 +491,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
   const handleNextBlock = () => {
     // Execute one step on the existing runtime instance
-    runtime.handle(new NextEvent());
+    // runtime.handle(new NextEvent());
     // Force a re-render without reconstructing the runtime (preserves memory/state)
     setStepVersion(v => v + 1);
   };
@@ -510,7 +508,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   }
 
   // Build a debug-like memory snapshot from the current memory interface
-  const memorySnapshot: DebugMemorySnapshot | null = (() => {
+  const memorySnapshot: any | null = (() => {
     try {
       const mem: any = (runtime as any)?.memory;
       if (!mem || typeof mem.search !== 'function' || typeof mem.get !== 'function') return null;
@@ -541,7 +539,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         byOwner[owner] = (byOwner[owner] ?? 0) + 1;
       }
 
-      const snapshot: DebugMemorySnapshot = {
+      const snapshot: any = {
         timestamp: Date.now(),
         entries,
         totalAllocated: entries.length,
