@@ -269,7 +269,7 @@ function GroupedMemoryVisualization({
 }) {
   if (!snapshot) {
     return (
-      <div className="bg-gray-100 border rounded-lg p-4 text-center text-gray-500 text-sm">
+      <div className="bg-gray-100 border rounded-lg p-4 text-center text-gray-500 text-sm">        
         No memory data available (using ScriptRuntime instead of ScriptRuntime)
       </div>
     );
@@ -374,7 +374,7 @@ function formatMemoryValue(type: string, value: any): string {
 
 export interface JitCompilerDemoProps {
   initialScript?: string;
-  runtime?: ScriptRuntime ;
+  runtime?: ScriptRuntime;
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
@@ -464,9 +464,9 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     return runtime;
   };
 
-  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => 
-    initialRuntime || createRuntime(initialScript)
-  );
+  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => {
+    return initialRuntime || createRuntime(initialScript);
+  });
 
   // Update runtime when script changes
   useEffect(() => {

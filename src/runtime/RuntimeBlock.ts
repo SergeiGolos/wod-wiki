@@ -1,7 +1,6 @@
 import { BlockKey } from '../BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { RuntimeMetric } from './RuntimeMetric';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
@@ -19,13 +18,13 @@ export class RuntimeBlock implements IRuntimeBlock{
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
 
-    constructor(protected _runtime: IScriptRuntime, 
-        protected initialMetrics: RuntimeMetric[] = [], 
+    constructor(protected _runtime: IScriptRuntime,
         public readonly sourceId: number[] = []) 
     {         
         this.key = new BlockKey();
         console.log(`🧠 RuntimeBlock created: ${this.key.toString()}`);    
     }    
+    
     
     /**
      * Allocates memory for this block's state.
@@ -45,7 +44,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     /**
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
-     */
+     */    
     push(): IRuntimeAction[] {
         // Then call behaviors
         const actions: IRuntimeAction[] = [];
@@ -55,6 +54,7 @@ export class RuntimeBlock implements IRuntimeBlock{
         }
         
         return actions;
+     
     }
 
     /**
@@ -77,7 +77,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     pop(): IRuntimeAction[] {
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
-        for (const behavior of this.behaviors) {
+         for (const behavior of this.behaviors) {
             const result = behavior?.onPop?.(this._runtime, this);
             if (result) { actions.push(...result); }
         }
