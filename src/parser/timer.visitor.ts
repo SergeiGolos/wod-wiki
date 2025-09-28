@@ -61,12 +61,25 @@ export class MdTimerInterpreter extends BaseCstVisitor {
           for (let parent of stack) {
             const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);            
             parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
-            parent.block.children.push(block.id);
+            
+            // Temporarily store as flat array - we'll group later
+            // Cast to any to work around TypeScript during building phase
+            (parent.block.children as any).push(block.id);
             block.parent = parent.block.id;
           }
         }
                 
         stack.push({ columnStart: block.meta.columnStart, block });
+      }
+
+      // NEW: Group children by lap fragment types after parent-child relationships are established
+      for (let block of blocks) {
+        if (block.children && block.children.length > 0) {
+          // At this point children is still flat array (from building phase)
+          // Convert to grouped structure
+          const flatChildren = block.children as any as number[];
+          block.children = this.groupChildrenByLapFragments(flatChildren, blocks);
+        }
       }
 
       return blocks;
@@ -248,5 +261,60 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       columnEnd: endToken.endColumn,
       length: endToken.endColumn - tokens[0].startColumn,
     };
+  }
+
+  /**
+   * Groups consecutive compose lap fragments together while keeping other fragments individual.
+   * Implements the grouping algorithm per contracts/visitor-grouping.md
+   */
+  groupChildrenByLapFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
+    if (childIds.length === 0) {
+      return [];
+    }
+
+    const groups: number[][] = [];
+    let currentGroup: number[] = [];
+    
+    for (let i = 0; i < childIds.length; i++) {
+      const childId = childIds[i];
+      const childBlock = allBlocks.find(block => block.id === childId);
+      const lapFragmentType = this.getChildLapFragmentType(childBlock);
+      
+      if (lapFragmentType === 'compose') {
+        // Add to current group (compose fragments group consecutively)
+        currentGroup.push(childId);
+      } else {
+        // Finish current compose group if it exists
+        if (currentGroup.length > 0) {
+          groups.push([...currentGroup]);
+          currentGroup = [];
+        }
+        // Add non-compose fragment as individual group
+        groups.push([childId]);
+      }
+    }
+    
+    // Don't forget the last group if it's a compose group
+    if (currentGroup.length > 0) {
+      groups.push([...currentGroup]);
+    }
+    
+    return groups;
+  }
+
+  /**
+   * Helper method to determine the lap fragment type of a child block
+   */
+  private getChildLapFragmentType(childBlock: ICodeStatement | undefined): 'compose' | 'round' | 'repeat' {
+    if (!childBlock || !childBlock.fragments) {
+      return 'repeat'; // Default for blocks without lap fragments
+    }
+    
+    const lapFragment = childBlock.fragments.find(f => f.fragmentType === FragmentType.Lap) as LapFragment;
+    if (!lapFragment) {
+      return 'repeat'; // No lap fragment means repeat type
+    }
+    
+    return lapFragment.group || 'repeat';
   }
 }

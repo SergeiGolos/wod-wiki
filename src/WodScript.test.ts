@@ -17,7 +17,7 @@ describe('WodScript ID Type Consistency', () => {
     {
       id: 1,
       parent: undefined,
-      children: [2, 3],
+      children: [[2], [3]], // Updated to grouped format
       fragments: [],
       isLeaf: false,
       meta: mockMeta
