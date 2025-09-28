@@ -1,7 +1,7 @@
 import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
-import { IRuntimeEvent } from './EventHandler';
+import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 
 export interface IScriptRuntime {
@@ -10,5 +10,5 @@ export interface IScriptRuntime {
     readonly stack: RuntimeStack;
     readonly jit: JitCompiler;
     
-    handle(event: IRuntimeEvent): void;
+    handle(event: IEvent): void;
 }
