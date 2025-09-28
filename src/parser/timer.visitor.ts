@@ -27,7 +27,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   wodMarkdown(ctx: any) {
     try {
       if (!ctx || !Array.isArray(ctx.markdown)) {
-        return [{ SyntaxError: "Invalid context: markdown array is required" }];
+        throw new Error("Invalid context: markdown array is required");
       }
 
       let blocks = ctx.markdown
@@ -36,18 +36,12 @@ export class MdTimerInterpreter extends BaseCstVisitor {
           try {
             return this.visit(block) || [];
           } catch (blockError) {
-            return [
-              { SyntaxError: "Error processing markdown block:", blockError },
-            ];
-          }
+            throw new Error(`Error processing markdown block: ${blockError}`);
+            }
         }) as ICodeStatement[];
      
       let stack: { columnStart: number; block: ICodeStatement }[] = []; 
       for (let block of blocks) {
-        const history = stack.filter(
-          (item: any) => item.columnStart == block.meta.columnStart
-        );
-
         stack = stack.filter(
           (item: any) => item.columnStart < block.meta.columnStart
         );
@@ -84,13 +78,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
       return blocks;
     } catch (error) {
-      return [
-        {
-          SyntaxError: `Error in wodMarkdown: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      ];
+      throw new Error(`Error in wodMarkdown: ${
+        error instanceof Error ? error.message : String(error)
+      }`);
     }
   }
 

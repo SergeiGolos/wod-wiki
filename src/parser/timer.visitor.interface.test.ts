@@ -3,7 +3,6 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MdTimerInterpreter } from './timer.visitor';
-import { ICodeStatement } from '../CodeStatement';
 
 describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
   let parser: MdTimerInterpreter;
