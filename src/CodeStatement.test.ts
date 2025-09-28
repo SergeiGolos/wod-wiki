@@ -29,21 +29,21 @@ describe('ICodeStatement Interface Contract', () => {
       expect(mockStatement.children).toEqual([[1, 2], [3], [4, 5]]);
     });
 
-    it('should support empty groups and single element groups', () => {
+    it('should support single element groups and multi-element groups', () => {
       // This test will FAIL initially - children is number[] not number[][]
+      // Updated to comply with specification: empty groups are not allowed
       const mockStatement: ICodeStatement = {
         id: 2,
         parent: 1,
-        children: [[], [1], [2, 3, 4]], // Mixed group sizes
+        children: [[1], [2, 3, 4]], // Single and multi-element groups only
         fragments: [],
         isLeaf: false,
         meta: {} as CodeMetadata
       };
 
-      expect(mockStatement.children.length).toBe(3);
-      expect(mockStatement.children[0]).toEqual([]);
-      expect(mockStatement.children[1]).toEqual([1]);
-      expect(mockStatement.children[2]).toEqual([2, 3, 4]);
+      expect(mockStatement.children.length).toBe(2);
+      expect(mockStatement.children[0]).toEqual([1]);
+      expect(mockStatement.children[1]).toEqual([2, 3, 4]);
     });
 
     it('should maintain backward compatibility for single child access', () => {

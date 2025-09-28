@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import { MdTimerInterpreter } from '../../src/parser/timer.visitor';
+import { MdTimerRuntime } from '../../src/parser/md-timer';
 
 // Demonstration component for children grouping functionality
 const ChildrenGroupingDemo: React.FC = () => {
-  const parser = new MdTimerInterpreter();
+  const runtime = new MdTimerRuntime();
   
   // Test scenarios demonstrating consecutive compose grouping behavior
   const scenarios = [
@@ -16,7 +16,7 @@ const ChildrenGroupingDemo: React.FC = () => {
   + compose child 3 moderate effort
   + compose child 4 high intensity
   regular child 5 rest [1:00]`,
-      expectedGrouping: "[[1], [2], [3, 4], [5]]",
+      expectedGrouping: [[1], [2], [3, 4], [5]],
       description: "Consecutive compose fragments (+ child 3, + child 4) are grouped together"
     },
     {
@@ -26,7 +26,7 @@ const ChildrenGroupingDemo: React.FC = () => {
   + child 2 pull ups  
   + child 3 sit ups
   + child 4 squats`,
-      expectedGrouping: "[[1, 2, 3, 4]]",
+      expectedGrouping: [[1, 2, 3, 4]],
       description: "All consecutive compose fragments form a single group"
     },
     {
@@ -35,15 +35,15 @@ const ChildrenGroupingDemo: React.FC = () => {
   - round 1 [5:00]
   round 2 10x burpees
   - round 3 [2:00] rest`,
-      expectedGrouping: "[[1], [2], [3]]", 
+      expectedGrouping: [[1], [2], [3]], 
       description: "Round (-) and repeat (no prefix) fragments are individual groups"
     }
   ];
 
   const parseAndDisplay = (syntax: string) => {
     try {
-      const result = parser.wodMarkdown({ text: syntax });
-      return result;
+      const result = runtime.read(syntax);
+      return result.statements;
     } catch (error) {
       return [{ SyntaxError: error instanceof Error ? error.message : String(error) }];
     }
@@ -86,10 +86,10 @@ const ChildrenGroupingDemo: React.FC = () => {
                         children: {JSON.stringify(parentStatement.children)}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        Expected: {scenario.expectedGrouping}
+                        Expected: {JSON.stringify(scenario.expectedGrouping)}
                       </div>
                       <div className="text-xs mt-1">
-                        {JSON.stringify(parentStatement.children) === scenario.expectedGrouping ? 
+                        {JSON.stringify(parentStatement.children) === JSON.stringify(scenario.expectedGrouping) ? 
                           <span className="text-green-600">✅ Match</span> : 
                           <span className="text-red-600">❌ Mismatch</span>
                         }

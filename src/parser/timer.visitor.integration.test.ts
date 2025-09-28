@@ -2,13 +2,13 @@
 // CRITICAL: This test MUST FAIL initially (TDD requirement)
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MdTimerInterpreter } from './timer.visitor';
+import { MdTimerRuntime } from './md-timer';
 
 describe('MdTimerInterpreter - Integration Test for Grouping', () => {
-  let parser: MdTimerInterpreter;
+  let runtime: MdTimerRuntime;
 
   beforeEach(() => {
-    parser = new MdTimerInterpreter();
+    runtime = new MdTimerRuntime();
   });
 
   describe('end-to-end parsing with grouping validation', () => {
@@ -26,8 +26,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
       // 1. groupChildrenByLapFragments method doesn't exist
       // 2. children interface is number[] not number[][]
       // 3. Grouping logic not implemented in wodMarkdown()
-      const result = parser.wodMarkdown({ text: workoutInput });
-      const parentStatement = result.find(stmt => 
+      const result = runtime.read(workoutInput);
+      const parentStatement = result.statements.find(stmt => 
         stmt.fragments?.some(f => f.value?.includes('parent workout'))
       );
 
@@ -50,8 +50,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
   + child 4 squats`;
 
       // This will FAIL initially
-      const result = parser.wodMarkdown({ text: allComposeInput });
-      const parentStatement = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(allComposeInput);
+      const parentStatement = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
 
       expect(parentStatement).toBeDefined();
       // All consecutive compose should be in one group
@@ -65,8 +65,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
   - round 3 [2:00] rest`;
 
       // This will FAIL initially
-      const result = parser.wodMarkdown({ text: noComposeInput });
-      const parentStatement = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(noComposeInput);
+      const parentStatement = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
 
       expect(parentStatement).toBeDefined();
       // All individual groups
@@ -81,8 +81,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
   regular 2`;
 
       // This will FAIL initially - complex hierarchy with grouping
-      const result = parser.wodMarkdown({ text: nestedInput });
-      const parentStatement = result.find(stmt => 
+      const result = runtime.read(nestedInput);
+      const parentStatement = result.statements.find(stmt => 
         stmt.fragments?.some(f => f.value?.includes('parent'))
       );
       
@@ -90,7 +90,7 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
       expect(parentStatement!.children).toEqual([[1], [2]]);
       
       // Check that round 1 has its own children grouped
-      const roundStatement = result.find(stmt => stmt.id === 1);
+      const roundStatement = result.statements.find(stmt => stmt.id === 1);
       expect(roundStatement!.children).toEqual([[3, 4]]); // nested compose fragments grouped
     });
   });

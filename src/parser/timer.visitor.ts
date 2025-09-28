@@ -40,6 +40,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             }
         }) as ICodeStatement[];
      
+      // Use temporary map to build parent-child relationships type-safely
+      const parentChildMap = new Map<number, number[]>();
+      
       let stack: { columnStart: number; block: ICodeStatement }[] = []; 
       for (let block of blocks) {
         stack = stack.filter(
@@ -47,18 +50,17 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         );
 
         block.id = block.meta.startOffset;
-        if (block.children == undefined) {
-          block.children = [];
-        }
 
         if (stack.length > 0) {
           for (let parent of stack) {
             const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);            
             parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
             
-            // Temporarily store as flat array - we'll group later
-            // Cast to any to work around TypeScript during building phase
-            (parent.block.children as any).push(block.id);
+            // Store parent-child relationships in temporary map (type-safe)
+            if (!parentChildMap.has(parent.block.id)) {
+              parentChildMap.set(parent.block.id, []);
+            }
+            parentChildMap.get(parent.block.id)!.push(block.id);
             block.parent = parent.block.id;
           }
         }
@@ -66,14 +68,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 
-      // NEW: Group children by lap fragment types after parent-child relationships are established
+      // Apply grouped children structure from temporary map
       for (let block of blocks) {
-        if (block.children && block.children.length > 0) {
-          // At this point children is still flat array (from building phase)
-          // Convert to grouped structure
-          const flatChildren = block.children as any as number[];
-          block.children = this.groupChildrenByLapFragments(flatChildren, blocks);
-        }
+        const flatChildren = parentChildMap.get(block.id) || [];
+        block.children = this.groupChildrenByLapFragments(flatChildren, blocks);
       }
 
       return blocks;
@@ -256,18 +254,22 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   /**
    * Groups consecutive compose lap fragments together while keeping other fragments individual.
    * Implements the grouping algorithm per contracts/visitor-grouping.md
+   * Optimized with Map for O(1) block lookups.
    */
   groupChildrenByLapFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
     if (childIds.length === 0) {
       return [];
     }
 
+    // Create Map for O(1) block lookups instead of O(N) find operations
+    const blocksById = new Map(allBlocks.map(b => [b.id, b]));
+
     const groups: number[][] = [];
     let currentGroup: number[] = [];
     
     for (let i = 0; i < childIds.length; i++) {
       const childId = childIds[i];
-      const childBlock = allBlocks.find(block => block.id === childId);
+      const childBlock = blocksById.get(childId);
       const lapFragmentType = this.getChildLapFragmentType(childBlock);
       
       if (lapFragmentType === 'compose') {

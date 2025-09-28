@@ -2,13 +2,13 @@
 // CRITICAL: This test MUST FAIL initially (TDD requirement)
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MdTimerInterpreter } from './timer.visitor';
+import { MdTimerRuntime } from './md-timer';
 
 describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
-  let parser: MdTimerInterpreter;
+  let runtime: MdTimerRuntime;
 
   beforeEach(() => {
-    parser = new MdTimerInterpreter();
+    runtime = new MdTimerRuntime();
   });
 
   describe('consecutive compose fragments grouping behavior', () => {
@@ -24,8 +24,8 @@ describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
       // This will FAIL initially because:
       // 1. groupChildrenByLapFragments() method doesn't exist yet
       // 2. children is number[] not number[][]
-      const result = parser.wodMarkdown({ text: input });
-      const parent = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(input);
+      const parent = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
       
       expect(parent).toBeDefined();
       expect(parent!.children).toEqual([[1], [2], [3, 4], [5]]);
@@ -39,8 +39,8 @@ describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
   + compose child 3`;
       
       // This will FAIL initially
-      const result = parser.wodMarkdown({ text: input });
-      const parent = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(input);
+      const parent = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
       
       expect(parent!.children).toEqual([[1, 2, 3]]);
     });
@@ -53,8 +53,8 @@ describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
   - round child 3`;
       
       // This will FAIL initially due to interface mismatch
-      const result = parser.wodMarkdown({ text: input });
-      const parent = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(input);
+      const parent = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
       
       expect(parent!.children).toEqual([[1], [2], [3]]);
     });
@@ -70,8 +70,8 @@ describe('Parser Interface - Consecutive Compose Grouping Contract', () => {
   - round child 6`;
       
       // This will FAIL initially
-      const result = parser.wodMarkdown({ text: input });
-      const parent = result.find(stmt => stmt.children && stmt.children.length > 0);
+      const result = runtime.read(input);
+      const parent = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
       
       // Expected: [[1], [2, 3], [4], [5], [6]]
       expect(parent!.children).toEqual([[1], [2, 3], [4], [5], [6]]);

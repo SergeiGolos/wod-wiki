@@ -93,7 +93,7 @@ statement.children.forEach(childId => processChild(childId))
 ```typescript
 statement.children.forEach(group => 
   group.forEach(childId => processChild(childId))
-)
+);
 ```
 
 ### Common Access Patterns
