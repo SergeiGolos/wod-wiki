@@ -1,24 +1,13 @@
 {
-  // Controls git-aware file filtering behavior.
-  "fileFiltering": {
-    // Respect .gitignore patterns when discovering files.
-    "respectGitIgnore": true,
-    // Enable searching recursively for filenames.
-    "enableRecursiveFileSearch": true
+  "tools": {
+    "autoAccept": false
   },
-  // Controls whether the CLI automatically accepts and executes safe tool calls.
-  "autoAccept": false,
-  // Sets the visual theme for the CLI.
-  "theme": "GitHub",
-  // Configures logging and metrics collection.
-  "telemetry": {
-    "enabled": false,
-    "target": "local",
-    "otlpEndpoint": "http://localhost:4317",
-    "logPrompts": true
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": true,
+      "enableRecursiveFileSearch": true
+    }
   },
-  // Enables or disables the collection of usage statistics.
-  "usageStatisticsEnabled": true,
   "mcpServers": {
     "playwright": {
       "command": "npx",
@@ -34,5 +23,17 @@
         "@upstash/context7-mcp@latest"
       ]
     }
+  },
+  "telemetry": {
+    "enabled": false,
+    "target": "local",
+    "otlpEndpoint": "http://localhost:4317",
+    "logPrompts": true
+  },
+  "ui": {
+    "theme": "GitHub"
+  },
+  "privacy": {
+    "usageStatisticsEnabled": true
   }
 }

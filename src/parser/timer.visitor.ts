@@ -27,7 +27,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   wodMarkdown(ctx: any) {
     try {
       if (!ctx || !Array.isArray(ctx.markdown)) {
-        return [{ SyntaxError: "Invalid context: markdown array is required" }];
+        throw new Error("Invalid context: markdown array is required");
       }
 
       let blocks = ctx.markdown
@@ -36,32 +36,31 @@ export class MdTimerInterpreter extends BaseCstVisitor {
           try {
             return this.visit(block) || [];
           } catch (blockError) {
-            return [
-              { SyntaxError: "Error processing markdown block:", blockError },
-            ];
-          }
+            throw new Error(`Error processing markdown block: ${blockError}`);
+            }
         }) as ICodeStatement[];
      
+      // Use temporary map to build parent-child relationships type-safely
+      const parentChildMap = new Map<number, number[]>();
+      
       let stack: { columnStart: number; block: ICodeStatement }[] = []; 
       for (let block of blocks) {
-        const history = stack.filter(
-          (item: any) => item.columnStart == block.meta.columnStart
-        );
-
         stack = stack.filter(
           (item: any) => item.columnStart < block.meta.columnStart
         );
 
         block.id = block.meta.startOffset;
-        if (block.children == undefined) {
-          block.children = [];
-        }
 
         if (stack.length > 0) {
           for (let parent of stack) {
             const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);            
             parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
-            parent.block.children.push(block.id);
+            
+            // Store parent-child relationships in temporary map (type-safe)
+            if (!parentChildMap.has(parent.block.id)) {
+              parentChildMap.set(parent.block.id, []);
+            }
+            parentChildMap.get(parent.block.id)!.push(block.id);
             block.parent = parent.block.id;
           }
         }
@@ -69,15 +68,17 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 
+      // Apply grouped children structure from temporary map
+      for (let block of blocks) {
+        const flatChildren = parentChildMap.get(block.id) || [];
+        block.children = this.groupChildrenByLapFragments(flatChildren, blocks);
+      }
+
       return blocks;
     } catch (error) {
-      return [
-        {
-          SyntaxError: `Error in wodMarkdown: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      ];
+      throw new Error(`Error in wodMarkdown: ${
+        error instanceof Error ? error.message : String(error)
+      }`);
     }
   }
 
@@ -248,5 +249,64 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       columnEnd: endToken.endColumn,
       length: endToken.endColumn - tokens[0].startColumn,
     };
+  }
+
+  /**
+   * Groups consecutive compose lap fragments together while keeping other fragments individual.
+   * Implements the grouping algorithm per contracts/visitor-grouping.md
+   * Optimized with Map for O(1) block lookups.
+   */
+  groupChildrenByLapFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
+    if (childIds.length === 0) {
+      return [];
+    }
+
+    // Create Map for O(1) block lookups instead of O(N) find operations
+    const blocksById = new Map(allBlocks.map(b => [b.id, b]));
+
+    const groups: number[][] = [];
+    let currentGroup: number[] = [];
+    
+    for (let i = 0; i < childIds.length; i++) {
+      const childId = childIds[i];
+      const childBlock = blocksById.get(childId);
+      const lapFragmentType = this.getChildLapFragmentType(childBlock);
+      
+      if (lapFragmentType === 'compose') {
+        // Add to current group (compose fragments group consecutively)
+        currentGroup.push(childId);
+      } else {
+        // Finish current compose group if it exists
+        if (currentGroup.length > 0) {
+          groups.push([...currentGroup]);
+          currentGroup = [];
+        }
+        // Add non-compose fragment as individual group
+        groups.push([childId]);
+      }
+    }
+    
+    // Don't forget the last group if it's a compose group
+    if (currentGroup.length > 0) {
+      groups.push([...currentGroup]);
+    }
+    
+    return groups;
+  }
+
+  /**
+   * Helper method to determine the lap fragment type of a child block
+   */
+  private getChildLapFragmentType(childBlock: ICodeStatement | undefined): 'compose' | 'round' | 'repeat' {
+    if (!childBlock || !childBlock.fragments) {
+      return 'repeat'; // Default for blocks without lap fragments
+    }
+    
+    const lapFragment = childBlock.fragments.find(f => f.fragmentType === FragmentType.Lap) as LapFragment;
+    if (!lapFragment) {
+      return 'repeat'; // No lap fragment means repeat type
+    }
+    
+    return lapFragment.group || 'repeat';
   }
 }

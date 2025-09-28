@@ -2,7 +2,8 @@ import { IScriptRuntime } from './IScriptRuntime';
 import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../WodScript';
-import { IRuntimeEvent, IEventHandler } from './EventHandler';
+import { IEvent } from "./IEvent";
+import { IEventHandler } from "./IEventHandler";
 import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
@@ -61,7 +62,7 @@ export class ScriptRuntime implements IScriptRuntime {
         };
     }
 
-    handle(event: IRuntimeEvent): void {
+    handle(event: IEvent): void {
         console.log(`🎯 ScriptRuntime.handle() - Processing event: ${event.name}`);
         console.log(`  📚 Stack depth: ${this.stack.blocks.length}`);
         console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
@@ -173,7 +174,7 @@ export class ScriptRuntime implements IScriptRuntime {
         }
     }
     
-    tick(): IRuntimeEvent[] {
+    tick(): IEvent[] {
         console.log(`⏰ ScriptRuntime.tick() - Processing current block lifecycle`);
 
         const currentBlock = this.stack.current;
@@ -186,7 +187,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // In the new Push/Next/Pop pattern, we might emit timer events or check for completion
         // For now, we'll emit a generic tick event that blocks can handle
-        const tickEvent: IRuntimeEvent = {
+        const tickEvent: IEvent = {
             name: 'tick',
             timestamp: new Date(),
             data: { source: 'runtime' }
