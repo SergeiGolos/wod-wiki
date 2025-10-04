@@ -8,6 +8,25 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 const meta: Meta<typeof JitCompilerDemo> = {
   title: 'Compiler/JIT Compiler Demo',
   component: JitCompilerDemo,
+  args: {
+    showFragments: false,
+    showRuntimeStack: true,
+    showMemory: true,
+  },
+  argTypes: {
+    showFragments: {
+      control: 'boolean',
+      description: 'Show/hide fragment visualization panel',
+    },
+    showRuntimeStack: {
+      control: 'boolean',
+      description: 'Show/hide runtime stack panel',
+    },
+    showMemory: {
+      control: 'boolean',
+      description: 'Show/hide memory allocations panel',
+    },
+  },
 };
 
 export default meta;
@@ -16,7 +35,7 @@ type Story = StoryObj<typeof JitCompilerDemo>;
 
 export const BasicDemo: Story = {
   args: {
-    initialScript: `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`
+    initialScript: `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
   },
 };
 
@@ -36,6 +55,6 @@ const runtime = new ScriptRuntime(script, jitCompiler);
 export const ChildCompilation: Story = {
   args: {
     initialScript: scriptText,
-    runtime: runtime
+    runtime: runtime,
   }
 };
