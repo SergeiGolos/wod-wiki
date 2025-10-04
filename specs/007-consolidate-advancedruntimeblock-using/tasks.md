@@ -47,22 +47,22 @@ Single project structure (from plan.md):
 
 ## Phase 3.1: Setup & Structure
 
-- [ ] **T001** Create behavior directory structure in `src/runtime/behaviors/`
+- [x] **T001** Create behavior directory structure in `src/runtime/behaviors/`
   - **Files**: Create directory `src/runtime/behaviors/`
   - **Purpose**: Prepare directory for 4 behavior implementations
   - **Validation**: Directory exists and is empty
   
-- [ ] **T002** Create behavior test directory structure in `tests/unit/behaviors/`
+- [x] **T002** Create behavior test directory structure in `tests/unit/behaviors/`
   - **Files**: Create directory `tests/unit/behaviors/`
   - **Purpose**: Prepare directory for behavior unit tests
   - **Validation**: Directory exists
   
-- [ ] **T003** Create contract test directory in `tests/runtime/contract/behaviors/`
+- [x] **T003** Create contract test directory in `tests/runtime/contract/behaviors/`
   - **Files**: Create directory `tests/runtime/contract/behaviors/`
   - **Purpose**: Prepare directory for behavior contract tests
-  - **Validation**: Directory exists
+  - **Validation**: Directory exists (moved to `src/runtime/behaviors/tests/`)
   
-- [ ] **T004** Create integration test directory in `tests/integration/runtime/`
+- [x] **T004** Create integration test directory in `tests/integration/runtime/`
   - **Files**: Create directory `tests/integration/runtime/` (if not exists)
   - **Purpose**: Prepare directory for behavior integration tests
   - **Validation**: Directory exists
@@ -75,28 +75,28 @@ Single project structure (from plan.md):
 
 ### Contract Tests (All Parallel - Different Files)
 
-- [ ] **T005 [P]** Contract test for ChildAdvancementBehavior lifecycle in `tests/runtime/contract/behaviors/child-advancement.contract.test.ts`
+- [x] **T005 [P]** Contract test for ChildAdvancementBehavior lifecycle in `src/runtime/behaviors/tests/child-advancement.contract.test.ts`
   - **Purpose**: Test constructor, onNext() sequential advancement, completion tracking
   - **Success Criteria**: Tests fail (no implementation), validate onNext returns empty when complete, advances index correctly
   - **Performance**: Validate onNext < 5ms requirement
-  - **File**: `tests/runtime/contract/behaviors/child-advancement.contract.test.ts`
+  - **File**: `src/runtime/behaviors/tests/child-advancement.contract.test.ts` ✅ CREATED - FAILING AS EXPECTED
   
-- [ ] **T006 [P]** Contract test for LazyCompilationBehavior lifecycle in `tests/runtime/contract/behaviors/lazy-compilation.contract.test.ts`
+- [x] **T006 [P]** Contract test for LazyCompilationBehavior lifecycle in `src/runtime/behaviors/tests/lazy-compilation.contract.test.ts`
   - **Purpose**: Test constructor, onNext() lazy compilation, error handling
   - **Success Criteria**: Tests fail (no implementation), validate JIT integration, ErrorRuntimeBlock on failure
   - **Performance**: Validate compilation within budget
-  - **File**: `tests/runtime/contract/behaviors/lazy-compilation.contract.test.ts`
+  - **File**: `src/runtime/behaviors/tests/lazy-compilation.contract.test.ts` ✅ CREATED - FAILING AS EXPECTED
   
-- [ ] **T007 [P]** Contract test for ParentContextBehavior lifecycle in `tests/runtime/contract/behaviors/parent-context.contract.test.ts`
+- [x] **T007 [P]** Contract test for ParentContextBehavior lifecycle in `src/runtime/behaviors/tests/parent-context.contract.test.ts`
   - **Purpose**: Test constructor, onPush() initialization, context access
   - **Success Criteria**: Tests fail (no implementation), validate parent reference storage and retrieval
   - **Performance**: Validate onPush < 1ms requirement
-  - **File**: `tests/runtime/contract/behaviors/parent-context.contract.test.ts`
+  - **File**: `src/runtime/behaviors/tests/parent-context.contract.test.ts` ✅ CREATED - FAILING AS EXPECTED
   
-- [ ] **T008 [P]** Contract test for CompletionTrackingBehavior lifecycle in `tests/runtime/contract/behaviors/completion-tracking.contract.test.ts`
+- [x] **T008 [P]** Contract test for CompletionTrackingBehavior lifecycle in `src/runtime/behaviors/tests/completion-tracking.contract.test.ts`
   - **Purpose**: Test constructor, onNext() completion detection, state transitions
   - **Success Criteria**: Tests fail (no implementation), validate completion flag updates correctly
-  - **File**: `tests/runtime/contract/behaviors/completion-tracking.contract.test.ts`
+  - **File**: `src/runtime/behaviors/tests/completion-tracking.contract.test.ts` ✅ CREATED - FAILING AS EXPECTED
   
 - [ ] **T009 [P]** Contract test for behavior composition and execution order in `tests/runtime/contract/behaviors/behavior-composition.contract.test.ts`
   - **Purpose**: Test multiple behaviors on single block, deterministic ordering, action composition
