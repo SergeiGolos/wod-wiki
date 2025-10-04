@@ -7,18 +7,9 @@ labels:
   - prompt:specify
 assignees: []
 ---
-
-## Problem Statement
-Concise description of the problem.
-
-## Requirements
-Functional and non-functional requirements.
-
-## Interfaces / Inputs / Outputs
-APIs, CLI, file formats, schemas.
-
-## Edge Cases / Risks
-Known tricky cases or trade-offs.
+## Must follow Instructions
 
 Reference prompt: .github/prompts/specify.prompt.md
-<!-- prompt: specify -->
+
+## Issue
+

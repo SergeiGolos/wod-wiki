@@ -3,13 +3,11 @@
     "allow": [
       "Bash(gh api:*)",
       "Bash(npm run test:unit:*)",
-      "Bash(.specify/scripts/powershell/create-new-feature.ps1 -Json \" @specs\\research\\next-button-integration-analysis.md\")",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
-      "Bash(.specify/scripts/powershell/setup-plan.ps1 -Json)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json)",
-      "Bash(.specify/scripts/powershell/update-agent-context.ps1 -AgentType claude)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
-      "Bash(gh pr view:*)"
+      "Bash(.specify/scripts/powershell/create-new-feature.ps1 -Json *)",      
+      "Bash(.specify/scripts/powershell/setup-plan.ps1 -Json *)",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json *)",
+      "Bash(.specify/scripts/powershell/update-agent-context.ps1 -AgentType *)",      
+      "Bash(gh pr view:*)"      
     ],
     "deny": [],
     "ask": []

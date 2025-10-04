@@ -7,18 +7,9 @@ labels:
   - prompt:plan
 assignees: []
 ---
+## Must follow Instructions
 
-## Objective
-What outcome should the plan achieve?
+- Reference prompt: .github/prompts/plan.prompt.md
 
-## Context
-Background, constraints, and assumptions.
+## Issue
 
-## Deliverables
-Artifacts the plan should produce (e.g., task list, milestones, risks).
-
-## Scope / Boundaries
-What is in and out of scope.
-
-Reference prompt: .github/prompts/plan.prompt.md
-<!-- prompt: plan -->
