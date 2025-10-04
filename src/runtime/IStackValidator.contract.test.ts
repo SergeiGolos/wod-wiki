@@ -8,20 +8,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
-import { BlockKey } from '../../src/BlockKey';
-
-// This interface is defined in the contract but not implemented yet
-interface IStackValidator {
-    validatePush(block: IRuntimeBlock, currentDepth: number): void;
-    validatePop(currentDepth: number): void;
-}
-
-// This class doesn't exist yet - tests will fail
-declare class StackValidator implements IStackValidator {
-    validatePush(block: IRuntimeBlock, currentDepth: number): void;
-    validatePop(currentDepth: number): void;
-}
+import { IRuntimeBlock } from './IRuntimeBlock';
+import { BlockKey } from '../BlockKey';
+import { IStackValidator } from './IStackValidator';
+import { StackValidator } from './StackValidator';
 
 describe('IStackValidator Contract Tests', () => {
     describe('validatePush', () => {

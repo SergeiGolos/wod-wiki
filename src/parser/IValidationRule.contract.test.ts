@@ -8,35 +8,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { CodeStatement } from '../../src/CodeStatement';
-
-// These interfaces are defined in the contract but not implemented yet
-interface IValidationResult {
-    isValid: boolean;
-    errorMessage?: string;
-    sourcePosition?: number[];
-}
-
-interface IValidationRule {
-    readonly name: string;
-    validate(statement: CodeStatement): IValidationResult;
-}
-
-// These validators don't exist yet - tests will fail
-declare class CircularReferenceValidator implements IValidationRule {
-    readonly name: string;
-    validate(statement: CodeStatement): IValidationResult;
-}
-
-declare class NestingDepthValidator implements IValidationRule {
-    readonly name: string;
-    validate(statement: CodeStatement): IValidationResult;
-}
-
-declare class TimerEventValidator implements IValidationRule {
-    readonly name: string;
-    validate(statement: CodeStatement): IValidationResult;
-}
+import { CodeStatement } from '../CodeStatement';
+import { IValidationResult, IValidationRule } from './IValidationRule';
+import { CircularReferenceValidator } from './validators/CircularReferenceValidator';
+import { NestingDepthValidator } from './validators/NestingDepthValidator';
+import { TimerEventValidator } from './validators/TimerEventValidator';
 
 describe('IValidationRule Contract Tests', () => {
     describe('CircularReferenceValidator', () => {
