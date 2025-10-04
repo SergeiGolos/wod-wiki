@@ -1,8 +1,10 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../BlockKey';
+import { StackValidator } from './StackValidator';
 
 export class RuntimeStack {
     private readonly _blocks: IRuntimeBlock[] = [];
+    private readonly _validator = new StackValidator();
 
     public get blocks(): readonly IRuntimeBlock[] {
         return [...this._blocks].reverse();
@@ -36,17 +38,13 @@ export class RuntimeStack {
     }
 
     public push(block: IRuntimeBlock): void {
-        // Error handling for invalid blocks
-        if (!block) {
-            throw new TypeError('Block cannot be null or undefined');
-        }
-        if (!block.key) {
-            throw new TypeError('Block must have a valid key');
-        }
+        // Validate before push
+        this._validator.validatePush(block, this._blocks.length);
         
         const blockKey = block.key.toString();
         console.log(`📚 RuntimeStack.push() - Adding block: ${blockKey}`);
         console.log(`  📊 Stack depth before push: ${this._blocks.length}`);
+        console.log(`  ✅ Validation passed: block is valid`);
         console.log(`  🔄 Using constructor-based initialization (no lifecycle method calls)`);
         
         // Simple push - no initialization calls (constructor-based initialization)
@@ -58,8 +56,12 @@ export class RuntimeStack {
     }
 
     public pop(): IRuntimeBlock | undefined {
+        // Validate before pop
+        this._validator.validatePop(this._blocks.length);
+        
         console.log(`📚 RuntimeStack.pop() - Removing top block`);
         console.log(`  📊 Stack depth before pop: ${this._blocks.length}`);
+        console.log(`  ✅ Validation passed: stack not empty`);
         console.log(`  🔄 Using consumer-managed dispose pattern (no cleanup method calls)`);
         
         // Simple pop - no cleanup calls (consumer-managed dispose)
