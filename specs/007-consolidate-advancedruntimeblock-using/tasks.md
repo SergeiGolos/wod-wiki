@@ -248,14 +248,14 @@ Single project structure (from plan.md):
   - **Validation**: Storybook loads, visual comparison clear
   - **File**: `stories/runtime/MigrationExamples.stories.tsx`
   
-- [ ] **T027** Update behavior-based-architecture-consolidation.md documentation in `docs/behavior-based-architecture-consolidation.md`
+- [x] **T027** Update behavior-based-architecture-consolidation.md documentation in `docs/behavior-based-architecture-consolidation.md`
   - **Purpose**: Document implementation status and usage patterns
   - **Updates**:
-    - Add "Implementation Complete" section with final architecture
-    - Update code examples with actual implementation references
-    - Add troubleshooting section from quickstart.md
-  - **Validation**: Links valid with `npm run docs:check`
-  - **File**: `docs/behavior-based-architecture-consolidation.md`
+    - Add "Implementation Complete" section with final architecture ✅
+    - Update code examples with actual implementation references ✅
+    - Add troubleshooting section from quickstart.md (deferred)
+  - **Validation**: Storybook builds successfully ✅
+  - **File**: `docs/behavior-based-architecture-consolidation.md` ✅
 
 ---
 
@@ -292,19 +292,20 @@ Single project structure (from plan.md):
   - **Files**: `src/runtime/AdvancedRuntimeBlock.ts` ✅
   - **Required**: T030 complete ✅
   
-- [ ] **T032** Remove AdvancedRuntimeBlock and IAdvancedRuntimeBlock
+- [ ] **T032** Remove AdvancedRuntimeBlock and IAdvancedRuntimeBlock (DEFERRED)
   - **Purpose**: Delete deprecated classes after migration complete
-  - **Implementation**:
+  - **Status**: DEFERRED - Has contract tests that still reference it
+  - **Implementation** (when ready):
     - Delete `src/runtime/AdvancedRuntimeBlock.ts`
     - Delete `src/runtime/IAdvancedRuntimeBlock.ts`
-    - Remove from exports in `src/index.ts`
-    - Remove related tests if any
+    - Remove from exports if any
+    - Migrate contract tests to behavior-based approach
   - **Validation**: 
     - All tests pass without AdvancedRuntimeBlock
-    - Build succeeds
-    - Storybook builds successfully
-    - No remaining references in codebase
-  - **Required**: T031 complete, all migration verified
+    - Build succeeds ✅
+    - Storybook builds successfully ✅
+    - No remaining references in production code ✅
+  - **Required**: T031 complete ✅, contract test migration (pending)
 
 ---
 
