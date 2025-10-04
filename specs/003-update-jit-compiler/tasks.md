@@ -1,15 +1,21 @@
 # Tasks: Enhanced JIT Compiler Demo Visualization
 
 **Feature**: 003-update-jit-compiler  
-**Branch**: `003-update### Phase 3.3: Core Implementation (ONLY after tests T002-T006 are failing)
-
-- [X] T007 [P]: Extract fragmentColorMap utility ✅ All tests passt-compiler`  
+**Branch**: `003-update-jit-compiler`  
 **Input**: Design documents from `specs/003-update-jit-compiler/`  
-**Prerequisites**: plan.md, research.md, data-model.md, contracts/, quickstart.m#### Phase 3.3: Core Implementation ✓
+**Prerequisites**: plan.md, research.md, data-model.md, contracts/, quickstart.md
+
+### Phase 3.3: Core Implementation (ONLY after tests T002-T006 are failing)
+
+- [X] T007 [P]: Extract fragmentColorMap utility ✅ All tests pass
+
+### Phase 3.3: Core Implementation ✓
 - [X] T007 [P]: Extract fragmentColorMap (T002 passes) ✅ All 7 tests pass
 - [X] T008 [P]: Extract FragmentVisualizer (T003-T005 pass) ✅ Component created
 - [X] T009 [P]: Create barrel exports ✅ index.ts created
-- [X] T010: Update Parser.tsx (no regression) ✅ Parser uses shared components, Storybook runningase 3.6: Polish & Validation
+- [X] T010: Update Parser.tsx (no regression) ✅ Parser uses shared components, Storybook running
+
+### Phase 3.6: Polish & Validation
 
 ### T023 [P]: Add ParseError interface type definition and session persistence test
 **File**: `src/components/fragments/types.ts` (or add to existing types file)  

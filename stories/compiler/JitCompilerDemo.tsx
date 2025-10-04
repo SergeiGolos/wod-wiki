@@ -10,6 +10,9 @@ import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import type { ICodeStatement } from '../../src/CodeStatement';
 
+// Visual constants
+const COLUMN_INDENT_REM = 0.8;
+
 // Mock types for demonstration (replace with real types when available)
 export interface MockRuntimeBlock {
   displayName: string;
@@ -432,7 +435,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
 export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
     runtime: initialRuntime,
-    showFragments = false,
+    showFragments = true,
     showRuntimeStack = true,
     showMemory = true
 }) => {
@@ -640,7 +643,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
                       {statement.meta ? `[${statement.meta.columnStart} - ${statement.meta.columnEnd}]` : 'N/A'}
                     </td>
                     <td className="p-3">
-                      <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * 0.8}rem` : '0' }}>
+                      <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * COLUMN_INDENT_REM}rem` : '0' }}>
                         <FragmentVisualizer fragments={statement.fragments} />
                       </div>
                     </td>
