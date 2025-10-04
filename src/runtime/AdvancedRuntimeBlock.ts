@@ -1,8 +1,20 @@
 /**
  * AdvancedRuntimeBlock
  * 
+ * @deprecated This class is deprecated and will be removed in a future version.
+ * Use RuntimeBlock.withAdvancedBehaviors() instead for behavior-based composition.
+ * 
  * Enhanced runtime block with proper advancement tracking and lazy child compilation.
  * Implements the IAdvancedRuntimeBlock contract for just-in-time block creation.
+ * 
+ * Migration Guide:
+ * ```typescript
+ * // Old (deprecated):
+ * const block = new AdvancedRuntimeBlock(runtime, sourceId, children, parent);
+ * 
+ * // New (behavior-based):
+ * const block = RuntimeBlock.withAdvancedBehaviors(runtime, sourceId, children, parent);
+ * ```
  */
 
 import { BlockKey } from '../BlockKey';
@@ -15,6 +27,7 @@ import { NextAction } from './NextAction';
 
 /**
  * Enhanced runtime block supporting lazy child compilation and proper advancement.
+ * @deprecated Use RuntimeBlock.withAdvancedBehaviors() instead. This class will be removed in a future version.
  */
 export class AdvancedRuntimeBlock extends RuntimeBlock {
     private _currentChildIndex: number = 0;
@@ -60,6 +73,12 @@ export class AdvancedRuntimeBlock extends RuntimeBlock {
         this._children = children;
         this._parentContext = parentContext;
         this._isComplete = children.length === 0;
+        
+        // Deprecation warning
+        console.warn(
+            '⚠️  AdvancedRuntimeBlock is deprecated. Use RuntimeBlock.withAdvancedBehaviors() instead.\n' +
+            '   Migration: RuntimeBlock.withAdvancedBehaviors(runtime, sourceId, children, parentContext)'
+        );
         
         console.log(`🔧 AdvancedRuntimeBlock created: ${this.key.toString()}`);
         console.log(`  📊 Children count: ${children.length}`);
