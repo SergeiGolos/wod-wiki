@@ -8,7 +8,8 @@
       "Bash(.specify/scripts/powershell/setup-plan.ps1 -Json)",
       "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json)",
       "Bash(.specify/scripts/powershell/update-agent-context.ps1 -AgentType claude)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)"
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
     "ask": []

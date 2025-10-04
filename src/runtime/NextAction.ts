@@ -55,7 +55,7 @@ export class NextAction implements IRuntimeAction {
     }
 
     // Check for runtime errors
-    if (runtime.hasErrors && runtime.hasErrors()) {
+    if (runtime.hasErrors && typeof runtime.hasErrors === 'function' && runtime.hasErrors()) {
       return false;
     }
 

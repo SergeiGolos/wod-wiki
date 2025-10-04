@@ -59,7 +59,7 @@ export class NextEventHandler implements IEventHandler {
     }
 
     // Check for runtime errors
-    if (runtime.hasErrors && runtime.hasErrors()) {
+    if (runtime.hasErrors && typeof runtime.hasErrors === 'function' && runtime.hasErrors()) {
       return { isValid: false, shouldAbort: true };
     }
 

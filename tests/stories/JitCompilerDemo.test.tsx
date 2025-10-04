@@ -79,7 +79,7 @@ describe('JitCompilerDemo Next Button Handler', () => {
     fireEvent.click(nextButton);
 
     await waitFor(() => {
-      expect(stepVersion.textContent).be('1');
+      expect(stepVersion.textContent).toBe('1');
     });
   });
 
@@ -95,7 +95,7 @@ describe('JitCompilerDemo Next Button Handler', () => {
     fireEvent.click(nextButton);
 
     await waitFor(() => {
-      expect(stepVersion.textContent).be('3');
+      expect(stepVersion.textContent).toBe('3');
     });
   });
 
@@ -142,7 +142,7 @@ describe('JitCompilerDemo Next Button Handler', () => {
     fireEvent.click(nextButton);
 
     await waitFor(() => {
-      expect(runningState.textContent).be('idle');
+      expect(runningState.textContent).toBe('idle');
     });
   });
 
@@ -158,7 +158,7 @@ describe('JitCompilerDemo Next Button Handler', () => {
     }
 
     await waitFor(() => {
-      expect(stepVersion.textContent).be('10');
+      expect(stepVersion.textContent).toBe('10');
     });
   });
 
