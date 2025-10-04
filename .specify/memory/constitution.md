@@ -1,93 +1,68 @@
 <!--
-Sync Impact Report
-- Version change: N/A → 1.0.0
-- Modified principles: Initial adoption (all principles added)
-- Added sections: Core Principles; Quality Gates; Development Workflow; Governance
-- Removed sections: None
-- Templates requiring updates:
-	✅ .specify/templates/plan-template.md (footer version and path)
-	✅ .specify/templates/spec-template.md (reviewed - no changes needed)
-	✅ .specify/templates/tasks-template.md (reviewed - no changes needed)
-	✅ .specify/templates/agent-file-template.md (reviewed - no changes needed)
-- Follow-up TODOs: None
+Sync Impact Report:
+Version change: (unspecified) → 1.0.0
+Modified principles: N/A (new constitution)
+Added sections: All sections (new constitution)
+Removed sections: N/A (new constitution)
+Templates requiring updates: ✅ plan-template.md (aligned), ✅ spec-template.md (aligned), ✅ tasks-template.md (aligned)
+Follow-up TODOs: N/A
 -->
 
 # WOD Wiki Constitution
 
 ## Core Principles
 
-### I. Tests-First and Continuous Verification (NON-NEGOTIABLE)
-WOD Wiki MUST practice TDD. For any user-visible behavior or public API:
-- Write unit tests (Vitest) and/or interaction tests (Storybook test runner) that FAIL
-	before implementation.
-- Every PR MUST include tests covering new behavior and regression fixes.
-- Critical UI flows MUST have Storybook interaction tests; core language/runtime logic
-	MUST have deterministic unit and integration tests.
-Rationale: Prevent regressions in the workout language, editor, and runtime while
-enabling safe refactors.
+### I. Component-First Architecture
+Every feature MUST be developed as reusable React components; Components must be self-contained, independently testable, and documented using Storybook; Clear purpose required - no organizational-only components. Components MUST follow the library-first approach where functionality is encapsulated and exposed through well-defined interfaces.
 
-### II. Language-as-Contract (WodScript Stability)
-The WodScript grammar, tokens, and semantics define a contract with users:
-- Any breaking change to syntax or semantics REQUIRES a Major version and a documented
-	migration path.
-- Grammar and visitors MUST be documented and reflected in examples and Storybook.
-- Deprecations MUST be announced one Minor ahead, with tests demonstrating old and new
-	behaviors until removal.
-Rationale: Workout definitions are content users keep; stability preserves value.
+### II. Storybook-Driven Development
+Every component MUST be developed and validated in Storybook first; Component state variations MUST be captured as distinct stories; Interactive controls MUST be provided for all configurable props; Visual regression tests MUST pass before integration. Storybook serves as the primary development environment and component catalog.
 
-### III. Deterministic Runtime and Time Control
-Runtime execution MUST be deterministic and reproducible:
-- Inject clocks/timers; forbid implicit reliance on system time in logic.
-- No hidden global state; state transitions must be explicit and observable.
-- Event ordering MUST be well-defined; asynchronous behavior MUST preserve determinism
-	in outcomes.
-Rationale: Reliable results, predictable audio cues, and reproducible runs.
+### III. Parser-First Domain Logic (NON-NEGOTIABLE)
+All workout syntax features MUST start with parser implementation using Chevrotain; Token definitions MUST precede parser rules; Visitor patterns MUST transform parse trees to internal representations; Parser tests MUST fail before any runtime implementation. Red-Green-Refactor cycle strictly enforced for language features.
 
-### IV. Observability and Debuggability
-The system MUST be inspectable during development and usage:
-- Structured logging and traceable event IDs for key runtime transitions.
-- Developer-mode diagnostics in Storybook to visualize parser trees and runtime events.
-- Errors MUST be actionable: clear messages, context, and failing input excerpts.
-Rationale: Faster feedback loops and simpler issue reproduction.
+### IV. JIT Compiler Runtime
+Workout execution MUST use Just-In-Time compilation; Runtime blocks MUST follow constructor-based initialization and consumer-managed disposal patterns; Performance targets MUST be met (push/pop < 1ms, dispose() < 50ms); Memory management MUST be explicit with proper disposal patterns. Runtime stack operations are performance-critical and MUST be optimized.
 
-### V. API Surface, SemVer, and Simplicity
-Keep the public API small, composable, and versioned via SemVer:
-- Public modules and types MUST be explicitly exported and documented.
-- Breaking changes REQUIRE Major version; additive changes are Minor; fixes/wording are
-	Patch.
-- Prefer small, orthogonal features over complex all-in-ones (YAGNI, avoid incidental
-	complexity).
-Rationale: Stability for consumers and maintainable evolution.
+### V. Monaco Editor Integration
+Workout editing MUST use Monaco Editor with custom syntax highlighting; Semantic tokens MUST provide real-time feedback; Auto-completion MUST align with parser grammar; Error diagnostics MUST match parser error messages. Editor experience MUST feel native to the workout domain.
 
-## Quality Gates
+## Technology Standards
 
-The following gates MUST pass on every change:
-- Lint and Typecheck: No new TypeScript errors or ESLint critical issues.
-- Tests: Unit tests (Vitest) and Storybook interaction tests pass in CI.
-- Determinism: New runtime features include tests that assert deterministic outcomes.
-- Docs: Public API changes and language changes are reflected in README/Storybook
-	examples and, where relevant, migration notes.
+### Development Stack
+TypeScript is MANDATORY for all new code; React 18+ with functional components and hooks; Tailwind CSS for styling (no custom CSS unless absolutely necessary); Vitest for unit testing; Playwright for end-to-end testing; npm as package manager.
+
+### Performance Requirements
+All runtime operations MUST meet strict performance targets; JIT compilation MUST complete within milliseconds for typical workout scripts; Memory leaks MUST be prevented through proper disposal patterns; UI interactions MUST remain responsive (<100ms perceived latency).
+
+### Code Quality
+TypeScript strict mode MUST be enabled; All public APIs MUST have comprehensive TypeScript interfaces; Components MUST be fully typed including props and state; Error handling MUST be robust with meaningful error messages.
 
 ## Development Workflow
 
-Use the `.specify` templates to plan and track work:
-- Spec first: Use `spec-template.md` to produce clear, testable requirements.
-- Plan: Use `plan-template.md` and perform a Constitution Check; if violations are
-	necessary, document them under Complexity Tracking.
-- Tasks: Generate `tasks.md` from the plan; follow TDD ordering (tests must fail before
-	implementation).
-- Reviews: PRs MUST justify any Constitution deviations and include tests and docs.
+### Feature Development Process
+1. Parser development first (tokens → rules → visitor)
+2. Storybook component development with comprehensive stories
+3. JIT compiler runtime implementation following performance patterns
+4. Integration testing with real workout scenarios
+5. Documentation updates in docs/ directory
+
+### Quality Gates
+All Storybook builds MUST complete successfully; Unit tests MUST pass with no regressions; Integration tests MUST validate end-to-end workout execution; Performance tests MUST verify runtime targets; Documentation MUST be updated and links validated.
+
+### Code Review Requirements
+All pull requests MUST review compliance with constitutional principles; TypeScript errors related to changes MUST be fixed; Performance-critical code MUST be validated against targets; Parser changes MUST include corresponding test updates; Component changes MUST include Storybook updates.
 
 ## Governance
 
-This Constitution supersedes other ad-hoc practices where in conflict.
-- Amendment procedure: Open a PR labeled "governance" with a rationale, version bump
-	proposal (SemVer), and migration/communication plan.
-- Versioning policy (for this document):
-	- MAJOR: Backward-incompatible governance or principle redefinitions/removals.
-	- MINOR: New principle/section or materially expanded guidance.
-	- PATCH: Clarifications/wording/typos with no semantic change.
-- Compliance review: During planning and PR review, run the Constitution Check and
-	document outcomes. Violations MUST be justified or resolved before merge.
+This constitution supersedes all other development practices and guidelines. Amendments require documentation, approval, and migration plan. All development decisions MUST be traceable to constitutional principles. Templates and automation tools MUST be updated to reflect constitutional requirements.
 
-**Version**: 1.0.0 | **Ratified**: 2025-09-22 | **Last Amended**: 2025-09-22
+**Compliance Review**: Every pull request and feature implementation MUST verify constitutional compliance. Complexity deviations MUST be explicitly justified in Complexity Tracking sections. Templates (.specify/templates/) MUST align with constitutional principles.
+
+**Amendment Process**:
+1. Proposal with clear rationale and impact analysis
+2. Template consistency review and updates
+3. Version increment following semantic versioning
+4. Migration plan for existing code and documentation
+
+**Version**: 1.0.0 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-03
