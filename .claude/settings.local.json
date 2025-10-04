@@ -3,10 +3,7 @@
     "allow": [
       "Bash(gh api:*)",
       "Bash(npm run test:unit:*)",
-      "Bash(.specify/scripts/powershell/create-new-feature.ps1 -Json *)",
-      "Bash(.specify/scripts/powershell/setup-plan.ps1 -Json *)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json *)",
-      "Bash(.specify/scripts/powershell/update-agent-context.ps1 -AgentType *)",
+      "Bash(.specify/scripts/powershell*)",
       "Bash(gh pr view:*)",
       "WebFetch(domain:github.com)"
     ],
