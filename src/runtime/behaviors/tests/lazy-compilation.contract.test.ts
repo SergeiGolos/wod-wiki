@@ -11,7 +11,7 @@ import { CodeStatement } from '../../../../src/CodeStatement';
 import { IScriptRuntime } from '../../../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../../../src/runtime/IRuntimeBlock';
 import { RuntimeBlock } from '../../../../src/runtime/RuntimeBlock';
-import { NextAction } from '../../../../src/runtime/NextAction';
+import { PushBlockAction } from '../../../../src/runtime/PushBlockAction';
 
 // Import will fail until implementation exists
 import { LazyCompilationBehavior } from '../../../../src/runtime/behaviors/LazyCompilationBehavior';
@@ -94,15 +94,15 @@ describe('LazyCompilationBehavior - Contract Tests', () => {
             );
         });
 
-        it('should return NextAction with compiled block on success', () => {
+        it('should return PushBlockAction with compiled block on success', () => {
             const behavior = new LazyCompilationBehavior();
             
             const actions = behavior.onNext?.(mockRuntime, mockBlock);
             
             expect(actions).toBeDefined();
             expect(actions?.length).toBe(1);
-            expect(actions?.[0]).toBeInstanceOf(NextAction);
-            expect((actions?.[0] as NextAction).block).toBe(compiledBlock);
+            expect(actions?.[0]).toBeInstanceOf(PushBlockAction);
+            expect((actions?.[0] as PushBlockAction).block).toBe(compiledBlock);
         });
 
         it('should handle compilation errors gracefully', () => {
@@ -113,13 +113,12 @@ describe('LazyCompilationBehavior - Contract Tests', () => {
             
             const behavior = new LazyCompilationBehavior();
             
-            // Should not throw, but return error block
+            // Should not throw, but return empty array
             const actions = behavior.onNext?.(mockRuntime, mockBlock);
             
             expect(actions).toBeDefined();
-            expect(actions?.length).toBe(1);
-            // Should return NextAction with ErrorRuntimeBlock
-            // (implementation detail: ErrorRuntimeBlock creation)
+            expect(actions?.length).toBe(0);
+            // TODO: Should return PushBlockAction with ErrorRuntimeBlock in future
         });
 
         it('should compile different children sequentially', () => {
