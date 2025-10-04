@@ -261,39 +261,36 @@ Single project structure (from plan.md):
 
 ## Phase 3.6: Migration & Cleanup
 
-- [ ] **T028** Create behavior factory helper in `src/runtime/RuntimeBlock.ts`
+- [x] **T028** Create behavior factory helper in `src/runtime/RuntimeBlock.ts`
   - **Purpose**: Provide convenient factory method for common behavior combinations
   - **Implementation**:
     - Static method `RuntimeBlock.withAdvancedBehaviors(runtime, sourceId, children, parentContext?)`
     - Returns RuntimeBlock with full behavior stack (all 4 behaviors)
     - Document in JSDoc comments
-  - **Validation**: Factory method works in tests
-  - **File**: `src/runtime/RuntimeBlock.ts` (add static method)
+  - **Validation**: Factory method works in tests ✅
+  - **File**: `src/runtime/RuntimeBlock.ts` ✅ IMPLEMENTED
   
-- [ ] **T029** Search and identify all AdvancedRuntimeBlock usage
+- [x] **T029** Search and identify all AdvancedRuntimeBlock usage
   - **Purpose**: Find all locations using AdvancedRuntimeBlock for migration
   - **Command**: `grep -r "AdvancedRuntimeBlock" src/ tests/ stories/`
-  - **Output**: List of files and line numbers
-  - **Validation**: Complete list of usage locations documented
+  - **Output**: ✅ No usage found outside AdvancedRuntimeBlock.ts itself
+  - **Validation**: Complete list of usage locations documented ✅
   
-- [ ] **T030** Replace AdvancedRuntimeBlock usage with behavior-based composition
+- [x] **T030** Replace AdvancedRuntimeBlock usage with behavior-based composition
   - **Purpose**: Migrate all usage to new behavior pattern
-  - **Implementation**: For each location from T029:
-    - Replace `new AdvancedRuntimeBlock(...)` with behavior composition
-    - Use factory helper `RuntimeBlock.withAdvancedBehaviors(...)` where appropriate
-    - Update tests to use behavior-based approach
-  - **Validation**: All migrated code passes existing tests, zero behavioral changes
-  - **Required**: T029 complete
+  - **Implementation**: ✅ N/A - No usages to migrate
+  - **Validation**: All migrated code passes existing tests, zero behavioral changes ✅
+  - **Required**: T029 complete ✅
   
-- [ ] **T031** Add deprecation warnings to AdvancedRuntimeBlock
+- [x] **T031** Add deprecation warnings to AdvancedRuntimeBlock
   - **Purpose**: Mark AdvancedRuntimeBlock as deprecated
   - **Implementation**:
-    - Add `@deprecated` JSDoc comment to class
-    - Add console.warn() in constructor with migration guidance
-    - Update TypeScript declarations
-  - **Validation**: Deprecation warnings appear when used
-  - **Files**: `src/runtime/AdvancedRuntimeBlock.ts`, `src/runtime/IAdvancedRuntimeBlock.ts`
-  - **Required**: T030 complete
+    - Add `@deprecated` JSDoc comment to class ✅
+    - Add console.warn() in constructor with migration guidance ✅
+    - Update TypeScript declarations ✅
+  - **Validation**: Deprecation warnings appear when used ✅
+  - **Files**: `src/runtime/AdvancedRuntimeBlock.ts` ✅
+  - **Required**: T030 complete ✅
   
 - [ ] **T032** Remove AdvancedRuntimeBlock and IAdvancedRuntimeBlock
   - **Purpose**: Delete deprecated classes after migration complete
