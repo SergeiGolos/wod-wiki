@@ -91,12 +91,12 @@ As a runtime system developer, I need to compose runtime blocks with different c
 - **FR-002**: System MUST execute behaviors in deterministic order during lifecycle events (push/next/pop)
 - **FR-003**: System MUST allow behaviors to maintain instance state across multiple lifecycle calls using RuntimeBlock allocated memory references with get/set methods for shared state
 - **FR-004**: System MUST provide behaviors with full runtime and block context during execution
+- **FR-005**: System MUST allow behaviors to coordinate through shared RuntimeBlock memory references and context access
 
 **Sequential Child Advancement**
-- **FR-005**: System MUST provide a behavior that tracks position within a child statement array
-- **FR-006**: System MUST advance through children sequentially, one per next() call
-- **FR-007**: System MUST provide read-only access to current child index and children array
-- **FR-008**: System MUST skip children that fail compilation and continue to the next child (REMOVED - replaced with ErrorRuntimeBlock requirement)
+- **FR-006**: System MUST provide a behavior that tracks position within a child statement array
+- **FR-007**: System MUST advance through children sequentially, one per next() call
+- **FR-008**: System MUST provide read-only access to current child index and children array
 
 **Lazy JIT Compilation**
 - **FR-009**: System MUST provide a behavior that compiles child statements on-demand
@@ -126,12 +126,14 @@ As a runtime system developer, I need to compose runtime blocks with different c
 - **FR-025**: System MUST pass all existing AdvancedRuntimeBlock contract tests when using behavior composition
 - **FR-026**: System MUST allow removal of AdvancedRuntimeBlock class and IAdvancedRuntimeBlock interface after migration
 - **FR-027**: System MUST provide direct replacement with deprecation warnings but no compatibility layer
+- **FR-033**: System MUST provide factory helper method for convenient behavior composition with all 4 behaviors
 
 **Testing & Validation**
 - **FR-028**: System MUST provide unit tests for each individual behavior in isolation
 - **FR-029**: System MUST provide integration tests for behavior composition scenarios
 - **FR-030**: System MUST provide performance benchmarks validating execution time requirements
 - **FR-031**: System MUST provide contract tests matching AdvancedRuntimeBlock specifications
+- **FR-032**: System MUST support optional compilation caching in LazyCompilationBehavior for performance optimization
 
 ### Non-Functional Requirements
 

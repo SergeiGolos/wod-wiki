@@ -59,10 +59,12 @@ Remove the `AdvancedRuntimeBlock` inheritance hierarchy and reimagine its advanc
 - Interactive controls for testing behavior configurations
 - Runtime stories updated to show behavior-based blocks
 
-### III. Parser-First Domain Logic ✅ (N/A for this feature)
-- This feature does not add new workout syntax
-- Parser system remains unchanged (out of scope)
-- Focus is on runtime execution architecture
+### III. Parser-First Domain Logic ✅ (Constitutional Exception Justified)
+- **Exception Justification**: This feature is a pure runtime architecture refactoring that consolidates existing functionality without introducing new workout language features
+- **No New Syntax**: AdvancedRuntimeBlock behaviors already exist; this feature only changes implementation approach from inheritance to composition
+- **Parser System Unchanged**: All Chevrotain parser components, tokens, and visitor patterns remain exactly as they are
+- **Constitutional Alignment**: This refactoring enhances maintainability of existing runtime system while preserving all current parsing behavior
+- **Future Parser Features**: Any new syntax additions would still follow Parser-First Domain Logic principle as required
 
 ### IV. JIT Compiler Runtime ✅
 - Behaviors integrate with existing JIT compiler
