@@ -8,7 +8,8 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/CodeMetadata';
 import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
-import type { ICodeStatement } from '../../src/CodeStatement';
+import { NextEvent } from '../../src/runtime/NextEvent';
+import { NextEventHandler } from '../../src/runtime/NextEventHandler';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -445,6 +446,9 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const [highlightedLine, setHighlightedLine] = useState<number>();
   // Used to force a re-render after mutating the runtime in-place
   const [, setStepVersion] = useState(0);
+  // State for button management
+  const [isProcessingNext, setIsProcessingNext] = useState(false);
+  const [nextClickQueue, setNextClickQueue] = useState(0);
   
   // Create a runtime if one wasn't provided
   const createRuntime = (scriptText: string): ScriptRuntime => {
@@ -465,13 +469,21 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
     const jitCompiler = new JitCompiler([]);
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
-    
+
+    // Register Next event handler
+    const nextHandler = new NextEventHandler('jit-compiler-demo-next-handler');
+    runtime.memory.allocate('handler', nextHandler.id, {
+      name: nextHandler.name,
+      handler: nextHandler.handler.bind(nextHandler)
+    });
+    console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
+
     // Initialize with the root block
     console.log(`🌱 Creating and pushing root block to stack`);
     const rootBlock = new RuntimeBlock(runtime);
     runtime.stack.push(rootBlock);
     console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
-    
+
     return runtime;
   };
 
@@ -501,10 +513,65 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   };
 
   const handleNextBlock = () => {
-    // Execute one step on the existing runtime instance
-    // runtime.handle(new NextEvent());
-    // Force a re-render without reconstructing the runtime (preserves memory/state)
-    setStepVersion(v => v + 1);
+    if (!runtime) {
+      console.warn('No runtime available for Next button action');
+      return;
+    }
+
+    // Handle rapid clicks by queuing them
+    if (isProcessingNext) {
+      setNextClickQueue(prev => prev + 1);
+      console.log(`Next click queued. Queue size: ${nextClickQueue + 1}`);
+      return;
+    }
+
+    setIsProcessingNext(true);
+
+    try {
+      // Check if script has already completed
+      if (!runtime.stack.current) {
+        console.log('Script has already completed - no current block to advance');
+        setIsProcessingNext(false);
+        return;
+      }
+
+      // Create and handle the NextEvent using our new event system
+      const nextEvent = new NextEvent({
+        source: 'ui-button',
+        timestamp: Date.now(),
+        queuePosition: nextClickQueue,
+        isCompleted: false
+      });
+      runtime.handle(nextEvent);
+
+      // Force a re-render to update the UI
+      setStepVersion(v => v + 1);
+
+      // Check for script completion after advancement
+      setTimeout(() => {
+        if (!runtime.stack.current) {
+          console.log('🎉 Script execution completed!');
+          // You could add completion state here if needed
+        }
+      }, 0);
+
+      console.log('Next button executed successfully');
+    } catch (error) {
+      console.error('Error handling Next button click:', error);
+      // Still force re-render even on error to show any error state
+      setStepVersion(v => v + 1);
+    } finally {
+      setIsProcessingNext(false);
+
+      // Process queued clicks if any
+      if (nextClickQueue > 0) {
+        setNextClickQueue(prev => prev - 1);
+        // Use setTimeout to allow UI to update between rapid clicks
+        setTimeout(() => {
+          handleNextBlock();
+        }, 10);
+      }
+    }
   };
 
   // Parse script into lines for line number mapping
@@ -581,12 +648,47 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
           >
             🔄 Reset
           </button>
-          <button
-            className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+          {(() => {
+            const isScriptCompleted = !runtime?.stack?.current;
+            const hasRuntimeErrors = runtime?.hasErrors && runtime.hasErrors();
+
+            return (
+              <button
+            className={`px-3 py-2 rounded text-sm transition-colors ${
+              isProcessingNext
+                ? 'bg-yellow-600 text-white cursor-not-allowed'
+                : isScriptCompleted
+                ? 'bg-gray-600 text-white cursor-not-allowed'
+                : hasRuntimeErrors
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
             onClick={handleNextBlock}
+            disabled={isProcessingNext || isScriptCompleted}
+            type="button"
+            title={
+              isProcessingNext
+                ? 'Processing...'
+                : isScriptCompleted
+                ? 'Script completed - no more blocks to advance'
+                : hasRuntimeErrors
+                ? 'Runtime has errors'
+                : 'Advance to next block'
+            }
           >
-            ▶️ Next Block
-          </button>
+            {isProcessingNext ? '⏳ Processing...' : isScriptCompleted ? '✅ Completed' : (
+              <>
+                ▶️ Next Block
+                {nextClickQueue > 0 && (
+                  <span className="ml-1 px-1 py-0.5 bg-white bg-opacity-20 rounded text-xs">
+                    +{nextClickQueue}
+                  </span>
+                )}
+              </>
+            )}
+              </button>
+            );
+          })()}
         </div>
       </div>
 
