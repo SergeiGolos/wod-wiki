@@ -1,58 +1,9 @@
 import { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
-import { ICodeFragment } from '../../src/CodeFragment';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { IScript } from '../../src/WodScript';
-
-const getFragmentColorClasses = (type: string) => {
-    const colorMap: { [key: string]: string } = {
-        'timer': 'bg-blue-100 border-blue-200 text-blue-800',
-        'rep': 'bg-green-100 border-green-200 text-green-800',
-        'effort': 'bg-yellow-100 border-yellow-200 text-yellow-800',
-        'distance': 'bg-teal-100 border-teal-200 text-teal-800',
-        'rounds': 'bg-purple-100 border-purple-200 text-purple-800',
-        'action': 'bg-pink-100 border-pink-200 text-pink-800',
-        'increment': 'bg-indigo-100 border-indigo-200 text-indigo-800',
-        'lap': 'bg-orange-100 border-orange-200 text-orange-800',
-        'text': 'bg-gray-100 border-gray-200 text-gray-800',
-        'resistance': 'bg-red-100 border-red-200 text-red-800',
-    };
-    return colorMap[type.toLowerCase()] || 'bg-gray-200 border-gray-300 text-gray-800';
-};
-
-const FragmentVisualizer = ({ fragments }: { fragments: ICodeFragment[] }) => {
-    const groupedFragments = fragments.reduce((acc, fragment) => {
-        const type = fragment.type || 'unknown';
-        if (!acc[type]) {
-            acc[type] = [];
-        }
-        acc[type].push(fragment);
-        return acc;
-    }, {} as Record<string, ICodeFragment[]>);
-
-    return (
-        <div className="flex flex-wrap gap-2">
-            {Object.entries(groupedFragments).map(([type, frags]) => (
-                <div key={type} className={`border rounded-lg p-2 ${getFragmentColorClasses(type)}`}>
-                    <strong className="block mb-1 text-center text-xs font-bold uppercase tracking-wider">
-                        {type}
-                    </strong>
-                    <div className="flex flex-col gap-1">
-                        {frags.map((fragment, index) => (
-                            <div
-                                key={index}
-                                className="bg-white bg-opacity-60 px-2 py-1 rounded-md font-mono text-sm shadow-sm"
-                                title={JSON.stringify(fragment.value, null, 2)}>
-                                {fragment.image || (typeof fragment.value === 'object' ? JSON.stringify(fragment.value) : String(fragment.value))}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
+import { FragmentVisualizer } from '../../src/components/fragments';
 
 const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
     const lineNumber = statement.meta?.line ?? 'N/A';

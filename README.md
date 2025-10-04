@@ -13,7 +13,8 @@ WOD Wiki has a mature foundation for parsing workout scripts and a set of core e
     *   **UI/UX:** Refined results display, responsive layouts, and editor syntax highlighting.
 *   **JIT (Just-In-Time) Compiler Architecture:**
     *   The architectural design is established, including phases for Fragment Compilation, Metric Inheritance, Block Creation, and Stack Execution.
-    *   A Storybook demonstration ([stories/runtime/JitCompiler.stories.tsx](stories/runtime/JitCompiler.stories.tsx)) showcases this using mock components.
+    *   An enhanced Storybook demonstration ([stories/compiler/JitCompiler.stories.tsx](stories/compiler/JitCompiler.stories.tsx)) showcases real-time visualization of compilation, runtime stack, and memory allocation.
+    *   Shared fragment visualization components ([src/components/fragments/](src/components/fragments/)) provide reusable UI for parsing and displaying workout script fragments.
 *   **Metric Inheritance System:**
     *   The core system for metric inheritance (allowing parent blocks to influence child metrics) is implemented and tested.
     *   Includes `IMetricInheritance` interface, `MetricComposer`, `RuntimeMetric` types, and example patterns.
@@ -54,6 +55,8 @@ x:/wod-wiki
 ├── src/
 │   ├── cast/            # Casting utilities or logic
 │   ├── clock/           # Timer/clock components and logic
+│   ├── components/      # Shared React components
+│   │   └── fragments/   # Fragment visualization components (FragmentVisualizer, fragmentColorMap)
 │   ├── editor/          # Editor-specific components and logic
 │   ├── fragments/       # Parsed statement fragment types
 │   ├── core/            # Core logic (parser, runtime, services, utils) - Note: some elements like parser & runtime are further detailed

@@ -7,6 +7,8 @@ import { JitCompiler } from '../../src/runtime/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/CodeMetadata';
 import { RuntimeBlock } from '@/runtime/RuntimeBlock';
+import { FragmentVisualizer } from '../../src/components/fragments';
+import type { ICodeStatement } from '../../src/CodeStatement';
 
 // Mock types for demonstration (replace with real types when available)
 export interface MockRuntimeBlock {
@@ -375,6 +377,9 @@ function formatMemoryValue(type: string, value: any): string {
 export interface JitCompilerDemoProps {
   initialScript?: string;
   runtime?: ScriptRuntime;
+  showFragments?: boolean;
+  showRuntimeStack?: boolean;
+  showMemory?: boolean;
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
@@ -426,7 +431,10 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
 
 export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
-    runtime: initialRuntime
+    runtime: initialRuntime,
+    showFragments = false,
+    showRuntimeStack = true,
+    showMemory = true
 }) => {
   const [script, setScript] = useState(initialScript);
   const [hoveredBlockKey, setHoveredBlockKey] = useState<string>();
@@ -551,71 +559,128 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     }
   })();
 
+  // Extract statements for fragment visualization
+  const statements = runtime?.script?.statements || [];
+  
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <h2 className="text-xl font-bold mb-4">Stack & Memory Visualization Debug Harness</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Left column: Editor on top, Stack below */}
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">
-              📝 Workout Script Editor
-            </label>
-            <ScriptEditor 
-              value={script} 
-              onChange={setScript}
-              highlightedLine={highlightedLine}
-            />
-            <div className="flex gap-2 mt-3">
-              <button 
-                className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors" 
-                onClick={handleNextBlock}
-              >
-                ▶️ Next Block
-              </button>
-            </div>
-            {highlightedLine && (
-              <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                💡 Highlighting line {highlightedLine}
-              </div>
-            )}
-          </div>
+      <div className="flex justify-between items-start mb-4">
+        <h2 className="text-xl font-bold">Stack & Memory Visualization Debug Harness</h2>
+        <div className="flex gap-2">
+          <button
+            className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+            onClick={() => {
+              setScript(initialScript);
+              setHighlightedLine(undefined);
+              setHoveredBlockKey(undefined);
+              setHoveredMemoryBlockKey(undefined);
+            }}
+          >
+            🔄 Reset
+          </button>
+          <button
+            className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+            onClick={handleNextBlock}
+          >
+            ▶️ Next Block
+          </button>
+        </div>
+      </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">
-              📚 Runtime Stack (Execution)
-            </label>
-            <CompactRuntimeStackVisualizer 
-              stack={stack}
-              hoveredMemoryBlockKey={hoveredMemoryBlockKey}
-              onBlockHover={handleBlockHover}
-            />
+      {/* 1. Workout Script Editor */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold mb-2 text-gray-700">
+          📝 Workout Script Editor
+        </label>
+        <ScriptEditor
+          value={script}
+          onChange={setScript}
+          highlightedLine={highlightedLine}
+        />
+        {highlightedLine && (
+          <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+            💡 Highlighting line {highlightedLine}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Runtime Clock Placeholder */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold mb-2 text-gray-700">
+          ⏰ Runtime Clock
+        </label>
+        <div className="bg-gray-100 border rounded-lg p-8 text-center text-gray-500">
+          <div className="text-sm">Runtime clock placeholder</div>
+          <div className="text-xs mt-2">Timer display will be implemented here</div>
+        </div>
+      </div>
+
+      {/* 3. Fragment Breakdown */}
+      {showFragments && statements.length > 0 && (
+        <div className="mb-6">
+          <label className="block text-sm font-semibold mb-2 text-gray-700">
+            🔍 Fragments Breakdown
+          </label>
+          <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md">
+            <table className="w-full border-collapse bg-white">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Line</th>
+                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Position</th>
+                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fragments Breakdown</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {statements.map((statement, index) => (
+                  <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                    <td className="p-3 align-top text-sm text-gray-500 w-16">
+                      {statement.meta?.line ?? 'N/A'}
+                    </td>
+                    <td className="p-3 align-top text-sm text-gray-500 w-24">
+                      {statement.meta ? `[${statement.meta.columnStart} - ${statement.meta.columnEnd}]` : 'N/A'}
+                    </td>
+                    <td className="p-3">
+                      <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * 0.8}rem` : '0' }}>
+                        <FragmentVisualizer fragments={statement.fragments} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
 
-        {/* Right column: Memory next to both editor and stack */}
-        <div>
+      {/* 4. Runtime Stack */}
+      {showRuntimeStack && (
+        <div className="mb-6">
+          <label className="block text-sm font-semibold mb-2 text-gray-700">
+            📚 Runtime Stack (Execution)
+          </label>
+          <CompactRuntimeStackVisualizer
+            stack={stack}
+            hoveredMemoryBlockKey={hoveredMemoryBlockKey}
+            onBlockHover={handleBlockHover}
+          />
+        </div>
+      )}
+
+      {/* 5. Memory Space */}
+      {showMemory && (
+        <div className="mb-6">
           <label className="block text-sm font-semibold mb-2 text-gray-700">
             🧠 Memory Space (Allocation)
           </label>
-          <GroupedMemoryVisualization 
+          <GroupedMemoryVisualization
             snapshot={memorySnapshot}
             hoveredBlockKey={hoveredBlockKey}
             onMemoryHover={handleMemoryHover}
           />
         </div>
-      </div>
+      )}
 
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h3 className="text-sm font-semibold text-blue-800 mb-2">💡 Debug Harness Features</h3>
-        <ul className="text-xs text-blue-700 space-y-1">
-          <li>• <strong>Hover on Stack blocks</strong> → highlights associated memory & source line</li>
-          <li>• <strong>Hover on Memory entries</strong> → highlights owning runtime block</li>
-          <li>• <strong>Monaco Editor</strong> shows highlighted line when hovering blocks</li>
-          <li>• <strong>Visual separation</strong> between execution state (stack) and data state (memory)</li>
-        </ul>
       </div>
-    </div>
   );
 };
 
