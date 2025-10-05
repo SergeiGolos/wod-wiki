@@ -9,15 +9,17 @@ import { RuntimeBlock } from "./RuntimeBlock";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
+ * This is the fallback strategy that always matches.
  */
 export class EffortStrategy implements IRuntimeBlockStrategy {
-    match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean {
-        return false;
+    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+        // This is the default/fallback strategy - always returns true
+        return true;
     }
-    compile(code: ICodeStatement[], _runtime: IScriptRuntime): IRuntimeBlock | undefined {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         // This is the default, so it always returns a block.
-        console.log(`  🧠 EffortStrategy considering code:`, code);
-        return new RuntimeBlock(new BlockKey('effort'), code);
+        console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
+        return new RuntimeBlock(runtime, code[0]?.id ? [code[0].id] : [], []);
     }
 }
 

@@ -10,6 +10,10 @@ import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
+import { EffortStrategy } from '../../src/runtime/strategies';
+import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
+import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
+import { CodeStatement } from '../../src/CodeStatement';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -475,7 +479,6 @@ function formatMemoryValue(type: string, value: any): string {
 export interface JitCompilerDemoProps {
   initialScript?: string;
   runtime?: ScriptRuntime;
-  showFragments?: boolean;
   showRuntimeStack?: boolean;
   showMemory?: boolean;
 }
@@ -530,7 +533,6 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
 export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
     runtime: initialRuntime,
-    showFragments = true,
     showRuntimeStack = true,
     showMemory = true
 }) => {
@@ -548,20 +550,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const createRuntime = (scriptText: string): ScriptRuntime => {
     const mdRuntime = new MdTimerRuntime();
     const wodScript = mdRuntime.read(scriptText) as WodScript;    
-    // const strategyManager = new RuntimeJitStrategies()
-    //   // Add strategies in order of precedence (most specific to most general)
-    //   .addStrategy(new CountdownRoundsStrategy())
-    //   .addStrategy(new TimeBoundedRoundsStrategy())
-    //   .addStrategy(new CountdownStrategy())
-    //   .addStrategy(new TimerStrategy())
-    //   .addStrategy(new TimeBoundStrategy()) 
-    //   .addStrategy(new RoundsStrategy()) // Repeating rounds
-    //   .addStrategy(new EffortStrategy()); // Fallback strategy
-      
-    // Don't override console.log - it causes infinite recursion
-    // Just use the standard console.log
-
+    
+    // Create JIT compiler and register strategies
     const jitCompiler = new JitCompiler([]);
+    // Register EffortStrategy as the fallback strategy
+    jitCompiler.registerStrategy(new EffortStrategy());
+    console.log(`📝 Registered EffortStrategy with JIT compiler`);
+    
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
 
     // Register Next event handler
@@ -572,11 +567,18 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     });
     console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
 
-    // Initialize with the root block
-    console.log(`🌱 Creating and pushing root block to stack`);
-    const rootBlock = new RuntimeBlock(runtime);
+    // Initialize with the root block that has child statements and behaviors
+    console.log(`🌱 Creating root block with ${wodScript.statements.length} child statements`);
+    
+    // Create behaviors for the root block
+    const childBehavior = new ChildAdvancementBehavior(wodScript.statements as CodeStatement[]);
+    const lazyCompilationBehavior = new LazyCompilationBehavior(false);
+    const behaviors = [childBehavior, lazyCompilationBehavior];
+    
+    // Create root block with script statements as children and behaviors
+    const rootBlock = new RuntimeBlock(runtime, [], behaviors);
     runtime.stack.push(rootBlock);
-    console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
+    console.log(`  ✅ Root block pushed with ${behaviors.length} behaviors, stack depth: ${runtime.stack.blocks.length}`);
 
     return runtime;
   };
@@ -808,8 +810,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
           </div>
         </div>
 
-        {/* Right: Parsed Workout / Fragment Breakdown */}               
-          {showFragments && statements.length > 0 ? (        
+        {/* Right: Parsed Workout / Fragment Breakdown */}
+          {statements.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <table className="w-full border-collapse bg-white">
                   <thead className="bg-gray-50">
@@ -837,7 +839,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
                     ))}
                   </tbody>
                 </table>
-              </div>            
+              </div>
           ) : (
             <div className="p-4 text-center text-gray-500">
               <p className="text-sm">No workout parsed yet</p>
