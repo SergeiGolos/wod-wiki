@@ -250,8 +250,8 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
   });
   
   test('large stack operations maintain performance', () => {
-    // Arrange
-    const LARGE_STACK_SIZE = 1000;
+    // Arrange - max stack depth is 10
+    const LARGE_STACK_SIZE = 10;
     const blocks: TestRuntimeBlock[] = [];
     
     // Create large number of blocks

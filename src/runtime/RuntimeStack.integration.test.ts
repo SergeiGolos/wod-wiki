@@ -367,9 +367,9 @@ describe('RuntimeStack Nested Block Lifecycle Integration', () => {
   });
   
   test('Performance: Nested lifecycle operations MUST meet timing requirements', () => {
-    // Arrange - Create deep nesting (typical workout depth 5-20)
+    // Arrange - Max stack depth is 10
     const blocks: LifecycleTrackingBlock[] = [];
-    const DEPTH = 15;
+    const DEPTH = 10;
     
     // Build nested structure
     const buildStart = Date.now();

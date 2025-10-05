@@ -318,9 +318,9 @@ describe('RuntimeStack.graph() Contract Tests', () => {
   });
   
   test('Performance: MUST complete in reasonable time for typical stack depths', () => {
-    // Arrange - Create typical workout stack depth (5-20 blocks)
+    // Arrange - Max stack depth is 10
     const blocks: MockRuntimeBlock[] = [];
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 10; i++) {
       const block = new MockRuntimeBlock(new BlockKey(`block-${i}`));
       blocks.push(block);
       stack.push(block);

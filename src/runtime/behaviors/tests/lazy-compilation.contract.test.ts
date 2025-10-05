@@ -10,7 +10,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CodeStatement } from '../../../../src/CodeStatement';
 import { IScriptRuntime } from '../../../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../../../src/runtime/IRuntimeBlock';
-import { RuntimeBlock } from '../../../../src/runtime/RuntimeBlock';
 import { PushBlockAction } from '../../../../src/runtime/PushBlockAction';
 
 // Import will fail until implementation exists
