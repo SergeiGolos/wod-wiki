@@ -26,7 +26,7 @@ This document provides comprehensive analysis of the WOD Wiki JIT (Just-In-Time)
 ```mermaid
 flowchart TB
     Start([User Script Text]) --> Parse[Parser: WodScript]
-    Parse --> CS[CodeStatement[]]
+    Parse --> CS["CodeStatement[]"]
 
     CS --> Entry{Entry Point}
     
@@ -322,7 +322,7 @@ flowchart TB
     HasCompiler -->|Yes| CallCompile[compiler.compile]
     HasCompiler -->|No| Skip[Skip fragment]
     
-    CallCompile --> MetricValues[Generate MetricValue[]]
+    CallCompile --> MetricValues["Generate MetricValue[]"]
     MetricValues --> Aggregate[Aggregate all values]
     
     Skip --> LoopFrags
@@ -384,7 +384,7 @@ graph LR
     MV2 --> Agg
     MV3 --> Agg
     
-    Agg --> Final[sourceId: '3'<br/>effort: 'Run'<br/>values: MetricValue[]]
+    Agg --> Final[sourceId: '3'<br/>effort: 'Run'<br/>values: "MetricValue[]"]
     
     style Agg fill:#ffcccc
 ```
@@ -690,7 +690,7 @@ graph TB
         ARB_Children[_children array]
         ARB_Parent[_parentContext]
         ARB_Complete[_isComplete]
-        ARB_Next[next() logic]
+        ARB_Next["next() logic"]
     end
     
     subgraph "Behavior Composition (Current)"
@@ -970,7 +970,7 @@ class TimeBoundedLoopingBlock extends RuntimeBlock {
 
 ```mermaid
 flowchart TB
-    Start([CodeStatement with children]) --> ChildIDs[children: number[][]]
+    Start(["CodeStatement with children"]) --> ChildIDs["children: number[][]"]
     
     ChildIDs --> Need{Need actual<br/>CodeStatements}
     
@@ -979,12 +979,12 @@ flowchart TB
     
     Manual --> LookupLoop[Loop through IDs]
     LookupLoop --> ScriptSearch[Search in WodScript]
-    ScriptSearch --> BuildArray[Build CodeStatement[]]
+    ScriptSearch --> BuildArray["Build CodeStatement[]"]
     
     Direct --> Cached[Pre-resolved children]
     Cached --> Immediate[Immediate access]
     
-    BuildArray --> End([CodeStatement[]])
+    BuildArray --> End(["CodeStatement[]"])
     Immediate --> End
     
     style Manual fill:#ffcccc
@@ -1247,7 +1247,7 @@ graph TB
 
 ```mermaid
 flowchart TB
-    Start([CodeStatement[]]) --> ExtractFrags[Extract All Fragments]
+    Start(["CodeStatement[]"]) --> ExtractFrags[Extract All Fragments]
     ExtractFrags --> CompileFrags[Compile to RuntimeMetrics]
     
     CompileFrags --> HasRounds{Has rounds > 1?}
@@ -1263,7 +1263,7 @@ flowchart TB
     CheckTimer2 -->|No| HasReps{Has reps?}
     
     HasReps -->|Yes| Rep_Block[RepetitionBlock<br/>+ RepTracking<br/>+ Completion]
-    HasReps -->|No| Default[RuntimeBlock<br/>(Basic)]
+    HasReps -->|No| Default["RuntimeBlock<br/>(Basic)"]
     
     TB_Rounds --> AddChildren{Has children?}
     CD_Rounds --> AddChildren
