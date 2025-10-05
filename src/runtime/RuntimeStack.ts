@@ -56,8 +56,12 @@ export class RuntimeStack {
     }
 
     public pop(): IRuntimeBlock | undefined {
-        // Validate before pop
-        this._validator.validatePop(this._blocks.length);
+        // Validate before pop - returns false if empty
+        const canPop = this._validator.validatePop(this._blocks.length);
+        if (!canPop) {
+            console.log(`📚 RuntimeStack.pop() - Stack is empty, returning undefined`);
+            return undefined;
+        }
         
         console.log(`📚 RuntimeStack.pop() - Removing top block`);
         console.log(`  📊 Stack depth before pop: ${this._blocks.length}`);

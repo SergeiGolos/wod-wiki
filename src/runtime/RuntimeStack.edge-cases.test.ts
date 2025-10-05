@@ -108,8 +108,8 @@ describe('RuntimeStack Error Conditions', () => {
   });
   
   test('memory pressure with large numbers of blocks', () => {
-    // Test with a large number of blocks to check memory handling
-    const STRESS_TEST_SIZE = 5000;
+    // Test with max stack depth - max is 10
+    const STRESS_TEST_SIZE = 10;
     const blocks: MinimalBlock[] = [];
     
     // Push many blocks
@@ -285,24 +285,41 @@ describe('RuntimeStack Performance Edge Cases', () => {
   });
   
   test('operations maintain O(1) time complexity', () => {
-    const PERFORMANCE_TEST_SIZE = 10000;
+    // Max stack depth is 10, so we test by doing multiple cycles
+    const CYCLES = 1000;
+    const STACK_SIZE = 10;
     
-    // Measure push operations
+    // Measure push operations over multiple cycles
     const pushTimes: number[] = [];
-    for (let i = 0; i < PERFORMANCE_TEST_SIZE; i++) {
-      const start = performance.now();
-      stack.push(new MinimalBlock(new BlockKey(`perf-${i}`)));
-      const end = performance.now();
-      pushTimes.push(end - start);
+    for (let cycle = 0; cycle < CYCLES; cycle++) {
+      for (let i = 0; i < STACK_SIZE; i++) {
+        const start = performance.now();
+        stack.push(new MinimalBlock(new BlockKey(`perf-${cycle}-${i}`)));
+        const end = performance.now();
+        pushTimes.push(end - start);
+      }
+      
+      // Pop all to prepare for next cycle
+      while (stack.blocks.length > 0) {
+        stack.pop();
+      }
     }
     
-    // Measure pop operations
+    // Measure pop operations over multiple cycles
     const popTimes: number[] = [];
-    for (let i = 0; i < PERFORMANCE_TEST_SIZE; i++) {
-      const start = performance.now();
-      stack.pop();
-      const end = performance.now();
-      popTimes.push(end - start);
+    for (let cycle = 0; cycle < CYCLES; cycle++) {
+      // Fill stack first
+      for (let i = 0; i < STACK_SIZE; i++) {
+        stack.push(new MinimalBlock(new BlockKey(`perf-pop-${cycle}-${i}`)));
+      }
+      
+      // Measure pops
+      for (let i = 0; i < STACK_SIZE; i++) {
+        const start = performance.now();
+        stack.pop();
+        const end = performance.now();
+        popTimes.push(end - start);
+      }
     }
     
     // Performance should not degrade significantly with size
@@ -317,7 +334,8 @@ describe('RuntimeStack Performance Edge Cases', () => {
   });
   
   test('graph() performance scales linearly', () => {
-    const sizes = [100, 500, 1000, 2000];
+    // Max stack depth is 10, test with different sizes up to max
+    const sizes = [2, 4, 6, 8, 10];
     const times: number[] = [];
     
     sizes.forEach(size => {

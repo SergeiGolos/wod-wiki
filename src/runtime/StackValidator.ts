@@ -35,10 +35,11 @@ export class StackValidator implements IStackValidator {
         }
     }
 
-    validatePop(currentDepth: number): void {
-        // Check stack is not empty
+    validatePop(currentDepth: number): boolean {
+        // Check stack is not empty - return false instead of throwing
         if (currentDepth === 0) {
-            throw new Error('Cannot pop from empty stack');
+            return false;
         }
+        return true;
     }
 }
