@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
-import { CollectionSpan } from '../../src/CollectionSpan';
+import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
+import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
+import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
+import { TypedMemoryReference } from '../../src/runtime/IMemoryReference';
 
 const meta: Meta<typeof ClockAnchor> = {
   title: 'Clock/Clock Anchor',
@@ -18,99 +22,105 @@ const meta: Meta<typeof ClockAnchor> = {
 export default meta;
 type Story = StoryObj<typeof ClockAnchor>;
 
-const defaultSpan: CollectionSpan = {
-  blockKey: 'Jumping Jacks',
-  duration: 185000, // 3 minutes 5 seconds
-  timeSpans: [{ start: new Date(Date.now() - 185000), stop: new Date() }],
-  metrics: [],
+// Helper component to create runtime and timer block
+const ClockAnchorWithRuntime: React.FC<{
+  durationMs: number;
+  isRunning?: boolean;
+}> = ({ durationMs, isRunning = false }) => {
+  const runtime = useMemo(() => new ScriptRuntime(), []);
+  const block = useMemo(() => {
+    const behavior = new TimerBehavior();
+    return new RuntimeBlock(runtime, [1], [behavior], 'Timer');
+  }, [runtime]);
+
+  useEffect(() => {
+    // Push the block to initialize timer
+    block.push();
+
+    // Set up the time spans to match the desired duration
+    const timeSpansRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      visibility: null
+    });
+
+    const isRunningRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.IS_RUNNING,
+      visibility: null
+    });
+
+    if (timeSpansRefs.length > 0 && isRunningRefs.length > 0) {
+      const timeSpansRef = timeSpansRefs[0] as TypedMemoryReference<any>;
+      const isRunningRef = isRunningRefs[0] as TypedMemoryReference<boolean>;
+
+      if (isRunning) {
+        // Set up running timer
+        timeSpansRef.set([{
+          start: new Date(Date.now() - durationMs),
+          stop: undefined
+        }]);
+        isRunningRef.set(true);
+      } else {
+        // Set up completed timer
+        timeSpansRef.set([{
+          start: new Date(Date.now() - durationMs),
+          stop: new Date()
+        }]);
+        isRunningRef.set(false);
+      }
+    }
+
+    return () => {
+      block.dispose();
+    };
+  }, [runtime, block, durationMs, isRunning]);
+
+  return (
+    <RuntimeProvider runtime={runtime}>
+      <ClockAnchor blockKey={block.key.toString()} />
+    </RuntimeProvider>
+  );
 };
 
 export const Default: Story = {
-  args: {
-    span: defaultSpan,
-  },
+  render: () => <ClockAnchorWithRuntime durationMs={185000} />, // 3 minutes 5 seconds
 };
 
 export const Empty: Story = {
-  args: {
-    span: new CollectionSpan(),
-  },
-};
-
-const oneSpanRunning: CollectionSpan = {
-  blockKey: 'Running Timer',
-  duration: 50000,
-  timeSpans: [{ start: new Date(Date.now() - 50000) }],
-  metrics: [],
+  render: () => <ClockAnchorWithRuntime durationMs={0} />,
 };
 
 export const OneSpanRunning: Story = {
-  args: {
-    span: oneSpanRunning,
-  },
-};
-
-const longDurationSpan: CollectionSpan = {
-  blockKey: 'Multi-day Event',
-  duration: 2 * 86400000 + 3 * 3600000 + 45 * 60000 + 10 * 1000, // 2 days, 3 hours, 45 minutes, 10 seconds
-  timeSpans: [{ start: new Date(Date.now() - (2 * 86400000 + 3 * 3600000 + 45 * 60000 + 10 * 1000)), stop: new Date() }],
-  metrics: [],
+  render: () => <ClockAnchorWithRuntime durationMs={50000} isRunning={true} />,
 };
 
 export const LongDuration: Story = {
-  args: {
-    span: longDurationSpan,
-  },
-};
-
-const oneMinuteSpan: CollectionSpan = {
-    blockKey: 'One Minute Drill',
-    duration: 60000,
-    timeSpans: [{ start: new Date(Date.now() - 60000), stop: new Date() }],
-    metrics: [],
+  render: () => (
+    <ClockAnchorWithRuntime 
+      durationMs={2 * 86400000 + 3 * 3600000 + 45 * 60000 + 10 * 1000} // 2 days, 3 hours, 45 minutes, 10 seconds
+    />
+  ),
 };
 
 export const OneMinute: Story = {
-    args: {
-        span: oneMinuteSpan,
-    },
-};
-
-const secondsOnlySpan: CollectionSpan = {
-    blockKey: 'Sprint',
-    duration: 45000,
-    timeSpans: [{ start: new Date(Date.now() - 45000), stop: new Date() }],
-    metrics: [],
+  render: () => <ClockAnchorWithRuntime durationMs={60000} />,
 };
 
 export const SecondsOnly: Story = {
-    args: {
-        span: secondsOnlySpan,
-    },
-};
-
-const zeroDurationSpan: CollectionSpan = {
-    blockKey: 'Zero Duration',
-    duration: 0,
-    timeSpans: [],
-    metrics: [],
+  render: () => <ClockAnchorWithRuntime durationMs={45000} />,
 };
 
 export const ZeroDuration: Story = {
-    args: {
-        span: zeroDurationSpan,
-    },
-};
-
-const longHoursSpan: CollectionSpan = {
-    blockKey: 'Almost Two Days',
-    duration: 1 * 86400000 + 23 * 3600000 + 59 * 60000 + 59 * 1000, // 1 day, 23 hours, 59 minutes, 59 seconds
-    timeSpans: [{ start: new Date(Date.now() - (1 * 86400000 + 23 * 3600000 + 59 * 60000 + 59 * 1000)), stop: new Date() }],
-    metrics: [],
+  render: () => <ClockAnchorWithRuntime durationMs={0} />,
 };
 
 export const LongHours: Story = {
-    args: {
-        span: longHoursSpan,
-    },
+  render: () => (
+    <ClockAnchorWithRuntime 
+      durationMs={1 * 86400000 + 23 * 3600000 + 59 * 60000 + 59 * 1000} // 1 day, 23 hours, 59 minutes, 59 seconds
+    />
+  ),
 };
