@@ -44,12 +44,24 @@ export interface IRuntimeBlock {
      * Used for tracking and debugging purposes.
      */
     readonly key: BlockKey;
-    
+
     /**
-     * Source code location identifier.
-     * Links block to original workout script position.
+     * Source code location identifiers.
+     * Links block to original workout script positions.
      */
-    readonly sourceId: number[];        
+    readonly sourceIds: number[];
+
+    /**
+     * Type discriminator for UI display and logging.
+     * Enables identification of block types (Timer, Rounds, Effort, etc.).
+     */
+    readonly blockType?: string;
+
+    /**
+     * Reference to the script runtime.
+     * Provides access to runtime services and memory management.
+     */
+    readonly runtime: IScriptRuntime;        
 
     /**
      * Called when this block is pushed onto the runtime stack.

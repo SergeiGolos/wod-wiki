@@ -10,10 +10,10 @@
  * Migration Guide:
  * ```typescript
  * // Old (deprecated):
- * const block = new AdvancedRuntimeBlock(runtime, sourceId, children, parent);
- * 
+ * const block = new AdvancedRuntimeBlock(runtime, sourceIds, children, parent);
+ *
  * // New (behavior-based):
- * const block = RuntimeBlock.withAdvancedBehaviors(runtime, sourceId, children, parent);
+ * const block = RuntimeBlock.withAdvancedBehaviors(runtime, sourceIds, children, parent);
  * ```
  */
 
@@ -65,11 +65,11 @@ export class AdvancedRuntimeBlock extends RuntimeBlock {
 
     constructor(
         runtime: IScriptRuntime,
-        sourceId: number[],
+        sourceIds: number[],
         children: CodeStatement[] = [],
         parentContext?: IRuntimeBlock
     ) {
-        super(runtime, sourceId);
+        super(runtime, sourceIds);
         this._children = children;
         this._parentContext = parentContext;
         this._isComplete = children.length === 0;
@@ -77,7 +77,7 @@ export class AdvancedRuntimeBlock extends RuntimeBlock {
         // Deprecation warning
         console.warn(
             '⚠️  AdvancedRuntimeBlock is deprecated. Use RuntimeBlock.withAdvancedBehaviors() instead.\n' +
-            '   Migration: RuntimeBlock.withAdvancedBehaviors(runtime, sourceId, children, parentContext)'
+            '   Migration: RuntimeBlock.withAdvancedBehaviors(runtime, sourceIds, children, parentContext)'
         );
         
         console.log(`🔧 AdvancedRuntimeBlock created: ${this.key.toString()}`);

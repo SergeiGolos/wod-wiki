@@ -25,12 +25,12 @@ describe('ParentContextBehavior - Contract Tests', () => {
 
         mockBlock = {
             key: { toString: () => 'test-block' },
-            sourceId: [0, 0]
+            sourceIds: [0, 0]
         } as any;
 
         mockParentBlock = {
             key: { toString: () => 'parent-block' },
-            sourceId: [0]
+            sourceIds: [0]
         } as any;
     });
 
@@ -158,7 +158,7 @@ describe('ParentContextBehavior - Contract Tests', () => {
             const parent = behavior.getParentContext();
             
             expect(parent?.key.toString()).toBe('parent-block');
-            expect(parent?.sourceId).toEqual([0]);
+            expect(parent?.sourceIds).toEqual([0]);
         });
 
         it('should support nested parent contexts', () => {

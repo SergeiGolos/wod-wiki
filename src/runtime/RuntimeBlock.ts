@@ -12,20 +12,31 @@ export type AllocateRequest<T> = {
     initialValue?: T 
 };
 
-export class RuntimeBlock implements IRuntimeBlock{        
+export class RuntimeBlock implements IRuntimeBlock{
     protected readonly behaviors: IRuntimeBehavior[] = []
-    public readonly key: BlockKey;    
+    public readonly key: BlockKey;
+    public readonly blockType?: string;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
 
     constructor(
         protected _runtime: IScriptRuntime,
-        public readonly sourceId: number[] = [],
-        behaviors: IRuntimeBehavior[] = []
-    ) {         
+        public readonly sourceIds: number[] = [],
+        behaviors: IRuntimeBehavior[] = [],
+        blockType?: string
+    ) {
         this.key = new BlockKey();
         this.behaviors = behaviors;
-        console.log(`🧠 RuntimeBlock created: ${this.key.toString()}`);    
+        this.blockType = blockType;
+        console.log(`🧠 RuntimeBlock created: ${this.key.toString()}${blockType ? ` (${blockType})` : ''}`);
+    }
+
+    /**
+     * Reference to the script runtime.
+     * Provides access to runtime services and memory management.
+     */
+    public get runtime(): IScriptRuntime {
+        return this._runtime;
     }    
     
     
@@ -110,37 +121,5 @@ export class RuntimeBlock implements IRuntimeBlock{
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
-    }
-
-    /**
-     * Factory method to create a RuntimeBlock with the full advanced behavior stack.
-     * Equivalent to the old AdvancedRuntimeBlock functionality.
-     * 
-     * @param runtime Script runtime context
-     * @param sourceId Source identifier for the block
-     * @param children Child statements to execute sequentially
-     * @param parentContext Optional parent block reference
-     * @returns RuntimeBlock with ChildAdvancement, LazyCompilation, CompletionTracking, and ParentContext behaviors
-     */
-    static withAdvancedBehaviors(
-        runtime: IScriptRuntime,
-        sourceId: number[],
-        children: any[] = [],
-        parentContext?: IRuntimeBlock
-    ): RuntimeBlock {
-        // Import behaviors dynamically to avoid circular dependencies
-        const ChildAdvancementBehavior = require('./behaviors/ChildAdvancementBehavior').ChildAdvancementBehavior;
-        const LazyCompilationBehavior = require('./behaviors/LazyCompilationBehavior').LazyCompilationBehavior;
-        const CompletionTrackingBehavior = require('./behaviors/CompletionTrackingBehavior').CompletionTrackingBehavior;
-        const ParentContextBehavior = require('./behaviors/ParentContextBehavior').ParentContextBehavior;
-
-        const behaviors = [
-            new ChildAdvancementBehavior(children),
-            new LazyCompilationBehavior(),
-            new CompletionTrackingBehavior(),
-            new ParentContextBehavior(parentContext)
-        ];
-
-        return new RuntimeBlock(runtime, sourceId, behaviors);
     }
 }

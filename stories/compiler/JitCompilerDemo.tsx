@@ -10,6 +10,10 @@ import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
+import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime/strategies';
+import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
+import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
+import { CodeStatement } from '../../src/CodeStatement';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -475,26 +479,51 @@ function formatMemoryValue(type: string, value: any): string {
 export interface JitCompilerDemoProps {
   initialScript?: string;
   runtime?: ScriptRuntime;
-  showFragments?: boolean;
   showRuntimeStack?: boolean;
   showMemory?: boolean;
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
-    let blockType: MockRuntimeBlock['blockType'] = 'Idle';
-    if (block.constructor.name.includes('Countdown')) {
-        blockType = 'Timer';
-    } else if (block.constructor.name.includes('Rounds')) {
-        blockType = 'Group';
-    } else if (block.constructor.name.includes('Effort')) {
-        blockType = 'Effort';
+    // Use the new blockType property if available, otherwise fall back to constructor name
+    const blockTypeFromStrategy = block.blockType;
+    let blockType: MockRuntimeBlock['blockType'];
+    let displayName: string;
+
+    if (blockTypeFromStrategy) {
+        // Map strategy blockType to MockRuntimeBlock blockType
+        switch (blockTypeFromStrategy) {
+            case 'Timer':
+                blockType = 'Timer';
+                break;
+            case 'Rounds':
+                blockType = 'Group';
+                break;
+            case 'Effort':
+                blockType = 'Effort';
+                break;
+            default:
+                blockType = 'Idle';
+        }
+        displayName = blockTypeFromStrategy;
+    } else {
+        // Fallback to old constructor-based detection
+        if (block.constructor.name.includes('Countdown')) {
+            blockType = 'Timer';
+        } else if (block.constructor.name.includes('Rounds')) {
+            blockType = 'Group';
+        } else if (block.constructor.name.includes('Effort')) {
+            blockType = 'Effort';
+        } else {
+            blockType = 'Idle';
+        }
+        displayName = block.constructor.name.replace('Block', '');
     }
 
     // Estimate line number based on block key and script content
     // This is a simple heuristic - in a real implementation, this would come from the compiler
     let lineNumber: number | undefined;
-  // Note: key available via block.key.toString() if needed for mapping
-    
+    // Note: key available via block.key.toString() if needed for mapping
+
     // Try to find the line that corresponds to this block
     // Look for patterns that might match the block type
     for (let i = 0; i < scriptLines.length; i++) {
@@ -516,7 +545,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
     const metrics: { type: string; value?: string; unit?: string }[] = [];
 
     return {
-        displayName: block.constructor.name.replace('Block', ''),
+        displayName: displayName,
         description: block.key.toString(),
         blockType: blockType,
         depth: depth,
@@ -530,7 +559,6 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
 export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     initialScript = `20:00 AMRAP\n5 Pullups\n10 Pushups\n15 Air Squats`,
     runtime: initialRuntime,
-    showFragments = true,
     showRuntimeStack = true,
     showMemory = true
 }) => {
@@ -548,20 +576,17 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const createRuntime = (scriptText: string): ScriptRuntime => {
     const mdRuntime = new MdTimerRuntime();
     const wodScript = mdRuntime.read(scriptText) as WodScript;    
-    // const strategyManager = new RuntimeJitStrategies()
-    //   // Add strategies in order of precedence (most specific to most general)
-    //   .addStrategy(new CountdownRoundsStrategy())
-    //   .addStrategy(new TimeBoundedRoundsStrategy())
-    //   .addStrategy(new CountdownStrategy())
-    //   .addStrategy(new TimerStrategy())
-    //   .addStrategy(new TimeBoundStrategy()) 
-    //   .addStrategy(new RoundsStrategy()) // Repeating rounds
-    //   .addStrategy(new EffortStrategy()); // Fallback strategy
-      
-    // Don't override console.log - it causes infinite recursion
-    // Just use the standard console.log
-
+    
+    // Create JIT compiler and register strategies
     const jitCompiler = new JitCompiler([]);
+
+    // Register strategies in precedence order: most specific first
+    jitCompiler.registerStrategy(new TimerStrategy());      // Check Timer first
+    jitCompiler.registerStrategy(new RoundsStrategy());     // Then Rounds
+    jitCompiler.registerStrategy(new EffortStrategy());     // Effort is fallback
+
+    console.log(`📝 Registered strategies with JIT compiler: Timer → Rounds → Effort`);
+    
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
 
     // Register Next event handler
@@ -572,11 +597,18 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     });
     console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
 
-    // Initialize with the root block
-    console.log(`🌱 Creating and pushing root block to stack`);
-    const rootBlock = new RuntimeBlock(runtime);
+    // Initialize with the root block that has child statements and behaviors
+    console.log(`🌱 Creating root block with ${wodScript.statements.length} child statements`);
+    
+    // Create behaviors for the root block
+    const childBehavior = new ChildAdvancementBehavior(wodScript.statements as CodeStatement[]);
+    const lazyCompilationBehavior = new LazyCompilationBehavior(false);
+    const behaviors = [childBehavior, lazyCompilationBehavior];
+    
+    // Create root block with script statements as children and behaviors
+    const rootBlock = new RuntimeBlock(runtime, [], behaviors);
     runtime.stack.push(rootBlock);
-    console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
+    console.log(`  ✅ Root block pushed with ${behaviors.length} behaviors, stack depth: ${runtime.stack.blocks.length}`);
 
     return runtime;
   };
@@ -808,8 +840,12 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
           </div>
         </div>
 
-        {/* Right: Parsed Workout / Fragment Breakdown */}               
-          {showFragments && statements.length > 0 ? (        
+        {/* Right: Parsed Workout / Fragment Breakdown */}
+        <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900">Parsed Workout</h3>
+          </div>
+          {statements.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <table className="w-full border-collapse bg-white">
                   <thead className="bg-gray-50">
@@ -837,12 +873,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
                     ))}
                   </tbody>
                 </table>
-              </div>            
+              </div>
           ) : (
             <div className="p-4 text-center text-gray-500">
               <p className="text-sm">No workout parsed yet</p>
             </div>
-          )}        
+          )}
+        </div>        
       </div>
 
       {/* Runtime Clock Section - Full Width */}
