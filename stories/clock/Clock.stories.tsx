@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { LabelAnchor } from '../../src/clock/anchors/LabelAnchor';
 import { MetricAnchor } from '../../src/clock/anchors/MetricAnchor';
 import { CollectionSpan, Metric } from '../../src/CollectionSpan';
+import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
+import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
+import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
+import { TypedMemoryReference } from '../../src/runtime/IMemoryReference';
 
 const meta: Meta = {
   title: 'Clock/Default',
@@ -49,9 +54,61 @@ const defaultSpan: CollectionSpan = {
   metrics: metrics,
 };
 
-const StoryRenderer = (args: { span?: CollectionSpan }) => (
+// Component that creates runtime and timer block for ClockAnchor
+const ClockWithRuntime: React.FC<{ durationMs: number }> = ({ durationMs }) => {
+  const runtime = useMemo(() => new ScriptRuntime(), []);
+  const block = useMemo(() => {
+    const behavior = new TimerBehavior();
+    return new RuntimeBlock(runtime, [1], [behavior], 'Timer');
+  }, [runtime]);
+
+  useEffect(() => {
+    block.push();
+
+    const timeSpansRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      visibility: null
+    });
+
+    const isRunningRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.IS_RUNNING,
+      visibility: null
+    });
+
+    if (timeSpansRefs.length > 0 && isRunningRefs.length > 0) {
+      const timeSpansRef = timeSpansRefs[0] as TypedMemoryReference<any>;
+      const isRunningRef = isRunningRefs[0] as TypedMemoryReference<boolean>;
+
+      timeSpansRef.set([{
+        start: new Date(Date.now() - durationMs),
+        stop: new Date()
+      }]);
+      isRunningRef.set(false);
+    }
+
+    return () => {
+      block.dispose();
+    };
+  }, [runtime, block, durationMs]);
+
+  return (
+    <RuntimeProvider runtime={runtime}>
+      <ClockAnchor blockKey={block.key.toString()} />
+    </RuntimeProvider>
+  );
+};
+
+const StoryRenderer = (args: { span?: CollectionSpan; durationMs?: number }) => (
     <div className="flex flex-col items-center justify-center">
-        <ClockAnchor span={args.span} />
+        {args.durationMs !== undefined ? (
+          <ClockWithRuntime durationMs={args.durationMs} />
+        ) : (
+          <ClockAnchor blockKey="placeholder" />
+        )}
         <div className="mb-12 text-center mt-8">
             <LabelAnchor span={args.span} variant="badge" template="Warm-up" />
             <LabelAnchor span={args.span} variant="title" template="{{blockKey}}" />
@@ -68,6 +125,7 @@ const StoryRenderer = (args: { span?: CollectionSpan }) => (
 export const Default: StoryObj = {
   args: {
     span: defaultSpan,
+    durationMs: 185000, // 3 minutes 5 seconds
   },
   render: StoryRenderer,
 };
@@ -75,6 +133,7 @@ export const Default: StoryObj = {
 export const Empty: StoryObj = {
   args: {
     span: new CollectionSpan(),
+    durationMs: 0,
   },
   render: StoryRenderer,
 };
