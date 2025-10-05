@@ -22,9 +22,9 @@ export class StackValidator implements IStackValidator {
             throw new TypeError('Block must have a valid key');
         }
 
-        // Verify block has sourceId
-        if (!block.sourceId || !Array.isArray(block.sourceId)) {
-            throw new TypeError(`Block must have a valid sourceId array (block key: ${block.key})`);
+        // Verify block has sourceIds
+        if (!block.sourceIds || !Array.isArray(block.sourceIds)) {
+            throw new TypeError(`Block must have a valid sourceIds array (block key: ${block.key})`);
         }
 
         // Check stack depth < 10

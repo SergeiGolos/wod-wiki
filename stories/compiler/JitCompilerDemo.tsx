@@ -10,7 +10,7 @@ import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
-import { EffortStrategy } from '../../src/runtime/strategies';
+import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime/strategies';
 import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
 import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
 import { CodeStatement } from '../../src/CodeStatement';
@@ -484,20 +484,46 @@ export interface JitCompilerDemoProps {
 }
 
 const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[]): MockRuntimeBlock => {
-    let blockType: MockRuntimeBlock['blockType'] = 'Idle';
-    if (block.constructor.name.includes('Countdown')) {
-        blockType = 'Timer';
-    } else if (block.constructor.name.includes('Rounds')) {
-        blockType = 'Group';
-    } else if (block.constructor.name.includes('Effort')) {
-        blockType = 'Effort';
+    // Use the new blockType property if available, otherwise fall back to constructor name
+    const blockTypeFromStrategy = block.blockType;
+    let blockType: MockRuntimeBlock['blockType'];
+    let displayName: string;
+
+    if (blockTypeFromStrategy) {
+        // Map strategy blockType to MockRuntimeBlock blockType
+        switch (blockTypeFromStrategy) {
+            case 'Timer':
+                blockType = 'Timer';
+                break;
+            case 'Rounds':
+                blockType = 'Group';
+                break;
+            case 'Effort':
+                blockType = 'Effort';
+                break;
+            default:
+                blockType = 'Idle';
+        }
+        displayName = blockTypeFromStrategy;
+    } else {
+        // Fallback to old constructor-based detection
+        if (block.constructor.name.includes('Countdown')) {
+            blockType = 'Timer';
+        } else if (block.constructor.name.includes('Rounds')) {
+            blockType = 'Group';
+        } else if (block.constructor.name.includes('Effort')) {
+            blockType = 'Effort';
+        } else {
+            blockType = 'Idle';
+        }
+        displayName = block.constructor.name.replace('Block', '');
     }
 
     // Estimate line number based on block key and script content
     // This is a simple heuristic - in a real implementation, this would come from the compiler
     let lineNumber: number | undefined;
-  // Note: key available via block.key.toString() if needed for mapping
-    
+    // Note: key available via block.key.toString() if needed for mapping
+
     // Try to find the line that corresponds to this block
     // Look for patterns that might match the block type
     for (let i = 0; i < scriptLines.length; i++) {
@@ -519,7 +545,7 @@ const toMockBlock = (block: IRuntimeBlock, depth: number, scriptLines: string[])
     const metrics: { type: string; value?: string; unit?: string }[] = [];
 
     return {
-        displayName: block.constructor.name.replace('Block', ''),
+        displayName: displayName,
         description: block.key.toString(),
         blockType: blockType,
         depth: depth,
@@ -553,9 +579,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     
     // Create JIT compiler and register strategies
     const jitCompiler = new JitCompiler([]);
-    // Register EffortStrategy as the fallback strategy
-    jitCompiler.registerStrategy(new EffortStrategy());
-    console.log(`📝 Registered EffortStrategy with JIT compiler`);
+
+    // Register strategies in precedence order: most specific first
+    jitCompiler.registerStrategy(new TimerStrategy());      // Check Timer first
+    jitCompiler.registerStrategy(new RoundsStrategy());     // Then Rounds
+    jitCompiler.registerStrategy(new EffortStrategy());     // Effort is fallback
+
+    console.log(`📝 Registered strategies with JIT compiler: Timer → Rounds → Effort`);
     
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
 
@@ -811,6 +841,10 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         </div>
 
         {/* Right: Parsed Workout / Fragment Breakdown */}
+        <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900">Parsed Workout</h3>
+          </div>
           {statements.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <table className="w-full border-collapse bg-white">
@@ -844,7 +878,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
             <div className="p-4 text-center text-gray-500">
               <p className="text-sm">No workout parsed yet</p>
             </div>
-          )}        
+          )}
+        </div>        
       </div>
 
       {/* Runtime Clock Section - Full Width */}

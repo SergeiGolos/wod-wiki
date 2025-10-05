@@ -6,7 +6,11 @@
       "Bash(.specify/scripts/powershell*)",
       "Bash(gh pr view:*)",
       "WebFetch(domain:github.com)",
-      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)"
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(find:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []
