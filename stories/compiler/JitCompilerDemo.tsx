@@ -163,24 +163,24 @@ interface MemoryTableEntry {
   associatedBlockKey?: string; // Link to the runtime block that owns this memory
 }
 
-// Enhanced memory visualization with hover state
-function MemoryVisualizationTable({ 
-  entries, 
-  hoveredBlockKey, 
-  onMemoryHover,
-  hideOwnerColumn,
-}: { 
-  entries: MemoryTableEntry[]; 
-  hoveredBlockKey?: string;
-  onMemoryHover: (entryId?: string, blockKey?: string) => void;
-  hideOwnerColumn?: boolean;
+// Value popover component for hover display
+function ValuePopover({
+  entry,
+  isVisible,
+  targetRect
+}: {
+  entry: MemoryTableEntry;
+  isVisible: boolean;
+  targetRect?: DOMRect;
 }) {
+  if (!isVisible || !targetRect) return null;
+
   const safeJSONStringify = (value: any): string => {
     try {
       const seen = new WeakSet();
       return JSON.stringify(
         value,
-  (_key, val) => {
+        (_key, val) => {
           if (typeof val === 'object' && val !== null) {
             if (seen.has(val)) return '[Circular]';
             seen.add(val);
@@ -197,70 +197,165 @@ function MemoryVisualizationTable({
       }
     }
   };
+
+  // Calculate position to float above the mouse cursor
+  // max-h-80 in Tailwind is 320px (80 * 4px)
+  const popoverMaxHeight = 320;
+  const popoverWidth = 384; // max-w-sm is 384px
+  const verticalOffset = 20; // Space between mouse and popover
+  
+  // Position above the mouse
+  const top = Math.max(10, targetRect.top - popoverMaxHeight - verticalOffset);
+  // Center horizontally on the mouse, but keep within screen bounds
+  const left = Math.max(10, Math.min(
+    targetRect.left - (popoverWidth / 2),
+    window.innerWidth - popoverWidth - 10
+  ));
+
   return (
-    <div className="bg-white border rounded-lg overflow-hidden">
-      <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 border-b">
-        Memory Space ({entries.length} entries)
-      </div>
-      <div className="max-h-64 overflow-y-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="text-left px-2 py-1 font-semibold">ID</th>
-              <th className="text-left px-2 py-1 font-semibold">Type</th>
-              {!hideOwnerColumn && (
-                <th className="text-left px-2 py-1 font-semibold">Owner</th>
-              )}
-              <th className="text-left px-2 py-1 font-semibold">Value</th>
-              <th className="text-center px-2 py-1 font-semibold">Children</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => {
-              const isHighlighted = entry.associatedBlockKey === hoveredBlockKey;
-              return (
-                <tr 
-                  key={entry.id} 
-                  className={`border-t hover:bg-blue-50 cursor-pointer transition-colors ${
-                    !entry.isValid ? 'opacity-50' : ''
-                  } ${
-                    isHighlighted ? 'bg-blue-100 border-blue-300' : ''
-                  }`}
-                  onMouseEnter={() => onMemoryHover(entry.id, entry.associatedBlockKey)}
-                  onMouseLeave={() => onMemoryHover()}
-                >
-                  <td className="px-2 py-1 text-gray-500 font-mono max-w-24 truncate" title={entry.id}>
-                    {entry.id}
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                      entry.isValid ? 'bg-green-400' : 'bg-red-400'
-                    }`}></span>
-                    {entry.type}
-                  </td>
-                  {!hideOwnerColumn && (
-                    <td className="px-2 py-1 text-gray-600 font-mono">{entry.owner || '-'}</td>
-                  )}
-                  <td className="px-2 py-1 text-gray-800 font-mono max-w-32 truncate" title={entry.value}>
-                    {entry.rawValue && typeof entry.rawValue === 'object' ? (
-                      <details>
-                        <summary className="cursor-pointer select-none">{entry.value}</summary>
-                        <pre className="mt-1 p-2 bg-gray-50 rounded border max-h-40 overflow-auto whitespace-pre-wrap break-words">
-                          {safeJSONStringify(entry.rawValue)}
-                        </pre>
-                      </details>
-                    ) : (
-                      entry.value
-                    )}
-                  </td>
-                  <td className="px-2 py-1 text-center">{entry.children}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <div
+      className="fixed z-50 pointer-events-none"
+      style={{
+        top: `${top}px`,
+        left: `${left}px`,
+      }}
+    >
+      <div
+        className="bg-white rounded-lg shadow-2xl border border-gray-200 p-4 max-w-sm max-h-80 overflow-auto pointer-events-auto"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+            <span className="text-sm font-semibold text-gray-800 font-mono">
+              {entry.id}
+            </span>
+            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+              {entry.type}
+            </span>
+          </div>
+          <div className={`w-2 h-2 rounded-full ${
+            entry.isValid ? 'bg-green-500' : 'bg-red-500'
+          }`}></div>
+        </div>
+
+        {/* Content */}
+        <div className="text-sm">
+          {entry.rawValue && typeof entry.rawValue === 'object' ? (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 mb-1">Object Structure:</div>
+              <pre className="bg-gray-50 p-3 rounded border border-gray-200 text-xs font-mono leading-relaxed overflow-auto max-h-60">
+                {safeJSONStringify(entry.rawValue)}
+              </pre>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 mb-1">Value:</div>
+              <div className="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-sm break-all">
+                {entry.value}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
+          <span>Children: {entry.children}</span>
+          <span>{entry.isValid ? 'Valid' : 'Invalid'}</span>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Enhanced memory visualization with hover state
+function MemoryVisualizationTable({
+  entries,
+  hoveredBlockKey,
+  onMemoryHover,
+}: {
+  entries: MemoryTableEntry[];
+  hoveredBlockKey?: string;
+  onMemoryHover: (entryId?: string, blockKey?: string) => void;
+}) {
+  const [hoveredEntry, setHoveredEntry] = useState<MemoryTableEntry | null>(null);
+  const [popoverRect, setPopoverRect] = useState<DOMRect | null>(null);
+
+  const handleRowMouseEnter = (entry: MemoryTableEntry, event: React.MouseEvent) => {
+    setHoveredEntry(entry);
+    // Store the mouse position instead of the target rect
+    setPopoverRect({
+      top: event.clientY,
+      left: event.clientX,
+      right: event.clientX,
+      bottom: event.clientY,
+      width: 0,
+      height: 0
+    } as DOMRect);
+    onMemoryHover(entry.id, entry.associatedBlockKey);
+  };
+
+  const handleRowMouseLeave = () => {
+    setHoveredEntry(null);
+    setPopoverRect(null);
+    onMemoryHover();
+  };
+
+  return (
+    <>
+      <div className="bg-white border rounded-lg overflow-hidden">
+        <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 border-b">
+          Memory Space ({entries.length} entries)
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="text-left px-2 py-1 font-semibold">ID</th>
+                <th className="text-left px-2 py-1 font-semibold">Type</th>
+                <th className="text-center px-2 py-1 font-semibold">Children</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => {
+                const isHighlighted = entry.associatedBlockKey === hoveredBlockKey;
+                return (
+                  <tr
+                    key={entry.id}
+                    className={`border-t hover:bg-blue-50 cursor-pointer transition-colors ${
+                      !entry.isValid ? 'opacity-50' : ''
+                    } ${
+                      isHighlighted ? 'bg-blue-100 border-blue-300' : ''
+                    }`}
+                    onMouseEnter={(e) => handleRowMouseEnter(entry, e)}
+                    onMouseLeave={handleRowMouseLeave}
+                  >
+                    <td className="px-2 py-1 text-gray-500 font-mono max-w-20 truncate" title={entry.id}>
+                      {entry.id}
+                    </td>
+                    <td className="px-2 py-1">
+                      <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                        entry.isValid ? 'bg-green-400' : 'bg-red-400'
+                      }`}></span>
+                      {entry.type}
+                    </td>
+                    <td className="px-2 py-1 text-center">{entry.children}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {hoveredEntry && popoverRect && (
+        <ValuePopover
+          entry={hoveredEntry}
+          isVisible={true}
+          targetRect={popoverRect}
+        />
+      )}
+    </>
   );
 }
 
@@ -313,7 +408,6 @@ function GroupedMemoryVisualization({
             entries={entries}
             hoveredBlockKey={hoveredBlockKey}
             onMemoryHover={onMemoryHover}
-            hideOwnerColumn
           />
         </div>
       ))}
@@ -634,7 +728,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <div className="flex justify-between items-start mb-4">
+      {/* Header with action buttons */}
+      <div className="flex justify-between items-start mb-6">
         <h2 className="text-xl font-bold">Stack & Memory Visualization Debug Harness</h2>
         <div className="flex gap-2">
           <button
@@ -650,7 +745,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
           </button>
           {(() => {
             const isScriptCompleted = !runtime?.stack?.current;
-            const hasRuntimeErrors = runtime?.hasErrors && runtime.hasErrors();
+            const hasRuntimeErrors = runtime && 'hasErrors' in runtime && typeof (runtime as any).hasErrors === 'function' && (runtime as any).hasErrors();
 
             return (
               <button
@@ -692,99 +787,90 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         </div>
       </div>
 
-      {/* 1. Workout Script Editor */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold mb-2 text-gray-700">
-          📝 Workout Script Editor
-        </label>
-        <ScriptEditor
-          value={script}
-          onChange={setScript}
-          highlightedLine={highlightedLine}
-        />
-        {highlightedLine && (
-          <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-            💡 Highlighting line {highlightedLine}
+      {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        {/* Left: Workout Setup / Script Editor */}
+        <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900">Create Workout</h3>
           </div>
-        )}
+          <div className="p-4">
+            <ScriptEditor
+              value={script}
+              onChange={setScript}
+              highlightedLine={highlightedLine}
+            />
+            {highlightedLine && (
+              <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                💡 Highlighting line {highlightedLine}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Parsed Workout / Fragment Breakdown */}               
+          {showFragments && statements.length > 0 ? (        
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <table className="w-full border-collapse bg-white">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Line</th>
+                      <th className="p-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Position</th>
+                      <th className="p-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fragments</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {statements.map((statement, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="p-2 align-top text-xs text-gray-500 w-12">
+                          {statement.meta?.line ?? 'N/A'}
+                        </td>
+                        <td className="p-2 align-top text-xs text-gray-500 w-20">
+                          {statement.meta ? `[${statement.meta.columnStart}-${statement.meta.columnEnd}]` : 'N/A'}
+                        </td>
+                        <td className="p-2">
+                          <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * COLUMN_INDENT_REM}rem` : '0' }}>
+                            <FragmentVisualizer fragments={statement.fragments} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>            
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              <p className="text-sm">No workout parsed yet</p>
+            </div>
+          )}        
       </div>
 
-      {/* 2. Runtime Clock Placeholder */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold mb-2 text-gray-700">
-          ⏰ Runtime Clock
-        </label>
-        <div className="bg-gray-100 border rounded-lg p-8 text-center text-gray-500">
+      {/* Runtime Clock Section - Full Width */}
+      <div className="mb-6">                  
+        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
           <div className="text-sm">Runtime clock placeholder</div>
           <div className="text-xs mt-2">Timer display will be implemented here</div>
-        </div>
+        </div>         
       </div>
 
-      {/* 3. Fragment Breakdown */}
-      {showFragments && statements.length > 0 && (
-        <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2 text-gray-700">
-            🔍 Fragments Breakdown
-          </label>
-          <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Line</th>
-                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Position</th>
-                  <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fragments Breakdown</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {statements.map((statement, index) => (
-                  <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="p-3 align-top text-sm text-gray-500 w-16">
-                      {statement.meta?.line ?? 'N/A'}
-                    </td>
-                    <td className="p-3 align-top text-sm text-gray-500 w-24">
-                      {statement.meta ? `[${statement.meta.columnStart} - ${statement.meta.columnEnd}]` : 'N/A'}
-                    </td>
-                    <td className="p-3">
-                      <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * COLUMN_INDENT_REM}rem` : '0' }}>
-                        <FragmentVisualizer fragments={statement.fragments} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Runtime Stack */}
-      {showRuntimeStack && (
-        <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2 text-gray-700">
-            📚 Runtime Stack (Execution)
-          </label>
+      {/* Bottom Section: Runtime Stack and Memory Side by Side */}
+      <div className="grid grid-cols-2 gap-6">
+        {showRuntimeStack && (
           <CompactRuntimeStackVisualizer
             stack={stack}
             hoveredMemoryBlockKey={hoveredMemoryBlockKey}
             onBlockHover={handleBlockHover}
           />
-        </div>
-      )}
+        )}
 
-      {/* 5. Memory Space */}
-      {showMemory && (
-        <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2 text-gray-700">
-            🧠 Memory Space (Allocation)
-          </label>
+        {showMemory && (
           <GroupedMemoryVisualization
             snapshot={memorySnapshot}
             hoveredBlockKey={hoveredBlockKey}
             onMemoryHover={handleMemoryHover}
           />
-        </div>
-      )}
-
+        )}
+      </div>
       </div>
   );
 };
