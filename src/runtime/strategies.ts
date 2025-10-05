@@ -10,6 +10,7 @@ import { FragmentType } from "../CodeFragment";
 import { ChildAdvancementBehavior } from "./behaviors/ChildAdvancementBehavior";
 import { LazyCompilationBehavior } from "./behaviors/LazyCompilationBehavior";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
+import { TimerBehavior } from "./behaviors/TimerBehavior";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -71,6 +72,9 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
 
         const behaviors: IRuntimeBehavior[] = [];
+
+        // Add timer behavior to manage timer state
+        behaviors.push(new TimerBehavior());
 
         // Add behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0) {
