@@ -7,11 +7,18 @@ import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../../src/WodScript';
 
-export interface TimerTestHarness {
+export interface ClockMemoryHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
   block: RuntimeBlock;
+  memoryRefs: {
+    timeSpans: TypedMemoryReference<TimeSpan[]>;
+    isRunning: TypedMemoryReference<boolean>;
+  };
 }
+
+// Legacy alias for backward compatibility
+export interface TimerTestHarness extends ClockMemoryHarnessResult {}
 
 export interface TimerTestHarnessProps {
   /** Total elapsed time in milliseconds */
@@ -21,7 +28,7 @@ export interface TimerTestHarnessProps {
   /** Optional: Multiple time spans for pause/resume scenarios */
   timeSpans?: TimeSpan[];
   /** Children to render with runtime context */
-  children: (harness: TimerTestHarness) => React.ReactNode;
+  children: (harness: ClockMemoryHarnessResult) => React.ReactNode;
 }
 
 /**
@@ -52,12 +59,12 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
   
   // Create block, push it, and set memory all in one useMemo
   // This ensures memory is initialized BEFORE the component renders
-  const { block, blockKey } = useMemo(() => {
+  const { block, blockKey, memoryRefs } = useMemo(() => {
     console.log('[TimerTestHarness] Creating and initializing block');
-    
+
     const behavior = new TimerBehavior();
     const newBlock = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-    
+
     // Push block immediately to trigger behavior initialization
     newBlock.push();
 
@@ -82,13 +89,16 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
       isRunningRefs: isRunningRefs.length
     });
 
+    let timeSpansRef: TypedMemoryReference<TimeSpan[]> | undefined;
+    let isRunningRef: TypedMemoryReference<boolean> | undefined;
+
     if (timeSpansRefs.length > 0 && isRunningRefs.length > 0) {
-      const timeSpansRef = timeSpansRefs[0] as TypedMemoryReference<TimeSpan[]>;
-      const isRunningRef = isRunningRefs[0] as TypedMemoryReference<boolean>;
+      timeSpansRef = timeSpansRefs[0] as TypedMemoryReference<TimeSpan[]>;
+      isRunningRef = isRunningRefs[0] as TypedMemoryReference<boolean>;
 
       // Set timer state based on props
       let spans: TimeSpan[];
-      
+
       if (timeSpans) {
         // Use provided time spans (for complex scenarios)
         spans = timeSpans;
@@ -111,19 +121,35 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
         isRunning,
         spans
       });
-      
+
       timeSpansRef.set(spans);
       isRunningRef.set(isRunning);
-      
+
       console.log('[TimerTestHarness] Timer state set. Values:', {
         timeSpans: timeSpansRef.get(),
         isRunning: isRunningRef.get()
       });
     } else {
       console.error('[TimerTestHarness] Could not find timer memory references!');
+      // This should not happen with proper TimerBehavior initialization
+      // But we need to provide valid references for TypeScript
+      throw new Error('Failed to find timer memory references - TimerBehavior may not have initialized properly');
     }
-    
-    return { block: newBlock, blockKey: newBlock.key.toString() };
+
+    // Return memory references for consumers to use
+    const memoryRefsResult: {
+      timeSpans: TypedMemoryReference<TimeSpan[]>;
+      isRunning: TypedMemoryReference<boolean>;
+    } = {
+      timeSpans: timeSpansRef!,
+      isRunning: isRunningRef!
+    };
+
+    return {
+      block: newBlock,
+      blockKey: newBlock.key.toString(),
+      memoryRefs: memoryRefsResult
+    };
   }, [runtime, durationMs, isRunning, timeSpans]);
 
   // Cleanup on unmount
@@ -134,10 +160,11 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
     };
   }, [block, blockKey]);
 
-  const harness: TimerTestHarness = {
+  const harness: ClockMemoryHarnessResult = {
     runtime,
     blockKey,
-    block
+    block,
+    memoryRefs
   };
 
   return (

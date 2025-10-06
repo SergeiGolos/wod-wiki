@@ -43,6 +43,7 @@
     "@storybook/addon-docs": "^9.1.10",
     "@storybook/addon-vitest": "^9.1.10",
     "@storybook/react-vite": "^9.1.10",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^22.0.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.1",

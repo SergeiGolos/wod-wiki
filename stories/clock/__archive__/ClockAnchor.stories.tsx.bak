@@ -1,6 +1,9 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
-import { TimerTestHarness } from './utils/TimerTestHarness';
+// import type { Meta, StoryObj } from '@storybook/react';
+// import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
+// import { TimerTestHarness } from './utils/TimerTestHarness';
+
+// NOTE: This file is archived and no longer processed by Storybook
+// See README.md in this directory for migration information
 
 const meta: Meta<typeof ClockAnchor> = {
   title: 'Clock/Clock Anchor',

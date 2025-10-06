@@ -10,7 +10,10 @@
       "Bash(npm test:*)",
       "Bash(npx vitest run:*)",
       "Bash(find:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build-storybook:*)"
     ],
     "deny": [],
     "ask": []
