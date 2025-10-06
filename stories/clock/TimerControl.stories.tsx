@@ -5,6 +5,8 @@ import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
+import { JitCompiler } from '../../src/runtime/JitCompiler';
+import { WodScript } from '../../src/WodScript';
 
 const meta: Meta = {
   title: 'Clock/Timer Control',
@@ -22,7 +24,11 @@ type Story = StoryObj;
 
 // Interactive timer control component
 const InteractiveTimerControl: React.FC = () => {
-  const runtime = useMemo(() => new ScriptRuntime(), []);
+  const runtime = useMemo(() => {
+    const emptyScript = new WodScript('', []);
+    const jitCompiler = new JitCompiler([]);
+    return new ScriptRuntime(emptyScript, jitCompiler);
+  }, []);
   const [block, setBlock] = useState<RuntimeBlock | null>(null);
   const [behavior, setBehavior] = useState<TimerBehavior | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -124,7 +130,11 @@ export const PauseResumeControl: Story = {
 
 // Pre-configured pause/resume demo
 const PauseResumeDemo: React.FC = () => {
-  const runtime = useMemo(() => new ScriptRuntime(), []);
+  const runtime = useMemo(() => {
+    const emptyScript = new WodScript('', []);
+    const jitCompiler = new JitCompiler([]);
+    return new ScriptRuntime(emptyScript, jitCompiler);
+  }, []);
   const block = useMemo(() => {
     const behavior = new TimerBehavior();
     return new RuntimeBlock(runtime, [1], [behavior], 'Timer');
@@ -175,7 +185,11 @@ export const AutoPauseResume: Story = {
 
 // Long-running timer
 const LongRunningTimer: React.FC = () => {
-  const runtime = useMemo(() => new ScriptRuntime(), []);
+  const runtime = useMemo(() => {
+    const emptyScript = new WodScript('', []);
+    const jitCompiler = new JitCompiler([]);
+    return new ScriptRuntime(emptyScript, jitCompiler);
+  }, []);
   const block = useMemo(() => {
     const behavior = new TimerBehavior();
     return new RuntimeBlock(runtime, [1], [behavior], 'Timer');
