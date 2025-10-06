@@ -30,7 +30,13 @@ export class RuntimeMemory implements IRuntimeMemory {
         if (!loc) {
             throw new Error(`Invalid memory reference: ${reference.id}`);
         }
+        const oldValue = loc.data as T | undefined;
         loc.data = value;
+        
+        // Notify subscribers if value changed
+        if (reference.hasSubscribers()) {
+            reference.notifySubscribers(value, oldValue);
+        }
     }
 
     // Searches for references matching any non-null fields in the criteria object.
@@ -50,6 +56,12 @@ export class RuntimeMemory implements IRuntimeMemory {
     release(reference: IMemoryReference): void {
         const idx = this._references.findIndex(l => l.ref.id === reference.id);
         if (idx >= 0) {
+            // If this is a TypedMemoryReference with subscribers, notify them before releasing
+            const ref = this._references[idx].ref;
+            if (ref instanceof TypedMemoryReference && ref.hasSubscribers()) {
+                // Notify subscribers that the reference is being released
+                ref.notifySubscribers(undefined, this.get(ref as any));
+            }
             this._references.splice(idx, 1);
         }
     }
