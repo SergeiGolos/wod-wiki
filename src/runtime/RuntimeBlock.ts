@@ -31,14 +31,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         this.blockType = blockType;
     }
 
-    /**
-     * Reference to the script runtime.
-     * Provides access to runtime services and memory management.
-     */
-    public get runtime(): IScriptRuntime {
-        return this._runtime;
-    }    
-    
     
     /**
      * Allocates memory for this block's state.

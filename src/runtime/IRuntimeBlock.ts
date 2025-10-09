@@ -55,13 +55,7 @@ export interface IRuntimeBlock {
      * Type discriminator for UI display and logging.
      * Enables identification of block types (Timer, Rounds, Effort, etc.).
      */
-    readonly blockType?: string;
-
-    /**
-     * Reference to the script runtime.
-     * Provides access to runtime services and memory management.
-     */
-    readonly runtime: IScriptRuntime;        
+    readonly blockType?: string;  
 
     /**
      * Called when this block is pushed onto the runtime stack.

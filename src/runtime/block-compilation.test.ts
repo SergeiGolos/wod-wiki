@@ -215,26 +215,6 @@ describe('Block Compilation Contract', () => {
     });
   });
 
-  describe('TBC-008: Block receives runtime reference', () => {
-    it('should hold runtime reference in compiled block', () => {
-      // GIVEN: A mock runtime instance
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-1'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Sit-ups', type: 'effort' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: Strategy compiles statement
-      const strategy = new EffortStrategy();
-      const block = strategy.compile([statement], mockRuntime);
-
-      // THEN: Block holds runtime reference
-      expect(block!.runtime).toBe(mockRuntime);
-    });
-  });
 
   describe('TBC-009: Multiple statements compiled into single block', () => {
     it('should reference first statement ID when compiling multiple statements', () => {
