@@ -11,6 +11,7 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
 import { ChildAdvancementBehavior } from './ChildAdvancementBehavior';
+import { NextBlockLogger } from '../NextBlockLogger';
 
 export class LazyCompilationBehavior implements IRuntimeBehavior {
     private compilationCache?: Map<number, IRuntimeBlock>;
@@ -56,12 +57,28 @@ export class LazyCompilationBehavior implements IRuntimeBehavior {
 
         // Compile the child using JIT compiler
         try {
+            // Log compilation start
+            const statementId = typeof currentChild.id === 'number' 
+                ? currentChild.id 
+                : (Array.isArray(currentChild.id) ? currentChild.id : String(currentChild.id));
+            
+            NextBlockLogger.logCompilationStart(currentIndex, statementId);
+
             const compiledBlock = runtime.jit.compile([currentChild], runtime);
             
             if (!compiledBlock) {
-                console.error(`LazyCompilationBehavior: JIT compiler returned undefined for child ${currentIndex}`);
+                NextBlockLogger.logCompilationFailure(
+                    currentIndex,
+                    new Error('JIT compiler returned undefined')
+                );
                 return [];
             }
+
+            // Log successful compilation
+            NextBlockLogger.logCompilationSuccess(
+                currentIndex,
+                compiledBlock.key.toString()
+            );
 
             // Cache if enabled
             if (this.enableCaching && this.compilationCache) {
@@ -71,7 +88,7 @@ export class LazyCompilationBehavior implements IRuntimeBehavior {
             // Return PushBlockAction to push the compiled child onto the stack
             return [new PushBlockAction(compiledBlock)];
         } catch (error) {
-            console.error(`LazyCompilationBehavior: Failed to compile child ${currentIndex}:`, error);
+            NextBlockLogger.logCompilationFailure(currentIndex, error as Error);
             // TODO: Create ErrorRuntimeBlock instead of returning empty
             return [];
         }

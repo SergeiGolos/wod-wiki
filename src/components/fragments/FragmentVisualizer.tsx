@@ -59,36 +59,23 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
     );
   }
 
-  // Group fragments by type
-  const groupedFragments = fragments.reduce((acc, fragment) => {
-    const type = fragment.type || 'unknown';
-    if (!acc[type]) {
-      acc[type] = [];
-    }
-    acc[type].push(fragment);
-    return acc;
-  }, {} as Record<string, ICodeFragment[]>);
-
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
-      {Object.entries(groupedFragments).map(([type, frags]) => (
-        <div key={type} className={`border rounded-lg p-2 ${getFragmentColorClasses(type)}`}>
-          <strong className="block mb-1 text-center text-xs font-bold uppercase tracking-wider">
-            {type}
-          </strong>
-          <div className="flex flex-col gap-1">
-            {frags.map((fragment, index) => (
-              <div
-                key={index}
-                className="bg-white bg-opacity-60 px-2 py-1 rounded-md font-mono text-sm shadow-sm"
-                title={JSON.stringify(fragment.value, null, 2)}
-              >
-                {fragment.image || (typeof fragment.value === 'object' ? JSON.stringify(fragment.value) : String(fragment.value))}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className={`flex flex-wrap gap-1 ${className}`}>
+      {fragments.map((fragment, index) => {
+        const type = fragment.type || 'unknown';
+        const colorClasses = getFragmentColorClasses(type);
+        const tokenValue = fragment.image || (typeof fragment.value === 'object' ? JSON.stringify(fragment.value) : String(fragment.value));
+
+        return (
+          <span
+            key={index}
+            className={`inline-block px-2 py-0.5 rounded text-sm font-mono border ${colorClasses} bg-white bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`}
+            title={`${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`}
+          >
+            {tokenValue}
+          </span>
+        );
+      })}
     </div>
   );
 });

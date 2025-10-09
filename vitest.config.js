@@ -19,6 +19,16 @@ export default defineConfig({
         environment: 'node',
       },
     },
+    // React component tests (jsdom environment)
+    {
+      test: {
+        name: 'components',
+        include: ['tests/**/*.{test,spec}.{js,ts}'],
+        exclude: ['stories/**/*', 'src/**/*.stories.*'],
+        environment: 'jsdom',
+        setupFiles: ['./tests/setup.ts'],
+      },
+    },
     // Storybook component tests with Playwright
     {
       plugins: [

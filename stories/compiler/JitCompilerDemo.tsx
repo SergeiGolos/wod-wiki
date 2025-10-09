@@ -14,6 +14,10 @@ import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime
 import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
 import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
 import { CodeStatement } from '../../src/CodeStatement';
+import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
+import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
+import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
+import { useTimerElapsed } from '../../src/runtime/hooks/useTimerElapsed';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -52,6 +56,42 @@ const blockColors: Record<string, string> = {
 // (unused) Detailed block display kept for future use
 
 // (unused) Full-size stack visualizer kept for future use
+
+// Clock display component for JIT compiler demo
+function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime | ScriptRuntime }) {
+  // Find the first timer block in the current stack
+  const timerBlock = runtime?.stack?.blocksBottomFirst?.find(block => {
+    // Check if this block has TimerBehavior by looking for timer memory references
+    const timeSpansRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      visibility: null
+    });
+    return timeSpansRefs.length > 0;
+  });
+
+  if (!timerBlock) {
+    return (
+      <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+        <div className="text-sm">No timer blocks currently running</div>
+        <div className="text-xs mt-2">Timer blocks will appear here when workout is executed</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+      <div className="text-center">
+        <div className="text-sm font-medium text-gray-600 mb-4">Runtime Timer</div>
+        <ClockAnchor blockKey={timerBlock.key.toString()} />
+        <div className="mt-2 text-xs text-gray-500">
+          Block: {timerBlock.key.toString()}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Enhanced editor component with line highlighting
 function ScriptEditor({ 
@@ -757,70 +797,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
   // Extract statements for fragment visualization
   const statements = runtime?.script?.statements || [];
-  
+
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-      {/* Header with action buttons */}
-      <div className="flex justify-between items-start mb-6">
-        <h2 className="text-xl font-bold">Stack & Memory Visualization Debug Harness</h2>
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-            onClick={() => {
-              setScript(initialScript);
-              setHighlightedLine(undefined);
-              setHoveredBlockKey(undefined);
-              setHoveredMemoryBlockKey(undefined);
-            }}
-          >
-            🔄 Reset
-          </button>
-          {(() => {
-            const isScriptCompleted = !runtime?.stack?.current;
-            const hasRuntimeErrors = runtime && 'hasErrors' in runtime && typeof (runtime as any).hasErrors === 'function' && (runtime as any).hasErrors();
+    <RuntimeProvider runtime={runtime}>
+      <div className="p-4 max-w-7xl mx-auto">
 
-            return (
-              <button
-            className={`px-3 py-2 rounded text-sm transition-colors ${
-              isProcessingNext
-                ? 'bg-yellow-600 text-white cursor-not-allowed'
-                : isScriptCompleted
-                ? 'bg-gray-600 text-white cursor-not-allowed'
-                : hasRuntimeErrors
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-            onClick={handleNextBlock}
-            disabled={isProcessingNext || isScriptCompleted}
-            type="button"
-            title={
-              isProcessingNext
-                ? 'Processing...'
-                : isScriptCompleted
-                ? 'Script completed - no more blocks to advance'
-                : hasRuntimeErrors
-                ? 'Runtime has errors'
-                : 'Advance to next block'
-            }
-          >
-            {isProcessingNext ? '⏳ Processing...' : isScriptCompleted ? '✅ Completed' : (
-              <>
-                ▶️ Next Block
-                {nextClickQueue > 0 && (
-                  <span className="ml-1 px-1 py-0.5 bg-white bg-opacity-20 rounded text-xs">
-                    +{nextClickQueue}
-                  </span>
-                )}
-              </>
-            )}
-              </button>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
+        {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Left: Workout Setup / Script Editor */}
         <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -883,11 +866,45 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
       </div>
 
       {/* Runtime Clock Section - Full Width */}
-      <div className="mb-6">                  
-        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
-          <div className="text-sm">Runtime clock placeholder</div>
-          <div className="text-xs mt-2">Timer display will be implemented here</div>
-        </div>         
+      <div className="mb-6">
+        <RuntimeClockDisplay runtime={runtime} />
+      </div>
+
+      {/* Runtime Controls */}
+      <div className="mb-6 bg-white rounded-lg border border-gray-300 shadow-sm p-4">
+        <div className="flex items-center gap-4">
+          <h3 className="text-base font-semibold text-gray-900">Runtime Controls</h3>
+          <div className="flex gap-3">
+            <button
+              onClick={handleNextBlock}
+              disabled={isProcessingNext}
+              className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                isProcessingNext
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+              }`}
+              title="Advance to next block in runtime execution"
+            >
+              {isProcessingNext ? 'Processing...' : 'Next Block'}
+              {nextClickQueue > 0 && ` (${nextClickQueue} queued)`}
+            </button>
+            <button
+              onClick={() => {
+                console.log('[JitCompilerDemo] Reset button clicked');
+                setStepVersion(v => v + 1);
+              }}
+              className="px-4 py-2 rounded-md font-medium text-sm bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 transition-colors"
+              title="Force UI refresh"
+            >
+              Refresh UI
+            </button>
+          </div>
+          {isProcessingNext && (
+            <div className="text-xs text-gray-500">
+              <span className="inline-block animate-pulse">⏳</span> Processing next event...
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bottom Section: Runtime Stack and Memory Side by Side */}
@@ -909,6 +926,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         )}
       </div>
       </div>
+    </RuntimeProvider>
   );
 };
 
