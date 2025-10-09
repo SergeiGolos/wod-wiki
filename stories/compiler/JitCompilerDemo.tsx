@@ -870,6 +870,43 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         <RuntimeClockDisplay runtime={runtime} />
       </div>
 
+      {/* Runtime Controls */}
+      <div className="mb-6 bg-white rounded-lg border border-gray-300 shadow-sm p-4">
+        <div className="flex items-center gap-4">
+          <h3 className="text-base font-semibold text-gray-900">Runtime Controls</h3>
+          <div className="flex gap-3">
+            <button
+              onClick={handleNextBlock}
+              disabled={isProcessingNext}
+              className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                isProcessingNext
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+              }`}
+              title="Advance to next block in runtime execution"
+            >
+              {isProcessingNext ? 'Processing...' : 'Next Block'}
+              {nextClickQueue > 0 && ` (${nextClickQueue} queued)`}
+            </button>
+            <button
+              onClick={() => {
+                console.log('[JitCompilerDemo] Reset button clicked');
+                setStepVersion(v => v + 1);
+              }}
+              className="px-4 py-2 rounded-md font-medium text-sm bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 transition-colors"
+              title="Force UI refresh"
+            >
+              Refresh UI
+            </button>
+          </div>
+          {isProcessingNext && (
+            <div className="text-xs text-gray-500">
+              <span className="inline-block animate-pulse">⏳</span> Processing next event...
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Bottom Section: Runtime Stack and Memory Side by Side */}
       <div className="grid grid-cols-2 gap-6">
         {showRuntimeStack && (

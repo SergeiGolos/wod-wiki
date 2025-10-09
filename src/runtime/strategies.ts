@@ -4,7 +4,7 @@ import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { BlockKey } from "../BlockKey";
-import { ICodeStatement } from "@/CodeStatement";
+import { ICodeStatement, CodeStatement } from "@/CodeStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { FragmentType } from "../CodeFragment";
 import { ChildAdvancementBehavior } from "./behaviors/ChildAdvancementBehavior";
@@ -33,9 +33,12 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
         const behaviors: IRuntimeBehavior[] = [];
 
-        // Add behaviors if statement has children (basic check)
-        if (code[0] && code[0].children && code[0].children.length > 0) {
-            behaviors.push(new ChildAdvancementBehavior([])); // Empty array for now, will be populated later
+        // Add behaviors if statement has children
+        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
+            // Resolve child statement IDs to actual statements
+            const childIds = code[0].children.flat();
+            const childStatements = runtime.script.getIds(childIds);
+            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
         }
 
@@ -77,8 +80,11 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         behaviors.push(new TimerBehavior());
 
         // Add behaviors if statement has children
-        if (code[0] && code[0].children && code[0].children.length > 0) {
-            behaviors.push(new ChildAdvancementBehavior([])); // Empty array for now, will be populated later
+        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
+            // Resolve child statement IDs to actual statements
+            const childIds = code[0].children.flat();
+            const childStatements = runtime.script.getIds(childIds);
+            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
         }
 
@@ -144,8 +150,11 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const behaviors: IRuntimeBehavior[] = [];
 
         // Add behaviors if statement has children
-        if (code[0] && code[0].children && code[0].children.length > 0) {
-            behaviors.push(new ChildAdvancementBehavior([])); // Empty array for now, will be populated later
+        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
+            // Resolve child statement IDs to actual statements
+            const childIds = code[0].children.flat();
+            const childStatements = runtime.script.getIds(childIds);
+            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
         }
 
