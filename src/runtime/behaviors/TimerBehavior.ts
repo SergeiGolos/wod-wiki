@@ -3,6 +3,7 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IEvent } from '../IEvent';
+import { TypedMemoryReference } from '../IMemoryReference';
 
 /**
  * Timer memory reference types for runtime memory system.
@@ -47,6 +48,11 @@ export class TimerBehavior implements IRuntimeBehavior {
   private readonly tickIntervalMs = 100; // ~10 ticks per second
   private direction: 'up' | 'down';
   private durationMs?: number;
+  
+  // Memory references
+  private timeSpansRef?: TypedMemoryReference<TimeSpan[]>;
+  private isRunningRef?: TypedMemoryReference<boolean>;
+  private _runtime?: IScriptRuntime;
 
   constructor(direction: 'up' | 'down' = 'up', durationMs?: number) {
     if (direction !== 'up' && direction !== 'down') {
@@ -59,9 +65,25 @@ export class TimerBehavior implements IRuntimeBehavior {
 
   /**
    * Start the timer when block is pushed onto the stack.
-   * Emits timer:started event.
+   * Allocates memory references and emits timer:started event.
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    this._runtime = runtime;
+    
+    // Allocate memory references with public visibility
+    this.timeSpansRef = runtime.memory.allocate<TimeSpan[]>(
+      TIMER_MEMORY_TYPES.TIME_SPANS,
+      block.key.toString(),
+      [{ start: new Date(), stop: undefined }], // Initialize with one running span
+      'public'
+    );
+    
+    this.isRunningRef = runtime.memory.allocate<boolean>(
+      TIMER_MEMORY_TYPES.IS_RUNNING,
+      block.key.toString(),
+      true, // Initialize as running
+      'public'
+    );
     this.startTime = performance.now();
     this.elapsedMs = 0;
     this._isPaused = false;
@@ -89,7 +111,7 @@ export class TimerBehavior implements IRuntimeBehavior {
 
   /**
    * Stop the timer when block is popped from the stack.
-   * Preserves elapsed time state for resume scenarios.
+   * Updates memory to mark timer as stopped.
    */
   onPop(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
     if (this.intervalId !== undefined) {
@@ -97,10 +119,15 @@ export class TimerBehavior implements IRuntimeBehavior {
       this.intervalId = undefined;
     }
 
-    // Calculate final elapsed time
-    if (!this._isPaused) {
-      const now = performance.now();
-      this.elapsedMs = now - this.startTime;
+    // Stop the timer in memory
+    if (this.timeSpansRef && this.isRunningRef) {
+      const spans = this.timeSpansRef.get() || [];
+      if (spans.length > 0 && !spans[spans.length - 1].stop) {
+        // Close the last span
+        spans[spans.length - 1].stop = new Date();
+        this.timeSpansRef.set([...spans]);
+      }
+      this.isRunningRef.set(false);
     }
 
     return [];
@@ -187,36 +214,118 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Check if timer is currently running.
    */
   isRunning(): boolean {
+    if (this.isRunningRef) {
+      return this.isRunningRef.get() || false;
+    }
     return this.intervalId !== undefined && !this._isPaused;
   }
 
   /**
    * Check if timer is currently paused.
+   * A timer is paused if it has time spans but the last one is stopped and there's an interval running.
    */
   isPaused(): boolean {
+    if (this.timeSpansRef && this.isRunningRef) {
+      const spans = this.timeSpansRef.get() || [];
+      const isRunning = this.isRunningRef.get() || false;
+      // Paused means: we have spans, the last span is closed, and memory says not running
+      if (spans.length > 0 && spans[spans.length - 1].stop && !isRunning) {
+        return true;
+      }
+      return false;
+    }
     return this._isPaused;
   }
 
   /**
-   * Pause the timer. Preserves elapsed time.
+   * Start the timer. Creates a new time span.
    */
-  pause(): void {
-    if (!this._isPaused && this.intervalId !== undefined) {
-      this._isPaused = true;
-      this.pauseTime = performance.now();
-      this.elapsedMs = this.pauseTime - this.startTime;
+  start(): void {
+    if (!this.timeSpansRef || !this.isRunningRef || !this._runtime) {
+      return;
     }
+
+    const spans = this.timeSpansRef.get() || [];
+    
+    // If already running, don't start again
+    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+      return;
+    }
+
+    // Add new span
+    spans.push({ start: new Date(), stop: undefined });
+    this.timeSpansRef.set([...spans]);
+    this.isRunningRef.set(true);
   }
 
   /**
-   * Resume the timer from current elapsed time.
+   * Stop the timer. Closes the current time span.
+   */
+  stop(): void {
+    if (!this.timeSpansRef || !this.isRunningRef) {
+      return;
+    }
+
+    const spans = this.timeSpansRef.get() || [];
+    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+      spans[spans.length - 1].stop = new Date();
+      this.timeSpansRef.set([...spans]);
+    }
+    this.isRunningRef.set(false);
+  }
+
+  /**
+   * Pause the timer. Closes the current time span.
+   */
+  pause(): void {
+    if (!this.timeSpansRef || !this.isRunningRef) {
+      // Fallback to old behavior if memory not initialized
+      if (!this._isPaused && this.intervalId !== undefined) {
+        this._isPaused = true;
+        this.pauseTime = performance.now();
+        this.elapsedMs = this.pauseTime - this.startTime;
+      }
+      return;
+    }
+
+    const spans = this.timeSpansRef.get() || [];
+    
+    // If not running, nothing to pause
+    if (spans.length === 0 || spans[spans.length - 1].stop) {
+      return;
+    }
+
+    // Close the current span
+    spans[spans.length - 1].stop = new Date();
+    this.timeSpansRef.set([...spans]);
+    this.isRunningRef.set(false);
+  }
+
+  /**
+   * Resume the timer. Creates a new time span.
    */
   resume(): void {
-    if (this._isPaused && this.intervalId !== undefined) {
-      this._isPaused = false;
-      const now = performance.now();
-      this.startTime = now - this.elapsedMs;
+    if (!this.timeSpansRef || !this.isRunningRef) {
+      // Fallback to old behavior if memory not initialized
+      if (this._isPaused && this.intervalId !== undefined) {
+        this._isPaused = false;
+        const now = performance.now();
+        this.startTime = now - this.elapsedMs;
+      }
+      return;
     }
+
+    const spans = this.timeSpansRef.get() || [];
+    
+    // If already running, don't resume
+    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+      return;
+    }
+
+    // Add new span
+    spans.push({ start: new Date(), stop: undefined });
+    this.timeSpansRef.set([...spans]);
+    this.isRunningRef.set(true);
   }
 
   /**
@@ -231,13 +340,14 @@ export class TimerBehavior implements IRuntimeBehavior {
   }
 
   /**
-   * Get time spans for this timer (placeholder for memory integration).
-   * This method is needed for test compatibility but should be replaced
-   * with proper memory reference integration in the full implementation.
+   * Get time spans for this timer from memory.
    */
   getTimeSpans(): TimeSpan[] {
-    // For now, return a single span based on elapsed time
-    // In the full implementation, this would query from runtime memory
+    if (this.timeSpansRef) {
+      return this.timeSpansRef.get() || [];
+    }
+    
+    // Fallback for tests that don't use memory
     const elapsedMs = this.getElapsedMs();
     const now = new Date();
     return [{
@@ -247,10 +357,25 @@ export class TimerBehavior implements IRuntimeBehavior {
   }
 
   /**
-   * Get total elapsed time in milliseconds.
-   * This method is needed for test compatibility.
+   * Get total elapsed time in milliseconds by summing all time spans.
    */
   getTotalElapsed(): number {
-    return this.getElapsedMs();
+    const spans = this.getTimeSpans();
+    
+    if (spans.length === 0) {
+      return 0;
+    }
+
+    let total = 0;
+    const now = new Date();
+
+    for (const span of spans) {
+      if (span.start) {
+        const endTime = span.stop || now;
+        total += endTime.getTime() - span.start.getTime();
+      }
+    }
+
+    return total;
   }
 }

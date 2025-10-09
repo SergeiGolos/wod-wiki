@@ -14,6 +14,10 @@ import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime
 import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
 import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
 import { CodeStatement } from '../../src/CodeStatement';
+import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
+import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
+import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
+import { useTimerElapsed } from '../../src/runtime/hooks/useTimerElapsed';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -52,6 +56,42 @@ const blockColors: Record<string, string> = {
 // (unused) Detailed block display kept for future use
 
 // (unused) Full-size stack visualizer kept for future use
+
+// Clock display component for JIT compiler demo
+function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime | ScriptRuntime }) {
+  // Find the first timer block in the current stack
+  const timerBlock = runtime?.stack?.blocksBottomFirst?.find(block => {
+    // Check if this block has TimerBehavior by looking for timer memory references
+    const timeSpansRefs = runtime.memory.search({
+      id: null,
+      ownerId: block.key.toString(),
+      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      visibility: null
+    });
+    return timeSpansRefs.length > 0;
+  });
+
+  if (!timerBlock) {
+    return (
+      <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
+        <div className="text-sm">No timer blocks currently running</div>
+        <div className="text-xs mt-2">Timer blocks will appear here when workout is executed</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+      <div className="text-center">
+        <div className="text-sm font-medium text-gray-600 mb-4">Runtime Timer</div>
+        <ClockAnchor blockKey={timerBlock.key.toString()} />
+        <div className="mt-2 text-xs text-gray-500">
+          Block: {timerBlock.key.toString()}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Enhanced editor component with line highlighting
 function ScriptEditor({ 
@@ -757,12 +797,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
   // Extract statements for fragment visualization
   const statements = runtime?.script?.statements || [];
-  
+
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-   
-      {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
+    <RuntimeProvider runtime={runtime}>
+      <div className="p-4 max-w-7xl mx-auto">
+
+        {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Left: Workout Setup / Script Editor */}
         <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -825,11 +866,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
       </div>
 
       {/* Runtime Clock Section - Full Width */}
-      <div className="mb-6">                  
-        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
-          <div className="text-sm">Runtime clock placeholder</div>
-          <div className="text-xs mt-2">Timer display will be implemented here</div>
-        </div>         
+      <div className="mb-6">
+        <RuntimeClockDisplay runtime={runtime} />
       </div>
 
       {/* Bottom Section: Runtime Stack and Memory Side by Side */}
@@ -851,6 +889,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         )}
       </div>
       </div>
+    </RuntimeProvider>
   );
 };
 
