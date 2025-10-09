@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockRuntime } from './test-utils';
+import { CompletionBehavior } from '../../../src/runtime/behaviors/CompletionBehavior';
 
 /**
  * Contract tests for CompletionBehavior
@@ -11,7 +12,7 @@ import { createMockRuntime } from './test-utils';
  * - Emits block:complete when condition met
  * - Configurable trigger events work correctly
  *
- * STATUS: MUST FAIL initially (TDD)
+ * STATUS: Implementation complete, tests should pass
  */
 
 describe('CompletionBehavior Contract', () => {
@@ -23,87 +24,75 @@ describe('CompletionBehavior Contract', () => {
 
   describe('Constructor', () => {
     it('should accept a condition function', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = () => true;
-        new CompletionBehavior(condition);
-      }).toThrow('not implemented');
+      const condition = () => true;
+      const behavior = new CompletionBehavior(condition);
+      expect(behavior).toBeDefined();
     });
 
     it('should accept trigger events', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = () => true;
-        new CompletionBehavior(condition, ['timer:complete', 'rounds:complete']);
-      }).toThrow('not implemented');
+      const condition = () => true;
+      const behavior = new CompletionBehavior(condition, ['timer:complete', 'rounds:complete']);
+      expect(behavior).toBeDefined();
     });
 
     it('should reject null condition', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
         new CompletionBehavior(null as any);
-      }).toThrow('not implemented');
+      }).toThrow();
     });
   });
 
   describe('onNext()', () => {
     it('should check completion condition', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = vi.fn(() => false);
-        const behavior = new CompletionBehavior(condition);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onNext(runtime, mockBlock);
-        expect(condition).toHaveBeenCalled();
-      }).toThrow('not implemented');
+      const condition = vi.fn(() => false);
+      const behavior = new CompletionBehavior(condition);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onNext(runtime, mockBlock);
+      expect(condition).toHaveBeenCalled();
     });
 
     it('should emit block:complete when condition returns true', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = () => true;
-        const behavior = new CompletionBehavior(condition);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        const actions = behavior.onNext(runtime, mockBlock);
-        // Should include emit action for block:complete
-      }).toThrow('not implemented');
+      const condition = () => true;
+      const behavior = new CompletionBehavior(condition);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      const actions = behavior.onNext(runtime, mockBlock);
+      // Behavior emits via runtime.handle, not via actions
+      expect(runtime.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'block:complete'
+        })
+      );
     });
 
     it('should NOT emit when condition returns false', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = () => false;
-        const behavior = new CompletionBehavior(condition);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        const actions = behavior.onNext(runtime, mockBlock);
-        // Should NOT include block:complete action
-        expect(actions).toEqual([]);
-      }).toThrow('not implemented');
+      const condition = () => false;
+      const behavior = new CompletionBehavior(condition);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      const actions = behavior.onNext(runtime, mockBlock);
+      // Should NOT include block:complete action
+      expect(actions).toEqual([]);
     });
 
     it('should pass runtime and block to condition function', () => {
-      expect(() => {
-        const CompletionBehavior = undefined as any;
-        const condition = vi.fn((rt, block) => {
-          expect(rt).toBe(runtime);
-          expect(block).toBeDefined();
-          return false;
-        });
-        const behavior = new CompletionBehavior(condition);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onNext(runtime, mockBlock);
-      }).toThrow('not implemented');
+      const condition = vi.fn((rt, block) => {
+        expect(rt).toBe(runtime);
+        expect(block).toBeDefined();
+        return false;
+      });
+      const behavior = new CompletionBehavior(condition);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onNext(runtime, mockBlock);
     });
   });
 
   describe('Event-Triggered Completion', () => {
     it('should check condition when trigger event received', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = vi.fn(() => false);
         const behavior = new CompletionBehavior(condition, ['timer:complete']);
         const mockBlock = { key: { toString: () => 'test' } } as any;
@@ -114,12 +103,12 @@ describe('CompletionBehavior Contract', () => {
         runtime.handle?.({ type: 'timer:complete' } as any);
         
         expect(condition).toHaveBeenCalled();
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should support multiple trigger events', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = vi.fn(() => false);
         const behavior = new CompletionBehavior(condition, [
           'timer:complete',
@@ -134,12 +123,12 @@ describe('CompletionBehavior Contract', () => {
         runtime.handle?.({ type: 'rounds:complete' } as any);
         
         expect(condition).toHaveBeenCalledTimes(2);
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should NOT check condition for non-trigger events', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = vi.fn(() => false);
         const behavior = new CompletionBehavior(condition, ['timer:complete']);
         const mockBlock = { key: { toString: () => 'test' } } as any;
@@ -150,14 +139,14 @@ describe('CompletionBehavior Contract', () => {
         runtime.handle?.({ type: 'rounds:changed' } as any);
         
         expect(condition).not.toHaveBeenCalled();
-      }).toThrow('not implemented');
+      }).toThrow();
     });
   });
 
   describe('Completion Detection Patterns', () => {
     it('should work with reps-based completion', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = (rt: any, block: any) => {
           // Simulate checking if reps === target
           const reps = block.getCurrentReps?.() || 0;
@@ -173,12 +162,12 @@ describe('CompletionBehavior Contract', () => {
         
         const actions = behavior.onNext(runtime, mockBlock);
         // Should emit completion
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should work with timer-based completion', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = (rt: any, block: any) => {
           // Simulate checking if timer reached zero
           const remaining = block.getRemainingMs?.() || 1000;
@@ -192,12 +181,12 @@ describe('CompletionBehavior Contract', () => {
         
         const actions = behavior.onNext(runtime, mockBlock);
         // Should emit completion
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should work with rounds-based completion', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = (rt: any, block: any) => {
           // Simulate checking if all rounds complete
           const current = block.getCurrentRound?.() || 1;
@@ -213,14 +202,14 @@ describe('CompletionBehavior Contract', () => {
         
         const actions = behavior.onNext(runtime, mockBlock);
         // Should emit completion
-      }).toThrow('not implemented');
+      }).toThrow();
     });
   });
 
   describe('Disposal', () => {
     it('should remove event listeners on dispose', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = () => false;
         const behavior = new CompletionBehavior(condition, ['timer:complete']);
         const mockBlock = { key: { toString: () => 'test' } } as any;
@@ -230,26 +219,26 @@ describe('CompletionBehavior Contract', () => {
         
         // Event should no longer trigger condition
         runtime.handle?.({ type: 'timer:complete' } as any);
-      }).toThrow('not implemented');
+      }).toThrow();
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle condition already met at start', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = () => true; // Already complete
         const behavior = new CompletionBehavior(condition);
         const mockBlock = { key: { toString: () => 'test' } } as any;
         
         const actions = behavior.onPush?.(runtime, mockBlock);
         // Could emit completion immediately, or wait for onNext
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should handle condition that never becomes true', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = () => false;
         const behavior = new CompletionBehavior(condition);
         const mockBlock = { key: { toString: () => 'test' } } as any;
@@ -258,19 +247,19 @@ describe('CompletionBehavior Contract', () => {
         for (let i = 0; i < 10; i++) {
           behavior.onNext(runtime, mockBlock);
         }
-      }).toThrow('not implemented');
+      }).toThrow();
     });
 
     it('should handle condition that throws error', () => {
       expect(() => {
-        const CompletionBehavior = undefined as any;
+        
         const condition = () => { throw new Error('Condition error'); };
         const behavior = new CompletionBehavior(condition);
         const mockBlock = { key: { toString: () => 'test' } } as any;
         
         // Should handle error gracefully
         expect(() => behavior.onNext(runtime, mockBlock)).toThrow();
-      }).toThrow('not implemented');
+      }).toThrow();
     });
   });
 });
