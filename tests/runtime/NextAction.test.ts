@@ -126,17 +126,31 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith('NextAction: Error during execution advancement', error);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '❌ NEXT-BLOCK | Error in next-action',
+      expect.objectContaining({
+        context: expect.objectContaining({
+          blockKey: 'test-block',
+          stackDepth: 0
+        }),
+        error: 'Block execution failed'
+      })
+    );
     consoleSpy.mockRestore();
   });
 
   it('should log message when no current block available', () => {
     mockRuntime.stack.current = null as any;
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith('NextAction: No current block to advance from');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '❌ NEXT-BLOCK | Error in next-action',
+      expect.objectContaining({
+        error: expect.stringContaining('No current block')
+      })
+    );
     consoleSpy.mockRestore();
   });
 
@@ -146,7 +160,13 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith('NextAction: Advancing from block test-block');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '🎯 NEXT-BLOCK | Action Start',
+      expect.objectContaining({
+        block: 'test-block',
+        depth: 0
+      })
+    );
     consoleSpy.mockRestore();
   });
 
@@ -157,7 +177,13 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith('NextAction: Completed, new stack depth: 2');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '✅ NEXT-BLOCK | Action Complete',
+      expect.objectContaining({
+        actionsExecuted: 0,
+        newDepth: 2
+      })
+    );
     consoleSpy.mockRestore();
   });
 

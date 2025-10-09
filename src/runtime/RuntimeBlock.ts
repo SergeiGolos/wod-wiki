@@ -4,6 +4,7 @@ import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
+import { NextBlockLogger } from './NextBlockLogger';
 
 
 export type AllocateRequest<T> = { 
@@ -28,7 +29,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         this.key = new BlockKey();
         this.behaviors = behaviors;
         this.blockType = blockType;
-        console.log(`🧠 RuntimeBlock created: ${this.key.toString()}${blockType ? ` (${blockType})` : ''}`);
     }
 
     /**
@@ -76,6 +76,12 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Determines the next block(s) to execute or signals completion.
      */
     next(): IRuntimeAction[] {
+        // Log behavior orchestration
+        NextBlockLogger.logBehaviorOrchestration(
+            this.key.toString(),
+            this.behaviors.length
+        );
+
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
             const result = behavior?.onNext?.(this._runtime, this);
@@ -111,7 +117,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         for (const memRef of this._memory) {
             this._runtime.memory.release(memRef);
         }
-        console.log(`🧠 RuntimeBlock disposed: ${this.key.toString()}`);
     }
 
     /**

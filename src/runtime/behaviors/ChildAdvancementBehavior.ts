@@ -10,6 +10,7 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
+import { NextBlockLogger } from '../NextBlockLogger';
 
 export class ChildAdvancementBehavior implements IRuntimeBehavior {
     private currentChildIndex: number = 0;
@@ -31,11 +32,23 @@ export class ChildAdvancementBehavior implements IRuntimeBehavior {
     onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         // Check if we're already complete
         if (this.currentChildIndex >= this.children.length) {
+            NextBlockLogger.logChildAdvancement(
+                this.currentChildIndex,
+                this.children.length,
+                true
+            );
             return [];
         }
 
         // Advance to next child
         this.currentChildIndex++;
+
+        // Log advancement
+        NextBlockLogger.logChildAdvancement(
+            this.currentChildIndex,
+            this.children.length,
+            this.currentChildIndex >= this.children.length
+        );
 
         // Return empty array (compilation handled by LazyCompilationBehavior)
         return [];

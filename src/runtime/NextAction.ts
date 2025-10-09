@@ -1,5 +1,6 @@
 import { IRuntimeAction } from './IRuntimeAction';
 import { IScriptRuntime } from './IScriptRuntime';
+import { NextBlockLogger } from './NextBlockLogger';
 
 export class NextAction implements IRuntimeAction {
   private _type = 'next';
@@ -15,20 +16,31 @@ export class NextAction implements IRuntimeAction {
   do(runtime: IScriptRuntime): void {
     // Validate runtime state
     if (!this.validateRuntimeState(runtime)) {
-      console.error('NextAction: Invalid runtime state');
+      NextBlockLogger.logValidationFailure('Invalid runtime state', {
+        hasStack: !!runtime.stack,
+        hasMemory: !!runtime.memory,
+        hasErrors: runtime.hasErrors?.() || false,
+      });
       return;
     }
 
     // Get current block
     const currentBlock = runtime.stack.current;
     if (!currentBlock) {
-      console.log('NextAction: No current block to advance from');
+      NextBlockLogger.logValidationFailure('No current block to advance from', {
+        stackDepth: runtime.stack.blocks.length,
+      });
       return;
     }
 
     try {
+      // Log start of next action
+      NextBlockLogger.logNextActionStart(
+        currentBlock.key.toString(),
+        runtime.stack.blocks.length
+      );
+
       // Execute block's next logic
-      console.log(`NextAction: Advancing from block ${currentBlock.key.toString()}`);
       const nextActions = currentBlock.next();
 
       // Execute all returned actions
@@ -36,9 +48,16 @@ export class NextAction implements IRuntimeAction {
         action.do(runtime);
       }
 
-      console.log(`NextAction: Completed, new stack depth: ${runtime.stack.blocks.length}`);
+      // Log completion
+      NextBlockLogger.logNextActionComplete(
+        runtime.stack.blocks.length,
+        nextActions.length
+      );
     } catch (error) {
-      console.error('NextAction: Error during execution advancement', error);
+      NextBlockLogger.logError('next-action', error as Error, {
+        blockKey: currentBlock.key.toString(),
+        stackDepth: runtime.stack.blocks.length,
+      });
       runtime.setError(error);
     }
   }

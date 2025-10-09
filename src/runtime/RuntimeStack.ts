@@ -1,6 +1,7 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../BlockKey';
 import { StackValidator } from './StackValidator';
+import { NextBlockLogger } from './NextBlockLogger';
 
 export class RuntimeStack {
     private readonly _blocks: IRuntimeBlock[] = [];
@@ -42,45 +43,27 @@ export class RuntimeStack {
         this._validator.validatePush(block, this._blocks.length);
         
         const blockKey = block.key.toString();
-        console.log(`📚 RuntimeStack.push() - Adding block: ${blockKey}`);
-        console.log(`  📊 Stack depth before push: ${this._blocks.length}`);
-        console.log(`  ✅ Validation passed: block is valid`);
-        console.log(`  🔄 Using constructor-based initialization (no lifecycle method calls)`);
+        const depthBefore = this._blocks.length;
         
         // Simple push - no initialization calls (constructor-based initialization)
         this._blocks.push(block);
         
-        console.log(`  📊 Stack depth after push: ${this._blocks.length}`);
-        console.log(`  🎯 New current block: ${this.current?.key.toString()}`);
-        console.log(`  ✅ Push operation completed successfully`);
+        const depthAfter = this._blocks.length;
+
+        // Log stack modification for next block validation
+        NextBlockLogger.logStackPush(blockKey, depthBefore, depthAfter);
     }
 
     public pop(): IRuntimeBlock | undefined {
         // Validate before pop - returns false if empty
         const canPop = this._validator.validatePop(this._blocks.length);
         if (!canPop) {
-            console.log(`📚 RuntimeStack.pop() - Stack is empty, returning undefined`);
             return undefined;
         }
-        
-        console.log(`📚 RuntimeStack.pop() - Removing top block`);
-        console.log(`  📊 Stack depth before pop: ${this._blocks.length}`);
-        console.log(`  ✅ Validation passed: stack not empty`);
-        console.log(`  🔄 Using consumer-managed dispose pattern (no cleanup method calls)`);
         
         // Simple pop - no cleanup calls (consumer-managed dispose)
         const popped = this._blocks.pop();
         
-        const poppedKey = popped ? popped.key.toString() : 'None';
-        console.log(`  📦 Popped block: ${poppedKey}`);
-        console.log(`  📊 Stack depth after pop: ${this._blocks.length}`);
-        console.log(`  🎯 New current block: ${this.current?.key.toString() || 'None'}`);
-        
-        if (popped) {
-            console.log(`  ⚠️  IMPORTANT: Consumer must call dispose() on the returned block`);
-        }
-        
-        console.log(`  ✅ Pop operation completed successfully`);
         return popped; // Consumer must call dispose()
     }
 
