@@ -5,6 +5,24 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IEvent } from '../IEvent';
 
 /**
+ * Timer memory reference types for runtime memory system.
+ * These constants are used to identify and search for timer-related memory references.
+ */
+export const TIMER_MEMORY_TYPES = {
+  TIME_SPANS: 'timer-time-spans',      // TimeSpan[] - array of start/stop pairs
+  IS_RUNNING: 'timer-is-running',      // boolean - current running state
+} as const;
+
+/**
+ * TimeSpan represents a segment of time with start and optional stop timestamps.
+ * Used to track timer execution across pause/resume cycles.
+ */
+export interface TimeSpan {
+  start?: Date;   // When this segment started
+  stop?: Date;    // When this segment stopped (undefined = currently running)
+}
+
+/**
  * TimerBehavior manages time tracking for workout blocks.
  * 
  * Supports two modes:
@@ -27,13 +45,15 @@ export class TimerBehavior implements IRuntimeBehavior {
   private _isPaused = false;
   private pauseTime = 0;
   private readonly tickIntervalMs = 100; // ~10 ticks per second
+  private direction: 'up' | 'down';
   private durationMs?: number;
 
-  constructor(private readonly direction: 'up' | 'down', durationMs?: number) {
+  constructor(direction: 'up' | 'down' = 'up', durationMs?: number) {
     if (direction !== 'up' && direction !== 'down') {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
     }
-    
+
+    this.direction = direction;
     this.durationMs = durationMs;
   }
 
@@ -208,5 +228,29 @@ export class TimerBehavior implements IRuntimeBehavior {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
+  }
+
+  /**
+   * Get time spans for this timer (placeholder for memory integration).
+   * This method is needed for test compatibility but should be replaced
+   * with proper memory reference integration in the full implementation.
+   */
+  getTimeSpans(): TimeSpan[] {
+    // For now, return a single span based on elapsed time
+    // In the full implementation, this would query from runtime memory
+    const elapsedMs = this.getElapsedMs();
+    const now = new Date();
+    return [{
+      start: new Date(now.getTime() - elapsedMs),
+      stop: this.isRunning() ? undefined : now
+    }];
+  }
+
+  /**
+   * Get total elapsed time in milliseconds.
+   * This method is needed for test compatibility.
+   */
+  getTotalElapsed(): number {
+    return this.getElapsedMs();
   }
 }

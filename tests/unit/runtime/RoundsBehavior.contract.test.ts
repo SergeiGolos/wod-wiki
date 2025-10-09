@@ -28,219 +28,217 @@ describe('RoundsBehavior Contract', () => {
 
   describe('Constructor', () => {
     it('should accept valid totalRounds', () => {
-      expect(() => {
-        
-        new RoundsBehavior(3);
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      expect(behavior).toBeDefined();
     });
 
     it('should accept totalRounds with rep scheme', () => {
-      expect(() => {
-        
-        new RoundsBehavior(3, [21, 15, 9]);
-      }).toThrow();
+      const behavior = new RoundsBehavior(3, [21, 15, 9]);
+      expect(behavior).toBeDefined();
     });
 
     it('should reject totalRounds < 1', () => {
-      expect(() => {
-        
-        new RoundsBehavior(0);
-      }).toThrow();
+      expect(() => new RoundsBehavior(0)).toThrow();
     });
 
     it('should reject repScheme length mismatch', () => {
-      expect(() => {
-        
-        new RoundsBehavior(3, [21, 15]); // Wrong length
-      }).toThrow();
+      expect(() => new RoundsBehavior(3, [21, 15])).toThrow(); // Wrong length
     });
 
     it('should reject invalid rep values', () => {
-      expect(() => {
-        
-        new RoundsBehavior(3, [21, 0, 9]); // Zero reps invalid
-      }).toThrow();
+      expect(() => new RoundsBehavior(3, [21, 0, 9])).toThrow(); // Zero reps invalid
     });
   });
 
   describe('onPush()', () => {
     it('should initialize currentRound to 1', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        // Verify currentRound === 1
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      const context = behavior.getCompilationContext?.();
+      expect(context?.currentRound).toBe(1);
     });
 
     it('should allocate memory for round tracking', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        expect(runtime.memory.allocate).toHaveBeenCalled();
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      expect(runtime.memory.allocate).toHaveBeenCalled();
     });
   });
 
   describe('onNext()', () => {
     it('should advance currentRound', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        behavior.onNext(runtime, mockBlock); // Should advance to round 2
-        // Verify currentRound === 2
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      const context1 = behavior.getCompilationContext?.();
+      expect(context1?.currentRound).toBe(1);
+      
+      behavior.onNext(runtime, mockBlock); // Should advance to round 2
+      const context2 = behavior.getCompilationContext?.();
+      expect(context2?.currentRound).toBe(2);
     });
 
-    it('should emit rounds:changed event via actions', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        const actions = behavior.onNext(runtime, mockBlock);
-        // Should include emit action for rounds:changed
-      }).toThrow();
+    it('should emit rounds:changed event via runtime.handle()', () => {
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      runtime.handle = vi.fn(); // Reset to track only onNext calls
+      
+      behavior.onNext(runtime, mockBlock);
+      
+      // Should call runtime.handle with rounds:changed event
+      expect(runtime.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'rounds:changed',
+          data: expect.objectContaining({
+            currentRound: 2,
+          }),
+        })
+      );
     });
 
     it('should not advance beyond totalRounds', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        behavior.onNext(runtime, mockBlock); // Round 2
-        behavior.onNext(runtime, mockBlock); // Round 3
-        behavior.onNext(runtime, mockBlock); // Should signal completion
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      behavior.onNext(runtime, mockBlock); // Round 2
+      behavior.onNext(runtime, mockBlock); // Round 3
+      
+      const context = behavior.getCompilationContext?.();
+      expect(context?.currentRound).toBe(3);
+      
+      // Attempting to advance beyond should signal completion
+      runtime.handle = vi.fn(); // Reset to track completion call
+      behavior.onNext(runtime, mockBlock);
+      
+      expect(runtime.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'rounds:complete',
+        })
+      );
     });
   });
 
   describe('Rounds Completion', () => {
     it('should emit rounds:complete when all rounds finished', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(2);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        behavior.onNext(runtime, mockBlock); // Round 2
-        behavior.onNext(runtime, mockBlock); // Complete
-        // Should emit rounds:complete
-      }).toThrow();
+      const behavior = new RoundsBehavior(2);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      behavior.onNext(runtime, mockBlock); // Round 2
+      
+      runtime.handle = vi.fn(); // Reset to track completion call
+      behavior.onNext(runtime, mockBlock); // Complete
+      
+      // Should emit rounds:complete
+      expect(runtime.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'rounds:complete',
+        })
+      );
     });
 
     it('should include accurate round counts in completion event', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        behavior.onNext(runtime, mockBlock); // Round 2
-        behavior.onNext(runtime, mockBlock); // Round 3
-        const actions = behavior.onNext(runtime, mockBlock); // Complete
-        // Verify completion event data
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      behavior.onNext(runtime, mockBlock); // Round 2
+      behavior.onNext(runtime, mockBlock); // Round 3
+      
+      runtime.handle = vi.fn(); // Reset to track completion call
+      behavior.onNext(runtime, mockBlock); // Complete
+      
+      // Verify completion event data
+      expect(runtime.handle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'rounds:complete',
+          data: expect.objectContaining({
+            totalRoundsCompleted: 3,
+          }),
+        })
+      );
     });
   });
 
   describe('Compilation Context', () => {
     it('should provide context with current round', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        
-        const context = behavior.getCompilationContext?.();
-        expect(context.currentRound).toBe(1);
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock); // Initialize to round 1
+      const context = behavior.getCompilationContext?.();
+      expect(context?.currentRound).toBe(1);
     });
 
     it('should provide rep scheme when configured', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3, [21, 15, 9]);
-        
-        const context = behavior.getCompilationContext?.();
-        expect(context.repScheme).toEqual([21, 15, 9]);
-      }).toThrow();
+      const behavior = new RoundsBehavior(3, [21, 15, 9]);
+      
+      const context = behavior.getCompilationContext?.();
+      expect(context?.repScheme).toEqual([21, 15, 9]);
     });
 
     it('should return correct reps for current round', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3, [21, 15, 9]);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock); // Round 1
-        const context1 = behavior.getCompilationContext?.();
-        expect(context1.getRepsForCurrentRound()).toBe(21);
-        
-        behavior.onNext(runtime, mockBlock); // Round 2
-        const context2 = behavior.getCompilationContext?.();
-        expect(context2.getRepsForCurrentRound()).toBe(15);
-      }).toThrow();
+      const behavior = new RoundsBehavior(3, [21, 15, 9]);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock); // Round 1
+      const context1 = behavior.getCompilationContext?.();
+      expect(context1?.getRepsForCurrentRound?.()).toBe(21);
+      
+      behavior.onNext(runtime, mockBlock); // Round 2
+      const context2 = behavior.getCompilationContext?.();
+      expect(context2?.getRepsForCurrentRound?.()).toBe(15);
     });
 
     it('should return undefined for reps when no scheme configured', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        
-        const context = behavior.getCompilationContext?.();
-        expect(context.getRepsForCurrentRound()).toBeUndefined();
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      
+      const context = behavior.getCompilationContext?.();
+      expect(context?.getRepsForCurrentRound?.()).toBeUndefined();
     });
   });
 
   describe('AMRAP Support (Infinite Rounds)', () => {
     it('should support Infinity as totalRounds', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(Infinity);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        // Should allow infinite rounds
-      }).toThrow();
+      const behavior = new RoundsBehavior(Infinity);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      expect(behavior).toBeDefined();
+      
+      const context = behavior.getCompilationContext?.();
+      expect(context?.totalRounds).toBe(Infinity);
     });
 
     it('should never emit rounds:complete for infinite rounds', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(Infinity);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        for (let i = 0; i < 100; i++) {
-          behavior.onNext(runtime, mockBlock);
-        }
-        // Should never emit rounds:complete
-      }).toThrow();
+      const behavior = new RoundsBehavior(Infinity);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      for (let i = 0; i < 100; i++) {
+        const actions = behavior.onNext(runtime, mockBlock);
+        const completeAction = actions.find((a: any) => a.type === 'emit' && a.event?.includes('rounds:complete'));
+        expect(completeAction).toBeUndefined();
+      }
     });
   });
 
   describe('Disposal', () => {
     it('should clean up memory references on dispose', () => {
-      expect(() => {
-        
-        const behavior = new RoundsBehavior(3);
-        const mockBlock = { key: { toString: () => 'test' } } as any;
-        
-        behavior.onPush(runtime, mockBlock);
-        behavior.onDispose?.(runtime, mockBlock);
-        expect(runtime.memory.release).toHaveBeenCalled();
-      }).toThrow();
+      const behavior = new RoundsBehavior(3);
+      const mockBlock = { key: { toString: () => 'test' } } as any;
+      
+      behavior.onPush(runtime, mockBlock);
+      behavior.onDispose?.(runtime, mockBlock);
+      expect(runtime.memory.release).toHaveBeenCalled();
     });
   });
 });

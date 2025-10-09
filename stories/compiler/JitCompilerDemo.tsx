@@ -760,65 +760,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      {/* Header with action buttons */}
-      <div className="flex justify-between items-start mb-6">
-        <h2 className="text-xl font-bold">Stack & Memory Visualization Debug Harness</h2>
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-            onClick={() => {
-              setScript(initialScript);
-              setHighlightedLine(undefined);
-              setHoveredBlockKey(undefined);
-              setHoveredMemoryBlockKey(undefined);
-            }}
-          >
-            🔄 Reset
-          </button>
-          {(() => {
-            const isScriptCompleted = !runtime?.stack?.current;
-            const hasRuntimeErrors = runtime && 'hasErrors' in runtime && typeof (runtime as any).hasErrors === 'function' && (runtime as any).hasErrors();
-
-            return (
-              <button
-            className={`px-3 py-2 rounded text-sm transition-colors ${
-              isProcessingNext
-                ? 'bg-yellow-600 text-white cursor-not-allowed'
-                : isScriptCompleted
-                ? 'bg-gray-600 text-white cursor-not-allowed'
-                : hasRuntimeErrors
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-            onClick={handleNextBlock}
-            disabled={isProcessingNext || isScriptCompleted}
-            type="button"
-            title={
-              isProcessingNext
-                ? 'Processing...'
-                : isScriptCompleted
-                ? 'Script completed - no more blocks to advance'
-                : hasRuntimeErrors
-                ? 'Runtime has errors'
-                : 'Advance to next block'
-            }
-          >
-            {isProcessingNext ? '⏳ Processing...' : isScriptCompleted ? '✅ Completed' : (
-              <>
-                ▶️ Next Block
-                {nextClickQueue > 0 && (
-                  <span className="ml-1 px-1 py-0.5 bg-white bg-opacity-20 rounded text-xs">
-                    +{nextClickQueue}
-                  </span>
-                )}
-              </>
-            )}
-              </button>
-            );
-          })()}
-        </div>
-      </div>
-
+   
       {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Left: Workout Setup / Script Editor */}
