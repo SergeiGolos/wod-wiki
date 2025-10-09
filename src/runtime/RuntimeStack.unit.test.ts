@@ -23,6 +23,8 @@ class TestRuntimeBlock implements IRuntimeBlock {
   ) {
     // Constructor-based initialization
   }
+  sourceIds: number[] = [];
+  blockType?: string | undefined;
   
   push(): IRuntimeAction[] {
     return [];

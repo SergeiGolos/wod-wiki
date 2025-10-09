@@ -824,10 +824,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         </div>
 
         {/* Right: Parsed Workout / Fragment Breakdown */}
-        <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="text-base font-semibold text-gray-900">Parsed Workout</h3>
-          </div>
+        
           {statements.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <table className="w-full border-collapse bg-white">
@@ -861,8 +858,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
             <div className="p-4 text-center text-gray-500">
               <p className="text-sm">No workout parsed yet</p>
             </div>
-          )}
-        </div>        
+          )}      
       </div>
 
       {/* Runtime Clock Section - Full Width */}

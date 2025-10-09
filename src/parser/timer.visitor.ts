@@ -49,7 +49,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
           (item: any) => item.columnStart < block.meta.columnStart
         );
 
-        block.id = block.meta.startOffset;
+        block.id = block.meta.line;
 
         if (stack.length > 0) {
           for (let parent of stack) {
@@ -107,7 +107,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     statement.meta = this.combineMeta(
       statement.fragments.map((fragment: any) => fragment.meta)
     );
-    statement.id = statement.meta.startOffset;
+    statement.id = statement.meta.line;
         
     // Lap fragment logic  
     // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment

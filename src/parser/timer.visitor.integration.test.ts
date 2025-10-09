@@ -33,13 +33,13 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
 
       expect(parentStatement).toBeDefined();
       
-      // Expected grouping: [[1], [2], [3, 4], [5], [6]]
-      // - child 1 (round '-') → individual group [1]
-      // - child 2 (regular/repeat) → individual group [2]  
-      // - child 3, 4 (consecutive '+') → grouped [3, 4]
-      // - child 5 (regular/repeat) → individual group [5]
-      // - child 6 ('+' but not consecutive) → individual group [6]
-      expect(parentStatement!.children).toEqual([[1], [2], [3, 4], [5], [6]]);
+      // Expected grouping: [[2], [3], [4, 5], [6], [7]]
+      // - child 1 on line 2 (round '-') → individual group [2]
+      // - child 2 on line 3 (regular/repeat) → individual group [3]  
+      // - child 3, 4 on lines 4-5 (consecutive '+') → grouped [4, 5]
+      // - child 5 on line 6 (regular/repeat) → individual group [6]
+      // - child 6 on line 7 ('+' but not consecutive) → individual group [7]
+      expect(parentStatement!.children).toEqual([[2], [3], [4, 5], [6], [7]]);
     });
 
     it('should handle workout with only compose fragments', () => {
@@ -54,8 +54,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
       const parentStatement = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
 
       expect(parentStatement).toBeDefined();
-      // All consecutive compose should be in one group
-      expect(parentStatement!.children).toEqual([[1, 2, 3, 4]]);
+      // All consecutive compose should be in one group (lines 2-5)
+      expect(parentStatement!.children).toEqual([[2, 3, 4, 5]]);
     });
 
     it('should handle workout with no compose fragments', () => {
@@ -69,8 +69,8 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
       const parentStatement = result.statements.find(stmt => stmt.children && stmt.children.length > 0);
 
       expect(parentStatement).toBeDefined();
-      // All individual groups
-      expect(parentStatement!.children).toEqual([[1], [2], [3]]);
+      // All individual groups (lines 2, 3, 4)
+      expect(parentStatement!.children).toEqual([[2], [3], [4]]);
     });
 
     it('should maintain parent-child relationships while grouping', () => {
@@ -87,11 +87,11 @@ describe('MdTimerInterpreter - Integration Test for Grouping', () => {
       );
       
       expect(parentStatement).toBeDefined();
-      expect(parentStatement!.children).toEqual([[1], [2]]);
+      expect(parentStatement!.children).toEqual([[2], [5]]);
       
-      // Check that round 1 has its own children grouped
-      const roundStatement = result.statements.find(stmt => stmt.id === 1);
-      expect(roundStatement!.children).toEqual([[3, 4]]); // nested compose fragments grouped
+      // Check that round 1 (line 2) has its own children grouped
+      const roundStatement = result.statements.find(stmt => stmt.id === 2);
+      expect(roundStatement!.children).toEqual([[3, 4]]); // nested compose fragments grouped on lines 3-4
     });
   });
 });
