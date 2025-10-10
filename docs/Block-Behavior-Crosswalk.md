@@ -1,44 +1,21 @@
-# Block-Behavior Crosswalk
 
-This document provides a crosswalk between the primary `RuntimeBlock` types (as defined by their compilation strategy) and the `IRuntimeBehavior` instances that compose them. It also includes a detailed comparison of all available behaviors.
 
 ---
+Runtime.Next()
+- CodeStatments[] -> Jit -> BlockContext + BlockBehaviors 
+-  BlockContext + BlockBehaviors  -> RuntimeBlock -> push Stack
 
-## Block Composition
 
-This section details the behaviors that are attached to each of the main block types when they are compiled by their corresponding strategy.
+BlockContext - a collection Ref[] that are handed off to the block to 
 
-### 1. Effort Block
+RuntimeBlock ==  
 
--   **Strategy**: `EffortStrategy`
--   **Description**: The default block type for simple, repetition-based tasks. It is used when no other specific strategy (like Timer or Rounds) matches.
+All right let's think about this in terms of a very large update The goal here is to reason about where the composition of behaviors belongs the runtime block it's really just a vessel whose behavior is composed of different collection of these I runtime behavior objects which need to have shared access to the different pieces of memory that need to be created depending on the type of statement or statements the compiler is currently working through.   This means that the responsibility of deciding which behaviors include part of runtime block are part of the runtime strategy that the JIT compiler is using to figure out what to do with the statement blocks that are being passed to it. This also means that the memory allocation for the behaviors and for all of the runtime block also belongs to the strategies that decide how to assemble that runtime block.
 
-**Behaviors Used**:
+The outcome of this is that the runtime block is a generic single implementation type,  The collection of references that the block is using is part of the block context and both the block and the block context should be handled tracked on the stack as a tuple so that the memory can be released correctly when the block after the block is poped.
 
--   `ChildAdvancementBehavior` *(if children exist)*
--   `LazyCompilationBehavior` *(if children exist)*
 
-### 2. Timer Block
-
--   **Strategy**: `TimerStrategy`
--   **Description**: A parent block for time-bound workouts, such as an AMRAP or a timed rest period.
-
-**Behaviors Used**:
-
--   `TimerBehavior`
--   `ChildAdvancementBehavior` *(if children exist)*
--   `LazyCompilationBehavior` *(if children exist)*
-
-### 3. Rounds Block
-
--   **Strategy**: `RoundsStrategy`
--   **Description**: A parent block for workouts structured into multiple rounds.
-
-**Behaviors Used**:
-
--   `RoundsBehavior` *(Note: This is an assumed behavior based on the strategy's purpose, as it was not explicitly in the strategy's source code at the time of writing)*
--   `ChildAdvancementBehavior` *(if children exist)*
--   `LazyCompilationBehavior` *(if children exist)*
+Here are the different behaviors that i see being needed between the different configurations.. 
 
 ---
 
@@ -46,12 +23,15 @@ This section details the behaviors that are attached to each of the main block t
 
 This table provides a detailed comparison of each available `IRuntimeBehavior`, outlining its function at each lifecycle stage.
 
-| Behavior                       | `onPush`                                                                 | `onNext`                                                                                             | `onPop`                                       | `onDispose`                                       | Notes                                                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **`ChildAdvancementBehavior`** | -                                                                        | Increments the internal child index. Returns no actions.                                             | -                                             | -                                                 | Manages the sequential execution of child blocks. Provides state for other behaviors like `LazyCompilationBehavior`.                |
-| **`CompletionBehavior`**       | -                                                                        | Evaluates its `condition` function. Emits a `block:complete` event if the condition is met.          | -                                             | -                                                 | Provides a generic, configurable way to detect block completion based on a condition function and optional trigger events.          |
-| **`CompletionTrackingBehavior`** | -                                                                        | Checks the `isComplete()` status of `ChildAdvancementBehavior` and updates its own internal flag.    | -                                             | -                                                 | Acts as a simple flag to signal when a block with children has finished executing all of them.                                      |
-| **`LazyCompilationBehavior`**  | -                                                                        | Compiles the current child statement (provided by `ChildAdvancementBehavior`) into a new `RuntimeBlock`. | -                                             | Clears the internal compilation cache if enabled. | Implements a Just-In-Time (JIT) compilation strategy to improve performance. Can optionally cache compiled blocks.                 |
-| **`ParentContextBehavior`**    | - (No-op)                                                                | -                                                                                                    | -                                             | -                                                 | Holds a reference to the parent `RuntimeBlock`, enabling context-aware execution and data sharing between parent and child blocks.    |
-| **`RoundsBehavior`**           | Allocates shared memory for round state (`currentRound`, `totalRounds`). | Increments the round counter and updates shared memory. Emits `rounds:changed` or `rounds:complete`. | -                                             | Releases the allocated shared memory.             | Manages round tracking, supports variable rep schemes, and provides compilation context for child blocks.                             |
-| **`TimerBehavior`**            | Allocates shared memory for timer state and starts the `setInterval` tick. | -                                                                                                    | Stops the timer and closes the final `TimeSpan`. | Clears the `setInterval` to stop the tick loop.   | Manages time tracking (count-up/down), emits `timer:tick` events, and supports pause/resume functionality through shared memory. |
+| Behavior              | `onPush`                                                                                                                                                                                                                               | `onNext`                                                                                                                                                      | `onPop`                                                                 | Notes                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **`OnPushStart`**     | Sets the start action on the timer TimeSpan reference.                                                                                                                                                                                 | -                                                                                                                                                             | -                                                                       | Manages the sequential execution of child blocks. Provides state for other behaviors like `LazyCompilationBehavior`. |
+| **`OnPushNext`**      | Automatically triggers the onNext  on this Block                                                                                                                                                                                       | -                                                                                                                                                             | -                                                                       | Manages the sequential execution of child blocks. Provides state for other behaviors like `LazyCompilationBehavior`. |
+| **`OnNextIncrement`** | -                                                                                                                                                                                                                                      | Update the Index references for                                                                                                                               | -                                                                       | Acts as a simple flag to signal when a block with children has finished executing all of them.                       |
+| **`MetricsWriter`**   | - Writes the current metrics to the Memory allowing access to this in the runtime.                                                                                                                                                     | - Existing metrics are logged against  the current collection of timers<br>- Writes the current metrics to the Memory allowing access to this in the runtime. | - Existing metrics are logged against  the current collection of timers |                                                                                                                      |
+| **`ShareMetrics`**    | - Write the metric visible to children to memory                                                                                                                                                                                       | Write the metric visible to children to memory                                                                                                                |                                                                         |                                                                                                                      |
+| **`OnNextPushChild`** | -                                                                                                                                                                                                                                      | Generates an action to Send                                                                                                                                   | -                                                                       | Implements a Just-In-Time (JIT) compilation strategy to improve performance. Can optionally cache compiled blocks.   |
+| **`DurationListner`** | Create a memory location that reference the Active timer and the expected durations.                                                                                                                                                   | -                                                                                                                                                             |                                                                         |                                                                                                                      |
+| **`EventListner`**    | Create a memory location that can process Events that are triggered on the runtime message pump.  (this could be a base class and may have many versions of it to support different event responses with different memory references.) | -                                                                                                                                                             | -                                                                       |                                                                                                                      |
+
+
