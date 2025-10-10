@@ -5,6 +5,8 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
 import { NextBlockLogger } from './NextBlockLogger';
+import { IBlockContext } from './IBlockContext';
+import { BlockContext } from './BlockContext';
 
 
 export type AllocateRequest<T> = { 
@@ -17,6 +19,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     protected readonly behaviors: IRuntimeBehavior[] = []
     public readonly key: BlockKey;
     public readonly blockType?: string;
+    public readonly context: IBlockContext;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
 
@@ -24,11 +27,25 @@ export class RuntimeBlock implements IRuntimeBlock{
         protected _runtime: IScriptRuntime,
         public readonly sourceIds: number[] = [],
         behaviors: IRuntimeBehavior[] = [],
-        blockType?: string
+        contextOrBlockType?: IBlockContext | string,
+        blockKey?: BlockKey,
+        blockTypeParam?: string
     ) {
-        this.key = new BlockKey();
+        // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
+        if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
+            // Old signature: (runtime, sourceIds, behaviors, blockType)
+            this.key = new BlockKey();
+            this.blockType = contextOrBlockType;
+            // Create a default context for backward compatibility
+            this.context = new BlockContext(_runtime, this.key.toString());
+        } else {
+            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?)
+            this.key = blockKey ?? new BlockKey();
+            this.context = contextOrBlockType;
+            this.blockType = blockTypeParam;
+        }
+        
         this.behaviors = behaviors;
-        this.blockType = blockType;
     }
 
     
@@ -105,10 +122,14 @@ export class RuntimeBlock implements IRuntimeBlock{
             }
         }
         
-        // Clean up all allocated memory references
+        // Clean up legacy memory references (for backward compatibility)
         for (const memRef of this._memory) {
             this._runtime.memory.release(memRef);
         }
+        
+        // NOTE: context.release() is NOT called here - it is the caller's responsibility
+        // This allows behaviors to access memory during onPop() and disposal
+        // Consumer MUST call block.context.release() after block.dispose()
     }
 
     /**

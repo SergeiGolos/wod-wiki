@@ -13,7 +13,7 @@ import { IRuntimeAction } from './IRuntimeAction';
 
 // Lightweight block for performance testing
 class PerformanceTestBlock implements IRuntimeBlock {
-  public readonly sourceId: number[] = [1, 2, 3];
+  public readonly sourceIds: number[] = [1, 2, 3];
   
   constructor(
     public readonly key: BlockKey,
@@ -44,7 +44,7 @@ class PerformanceTestBlock implements IRuntimeBlock {
 
 // Heavy block for stress testing
 class HeavyTestBlock implements IRuntimeBlock {
-  public readonly sourceId: number[] = [1, 2, 3];
+  public readonly sourceIds: number[] = [1, 2, 3];
   private largeData: number[] = [];
   
   constructor(public readonly key: BlockKey) {

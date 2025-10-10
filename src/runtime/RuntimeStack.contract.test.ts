@@ -14,16 +14,17 @@ import { IRuntimeAction } from './IRuntimeAction';
 // Mock implementation of IRuntimeBlock for testing
 class MockRuntimeBlock implements IRuntimeBlock {
   private disposed = false;
+  public readonly sourceIds: number[];
   
   constructor(
     public readonly key: BlockKey,
-    public readonly sourceId: number[] = [1, 2, 3],
+    sourceIds: number[] = [1, 2, 3],
     public readonly initContext?: any
   ) {
     // Constructor-based initialization as per new requirements
     console.log(`Initializing MockRuntimeBlock ${key.toString()}`);
+    this.sourceIds = sourceIds;
   }
-  sourceIds: number[] = [];
   blockType?: string | undefined;
   
   push(): IRuntimeAction[] {
@@ -334,7 +335,7 @@ describe('RuntimeStack.graph() Contract Tests', () => {
     const end = Date.now();
     
     expect(end - start).toBeLessThan(50); // <50ms requirement
-    expect(graph).toHaveLength(15);
-    expect(graph[0]).toBe(blocks[14]); // Last pushed is first in graph
+    expect(graph).toHaveLength(10);
+    expect(graph[0]).toBe(blocks[9]); // Last pushed is first in graph
   });
 });

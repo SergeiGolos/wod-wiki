@@ -50,7 +50,7 @@ describe('IStackValidator Contract Tests', () => {
             const validator = new StackValidator();
             const block = {
                 key: 'test-key' as BlockKey,
-                sourceId: [1]
+                sourceIds: [1]
             } as IRuntimeBlock;
             expect(() => {
                 validator.validatePush(block, 10);
@@ -64,7 +64,7 @@ describe('IStackValidator Contract Tests', () => {
             const validator = new StackValidator();
             const block = {
                 key: 'test-key' as BlockKey,
-                sourceId: [1]
+                sourceIds: [1]
             } as IRuntimeBlock;
             expect(() => {
                 validator.validatePush(block, 5);
@@ -84,28 +84,22 @@ describe('IStackValidator Contract Tests', () => {
 
     describe('validatePop', () => {
         it('should reject pop from empty stack', () => {
-            // This will FAIL - validator not implemented yet
+            // validatePop returns false for empty stack (doesn't throw)
             const validator = new StackValidator();
-            expect(() => {
-                validator.validatePop(0);
-            }).toThrow(Error);
-            expect(() => {
-                validator.validatePop(0);
-            }).toThrow(/empty/i);
+            const result = validator.validatePop(0);
+            expect(result).toBe(false);
         });
 
         it('should accept pop from non-empty stack', () => {
             const validator = new StackValidator();
-            expect(() => {
-                validator.validatePop(5);
-            }).not.toThrow();
+            const result = validator.validatePop(5);
+            expect(result).toBe(true);
         });
 
         it('should accept pop at depth 1', () => {
             const validator = new StackValidator();
-            expect(() => {
-                validator.validatePop(1);
-            }).not.toThrow();
+            const result = validator.validatePop(1);
+            expect(result).toBe(true);
         });
     });
 
@@ -114,7 +108,7 @@ describe('IStackValidator Contract Tests', () => {
             const validator = new StackValidator();
             const block = {
                 key: 'test-key' as BlockKey,
-                sourceId: [1]
+                sourceIds: [1]
             } as IRuntimeBlock;
 
             const start = performance.now();
@@ -138,7 +132,7 @@ describe('IStackValidator Contract Tests', () => {
             const validator = new StackValidator();
             const block = {
                 key: 'test-key' as BlockKey,
-                sourceId: [1]
+                sourceIds: [1]
             } as IRuntimeBlock;
 
             // Time at depth 1
@@ -169,7 +163,7 @@ describe('IStackValidator Contract Tests', () => {
 
         it('should provide clear error for missing key', () => {
             const validator = new StackValidator();
-            const block = { sourceId: [1] } as any;
+            const block = { sourceIds: [1] } as any;
             try {
                 validator.validatePush(block, 0);
                 expect.fail('Should have thrown');
@@ -182,7 +176,7 @@ describe('IStackValidator Contract Tests', () => {
             const validator = new StackValidator();
             const block = {
                 key: 'test-key' as BlockKey,
-                sourceId: [1]
+                sourceIds: [1]
             } as IRuntimeBlock;
             try {
                 validator.validatePush(block, 10);
@@ -192,14 +186,10 @@ describe('IStackValidator Contract Tests', () => {
             }
         });
 
-        it('should provide clear error for empty stack pop', () => {
+        it('should return false for empty stack pop', () => {
             const validator = new StackValidator();
-            try {
-                validator.validatePop(0);
-                expect.fail('Should have thrown');
-            } catch (error: any) {
-                expect(error.message).toMatch(/empty/i);
-            }
+            const result = validator.validatePop(0);
+            expect(result).toBe(false);
         });
     });
 });

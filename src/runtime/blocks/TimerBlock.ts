@@ -77,7 +77,7 @@ export class TimerBlock extends RuntimeBlock {
     // Create child behaviors if there are children
     const behaviors = [timerBehavior, completionBehavior];
     if (config.children && config.children.length > 0) {
-      behaviors.push(new ChildAdvancementBehavior());
+      behaviors.push(new ChildAdvancementBehavior(config.children));
       behaviors.push(new LazyCompilationBehavior());
     }
 
@@ -85,9 +85,8 @@ export class TimerBlock extends RuntimeBlock {
     super(
       runtime,
       sourceIds,
-      config.children || [],
-      undefined,
-      behaviors
+      behaviors,
+      "Timer"  // blockType
     );
 
     // Store reference to timer behavior for state access

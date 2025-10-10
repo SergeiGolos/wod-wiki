@@ -51,7 +51,7 @@ export class EffortBlock extends RuntimeBlock {
     );
 
     // Initialize RuntimeBlock with completion behavior
-    super(runtime, sourceIds, [], undefined, [completionBehavior]);
+    super(runtime, sourceIds, [completionBehavior], "Effort");
   }
 
   /**
