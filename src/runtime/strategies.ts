@@ -13,6 +13,8 @@ import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
 import { RoundsBehavior, ROUNDS_MEMORY_TYPES } from "./behaviors/RoundsBehavior";
 import { BlockContext } from "./BlockContext";
+import { CompletionBehavior } from "./behaviors/CompletionBehavior";
+import { BlockCompleteEventHandler } from "./behaviors/BlockCompleteEventHandler";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -50,6 +52,16 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             const childStatements = runtime.script.getIds(childIds);
             behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
+            
+            // Register handler to pop completed child blocks
+            const handler = new BlockCompleteEventHandler(blockId);
+            runtime.memory.allocate('handler', blockId, handler, 'private');
+        } else {
+            // Leaf node - complete immediately when pushed
+            behaviors.push(new CompletionBehavior(
+                () => true, // Always complete (leaf node)
+                [] // Check on push
+            ));
         }
 
         // 4. Create RuntimeBlock with context
@@ -120,6 +132,10 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             const childStatements = runtime.script.getIds(childIds);
             behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
+            
+            // Register handler to pop completed child blocks
+            const handler = new BlockCompleteEventHandler(blockId);
+            runtime.memory.allocate('handler', blockId, handler, 'private');
         }
 
         // 5. Create RuntimeBlock with context
@@ -221,6 +237,10 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             const childStatements = runtime.script.getIds(childIds);
             behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
             behaviors.push(new LazyCompilationBehavior());
+            
+            // Register handler to pop completed child blocks
+            const handler = new BlockCompleteEventHandler(blockId);
+            runtime.memory.allocate('handler', blockId, handler, 'private');
         }
 
         // 6. Create RuntimeBlock with context

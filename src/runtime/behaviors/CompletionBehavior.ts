@@ -29,6 +29,32 @@ export class CompletionBehavior implements IRuntimeBehavior {
   }
 
   /**
+   * Check completion condition on push() calls.
+   * Allows immediate completion for leaf blocks.
+   */
+  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    if (this.isCompleteFlag) {
+      return []; // Already complete
+    }
+
+    // Check completion condition
+    if (this.condition(runtime, block)) {
+      this.isCompleteFlag = true;
+
+      // Emit block:complete event
+      runtime.handle({
+        name: 'block:complete',
+        timestamp: new Date(),
+        data: {
+          blockId: block.key.toString(),
+        },
+      });
+    }
+
+    return [];
+  }
+
+  /**
    * Check completion condition on next() calls.
    * Emits block:complete if condition returns true.
    */
