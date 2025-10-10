@@ -63,9 +63,15 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                 timeSpans={config.timeSpans}
               >
                 {({ blockKey, memoryRefs }) => (
-                  <div className="text-center">
-                    <ClockAnchor blockKey={blockKey} />
-                    <div className="mt-2 text-xs text-gray-500">
+                  <div>
+                    <ClockAnchor
+                      blockKey={blockKey}
+                      title={config.title}
+                      description={config.description}
+                      duration={config.timerType === 'countdown' ? config.durationMs : undefined}
+                      showProgress={config.timerType === 'countdown'}
+                    />
+                    <div className="mt-2 text-xs text-gray-500 text-center">
                       Block: {blockKey}
                     </div>
                   </div>

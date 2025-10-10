@@ -33,6 +33,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@playwright/test": "^1.53.1",
     "chevrotain": "^11.0.3",
+    "lucide-react": "^0.545.0",
     "uuid": "^13.0.0"
   },
   "optionalDependencies": {

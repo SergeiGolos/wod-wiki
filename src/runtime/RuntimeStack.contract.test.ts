@@ -23,6 +23,8 @@ class MockRuntimeBlock implements IRuntimeBlock {
     // Constructor-based initialization as per new requirements
     console.log(`Initializing MockRuntimeBlock ${key.toString()}`);
   }
+  sourceIds: number[] = [];
+  blockType?: string | undefined;
   
   push(): IRuntimeAction[] {
     return [];
