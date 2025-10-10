@@ -70,21 +70,20 @@ export class RoundsBlock extends RuntimeBlock {
       () => roundsBehavior.isComplete(),
       ['rounds:complete']
     );
-    const childAdvancementBehavior = new ChildAdvancementBehavior();
+    const childAdvancementBehavior = new ChildAdvancementBehavior(config.children);
     const lazyCompilationBehavior = new LazyCompilationBehavior();
 
     // Initialize RuntimeBlock with behaviors
     super(
       runtime,
       sourceIds,
-      config.children,
-      undefined,
       [
         roundsBehavior,
         completionBehavior,
         childAdvancementBehavior,
         lazyCompilationBehavior
-      ]
+      ],
+      "Rounds"  // blockType
     );
 
     // Store reference to rounds behavior for context access
