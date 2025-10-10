@@ -62,7 +62,7 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                 autoStart={config.autoStart}
                 timeSpans={config.timeSpans}
               >
-                {({ blockKey, memoryRefs }) => (
+                {({ blockKey, memoryRefs, controls, isRunning, recalculateElapsed }) => (
                   <div>
                     <ClockAnchor
                       blockKey={blockKey}
@@ -70,6 +70,13 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                       description={config.description}
                       duration={config.timerType === 'countdown' ? config.durationMs : undefined}
                       showProgress={config.timerType === 'countdown'}
+                      workoutType={config.timerType === 'countdown' ? 'AMRAP' : 'FOR_TIME'}
+                      currentRound={1}
+                      showControls={false}
+                      isRunning={isRunning}
+                      onPlay={controls.start}
+                      onPause={controls.pause}
+                      onReset={controls.reset}
                     />
                     <div className="mt-2 text-xs text-gray-500 text-center">
                       Block: {blockKey}

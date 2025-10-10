@@ -1,5 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Play, Pause, Square } from '@phosphor-icons/react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
+import { cn } from '@/lib/utils';
+import { WORKOUT_TYPES } from '@/lib/constants';
 
 interface ClockAnchorProps {
   blockKey: string;
@@ -7,6 +15,14 @@ interface ClockAnchorProps {
   description?: string;
   duration?: number; // in milliseconds for countdown
   showProgress?: boolean;
+  showControls?: boolean;
+  workoutType?: keyof typeof WORKOUT_TYPES;
+  currentRound?: number;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onReset?: () => void;
+  onRoundComplete?: () => void;
+  isRunning?: boolean; // External control
 }
 
 export const ClockAnchor: React.FC<ClockAnchorProps> = ({
@@ -14,9 +30,21 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   title = "AMRAP 20",
   description = "As Many Rounds As Possible",
   duration,
-  showProgress = true
+  showProgress = true,
+  showControls = false,
+  workoutType = "FOR_TIME",
+  currentRound = 1,
+  onPlay,
+  onPause,
+  onReset,
+  onRoundComplete,
+  isRunning: externalIsRunning
 }) => {
   const { elapsed } = useTimerElapsed(blockKey);
+  const [internalIsRunning, setInternalIsRunning] = useState(false);
+
+  // Use external isRunning state if provided, otherwise use internal state
+  const isRunning = externalIsRunning ?? internalIsRunning;
 
   const formatTime = (ms: number): string => {
     const totalSeconds = Math.floor(Math.abs(ms) / 1000);
@@ -30,31 +58,81 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handlePlayPause = useCallback(() => {
+    if (isRunning) {
+      onPause?.();
+      setInternalIsRunning(false);
+    } else {
+      onPlay?.();
+      setInternalIsRunning(true);
+    }
+  }, [isRunning, onPlay, onPause]);
+
+  const handleReset = useCallback(() => {
+    onReset?.();
+    setInternalIsRunning(false);
+  }, [onReset]);
+
   const renderPlaceholder = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
-          <p className="text-gray-600">{description}</p>
-        </div>
-        <div className="flex justify-center mb-8">
-          <div className="text-7xl font-bold text-gray-900 tabular-nums">
-            --:--
-          </div>
-        </div>
-        {showProgress && duration && (
-          <div className="mb-8">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Progress</span>
-              <span>0%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: '0%' }} />
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardContent className="p-8">
+        <div className="text-center space-y-6">
+          {/* Header */}
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-foreground">{title}</h2>
+            <p className="text-muted-foreground">{description}</p>
+            <div className="flex justify-center items-center gap-2">
+              <Badge variant="secondary">{WORKOUT_TYPES[workoutType]}</Badge>
+              <Badge variant="outline">Round {currentRound}</Badge>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Timer Display */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium text-muted-foreground">
+              {duration ? 'Time Remaining' : 'Time Elapsed'}
+            </Label>
+            <div className="text-6xl font-mono font-bold text-foreground">
+              {duration ? formatTime(duration) : '--:--'}
+            </div>
+            {showProgress && duration > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Progress</span>
+                  <span>0%</span>
+                </div>
+                <Progress value={0} className="h-3" />
+              </div>
+            )}
+          </div>
+
+          {/* Controls */}
+          {showControls && (
+            <div className="flex justify-center gap-4 pt-4 border-t">
+              <Button
+                onClick={handlePlayPause}
+                size="lg"
+                className="w-32"
+              >
+                <Play size={20} className="mr-2" />
+                Start
+              </Button>
+
+              {onRoundComplete && (
+                <Button onClick={onRoundComplete} variant="outline" size="lg">
+                  Finish Round
+                </Button>
+              )}
+
+              <Button onClick={handleReset} variant="destructive" size="lg">
+                <Square size={20} className="mr-2" />
+                Reset
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 
   // For countdown timers, show remaining time
@@ -66,37 +144,96 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
-          <p className="text-gray-600">{description}</p>
-        </div>
-
-        {/* Time Display */}
-        <div className="flex justify-center mb-8">
-          <div className="text-7xl font-bold text-gray-900 tabular-nums">
-            {formatTime(displayTime)}
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        {showProgress && duration > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Progress</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardContent className="p-8">
+        <div className="text-center space-y-6">
+          {/* Header */}
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-foreground">{title}</h2>
+            <p className="text-muted-foreground">{description}</p>
+            <div className="flex justify-center items-center gap-2">
+              <Badge variant="secondary">{WORKOUT_TYPES[workoutType]}</Badge>
+              <Badge variant="outline">Round {currentRound}</Badge>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Main Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Timer Display */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium text-muted-foreground">
+                {duration ? 'Time Remaining' : 'Time Elapsed'}
+              </Label>
+              <div className={cn(
+                "text-6xl font-mono font-bold transition-colors",
+                isRunning ? "text-primary animate-pulse" : "text-foreground"
+              )}>
+                {formatTime(displayTime)}
+              </div>
+              {showProgress && duration > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Progress</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-3" />
+                </div>
+              )}
+            </div>
+
+            {/* Status Panel */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Status
+              </Label>
+              <div className="flex flex-col items-center justify-center h-24">
+                <div className={cn(
+                  "w-4 h-4 rounded-full mb-2",
+                  isRunning ? "bg-green-500" : "bg-gray-400"
+                )} />
+                <span className="text-lg font-medium">
+                  {isRunning ? 'Running' : 'Stopped'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          {showControls && (
+            <div className="flex justify-center gap-4 pt-4 border-t">
+              <Button
+                onClick={handlePlayPause}
+                size="lg"
+                className="w-32"
+                variant={isRunning ? "secondary" : "default"}
+              >
+                {isRunning ? (
+                  <>
+                    <Pause size={20} className="mr-2" />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play size={20} className="mr-2" />
+                    Start
+                  </>
+                )}
+              </Button>
+
+              {onRoundComplete && (
+                <Button onClick={onRoundComplete} variant="outline" size="lg">
+                  Finish Round
+                </Button>
+              )}
+
+              <Button onClick={handleReset} variant="destructive" size="lg">
+                <Square size={20} className="mr-2" />
+                Reset
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
