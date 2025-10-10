@@ -11,6 +11,7 @@ import { ChildAdvancementBehavior } from "./behaviors/ChildAdvancementBehavior";
 import { LazyCompilationBehavior } from "./behaviors/LazyCompilationBehavior";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
+import { RoundsBehavior, ROUNDS_MEMORY_TYPES } from "./behaviors/RoundsBehavior";
 import { BlockContext } from "./BlockContext";
 
 /**
@@ -190,11 +191,28 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         // 2. Create BlockContext
         const context = new BlockContext(runtime, blockId);
         
-        // 3. Create behaviors
+        // 3. Extract rounds configuration from fragments
+        const fragments = code[0]?.fragments || [];
+        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
+        const totalRounds = (roundsFragment?.value as number) || 3; // Default to 3 rounds
+        
+        // 4. Allocate rounds memory
+        const roundsStateRef = context.allocate(
+            ROUNDS_MEMORY_TYPES.STATE,
+            {
+                currentRound: 0,
+                totalRounds: totalRounds,
+                completedRounds: 0,
+            },
+            'public'
+        );
+        
+        // 5. Create behaviors with injected memory
         const behaviors: IRuntimeBehavior[] = [];
         
-        // TODO: Add RoundsBehavior with memory allocation
-        // For now, just add child behaviors
+        // Add RoundsBehavior with memory injection
+        // TODO: Extract rep scheme if variable reps
+        behaviors.push(new RoundsBehavior(totalRounds, undefined, roundsStateRef));
 
         // Add child behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
@@ -205,7 +223,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             behaviors.push(new LazyCompilationBehavior());
         }
 
-        // 4. Create RuntimeBlock with context
+        // 6. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],

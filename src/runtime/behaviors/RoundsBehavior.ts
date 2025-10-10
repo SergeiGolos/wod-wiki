@@ -2,6 +2,23 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
+import { TypedMemoryReference } from '../IMemoryReference';
+
+/**
+ * Rounds memory reference types for runtime memory system.
+ */
+export const ROUNDS_MEMORY_TYPES = {
+  STATE: 'rounds-state',
+} as const;
+
+/**
+ * RoundsState tracks the current state of round progression.
+ */
+export interface RoundsState {
+  currentRound: number;
+  totalRounds: number;
+  completedRounds: number;
+}
 
 /**
  * RoundsBehavior manages round tracking and variable rep schemes.
@@ -18,11 +35,18 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
  */
 export class RoundsBehavior implements IRuntimeBehavior {
   private currentRound = 0;
-  private memoryRef?: string;
 
+  /**
+   * Creates a new RoundsBehavior with optional memory injection.
+   * 
+   * @param totalRounds Total number of rounds to complete
+   * @param repScheme Optional array of reps per round (variable rep scheme)
+   * @param roundsStateRef Optional pre-allocated memory reference for rounds state
+   */
   constructor(
     private readonly totalRounds: number,
-    private readonly repScheme?: number[]
+    private readonly repScheme?: number[],
+    private readonly roundsStateRef?: TypedMemoryReference<RoundsState>
   ) {
     // Validate totalRounds
     if (totalRounds < 1) {
@@ -55,15 +79,26 @@ export class RoundsBehavior implements IRuntimeBehavior {
     // Initialize currentRound to 1
     this.currentRound = 1;
 
-    // Allocate memory for round tracking
-    this.memoryRef = runtime.memory.allocate(
-      `rounds:${block.key.toString()}`,
-      {
+    // Initialize memory if provided via constructor
+    if (this.roundsStateRef) {
+      this.roundsStateRef.set({
         currentRound: this.currentRound,
         totalRounds: this.totalRounds,
         completedRounds: 0,
-      }
-    );
+      });
+    } else {
+      // Fallback: Allocate memory if not provided (backward compatibility)
+      (this as any).roundsStateRef = runtime.memory.allocate<RoundsState>(
+        ROUNDS_MEMORY_TYPES.STATE,
+        block.key.toString(),
+        {
+          currentRound: this.currentRound,
+          totalRounds: this.totalRounds,
+          completedRounds: 0,
+        },
+        'public'
+      );
+    }
 
     return [];
   }
@@ -77,13 +112,12 @@ export class RoundsBehavior implements IRuntimeBehavior {
     this.currentRound++;
 
     // Update memory
-    if (this.memoryRef) {
-      const state = runtime.memory.get(this.memoryRef);
-      if (state) {
-        state.currentRound = this.currentRound;
-        state.completedRounds = this.currentRound - 1;
-        runtime.memory.set(this.memoryRef, state);
-      }
+    if (this.roundsStateRef) {
+      this.roundsStateRef.set({
+        currentRound: this.currentRound,
+        totalRounds: this.totalRounds,
+        completedRounds: this.currentRound - 1,
+      });
     }
 
     // Check if all rounds complete
@@ -115,13 +149,12 @@ export class RoundsBehavior implements IRuntimeBehavior {
   }
 
   /**
-   * Cleanup: release memory reference.
+   * Cleanup: no longer needed as memory is released via BlockContext.
+   * Kept for backward compatibility.
    */
-  onDispose(runtime: IScriptRuntime, _block: IRuntimeBlock): void {
-    if (this.memoryRef) {
-      runtime.memory.release(this.memoryRef);
-      this.memoryRef = undefined;
-    }
+  onDispose(_runtime: IScriptRuntime, _block: IRuntimeBlock): void {
+    // Memory cleanup now handled by BlockContext.release()
+    // This method is kept for backward compatibility
   }
 
   /**
