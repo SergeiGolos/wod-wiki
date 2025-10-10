@@ -37,6 +37,7 @@ export class StackValidator implements IStackValidator {
 
     validatePop(currentDepth: number): boolean {
         // Check stack is not empty - return false instead of throwing
+        // This allows RuntimeStack.pop() to return undefined gracefully
         if (currentDepth === 0) {
             return false;
         }

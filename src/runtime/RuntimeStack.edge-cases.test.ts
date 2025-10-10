@@ -13,7 +13,7 @@ import { IRuntimeAction } from './IRuntimeAction';
 
 // Minimal block for testing boundary conditions
 class MinimalBlock implements IRuntimeBlock {
-  public readonly sourceId: number[] = [];
+  public readonly sourceIds: number[] = [];
   
   constructor(public readonly key: BlockKey) {}
   
@@ -67,7 +67,7 @@ describe('RuntimeStack Error Conditions', () => {
     edgeCases.forEach(({ key, expectError }, index) => {
       const block = {
         key,
-        sourceId: [1],
+        sourceIds: [1],
         push: () => [],
         next: () => [],
         pop: () => [],
@@ -87,24 +87,24 @@ describe('RuntimeStack Error Conditions', () => {
     // This tests that rapid push/pop operations don't corrupt internal state
     const blocks: MinimalBlock[] = [];
     
-    // Create blocks
-    for (let i = 0; i < 10; i++) {
+    // Create blocks (use 8 instead of 10 to leave room for extra pushes)
+    for (let i = 0; i < 8; i++) {
       blocks.push(new MinimalBlock(new BlockKey(`concurrent-${i}`)));
     }
     
     // Rapid push/pop operations
     blocks.forEach(block => stack.push(block));
-    expect(stack.blocks.length).toBe(10);
+    expect(stack.blocks.length).toBe(8);
     
-    // Interleaved push and pop operations
+    // Interleaved push and pop operations (should work since we're below max depth)
     stack.push(new MinimalBlock(new BlockKey('extra-1')));
     stack.pop();
     stack.push(new MinimalBlock(new BlockKey('extra-2')));
     stack.pop();
     
     // Stack should still be consistent
-    expect(stack.blocks.length).toBe(10);
-    expect(stack.current).toBe(blocks[9]); // Last originally pushed block
+    expect(stack.blocks.length).toBe(8);
+    expect(stack.current).toBe(blocks[7]); // Last originally pushed block
   });
   
   test('memory pressure with large numbers of blocks', () => {
