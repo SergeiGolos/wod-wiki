@@ -10,7 +10,8 @@ import { FragmentType } from "../CodeFragment";
 import { ChildAdvancementBehavior } from "./behaviors/ChildAdvancementBehavior";
 import { LazyCompilationBehavior } from "./behaviors/LazyCompilationBehavior";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { TimerBehavior } from "./behaviors/TimerBehavior";
+import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
+import { BlockContext } from "./BlockContext";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -31,9 +32,17 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
 
+        // 1. Generate BlockKey
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        
+        // 2. Create BlockContext (may not need memory allocation for simple effort blocks)
+        const context = new BlockContext(runtime, blockId);
+        
+        // 3. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
-        // Add behaviors if statement has children
+        // Add child behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
             // Resolve child statement IDs to actual statements
             const childIds = code[0].children.flat();
@@ -42,11 +51,14 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             behaviors.push(new LazyCompilationBehavior());
         }
 
+        // 4. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
             behaviors,
-            "Effort"  // blockType metadata
+            context,
+            blockKey,
+            "Effort"
         );
     }
 }
@@ -74,12 +86,33 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
 
+        // 1. Generate BlockKey
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        
+        // 2. Create BlockContext
+        const context = new BlockContext(runtime, blockId);
+        
+        // 3. Allocate timer memory
+        const timeSpansRef = context.allocate(
+            TIMER_MEMORY_TYPES.TIME_SPANS,
+            [{ start: new Date(), stop: undefined }],
+            'public'
+        );
+        const isRunningRef = context.allocate<boolean>(
+            TIMER_MEMORY_TYPES.IS_RUNNING,
+            true,
+            'public'
+        );
+        
+        // 4. Create behaviors with injected memory
         const behaviors: IRuntimeBehavior[] = [];
+        
+        // Add timer behavior with memory injection
+        // TODO: Extract timer configuration from fragments (direction, duration)
+        behaviors.push(new TimerBehavior('up', undefined, timeSpansRef, isRunningRef));
 
-        // Add timer behavior to manage timer state
-        behaviors.push(new TimerBehavior());
-
-        // Add behaviors if statement has children
+        // Add child behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
             // Resolve child statement IDs to actual statements
             const childIds = code[0].children.flat();
@@ -88,11 +121,14 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             behaviors.push(new LazyCompilationBehavior());
         }
 
+        // 5. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
             behaviors,
-            "Timer"  // blockType metadata
+            context,
+            blockKey,
+            "Timer"
         );
     }
 }
@@ -147,9 +183,20 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
 
+        // 1. Generate BlockKey
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        
+        // 2. Create BlockContext
+        const context = new BlockContext(runtime, blockId);
+        
+        // 3. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        
+        // TODO: Add RoundsBehavior with memory allocation
+        // For now, just add child behaviors
 
-        // Add behaviors if statement has children
+        // Add child behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
             // Resolve child statement IDs to actual statements
             const childIds = code[0].children.flat();
@@ -158,11 +205,14 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             behaviors.push(new LazyCompilationBehavior());
         }
 
+        // 4. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
             behaviors,
-            "Rounds"  // blockType metadata
+            context,
+            blockKey,
+            "Rounds"
         );
     }
 }

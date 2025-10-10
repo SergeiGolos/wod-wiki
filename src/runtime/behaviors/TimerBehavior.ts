@@ -46,44 +46,60 @@ export class TimerBehavior implements IRuntimeBehavior {
   private _isPaused = false;
   private pauseTime = 0;
   private readonly tickIntervalMs = 100; // ~10 ticks per second
-  private direction: 'up' | 'down';
-  private durationMs?: number;
-  
-  // Memory references
-  private timeSpansRef?: TypedMemoryReference<TimeSpan[]>;
-  private isRunningRef?: TypedMemoryReference<boolean>;
   private _runtime?: IScriptRuntime;
 
-  constructor(direction: 'up' | 'down' = 'up', durationMs?: number) {
+  /**
+   * Creates a new TimerBehavior with optional memory injection.
+   * 
+   * @param direction Timer direction ('up' for count-up, 'down' for countdown)
+   * @param durationMs Duration in milliseconds (for countdown timers)
+   * @param timeSpansRef Optional pre-allocated memory reference for time spans
+   * @param isRunningRef Optional pre-allocated memory reference for running state
+   */
+  constructor(
+    private readonly direction: 'up' | 'down' = 'up',
+    private readonly durationMs?: number,
+    private readonly timeSpansRef?: TypedMemoryReference<TimeSpan[]>,
+    private readonly isRunningRef?: TypedMemoryReference<boolean>
+  ) {
     if (direction !== 'up' && direction !== 'down') {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
     }
-
-    this.direction = direction;
-    this.durationMs = durationMs;
   }
 
   /**
    * Start the timer when block is pushed onto the stack.
-   * Allocates memory references and emits timer:started event.
+   * Initializes memory references and emits timer:started event.
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     this._runtime = runtime;
     
-    // Allocate memory references with public visibility
-    this.timeSpansRef = runtime.memory.allocate<TimeSpan[]>(
-      TIMER_MEMORY_TYPES.TIME_SPANS,
-      block.key.toString(),
-      [{ start: new Date(), stop: undefined }], // Initialize with one running span
-      'public'
-    );
+    // Initialize memory if provided via constructor
+    if (this.timeSpansRef) {
+      this.timeSpansRef.set([{ start: new Date(), stop: undefined }]);
+    }
+    if (this.isRunningRef) {
+      this.isRunningRef.set(true);
+    }
     
-    this.isRunningRef = runtime.memory.allocate<boolean>(
-      TIMER_MEMORY_TYPES.IS_RUNNING,
-      block.key.toString(),
-      true, // Initialize as running
-      'public'
-    );
+    // Fallback: Allocate memory if not provided (backward compatibility)
+    if (!this.timeSpansRef) {
+      (this as any).timeSpansRef = runtime.memory.allocate<TimeSpan[]>(
+        TIMER_MEMORY_TYPES.TIME_SPANS,
+        block.key.toString(),
+        [{ start: new Date(), stop: undefined }],
+        'public'
+      );
+    }
+    if (!this.isRunningRef) {
+      (this as any).isRunningRef = runtime.memory.allocate<boolean>(
+        TIMER_MEMORY_TYPES.IS_RUNNING,
+        block.key.toString(),
+        true,
+        'public'
+      );
+    }
+    
     this.startTime = performance.now();
     this.elapsedMs = 0;
     this._isPaused = false;
