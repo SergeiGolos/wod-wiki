@@ -86,7 +86,7 @@ web_modules/
 out
 
 # Obsidian workspace
-.obsidian
+.obsidian/workspace.json
 
 # Nuxt.js build output
 .nuxt
