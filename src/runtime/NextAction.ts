@@ -19,7 +19,7 @@ export class NextAction implements IRuntimeAction {
       NextBlockLogger.logValidationFailure('Invalid runtime state', {
         hasStack: !!runtime.stack,
         hasMemory: !!runtime.memory,
-        hasErrors: runtime.hasErrors?.() || false,
+        hasErrors: runtime.Errors?.() || false,
       });
       return;
     }
