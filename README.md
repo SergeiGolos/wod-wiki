@@ -11,6 +11,14 @@ WOD Wiki has a mature foundation for parsing workout scripts and a set of core e
     *   **Results Tracking:** Robust tracking of metrics (effort, reps, resistance, distance) with inline editing, filtering, and exercise summary cards.
     *   **Audio Cues & ChromeCast Integration:** Sound effects for workout events and ability to cast workouts.
     *   **UI/UX:** Refined results display, responsive layouts, and editor syntax highlighting.
+*   **Exercise Typeahead Integration (NEW):**
+    *   **Intelligent Suggestions:** Real-time exercise name completion for 873+ exercises as you type in the Monaco Editor.
+    *   **Rich Metadata:** Equipment 🏋️, muscles 💪, and difficulty ⭐ icons displayed inline with suggestions.
+    *   **Hover Documentation:** Rich hover cards showing exercise details including muscles, equipment, difficulty, and instructions.
+    *   **High Performance:** Debounced search (150ms), LRU caching (100 exercises), and localStorage index caching for fast response (< 10ms search, < 1ms cached load).
+    *   **Error Resilience:** Retry logic with exponential backoff, 500ms timeout, and graceful fallbacks.
+    *   **12 Storybook Stories:** Interactive demonstrations of all features including equipment filtering, muscle targeting, and difficulty levels.
+    *   See [Exercise Typeahead Implementation Guide](./docs/exercise-typeahead-implementation-guide.md) for full details.
 *   **JIT (Just-In-Time) Compiler Architecture:**
     *   The architectural design is established, including phases for Fragment Compilation, Metric Inheritance, Block Creation, and Stack Execution.
     *   An enhanced Storybook demonstration ([stories/compiler/JitCompiler.stories.tsx](stories/compiler/JitCompiler.stories.tsx)) showcases real-time visualization of compilation, runtime stack, and memory allocation.

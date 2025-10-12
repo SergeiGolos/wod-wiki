@@ -95,19 +95,19 @@ export class ExerciseSuggestionProvider {
     word: editor.IWordAtPosition,
     position: IPosition
   ): languages.CompletionItem {
-    // Format exercise name for display
-    const displayName = entry.name;
+    // Format exercise name for display with variation count
+    const displayName = this.formatDisplayName(entry);
 
     // Extract metadata from search terms
     const equipment = this.extractEquipment(entry.searchTerms);
     const muscles = this.extractMuscles(entry.searchTerms);
     const difficulty = this.extractDifficulty(entry.searchTerms);
 
-    // Build detail string (shown to the right of suggestion)
+    // Build detail string with icons (shown to the right of suggestion)
     const detailParts: string[] = [];
-    if (equipment) detailParts.push(equipment);
-    if (muscles) detailParts.push(muscles);
-    if (difficulty) detailParts.push(difficulty);
+    if (equipment) detailParts.push(this.formatEquipment(equipment));
+    if (muscles) detailParts.push(this.formatMuscles(muscles));
+    if (difficulty) detailParts.push(this.formatDifficulty(difficulty));
     const detail = detailParts.join(' • ');
 
     // Build documentation (shown in detail panel)
@@ -115,9 +115,9 @@ export class ExerciseSuggestionProvider {
       `**${displayName}**`,
       ''
     ];
-    if (equipment) docParts.push(`Equipment: ${equipment}`);
-    if (muscles) docParts.push(`Muscles: ${muscles}`);
-    if (difficulty) docParts.push(`Difficulty: ${difficulty}`);
+    if (equipment) docParts.push(`🏋️ Equipment: ${equipment}`);
+    if (muscles) docParts.push(`💪 Muscles: ${muscles}`);
+    if (difficulty) docParts.push(`${this.getDifficultyIcon(difficulty)} Difficulty: ${difficulty}`);
     const documentation = docParts.join('\n');
 
     return {
@@ -128,15 +128,74 @@ export class ExerciseSuggestionProvider {
         value: documentation,
         isTrusted: true
       },
-      insertText: displayName,
+      insertText: entry.name, // Insert plain name without variation count
       range: {
         startLineNumber: position.lineNumber,
         endLineNumber: position.lineNumber,
         startColumn: word.startColumn,
         endColumn: word.endColumn
       },
-      sortText: `0${displayName}` // Ensure alphabetical ordering within relevance
+      sortText: `0${entry.name}` // Ensure alphabetical ordering within relevance
     };
+  }
+
+  /**
+   * Format display name with variation count if applicable
+   */
+  private formatDisplayName(entry: ExercisePathEntry): string {
+    // TODO: Detect if this is an exercise group with variations
+    // For now, just return the name
+    // Future: Load exercise data and check for variations
+    return entry.name;
+  }
+
+  /**
+   * Format equipment with icon
+   */
+  private formatEquipment(equipment: string): string {
+    const icon = this.getEquipmentIcon(equipment);
+    return `${icon} ${equipment}`;
+  }
+
+  /**
+   * Format muscles with icon
+   */
+  private formatMuscles(muscles: string): string {
+    return `💪 ${muscles}`;
+  }
+
+  /**
+   * Format difficulty with icon
+   */
+  private formatDifficulty(difficulty: string): string {
+    const icon = this.getDifficultyIcon(difficulty);
+    return `${icon} ${difficulty}`;
+  }
+
+  /**
+   * Get icon for equipment type
+   */
+  private getEquipmentIcon(equipment: string): string {
+    const lower = equipment.toLowerCase();
+    if (lower.includes('barbell')) return '🏋️';
+    if (lower.includes('dumbbell')) return '🏋️';
+    if (lower.includes('kettlebell')) return '🏋️';
+    if (lower.includes('cable')) return '🔗';
+    if (lower.includes('machine')) return '⚙️';
+    if (lower.includes('bodyweight')) return '🧍';
+    if (lower.includes('band')) return '🎗️';
+    return '🏋️'; // Default
+  }
+
+  /**
+   * Get icon for difficulty level
+   */
+  private getDifficultyIcon(difficulty: string): string {
+    const lower = difficulty.toLowerCase();
+    if (lower === 'beginner') return '⭐';
+    if (lower === 'intermediate') return '⭐⭐';
+    if (lower === 'advanced') return '⭐⭐⭐';
+    return '⭐'; // Default
   }
 
   /**

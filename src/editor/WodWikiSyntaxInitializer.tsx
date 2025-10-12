@@ -2,6 +2,7 @@ import type * as monaco from 'monaco-editor';
 import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { ExerciseSuggestionProvider } from './ExerciseSuggestionProvider';
+import { ExerciseHoverProvider } from './ExerciseHoverProvider';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { IScript } from "../WodScript";
@@ -16,6 +17,7 @@ export class WodWikiSyntaxInitializer {
   monacoInstance: typeof monaco | undefined;
   contentChangeDisposable: monaco.IDisposable[] = [];
   exerciseProvider: ExerciseSuggestionProvider;
+  exerciseHoverProvider: ExerciseHoverProvider;
 
   constructor(
     private tokenEngine: SemantcTokenEngine, 
@@ -23,6 +25,8 @@ export class WodWikiSyntaxInitializer {
     private onChange?: (script: IScript)=>void) {
     // Initialize exercise suggestion provider
     this.exerciseProvider = new ExerciseSuggestionProvider();
+    // Initialize exercise hover provider
+    this.exerciseHoverProvider = new ExerciseHoverProvider();
   }
 
   options: editor.IStandaloneEditorConstructionOptions = {
@@ -93,6 +97,13 @@ export class WodWikiSyntaxInitializer {
         return this.exerciseProvider.provideCompletionItems(model, position, context, token);
       },
     }));
+
+    // Register exercise hover provider for rich exercise documentation on hover
+    this.contentChangeDisposable.push(monaco.languages.registerHoverProvider(this.syntax, {
+      provideHover: (model, position, token) => {
+        return this.exerciseHoverProvider.provideHover(model, position, token);
+      },
+    }));
         
     this.contentChangeDisposable.push(monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => this.tokenEngine,
@@ -154,5 +165,6 @@ export class WodWikiSyntaxInitializer {
     };
     // Clean up exercise provider resources
     this.exerciseProvider.dispose();
+    this.exerciseHoverProvider.dispose();
   }
 }
