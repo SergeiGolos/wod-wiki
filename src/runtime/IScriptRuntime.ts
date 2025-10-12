@@ -4,6 +4,7 @@ import { WodScript } from '../WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
+import { IMetricCollector } from './MetricCollector';
 
 export interface IScriptRuntime {
     readonly script: WodScript;
@@ -13,6 +14,9 @@ export interface IScriptRuntime {
     
     /** Errors collected during runtime execution */
     readonly errors?: RuntimeError[];
+    
+    /** Metrics collection subsystem for workout analytics */
+    readonly metrics?: IMetricCollector;
     
     handle(event: IEvent): void;
 }
