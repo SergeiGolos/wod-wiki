@@ -15,7 +15,7 @@ describe('BlockContext', () => {
             memory: new RuntimeMemory(),
         } as IScriptRuntime;
         
-        context = new BlockContext(runtime, ownerId);
+        context = new BlockContext(runtime, ownerId, '');
     });
 
     describe('Construction', () => {
@@ -27,7 +27,7 @@ describe('BlockContext', () => {
 
         test('should accept initial references', () => {
             const ref = runtime.memory.allocate<number>('test', 'owner-1', 42);
-            const contextWithRefs = new BlockContext(runtime, 'owner-2', [ref]);
+            const contextWithRefs = new BlockContext(runtime, 'owner-2', '', [ref]);
             
             expect(contextWithRefs.references).toHaveLength(1);
             expect(contextWithRefs.references[0]).toBe(ref);
@@ -215,8 +215,8 @@ describe('BlockContext', () => {
         });
 
         test('should handle multiple blocks with separate contexts', () => {
-            const context1 = new BlockContext(runtime, 'block-1');
-            const context2 = new BlockContext(runtime, 'block-2');
+            const context1 = new BlockContext(runtime, 'block-1', '');
+            const context2 = new BlockContext(runtime, 'block-2', '');
             
             const ref1 = context1.allocate<number>('counter', 1);
             const ref2 = context2.allocate<number>('counter', 2);
