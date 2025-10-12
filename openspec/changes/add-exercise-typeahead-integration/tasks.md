@@ -4,37 +4,47 @@
 
 ## Phase 1: Core Infrastructure (Week 1-2)
 
-### 1.1 Exercise Index Manager
-- [ ] Create `src/editor/ExerciseIndexManager.ts` with singleton pattern
-- [ ] Implement asynchronous index loading from `exercise-path-index.json`
-- [ ] Add localStorage caching with validation
-- [ ] Implement LRU cache for exercise data (max 100 entries)
-- [ ] Write unit tests for index manager (load, cache, singleton behavior)
-- [ ] Validate performance: index load < 500ms, cache operations < 1ms
+### 1.1 Exercise Index Manager ✅
+- [x] Create `src/editor/ExerciseIndexManager.ts` with singleton pattern
+- [x] Implement asynchronous index loading from `exercise-path-index.json`
+- [x] Add localStorage caching with validation
+- [x] Implement LRU cache for exercise data (max 100 entries)
+- [x] Write unit tests for index manager (load, cache, singleton behavior)
+- [x] Validate performance: index load < 500ms, cache operations < 1ms
+- **Completed**: 20 tests passing, LRUCache with 14 tests
+- **Files**: `src/editor/ExerciseIndexManager.ts`, `src/editor/LRUCache.ts`
 
-### 1.2 Exercise Data Loader
-- [ ] Create `src/editor/ExerciseDataLoader.ts`
-- [ ] Implement file-based exercise JSON loading using paths from index
-- [ ] Add error handling with retry logic (exponential backoff)
-- [ ] Integrate with LRU cache in ExerciseIndexManager
-- [ ] Write unit tests for data loader (success, failure, retry scenarios)
-- [ ] Validate performance: exercise load < 200ms per file
+### 1.2 Exercise Data Loader ✅
+- [x] Create `src/editor/ExerciseDataLoader.ts` (integrated into ExerciseIndexManager)
+- [x] Implement file-based exercise JSON loading using paths from index
+- [x] Add error handling with retry logic (exponential backoff)
+- [x] Integrate with LRU cache in ExerciseIndexManager
+- [x] Write unit tests for data loader (success, failure, retry scenarios)
+- [x] Validate performance: exercise load < 200ms per file
+- **Completed**: Integrated into ExerciseIndexManager with path validation and error handling
+- **Note**: Combined with 1.1 for better cohesion (singleton pattern sharing)
 
-### 1.3 Exercise Search Engine
-- [ ] Create `src/editor/ExerciseSearchEngine.ts`
-- [ ] Implement search across exercise index using pre-computed search terms
-- [ ] Add result ranking by name similarity and search term overlap
-- [ ] Implement debounced search with 150ms delay
-- [ ] Write unit tests for search (exact match, partial match, fuzzy matching)
-- [ ] Validate performance: search < 100ms for any query
+### 1.3 Exercise Search Engine ✅
+- [x] Create `src/editor/ExerciseSearchEngine.ts`
+- [x] Implement search across exercise index using pre-computed search terms
+- [x] Add result ranking by name similarity and search term overlap
+- [x] Implement debounced search with 150ms delay
+- [x] Write unit tests for search (exact match, partial match, fuzzy matching)
+- [x] Validate performance: search < 100ms for any query
+- **Completed**: 19 tests passing, includes filtering by equipment/muscles/difficulty
+- **Files**: `src/editor/ExerciseSearchEngine.ts`
+- **Features**: Debouncing (150ms), search caching (100 entries), empty query with filters support
 
-### 1.4 Basic Suggestion Provider
-- [ ] Create `src/editor/ExerciseSuggestionProvider.ts`
-- [ ] Implement Monaco `CompletionItemProvider` interface
-- [ ] Connect to ExerciseIndexManager for exercise data
-- [ ] Format suggestions with exercise name, variation count, equipment
-- [ ] Register provider with Monaco Editor in `WodWikiSyntaxInitializer.tsx`
-- [ ] Test provider registration and basic suggestion display
+### 1.4 Basic Suggestion Provider ✅
+- [x] Create `src/editor/ExerciseSuggestionProvider.ts`
+- [x] Implement Monaco `CompletionItemProvider` interface
+- [x] Connect to ExerciseIndexManager for exercise data
+- [x] Format suggestions with exercise name, variation count, equipment
+- [x] Register provider with Monaco Editor in `WodWikiSyntaxInitializer.tsx`
+- [ ] Test provider registration and basic suggestion display (manual testing in Storybook pending)
+- **Completed**: 192 lines, async initialization, metadata extraction
+- **Files**: `src/editor/ExerciseSuggestionProvider.ts`, updated `WodWikiSyntaxInitializer.tsx`
+- **Testing**: Manual validation required (Monaco can't be unit tested in Node environment)
 
 ## Phase 2: Enhanced Functionality (Week 3-4)
 

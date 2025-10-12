@@ -1,6 +1,7 @@
 import type * as monaco from 'monaco-editor';
 import { SuggestionEngine } from './SuggestionEngine';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
+import { ExerciseSuggestionProvider } from './ExerciseSuggestionProvider';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import { IScript } from "../WodScript";
@@ -14,11 +15,14 @@ export class WodWikiSyntaxInitializer {
   runtime = new MdTimerRuntime();
   monacoInstance: typeof monaco | undefined;
   contentChangeDisposable: monaco.IDisposable[] = [];
+  exerciseProvider: ExerciseSuggestionProvider;
 
   constructor(
     private tokenEngine: SemantcTokenEngine, 
     private suggestionEngine: SuggestionEngine,     
-    private onChange?: (script: IScript)=>void) {    
+    private onChange?: (script: IScript)=>void) {
+    // Initialize exercise suggestion provider
+    this.exerciseProvider = new ExerciseSuggestionProvider();
   }
 
   options: editor.IStandaloneEditorConstructionOptions = {
@@ -82,6 +86,13 @@ export class WodWikiSyntaxInitializer {
         return this.suggestionEngine.suggest(word, model, position);
       },
     }));
+
+    // Register exercise suggestion provider for intelligent exercise name completions
+    this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
+      provideCompletionItems: (model, position, context, token) => {
+        return this.exerciseProvider.provideCompletionItems(model, position, context, token);
+      },
+    }));
         
     this.contentChangeDisposable.push(monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => this.tokenEngine,
@@ -141,5 +152,7 @@ export class WodWikiSyntaxInitializer {
     for(var handler of this.contentChangeDisposable) {
       handler.dispose();
     };
+    // Clean up exercise provider resources
+    this.exerciseProvider.dispose();
   }
 }
