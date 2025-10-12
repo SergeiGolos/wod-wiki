@@ -115,8 +115,10 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         let durationMs: number | undefined = undefined;
         
         if (timerFragment && typeof timerFragment.value === 'number') {
-            // Timer fragment value is in seconds, convert to milliseconds
-            durationMs = timerFragment.value * 1000;
+            // Timer fragment value from parser is in milliseconds (TimerFragment.value)
+            // However, mock test fragments may use seconds as raw values
+            // Real TimerFragment.value = (seconds + minutes*60 + hours*3600 + days*86400) * 1000
+            durationMs = timerFragment.value;
             
             // Determine direction based on workout type:
             // - Timer + Rounds = AMRAP workout (countdown)

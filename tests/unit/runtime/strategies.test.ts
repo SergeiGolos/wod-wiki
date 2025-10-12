@@ -32,11 +32,11 @@ describe('Strategy Matching Contract', () => {
 
   describe('TSC-001: TimerStrategy matches statements with Timer fragments', () => {
     it('should return true when statement contains Timer fragment', () => {
-      // GIVEN: A code statement with Timer fragment
+      // GIVEN: A code statement with Timer fragment (value in milliseconds: 20 minutes)
       const statement: ICodeStatement = {
         id: new BlockKey('test-1'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+          { fragmentType: FragmentType.Timer, value: 1200000, type: 'timer' }
         ],
         children: [],
         meta: undefined
@@ -95,11 +95,11 @@ describe('Strategy Matching Contract', () => {
 
   describe('TSC-004: RoundsStrategy rejects statements with Timer fragments', () => {
     it('should return false when statement contains both Timer and Rounds fragments', () => {
-      // GIVEN: A code statement with both Timer and Rounds fragments
+      // GIVEN: A code statement with both Timer and Rounds fragments (value in milliseconds: 20 minutes)
       const statement: ICodeStatement = {
         id: new BlockKey('test-4'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Timer, value: 1200000, type: 'timer' },
           { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
         ],
         children: [],
@@ -139,11 +139,11 @@ describe('Strategy Matching Contract', () => {
 
   describe('TSC-006: EffortStrategy rejects statements with Timer fragments', () => {
     it('should return false when statement contains Timer fragment', () => {
-      // GIVEN: A code statement with Timer fragment
+      // GIVEN: A code statement with Timer fragment (value in milliseconds: 10 minutes)
       const statement: ICodeStatement = {
         id: new BlockKey('test-6'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
+          { fragmentType: FragmentType.Timer, value: 600000, type: 'timer' }
         ],
         children: [],
         meta: undefined
@@ -257,11 +257,11 @@ describe('Timer Configuration Extraction', () => {
 
   describe('TSC-010: TimerStrategy extracts timer configuration from fragments', () => {
     it('should compile successfully with Timer fragment containing duration', () => {
-      // GIVEN: Statement with 1200 second (20 minute) timer
+      // GIVEN: Statement with 20 minute timer (value in milliseconds)
       const statement: ICodeStatement = {
         id: new BlockKey('test-10'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+          { fragmentType: FragmentType.Timer, value: 1200000, type: 'timer' }
         ],
         children: [],
         meta: undefined
@@ -277,11 +277,11 @@ describe('Timer Configuration Extraction', () => {
     });
 
     it('should use countdown direction for AMRAP workouts (Timer + Rounds)', () => {
-      // GIVEN: AMRAP workout statement (Timer + Rounds)
+      // GIVEN: AMRAP workout statement (Timer + Rounds), 20 minutes in milliseconds
       const statement: ICodeStatement = {
         id: new BlockKey('test-11'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Timer, value: 1200000, type: 'timer' },
           { fragmentType: FragmentType.Rounds, value: 0, type: 'rounds' }
         ],
         children: [],
@@ -299,11 +299,11 @@ describe('Timer Configuration Extraction', () => {
     });
 
     it('should use count-up direction for For Time workouts (Timer only)', () => {
-      // GIVEN: For Time workout statement (timer only, no rounds)
+      // GIVEN: For Time workout statement (timer only, no rounds), 20 minutes in milliseconds
       const statement: ICodeStatement = {
         id: new BlockKey('test-12'),
         fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+          { fragmentType: FragmentType.Timer, value: 1200000, type: 'timer' }
         ],
         children: [],
         meta: undefined
