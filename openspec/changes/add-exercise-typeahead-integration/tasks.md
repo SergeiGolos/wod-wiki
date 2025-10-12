@@ -17,11 +17,17 @@
 ### 1.2 Exercise Data Loader ✅
 - [x] Create `src/editor/ExerciseDataLoader.ts` (integrated into ExerciseIndexManager)
 - [x] Implement file-based exercise JSON loading using paths from index
-- [x] Add error handling with retry logic (exponential backoff)
+- [x] Add error handling with retry logic (exponential backoff: 1s, 2s, 4s)
+- [x] Implement 500ms timeout with AbortController
+- [x] Add batch loading support (`loadExercises()` for concurrent operations)
 - [x] Integrate with LRU cache in ExerciseIndexManager
+- [x] Implement permanent error detection (no retry for 404s)
 - [x] Write unit tests for data loader (success, failure, retry scenarios)
+- [x] Write unit tests for batch loading (concurrent execution, order preservation)
+- [x] Write unit tests for retry/timeout (exponential backoff, 404 handling, max retries)
 - [x] Validate performance: exercise load < 200ms per file
-- **Completed**: Integrated into ExerciseIndexManager with path validation and error handling
+- **Completed**: 25 tests passing, all exercise-data-loading spec requirements implemented
+- **Features**: Lazy loading, LRU cache, async operations, retry with backoff, timeout, batch loading, cache invalidation
 - **Note**: Combined with 1.1 for better cohesion (singleton pattern sharing)
 
 ### 1.3 Exercise Search Engine ✅

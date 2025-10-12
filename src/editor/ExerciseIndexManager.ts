@@ -266,7 +266,7 @@ export class ExerciseIndexManager {
   }
 
   /**
-   * Fetch exercise data from JSON file
+   * Fetch exercise data from JSON file with retry and timeout
    * @param path Relative path to exercise directory
    * @returns Promise resolving to Exercise data
    */
@@ -279,17 +279,102 @@ export class ExerciseIndexManager {
     const exercisePath = `/exercises/${path}/exercise.json`;
     
     try {
-      const response = await fetch(exercisePath);
-      if (!response.ok) {
-        throw new Error(`Failed to load exercise: ${response.statusText}`);
-      }
-
-      const exercise = await response.json() as Exercise;
+      // Use retry with exponential backoff for transient errors
+      const exercise = await this.retryWithBackoff(
+        () => this.fetchWithTimeout(exercisePath, 500),
+        3, // max retries
+        1000 // initial delay
+      );
       return exercise;
     } catch (error) {
       console.error(`[ExerciseIndexManager] Error loading exercise data from ${exercisePath}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Fetch with timeout
+   * @param url URL to fetch
+   * @param timeoutMs Timeout in milliseconds
+   * @returns Promise resolving to Exercise data
+   */
+  private async fetchWithTimeout(url: string, timeoutMs: number): Promise<Exercise> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Don't retry 404s - permanent error
+        if (response.status === 404) {
+          const error: any = new Error(`Exercise not found: ${response.statusText}`);
+          error.permanent = true;
+          throw error;
+        }
+        throw new Error(`Failed to load exercise: ${response.statusText}`);
+      }
+
+      const exercise = await response.json() as Exercise;
+      return exercise;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Retry operation with exponential backoff
+   * @param operation Function to retry
+   * @param maxRetries Maximum number of retries
+   * @param initialDelayMs Initial delay in milliseconds
+   * @returns Promise resolving to operation result
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number,
+    initialDelayMs: number
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry permanent errors (404s)
+        if (error.permanent) {
+          throw error;
+        }
+        
+        // Don't retry if this was the last attempt
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s...
+        const delayMs = initialDelayMs * Math.pow(2, attempt);
+        console.log(`[ExerciseIndexManager] Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /**
+   * Load multiple exercises concurrently
+   * @param paths Array of exercise paths
+   * @returns Promise resolving to array of Exercise data in same order
+   */
+  async loadExercises(paths: string[]): Promise<Exercise[]> {
+    const loadPromises = paths.map(path => this.loadExerciseData(path));
+    return Promise.all(loadPromises);
   }
 
   /**
@@ -302,19 +387,19 @@ export class ExerciseIndexManager {
   }
 
   /**
-   * Clear exercise data cache
+   * Invalidate specific exercise cache entry
+   * @param path Exercise path to invalidate
+   */
+  invalidateExercise(path: string): void {
+    this.exerciseCache.delete(path);
+  }
+
+  /**
+   * Clear all exercise data cache
    */
   clearCache(): void {
     this.exerciseCache.clear();
     console.log('[ExerciseIndexManager] Cache cleared');
-  }
-
-  /**
-   * Invalidate specific exercise from cache
-   * @param path Exercise path
-   */
-  invalidateExercise(path: string): void {
-    this.exerciseCache.delete(path);
   }
 
   /**

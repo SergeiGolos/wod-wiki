@@ -244,13 +244,17 @@ describe('ExerciseIndexManager', () => {
       // Mock exercise data fetch
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockExercise
+        json: async () => mockExercise,
+        signal: undefined
       });
 
       const exercise = await manager.loadExerciseData('Push-Up');
 
       expect(exercise.name).toBe('Push-Up');
-      expect(global.fetch).toHaveBeenCalledWith('/exercises/Push-Up/exercise.json');
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/exercises/Push-Up/exercise.json',
+        expect.objectContaining({ signal: expect.any(Object) })
+      );
     });
 
     it('should cache loaded exercise data', async () => {
@@ -284,9 +288,12 @@ describe('ExerciseIndexManager', () => {
     it('should handle loading errors', async () => {
       const manager = await ExerciseIndexManager.getInstance();
 
-      (global.fetch as any).mockRejectedValueOnce(new Error('404 Not Found'));
+      // Mock a persistent error that will exhaust retries
+      const error: any = new Error('404 Not Found');
+      error.permanent = true;
+      (global.fetch as any).mockRejectedValue(error);
 
-      await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow();
+      await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow('404 Not Found');
     });
   });
 
@@ -335,6 +342,123 @@ describe('ExerciseIndexManager', () => {
       expect(stats.indexLoaded).toBe(true);
       expect(stats.totalExercises).toBe(2);
       expect(stats.maxSize).toBe(100);
+    });
+  });
+
+  describe('batch loading', () => {
+    beforeEach(async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => mockIndex
+      });
+    });
+
+    it('should load multiple exercises concurrently', async () => {
+      const manager = await ExerciseIndexManager.getInstance();
+
+      const mockExercise1 = { name: 'Push-Up', muscles: ['chest'], equipment: ['bodyweight'] };
+      const mockExercise2 = { name: 'Pull-Up', muscles: ['back'], equipment: ['bar'] };
+
+      (global.fetch as any)
+        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise1, signal: undefined })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise2, signal: undefined });
+
+      const exercises = await manager.loadExercises(['Push-Up', 'Pull-Up']);
+
+      expect(exercises).toHaveLength(2);
+      expect(exercises[0].name).toBe('Push-Up');
+      expect(exercises[1].name).toBe('Pull-Up');
+    });
+
+    it('should return exercises in same order as input', async () => {
+      const manager = await ExerciseIndexManager.getInstance();
+
+      const mockExercise1 = { name: 'Exercise-A', muscles: ['chest'], equipment: ['bodyweight'] };
+      const mockExercise2 = { name: 'Exercise-B', muscles: ['back'], equipment: ['bar'] };
+      const mockExercise3 = { name: 'Exercise-C', muscles: ['legs'], equipment: ['barbell'] };
+
+      (global.fetch as any)
+        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise1, signal: undefined })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise2, signal: undefined })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise3, signal: undefined });
+
+      const exercises = await manager.loadExercises(['Exercise-A', 'Exercise-B', 'Exercise-C']);
+
+      expect(exercises[0].name).toBe('Exercise-A');
+      expect(exercises[1].name).toBe('Exercise-B');
+      expect(exercises[2].name).toBe('Exercise-C');
+    });
+  });
+
+  describe('retry and timeout', () => {
+    beforeEach(async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => mockIndex
+      });
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should retry transient errors with exponential backoff', async () => {
+      const manager = await ExerciseIndexManager.getInstance();
+
+      let attemptCount = 0;
+      (global.fetch as any).mockImplementation(() => {
+        attemptCount++;
+        if (attemptCount < 3) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockExercise,
+          signal: undefined
+        });
+      });
+
+      const loadPromise = manager.loadExerciseData('Push-Up');
+
+      // Fast-forward through retry delays
+      await vi.advanceTimersByTimeAsync(1000); // First retry after 1s
+      await vi.advanceTimersByTimeAsync(2000); // Second retry after 2s
+
+      const exercise = await loadPromise;
+      expect(exercise.name).toBe('Push-Up');
+      expect(attemptCount).toBe(3);
+    });
+
+    it('should not retry 404 errors', async () => {
+      const manager = await ExerciseIndexManager.getInstance();
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        signal: undefined
+      });
+
+      await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow('Exercise not found');
+      
+      // Only one fetch attempt, no retries
+      expect(global.fetch).toHaveBeenCalledTimes(2); // 1 for index + 1 for exercise
+    });
+
+    it('should fail after max retries', async () => {
+      const manager = await ExerciseIndexManager.getInstance();
+
+      (global.fetch as any).mockRejectedValue(new Error('Persistent network error'));
+
+      const loadPromise = manager.loadExerciseData('Push-Up');
+
+      // Fast-forward through all retry attempts
+      await vi.advanceTimersByTimeAsync(1000); // Attempt 1
+      await vi.advanceTimersByTimeAsync(2000); // Attempt 2
+      await vi.advanceTimersByTimeAsync(4000); // Attempt 3
+
+      await expect(loadPromise).rejects.toThrow('Persistent network error');
     });
   });
 });
