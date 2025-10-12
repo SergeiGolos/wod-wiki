@@ -55,11 +55,11 @@ export class EffortBlock extends RuntimeBlock {
   }
 
   /**
-   * Initialize effort tracking when block is pushed onto the stack.
+   * Initialize effort tracking when block is mounted onto the stack.
    */
-  push(): IRuntimeAction[] {
+  mount(runtime: IScriptRuntime): IRuntimeAction[] {
     // Allocate memory for rep tracking
-    this.memoryRef = this._runtime.memory.allocate(
+    this.memoryRef = runtime.memory.allocate(
       `effort:${this.key.toString()}`,
       {
         exerciseName: this.config.exerciseName,
@@ -68,29 +68,29 @@ export class EffortBlock extends RuntimeBlock {
       }
     );
 
-    // Call parent push (includes behaviors)
-    return super.push();
+    // Call parent mount (includes behaviors)
+    return super.mount(runtime);
   }
 
   /**
-   * Cleanup effort tracking when block is popped.
+   * Cleanup effort tracking when block is unmounted.
    */
-  pop(): IRuntimeAction[] {
-    // Call parent pop (includes behaviors)
-    return super.pop();
+  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
+    // Call parent unmount (includes behaviors)
+    return super.unmount(runtime);
   }
 
   /**
    * Cleanup: release memory reference.
    */
-  dispose(): void {
+  dispose(runtime: IScriptRuntime): void {
     if (this.memoryRef) {
-      this._runtime.memory.release(this.memoryRef);
+      runtime.memory.release(this.memoryRef);
       this.memoryRef = undefined;
     }
 
     // Call parent dispose (includes behaviors)
-    super.dispose();
+    super.dispose(runtime);
   }
 
   /**
