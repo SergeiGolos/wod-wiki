@@ -806,8 +806,13 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Left: Workout Setup / Script Editor */}
         <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-base font-semibold text-gray-900">Create Workout</h3>
+            {highlightedLine && (
+              <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                💡 Line {highlightedLine}
+              </div>
+            )}
           </div>
           <div className="p-4">
             <ScriptEditor
@@ -815,11 +820,6 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
               onChange={setScript}
               highlightedLine={highlightedLine}
             />
-            {highlightedLine && (
-              <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                💡 Highlighting line {highlightedLine}
-              </div>
-            )}
           </div>
         </div>
 
