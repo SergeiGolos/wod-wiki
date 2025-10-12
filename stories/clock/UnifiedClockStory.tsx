@@ -1,6 +1,6 @@
 import React from 'react';
 import { EnhancedTimerHarness, MemoryCard, TimerControls } from '../../src/clock/components/EnhancedTimerHarness';
-import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
+import { DigitalClock } from '../../src/clock/components/DigitalClock';
 import { TimeSpan } from '../../src/runtime/behaviors/TimerBehavior';
 
 export interface UnifiedClockStoryConfig {
@@ -50,46 +50,34 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Clock Display - Left */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Clock Display - Left (Half Width) */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Clock Display</h2>
-            <div className="flex justify-center items-center min-h-[120px]">
-              <EnhancedTimerHarness
+          <EnhancedTimerHarness
+            timerType={config.timerType}
+            durationMs={config.durationMs}
+            autoStart={config.autoStart}
+            timeSpans={config.timeSpans}
+          >
+            {({ blockKey }) => (
+              <DigitalClock
+                blockKey={blockKey}
+                title={config.title}
+                duration={config.timerType === 'countdown' ? config.durationMs : undefined}
                 timerType={config.timerType}
-                durationMs={config.durationMs}
-                autoStart={config.autoStart}
-                timeSpans={config.timeSpans}
-              >
-                {({ blockKey, memoryRefs, controls, isRunning, recalculateElapsed }) => (
-                  <div>
-                    <ClockAnchor
-                      blockKey={blockKey}
-                      title={config.title}
-                      description={config.description}
-                      duration={config.timerType === 'countdown' ? config.durationMs : undefined}
-                      showProgress={config.timerType === 'countdown'}
-                      workoutType={config.timerType === 'countdown' ? 'AMRAP' : 'FOR_TIME'}
-                      currentRound={1}
-                      showControls={false}
-                      isRunning={isRunning}
-                      onPlay={controls.start}
-                      onPause={controls.pause}
-                      onReset={controls.reset}
-                    />
-                    <div className="mt-2 text-xs text-gray-500 text-center">
-                      Block: {blockKey}
-                    </div>
-                  </div>
-                )}
-              </EnhancedTimerHarness>
-            </div>
-          </div>
+                currentRound={1}
+                metrics={[
+                  { label: 'Rounds', value: '1', unit: 'of 5' },
+                  { label: 'Reps', value: '25', unit: 'total' }
+                ]}
+                nextCardLabel="Rest Period - 2:00"
+              />
+            )}
+          </EnhancedTimerHarness>
         </div>
 
-        {/* Memory and Controls - Right */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Memory and Controls - Right (Half Width) */}
+        <div className="lg:col-span-1 space-y-6">
           <EnhancedTimerHarness
             timerType={config.timerType}
             durationMs={config.durationMs}

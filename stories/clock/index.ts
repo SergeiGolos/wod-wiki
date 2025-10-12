@@ -25,6 +25,10 @@ export type {
   EnhancedTimerHarnessResult
 } from '../../src/clock/components/EnhancedTimerHarness';
 
+// Digital Clock component
+export { DigitalClock } from '../../src/clock/components/DigitalClock';
+export type { DigitalClockProps } from '../../src/clock/components/DigitalClock';
+
 // Legacy timer control stories (preserved for reference)
 // These demonstrate the old format before migration to unified stories
 export { default as TimerControl } from './TimerControl.stories';
