@@ -200,11 +200,11 @@ After completing all tasks, verify:
 - [ ] Test variation selection for exercises with multiple variations (deferred to 2.4)
 - [ ] Verify hover documentation shows exercise details with markdown formatting
 - [x] `npm run test:unit` - all tests pass with no new failures (58/58 passing)
-- [ ] `npm run build-storybook` - builds successfully in ~30 seconds
+- [x] `npm run build-storybook` - builds successfully (storybook-static/index.html created 2025-10-12 02:53 AM)
 - [x] Performance targets met: search < 10ms ✅, load < 1ms (cached) ✅, memory ~5MB ✅
 - [x] No regressions in existing editor functionality (all 58 tests passing)
 
-**Status**: 6/10 automated checks passing, 4 manual validation items remain
+**Status**: 7/10 automated checks passing, 3 manual validation items remain (browser testing required)
 
 **Ready for**: User acceptance testing in Storybook, production build validation
 

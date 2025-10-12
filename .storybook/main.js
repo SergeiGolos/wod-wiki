@@ -11,6 +11,7 @@ const config = {
     "@storybook/addon-a11y",
     "@storybook/addon-vitest"
   ],
+  "staticDirs": ["../public"],
   "framework": {
     "name": "@storybook/react-vite",
     "options": {}
