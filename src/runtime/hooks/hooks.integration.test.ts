@@ -20,7 +20,7 @@ describe('Runtime Hooks Integration', () => {
         it('should be able to search for timer memory references', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             // Simulate what useTimerReferences does
             const timeSpansRefs = runtime.memory.search({
@@ -58,7 +58,7 @@ describe('Runtime Hooks Integration', () => {
         it('should notify when subscribed to timer state changes', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             const timeSpansRefs = runtime.memory.search({
                 id: null,
@@ -89,7 +89,7 @@ describe('Runtime Hooks Integration', () => {
         it('should calculate elapsed time correctly', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             // Simulate time passing
             const startTime = Date.now() - 1000;
@@ -121,7 +121,7 @@ describe('Runtime Hooks Integration', () => {
         it('should handle multiple spans correctly', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             // Simulate pause/resume cycle
             behavior.pause();
@@ -148,7 +148,7 @@ describe('Runtime Hooks Integration', () => {
         it('should provide runtime memory access', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             // Verify that runtime memory can be accessed
             const refs = runtime.memory.search({
@@ -166,7 +166,7 @@ describe('Runtime Hooks Integration', () => {
         it('should handle rapid state changes', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             // Rapid pause/resume
             for (let i = 0; i < 5; i++) {
@@ -191,7 +191,7 @@ describe('Runtime Hooks Integration', () => {
         it('should handle block disposal gracefully', () => {
             const behavior = new TimerBehavior();
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
-            block.push();
+            block.mount(runtime);
 
             const timeSpansRefs = runtime.memory.search({
                 id: null,
@@ -208,7 +208,7 @@ describe('Runtime Hooks Integration', () => {
             });
 
             // Dispose the block
-            block.dispose();
+            block.dispose(runtime);
 
             // Should notify subscribers on release
             expect(notificationCount).toBe(1);

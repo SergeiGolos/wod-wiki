@@ -67,7 +67,7 @@ describe('NextAction', () => {
     expect(mockCurrentBlock.next).toHaveBeenCalled();
   });
 
-  it('should execute multiple actions returned by block.next()', () => {
+  it('should execute multiple actions returned by block.next(runtime)', () => {
     const mockAction1 = { do: vi.fn() };
     const mockAction2 = { do: vi.fn() };
     vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction1, mockAction2]);
@@ -78,7 +78,7 @@ describe('NextAction', () => {
     expect(mockAction2.do).toHaveBeenCalledWith(mockRuntime);
   });
 
-  it('should handle single action returned by block.next()', () => {
+  it('should handle single action returned by block.next(runtime)', () => {
     const mockAction = { do: vi.fn() };
     vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction]);
 
@@ -106,7 +106,7 @@ describe('NextAction', () => {
     expect(mockCurrentBlock.next).not.toHaveBeenCalled();
   });
 
-  it('should set error state when block.next() throws exception', () => {
+  it('should set error state when block.next(runtime) throws exception', () => {
     const error = new Error('Block execution failed');
     vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
       throw error;
@@ -117,7 +117,7 @@ describe('NextAction', () => {
     expect(mockRuntime.setError).toHaveBeenCalledWith(error);
   });
 
-  it('should log error when block.next() throws exception', () => {
+  it('should log error when block.next(runtime) throws exception', () => {
     const error = new Error('Block execution failed');
     vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
       throw error;

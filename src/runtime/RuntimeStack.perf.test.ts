@@ -25,19 +25,19 @@ class PerformanceTestBlock implements IRuntimeBlock {
     }
   }
   
-  push(): IRuntimeAction[] {
+  mount(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  next(): IRuntimeAction[] {
+  next(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  pop(): IRuntimeAction[] {
+  unmount(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  dispose(): void {
+  dispose(runtime: any): void {
     // Minimal disposal
   }
 }
@@ -54,19 +54,19 @@ class HeavyTestBlock implements IRuntimeBlock {
     }
   }
   
-  push(): IRuntimeAction[] {
+  mount(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  next(): IRuntimeAction[] {
+  next(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  pop(): IRuntimeAction[] {
+  unmount(runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  dispose(): void {
+  dispose(runtime: any): void {
     // Simulate expensive cleanup
     this.largeData.length = 0;
   }
@@ -335,7 +335,8 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
     const popEnd = performance.now();
     
     // Dispose blocks (this might be slow, but that's consumer responsibility)
-    poppedBlocks.forEach(block => block.dispose());
+    const mockRuntime = {} as any;
+    poppedBlocks.forEach(block => block.dispose(mockRuntime));
     
     // Assert - stack operations are fast despite heavy block content
     expect(pushEnd - pushStart).toBeLessThan(50);

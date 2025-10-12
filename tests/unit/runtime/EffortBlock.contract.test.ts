@@ -71,7 +71,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 10
       });
       
-      block.push();
+      block.mount(runtime);
       expect(block.getCurrentReps()).toBe(0);
       
       block.incrementRep();
@@ -88,7 +88,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       block.incrementRep();
       
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 5
       });
       
-      block.push();
+      block.mount(runtime);
       for (let i = 0; i < 10; i++) {
         block.incrementRep();
       }
@@ -120,7 +120,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.setReps(15);
       
       expect(block.getCurrentReps()).toBe(15);
@@ -133,7 +133,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       block.setReps(15);
       
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -149,7 +149,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       expect(() => block.setReps(-5)).toThrow(RangeError);
     });
 
@@ -159,7 +159,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       expect(() => block.setReps(25)).toThrow(RangeError);
     });
 
@@ -169,7 +169,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.setReps(21);
       
       expect(block.getCurrentReps()).toBe(21);
@@ -184,7 +184,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.incrementRep(); // At 1 rep
       block.markComplete();
       
@@ -198,7 +198,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       block.markComplete();
       
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -214,7 +214,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.markComplete();
       block.markComplete(); // Should not throw
       
@@ -229,7 +229,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.setReps(15);
       
       expect(block.isComplete()).toBe(false);
@@ -241,7 +241,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.setReps(21);
       
       expect(block.isComplete()).toBe(true);
@@ -253,7 +253,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.markComplete();
       
       expect(block.isComplete()).toBe(true);
@@ -267,7 +267,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       
       // Incremental
       block.incrementRep();
@@ -285,7 +285,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       
       // Bulk
       block.setReps(10);
@@ -303,7 +303,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       
       block.incrementRep(); // Mode: incremental
       // Event should have been emitted
@@ -323,7 +323,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       block.incrementRep(); // 1
       block.incrementRep(); // 2
       block.incrementRep(); // 3 - should trigger completion
@@ -342,7 +342,7 @@ describe('EffortBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
+      block.mount(runtime);
       block.setReps(21); // Complete via bulk
       
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -376,7 +376,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       block.setReps(10);
       
       expect(block.getCurrentReps()).toBe(10);
@@ -390,8 +390,8 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
-      block.dispose();
+      block.mount(runtime);
+      block.dispose(runtime);
       
       expect(runtime.memory.release).toHaveBeenCalled();
     });
@@ -402,10 +402,10 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       
       const startTime = performance.now();
-      block.dispose();
+      block.dispose(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(50);
@@ -420,7 +420,7 @@ describe('EffortBlock Contract', () => {
       });
       
       const startTime = performance.now();
-      block.push();
+      block.mount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);
@@ -432,10 +432,10 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
       
-      block.push();
+      block.mount(runtime);
       
       const startTime = performance.now();
-      block.pop();
+      block.unmount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);

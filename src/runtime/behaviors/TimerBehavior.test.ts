@@ -16,7 +16,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should allocate timer memory references on push', () => {
-        block.push();
+        block.mount(runtime);
 
         // Search for timer memory references
         const timeSpansRefs = runtime.memory.search({
@@ -38,7 +38,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should initialize with one time span and running state', () => {
-        block.push();
+        block.mount(runtime);
 
         const timeSpansRefs = runtime.memory.search({
             id: null,
@@ -59,12 +59,12 @@ describe('TimerBehavior', () => {
     });
 
     it('should stop timer on pop', () => {
-        block.push();
+        block.mount(runtime);
         
         // Wait a bit to ensure time passes
         const startTime = Date.now();
         
-        block.pop();
+        block.unmount(runtime);
 
         const timeSpans = behavior.getTimeSpans();
         expect(timeSpans[0].stop).toBeInstanceOf(Date);
@@ -75,7 +75,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should pause timer', () => {
-        block.push();
+        block.mount(runtime);
 
         behavior.pause();
 
@@ -85,7 +85,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should resume timer by creating new span', () => {
-        block.push();
+        block.mount(runtime);
         behavior.pause();
 
         behavior.resume();
@@ -99,7 +99,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should calculate total elapsed time across multiple spans', () => {
-        block.push();
+        block.mount(runtime);
 
         // Simulate time passing
         const span1Start = new Date(Date.now() - 2000);
@@ -144,7 +144,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should notify subscribers when timer state changes', () => {
-        block.push();
+        block.mount(runtime);
 
         const timeSpansRefs = runtime.memory.search({
             id: null,
@@ -163,7 +163,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should handle pause when already paused', () => {
-        block.push();
+        block.mount(runtime);
         behavior.pause();
 
         const timeSpansBefore = behavior.getTimeSpans();
@@ -177,7 +177,7 @@ describe('TimerBehavior', () => {
     });
 
     it('should mark memory references as public visibility', () => {
-        block.push();
+        block.mount(runtime);
 
         const publicRefs = runtime.memory.search({
             id: null,

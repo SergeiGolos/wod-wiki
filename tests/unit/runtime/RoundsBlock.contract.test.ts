@@ -81,7 +81,7 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       expect(block.getCurrentRound()).toBe(1);
     });
 
@@ -92,7 +92,7 @@ describe('RoundsBlock Contract', () => {
         children: [mockChild] as any
       });
       
-      const actions = block.push();
+      const actions = block.mount(runtime);
       // Should include push action for child block
     });
   });
@@ -104,7 +104,7 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       expect(block.getCurrentRound()).toBe(1);
     });
 
@@ -114,8 +114,8 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
-      block.next(); // Advance to round 2
+      block.mount(runtime);
+      block.next(runtime); // Advance to round 2
       expect(block.getCurrentRound()).toBe(2);
     });
 
@@ -125,9 +125,9 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
-      block.next(); // Round 2
-      block.next(); // Should complete, not go to round 3
+      block.mount(runtime);
+      block.next(runtime); // Round 2
+      block.next(runtime); // Should complete, not go to round 3
       
       const current = block.getCurrentRound();
       expect(current).toBeGreaterThanOrEqual(1);
@@ -142,13 +142,13 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push(); // Round 1
+      block.mount(runtime); // Round 1
       expect(block.getCurrentRound()).toBe(1);
       
-      block.next(); // Round 2
+      block.next(runtime); // Round 2
       expect(block.getCurrentRound()).toBe(2);
       
-      block.next(); // Round 3
+      block.next(runtime); // Round 3
       expect(block.getCurrentRound()).toBe(3);
     });
 
@@ -159,8 +159,8 @@ describe('RoundsBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
-      const actions = block.next();
+      block.mount(runtime);
+      const actions = block.next(runtime);
       
       // Should have emitted rounds:changed event
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -177,8 +177,8 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push(); // Round 1 (21 reps)
-      block.next(); // Round 2 (15 reps)
+      block.mount(runtime); // Round 1 (21 reps)
+      block.next(runtime); // Round 2 (15 reps)
       
       // JIT compiler should receive context with currentRound=2
     });
@@ -191,9 +191,9 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push(); // Round 1
-      block.next(); // Round 2
-      block.next(); // Complete
+      block.mount(runtime); // Round 1
+      block.next(runtime); // Round 2
+      block.next(runtime); // Complete
       
       expect(block.isComplete()).toBe(true);
     });
@@ -205,9 +205,9 @@ describe('RoundsBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      block.push();
-      block.next();
-      const actions = block.next(); // Complete
+      block.mount(runtime);
+      block.next(runtime);
+      const actions = block.next(runtime); // Complete
       
       // Should have emitted rounds:complete event
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -225,7 +225,7 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push(); // Round 1
+      block.mount(runtime); // Round 1
       
       const context = block.getCompilationContext();
       expect(context.currentRound).toBe(1);
@@ -250,13 +250,13 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push(); // Round 1
+      block.mount(runtime); // Round 1
       expect(block.getRepsForCurrentRound()).toBe(21);
       
-      block.next(); // Round 2
+      block.next(runtime); // Round 2
       expect(block.getRepsForCurrentRound()).toBe(15);
       
-      block.next(); // Round 3
+      block.next(runtime); // Round 3
       expect(block.getRepsForCurrentRound()).toBe(9);
     });
 
@@ -266,7 +266,7 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       expect(block.getRepsForCurrentRound()).toBeUndefined();
     });
   });
@@ -278,7 +278,7 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       expect(block.getTotalRounds()).toBe(Infinity);
     });
 
@@ -288,9 +288,9 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       for (let i = 0; i < 100; i++) {
-        block.next();
+        block.next(runtime);
       }
       
       expect(block.isComplete()).toBe(false);
@@ -309,10 +309,10 @@ describe('RoundsBlock Contract', () => {
       // Should NOT compile all rounds at construction
       expect(compileSpy).not.toHaveBeenCalled();
       
-      block.push(); // Should compile round 1
+      block.mount(runtime); // Should compile round 1
       expect(compileSpy).toHaveBeenCalledTimes(1);
       
-      block.next(); // Should compile round 2
+      block.next(runtime); // Should compile round 2
       expect(compileSpy).toHaveBeenCalledTimes(2);
     });
   });
@@ -325,8 +325,8 @@ describe('RoundsBlock Contract', () => {
         children: [mockChild] as any
       });
       
-      block.push();
-      block.dispose();
+      block.mount(runtime);
+      block.dispose(runtime);
       
       expect(mockChild.dispose).toHaveBeenCalled();
     });
@@ -337,10 +337,10 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       
       const startTime = performance.now();
-      block.dispose();
+      block.dispose(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(50);
@@ -355,7 +355,7 @@ describe('RoundsBlock Contract', () => {
       });
       
       const startTime = performance.now();
-      block.push();
+      block.mount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);
@@ -367,10 +367,10 @@ describe('RoundsBlock Contract', () => {
         children: [{}] as any
       });
       
-      block.push();
+      block.mount(runtime);
       
       const startTime = performance.now();
-      block.pop();
+      block.unmount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);

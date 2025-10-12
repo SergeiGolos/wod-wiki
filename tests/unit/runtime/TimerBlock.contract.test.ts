@@ -77,7 +77,7 @@ describe('TimerBlock Contract', () => {
     it('should start timer interval', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       expect(timer.isRunning()).toBe(true);
     });
 
@@ -85,7 +85,7 @@ describe('TimerBlock Contract', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       
       // Should emit timer:started via runtime.handle()
       expect(runtime.handle).toHaveBeenCalledWith(
@@ -98,20 +98,20 @@ describe('TimerBlock Contract', () => {
     it('should stop timer interval', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
-      timer.pop();
+      timer.mount(runtime);
+      timer.unmount(runtime);
       expect(timer.isRunning()).toBe(false);
     });
 
     it('should preserve elapsed time', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(5000); // 5 seconds
       vi.advanceTimersByTime(100);
       
       const elapsed = timer.getElapsedMs();
-      timer.pop();
+      timer.unmount(runtime);
       
       expect(timer.getElapsedMs()).toBe(elapsed);
     });
@@ -121,8 +121,8 @@ describe('TimerBlock Contract', () => {
     it('should clear all intervals', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
-      timer.dispose();
+      timer.mount(runtime);
+      timer.dispose(runtime);
       
       // Timer should be stopped after disposal
       expect(timer.isRunning()).toBe(false);
@@ -131,10 +131,10 @@ describe('TimerBlock Contract', () => {
     it('should complete in <50ms', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       
       const startTime = performance.now();
-      timer.dispose();
+      timer.dispose(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(50);
@@ -143,7 +143,7 @@ describe('TimerBlock Contract', () => {
     it('should not throw when disposing inactive timer', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      expect(() => timer.dispose()).not.toThrow();
+      expect(() => timer.dispose(runtime)).not.toThrow();
     });
   });
 
@@ -151,7 +151,7 @@ describe('TimerBlock Contract', () => {
     it('should stop updates when paused', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(1000);
       vi.advanceTimersByTime(100);
       
@@ -168,7 +168,7 @@ describe('TimerBlock Contract', () => {
     it('should preserve elapsed time during pause', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(3000); // 3 seconds
       vi.advanceTimersByTime(100);
       
@@ -181,7 +181,7 @@ describe('TimerBlock Contract', () => {
     it('should resume from current elapsed time', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(2000);
       vi.advanceTimersByTime(100);
       timer.pause();
@@ -201,7 +201,7 @@ describe('TimerBlock Contract', () => {
       
       expect(timer.isPaused()).toBe(false);
         
-        timer.push();
+        timer.mount(runtime);
         expect(timer.isPaused()).toBe(false);
         
         timer.pause();
@@ -216,7 +216,7 @@ describe('TimerBlock Contract', () => {
     it('should return value with 0.1s precision', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(1234); // 1.234 seconds
       vi.advanceTimersByTime(100);
       
@@ -227,7 +227,7 @@ describe('TimerBlock Contract', () => {
     it('should round correctly (not truncate)', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(1567); // 1.567 seconds
       vi.advanceTimersByTime(100);
       
@@ -241,7 +241,7 @@ describe('TimerBlock Contract', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       vi.advanceTimersByTime(300); // 3 ticks
       
       // Should have emitted tick events via runtime.handle()
@@ -252,7 +252,7 @@ describe('TimerBlock Contract', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       mockTimer.timer.advance(500);
       vi.advanceTimersByTime(100); // One tick
       
@@ -273,7 +273,7 @@ describe('TimerBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       vi.advanceTimersByTime(1100); // Past completion
       
       // Should have emitted timer:complete
@@ -291,7 +291,7 @@ describe('TimerBlock Contract', () => {
       });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       vi.advanceTimersByTime(1100);
       
       // timer:complete should have been called
@@ -306,7 +306,7 @@ describe('TimerBlock Contract', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
       vi.mocked(runtime.handle).mockClear();
-      timer.push();
+      timer.mount(runtime);
       vi.advanceTimersByTime(60000); // 60 seconds
       
       // Should NOT have emitted timer:complete
@@ -322,7 +322,7 @@ describe('TimerBlock Contract', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
       const startTime = performance.now();
-      timer.push();
+      timer.mount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);
@@ -331,10 +331,10 @@ describe('TimerBlock Contract', () => {
     it('should execute pop() in <1ms', () => {
       const timer = new TimerBlock(runtime, [], { direction: 'up' });
       
-      timer.push();
+      timer.mount(runtime);
       
       const startTime = performance.now();
-      timer.pop();
+      timer.unmount(runtime);
       const duration = performance.now() - startTime;
       
       expect(duration).toBeLessThan(1);

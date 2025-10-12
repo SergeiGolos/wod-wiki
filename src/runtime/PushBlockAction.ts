@@ -36,18 +36,18 @@ export class PushBlockAction implements IRuntimeAction {
             // Push the block onto the stack
             runtime.stack.push(this.block);
             
-            // Call the block's push() method to get any initial actions
-            const pushActions = this.block.push();
+            // Call the block's mount() method to get any initial actions
+            const mountActions = this.block.mount(runtime);
             
             // Execute any returned actions
-            for (const action of pushActions) {
+            for (const action of mountActions) {
                 action.do(runtime);
             }
             
             const depthAfter = runtime.stack.blocks.length;
 
             // Log push completion
-            NextBlockLogger.logPushBlockComplete(blockKey, depthAfter, pushActions.length);
+            NextBlockLogger.logPushBlockComplete(blockKey, depthAfter, mountActions.length);
         } catch (error) {
             NextBlockLogger.logError('push-block-action', error as Error, {
                 blockKey: this.block.key.toString(),

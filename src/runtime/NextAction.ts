@@ -41,7 +41,7 @@ export class NextAction implements IRuntimeAction {
       );
 
       // Execute block's next logic
-      const nextActions = currentBlock.next();
+      const nextActions = currentBlock.next(runtime);
 
       // Execute all returned actions
       for (const action of nextActions) {

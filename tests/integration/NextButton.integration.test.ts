@@ -155,7 +155,7 @@ describe('Next Button Integration Tests', () => {
     });
 
     it('should detect script completion and stop advancement', () => {
-      // Simulate completion by having block.next() return empty array
+      // Simulate completion by having block.next(runtime) return empty array
       vi.mocked(mockBlocks[0].next).mockReturnValue([]);
 
       const nextEvent = new NextEvent();

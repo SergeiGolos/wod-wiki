@@ -1,5 +1,6 @@
 import { BlockKey } from "../BlockKey";
 import { IRuntimeAction } from "./IRuntimeAction";
+import { IScriptRuntime } from "./IScriptRuntime";
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -64,17 +65,19 @@ export interface IRuntimeBlock {
      * Note: In constructor-based initialization pattern,
      * this method handles runtime registration only.
      * 
-     * @returns Array of runtime actions to execute after push
+     * @param runtime The script runtime context
+     * @returns Array of runtime actions to execute after mount
      */
-    push(): IRuntimeAction[];
+    mount(runtime: IScriptRuntime): IRuntimeAction[];
 
     /**
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      * 
+     * @param runtime The script runtime context
      * @returns Array of runtime actions representing next execution steps
      */
-    next(): IRuntimeAction[];
+    next(runtime: IScriptRuntime): IRuntimeAction[];
 
     /**
      * Called when this block is popped from the runtime stack.
@@ -83,9 +86,10 @@ export interface IRuntimeBlock {
      * Note: In consumer-managed disposal pattern,
      * this method does NOT clean up resources.
      * 
-     * @returns Array of runtime actions to execute after pop
+     * @param runtime The script runtime context
+     * @returns Array of runtime actions to execute after unmount
      */
-    pop(): IRuntimeAction[];
+    unmount(runtime: IScriptRuntime): IRuntimeAction[];
 
     /**
      * Cleans up any resources held by this block.
@@ -102,7 +106,8 @@ export interface IRuntimeBlock {
      * - Release memory references and clear caches
      * - Dispose of child objects and dependencies
      * 
+     * @param runtime The script runtime context
      * @throws Never - Should handle all cleanup errors internally
      */
-    dispose(): void;
+    dispose(runtime: IScriptRuntime): void;
 }
