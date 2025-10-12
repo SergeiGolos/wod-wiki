@@ -395,9 +395,10 @@ describe('RuntimeStack Performance Tests - Memory Usage', () => {
     const filledMemory = (performance as any).memory?.usedJSHeapSize || 0;
     
     // Empty stack with proper disposal
+    const mockRuntime = {} as any;
     while (stack.blocks.length > 0) {
       const popped = stack.pop();
-      popped?.dispose();
+      popped?.dispose(mockRuntime);
     }
     
     // Force garbage collection if available

@@ -27,7 +27,9 @@
     "storybook:debug": "npm run prestorybook && set NODE_OPTIONS=--inspect=9229 && storybook dev -p 6006",
     "prebuild-storybook": "npx dotenv-cli -e .env -- node scripts/inject-ga-id.js",
     "build-storybook": "npm run prestorybook && storybook build",
-    "docs:check": "node scripts/check-docs-links.js"
+    "docs:check": "node scripts/check-docs-links.js",
+    "generate-exercise-index": "node dist/generateExerciseIndex.js public/exercises exercise-index.json",
+    "generate-exercise-name-index": "node dist/buildExerciseNameIndex.js public/exercises exercise-name-index.json"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

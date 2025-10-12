@@ -1,4 +1,5 @@
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import { MemoryTypeEnum } from './MemoryTypeEnum';
 
 /**
  * BlockContext provides memory allocation and access for a runtime block.
@@ -38,14 +39,14 @@ export interface IBlockContext {
     /**
      * Allocate memory for this block's state.
      * 
-     * @param type Memory type identifier (e.g., 'timer-time-spans')
+     * @param type Memory type identifier from MemoryTypeEnum or custom string
      * @param initialValue Optional initial value for the memory
      * @param visibility 'public' for cross-block access, 'private' for internal use
      * @returns Typed memory reference for accessing the allocated memory
      * @throws Error if context has been released
      */
     allocate<T>(
-        type: string, 
+        type: MemoryTypeEnum | string, 
         initialValue?: T, 
         visibility?: 'public' | 'private'
     ): TypedMemoryReference<T>;
@@ -53,10 +54,10 @@ export interface IBlockContext {
     /**
      * Get the first memory reference of a specific type.
      * 
-     * @param type Memory type identifier to search for
+     * @param type Memory type identifier from MemoryTypeEnum or custom string
      * @returns Memory reference or undefined if not found
      */
-    get<T>(type: string): TypedMemoryReference<T> | undefined;
+    get<T>(type: MemoryTypeEnum | string): TypedMemoryReference<T> | undefined;
     
     /**
      * Get all memory references of a specific type.

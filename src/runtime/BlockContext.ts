@@ -1,6 +1,7 @@
 import { IBlockContext } from './IBlockContext';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IScriptRuntime } from './IScriptRuntime';
+import { MemoryTypeEnum } from './MemoryTypeEnum';
 
 /**
  * BlockContext implementation for runtime block memory management.
@@ -41,7 +42,7 @@ export class BlockContext implements IBlockContext {
     }
     
     allocate<T>(
-        type: string, 
+        type: MemoryTypeEnum | string, 
         initialValue?: T, 
         visibility: 'public' | 'private' = 'private'
     ): TypedMemoryReference<T> {
@@ -51,8 +52,11 @@ export class BlockContext implements IBlockContext {
             );
         }
         
+        // Convert enum to string for storage (enums are strings in runtime)
+        const typeStr = type as string;
+        
         const ref = this.runtime.memory.allocate<T>(
-            type, 
+            typeStr, 
             this.ownerId, 
             initialValue, 
             visibility
@@ -62,14 +66,16 @@ export class BlockContext implements IBlockContext {
         return ref;
     }
     
-    get<T>(type: string): TypedMemoryReference<T> | undefined {
-        const ref = this._references.find(r => r.type === type);
+    get<T>(type: MemoryTypeEnum | string): TypedMemoryReference<T> | undefined {
+        const typeStr = type as string;
+        const ref = this._references.find(r => r.type === typeStr);
         return ref as TypedMemoryReference<T> | undefined;
     }
     
-    getAll<T>(type: string): TypedMemoryReference<T>[] {
+    getAll<T>(type: MemoryTypeEnum | string): TypedMemoryReference<T>[] {
+        const typeStr = type as string;
         return this._references.filter(
-            r => r.type === type
+            r => r.type === typeStr
         ) as TypedMemoryReference<T>[];
     }
     

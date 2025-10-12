@@ -27,19 +27,19 @@ class MockRuntimeBlock implements IRuntimeBlock {
   }
   blockType?: string | undefined;
   
-  push(): IRuntimeAction[] {
+  mount(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  next(): IRuntimeAction[] {
+  next(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  pop(): IRuntimeAction[] {
+  unmount(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  dispose(): void {
+  dispose(_runtime: any): void {
     console.log(`Disposing MockRuntimeBlock ${this.key.toString()}`);
     this.disposed = true;
   }
@@ -191,7 +191,7 @@ describe('RuntimeStack.pop() Contract Tests', () => {
     expect((popped as unknown as MockRuntimeBlock).isDisposed).toBe(false);
     
     // Consumer responsibility to dispose
-    popped?.dispose();
+    popped?.dispose({} as any);
     expect((popped as unknown as MockRuntimeBlock).isDisposed).toBe(true);
   });
 });

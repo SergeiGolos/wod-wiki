@@ -1,15 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
 import { NextEvent } from '../../src/runtime/NextEvent';
-import { IEventHandler, EventHandlerResponse } from '../../src/runtime/IEventHandler';
+import { IEventHandler } from '../../src/runtime/IEventHandler';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
+import { ErrorAction } from '../../src/runtime/actions/ErrorAction';
 
+/**
+ * NEW EVENT HANDLER PATTERN:
+ * - handler() returns IRuntimeAction[] directly (not EventHandlerResponse)
+ * - Empty array [] = "not handled" or "no error"
+ * - [NextAction] = "successfully handled"
+ * - [ErrorAction] = "handled with error/abort"
+ */
 describe('NextEventHandler', () => {
   let handler: NextEventHandler;
   let mockRuntime: IScriptRuntime;
 
   beforeEach(() => {
     handler = new NextEventHandler('test-handler-id');
+    const mockErrors: any[] = [];
     mockRuntime = {
       stack: {
         current: {
@@ -19,13 +28,14 @@ describe('NextEventHandler', () => {
         blocks: []
       },
       memory: {
-        state: 'normal',
         allocate: vi.fn(),
         deallocate: vi.fn(),
         get: vi.fn(),
-        set: vi.fn()
+        set: vi.fn(),
+        search: vi.fn().mockReturnValue([]),
+        release: vi.fn()
       },
-      hasErrors: vi.fn().mockReturnValue(false),
+      get errors() { return mockErrors; },
       setError: vi.fn(),
       handle: vi.fn()
     } as any;
@@ -50,80 +60,79 @@ describe('NextEventHandler', () => {
 
   it('should handle next events correctly', () => {
     const nextEvent = new NextEvent();
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.abort).toBe(false);
-    expect(response.actions).toHaveLength(1);
+    // Successfully handled - returns NextAction
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toHaveProperty('type', 'next');
   });
 
   it('should ignore non-next events', () => {
     const otherEvent = { name: 'other', timestamp: new Date() };
-    const response = handler.handler(otherEvent, mockRuntime);
+    const actions = handler.handler(otherEvent, mockRuntime);
 
-    expect(response.handled).toBe(false);
-    expect(response.abort).toBe(false);
-    expect(response.actions).toHaveLength(0);
+    // Not handled - returns empty array
+    expect(actions).toHaveLength(0);
   });
 
-  it('should return abort when runtime has errors', () => {
-    vi.mocked(mockRuntime.hasErrors).mockReturnValue(true);
+  it('should return error action when runtime has errors', () => {
+    mockRuntime.errors!.push({ 
+      error: new Error('Existing error'), 
+      source: 'test',
+      timestamp: new Date()
+    });
     const nextEvent = new NextEvent();
 
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.abort).toBe(true);
-    expect(response.actions).toHaveLength(0);
+    // Abort with error - returns ErrorAction
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toBeInstanceOf(ErrorAction);
   });
 
-  it('should return abort when no current block', () => {
-    mockRuntime.stack.current = null as any;
+  it('should return empty array when no current block', () => {
+    (mockRuntime.stack as any).current = null;
     const nextEvent = new NextEvent();
 
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.abort).toBe(false);
-    expect(response.actions).toHaveLength(0);
+    // No current block - returns empty array (no error)
+    expect(actions).toHaveLength(0);
   });
 
-  it('should return abort when memory state is corrupted', () => {
-    mockRuntime.memory.state = 'corrupted';
+  it('should return error action when stack is invalid', () => {
+    (mockRuntime as any).stack = null;
     const nextEvent = new NextEvent();
 
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.abort).toBe(true);
-    expect(response.actions).toHaveLength(0);
+    // Invalid stack - returns ErrorAction
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toBeInstanceOf(ErrorAction);
   });
 
   it('should create NextAction for valid next events', () => {
     const nextEvent = new NextEvent();
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.actions[0]).toHaveProperty('type', 'next');
+    expect(actions[0]).toHaveProperty('type', 'next');
   });
 
   it('should handle multiple calls with same handler', () => {
     const nextEvent = new NextEvent();
-    const response1 = handler.handler(nextEvent, mockRuntime);
-    const response2 = handler.handler(nextEvent, mockRuntime);
+    const actions1 = handler.handler(nextEvent, mockRuntime);
+    const actions2 = handler.handler(nextEvent, mockRuntime);
 
-    expect(response1.handled).toBe(true);
-    expect(response2.handled).toBe(true);
-    expect(response1.actions).toHaveLength(1);
-    expect(response2.actions).toHaveLength(1);
+    expect(actions1).toHaveLength(1);
+    expect(actions2).toHaveLength(1);
   });
 
   it('should handle events with data', () => {
     const eventData = { source: 'button', step: 1 };
     const nextEvent = new NextEvent(eventData);
-    const response = handler.handler(nextEvent, mockRuntime);
+    const actions = handler.handler(nextEvent, mockRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.actions).toHaveLength(1);
+    expect(actions).toHaveLength(1);
   });
 
   it('should have readonly id property', () => {
@@ -149,22 +158,21 @@ describe('NextEventHandler', () => {
 
   it('should handle malformed events gracefully', () => {
     const malformedEvent = { name: null, timestamp: 'invalid' };
-    const response = handler.handler(malformedEvent as any, mockRuntime);
+    const actions = handler.handler(malformedEvent as any, mockRuntime);
 
-    expect(response.handled).toBe(false);
-    expect(response.abort).toBe(false);
-    expect(response.actions).toHaveLength(0);
+    // Malformed event not handled - returns empty array
+    expect(actions).toHaveLength(0);
   });
 
   it('should validate runtime interface before processing', () => {
     const incompleteRuntime = { stack: null } as any;
     const nextEvent = new NextEvent();
 
-    const response = handler.handler(nextEvent, incompleteRuntime);
+    const actions = handler.handler(nextEvent, incompleteRuntime);
 
-    expect(response.handled).toBe(true);
-    expect(response.abort).toBe(true);
-    expect(response.actions).toHaveLength(0);
+    // Invalid runtime - returns ErrorAction
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toBeInstanceOf(ErrorAction);
   });
 
   it('should execute within performance targets', () => {

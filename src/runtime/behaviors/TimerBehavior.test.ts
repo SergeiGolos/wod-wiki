@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from './TimerBehavior';
-import { RuntimeMemory } from '../RuntimeMemory';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeBlock } from '../RuntimeBlock';
+import { WodScript } from '../../WodScript';
+import { JitCompiler } from '../JitCompiler';
 
 describe('TimerBehavior', () => {
     let runtime: ScriptRuntime;
@@ -10,7 +11,9 @@ describe('TimerBehavior', () => {
     let behavior: TimerBehavior;
 
     beforeEach(() => {
-        runtime = new ScriptRuntime();
+        const script = new WodScript('test', []);
+        const compiler = new JitCompiler([]);
+        runtime = new ScriptRuntime(script, compiler);
         behavior = new TimerBehavior();
         block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
     });
@@ -132,8 +135,8 @@ describe('TimerBehavior', () => {
         const block1 = new RuntimeBlock(runtime, [1], [behavior1], 'Timer');
         const block2 = new RuntimeBlock(runtime, [2], [behavior2], 'Timer');
 
-        block1.push();
-        block2.push();
+        block1.mount(runtime);
+        block2.mount(runtime);
 
         const block1TimeSpans = behavior1.getTimeSpans();
         const block2TimeSpans = behavior2.getTimeSpans();

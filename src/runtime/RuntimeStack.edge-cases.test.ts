@@ -17,10 +17,10 @@ class MinimalBlock implements IRuntimeBlock {
   
   constructor(public readonly key: BlockKey) {}
   
-  push(): IRuntimeAction[] { return []; }
-  next(): IRuntimeAction[] { return []; }
-  pop(): IRuntimeAction[] { return []; }
-  dispose(): void {}
+  mount(_runtime: any): IRuntimeAction[] { return []; }
+  next(_runtime: any): IRuntimeAction[] { return []; }
+  unmount(_runtime: any): IRuntimeAction[] { return []; }
+  dispose(_runtime: any): void {}
 }
 
 describe('RuntimeStack Error Conditions', () => {
@@ -122,11 +122,12 @@ describe('RuntimeStack Error Conditions', () => {
     expect(stack.blocks.length).toBe(STRESS_TEST_SIZE);
     
     // Pop all blocks and dispose them
+    const mockRuntime = {} as any;
     const disposedBlocks: IRuntimeBlock[] = [];
     while (stack.blocks.length > 0) {
       const popped = stack.pop();
       if (popped) {
-        popped.dispose();
+        popped.dispose(mockRuntime);
         disposedBlocks.push(popped);
       }
     }

@@ -146,9 +146,9 @@ describe('NextAction', () => {
     action.do(mockRuntime);
 
     expect(consoleSpy).toHaveBeenCalledWith(
-      '❌ NEXT-BLOCK | Error in next-action',
+      '⚠️  NEXT-BLOCK | Validation Failed: No current block to advance from',
       expect.objectContaining({
-        error: expect.stringContaining('No current block')
+        stackDepth: 0
       })
     );
     consoleSpy.mockRestore();

@@ -10,12 +10,26 @@ export interface IMemoryReference {
     readonly ownerId: string;
     readonly type: string;
     readonly visibility: 'public' | 'private';
+    
+    /**
+     * Get the current value in an untyped manner.
+     * Useful for debugging and generic operations.
+     * @returns The current value or undefined
+     */
+    value(): any | undefined;
+    
+    /**
+     * List of active subscriptions for this memory reference.
+     * Readonly access for debugging and inspection.
+     */
+    readonly subscriptions: ReadonlyArray<IMemorySubscription<any>>;
 }
 
 export interface IMemorySubscription<T> {
-    id: string;
-    callback: (newValue: T | undefined, oldValue: T | undefined) => void;
-    active: boolean;
+    readonly id: string;
+    readonly callback: (newValue: T | undefined, oldValue: T | undefined) => void;
+    readonly memoryId: string;
+    readonly createdAt: Date;
 }
 
 export interface SubscriptionOptions {
@@ -34,6 +48,22 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
         public visibility: "public" | "private" = 'private',
 
     ) {
+    }
+    
+    /**
+     * Get the current value in an untyped manner.
+     * Implements IMemoryReference.value() for debugging and inspection.
+     */
+    value(): any | undefined {
+        return this.get();
+    }
+    
+    /**
+     * Readonly access to subscriptions list.
+     * Implements IMemoryReference.subscriptions for debugging and inspection.
+     */
+    get subscriptions(): ReadonlyArray<IMemorySubscription<any>> {
+        return this._subscriptions;
     }
             
     get(): T | undefined {
@@ -58,7 +88,8 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
         const subscription: IMemorySubscription<T> = {
             id: subscriptionId,
             callback,
-            active: true
+            memoryId: this.id,
+            createdAt: new Date()
         };
 
         this._subscriptions.push(subscription);
@@ -80,7 +111,7 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
     unsubscribe(subscriptionId: string): void {
         const index = this._subscriptions.findIndex(s => s.id === subscriptionId);
         if (index >= 0) {
-            this._subscriptions[index].active = false;
+            // Simply remove from array - no need for active flag
             this._subscriptions.splice(index, 1);
         }
     }
@@ -99,13 +130,12 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
      * @internal
      */
     notifySubscribers(newValue: T | undefined, oldValue: T | undefined): void {
+        // All subscriptions in the array are active (removed ones are spliced out)
         for (const subscription of this._subscriptions) {
-            if (subscription.active) {
-                try {
-                    subscription.callback(newValue, oldValue);
-                } catch (error) {
-                    console.error(`Error in memory subscription callback:`, error);
-                }
+            try {
+                subscription.callback(newValue, oldValue);
+            } catch (error) {
+                console.error(`Error in memory subscription callback:`, error);
             }
         }
     }

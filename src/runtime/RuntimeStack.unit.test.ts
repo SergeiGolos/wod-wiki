@@ -26,19 +26,19 @@ class TestRuntimeBlock implements IRuntimeBlock {
   sourceIds: number[] = [];
   blockType?: string | undefined;
   
-  push(): IRuntimeAction[] {
+  mount(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  next(): IRuntimeAction[] {
+  next(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  pop(): IRuntimeAction[] {
+  unmount(_runtime: any): IRuntimeAction[] {
     return [];
   }
   
-  dispose(): void {
+  dispose(_runtime: any): void {
     this.disposeCallCount++;
     if (this.shouldThrowOnDispose) {
       throw new Error(`Dispose failed for ${this.key.toString()}`);
@@ -49,9 +49,11 @@ class TestRuntimeBlock implements IRuntimeBlock {
 describe('RuntimeStack Dispose Method Unit Tests', () => {
   let stack: RuntimeStack;
   let consoleSpy: ReturnType<typeof vi.spyOn>;
+  let mockRuntime: any;
   
   beforeEach(() => {
     stack = new RuntimeStack();
+    mockRuntime = {}; // Minimal mock runtime for dispose calls
     // Spy on console.log to verify logging behavior
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   });
@@ -77,8 +79,8 @@ describe('RuntimeStack Dispose Method Unit Tests', () => {
     expect(popped2).toBe(block1);
     
     // Consumer calls dispose
-    popped1?.dispose();
-    popped2?.dispose();
+    popped1?.dispose(mockRuntime);
+    popped2?.dispose(mockRuntime);
     
     // Assert
     expect(block1.disposeCallCount).toBe(1);
@@ -95,9 +97,9 @@ describe('RuntimeStack Dispose Method Unit Tests', () => {
     expect(popped).toBe(block);
     
     // Call dispose multiple times
-    popped?.dispose();
-    popped?.dispose();
-    popped?.dispose();
+    popped?.dispose(mockRuntime);
+    popped?.dispose(mockRuntime);
+    popped?.dispose(mockRuntime);
     
     // Assert
     expect(block.disposeCallCount).toBe(3); // Should be safe to call multiple times
@@ -117,12 +119,12 @@ describe('RuntimeStack Dispose Method Unit Tests', () => {
     expect(poppedBad).toBe(badBlock);
     
     // Dispose should throw but not affect stack
-    expect(() => poppedBad?.dispose()).toThrow('Dispose failed for bad-block');
+    expect(() => poppedBad?.dispose(mockRuntime)).toThrow('Dispose failed for bad-block');
     expect(stack.current).toBe(goodBlock); // Stack unaffected
     
     const poppedGood = stack.pop();
     expect(poppedGood).toBe(goodBlock);
-    expect(() => poppedGood?.dispose()).not.toThrow();
+    expect(() => poppedGood?.dispose(mockRuntime)).not.toThrow();
   });
   
   test('blocks maintain identity after pop before dispose', () => {
@@ -139,7 +141,7 @@ describe('RuntimeStack Dispose Method Unit Tests', () => {
     expect((poppedBlock as TestRuntimeBlock)?.description).toBe(originalBlock.description);
     
     // Dispose should work on same object
-    poppedBlock?.dispose();
+    poppedBlock?.dispose(mockRuntime);
     expect(originalBlock.disposeCallCount).toBe(1);
   });
 });
@@ -203,9 +205,11 @@ describe('RuntimeStack Error Handling Unit Tests', () => {
 
 describe('RuntimeStack Edge Cases Unit Tests', () => {
   let stack: RuntimeStack;
+  let mockRuntime: any;
   
   beforeEach(() => {
     stack = new RuntimeStack();
+    mockRuntime = {}; // Minimal mock runtime for dispose calls
   });
   
   test('current() returns undefined for empty stack', () => {
@@ -247,7 +251,7 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
     expect(stack.blocks).toHaveLength(0);
     
     // Consumer dispose
-    popped?.dispose();
+    popped?.dispose(mockRuntime);
     expect(block.disposeCallCount).toBe(1);
   });
   
@@ -287,7 +291,7 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
       const popped = stack.pop() as TestRuntimeBlock;
       if (popped) {
         poppedBlocks.push(popped);
-        popped.dispose();
+        popped.dispose(mockRuntime);
       }
     }
     const popEnd = Date.now();

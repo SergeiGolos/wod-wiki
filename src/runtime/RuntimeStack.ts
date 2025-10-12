@@ -1,11 +1,11 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../BlockKey';
-import { StackValidator } from './StackValidator';
 import { NextBlockLogger } from './NextBlockLogger';
+
+const MAX_STACK_DEPTH = 10;
 
 export class RuntimeStack {
     private readonly _blocks: IRuntimeBlock[] = [];
-    private readonly _validator = new StackValidator();
 
     public get blocks(): readonly IRuntimeBlock[] {
         return [...this._blocks].reverse();
@@ -39,8 +39,21 @@ export class RuntimeStack {
     }
 
     public push(block: IRuntimeBlock): void {
-        // Validate before push
-        this._validator.validatePush(block, this._blocks.length);
+        // Inline validation
+        if (block === null || block === undefined) {
+            throw new TypeError('Block cannot be null or undefined');
+        }
+        if (!block.key) {
+            throw new TypeError('Block must have a valid key');
+        }
+        if (!block.sourceIds || !Array.isArray(block.sourceIds)) {
+            throw new TypeError(`Block must have a valid sourceIds array (block key: ${block.key})`);
+        }
+        if (this._blocks.length >= MAX_STACK_DEPTH) {
+            throw new TypeError(
+                `Stack overflow: maximum depth (${MAX_STACK_DEPTH}) exceeded (current depth: ${this._blocks.length}, block: ${block.key})`
+            );
+        }
         
         const blockKey = block.key.toString();
         const depthBefore = this._blocks.length;
@@ -55,9 +68,8 @@ export class RuntimeStack {
     }
 
     public pop(): IRuntimeBlock | undefined {
-        // Validate before pop - returns false if empty
-        const canPop = this._validator.validatePop(this._blocks.length);
-        if (!canPop) {
+        // Inline validation - return undefined if empty
+        if (this._blocks.length === 0) {
             return undefined;
         }
         

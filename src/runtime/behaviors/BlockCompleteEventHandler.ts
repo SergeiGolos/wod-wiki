@@ -1,6 +1,7 @@
-import { IEventHandler, EventHandlerResponse } from '../IEventHandler';
+import { IEventHandler } from '../IEventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { PopBlockAction } from '../PopBlockAction';
+import { IRuntimeAction } from '../IRuntimeAction';
 
 /**
  * BlockCompleteEventHandler listens for block:complete events
@@ -40,16 +41,16 @@ export class BlockCompleteEventHandler implements IEventHandler {
         throw new Error('Cannot modify readonly property name');
     }
 
-    handler(event: any, runtime: IScriptRuntime): EventHandlerResponse {
+    handler(event: any, runtime: IScriptRuntime): IRuntimeAction[] {
         // Only handle block:complete events
         if (event.name !== 'block:complete') {
-            return { handled: false, abort: false, actions: [] };
+            return [];
         }
 
         // Check if there's a current block on the stack
         const currentBlock = runtime.stack?.current;
         if (!currentBlock) {
-            return { handled: false, abort: false, actions: [] };
+            return [];
         }
 
         // Only pop if the event is for the current block (the child that completed)
@@ -59,13 +60,9 @@ export class BlockCompleteEventHandler implements IEventHandler {
         if (completedBlockId === currentBlockId) {
             // The current child block has completed, pop it
             console.log(`🔔 BlockCompleteEventHandler: Detected completion of ${completedBlockId}, triggering pop`);
-            return {
-                handled: true,
-                abort: false,
-                actions: [new PopBlockAction()]
-            };
+            return [new PopBlockAction()];
         }
 
-        return { handled: false, abort: false, actions: [] };
+        return [];
     }
 }

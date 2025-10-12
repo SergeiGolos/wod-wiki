@@ -65,8 +65,8 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
     const behavior = new TimerBehavior();
     const newBlock = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
 
-    // Push block immediately to trigger behavior initialization
-    newBlock.push();
+    // Mount block immediately to trigger behavior initialization
+    newBlock.mount(runtime);
 
     // Find timer memory references
     const timeSpansRefs = runtime.memory.search({
@@ -156,9 +156,9 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
   useEffect(() => {
     return () => {
       console.log('[TimerTestHarness] Cleaning up block:', blockKey);
-      block.dispose();
+      block.dispose(runtime);
     };
-  }, [block, blockKey]);
+  }, [block, blockKey, runtime]);
 
   const harness: ClockMemoryHarnessResult = {
     runtime,

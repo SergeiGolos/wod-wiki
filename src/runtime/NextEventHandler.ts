@@ -1,6 +1,8 @@
-import { IEventHandler, EventHandlerResponse } from './IEventHandler';
+import { IEventHandler } from './IEventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { NextAction } from './NextAction';
+import { IRuntimeAction } from './IRuntimeAction';
+import { ErrorAction } from './actions/ErrorAction';
 
 export class NextEventHandler implements IEventHandler {
   private _id: string;
@@ -15,7 +17,7 @@ export class NextEventHandler implements IEventHandler {
     return this._id;
   }
 
-  set id(value: string) {
+  set id(_value: string) {
     throw new Error('Cannot modify readonly property id');
   }
 
@@ -23,49 +25,52 @@ export class NextEventHandler implements IEventHandler {
     return this._name;
   }
 
-  set name(value: string) {
+  set name(_value: string) {
     throw new Error('Cannot modify readonly property name');
   }
 
-  handler(event: any, runtime: IScriptRuntime): EventHandlerResponse {
+  handler(event: any, runtime: IScriptRuntime): IRuntimeAction[] {
     // Event filtering
     if (event.name !== 'next') {
-      return { handled: false, abort: false, actions: [] };
+      return [];
     }
 
     // Runtime state validation
     const validation = this.validateRuntimeState(runtime);
     if (!validation.isValid) {
-      return {
-        handled: true,
-        abort: validation.shouldAbort,
-        actions: []
-      };
+      // If should abort, push an error
+      if (validation.shouldAbort && validation.error) {
+        return [new ErrorAction(validation.error, 'NextEventHandler')];
+      }
+      return [];
     }
 
     // Generate next action
     const action = new NextAction();
-    return {
-      handled: true,
-      abort: false,
-      actions: [action]
-    };
+    return [action];
   }
 
-  private validateRuntimeState(runtime: IScriptRuntime): { isValid: boolean; shouldAbort: boolean } {
+  private validateRuntimeState(runtime: IScriptRuntime): { 
+    isValid: boolean; 
+    shouldAbort: boolean;
+    error?: Error;
+  } {
     // Check for null/undefined stack
     if (!runtime.stack) {
-      return { isValid: false, shouldAbort: true };
+      return { 
+        isValid: false, 
+        shouldAbort: true,
+        error: new Error('Runtime stack is not available')
+      };
     }
 
     // Check for runtime errors
-    if (runtime.hasErrors && typeof runtime.hasErrors === 'function' && runtime.hasErrors()) {
-      return { isValid: false, shouldAbort: true };
-    }
-
-    // Check for corrupted memory state
-    if (runtime.memory && runtime.memory.state === 'corrupted') {
-      return { isValid: false, shouldAbort: true };
+    if (runtime.errors && runtime.errors.length > 0) {
+      return { 
+        isValid: false, 
+        shouldAbort: true,
+        error: new Error(`Runtime has ${runtime.errors.length} error(s)`)
+      };
     }
 
     // Check for missing current block (not an error condition)

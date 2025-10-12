@@ -72,8 +72,8 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     const timerBehavior = new TimerBehavior();
     const newBlock = new RuntimeBlock(runtime, [1], [timerBehavior], 'Timer');
 
-    // Push block immediately to trigger behavior initialization
-    newBlock.push();
+    // Mount block immediately to trigger behavior initialization
+    newBlock.mount(runtime);
 
     // Find timer memory references
     const timeSpansRefs = runtime.memory.search({
@@ -209,9 +209,9 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   useEffect(() => {
     return () => {
       console.log('[EnhancedTimerHarness] Cleaning up block:', blockKey);
-      block.dispose();
+      block.dispose(runtime);
     };
-  }, [block, blockKey]);
+  }, [block, blockKey, runtime]);
 
   const harness: EnhancedTimerHarnessResult = {
     runtime,

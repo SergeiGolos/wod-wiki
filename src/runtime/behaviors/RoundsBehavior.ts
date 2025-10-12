@@ -3,12 +3,15 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TypedMemoryReference } from '../IMemoryReference';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
 
 /**
  * Rounds memory reference types for runtime memory system.
+ * 
+ * @deprecated Use MemoryTypeEnum.ROUNDS_STATE instead
  */
 export const ROUNDS_MEMORY_TYPES = {
-  STATE: 'rounds-state',
+  STATE: MemoryTypeEnum.ROUNDS_STATE,
 } as const;
 
 /**

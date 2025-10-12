@@ -7,6 +7,7 @@ import { IEventHandler } from "./IEventHandler";
 import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
+import type { RuntimeError } from './actions/ErrorAction';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -14,6 +15,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly stack: RuntimeStack;
     public readonly jit: JitCompiler;
     public readonly memory: IRuntimeMemory;
+    public readonly errors: RuntimeError[] = [];
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
@@ -84,15 +86,17 @@ export class ScriptRuntime implements IScriptRuntime {
             
             console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id})`);
 
-            const response = handler.handler(event, this);
-            console.log(`      ✅ Response - handled: ${response.handled}, abort: ${response.abort}, actions: ${response.actions.length}`);
+            const actions = handler.handler(event, this);
+            console.log(`      ✅ Returned ${actions.length} action(s)`);
 
-            if (response.handled) {
-                allActions.push(...response.actions);
-                console.log(`      📦 Added ${response.actions.length} actions to queue`);
+            if (actions.length > 0) {
+                allActions.push(...actions);
+                console.log(`      📦 Added ${actions.length} action(s) to queue`);
             }
-            if (response.abort) {
-                console.log(`      🛑 Handler requested stop - breaking execution chain`);
+            
+            // Check for errors - if runtime has errors, abort further processing
+            if (this.errors && this.errors.length > 0) {
+                console.log(`      🛑 Runtime has errors - aborting handler chain`);
                 break;
             }
         }
@@ -134,7 +138,7 @@ export class ScriptRuntime implements IScriptRuntime {
             
             // Consumer responsibility: call dispose() on the popped block
             try {
-                poppedBlock.dispose();
+                poppedBlock.dispose(this);
                 console.log(`  ✅ Block disposed successfully`);
             } catch (error) {
                 console.error(`  ❌ Error disposing block: ${error}`);
@@ -158,7 +162,7 @@ export class ScriptRuntime implements IScriptRuntime {
             const block = this.stack.pop();
             if (block) {
                 try {
-                    block.dispose();
+                    block.dispose(this);
                     console.log(`  ✅ Disposed: ${block.key.toString()}`);
                 } catch (error) {
                     disposeErrors.push(error as Error);

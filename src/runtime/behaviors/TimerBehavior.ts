@@ -2,16 +2,18 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IEvent } from '../IEvent';
 import { TypedMemoryReference } from '../IMemoryReference';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
 
 /**
  * Timer memory reference types for runtime memory system.
  * These constants are used to identify and search for timer-related memory references.
+ * 
+ * @deprecated Use MemoryTypeEnum instead
  */
 export const TIMER_MEMORY_TYPES = {
-  TIME_SPANS: 'timer-time-spans',      // TimeSpan[] - array of start/stop pairs
-  IS_RUNNING: 'timer-is-running',      // boolean - current running state
+  TIME_SPANS: MemoryTypeEnum.TIMER_TIME_SPANS,
+  IS_RUNNING: MemoryTypeEnum.TIMER_IS_RUNNING,
 } as const;
 
 /**

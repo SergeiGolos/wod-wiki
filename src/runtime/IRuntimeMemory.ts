@@ -1,6 +1,18 @@
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 
 export type Nullable<T> = { [K in keyof T]: T[K] | null };
+
+/**
+ * Search criteria for finding memory references.
+ * Uses only the basic properties, not methods.
+ */
+export type MemorySearchCriteria = {
+    id: string | null;
+    ownerId: string | null;
+    type: string | null;
+    visibility: 'public' | 'private' | null;
+};
+
 /**
  * The main runtime memory interface that manages separate memory from the execution stack.
  * This enables debugging and state inspection independently of program execution flow.
@@ -27,9 +39,9 @@ export interface IRuntimeMemory {
     /**
      * Searches for memory references that match the given criteria.
      * Returns an array of matching references (empty if none found).
-     * the search is based on any non-null fields in the crieteria object.
+     * the search is based on any non-null fields in the criteria object.
      */
-    search(criteria: Nullable<IMemoryReference>): IMemoryReference[];
+    search(criteria: MemorySearchCriteria): IMemoryReference[];
     
     /**
      * Manually releases a memory reference and all its children.
