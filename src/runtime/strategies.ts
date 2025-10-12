@@ -39,10 +39,13 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         
-        // 2. Create BlockContext (may not need memory allocation for simple effort blocks)
-        const context = new BlockContext(runtime, blockId);
+        // 2. Extract exerciseId from statement (if available)
+        const exerciseId = (code[0] as any)?.exerciseId || '';
         
-        // 3. Create behaviors
+        // 3. Create BlockContext (may not need memory allocation for simple effort blocks)
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        // 4. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
         // Add child behaviors if statement has children
@@ -64,7 +67,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             ));
         }
 
-        // 4. Create RuntimeBlock with context
+        // 5. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
@@ -103,10 +106,13 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         
-        // 2. Create BlockContext
-        const context = new BlockContext(runtime, blockId);
+        // 2. Extract exerciseId from statement (if available)
+        const exerciseId = (code[0] as any)?.exerciseId || '';
         
-        // 3. Allocate timer memory
+        // 3. Create BlockContext
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        // 4. Allocate timer memory
         const timeSpansRef = context.allocate(
             TIMER_MEMORY_TYPES.TIME_SPANS,
             [{ start: new Date(), stop: undefined }],
@@ -118,7 +124,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             'public'
         );
         
-        // 4. Create behaviors with injected memory
+        // 5. Create behaviors with injected memory
         const behaviors: IRuntimeBehavior[] = [];
         
         // Add timer behavior with memory injection
@@ -138,7 +144,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             runtime.memory.allocate('handler', blockId, handler, 'private');
         }
 
-        // 5. Create RuntimeBlock with context
+        // 6. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
@@ -204,15 +210,18 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         
-        // 2. Create BlockContext
-        const context = new BlockContext(runtime, blockId);
+        // 2. Extract exerciseId from statement (if available)
+        const exerciseId = (code[0] as any)?.exerciseId || '';
         
-        // 3. Extract rounds configuration from fragments
+        // 3. Create BlockContext
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        // 4. Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
         const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
         const totalRounds = (roundsFragment?.value as number) || 3; // Default to 3 rounds
         
-        // 4. Allocate rounds memory
+        // 5. Allocate rounds memory
         const roundsStateRef = context.allocate(
             ROUNDS_MEMORY_TYPES.STATE,
             {
@@ -223,7 +232,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             'public'
         );
         
-        // 5. Create behaviors with injected memory
+        // 6. Create behaviors with injected memory
         const behaviors: IRuntimeBehavior[] = [];
         
         // Add RoundsBehavior with memory injection
@@ -243,7 +252,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             runtime.memory.allocate('handler', blockId, handler, 'private');
         }
 
-        // 6. Create RuntimeBlock with context
+        // 7. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],

@@ -8,6 +8,7 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
+import { IMetricCollector, MetricCollector } from './MetricCollector';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -15,15 +16,17 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly stack: RuntimeStack;
     public readonly jit: JitCompiler;
     public readonly memory: IRuntimeMemory;
+    public readonly metrics: IMetricCollector;
     public readonly errors: RuntimeError[] = [];
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
         this.stack = new RuntimeStack();
         this.memory = new RuntimeMemory();
+        this.metrics = new MetricCollector();
         this.jit = compiler;
         this._setupMemoryAwareStack();
-        console.log(`🧠 ScriptRuntime created with memory system`);
+        console.log(`🧠 ScriptRuntime created with memory system and metrics collector`);
     }
     options?: { emitTags?: boolean; } | undefined;
 

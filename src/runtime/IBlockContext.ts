@@ -31,6 +31,12 @@ export interface IBlockContext {
     readonly ownerId: string;
     
     /**
+     * The ID of the exercise this block is executing.
+     * Used for metric collection and exercise definition lookup.
+     */
+    readonly exerciseId: string;
+    
+    /**
      * All memory references allocated by this context.
      * Readonly array to prevent external modification.
      */

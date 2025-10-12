@@ -32,6 +32,7 @@ export class BlockContext implements IBlockContext {
     constructor(
         private readonly runtime: IScriptRuntime,
         public readonly ownerId: string,
+        public readonly exerciseId: string = '',
         initialReferences: IMemoryReference[] = []
     ) {
         this._references = [...initialReferences];
