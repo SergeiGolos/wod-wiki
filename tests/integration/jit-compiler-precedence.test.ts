@@ -26,9 +26,28 @@ describe('Strategy Precedence Contract', () => {
       clear: vi.fn()
     };
 
+    const mockMemory = {
+      allocate: vi.fn((type: string, owner: string, initialValue?: any, visibility?: string) => {
+        return {
+          id: `mock-ref-${Math.random()}`,
+          type,
+          owner,
+          get: vi.fn(() => initialValue),
+          set: vi.fn(),
+          update: vi.fn(),
+          visibility: visibility || 'private'
+        };
+      }),
+      release: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
+      search: vi.fn(() => [])
+    };
+
     mockRuntime = {
       jit: mockJitCompiler,
       stack: mockStack,
+      memory: mockMemory,
       start: vi.fn(),
       stop: vi.fn(),
       reset: vi.fn(),
