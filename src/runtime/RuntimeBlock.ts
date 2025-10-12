@@ -68,23 +68,22 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      */    
-    push(): IRuntimeAction[] {
-        // Then call behaviors
+    mount(runtime: IScriptRuntime): IRuntimeAction[] {
+        // Call behaviors
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(this._runtime, this);
+            const result = behavior?.onPush?.(runtime, this);
             if (result) { actions.push(...result); }
         }
         
         return actions;
-     
     }
 
     /**
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      */
-    next(): IRuntimeAction[] {
+    next(runtime: IScriptRuntime): IRuntimeAction[] {
         // Log behavior orchestration
         NextBlockLogger.logBehaviorOrchestration(
             this.key.toString(),
@@ -93,7 +92,7 @@ export class RuntimeBlock implements IRuntimeBlock{
 
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(this._runtime, this);
+            const result = behavior?.onNext?.(runtime, this);
             if (result) { actions.push(...result); }
         }
         return actions;
@@ -103,32 +102,32 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, manages result spans, and cleans up resources.
      */
-    pop(): IRuntimeAction[] {
+    unmount(runtime: IScriptRuntime): IRuntimeAction[] {
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
          for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(this._runtime, this);
+            const result = behavior?.onPop?.(runtime, this);
             if (result) { actions.push(...result); }
         }
 
         return actions;
     }
 
-    dispose(): void {
+    dispose(runtime: IScriptRuntime): void {
         // Call behavior disposal hooks
         for (const behavior of this.behaviors) {
             if (typeof (behavior as any).onDispose === 'function') {
-                (behavior as any).onDispose(this._runtime, this);
+                (behavior as any).onDispose(runtime, this);
             }
         }
         
         // Clean up legacy memory references (for backward compatibility)
         for (const memRef of this._memory) {
-            this._runtime.memory.release(memRef);
+            runtime.memory.release(memRef);
         }
         
         // NOTE: context.release() is NOT called here - it is the caller's responsibility
-        // This allows behaviors to access memory during onPop() and disposal
+        // This allows behaviors to access memory during unmount() and disposal
         // Consumer MUST call block.context.release() after block.dispose()
     }
 

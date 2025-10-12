@@ -77,32 +77,31 @@ export function createMockBehavior(name: string): IRuntimeBehavior {
 
 /**
  * Asserts that a block's lifecycle methods are called in correct order.
- * Validates push → next (optional) → pop sequence.
+ * Validates mount → next (optional) → unmount sequence.
  */
-export function assertBlockLifecycle(block: RuntimeBlock): void {
-  const pushSpy = vi.spyOn(block, 'push');
-  const popSpy = vi.spyOn(block, 'pop');
+export function assertBlockLifecycle(block: RuntimeBlock, runtime: IScriptRuntime): void {
+  const mountSpy = vi.spyOn(block, 'mount');
+  const unmountSpy = vi.spyOn(block, 'unmount');
 
   // Execute lifecycle
-  block.push();
-  block.pop();
+  block.mount(runtime);
+  block.unmount(runtime);
 
   // Verify order
-  expect(pushSpy).toHaveBeenCalledBefore(popSpy);
-  expect(pushSpy).toHaveBeenCalledTimes(1);
-  expect(popSpy).toHaveBeenCalledTimes(1);
+  expect(mountSpy).toHaveBeenCalledBefore(unmountSpy);
+  expect(mountSpy).toHaveBeenCalledTimes(1);
+  expect(unmountSpy).toHaveBeenCalledTimes(1);
 }
 
 /**
  * Asserts that a block properly cleans up all resources on disposal.
  * Checks memory release, event listener cleanup, and interval clearing.
  */
-export function assertDisposalComplete(block: RuntimeBlock): void {
-  const runtime = block.runtime;
+export function assertDisposalComplete(block: RuntimeBlock, runtime: IScriptRuntime): void {
   const memoryReleaseSpy = vi.spyOn(runtime.memory, 'release');
 
   // Dispose block
-  block.dispose();
+  block.dispose(runtime);
 
   // Verify memory cleanup - should have released all allocated memory
   expect(memoryReleaseSpy).toHaveBeenCalled();

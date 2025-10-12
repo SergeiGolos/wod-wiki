@@ -47,15 +47,15 @@ export class PopBlockAction implements IRuntimeAction {
                 depthBefore
             });
 
-            // 1. Call block's pop() method to get any final actions
-            const popActions = currentBlock.pop();
+            // 1. Call block's unmount() method to get any final actions
+            const unmountActions = currentBlock.unmount(runtime);
 
             // 2. Pop the block from the stack
             const poppedBlock = runtime.stack.pop();
 
             if (poppedBlock) {
                 // 3. Call dispose() for behavior cleanup
-                poppedBlock.dispose();
+                poppedBlock.dispose(runtime);
 
                 // 4. Call context.release() for memory cleanup
                 if (poppedBlock.context && typeof poppedBlock.context.release === 'function') {
@@ -67,15 +67,15 @@ export class PopBlockAction implements IRuntimeAction {
                 // Log pop completion
                 console.log(`✅ PopBlockAction: Popped ${blockKey}, depth ${depthBefore} → ${depthAfter}`);
 
-                // 5. Execute any pop actions returned
-                for (const action of popActions) {
+                // 5. Execute any unmount actions returned
+                for (const action of unmountActions) {
                     action.do(runtime);
                 }
 
                 // 6. Call parent block's next() if there's a parent
                 const parentBlock = runtime.stack.current;
                 if (parentBlock) {
-                    const nextActions = parentBlock.next();
+                    const nextActions = parentBlock.next(runtime);
                     for (const action of nextActions) {
                         action.do(runtime);
                     }
