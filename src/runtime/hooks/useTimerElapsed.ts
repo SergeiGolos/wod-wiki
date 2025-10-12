@@ -43,8 +43,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   const timeSpans = useMemorySubscription(timeSpansRef) || [];
   const isRunning = useMemorySubscription(isRunningRef) || false;
 
-  // Force re-render trigger for running timers
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   // Calculate elapsed time
   const elapsed = useMemo(() => {
@@ -54,22 +53,26 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
       if (!span.start) return total;
       
       // If no stop time, timer is running - use current time
-      const stop = span.stop?.getTime() || Date.now();
+      const stop = span.stop?.getTime() || now;
       const start = span.start.getTime();
       return total + (stop - start);
     }, 0);
-  }, [timeSpans, updateTrigger]); // Include updateTrigger to recalculate on interval
+  }, [timeSpans, now]);
 
-  // Poll for updates when timer is running
+  // Animation frame for running timers
   useEffect(() => {
     if (!isRunning) return;
 
-    // Update every 100ms to show current time for running timer
-    const interval = setInterval(() => {
-      setUpdateTrigger(prev => prev + 1);
-    }, 100);
+    let animationFrameId: number;
 
-    return () => clearInterval(interval);
+    const update = () => {
+      setNow(Date.now());
+      animationFrameId = requestAnimationFrame(update);
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+
+    return () => cancelAnimationFrame(animationFrameId);
   }, [isRunning]);
 
   return {

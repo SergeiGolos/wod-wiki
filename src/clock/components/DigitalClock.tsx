@@ -102,7 +102,7 @@ export const DigitalClock: React.FC<DigitalClockProps> = ({
           <div className={cn(
             "text-center font-mono font-bold transition-all duration-300",
             "text-6xl md:text-7xl",
-            isRunning ? "text-primary animate-pulse" : "text-foreground"
+            isRunning ? "text-primary" : "text-foreground"
           )}>
             {formatTime(displayTime)}
           </div>

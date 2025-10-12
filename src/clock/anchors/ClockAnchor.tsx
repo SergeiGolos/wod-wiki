@@ -166,7 +166,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               </Label>
               <div className={cn(
                 "text-6xl font-mono font-bold transition-colors",
-                isRunning ? "text-primary animate-pulse" : "text-foreground"
+                isRunning ? "text-primary" : "text-foreground"
               )}>
                 {formatTime(displayTime)}
               </div>
