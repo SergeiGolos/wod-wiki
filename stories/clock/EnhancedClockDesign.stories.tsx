@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { EnhancedTimerHarness } from '../../src/clock/components/EnhancedTimerHarness';
-import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
+import { DigitalClock } from '../../src/clock/components/DigitalClock';
 
-const meta: Meta<typeof ClockAnchor> = {
+const meta: Meta<typeof DigitalClock> = {
   title: 'Clock/EnhancedClockDesign',
-  component: ClockAnchor,
+  component: DigitalClock,
   parameters: {
     layout: 'centered',
   },
@@ -14,30 +14,22 @@ const meta: Meta<typeof ClockAnchor> = {
       control: 'text',
       description: 'Workout title displayed in the card header',
     },
-    description: {
-      control: 'text',
-      description: 'Workout description displayed below the title',
-    },
     duration: {
       control: 'number',
       description: 'Duration in milliseconds for countdown timers',
     },
-    showProgress: {
-      control: 'boolean',
-      description: 'Whether to show the progress bar',
-    },
-    showControls: {
-      control: 'boolean',
-      description: 'Whether to show the play/pause/reset controls',
-    },
-    workoutType: {
+    timerType: {
       control: 'select',
-      options: ['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA'],
-      description: 'Type of workout for badge display',
+      options: ['countdown', 'countup'],
+      description: 'Type of timer display',
     },
     currentRound: {
       control: 'number',
       description: 'Current round number for display',
+    },
+    nextCardLabel: {
+      control: 'text',
+      description: 'Label for the next card placeholder',
     },
   },
 };
@@ -49,35 +41,33 @@ type Story = StoryObj<typeof meta>;
 export const DefaultDesign: Story = {
   args: {
     title: "AMRAP 20",
-    description: "As Many Rounds As Possible",
     duration: 1200000, // 20 minutes
-    showProgress: true,
-    showControls: false,
-    workoutType: "AMRAP",
+    timerType: 'countdown',
     currentRound: 1,
+    nextCardLabel: "Rest Period - 2:00",
   },
   render: (args) => (
     <EnhancedTimerHarness
-      timerType="countdown"
+      timerType={args.timerType || 'countdown'}
       durationMs={args.duration || 1200000}
       autoStart={false}
     >
-      {({ blockKey, controls, isRunning }) => (
+      {({ blockKey }) => (
         <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
-          <ClockAnchor
-            blockKey={blockKey}
-            title={args.title}
-            description={args.description}
-            duration={args.duration}
-            showProgress={args.showProgress}
-            showControls={args.showControls}
-            workoutType={args.workoutType}
-            currentRound={args.currentRound}
-            isRunning={isRunning}
-            onPlay={controls.start}
-            onPause={controls.pause}
-            onReset={controls.reset}
-          />
+          <div className="w-1/2 max-w-2xl">
+            <DigitalClock
+              blockKey={blockKey}
+              title={args.title}
+              duration={args.duration}
+              timerType={args.timerType}
+              currentRound={args.currentRound}
+              nextCardLabel={args.nextCardLabel}
+              metrics={[
+                { label: 'Rounds', value: '1', unit: 'of 5' },
+                { label: 'Reps', value: '25', unit: 'total' }
+              ]}
+            />
+          </div>
         </div>
       )}
     </EnhancedTimerHarness>
@@ -85,45 +75,43 @@ export const DefaultDesign: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Enhanced ClockAnchor with modern design system styling. Features card-based layout, Badge components for workout type and round, Progress component for visual feedback, and responsive grid layout.',
+        story: 'Enhanced DigitalClock component designed to be half-screen width. Features digital time display, metrics tracking, and next card placeholder. Integrates with the runtime for real-time updates.',
       },
     },
   },
 };
 
-// Story with controls enabled
-export const WithControls: Story = {
+// Story with running timer
+export const RunningTimer: Story = {
   args: {
     title: "Fran",
-    description: "21-15-9 Thrusters & Pull-ups",
     duration: 600000, // 10 minutes
-    showProgress: true,
-    showControls: true,
-    workoutType: "FOR_TIME",
+    timerType: 'countdown',
     currentRound: 1,
+    nextCardLabel: "21 Thrusters",
   },
   render: (args) => (
     <EnhancedTimerHarness
-      timerType="countdown"
+      timerType={args.timerType || 'countdown'}
       durationMs={args.duration || 600000}
-      autoStart={false}
+      autoStart={true}
     >
-      {({ blockKey, controls, isRunning }) => (
+      {({ blockKey }) => (
         <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
-          <ClockAnchor
-            blockKey={blockKey}
-            title={args.title}
-            description={args.description}
-            duration={args.duration}
-            showProgress={args.showProgress}
-            showControls={args.showControls}
-            workoutType={args.workoutType}
-            currentRound={args.currentRound}
-            isRunning={isRunning}
-            onPlay={controls.start}
-            onPause={controls.pause}
-            onReset={controls.reset}
-          />
+          <div className="w-1/2 max-w-2xl">
+            <DigitalClock
+              blockKey={blockKey}
+              title={args.title}
+              duration={args.duration}
+              timerType={args.timerType}
+              currentRound={args.currentRound}
+              nextCardLabel={args.nextCardLabel}
+              metrics={[
+                { label: 'Thrusters', value: '21', unit: 'reps' },
+                { label: 'Pull-ups', value: '21', unit: 'reps' }
+              ]}
+            />
+          </div>
         </div>
       )}
     </EnhancedTimerHarness>
@@ -131,7 +119,7 @@ export const WithControls: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'ClockAnchor with interactive controls enabled. The play/pause and reset buttons are fully functional and integrate with the timer harness.',
+        story: 'DigitalClock with auto-start enabled. Shows the timer running with real-time updates and animated pulse effect.',
       },
     },
   },
@@ -141,33 +129,31 @@ export const WithControls: Story = {
 export const CountUpTimer: Story = {
   args: {
     title: "For Time",
-    description: "Complete 50 burpees for time",
-    showProgress: false,
-    showControls: true,
-    workoutType: "FOR_TIME",
+    timerType: 'countup',
     currentRound: 1,
+    nextCardLabel: "50 Burpees",
   },
   render: (args) => (
     <EnhancedTimerHarness
       timerType="countup"
-      durationMs={0}
-      autoStart={false}
+      durationMs={120000}
+      autoStart={true}
     >
-      {({ blockKey, controls, isRunning }) => (
+      {({ blockKey }) => (
         <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
-          <ClockAnchor
-            blockKey={blockKey}
-            title={args.title}
-            description={args.description}
-            showProgress={args.showProgress}
-            showControls={args.showControls}
-            workoutType={args.workoutType}
-            currentRound={args.currentRound}
-            isRunning={isRunning}
-            onPlay={controls.start}
-            onPause={controls.pause}
-            onReset={controls.reset}
-          />
+          <div className="w-1/2 max-w-2xl">
+            <DigitalClock
+              blockKey={blockKey}
+              title={args.title}
+              timerType={args.timerType}
+              currentRound={args.currentRound}
+              nextCardLabel={args.nextCardLabel}
+              metrics={[
+                { label: 'Burpees', value: '25', unit: 'of 50' },
+                { label: 'Pace', value: '2.4', unit: 'reps/min' }
+              ]}
+            />
+          </div>
         </div>
       )}
     </EnhancedTimerHarness>
@@ -185,36 +171,33 @@ export const CountUpTimer: Story = {
 export const EMOMStyle: Story = {
   args: {
     title: "EMOM 10",
-    description: "Every Minute On Minute - 10 minutes",
     duration: 600000, // 10 minutes
-    showProgress: true,
-    showControls: true,
-    workoutType: "EMOM",
+    timerType: 'countdown',
     currentRound: 3,
+    nextCardLabel: "15 Wall Balls",
   },
   render: (args) => (
     <EnhancedTimerHarness
-      timerType="countdown"
+      timerType={args.timerType || 'countdown'}
       durationMs={args.duration || 600000}
       autoStart={false}
     >
-      {({ blockKey, controls, isRunning }) => (
+      {({ blockKey }) => (
         <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
-          <ClockAnchor
-            blockKey={blockKey}
-            title={args.title}
-            description={args.description}
-            duration={args.duration}
-            showProgress={args.showProgress}
-            showControls={args.showControls}
-            workoutType={args.workoutType}
-            currentRound={args.currentRound}
-            isRunning={isRunning}
-            onPlay={controls.start}
-            onPause={controls.pause}
-            onReset={controls.reset}
-            onRoundComplete={() => console.log('Round completed!')}
-          />
+          <div className="w-1/2 max-w-2xl">
+            <DigitalClock
+              blockKey={blockKey}
+              title={args.title}
+              duration={args.duration}
+              timerType={args.timerType}
+              currentRound={args.currentRound}
+              nextCardLabel={args.nextCardLabel}
+              metrics={[
+                { label: 'Completed', value: '2', unit: 'of 10' },
+                { label: 'Rest Time', value: '40', unit: 'sec' }
+              ]}
+            />
+          </div>
         </div>
       )}
     </EnhancedTimerHarness>
@@ -222,7 +205,7 @@ export const EMOMStyle: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'EMOM (Every Minute On Minute) style workout with round tracking and completion callback.',
+        story: 'EMOM (Every Minute On Minute) style workout with round tracking displayed in the badge.',
       },
     },
   },
@@ -232,36 +215,33 @@ export const EMOMStyle: Story = {
 export const TabataStyle: Story = {
   args: {
     title: "Tabata",
-    description: "8 rounds of 20s work, 10s rest",
     duration: 240000, // 4 minutes
-    showProgress: true,
-    showControls: true,
-    workoutType: "TABATA",
+    timerType: 'countdown',
     currentRound: 5,
+    nextCardLabel: "Rest - 10s",
   },
   render: (args) => (
     <EnhancedTimerHarness
-      timerType="countdown"
+      timerType={args.timerType || 'countdown'}
       durationMs={args.duration || 240000}
-      autoStart={false}
+      autoStart={true}
     >
-      {({ blockKey, controls, isRunning }) => (
+      {({ blockKey }) => (
         <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
-          <ClockAnchor
-            blockKey={blockKey}
-            title={args.title}
-            description={args.description}
-            duration={args.duration}
-            showProgress={args.showProgress}
-            showControls={args.showControls}
-            workoutType={args.workoutType}
-            currentRound={args.currentRound}
-            isRunning={isRunning}
-            onPlay={controls.start}
-            onPause={controls.pause}
-            onReset={controls.reset}
-            onRoundComplete={() => console.log('Tabata interval completed!')}
-          />
+          <div className="w-1/2 max-w-2xl">
+            <DigitalClock
+              blockKey={blockKey}
+              title={args.title}
+              duration={args.duration}
+              timerType={args.timerType}
+              currentRound={args.currentRound}
+              nextCardLabel={args.nextCardLabel}
+              metrics={[
+                { label: 'Work', value: '20', unit: 'sec' },
+                { label: 'Intervals', value: '4', unit: 'of 8' }
+              ]}
+            />
+          </div>
         </div>
       )}
     </EnhancedTimerHarness>
@@ -269,7 +249,7 @@ export const TabataStyle: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Tabata interval workout with high-intensity styling and round completion tracking.',
+        story: 'Tabata interval workout with progress bar showing work/rest periods across 8 rounds.',
       },
     },
   },
