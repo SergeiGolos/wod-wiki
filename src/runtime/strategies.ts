@@ -106,7 +106,34 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         // 2. Create BlockContext
         const context = new BlockContext(runtime, blockId);
         
-        // 3. Allocate timer memory
+        // 3. Extract timer configuration from fragments
+        const fragments = code[0]?.fragments || [];
+        const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
+        
+        // Default to count-up timer with no duration
+        let direction: 'up' | 'down' = 'up';
+        let durationMs: number | undefined = undefined;
+        
+        if (timerFragment && typeof timerFragment.value === 'number') {
+            // Timer fragment value is in seconds, convert to milliseconds
+            durationMs = timerFragment.value * 1000;
+            
+            // Determine direction based on workout type:
+            // - Timer + Rounds = AMRAP workout (countdown)
+            // - Timer only = Could be either, check for AMRAP keyword
+            const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+            
+            if (hasRounds) {
+                // Timer + Rounds = AMRAP workout (countdown)
+                direction = 'down';
+            } else {
+                // Timer only - default to count-up (For Time with cap)
+                // Future: Could check statement text for "AMRAP" keyword
+                direction = 'up';
+            }
+        }
+        
+        // 4. Allocate timer memory
         const timeSpansRef = context.allocate(
             TIMER_MEMORY_TYPES.TIME_SPANS,
             [{ start: new Date(), stop: undefined }],
@@ -118,12 +145,11 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             'public'
         );
         
-        // 4. Create behaviors with injected memory
+        // 5. Create behaviors with extracted configuration
         const behaviors: IRuntimeBehavior[] = [];
         
-        // Add timer behavior with memory injection
-        // TODO: Extract timer configuration from fragments (direction, duration)
-        behaviors.push(new TimerBehavior('up', undefined, timeSpansRef, isRunningRef));
+        // Add timer behavior with extracted direction and duration
+        behaviors.push(new TimerBehavior(direction, durationMs, timeSpansRef, isRunningRef));
 
         // Add child behaviors if statement has children
         if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
@@ -138,7 +164,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             runtime.memory.allocate('handler', blockId, handler, 'private');
         }
 
-        // 5. Create RuntimeBlock with context
+        // 6. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],

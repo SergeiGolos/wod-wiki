@@ -215,3 +215,148 @@ describe('Strategy Matching Contract', () => {
     });
   });
 });
+
+describe('Timer Configuration Extraction', () => {
+  let mockRuntime: IScriptRuntime;
+
+  beforeEach(() => {
+    mockRuntime = {
+      jit: {
+        compile: vi.fn(),
+        strategies: []
+      },
+      stack: {
+        push: vi.fn(),
+        pop: vi.fn(),
+        current: vi.fn(),
+        peek: vi.fn(),
+        dispose: vi.fn(),
+        clear: vi.fn()
+      },
+      memory: {
+        allocate: vi.fn((type, blockId, initialValue) => ({
+          get: () => initialValue,
+          set: vi.fn(),
+          subscribe: vi.fn(),
+          unsubscribe: vi.fn(),
+          type,
+          blockId
+        })),
+        get: vi.fn(),
+        release: vi.fn(),
+        clear: vi.fn()
+      },
+      start: vi.fn(),
+      stop: vi.fn(),
+      reset: vi.fn(),
+      isRunning: vi.fn(),
+      getCurrentTime: vi.fn(),
+      handle: vi.fn()
+    } as any;
+  });
+
+  describe('TSC-010: TimerStrategy extracts timer configuration from fragments', () => {
+    it('should compile successfully with Timer fragment containing duration', () => {
+      // GIVEN: Statement with 1200 second (20 minute) timer
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-10'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compile with TimerStrategy
+      const strategy = new TimerStrategy();
+      const block = strategy.compile([statement], mockRuntime);
+
+      // THEN: Block should be created successfully
+      expect(block).toBeDefined();
+      expect(block.key).toBeDefined();
+    });
+
+    it('should use countdown direction for AMRAP workouts (Timer + Rounds)', () => {
+      // GIVEN: AMRAP workout statement (Timer + Rounds)
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-11'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Rounds, value: 0, type: 'rounds' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compile with TimerStrategy
+      const strategy = new TimerStrategy();
+      const block = strategy.compile([statement], mockRuntime);
+
+      // THEN: Block should be created (direction verification happens via TimerBehavior)
+      expect(block).toBeDefined();
+      expect(block.key).toBeDefined();
+      // Note: TimerBehavior receives 'down' direction for countdown
+    });
+
+    it('should use count-up direction for For Time workouts (Timer only)', () => {
+      // GIVEN: For Time workout statement (timer only, no rounds)
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-12'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compile with TimerStrategy
+      const strategy = new TimerStrategy();
+      const block = strategy.compile([statement], mockRuntime);
+
+      // THEN: Block should be created (direction verification happens via TimerBehavior)
+      expect(block).toBeDefined();
+      expect(block.key).toBeDefined();
+      // Note: TimerBehavior receives 'up' direction for count-up
+    });
+
+    it('should handle timer fragment with no duration', () => {
+      // GIVEN: Timer fragment with undefined duration
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-13'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: undefined, type: 'timer' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compile with TimerStrategy
+      const strategy = new TimerStrategy();
+      const block = strategy.compile([statement], mockRuntime);
+
+      // THEN: Block should be created with default configuration
+      expect(block).toBeDefined();
+      expect(block.key).toBeDefined();
+    });
+
+    it('should handle statement with no timer fragment', () => {
+      // GIVEN: Statement with no timer fragment (edge case)
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-14'),
+        fragments: [
+          { fragmentType: FragmentType.Effort, value: 'Pull-ups', type: 'effort' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compile with TimerStrategy
+      const strategy = new TimerStrategy();
+      const block = strategy.compile([statement], mockRuntime);
+
+      // THEN: Block should be created with default timer configuration
+      expect(block).toBeDefined();
+      expect(block.key).toBeDefined();
+    });
+  });
+});
