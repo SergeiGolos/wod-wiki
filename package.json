@@ -29,7 +29,8 @@
     "build-storybook": "npm run prestorybook && storybook build",
     "docs:check": "node scripts/check-docs-links.js",
     "generate-exercise-index": "node dist/generateExerciseIndex.js public/exercises exercise-index.json",
-    "generate-exercise-name-index": "node dist/buildExerciseNameIndex.js public/exercises exercise-name-index.json"
+    "generate-exercise-name-index": "node dist/buildExerciseNameIndex.js public/exercises exercise-name-index.json",
+    "generate-exercise-path-index": "node dist/buildExercisePathIndex.js public/exercises exercise-path-index.json"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
