@@ -7,7 +7,7 @@
 
 ### Requirement: Exercise Completion Provider
 
-The Monaco Editor must provide intelligent exercise name completions when users type in the workout script editor.
+The Monaco Editor MUST provide intelligent exercise name completions when users type in the workout script editor.
 
 #### Scenario: User types partial exercise name
 **Given** the user has opened a workout script in the Monaco Editor  
@@ -33,7 +33,7 @@ The Monaco Editor must provide intelligent exercise name completions when users 
 
 ### Requirement: Exercise Search Performance
 
-Exercise search operations must complete within performance budgets to maintain editor responsiveness.
+Exercise search operations MUST complete within performance budgets to maintain editor responsiveness.
 
 #### Scenario: Fast search response for common queries
 **Given** the exercise index is fully loaded  
@@ -57,7 +57,7 @@ Exercise search operations must complete within performance budgets to maintain 
 
 ### Requirement: Exercise Metadata Display
 
-Exercise suggestions must display relevant metadata to help users identify and select the correct exercise.
+Exercise suggestions MUST display relevant metadata to help users identify and select the correct exercise.
 
 #### Scenario: Suggestion shows equipment requirements
 **Given** an exercise requires specific equipment (e.g., "Barbell")  
@@ -85,7 +85,7 @@ Exercise suggestions must display relevant metadata to help users identify and s
 
 ### Requirement: Exercise Suggestion Ranking
 
-Search results must be ranked intelligently to prioritize most relevant exercises.
+Search results MUST be ranked intelligently to prioritize most relevant exercises.
 
 #### Scenario: Exact name match ranks highest
 **Given** user searches for "push up"  
@@ -107,7 +107,7 @@ Search results must be ranked intelligently to prioritize most relevant exercise
 
 ### Requirement: Suggestion Provider Registration
 
-The exercise completion provider must integrate with Monaco Editor without conflicts.
+The exercise completion provider MUST integrate with Monaco Editor without conflicts.
 
 #### Scenario: Register exercise provider alongside syntax provider
 **Given** Monaco Editor is initialized in the workout script editor  
@@ -124,7 +124,7 @@ The exercise completion provider must integrate with Monaco Editor without confl
 
 ### Requirement: Exercise Index Loading
 
-The exercise index must load efficiently without blocking editor initialization.
+The exercise index MUST load efficiently without blocking editor initialization.
 
 #### Scenario: Asynchronous index loading on editor mount
 **Given** the Monaco Editor is mounting for the first time  
@@ -149,7 +149,7 @@ The exercise index must load efficiently without blocking editor initialization.
 
 ### Requirement: Memory Management
 
-The suggestion system must manage memory efficiently to prevent performance degradation.
+The suggestion system MUST manage memory efficiently to prevent performance degradation.
 
 #### Scenario: Exercise data uses LRU cache
 **Given** the exercise data loader is active  
@@ -167,7 +167,7 @@ The suggestion system must manage memory efficiently to prevent performance degr
 
 ### Requirement: Exercise Suggestion Interface
 
-The suggestion UI must provide clear, actionable information in a compact format.
+The suggestion UI MUST provide clear, actionable information in a compact format.
 
 #### Scenario: Suggestion label shows exercise name
 **Given** an exercise suggestion is displayed  
@@ -191,7 +191,7 @@ The suggestion UI must provide clear, actionable information in a compact format
 
 ### Requirement: Keyboard Navigation
 
-Users must be able to navigate exercise suggestions using keyboard shortcuts.
+Users MUST be able to navigate exercise suggestions using keyboard shortcuts.
 
 #### Scenario: Navigate suggestions with arrow keys
 **Given** exercise suggestions are displayed  

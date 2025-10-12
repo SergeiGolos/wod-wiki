@@ -7,7 +7,7 @@
 
 ### Requirement: Lazy Exercise Data Loading
 
-Exercise data must be loaded on-demand from JSON files using paths from the exercise index, minimizing upfront memory usage.
+Exercise data MUST be loaded on-demand from JSON files using paths from the exercise index, minimizing upfront memory usage.
 
 #### Scenario: Load exercise data by path on first access
 **Given** the exercise index contains a path to an exercise JSON file  
@@ -32,7 +32,7 @@ Exercise data must be loaded on-demand from JSON files using paths from the exer
 
 ### Requirement: LRU Cache Implementation
 
-A Least Recently Used (LRU) cache must store exercise data to optimize repeated access patterns.
+A Least Recently Used (LRU) cache MUST store exercise data to optimize repeated access patterns.
 
 #### Scenario: Cache stores most recently used exercises
 **Given** the LRU cache has a maximum size of 100 entries  
@@ -62,7 +62,7 @@ A Least Recently Used (LRU) cache must store exercise data to optimize repeated 
 
 ### Requirement: File-Based Data Access
 
-The system must reliably access exercise JSON files from the public exercises directory.
+The system MUST reliably access exercise JSON files from the public exercises directory.
 
 #### Scenario: Construct correct file path from index entry
 **Given** an exercise index entry contains a relative path "Barbell_Squat"  
@@ -89,7 +89,7 @@ The system must reliably access exercise JSON files from the public exercises di
 
 ### Requirement: Asynchronous Loading
 
-All data loading operations must be asynchronous to prevent blocking the UI thread.
+All data loading operations MUST be asynchronous to prevent blocking the UI thread.
 
 #### Scenario: File loads do not block editor
 **Given** the user is typing in the editor  
@@ -114,7 +114,7 @@ All data loading operations must be asynchronous to prevent blocking the UI thre
 
 ### Requirement: Error Handling and Retry
 
-The data loader must handle errors gracefully with automatic retry for transient failures.
+The data loader MUST handle errors gracefully with automatic retry for transient failures.
 
 #### Scenario: Retry failed load with exponential backoff
 **Given** an exercise data load fails due to network error  
@@ -141,7 +141,7 @@ The data loader must handle errors gracefully with automatic retry for transient
 
 ### Requirement: Data Loader Singleton
 
-The exercise data loader must use a singleton pattern to share cache across all editor instances.
+The exercise data loader MUST use a singleton pattern to share cache across all editor instances.
 
 #### Scenario: Single loader instance across editor instances
 **Given** multiple editor instances are active  
@@ -159,7 +159,7 @@ The exercise data loader must use a singleton pattern to share cache across all 
 
 ### Requirement: Cache Invalidation
 
-The cache must support invalidation when exercise data is updated.
+The cache MUST support invalidation when exercise data is updated.
 
 #### Scenario: Manual cache invalidation
 **Given** the exercise data loader is active with cached entries  
@@ -177,7 +177,7 @@ The cache must support invalidation when exercise data is updated.
 
 ### Requirement: Memory Efficiency
 
-The data loading system must minimize memory usage through strategic caching.
+The data loading system MUST minimize memory usage through strategic caching.
 
 #### Scenario: Index-only storage before data load
 **Given** the exercise index is loaded  
@@ -201,7 +201,7 @@ The data loading system must minimize memory usage through strategic caching.
 
 ### Requirement: Data Loader API
 
-The data loader must provide a clean, promise-based API for accessing exercise data.
+The data loader MUST provide a clean, promise-based API for accessing exercise data.
 
 #### Scenario: Load exercise by path
 **Given** a valid exercise path from the index  
