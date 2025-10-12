@@ -36,6 +36,10 @@ const config = {
       'react-dom': require('path').resolve(process.cwd(), 'node_modules/react-dom'),
     };
     
+    // Disable Vite's publicDir to avoid conflict with Storybook's staticDirs
+    // This prevents race condition when copying public assets
+    config.publicDir = false;
+    
     return config;
   }
 };
