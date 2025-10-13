@@ -47,7 +47,7 @@ const tokens: WodWikiToken[] = [
 
 
 export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount }: WodWikiProps) => {        
-    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange);      
+    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
     const [height, setHeight] = useState(50); // Initial height
