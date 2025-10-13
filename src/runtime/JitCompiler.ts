@@ -2,6 +2,7 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 import { CodeStatement } from "@/CodeStatement";
+import { CompilationContext } from "./CompilationContext";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks that compiles JitStatement nodes 
@@ -26,9 +27,10 @@ export class JitCompiler {
    * 
    * @param nodes Array of JitStatement nodes to compile
    * @param runtime Timer runtime instance for context
+   * @param context Optional compilation context from parent block
    * @returns Compiled runtime block or undefined if compilation fails
    */
-  compile(nodes: CodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+  compile(nodes: CodeStatement[], runtime: IScriptRuntime, context?: CompilationContext): IRuntimeBlock | undefined {
     if (nodes.length === 0) {
       console.warn('JitCompiler: No nodes to compile.');
       return undefined;
@@ -36,7 +38,7 @@ export class JitCompiler {
 
     for (const strategy of this.strategies) {
       if (strategy.match(nodes, runtime)) {
-        return strategy.compile(nodes, runtime);
+        return strategy.compile(nodes, runtime, context);
       }
     }
     console.warn('JitCompiler: No suitable strategy found.');

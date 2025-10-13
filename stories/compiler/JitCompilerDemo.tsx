@@ -11,9 +11,6 @@ import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
 import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime/strategies';
-import { ChildAdvancementBehavior } from '../../src/runtime/behaviors/ChildAdvancementBehavior';
-import { LazyCompilationBehavior } from '../../src/runtime/behaviors/LazyCompilationBehavior';
-import { CodeStatement } from '../../src/CodeStatement';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
@@ -637,18 +634,15 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     });
     console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
 
-    // Initialize with the root block that has child statements and behaviors
-    console.log(`🌱 Creating root block with ${wodScript.statements.length} child statements`);
+    // Initialize with the root block
+    console.log(`🌱 Creating root block for ${wodScript.statements.length} statements`);
     
-    // Create behaviors for the root block
-    const childBehavior = new ChildAdvancementBehavior(wodScript.statements as CodeStatement[]);
-    const lazyCompilationBehavior = new LazyCompilationBehavior(false);
-    const behaviors = [childBehavior, lazyCompilationBehavior];
-    
-    // Create root block with script statements as children and behaviors
-    const rootBlock = new RuntimeBlock(runtime, [], behaviors);
+    // Note: Old demo used ChildAdvancementBehavior + LazyCompilationBehavior (deprecated)
+    // New approach: Use RoundsBlock with LoopCoordinatorBehavior or let JIT compiler handle compilation
+    // For this demo, we create an empty root block and let the JIT compiler compile statements
+    const rootBlock = new RuntimeBlock(runtime, [], []);
     runtime.stack.push(rootBlock);
-    console.log(`  ✅ Root block pushed with ${behaviors.length} behaviors, stack depth: ${runtime.stack.blocks.length}`);
+    console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
 
     return runtime;
   };

@@ -5,8 +5,6 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
-import { ChildAdvancementBehavior } from '../behaviors/ChildAdvancementBehavior';
-import { LazyCompilationBehavior } from '../behaviors/LazyCompilationBehavior';
 
 /**
  * TimerBlock Configuration
@@ -74,12 +72,11 @@ export class TimerBlock extends RuntimeBlock {
       ['timer:complete', 'children:complete']
     );
 
-    // Create child behaviors if there are children
+    // Create behaviors (timer blocks with children should use LoopCoordinatorBehavior in future)
+    // For now, timers without children are leaf nodes
     const behaviors = [timerBehavior, completionBehavior];
-    if (config.children && config.children.length > 0) {
-      behaviors.push(new ChildAdvancementBehavior(config.children));
-      behaviors.push(new LazyCompilationBehavior());
-    }
+    
+    // TODO: If TimerBlock needs to support children in future, add LoopCoordinatorBehavior here
 
     // Initialize RuntimeBlock with behaviors
     super(

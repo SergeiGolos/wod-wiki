@@ -4,17 +4,13 @@ import { RuntimeMetric } from "./RuntimeMetric";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { BlockKey } from "../BlockKey";
-import { ICodeStatement, CodeStatement } from "@/CodeStatement";
+import { ICodeStatement } from "@/CodeStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { FragmentType } from "../CodeFragment";
-import { ChildAdvancementBehavior } from "./behaviors/ChildAdvancementBehavior";
-import { LazyCompilationBehavior } from "./behaviors/LazyCompilationBehavior";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
-import { RoundsBehavior, ROUNDS_MEMORY_TYPES } from "./behaviors/RoundsBehavior";
 import { BlockContext } from "./BlockContext";
 import { CompletionBehavior } from "./behaviors/CompletionBehavior";
-import { BlockCompleteEventHandler } from "./behaviors/BlockCompleteEventHandler";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -32,7 +28,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Only match if NO timer AND NO rounds (pure effort)
         return !hasTimer && !hasRounds;
     }
-    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
 
         // 1. Generate BlockKey
@@ -45,27 +41,17 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // 3. Create BlockContext (may not need memory allocation for simple effort blocks)
         const context = new BlockContext(runtime, blockId, exerciseId);
         
+        // TODO Phase 2.5: Use _context parameter to inherit reps if not explicitly set
+        
         // 4. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
-        // Add child behaviors if statement has children
-        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
-            // Resolve child statement IDs to actual statements
-            const childIds = code[0].children.flat();
-            const childStatements = runtime.script.getIds(childIds);
-            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
-            behaviors.push(new LazyCompilationBehavior());
-            
-            // Register handler to pop completed child blocks
-            const handler = new BlockCompleteEventHandler(blockId);
-            runtime.memory.allocate('handler', blockId, handler, 'private');
-        } else {
-            // Leaf node - complete immediately when pushed
-            behaviors.push(new CompletionBehavior(
-                () => true, // Always complete (leaf node)
-                [] // Check on push
-            ));
-        }
+        // Effort blocks without children are leaf nodes - complete immediately
+        // TODO: If we need to support effort blocks with children, add LoopCoordinatorBehavior here
+        behaviors.push(new CompletionBehavior(
+            () => true, // Always complete (leaf node)
+            [] // Check on push
+        ));
 
         // 5. Create RuntimeBlock with context
         return new RuntimeBlock(
@@ -99,7 +85,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         return fragments.some(f => f.fragmentType === FragmentType.Timer);
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
 
         // 1. Generate BlockKey
@@ -111,6 +97,8 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        // TODO Phase 2.5: Use _context parameter if needed
         
         // 4. Allocate timer memory
         const timeSpansRef = context.allocate(
@@ -131,18 +119,8 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         // TODO: Extract timer configuration from fragments (direction, duration)
         behaviors.push(new TimerBehavior('up', undefined, timeSpansRef, isRunningRef));
 
-        // Add child behaviors if statement has children
-        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
-            // Resolve child statement IDs to actual statements
-            const childIds = code[0].children.flat();
-            const childStatements = runtime.script.getIds(childIds);
-            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
-            behaviors.push(new LazyCompilationBehavior());
-            
-            // Register handler to pop completed child blocks
-            const handler = new BlockCompleteEventHandler(blockId);
-            runtime.memory.allocate('handler', blockId, handler, 'private');
-        }
+        // TODO: If we need to support timer blocks with children, add LoopCoordinatorBehavior here
+        // For now, timer blocks are leaf nodes
 
         // 6. Create RuntimeBlock with context
         return new RuntimeBlock(
@@ -203,9 +181,12 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         return hasRounds && !hasTimer;
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _parentContext?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
 
+        // Note: RoundsStrategy should delegate to RoundsBlock which uses LoopCoordinatorBehavior
+        // For now, create a simple leaf node. Full RoundsBlock integration requires importing from blocks/
+        
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
@@ -216,43 +197,17 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
         
-        // 4. Extract rounds configuration from fragments
-        const fragments = code[0]?.fragments || [];
-        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
-        const totalRounds = (roundsFragment?.value as number) || 3; // Default to 3 rounds
+        // TODO Phase 2.6: Use RoundsBlock directly instead of manually creating behaviors
+        // This strategy should create a RoundsBlock instance which handles LoopCoordinatorBehavior internally
         
-        // 5. Allocate rounds memory
-        const roundsStateRef = context.allocate(
-            ROUNDS_MEMORY_TYPES.STATE,
-            {
-                currentRound: 0,
-                totalRounds: totalRounds,
-                completedRounds: 0,
-            },
-            'public'
-        );
-        
-        // 6. Create behaviors with injected memory
+        // 4. Create simple completion behavior for now
         const behaviors: IRuntimeBehavior[] = [];
-        
-        // Add RoundsBehavior with memory injection
-        // TODO: Extract rep scheme if variable reps
-        behaviors.push(new RoundsBehavior(totalRounds, undefined, roundsStateRef));
+        behaviors.push(new CompletionBehavior(
+            () => true, // Temporary - RoundsBlock should manage completion
+            [] // Check on push
+        ));
 
-        // Add child behaviors if statement has children
-        if (code[0] && code[0].children && code[0].children.length > 0 && runtime.script) {
-            // Resolve child statement IDs to actual statements
-            const childIds = code[0].children.flat();
-            const childStatements = runtime.script.getIds(childIds);
-            behaviors.push(new ChildAdvancementBehavior(childStatements as CodeStatement[]));
-            behaviors.push(new LazyCompilationBehavior());
-            
-            // Register handler to pop completed child blocks
-            const handler = new BlockCompleteEventHandler(blockId);
-            runtime.memory.allocate('handler', blockId, handler, 'private');
-        }
-
-        // 7. Create RuntimeBlock with context
+        // 5. Create RuntimeBlock with context
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],

@@ -4,8 +4,6 @@ import { ICodeStatement } from '../../../src/CodeStatement';
 import { ICodeFragment, FragmentType } from '../../../src/CodeFragment';
 import { IScriptRuntime } from '../../../src/IScriptRuntime';
 import { BlockKey } from '../../../src/BlockKey';
-import { ChildAdvancementBehavior } from '../../../src/runtime/behaviors/ChildAdvancementBehavior';
-import { LazyCompilationBehavior } from '../../../src/runtime/behaviors/LazyCompilationBehavior';
 import { IRuntimeBehavior } from '../../../src/runtime/IRuntimeBehavior';
 
 describe('Block Compilation Contract', () => {
@@ -131,88 +129,9 @@ describe('Block Compilation Contract', () => {
     });
   });
 
-  describe('TBC-004: Strategy adds behaviors when statement has children', () => {
-    it('should add ChildAdvancementBehavior and LazyCompilationBehavior for parent blocks', () => {
-      // GIVEN: A statement with children
-      const childStatement: ICodeStatement = {
-        id: new BlockKey('child-1'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Pull-ups', type: 'effort' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      const parentStatement: ICodeStatement = {
-        id: new BlockKey('parent-1'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
-        ],
-        children: [childStatement],
-        meta: undefined
-      };
-
-      // WHEN: Strategy compiles parent with children
-      const strategy = new TimerStrategy();
-      const block = strategy.compile([parentStatement], mockRuntime);
-
-      // THEN: Block has required behaviors
-      expect(block).toBeDefined();
-      expect(block!.getBehavior(ChildAdvancementBehavior)).toBeDefined();
-      expect(block!.getBehavior(LazyCompilationBehavior)).toBeDefined();
-    });
-  });
-
-  describe('TBC-005: Strategy omits behaviors when statement has no children', () => {
-    it('should create leaf blocks without behaviors', () => {
-      // GIVEN: A statement without children
-      const statement: ICodeStatement = {
-        id: new BlockKey('leaf-1'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Burpees', type: 'effort' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: Strategy compiles leaf statement
-      const strategy = new EffortStrategy();
-      const block = strategy.compile([statement], mockRuntime);
-
-      // THEN: Block has no child-related behaviors (leaf block)
-      expect(block!.getBehavior(ChildAdvancementBehavior)).toBeUndefined();
-      expect(block!.getBehavior(LazyCompilationBehavior)).toBeUndefined();
-    });
-  });
-
-  describe('TBC-006: ChildAdvancementBehavior initialized with correct children', () => {
-    it('should initialize ChildAdvancementBehavior with correct child count', () => {
-      // GIVEN: A parent statement with multiple children
-      const children: ICodeStatement[] = [
-        { id: new BlockKey('c1'), fragments: [], children: [], meta: undefined },
-        { id: new BlockKey('c2'), fragments: [], children: [], meta: undefined },
-        { id: new BlockKey('c3'), fragments: [], children: [], meta: undefined }
-      ];
-
-      const parentStatement: ICodeStatement = {
-        id: new BlockKey('parent-1'),
-        fragments: [
-          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
-        ],
-        children: children,
-        meta: undefined
-      };
-
-      // WHEN: Strategy compiles with children
-      const strategy = new RoundsStrategy();
-      const block = strategy.compile([parentStatement], mockRuntime);
-
-      // THEN: ChildAdvancementBehavior has correct child count
-      const childBehavior = block!.getBehavior(ChildAdvancementBehavior);
-      expect(childBehavior).toBeDefined();
-      expect(childBehavior!.getCurrentChildIndex()).toBe(0);
-    });
-  });
+  // TBC-004, TBC-005, TBC-006: Tests removed - old behavior system deprecated
+  // Strategies now use LoopCoordinatorBehavior in RoundsBlock for child management
+  // See LoopCoordinatorBehavior.test.ts for unified loop behavior tests
 
   describe('TBC-007: Block preserves source statement ID', () => {
     it('should reference source statement ID in compiled block', () => {

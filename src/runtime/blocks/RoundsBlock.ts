@@ -3,10 +3,9 @@ import { CodeStatement } from '../../CodeStatement';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
-import { RoundsBehavior } from '../behaviors/RoundsBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
-import { ChildAdvancementBehavior } from '../behaviors/ChildAdvancementBehavior';
-import { LazyCompilationBehavior } from '../behaviors/LazyCompilationBehavior';
+import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
+import { IRuntimeBehavior } from '../IRuntimeBehavior';
 
 /**
  * RoundsBlock Configuration
@@ -18,21 +17,21 @@ export interface RoundsBlockConfig {
 }
 
 /**
- * RoundsBlock manages multi-round workout execution.
+ * RoundsBlock manages multi-round workout execution using LoopCoordinatorBehavior.
  * 
  * Features:
  * - Fixed rounds (e.g., "3 rounds")
  * - Variable rep schemes (e.g., "21-15-9")
  * - Infinite rounds (AMRAP - As Many Rounds As Possible)
- * - Lazy compilation of round contents
- * - Provides compilation context to child blocks
+ * - Automatic child cycling and compilation with context
+ * - Provides compilation context to child blocks (including reps)
  * - Emits rounds:changed when advancing
  * - Emits rounds:complete when finished
  * 
  * API Contract: contracts/runtime-blocks-api.md
  */
 export class RoundsBlock extends RuntimeBlock {
-  private roundsBehavior: RoundsBehavior;
+  private loopCoordinator: LoopCoordinatorBehavior;
 
   constructor(
     runtime: IScriptRuntime,
@@ -64,71 +63,72 @@ export class RoundsBlock extends RuntimeBlock {
       }
     }
 
-    // Create behaviors
-    const roundsBehavior = new RoundsBehavior(config.totalRounds, config.repScheme);
-    const completionBehavior = new CompletionBehavior(
-      () => roundsBehavior.isComplete(),
-      ['rounds:complete']
-    );
-    const childAdvancementBehavior = new ChildAdvancementBehavior(config.children);
-    const lazyCompilationBehavior = new LazyCompilationBehavior();
+    // Create behaviors using unified LoopCoordinatorBehavior
+    const loopType = config.repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
+    const loopCoordinator = new LoopCoordinatorBehavior({
+      childGroups: [config.children], // Single group for now (no compose grouping yet)
+      loopType,
+      totalRounds: config.totalRounds,
+      repScheme: config.repScheme,
+    });
+    
+    const behaviors: IRuntimeBehavior[] = [
+      loopCoordinator,
+      // Completion behavior delegates to loop coordinator
+      new CompletionBehavior(
+        () => loopCoordinator.isComplete(runtime),
+        ['rounds:complete']
+      )
+    ];
 
     // Initialize RuntimeBlock with behaviors
     super(
       runtime,
       sourceIds,
-      [
-        roundsBehavior,
-        completionBehavior,
-        childAdvancementBehavior,
-        lazyCompilationBehavior
-      ],
+      behaviors,
       "Rounds"  // blockType
     );
 
-    // Store reference to rounds behavior for context access
-    this.roundsBehavior = roundsBehavior;
+    // Store reference to loop coordinator for context access
+    this.loopCoordinator = loopCoordinator;
   }
 
   /**
    * Get current round (1-indexed).
    */
   getCurrentRound(): number {
-    return this.roundsBehavior.getCurrentRound();
+    const state = this.loopCoordinator.getState();
+    return state.rounds + 1; // Convert to 1-indexed
   }
 
   /**
    * Get total rounds configured.
    */
   getTotalRounds(): number {
-    return this.roundsBehavior.getTotalRounds();
+    // Get from original config passed to loop coordinator
+    return this.config.totalRounds;
   }
 
   /**
-   * Get number of completed rounds.
+   * Get number of completed rounds (0-indexed).
    */
   getCompletedRounds(): number {
-    return this.roundsBehavior.getCompletedRounds();
+    return this.loopCoordinator.getCompletedRounds();
   }
 
   /**
    * Check if all rounds are complete.
    */
   isComplete(): boolean {
-    return this.roundsBehavior.isComplete();
+    return this.loopCoordinator.isComplete(this._runtime);
   }
 
   /**
    * Get compilation context for current round.
    * Used by JIT compiler to provide round-specific data to child blocks.
    */
-  getCompilationContext(): {
-    currentRound: number;
-    totalRounds: number;
-    repScheme?: number[];
-    getRepsForCurrentRound(): number | undefined;
-  } {
-    return this.roundsBehavior.getCompilationContext();
+  getCompilationContext() {
+    return this.loopCoordinator.getCompilationContext();
   }
 
   /**
@@ -136,6 +136,6 @@ export class RoundsBlock extends RuntimeBlock {
    * Returns undefined if no rep scheme configured.
    */
   getRepsForCurrentRound(): number | undefined {
-    return this.roundsBehavior.getCompilationContext().getRepsForCurrentRound();
+    return this.loopCoordinator.getRepsForCurrentRound();
   }
 }
