@@ -8,6 +8,16 @@ import { editor } from 'monaco-editor';
 import { IScript } from "../WodScript";
 import { MdTimerRuntime } from '../parser/md-timer';
 
+// Global registry to track registered languages and themes
+const registeredLanguages = new Set<string>();
+const registeredThemes = new Set<string>();
+
+// Global map to store editor-specific data
+const editorDataMap = new Map<string, {
+  objectCode?: IScript;
+  hints: monaco.languages.InlayHint[];
+}>();
+
 export class WodWikiSyntaxInitializer {
   syntax: string = "wod-wiki-syntax";
   theme: string = "wod-wiki-theme";
@@ -18,15 +28,26 @@ export class WodWikiSyntaxInitializer {
   contentChangeDisposable: monaco.IDisposable[] = [];
   exerciseProvider: ExerciseSuggestionProvider;
   exerciseHoverProvider: ExerciseHoverProvider;
+  private editorId: string;
+  private editorModel: editor.ITextModel | undefined;
 
   constructor(
     private tokenEngine: SemantcTokenEngine, 
     private suggestionEngine: SuggestionEngine,     
-    private onChange?: (script: IScript)=>void) {
+    private onChange?: (script: IScript)=>void,
+    editorId?: string) {
     // Initialize exercise suggestion provider
     this.exerciseProvider = new ExerciseSuggestionProvider();
     // Initialize exercise hover provider
     this.exerciseHoverProvider = new ExerciseHoverProvider();
+    // Use provided editor ID or generate a unique one
+    this.editorId = editorId || `editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Initialize editor data in the global map
+    editorDataMap.set(this.editorId, {
+      objectCode: undefined,
+      hints: []
+    });
   }
 
   options: editor.IStandaloneEditorConstructionOptions = {
@@ -55,34 +76,47 @@ export class WodWikiSyntaxInitializer {
   }
 
   public handleBeforeMount(monaco: Monaco) {        
-    const tokens = this.tokenEngine?.tokens ?? [];        
-    monaco.languages.register({ id: this.syntax });    
-    monaco.editor.defineTheme(this.theme, {
-      base: "vs",
-      inherit: false,
-      rules: tokens,
-      colors: {
-        "editor.foreground": "#000000",
-        "editor.background": "#FFFFFF",
-        "editor.lineHighlightBackground": "#F0F0F0",
-        "editorCursor.foreground": "#000000",
-        "editor.selectionBackground": "#D6FF80",
-      }
-    });
+    const tokens = this.tokenEngine?.tokens ?? [];
+    
+    // Only register language if not already registered
+    if (!registeredLanguages.has(this.syntax)) {
+      monaco.languages.register({ id: this.syntax });
+      registeredLanguages.add(this.syntax);
+    }
+    
+    // Only define theme if not already defined
+    if (!registeredThemes.has(this.theme)) {
+      monaco.editor.defineTheme(this.theme, {
+        base: "vs",
+        inherit: false,
+        rules: tokens,
+        colors: {
+          "editor.foreground": "#000000",
+          "editor.background": "#FFFFFF",
+          "editor.lineHighlightBackground": "#F0F0F0",
+          "editorCursor.foreground": "#000000",
+          "editor.selectionBackground": "#D6FF80",
+        }
+      });
+      registeredThemes.add(this.theme);
+    }
 
-    // Add a CSS class for the current line decoration
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .currentLineDecoration {
-        background-color: #E6F7FF !important;
-        border-left: 2px solid #1890FF !important;
-      }
-      .currentLineGlyphMargin {
-        background-color: #1890FF;
-        width: 4px !important;
-      }
-    `;
-    document.head.appendChild(styleElement);
+    // Add a CSS class for the current line decoration (only once)
+    if (!document.getElementById('wod-wiki-line-decoration-styles')) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'wod-wiki-line-decoration-styles';
+      styleElement.textContent = `
+        .currentLineDecoration {
+          background-color: #E6F7FF !important;
+          border-left: 2px solid #1890FF !important;
+        }
+        .currentLineGlyphMargin {
+          background-color: #1890FF;
+          width: 4px !important;
+        }
+      `;
+      document.head.appendChild(styleElement);
+    }
 
     this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
       provideCompletionItems: (model, position, token) => {
@@ -121,7 +155,12 @@ export class WodWikiSyntaxInitializer {
     }))
     
     this.contentChangeDisposable.push(monaco.languages.registerInlayHintsProvider(this.syntax, {
-      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {        
+      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {
+        // Only provide hints for this editor's model
+        if (this.editorModel !== model) {
+          return { hints: [], dispose: () => { } };
+        }
+        
         this.hints = this.objectCode?.statements 
         ? [] :
         this.hints;
@@ -147,7 +186,10 @@ export class WodWikiSyntaxInitializer {
     }));
   }
 
-  handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {         
+  handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
+    this.monacoInstance = monaco;
+    this.editorModel = editor.getModel() || undefined;
+    
     const parse = () => {          
       this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
       this.onChange?.(this.objectCode);
@@ -166,5 +208,8 @@ export class WodWikiSyntaxInitializer {
     // Clean up exercise provider resources
     this.exerciseProvider.dispose();
     this.exerciseHoverProvider.dispose();
+    
+    // Clean up editor data from global map
+    editorDataMap.delete(this.editorId);
   }
 }
