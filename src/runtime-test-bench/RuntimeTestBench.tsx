@@ -14,7 +14,7 @@ import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { RuntimeAdapter } from './adapters/RuntimeAdapter';
 import { MdTimerRuntime } from '../parser/md-timer';
 import { JitCompiler } from '../runtime/JitCompiler';
-import { TimerStrategy, RoundsStrategy, EffortStrategy } from '../runtime/strategies';
+import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../runtime/strategies';
 import { WodScript } from '../WodScript';
 
 /**
@@ -29,12 +29,16 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
   // Parser instance (stable across renders)
   const parser = useMemo(() => new MdTimerRuntime(), []);
 
-  // Compiler instance with strategies registered
+  // Compiler instance with strategies registered in precedence order
   const compiler = useMemo(() => {
     const c = new JitCompiler();
-    c.registerStrategy(new TimerStrategy());
-    c.registerStrategy(new RoundsStrategy());
-    c.registerStrategy(new EffortStrategy());
+    // Register strategies in order of specificity (most specific first)
+    c.registerStrategy(new TimeBoundRoundsStrategy());  // Timer + Rounds/AMRAP (most specific)
+    c.registerStrategy(new IntervalStrategy());         // Timer + EMOM
+    c.registerStrategy(new TimerStrategy());            // Timer only
+    c.registerStrategy(new RoundsStrategy());           // Rounds only
+    c.registerStrategy(new GroupStrategy());            // Has children
+    c.registerStrategy(new EffortStrategy());           // Fallback (everything else)
     return c;
   }, []);
   
