@@ -16,6 +16,7 @@ import { MdTimerRuntime } from '../parser/md-timer';
 import { JitCompiler } from '../runtime/JitCompiler';
 import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../runtime/strategies';
 import { WodScript } from '../WodScript';
+import { NextEvent } from '../runtime/NextEvent';
 
 /**
  * Main Runtime Test Bench component
@@ -59,9 +60,16 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
   const [code, setCode] = useState(initialCode);
   const [status, setStatus] = useState<'idle' | 'running' | 'paused' | 'completed' | 'error'>('idle');
   const [compilationLog, setCompilationLog] = useState<any[]>([]); // TODO: Type with LogEntry interface
+  
+  // T085: Elapsed time tracking
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [executionStartTime, setExecutionStartTime] = useState<number | null>(null);
 
   // Debounce timer ref
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Execution loop ref for pause/resume
+  const executionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Extract state from snapshot
   const blocks = snapshot?.stack.blocks || [];
@@ -132,6 +140,15 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
     };
   }, []);
 
+  // Cleanup execution interval on unmount
+  useEffect(() => {
+    return () => {
+      if (executionIntervalRef.current) {
+        clearInterval(executionIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Update snapshot from runtime
   const updateSnapshot = () => {
     if (runtime) {
@@ -147,6 +164,16 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
       return () => clearInterval(interval);
     }
   }, [status, runtime]);
+
+  // T085: Track elapsed time during execution
+  useEffect(() => {
+    if (status === 'running' && executionStartTime) {
+      const interval = setInterval(() => {
+        setElapsedTime(Date.now() - executionStartTime);
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [status, executionStartTime]);
 
   // Compile parsed statements to runtime blocks
   const handleCompile = useCallback(() => {
@@ -205,26 +232,287 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
       setStatus('error');
     }
   }, [parseResults, code, compiler]);
-  const handleExecute = () => {
+
+  // T081: Execute workout - advance runtime in loop
+  const handleExecute = useCallback(() => {
+    if (!runtime) {
+      setCompilationLog(prev => [...prev, {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'No runtime available. Compile first.',
+        level: 'error'
+      }]);
+      return;
+    }
+
+    if (status === 'running') {
+      // Already running, ignore
+      return;
+    }
+
     setStatus('running');
-    if (runtime) updateSnapshot();
-  };
-  const handlePause = () => {
+    setExecutionStartTime(Date.now());
+    updateSnapshot();
+
+    // Log execution start
+    setCompilationLog(prev => [...prev, {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message: 'Execution started',
+      level: 'info'
+    }]);
+
+    // Start execution loop - 10 steps/second (100ms per step)
+    const executeStep = () => {
+      try {
+        if (!runtime) {
+          // Runtime was cleared, stop execution
+          if (executionIntervalRef.current) {
+            clearInterval(executionIntervalRef.current);
+            executionIntervalRef.current = null;
+          }
+          setStatus('idle');
+          return;
+        }
+
+        // Advance runtime one step using NextEvent
+        const nextEvent = new NextEvent({
+          source: 'runtime-testbench-execute',
+          timestamp: Date.now()
+        });
+        
+        runtime.handle(nextEvent);
+        
+        // Update snapshot after each step
+        updateSnapshot();
+
+        // Check for completion (empty stack means workout complete)
+        if (!runtime.stack.current) {
+          if (executionIntervalRef.current) {
+            clearInterval(executionIntervalRef.current);
+            executionIntervalRef.current = null;
+          }
+          
+          setStatus('completed');
+          setCompilationLog(prev => [...prev, {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            message: 'Workout completed',
+            level: 'success'
+          }]);
+        }
+      } catch (error: any) {
+        // Stop execution on error
+        if (executionIntervalRef.current) {
+          clearInterval(executionIntervalRef.current);
+          executionIntervalRef.current = null;
+        }
+        
+        setStatus('error');
+        setCompilationLog(prev => [...prev, {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: `Runtime error: ${error.message || 'Unknown error'}`,
+          level: 'error'
+        }]);
+      }
+    };
+
+    // Execute first step immediately
+    executeStep();
+    
+    // Then schedule subsequent steps at 100ms intervals (10 steps/second)
+    executionIntervalRef.current = setInterval(executeStep, 100);
+  }, [runtime]);
+
+  // T082: Pause execution - stop loop and preserve state
+  const handlePause = useCallback(() => {
+    if (status !== 'running') {
+      return;
+    }
+
+    // Stop execution loop
+    if (executionIntervalRef.current) {
+      clearInterval(executionIntervalRef.current);
+      executionIntervalRef.current = null;
+    }
+
     setStatus('paused');
-    if (runtime) updateSnapshot();
-  };
-  const handleStop = () => {
-    setStatus('idle');
-    if (runtime) updateSnapshot();
-  };
-  const handleReset = () => {
-    setStatus('idle');
-    if (runtime) updateSnapshot();
-  };
-  const handleStep = () => {
+    updateSnapshot();
+
+    setCompilationLog(prev => [...prev, {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message: 'Execution paused',
+      level: 'info'
+    }]);
+  }, [status]);
+
+  // T082: Resume execution - continue from paused state
+  const handleResume = useCallback(() => {
+    if (status !== 'paused' || !runtime) {
+      return;
+    }
+
     setStatus('running');
-    if (runtime) updateSnapshot();
-  };
+    updateSnapshot();
+
+    setCompilationLog(prev => [...prev, {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message: 'Execution resumed',
+      level: 'info'
+    }]);
+
+    // Start execution loop again
+    const executeStep = () => {
+      try {
+        if (!runtime || status === 'paused') {
+          if (executionIntervalRef.current) {
+            clearInterval(executionIntervalRef.current);
+            executionIntervalRef.current = null;
+          }
+          return;
+        }
+
+        const nextEvent = new NextEvent({
+          source: 'runtime-testbench-resume',
+          timestamp: Date.now()
+        });
+        
+        runtime.handle(nextEvent);
+        updateSnapshot();
+
+        if (!runtime.stack.current) {
+          if (executionIntervalRef.current) {
+            clearInterval(executionIntervalRef.current);
+            executionIntervalRef.current = null;
+          }
+          
+          setStatus('completed');
+          setCompilationLog(prev => [...prev, {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            message: 'Workout completed',
+            level: 'success'
+          }]);
+        }
+      } catch (error: any) {
+        if (executionIntervalRef.current) {
+          clearInterval(executionIntervalRef.current);
+          executionIntervalRef.current = null;
+        }
+        
+        setStatus('error');
+        setCompilationLog(prev => [...prev, {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: `Runtime error: ${error.message || 'Unknown error'}`,
+          level: 'error'
+        }]);
+      }
+    };
+
+    executeStep();
+    executionIntervalRef.current = setInterval(executeStep, 100);
+  }, [status, runtime]);
+
+  // T083: Step-by-Step execution - advance one event only
+  const handleStep = useCallback(() => {
+    if (!runtime) {
+      setCompilationLog(prev => [...prev, {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'No runtime available. Compile first.',
+        level: 'error'
+      }]);
+      return;
+    }
+
+    if (status === 'running') {
+      // Can't step while running
+      return;
+    }
+
+    try {
+      // Advance runtime one step
+      const nextEvent = new NextEvent({
+        source: 'runtime-testbench-step',
+        timestamp: Date.now()
+      });
+      
+      runtime.handle(nextEvent);
+      updateSnapshot();
+
+      // Check for completion
+      if (!runtime.stack.current) {
+        setStatus('completed');
+        setCompilationLog(prev => [...prev, {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: 'Workout completed',
+          level: 'success'
+        }]);
+      } else {
+        // Stay in paused state for next step
+        setStatus('paused');
+      }
+    } catch (error: any) {
+      setStatus('error');
+      setCompilationLog(prev => [...prev, {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: `Step error: ${error.message || 'Unknown error'}`,
+        level: 'error'
+      }]);
+    }
+  }, [runtime, status]);
+
+  // T084: Stop execution - halt and stay in current state
+  const handleStop = useCallback(() => {
+    if (status === 'idle') {
+      return;
+    }
+
+    // Stop execution loop if running
+    if (executionIntervalRef.current) {
+      clearInterval(executionIntervalRef.current);
+      executionIntervalRef.current = null;
+    }
+
+    setStatus('idle');
+    updateSnapshot();
+
+    setCompilationLog(prev => [...prev, {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message: 'Execution stopped',
+      level: 'info'
+    }]);
+  }, [status]);
+
+  // T084: Reset execution - clear runtime and snapshot
+  const handleReset = useCallback(() => {
+    // Stop execution loop if running
+    if (executionIntervalRef.current) {
+      clearInterval(executionIntervalRef.current);
+      executionIntervalRef.current = null;
+    }
+
+    // Clear runtime and snapshot
+    setRuntime(null);
+    setSnapshot(null);
+    setStatus('idle');
+    setElapsedTime(0);
+    setExecutionStartTime(null);
+
+    setCompilationLog(prev => [...prev, {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message: 'Runtime reset - ready for new compilation',
+      level: 'info'
+    }]);
+  }, []);
 
   // Keyboard shortcuts
   useTestBenchShortcuts({
@@ -293,7 +581,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
           onNavigate={() => {}} // TODO: Implement navigation
           actionButtons={[
             { id: 'compile', label: 'Compile', icon: '⚙️', disabled: status === 'running' },
-            { id: 'execute', label: 'Run', icon: '▶️', disabled: status === 'running' },
+            { id: 'execute', label: status === 'paused' ? 'Resume' : 'Run', icon: '▶️', disabled: status === 'running' },
             { id: 'pause', label: 'Pause', icon: '⏸️', disabled: status !== 'running' },
             { id: 'stop', label: 'Stop', icon: '⏹️', disabled: status === 'idle' },
             { id: 'reset', label: 'Reset', icon: '🔄', disabled: false },
@@ -302,7 +590,13 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
           onAction={(actionId) => {
             switch (actionId) {
               case 'compile': handleCompile(); break;
-              case 'execute': handleExecute(); break;
+              case 'execute': 
+                if (status === 'paused') {
+                  handleResume();
+                } else {
+                  handleExecute();
+                }
+                break;
               case 'pause': handlePause(); break;
               case 'stop': handleStop(); break;
               case 'reset': handleReset(); break;
@@ -384,7 +678,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
         <div className="bg-card rounded-lg p-4">
           <StatusFooter
           status={status as any}
-          elapsedTime={0}
+          elapsedTime={elapsedTime}
           blockCount={blocks.length}
         />
         </div>
