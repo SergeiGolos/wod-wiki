@@ -244,6 +244,20 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
  * Example: "EMOM 10\n  5 Pullups\n  10 Pushups"
  * - Executes child exercises at the start of each minute
  * - Continues for specified number of intervals
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract interval duration from Timer fragment (e.g., 60000ms from "1:00")
+ * 2. Extract total intervals from Rounds fragment or Action value
+ * 3. Extract child statements from code[0].children
+ * 4. Create LoopCoordinatorBehavior with:
+ *    - loopType: LoopType.INTERVAL
+ *    - childGroups: [childStatements]
+ *    - totalRounds: totalIntervals
+ *    - intervalDurationMs: intervalDuration
+ * 5. Create RuntimeBlock with the loop coordinator behavior
+ * 6. Block should emit interval:start and interval:complete events
  */
 export class IntervalStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -271,15 +285,11 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 IntervalStrategy compiling ${code.length} statement(s)`);
+        console.warn(`  ⚠️  IntervalStrategy.compile() is a placeholder - full implementation pending`);
 
-        // TODO: This is a placeholder implementation
-        // Full implementation requires:
-        // 1. Extract interval duration from Timer fragment
-        // 2. Extract total intervals from Action fragment or child count
-        // 3. Create RuntimeBlock with LoopCoordinatorBehavior using LoopType.INTERVAL
-        // 4. Configure intervalDurationMs in loop config
+        // Placeholder implementation - creates a simple block
+        // Full implementation will use LoopCoordinatorBehavior with LoopType.INTERVAL
         
-        // For now, create a simple placeholder block
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         const exerciseId = (code[0] as any)?.exerciseId || '';
@@ -314,6 +324,20 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
  * 
  * This strategy has higher precedence than TimerStrategy and RoundsStrategy
  * because it combines both concepts.
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract timer duration from Timer fragment (e.g., 1200000ms from "20:00")
+ * 2. Extract child statements from code[0].children
+ * 3. Create TimerBlock with direction='down' and durationMs
+ * 4. Create nested RoundsBlock with:
+ *    - loopType: LoopType.TIME_BOUND (infinite until timer expires)
+ *    - childGroups: [childStatements]
+ *    - totalRounds: Infinity or large number
+ * 5. TimerBlock wraps the RoundsBlock as its child
+ * 6. Completion: when timer expires
+ * 7. Block should track completed rounds for display
  */
 export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -341,16 +365,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 TimeBoundRoundsStrategy compiling ${code.length} statement(s)`);
+        console.warn(`  ⚠️  TimeBoundRoundsStrategy.compile() is a placeholder - full implementation pending`);
 
-        // TODO: This is a placeholder implementation
-        // Full implementation requires:
-        // 1. Extract timer duration from Timer fragment
-        // 2. Create TimerBlock (countdown)
-        // 3. Create child RoundsBlock with LoopType.TIME_BOUND (infinite rounds)
-        // 4. TimerBlock wraps the RoundsBlock
-        // 5. Completion: when timer expires OR user stops
+        // Placeholder implementation - creates a simple block
+        // Full implementation will create TimerBlock wrapping RoundsBlock
         
-        // For now, create a simple placeholder block
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         const exerciseId = (code[0] as any)?.exerciseId || '';
@@ -385,6 +404,22 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
  * 
  * This strategy should be evaluated after specific strategies (Timer, Rounds, etc.)
  * but before the fallback EffortStrategy.
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract child statements from code[0].children
+ * 2. Create container RuntimeBlock with blockType="Group"
+ * 3. Set up LoopCoordinatorBehavior to manage child compilation:
+ *    - loopType: LoopType.FIXED with totalRounds=1 (execute once)
+ *    - childGroups: [childStatements]
+ * 4. Pass compilation context to children
+ * 5. Handle nested groups recursively
+ * 6. Group completes when all children complete
+ * 
+ * Note: Groups are primarily structural containers. The parent block
+ * (e.g., RoundsBlock) typically handles the looping logic, and groups
+ * just organize exercises hierarchically.
  */
 export class GroupStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -402,15 +437,11 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 GroupStrategy compiling ${code.length} statement(s) with ${code[0].children?.length || 0} children`);
+        console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
 
-        // TODO: This is a placeholder implementation
-        // Full implementation requires:
-        // 1. Create container RuntimeBlock with blockType="Group"
-        // 2. Set up LoopCoordinatorBehavior to manage child compilation
-        // 3. Pass compilation context to children
-        // 4. Handle nested groups recursively
+        // Placeholder implementation - creates a simple block
+        // Full implementation will use LoopCoordinatorBehavior to manage children
         
-        // For now, create a simple placeholder block
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         const exerciseId = (code[0] as any)?.exerciseId || '';
