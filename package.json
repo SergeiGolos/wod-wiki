@@ -22,6 +22,7 @@
     "test:watch": "vitest --project=unit",
     "test:storybook:watch": "vitest -c vitest.storybook.config.js",
     "test:e2e": "npx playwright test",
+    "playwright": "npx playwright test",
     "prestorybook": "npx dotenv-cli -e .env -- node scripts/inject-ga-id.js",
     "storybook": "npm run prestorybook && storybook dev -p 6006",
     "storybook:debug": "npm run prestorybook && set NODE_OPTIONS=--inspect=9229 && storybook dev -p 6006",

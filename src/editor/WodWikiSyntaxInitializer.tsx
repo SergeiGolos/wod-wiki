@@ -35,7 +35,8 @@ export class WodWikiSyntaxInitializer {
     private tokenEngine: SemantcTokenEngine, 
     private suggestionEngine: SuggestionEngine,     
     private onChange?: (script: IScript)=>void,
-    editorId?: string) {
+    editorId?: string,
+    private readonly: boolean = false) {
     // Initialize exercise suggestion provider
     this.exerciseProvider = new ExerciseSuggestionProvider();
     // Initialize exercise hover provider
@@ -64,6 +65,7 @@ export class WodWikiSyntaxInitializer {
         bottom: 12
       },
       inlayHints: { enabled: "on" },
+      readOnly: this.readonly,
       // Add these options to enable semantic tokens
       "semanticHighlighting.enabled": true,
       scrollbar: {

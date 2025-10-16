@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WOD Wiki - Runtime Test Bench</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FFA500",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#282c34",
+                        "panel-background": "#3c4049",
+                        "text-color": "#abb2bf",
+                        "success": "#98c379",
+                        "error": "#e06c75",
+                        "info": "#61afef",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-color">
+<div class="flex flex-col h-screen">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-panel-background px-6 py-3">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-2xl">fitness_center</span>
+<h1 class="text-white text-lg font-bold">WOD Wiki</h1>
+</div>
+<div class="flex items-center gap-6">
+<a class="text-sm font-medium" href="#">Dashboard</a>
+<a class="text-sm font-medium" href="#">Workout Editor</a>
+<a class="text-white text-sm font-bold border-b-2 border-primary pb-1" href="#">Runtime Test Bench</a>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold">
+<span class="material-symbols-outlined">play_arrow</span>
+                        Run
+                    </button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-panel-background text-white text-sm font-bold">
+<span class="material-symbols-outlined">skip_next</span>
+                        Next Block
+                    </button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-panel-background text-white text-sm font-bold">
+<span class="material-symbols-outlined">redo</span>
+                        Step Over
+                    </button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-panel-background text-white text-sm font-bold">
+<span class="material-symbols-outlined">undo</span>
+                        Step Into
+                    </button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-panel-background text-white text-sm font-bold">
+<span class="material-symbols-outlined">replay</span>
+                        Reset
+                    </button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBP7tVsnajCTVbA2LkpRGXPQY1Sh3rdowBrdmsVcYlPP40JWexhF4W-RdPXtUEUeRjGnf51x5JADgXo4Z-DnhmUnB2JlLCQ7eVmbj-sGE-CUeS8S3z2uGi425d8YJl1gHGfZS1IYt4Wp5dMhlG6hshiTXUaoKqoJ8D3EeftBfiXWWsrwg_Fzuvxxw_4vZ3yeZVfuA5t3jEiZ1rFZIK8EEiXEJAos65EGDwg8O6Mo6Vc_B_TZ9jJvke5qZDNHCz7nfUH9nRDeSjZN9GI");'></div>
+</div>
+</header>
+<main class="flex-grow grid grid-cols-10 grid-rows-2 gap-4 p-4">
+<!-- Top Left: Editor Panel -->
+<div class="col-span-4 row-span-1 bg-panel-background rounded-lg flex flex-col p-4">
+<h2 class="text-white text-lg font-bold mb-3">Editor</h2>
+<div class="relative flex-grow bg-[#282c34] rounded-md p-4 overflow-auto">
+<pre class="text-sm"><code><span class="text-gray-500">1 </span><span class="text-info">workout</span> "MURPH" {
+<span class="text-gray-500">2 </span>  <span class="text-info">warmup</span> {
+<span class="text-gray-500">3 </span>    <span class="text-success">run</span> <span class="text-error">1mi</span>
+<span class="text-gray-500">4 </span>  }
+<span class="text-gray-500">5 </span>
+<span class="text-gray-500">6 </span>  <span class="text-info">main</span> {
+<span class="text-gray-500">7 </span>    <span class="text-success">pullups</span> <span class="text-error">100</span>
+<span class="text-gray-500">8 </span>    <span class="text-success">pushups</span> <span class="text-error">200</span>
+<span class="text-gray-500">9 </span>    <span class="text-success">squats</span> <span class="text-error">300</span>
+<span class="text-gray-500">10</span>  }
+<span class="text-gray-500">11</span>
+<span class="text-gray-500">12</span>  <span class="text-info">cooldown</span> {
+<span class="text-gray-500">13</span>    <span class="text-success">run</span> <span class="text-error">1mi</span>
+<span class="text-gray-500">14</span>  }
+<span class="text-gray-500">15</span>}</code></pre>
+<div class="absolute top-1/2 left-4 bg-background-dark p-2 rounded-lg shadow-lg border border-panel-background">
+<p class="text-sm font-bold text-white mb-1">Suggestions:</p>
+<ul>
+<li class="text-sm p-1 hover:bg-panel-background rounded-md cursor-pointer">pullups</li>
+<li class="text-sm p-1 hover:bg-panel-background rounded-md cursor-pointer">pushups_diamond</li>
+<li class="text-sm p-1 hover:bg-panel-background rounded-md cursor-pointer">pushups_wide</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Top Right: Compilation Panel -->
+<div class="col-span-6 row-span-1 bg-panel-background rounded-lg flex flex-col p-4">
+<h2 class="text-white text-lg font-bold">Compilation</h2>
+<div class="flex border-b border-background-dark mt-2">
+<a class="flex flex-col items-center justify-center border-b-2 border-primary text-white pb-2 px-4" href="#">
+<p class="text-sm font-bold">Output</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-text-color pb-2 px-4" href="#">
+<p class="text-sm font-bold">Errors</p>
+</a>
+</div>
+<div class="flex-grow bg-[#282c34] rounded-md p-4 mt-3 overflow-auto">
+<p class="text-success text-sm font-mono">[2023-10-27 10:00:00] Compilation started...</p>
+<p class="text-success text-sm font-mono">[2023-10-27 10:00:01] Script parsed successfully.</p>
+<p class="text-success text-sm font-mono">[2023-10-27 10:00:02] Building abstract syntax tree...</p>
+<p class="text-success text-sm font-mono">[2023-10-27 10:00:03] Compilation successful.</p>
+</div>
+</div>
+<!-- Bottom Left: Runtime Stack Panel -->
+<div class="col-span-4 row-span-1 bg-panel-background rounded-lg flex flex-col p-4">
+<h2 class="text-white text-lg font-bold mb-3">Runtime Stack</h2>
+<div class="flex-grow bg-[#282c34] rounded-md p-4 overflow-auto">
+<ul class="space-y-2 text-sm">
+<li>
+<span class="text-info">workout: MURPH</span>
+<ul class="pl-4 mt-1 space-y-1 border-l border-gray-600">
+<li>
+<span>warmup</span>
+</li>
+<li class="bg-primary/20 rounded-md p-1">
+<span class="font-bold text-primary">&gt; main</span>
+<ul class="pl-4 mt-1 space-y-1 border-l border-gray-600">
+<li><span>pullups</span></li>
+<li class="font-bold text-info">&gt; pushups</li>
+<li><span>squats</span></li>
+</ul>
+</li>
+<li>
+<span>cooldown</span>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<!-- Bottom Right: Memory Panel -->
+<div class="col-span-6 row-span-1 bg-panel-background rounded-lg flex flex-col p-4">
+<div class="flex justify-between items-center mb-3">
+<h2 class="text-white text-lg font-bold">Memory</h2>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input class="bg-[#282c34] border border-panel-background rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary w-64" placeholder="Filter variables..." type="text"/>
+</div>
+</div>
+<div class="flex-grow bg-[#282c34] rounded-md p-4 overflow-auto">
+<div class="space-y-4 text-sm">
+<div>
+<h3 class="font-bold text-white mb-2">global</h3>
+<div class="pl-4 font-mono">
+<span>user_weight: <span class="text-error">80kg</span></span>
+</div>
+</div>
+<div>
+<h3 class="font-bold text-white mb-2">exercise: pushups</h3>
+<div class="pl-4 font-mono">
+<div>reps_completed: <span class="text-error">150</span></div>
+<div>reps_remaining: <span class="text-error">50</span></div>
+<div>current_set: <span class="text-error">8</span></div>
+</div>
+</div>
+<div>
+<h3 class="font-bold text-white mb-2">exercise: pullups</h3>
+<div class="pl-4 font-mono">
+<div>reps_completed: <span class="text-error">100</span></div>
+<div>reps_remaining: <span class="text-error">0</span></div>
+<div>current_set: <span class="text-error">5</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="bg-background-dark border-t border-panel-background px-4 py-2 text-xs text-text-color flex justify-between items-center">
+<div>
+<span>Status: <span class="text-success font-semibold">Executing</span></span>
+</div>
+<div>
+<span>Ln 8, Col 5</span>
+</div>
+</footer>
+</div>
+</body></html>

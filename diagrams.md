@@ -1,53 +1,78 @@
-# WOD Wiki Architecture Diagrams
-
-## JIT Compiler and Runtime Architecture
+## Runtime Strategy Selection Flowchart
 
 ```mermaid
-graph TD
-    subgraph "Input & Parsing"
-        A[Workout Script] --> B[Parser]
-    end
-
-    subgraph "Compilation"
-        B --> C{JIT Compiler}
-        C --> D[Generates IRuntimeBlock[]]
-    end
-
-    subgraph "Execution"
-        D --> E[Runtime Engine]
-        E -->|Pushes blocks to| F[RuntimeStack]
-        F -->|Manages| G[Active IRuntimeBlock]
-        G -->|Interacts with| H[Memory/State]
-        E -->|Updates| H
-    end
+flowchart TD
+    A[Start: JitCompiler.compile] --> B{Has Timer Fragment?};
+    B -- Yes --> C[Use TimerStrategy];
+    B -- No --> D{Has Rounds Fragment?};
+    D -- Yes --> E[Use RoundsStrategy];
+    D -- No --> F[Use EffortStrategy];
+    C --> G[Create Timer Block];
+    E --> H[Create Rounds Block];
+    F --> I[Create Effort Block];
+    G --> Z[End];
+    H --> Z[End];
+    I --> Z[End];
 ```
 
-## Runtime Stack Flow
+## Runtime Components Class Diagram
 
 ```mermaid
-graph TD
-    subgraph "Input Script"
-        WorkoutScript["-- AMRAP 10 --\n5 Pullups\n10 Pushups\n15 Squats"]
-    end
+classDiagram
+    class JitCompiler {
+        -strategies: IRuntimeBlockStrategy[]
+        +registerStrategy(strategy)
+        +compile(nodes, runtime, context)
+    }
 
-    subgraph "Compilation"
-        WorkoutScript --> JIT{JIT Compiler}
-        JIT --> Blocks[IRuntimeBlock[]]
-    end
+    class IRuntimeBlockStrategy {
+        <<interface>>
+        +match(statements, runtime)
+        +compile(statements, runtime, context)
+    }
 
-    subgraph "Stack Management"
-        Blocks -->|runtime.push(block)| Stack[RuntimeStack]
-        Stack -->|Manages stack of blocks| StackViz
-    end
+    class TimerStrategy {
+        +match(statements, runtime)
+        +compile(statements, runtime, context)
+    }
 
-    subgraph "RuntimeStack Visualization"
-        direction LR
-        StackViz -->|graph()| B1[Bottom: AmrapBlock]
-        B1 --> B2[WorkoutBlock]
-        B2 --> B3[Top: TimerBlock]
-    end
+    class RoundsStrategy {
+        +match(statements, runtime)
+        +compile(statements, runtime, context)
+    }
 
-    Stack -->|current()| B3
-    Stack -->|block = runtime.pop()| Consumer
-    Consumer -->|block.dispose()| Disposal[Disposal]
+    class EffortStrategy {
+        +match(statements, runtime)
+        +compile(statements, runtime, context)
+    }
+
+    class RuntimeBlock {
+        -behaviors: IRuntimeBehavior[]
+        +onPush()
+        +onNext()
+    }
+
+    class IRuntimeBehavior {
+        <<interface>>
+        +onPush()
+        +onNext()
+    }
+
+    class TimerBehavior
+    class CompletionBehavior
+    class LoopCoordinatorBehavior
+
+    JitCompiler o-- "1..*" IRuntimeBlockStrategy
+    IRuntimeBlockStrategy <|.. TimerStrategy
+    IRuntimeBlockStrategy <|.. RoundsStrategy
+    IRuntimeBlockStrategy <|.. EffortStrategy
+
+    TimerStrategy ..> RuntimeBlock
+    RoundsStrategy ..> RuntimeBlock
+    EffortStrategy ..> RuntimeBlock
+
+    RuntimeBlock o-- "0..*" IRuntimeBehavior
+    IRuntimeBehavior <|.. TimerBehavior
+    IRuntimeBehavior <|.. CompletionBehavior
+    IRuntimeBehavior <|.. LoopCoordinatorBehavior
 ```

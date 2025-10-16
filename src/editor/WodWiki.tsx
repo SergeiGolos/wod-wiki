@@ -18,7 +18,11 @@ interface WodWikiProps {
   /** Optional value change handler */
   onValueChange?: (classObject?: IScript) => void;
   /** Optional callback when editor is mounted */
-  onMount?: (editor: any) => void;    
+  onMount?: (editor: any) => void;
+  /** Whether the editor is read-only */
+  readonly?: boolean;
+  /** Line number to highlight */
+  highlightedLine?: number;
 }
 
 export interface WodWikiTokenHint {
@@ -46,11 +50,12 @@ const tokens: WodWikiToken[] = [
 
 
 
-export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount }: WodWikiProps) => {        
-    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id);      
+export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine }: WodWikiProps) => {        
+    const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id, readonly);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
     const [height, setHeight] = useState(50); // Initial height
+    const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
     function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
       editorRef.current = editor;
       monacoRef.current = monaco;
@@ -114,18 +119,42 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       }
     };
   }, [cursor]);
+
+  // Effect for highlighting specified line
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current || highlightedLine == null || highlightedLine <= 0) return;
+    
+    const decorations = editorRef.current.createDecorationsCollection([
+      {
+        range: new monacoRef.current.Range(highlightedLine, 1, highlightedLine, 1),
+        options: {
+          isWholeLine: true,
+          className: 'highlightedLineDecoration',
+          glyphMarginClassName: 'highlightedLineGlyphMargin'
+        }
+      }
+    ]);
+    
+    return () => {
+      if (editorRef.current) {
+        decorations.clear();
+      }
+    };
+  }, [highlightedLine]);
   
     return (
-      <Editor
-        height={`${height}px`}
-        path={id}
-        language={initializer.syntax} 
-        theme={initializer.theme}        
-        defaultValue={code}
-        beforeMount={handleBeforeMount}      
-        onMount={handleMount}     
-        onValidate={handleEditorValidation}   
-        options={initializer.options}        
-    />
+      <div data-highlighted-line={highlightedLine} className="wodwiki-container">
+        <Editor
+          height={`${height}px`}
+          path={id}
+          language={initializer.syntax} 
+          theme={initializer.theme}        
+          defaultValue={code}
+          beforeMount={handleBeforeMount}      
+          onMount={handleMount}     
+          onValidate={handleEditorValidation}   
+          options={initializer.options}        
+      />
+      </div>
     )
   };
