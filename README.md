@@ -28,6 +28,69 @@ WOD Wiki has a mature foundation for parsing workout scripts and a set of core e
     *   Includes `IMetricInheritance` interface, `MetricComposer`, `RuntimeMetric` types, and example patterns.
     *   Integrated into the JIT Compiler design as a distinct phase.
 
+## Runtime Test Bench
+
+The **Runtime Test Bench** is an interactive development and debugging tool for WOD Wiki workout scripts. It provides a complete workflow for editing, parsing, compiling, and executing workout definitions with real-time runtime visualization.
+
+### Features
+
+- **Integrated Monaco Editor** with syntax highlighting and auto-parse (500ms debounce)
+- **Real-time Compilation** with JIT compiler and three optimization strategies
+- **Runtime Execution** at 10 steps/second with NextEvent-based advancement
+- **Debugger Controls**: Pause, resume, single-step, stop, and reset
+- **Live Visualization**: Runtime stack, memory allocations, and execution status
+- **Keyboard Shortcuts** for efficient workflow
+- **Performance Optimized**: <100ms parse, <500ms compile, >30fps UI, no memory leaks
+
+### Quick Start
+
+View in Storybook:
+```bash
+npm run storybook
+# Navigate to: Runtime Test Bench → Default
+```
+
+### Keyboard Shortcuts
+
+| Shortcut | Action | State |
+|----------|--------|-------|
+| **Ctrl+Enter** | Execute / Resume | Idle / Paused |
+| **Space** | Pause / Resume | Running / Paused |
+| **F5** | Reset | Any |
+| **F10** | Step | Idle / Paused |
+| **F11** | Compile | Idle |
+| **Escape** | Stop | Running / Paused |
+
+### Example Workflow
+
+```
+1. Edit: Enter workout "timer 21:00\n  (21-15-9)\n    Thrusters 95lb\n    Pullups"
+2. Parse: Auto-parses in 500ms
+3. Compile: Press F11 or click Compile button
+4. Execute: Press Ctrl+Enter or click Run button
+5. Debug: Press Space to pause, F10 to step, Escape to stop
+6. Reset: Press F5 to clear and start over
+```
+
+### Documentation
+
+For complete usage guide, see [Runtime Test Bench Usage](./docs/runtime-test-bench-usage.md).
+
+### Testing
+
+Comprehensive test coverage with 20+ tests:
+- **Integration Tests**: Full workflow, state transitions, error handling
+- **Keyboard Tests**: All shortcuts validated in all states
+- **Performance Tests**: Parse, compile, execution, UI responsiveness, memory leak detection
+
+```bash
+# Run integration tests
+npx vitest run tests/integration/RuntimeTestBench.integration.test.tsx
+
+# Run performance tests
+npx vitest run tests/integration/RuntimeTestBench.performance.test.tsx
+```
+
 ## In Progress / Next Steps
 
 Current development focuses on fully implementing and integrating the JIT Compiler and its runtime environment:
