@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TimerStrategy, RoundsStrategy, EffortStrategy } from './strategies';
+import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from './strategies';
 import { ICodeStatement } from '../CodeStatement';
 import { ICodeFragment, FragmentType } from '../CodeFragment';
 import { IScriptRuntime } from '../IScriptRuntime';
@@ -211,6 +211,157 @@ describe('Strategy Matching Contract', () => {
       const result = strategy.match([statement], mockRuntime);
 
       // THEN: Returns false (defensive programming)
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('TSC-010: IntervalStrategy matches Timer + Action with EMOM', () => {
+    it('should return true when statement contains Timer and EMOM action', () => {
+      // GIVEN: A code statement with Timer and EMOM action fragments
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-10'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' },
+          { fragmentType: FragmentType.Action, value: 'EMOM', type: 'action' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: IntervalStrategy.match() is called
+      const strategy = new IntervalStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns true
+      expect(result).toBe(true);
+    });
+
+    it('should return false when statement has only Timer without EMOM action', () => {
+      // GIVEN: A code statement with only Timer fragment
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-10b'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: IntervalStrategy.match() is called
+      const strategy = new IntervalStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns false
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('TSC-011: TimeBoundRoundsStrategy matches Timer + Rounds/AMRAP', () => {
+    it('should return true when statement contains Timer and Rounds', () => {
+      // GIVEN: A code statement with Timer and Rounds fragments
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-11a'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: TimeBoundRoundsStrategy.match() is called
+      const strategy = new TimeBoundRoundsStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns true
+      expect(result).toBe(true);
+    });
+
+    it('should return true when statement contains Timer and AMRAP action', () => {
+      // GIVEN: A code statement with Timer and AMRAP action
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-11b'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Action, value: 'AMRAP', type: 'action' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: TimeBoundRoundsStrategy.match() is called
+      const strategy = new TimeBoundRoundsStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns true
+      expect(result).toBe(true);
+    });
+
+    it('should return false when statement has only Timer', () => {
+      // GIVEN: A code statement with only Timer fragment
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-11c'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: TimeBoundRoundsStrategy.match() is called
+      const strategy = new TimeBoundRoundsStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns false (needs Rounds or AMRAP action)
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('TSC-012: GroupStrategy matches statements with children', () => {
+    it('should return true when statement has children', () => {
+      // GIVEN: A code statement with children
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-12'),
+        fragments: [
+          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
+        ],
+        children: [
+          {
+            id: new BlockKey('child-1'),
+            fragments: [
+              { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
+            ],
+            children: [],
+            meta: undefined
+          }
+        ],
+        meta: undefined
+      };
+
+      // WHEN: GroupStrategy.match() is called
+      const strategy = new GroupStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns true
+      expect(result).toBe(true);
+    });
+
+    it('should return false when statement has no children', () => {
+      // GIVEN: A code statement without children
+      const statement: ICodeStatement = {
+        id: new BlockKey('test-12b'),
+        fragments: [
+          { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: GroupStrategy.match() is called
+      const strategy = new GroupStrategy();
+      const result = strategy.match([statement], mockRuntime);
+
+      // THEN: Returns false
       expect(result).toBe(false);
     });
   });

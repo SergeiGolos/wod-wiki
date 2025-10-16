@@ -10,7 +10,7 @@ import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../src/runtime/NextEventHandler';
-import { EffortStrategy, TimerStrategy, RoundsStrategy } from '../../src/runtime/strategies';
+import { EffortStrategy, TimerStrategy, RoundsStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
@@ -618,11 +618,14 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     const jitCompiler = new JitCompiler([]);
 
     // Register strategies in precedence order: most specific first
-    jitCompiler.registerStrategy(new TimerStrategy());      // Check Timer first
-    jitCompiler.registerStrategy(new RoundsStrategy());     // Then Rounds
-    jitCompiler.registerStrategy(new EffortStrategy());     // Effort is fallback
+    jitCompiler.registerStrategy(new TimeBoundRoundsStrategy()); // AMRAP: Timer + Rounds
+    jitCompiler.registerStrategy(new IntervalStrategy());        // EMOM: Timer + Action
+    jitCompiler.registerStrategy(new TimerStrategy());           // Simple Timer
+    jitCompiler.registerStrategy(new RoundsStrategy());          // Simple Rounds
+    jitCompiler.registerStrategy(new GroupStrategy());           // Grouped/nested exercises
+    jitCompiler.registerStrategy(new EffortStrategy());          // Fallback: simple efforts
 
-    console.log(`📝 Registered strategies with JIT compiler: Timer → Rounds → Effort`);
+    console.log(`📝 Registered strategies with JIT compiler: TimeBoundRounds → Interval → Timer → Rounds → Group → Effort`);
     
     const runtime = new ScriptRuntime(wodScript, jitCompiler);
 

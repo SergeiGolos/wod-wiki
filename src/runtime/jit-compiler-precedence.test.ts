@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { JitCompiler } from './JitCompiler';
-import { TimerStrategy, RoundsStrategy, EffortStrategy } from './strategies';
+import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from './strategies';
 import { ICodeStatement } from '../CodeStatement';
 import { ICodeFragment, FragmentType } from '../CodeFragment';
 import { IScriptRuntime } from '../IScriptRuntime';
@@ -306,6 +306,135 @@ describe('Strategy Precedence Contract', () => {
       expect(block1!.blockType).toBe("Timer");
       expect(block2!.blockType).toBe("Rounds");
       expect(block3!.blockType).toBe("Effort");
+    });
+  });
+
+  describe('TSP-010: TimeBoundRoundsStrategy has higher precedence than TimerStrategy', () => {
+    it('should match TimeBoundRoundsStrategy when both Timer and Rounds present', () => {
+      // GIVEN: JitCompiler with strategies in correct order
+      const compiler = new JitCompiler();
+      compiler.registerStrategy(new TimeBoundRoundsStrategy()); // Most specific first
+      compiler.registerStrategy(new TimerStrategy());
+      compiler.registerStrategy(new RoundsStrategy());
+      compiler.registerStrategy(new EffortStrategy());
+
+      // GIVEN: Statement with BOTH Timer and Rounds fragments (AMRAP)
+      const statement: ICodeStatement = {
+        id: new BlockKey('amrap-1'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
+          { fragmentType: FragmentType.Rounds, value: 10, type: 'rounds' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compiler compiles statement
+      const block = compiler.compile([statement], mockRuntime);
+
+      // THEN: TimeBoundRoundsStrategy wins (most specific)
+      expect(block).toBeDefined();
+      expect(block!.blockType).toBe("TimeBoundRounds");
+    });
+  });
+
+  describe('TSP-011: IntervalStrategy has correct precedence', () => {
+    it('should match IntervalStrategy when Timer and EMOM action present', () => {
+      // GIVEN: JitCompiler with strategies in correct order
+      const compiler = new JitCompiler();
+      compiler.registerStrategy(new IntervalStrategy());
+      compiler.registerStrategy(new TimerStrategy());
+      compiler.registerStrategy(new EffortStrategy());
+
+      // GIVEN: Statement with Timer and EMOM action
+      const statement: ICodeStatement = {
+        id: new BlockKey('emom-1'),
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' },
+          { fragmentType: FragmentType.Action, value: 'EMOM', type: 'action' }
+        ],
+        children: [],
+        meta: undefined
+      };
+
+      // WHEN: Compiler compiles statement
+      const block = compiler.compile([statement], mockRuntime);
+
+      // THEN: IntervalStrategy wins (more specific than TimerStrategy)
+      expect(block).toBeDefined();
+      expect(block!.blockType).toBe("Interval");
+    });
+  });
+
+  describe('TSP-012: GroupStrategy evaluated before EffortStrategy', () => {
+    it('should match GroupStrategy when statement has children but no specific fragments', () => {
+      // GIVEN: JitCompiler with strategies including GroupStrategy
+      const compiler = new JitCompiler();
+      compiler.registerStrategy(new TimerStrategy());
+      compiler.registerStrategy(new RoundsStrategy());
+      compiler.registerStrategy(new GroupStrategy()); // Before EffortStrategy
+      compiler.registerStrategy(new EffortStrategy());
+
+      // GIVEN: Statement with children but NO specific fragments (just text/action)
+      // This represents a pure grouping construct
+      const statement: ICodeStatement = {
+        id: new BlockKey('group-1'),
+        fragments: [
+          { fragmentType: FragmentType.Action, value: 'Superset', type: 'action' }
+        ],
+        children: [
+          {
+            id: new BlockKey('child-1'),
+            fragments: [
+              { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
+            ],
+            children: [],
+            meta: undefined
+          }
+        ],
+        meta: undefined
+      };
+
+      // WHEN: Compiler compiles statement
+      const block = compiler.compile([statement], mockRuntime);
+
+      // THEN: GroupStrategy matches (has children, no timer/rounds)
+      expect(block).toBeDefined();
+      expect(block!.blockType).toBe("Group");
+    });
+
+    it('should prioritize RoundsStrategy over GroupStrategy when Rounds fragment present', () => {
+      // GIVEN: JitCompiler with strategies
+      const compiler = new JitCompiler();
+      compiler.registerStrategy(new RoundsStrategy());
+      compiler.registerStrategy(new GroupStrategy());
+      compiler.registerStrategy(new EffortStrategy());
+
+      // GIVEN: Statement with Rounds fragment AND children
+      const statement: ICodeStatement = {
+        id: new BlockKey('rounds-group'),
+        fragments: [
+          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
+        ],
+        children: [
+          {
+            id: new BlockKey('child-1'),
+            fragments: [
+              { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
+            ],
+            children: [],
+            meta: undefined
+          }
+        ],
+        meta: undefined
+      };
+
+      // WHEN: Compiler compiles statement
+      const block = compiler.compile([statement], mockRuntime);
+
+      // THEN: RoundsStrategy wins (more specific - handles rounds behavior)
+      expect(block).toBeDefined();
+      expect(block!.blockType).toBe("Rounds");
     });
   });
 });
