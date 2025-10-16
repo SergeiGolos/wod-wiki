@@ -236,6 +236,236 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
 // export class BoundedLoopingParentStrategy implements IRuntimeBlockStrategy { ... }
 // export class TimeBoundedLoopingStrategy implements IRuntimeBlockStrategy { ... }
 
+/**
+ * Strategy that creates interval-based parent blocks for EMOM workouts.
+ * Matches statements with Timer + Action fragments (e.g., "EMOM 10" or "every 1 minute for 10 minutes").
+ * 
+ * EMOM = Every Minute On the Minute
+ * Example: "EMOM 10\n  5 Pullups\n  10 Pushups"
+ * - Executes child exercises at the start of each minute
+ * - Continues for specified number of intervals
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract interval duration from Timer fragment (e.g., 60000ms from "1:00")
+ * 2. Extract total intervals from Rounds fragment or Action value
+ * 3. Extract child statements from code[0].children
+ * 4. Create LoopCoordinatorBehavior with:
+ *    - loopType: LoopType.INTERVAL
+ *    - childGroups: [childStatements]
+ *    - totalRounds: totalIntervals
+ *    - intervalDurationMs: intervalDuration
+ * 5. Create RuntimeBlock with the loop coordinator behavior
+ * 6. Block should emit interval:start and interval:complete events
+ */
+export class IntervalStrategy implements IRuntimeBlockStrategy {
+    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+        if (!statements || statements.length === 0) {
+            console.warn('IntervalStrategy: No statements provided');
+            return false;
+        }
+
+        if (!statements[0].fragments) {
+            console.warn('IntervalStrategy: Statement missing fragments array');
+            return false;
+        }
+
+        const fragments = statements[0].fragments;
+        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasAction = fragments.some(f => 
+            f.fragmentType === FragmentType.Action && 
+            (f.value as string)?.toUpperCase().includes('EMOM')
+        );
+
+        // Match if has Timer AND Action with "EMOM"
+        // This takes precedence over simple TimerStrategy
+        return hasTimer && hasAction;
+    }
+
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+        console.log(`  🧠 IntervalStrategy compiling ${code.length} statement(s)`);
+        console.warn(`  ⚠️  IntervalStrategy.compile() is a placeholder - full implementation pending`);
+
+        // Placeholder implementation - creates a simple block
+        // Full implementation will use LoopCoordinatorBehavior with LoopType.INTERVAL
+        
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = (code[0] as any)?.exerciseId || '';
+        
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new CompletionBehavior(
+            () => true, // Temporary - should check interval completion
+            []
+        ));
+
+        return new RuntimeBlock(
+            runtime,
+            code[0]?.id ? [code[0].id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "Interval"
+        );
+    }
+}
+
+/**
+ * Strategy that creates time-bound rounds blocks for AMRAP workouts.
+ * Matches statements with Timer + (Rounds OR Action="AMRAP").
+ * 
+ * AMRAP = As Many Rounds As Possible
+ * Example: "20:00 AMRAP\n  5 Pullups\n  10 Pushups"
+ * - Executes as many rounds as possible within time limit
+ * - Timer runs down, rounds are unlimited
+ * 
+ * This strategy has higher precedence than TimerStrategy and RoundsStrategy
+ * because it combines both concepts.
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract timer duration from Timer fragment (e.g., 1200000ms from "20:00")
+ * 2. Extract child statements from code[0].children
+ * 3. Create TimerBlock with direction='down' and durationMs
+ * 4. Create nested RoundsBlock with:
+ *    - loopType: LoopType.TIME_BOUND (infinite until timer expires)
+ *    - childGroups: [childStatements]
+ *    - totalRounds: Infinity or large number
+ * 5. TimerBlock wraps the RoundsBlock as its child
+ * 6. Completion: when timer expires
+ * 7. Block should track completed rounds for display
+ */
+export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
+    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+        if (!statements || statements.length === 0) {
+            console.warn('TimeBoundRoundsStrategy: No statements provided');
+            return false;
+        }
+
+        if (!statements[0].fragments) {
+            console.warn('TimeBoundRoundsStrategy: Statement missing fragments array');
+            return false;
+        }
+
+        const fragments = statements[0].fragments;
+        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        const hasAmrapAction = fragments.some(f => 
+            f.fragmentType === FragmentType.Action && 
+            (f.value as string)?.toUpperCase().includes('AMRAP')
+        );
+
+        // Match if has Timer AND (Rounds OR AMRAP action)
+        return hasTimer && (hasRounds || hasAmrapAction);
+    }
+
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+        console.log(`  🧠 TimeBoundRoundsStrategy compiling ${code.length} statement(s)`);
+        console.warn(`  ⚠️  TimeBoundRoundsStrategy.compile() is a placeholder - full implementation pending`);
+
+        // Placeholder implementation - creates a simple block
+        // Full implementation will create TimerBlock wrapping RoundsBlock
+        
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = (code[0] as any)?.exerciseId || '';
+        
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new CompletionBehavior(
+            () => true, // Temporary - should check timer completion
+            []
+        ));
+
+        return new RuntimeBlock(
+            runtime,
+            code[0]?.id ? [code[0].id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "TimeBoundRounds"
+        );
+    }
+}
+
+/**
+ * Strategy that creates group blocks for nested/grouped exercises.
+ * Matches statements that have child statements (nested structure).
+ * 
+ * Example: "(3 rounds)\n  (2 rounds)\n    5 Pullups"
+ * - Creates hierarchical block structure
+ * - Parent groups contain child blocks
+ * - Enables complex workout composition
+ * 
+ * This strategy should be evaluated after specific strategies (Timer, Rounds, etc.)
+ * but before the fallback EffortStrategy.
+ * 
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * 
+ * TODO: Full compile() implementation requires:
+ * 1. Extract child statements from code[0].children
+ * 2. Create container RuntimeBlock with blockType="Group"
+ * 3. Set up LoopCoordinatorBehavior to manage child compilation:
+ *    - loopType: LoopType.FIXED with totalRounds=1 (execute once)
+ *    - childGroups: [childStatements]
+ * 4. Pass compilation context to children
+ * 5. Handle nested groups recursively
+ * 6. Group completes when all children complete
+ * 
+ * Note: Groups are primarily structural containers. The parent block
+ * (e.g., RoundsBlock) typically handles the looping logic, and groups
+ * just organize exercises hierarchically.
+ */
+export class GroupStrategy implements IRuntimeBlockStrategy {
+    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+        if (!statements || statements.length === 0) {
+            console.warn('GroupStrategy: No statements provided');
+            return false;
+        }
+
+        // Match if statement has children
+        // This indicates a nested/grouped structure
+        const hasChildren = statements[0].children && statements[0].children.length > 0;
+        
+        return hasChildren;
+    }
+
+    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+        console.log(`  🧠 GroupStrategy compiling ${code.length} statement(s) with ${code[0].children?.length || 0} children`);
+        console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
+
+        // Placeholder implementation - creates a simple block
+        // Full implementation will use LoopCoordinatorBehavior to manage children
+        
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = (code[0] as any)?.exerciseId || '';
+        
+        const context = new BlockContext(runtime, blockId, exerciseId);
+        
+        const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new CompletionBehavior(
+            () => true, // Temporary - should check children completion
+            []
+        ));
+
+        return new RuntimeBlock(
+            runtime,
+            code[0]?.id ? [code[0].id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "Group"
+        );
+    }
+}
+
 // NOTE: All old strategies using RuntimeMetric[] have been commented out
 // They reference undefined block types and have incorrect interface signatures
-// The working strategies are: EffortStrategy, TimerStrategy, and RoundsStrategy (above)
+// The working strategies are: EffortStrategy, TimerStrategy, RoundsStrategy, 
+// IntervalStrategy, TimeBoundRoundsStrategy, and GroupStrategy (above)
