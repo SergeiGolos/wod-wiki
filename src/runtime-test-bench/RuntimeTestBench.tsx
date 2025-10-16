@@ -13,6 +13,9 @@ import { panelBase } from './styles/tailwind-components';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { RuntimeAdapter } from './adapters/RuntimeAdapter';
 import { MdTimerRuntime } from '../parser/md-timer';
+import { JitCompiler } from '../runtime/JitCompiler';
+import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../runtime/strategies';
+import { WodScript } from '../WodScript';
 
 /**
  * Main Runtime Test Bench component
@@ -25,6 +28,19 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
 }) => {
   // Parser instance (stable across renders)
   const parser = useMemo(() => new MdTimerRuntime(), []);
+
+  // Compiler instance with strategies registered in precedence order
+  const compiler = useMemo(() => {
+    const c = new JitCompiler();
+    // Register strategies in order of specificity (most specific first)
+    c.registerStrategy(new TimeBoundRoundsStrategy());  // Timer + Rounds/AMRAP (most specific)
+    c.registerStrategy(new IntervalStrategy());         // Timer + EMOM
+    c.registerStrategy(new TimerStrategy());            // Timer only
+    c.registerStrategy(new RoundsStrategy());           // Rounds only
+    c.registerStrategy(new GroupStrategy());            // Has children
+    c.registerStrategy(new EffortStrategy());           // Fallback (everything else)
+    return c;
+  }, []);
   
   // Parse results state
   const [parseResults, setParseResults] = useState<ParseResults>({
@@ -42,8 +58,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
   // Basic state
   const [code, setCode] = useState(initialCode);
   const [status, setStatus] = useState<'idle' | 'running' | 'paused' | 'completed' | 'error'>('idle');
-  const [errors] = useState([]); // TODO: Connect to parser
-  const [compilationLog] = useState([]); // TODO: Connect to compiler
+  const [compilationLog, setCompilationLog] = useState<any[]>([]); // TODO: Type with LogEntry interface
 
   // Debounce timer ref
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,11 +148,63 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
     }
   }, [status, runtime]);
 
-  // Mock action handlers
-  const handleCompile = () => {
-    setStatus('idle');
-    if (runtime) updateSnapshot();
-  };
+  // Compile parsed statements to runtime blocks
+  const handleCompile = useCallback(() => {
+    try {
+      // Check if we have statements to compile
+      if (parseResults.statements.length === 0) {
+        setCompilationLog([{
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: 'No statements to compile',
+          level: 'warning'
+        }]);
+        setStatus('idle');
+        return;
+      }
+
+      // Create a temporary runtime for compilation (will be replaced after successful compile)
+      const tempRuntime = new ScriptRuntime(
+        new WodScript(code, parseResults.statements as any, parseResults.errors as any),
+        compiler
+      );
+
+      // Compile to runtime blocks
+      const block = compiler.compile(parseResults.statements as any, tempRuntime);
+      
+      if (!block) {
+        setCompilationLog([{
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: 'Compilation failed - no matching strategy found',
+          level: 'error'
+        }]);
+        setStatus('error');
+        return;
+      }
+
+      // Success - update runtime and state
+      setRuntime(tempRuntime);
+
+      setCompilationLog([{
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: `Compilation successful. Block type: ${block.blockType}`,
+        level: 'success'
+      }]);
+      
+      setStatus('idle');
+      updateSnapshot();
+    } catch (error: any) {
+      setCompilationLog([{
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: `Compilation error: ${error.message || 'Unknown error'}`,
+        level: 'error'
+      }]);
+      setStatus('error');
+    }
+  }, [parseResults, code, compiler]);
   const handleExecute = () => {
     setStatus('running');
     if (runtime) updateSnapshot();
@@ -198,13 +265,13 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
   const getLayoutClasses = () => {
     switch (viewport) {
       case 'desktop':
-        return 'bg-background text-foreground min-h-screen p-6 space-y-6';
+        return 'bg-background text-foreground min-h-screen space-y-6';
       case 'tablet':
-        return 'bg-background text-foreground min-h-screen p-4 space-y-4';
+        return 'bg-background text-foreground min-h-screen space-y-4';
       case 'mobile':
-        return 'bg-background text-foreground min-h-screen p-2 space-y-2';
+        return 'bg-background text-foreground min-h-screen space-y-2';
       default:
-        return 'bg-background text-foreground min-h-screen p-6 space-y-6';
+        return 'bg-background text-foreground min-h-screen space-y-6';
     }
   };
 
@@ -247,31 +314,33 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Editor Panel */}
-          <div className="bg-card border rounded-lg p-4">
+          <div className="bg-card rounded-lg p-4">
             <EditorPanel
           value={code}
           onChange={handleCodeChange}
           highlightedLine={highlightState.line}
-          errors={errors}
-          status={status === 'idle' ? 'idle' : status === 'error' ? 'error' : 'parsing'}
+          errors={parseResults.errors}
+          status={parseResults.status === 'success' ? 'valid' : 
+                  parseResults.status === 'parsing' ? 'parsing' : 
+                  parseResults.status === 'error' ? 'error' : 'idle'}
           readonly={false}
             />
           </div>
 
           {/* Compilation Panel */}
-          <div className="bg-card border rounded-lg p-4">
+          <div className="bg-card rounded-lg p-4">
             <CompilationPanel
+          statements={parseResults.statements}
           activeTab="output"
           onTabChange={() => {}}
           compilationLog={compilationLog}
-          errors={errors}
+          errors={parseResults.errors}
           warnings={[]}
             />
           </div>
 
           {/* Runtime Stack Panel */}
-          <div className="bg-card border rounded-lg p-4">
+          <div className="bg-card rounded-lg p-4">
             <RuntimeStackPanel
           blocks={blocks}
           highlightedBlockKey={highlightState.blockKey}
@@ -281,7 +350,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
           </div>
 
           {/* Memory Panel */}
-          <div className="bg-card border rounded-lg p-4">
+          <div className="bg-card rounded-lg p-4">
             <MemoryPanel
           entries={memory}
           highlightedMemoryId={highlightState.memoryId}
@@ -296,7 +365,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
         </div>
 
         {/* Controls Panel */}
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card rounded-lg p-4">
           <ControlsPanel
             status={status as any}
             enabled={true}
@@ -312,7 +381,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
         </div>
 
         {/* Status Footer */}
-        <div className="bg-card border rounded-lg p-4">
+        <div className="bg-card rounded-lg p-4">
           <StatusFooter
           status={status as any}
           elapsedTime={0}
