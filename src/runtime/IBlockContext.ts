@@ -1,5 +1,6 @@
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { MemoryTypeEnum } from './MemoryTypeEnum';
+import { IAnchorValue } from './IAnchorValue';
 
 /**
  * BlockContext provides memory allocation and access for a runtime block.
@@ -89,4 +90,34 @@ export interface IBlockContext {
      * @returns true if release() has been called
      */
     isReleased(): boolean;
+    
+    /**
+     * Get or create an anchor reference with a stable ID.
+     * 
+     * Anchors are special memory references that act as named pointers
+     * to other memory references. They enable UI components to subscribe
+     * to data without knowing the specific data source.
+     * 
+     * If an anchor with the given ID already exists (from any owner),
+     * it returns the existing reference. Otherwise, it creates a new one.
+     * 
+     * Anchors are always allocated with 'public' visibility so they can
+     * be found by UI components across the application.
+     * 
+     * @param anchorId Stable, semantic ID for the anchor (e.g., 'anchor-main-workout-clock')
+     * @returns Typed memory reference for the anchor
+     * @throws Error if context has been released
+     * 
+     * @example
+     * ```typescript
+     * const anchor = context.getOrCreateAnchor('anchor-main-clock');
+     * anchor.set({
+     *   searchCriteria: {
+     *     ownerId: timerBlockId,
+     *     type: MemoryTypeEnum.TIMER_TIME_SPANS
+     *   }
+     * });
+     * ```
+     */
+    getOrCreateAnchor(anchorId: string): TypedMemoryReference<IAnchorValue>;
 }

@@ -56,4 +56,10 @@ export enum MemoryTypeEnum {
    * Metric values for workout tracking
    */
   METRIC_VALUES = 'metric-values',
+  
+  /**
+   * Anchor reference - a stable pointer to dynamically resolved memory references
+   * Used for UI data binding without tight coupling to specific data sources
+   */
+  ANCHOR = 'anchor',
 }
