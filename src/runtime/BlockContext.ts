@@ -2,6 +2,7 @@ import { IBlockContext } from './IBlockContext';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IScriptRuntime } from './IScriptRuntime';
 import { MemoryTypeEnum } from './MemoryTypeEnum';
+import { IAnchorValue } from './IAnchorValue';
 
 /**
  * BlockContext implementation for runtime block memory management.
@@ -95,5 +96,53 @@ export class BlockContext implements IBlockContext {
     
     isReleased(): boolean {
         return this._released;
+    }
+    
+    getOrCreateAnchor(anchorId: string): TypedMemoryReference<IAnchorValue> {
+        if (this._released) {
+            throw new Error(
+                `Cannot access anchor on released context (ownerId: ${this.ownerId})`
+            );
+        }
+        
+        // Search for existing anchor with this ID (across all owners)
+        const existingRefs = this.runtime.memory.search({
+            id: anchorId,
+            type: MemoryTypeEnum.ANCHOR,
+            ownerId: null,
+            visibility: null
+        });
+        
+        if (existingRefs.length > 0) {
+            const anchorRef = existingRefs[0] as TypedMemoryReference<IAnchorValue>;
+            
+            // Add to our references if not already tracked
+            if (!this._references.find(r => r.id === anchorRef.id)) {
+                this._references.push(anchorRef);
+            }
+            
+            return anchorRef;
+        }
+        
+        // Create new anchor with stable ID
+        // Anchors use their semantic ID as the memory reference ID
+        const anchorRef = new TypedMemoryReference<IAnchorValue>(
+            this.runtime.memory,
+            this.ownerId,
+            MemoryTypeEnum.ANCHOR,
+            'public'
+        );
+        
+        // Override the auto-generated UUID with the stable anchor ID
+        (anchorRef as any).id = anchorId;
+        
+        // Manually add to runtime memory since we're bypassing normal allocation
+        (this.runtime.memory as any)._references.push({
+            ref: anchorRef,
+            data: undefined
+        });
+        
+        this._references.push(anchorRef);
+        return anchorRef;
     }
 }
