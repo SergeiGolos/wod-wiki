@@ -5,12 +5,16 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { BlockKey } from "../BlockKey";
 import { ICodeStatement } from "@/CodeStatement";
+import { CodeStatement } from "../CodeStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { FragmentType } from "../CodeFragment";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
 import { BlockContext } from "./BlockContext";
 import { CompletionBehavior } from "./behaviors/CompletionBehavior";
+import { TimerBlock } from "./blocks/TimerBlock";
+import { RoundsBlock } from "./blocks/RoundsBlock";
+import { MemoryTypeEnum } from "./MemoryTypeEnum";
 
 /**
  * The default strategy that creates a simple EffortBlock for repetition-based workouts.
@@ -41,20 +45,57 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // 3. Create BlockContext (may not need memory allocation for simple effort blocks)
         const context = new BlockContext(runtime, blockId, exerciseId);
         
-        // TODO Phase 2.5: Use _context parameter to inherit reps if not explicitly set
+        // 4. Extract reps from fragment OR inherit from parent's public metric
+        let reps: number | undefined = undefined;
         
-        // 4. Create behaviors
+        // First, check if fragment explicitly specifies reps
+        const fragments = code[0]?.fragments || [];
+        const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
+        if (repsFragment && typeof repsFragment.value === 'number') {
+          reps = repsFragment.value;
+          console.log(`  📊 EffortStrategy: Using explicit reps from fragment: ${reps}`);
+        }
+        
+        // If no explicit reps, check for inherited reps from parent blocks
+        if (reps === undefined) {
+          const publicRepsRefs = runtime.memory.search({
+            type: MemoryTypeEnum.METRIC_REPS,
+            visibility: 'public',
+            id: null,
+            ownerId: null
+          });
+          
+          if (publicRepsRefs.length > 0) {
+            // Use the most recent public reps metric (last in array)
+            const latestRepsRef = publicRepsRefs[publicRepsRefs.length - 1];
+            const inheritedReps = runtime.memory.get(latestRepsRef as any);
+            if (inheritedReps !== undefined) {
+              reps = inheritedReps as number;
+              console.log(`  📊 EffortStrategy: Inherited reps from parent: ${reps} (from ${latestRepsRef.ownerId})`);
+            }
+          }
+        }
+        
+        // If still no reps, could use _context.reps as fallback
+        if (reps === undefined && _context?.reps !== undefined) {
+          reps = _context.reps;
+          console.log(`  📊 EffortStrategy: Using reps from compilation context: ${reps}`);
+        }
+        
+        // 5. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
-        // Effort blocks without children are leaf nodes - complete immediately
+        // Effort blocks are leaf nodes that complete on first next() call (not on push)
+        // This prevents recursion during mount where push -> complete -> pop -> next -> push...
         // TODO: If we need to support effort blocks with children, add LoopCoordinatorBehavior here
         behaviors.push(new CompletionBehavior(
-            () => true, // Always complete (leaf node)
-            [] // Check on push
+            () => true, // Always complete when checked
+            [], // No event triggers
+            false // Don't check on push - only check on next()
         ));
 
-        // 5. Create RuntimeBlock with context
-        return new RuntimeBlock(
+        // 6. Create RuntimeBlock with context
+        const block = new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
             behaviors,
@@ -62,6 +103,16 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Effort"
         );
+
+        // 7. Store reps in block for inspection/debugging
+        if (reps !== undefined) {
+          (block as any).reps = reps;
+          console.log(`  ✅ EffortStrategy: Created EffortBlock with ${reps} reps`);
+        } else {
+          console.log(`  ⚠️  EffortStrategy: Created EffortBlock with no reps specified`);
+        }
+
+        return block;
     }
 }
 
@@ -184,38 +235,58 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _parentContext?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
 
-        // Note: RoundsStrategy should delegate to RoundsBlock which uses LoopCoordinatorBehavior
-        // For now, create a simple leaf node. Full RoundsBlock integration requires importing from blocks/
+        // Extract rounds configuration from fragments
+        const fragments = code[0]?.fragments || [];
+        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
         
-        // 1. Generate BlockKey
-        const blockKey = new BlockKey();
-        const blockId = blockKey.toString();
-        
-        // 2. Extract exerciseId from statement (if available)
-        const exerciseId = (code[0] as any)?.exerciseId || '';
-        
-        // 3. Create BlockContext
-        const context = new BlockContext(runtime, blockId, exerciseId);
-        
-        // TODO Phase 2.6: Use RoundsBlock directly instead of manually creating behaviors
-        // This strategy should create a RoundsBlock instance which handles LoopCoordinatorBehavior internally
-        
-        // 4. Create simple completion behavior for now
-        const behaviors: IRuntimeBehavior[] = [];
-        behaviors.push(new CompletionBehavior(
-            () => true, // Temporary - RoundsBlock should manage completion
-            [] // Check on push
-        ));
+        if (!roundsFragment) {
+          console.error('RoundsStrategy: No Rounds fragment found');
+          throw new Error('RoundsStrategy requires Rounds fragment');
+        }
 
-        // 5. Create RuntimeBlock with context
-        return new RuntimeBlock(
-            runtime,
-            code[0]?.id ? [code[0].id] : [],
-            behaviors,
-            context,
-            blockKey,
-            "Rounds"
-        );
+        // Extract rep scheme from fragment value
+        // Example: "(21-15-9)" -> [21, 15, 9]
+        let totalRounds = 1;
+        let repScheme: number[] | undefined = undefined;
+
+        if (Array.isArray(roundsFragment.value)) {
+          // Value is already an array of numbers (rep scheme)
+          repScheme = roundsFragment.value as number[];
+          totalRounds = repScheme.length;
+          console.log(`  📊 RoundsStrategy: Rep scheme detected: [${repScheme.join(', ')}]`);
+        } else if (typeof roundsFragment.value === 'number') {
+          // Value is a single number (fixed rounds)
+          totalRounds = roundsFragment.value;
+          console.log(`  📊 RoundsStrategy: Fixed rounds detected: ${totalRounds}`);
+        }
+
+        // Get children from statement - these are child STATEMENTS to execute per round
+        const childStatements: CodeStatement[] = [];
+        
+        // Check if children are embedded in the statement
+        if (code[0]?.children && code[0].children.length > 0 && (code[0].children[0] as any).fragments) {
+          // Children are already resolved as statements (ideal parser behavior)
+          childStatements.push(...code[0].children as any);
+          console.log(`  📊 RoundsStrategy: Found ${childStatements.length} embedded child statements`);
+        } else if (code.length > 1) {
+          // Parser passed multiple statements: first is rounds, rest are children
+          // This is a workaround for parsers that don't create tree structure
+          childStatements.push(...code.slice(1) as CodeStatement[]);
+          console.log(`  📊 RoundsStrategy: Using ${childStatements.length} sibling statements as children`);
+        } else {
+          // No children available - this is an error condition
+          console.error('RoundsStrategy: No children statements found for rounds block!');
+          throw new Error(`RoundsStrategy requires child statements to execute. Got ${code.length} statement(s).`);
+        }
+
+        console.log(`  📊 RoundsStrategy: Creating RoundsBlock with ${totalRounds} rounds, ${childStatements.length} children`);
+
+        // Create RoundsBlock instance
+        return new RoundsBlock(runtime, code[0]?.id ? [code[0].id] : [], {
+          totalRounds,
+          repScheme,
+          children: childStatements
+        });
     }
 }
 
@@ -365,31 +436,77 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
         console.log(`  🧠 TimeBoundRoundsStrategy compiling ${code.length} statement(s)`);
-        console.warn(`  ⚠️  TimeBoundRoundsStrategy.compile() is a placeholder - full implementation pending`);
 
-        // Placeholder implementation - creates a simple block
-        // Full implementation will create TimerBlock wrapping RoundsBlock
-        
-        const blockKey = new BlockKey();
-        const blockId = blockKey.toString();
-        const exerciseId = (code[0] as any)?.exerciseId || '';
-        
-        const context = new BlockContext(runtime, blockId, exerciseId);
-        
-        const behaviors: IRuntimeBehavior[] = [];
-        behaviors.push(new CompletionBehavior(
-            () => true, // Temporary - should check timer completion
-            []
-        ));
+        const stmt = code[0];
+        const fragments = stmt.fragments || [];
 
-        return new RuntimeBlock(
+        // Extract timer duration from Timer fragment
+        const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
+        let durationMs: number | undefined;
+        if (timerFragment && timerFragment.value) {
+            // Parse duration from fragment value (e.g., "20:00" -> 1200000ms)
+            const timeStr = String(timerFragment.value);
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                const minutes = parseInt(parts[0], 10);
+                const seconds = parseInt(parts[1], 10);
+                durationMs = (minutes * 60 + seconds) * 1000;
+            }
+        }
+
+        // Extract rounds and rep scheme from Rounds fragment
+        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
+        let totalRounds = 3; // Default
+        let repScheme: number[] | undefined;
+        
+        if (roundsFragment && roundsFragment.value) {
+            const roundsValue = String(roundsFragment.value);
+            // Check if it's a rep scheme like "(21-15-9)" or simple rounds like "(3)"
+            if (roundsValue.includes('-')) {
+                // Variable rep scheme
+                const repsStr = roundsValue.replace(/[()]/g, '');
+                repScheme = repsStr.split('-').map(r => parseInt(r.trim(), 10));
+                totalRounds = repScheme.length;
+            } else {
+                // Fixed rounds
+                const roundsStr = roundsValue.replace(/[()]/g, '');
+                totalRounds = parseInt(roundsStr, 10) || 3;
+            }
+        }
+
+        // Extract children (exercises to perform each round)
+        const children = stmt.children || [];
+
+        // Create RoundsBlock with LoopCoordinatorBehavior in TIME_BOUND mode
+        const roundsBlock = new RoundsBlock(
             runtime,
-            code[0]?.id ? [code[0].id] : [],
-            behaviors,
-            context,
-            blockKey,
-            "TimeBoundRounds"
+            stmt.id ? [stmt.id] : [],
+            {
+                totalRounds,
+                repScheme,
+                children: children as any[], // CodeStatement array
+            }
         );
+
+        // If no valid timer duration found, use a default (for testing)
+        if (!durationMs || durationMs <= 0) {
+            console.warn(`TimeBoundRoundsStrategy: Invalid or missing timer duration, using default 20 minutes`);
+            durationMs = 20 * 60 * 1000; // Default to 20 minutes
+        }
+
+        // Create TimerBlock wrapping the RoundsBlock
+        // Timer should count down and stop when it expires OR when rounds complete
+        const timerBlock = new TimerBlock(
+            runtime,
+            stmt.id ? [stmt.id] : [],
+            {
+                direction: 'down',
+                durationMs,
+                children: [roundsBlock] as any[], // Pass RoundsBlock as child
+            }
+        );
+
+        return timerBlock;
     }
 }
 

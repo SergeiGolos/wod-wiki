@@ -637,15 +637,28 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     });
     console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
 
-    // Initialize with the root block
-    console.log(`🌱 Creating root block for ${wodScript.statements.length} statements`);
+    // Initialize by compiling the script's statements
+    console.log(`🌱 Compiling ${wodScript.statements.length} statements`);
     
-    // Note: Old demo used ChildAdvancementBehavior + LazyCompilationBehavior (deprecated)
-    // New approach: Use RoundsBlock with LoopCoordinatorBehavior or let JIT compiler handle compilation
-    // For this demo, we create an empty root block and let the JIT compiler compile statements
-    const rootBlock = new RuntimeBlock(runtime, [], []);
-    runtime.stack.push(rootBlock);
-    console.log(`  ✅ Root block pushed, stack depth: ${runtime.stack.blocks.length}`);
+    if (wodScript.statements.length > 0) {
+      // Compile the root statements using the JIT compiler
+      const compiledBlock = jitCompiler.compile(wodScript.statements, runtime);
+      
+      if (compiledBlock) {
+        runtime.stack.push(compiledBlock);
+        console.log(`  ✅ Compiled block pushed to stack, depth: ${runtime.stack.blocks.length}`);
+      } else {
+        console.warn(`  ⚠️ JIT compiler returned no block for statements`);
+        // Create empty root block as fallback
+        const rootBlock = new RuntimeBlock(runtime, [], []);
+        runtime.stack.push(rootBlock);
+      }
+    } else {
+      console.warn(`  ⚠️ No statements to compile`);
+      // Create empty root block
+      const rootBlock = new RuntimeBlock(runtime, [], []);
+      runtime.stack.push(rootBlock);
+    }
 
     return runtime;
   };
@@ -676,15 +689,20 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   };
 
   const handleNextBlock = () => {
+    console.log('🔵 Next button clicked!');
+    
     if (!runtime) {
-      console.warn('No runtime available for Next button action');
+      console.warn('❌ No runtime available for Next button action');
       return;
     }
+
+    console.log(`📊 Current stack depth: ${runtime.stack.blocks.length}`);
+    console.log(`📍 Current block: ${runtime.stack.current?.key?.toString() || 'None'}`);
 
     // Handle rapid clicks by queuing them
     if (isProcessingNext) {
       setNextClickQueue(prev => prev + 1);
-      console.log(`Next click queued. Queue size: ${nextClickQueue + 1}`);
+      console.log(`⏳ Next click queued. Queue size: ${nextClickQueue + 1}`);
       return;
     }
 
@@ -693,21 +711,28 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     try {
       // Check if script has already completed
       if (!runtime.stack.current) {
-        console.log('Script has already completed - no current block to advance');
+        console.log('✅ Script has already completed - no current block to advance');
         setIsProcessingNext(false);
         return;
       }
 
       // Create and handle the NextEvent using our new event system
+      console.log('📨 Creating NextEvent...');
       const nextEvent = new NextEvent({
         source: 'ui-button',
         timestamp: Date.now(),
         queuePosition: nextClickQueue,
         isCompleted: false
       });
+      
+      console.log('⚡ Calling runtime.handle(nextEvent)...');
       runtime.handle(nextEvent);
+      
+      console.log(`📊 After handle - stack depth: ${runtime.stack.blocks.length}`);
+      console.log(`📍 After handle - current block: ${runtime.stack.current?.key?.toString() || 'None'}`);
 
       // Force a re-render to update the UI
+      console.log('🔄 Forcing UI re-render...');
       setStepVersion(v => v + 1);
 
       // Check for script completion after advancement
@@ -715,10 +740,12 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         if (!runtime.stack.current) {
           console.log('🎉 Script execution completed!');
           // You could add completion state here if needed
+        } else {
+          console.log(`▶️ Script still executing - current block: ${runtime.stack.current.key.toString()}`);
         }
       }, 0);
 
-      console.log('Next button executed successfully');
+      console.log('✅ Next button executed successfully');
     } catch (error) {
       console.error('Error handling Next button click:', error);
       // Still force re-render even on error to show any error state

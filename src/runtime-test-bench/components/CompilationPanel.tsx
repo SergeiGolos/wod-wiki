@@ -1,6 +1,7 @@
 import React from 'react';
 import { CompilationPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
+import { FragmentVisualizer } from '../../components/fragments';
 
 /**
  * CompilationPanel component - displays compilation output with tabbed interface
@@ -31,24 +32,48 @@ export const CompilationPanel: React.FC<CompilationPanelProps> = ({
           No compiled statements to display
         </div>
       ) : (
-        <div className="space-y-2">
-          {statements.map((statement, index) => (
-            <div
-              key={index}
-              className="p-3 bg-muted/50 rounded border border-border cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => onStatementClick?.(index)}
-              data-testid={`statement-${index}`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded">
-                  Statement {index + 1}
-                </span>
-              </div>
-              <div className="text-sm text-foreground font-mono">
-                {JSON.stringify(statement, null, 2)}
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-white text-gray-900">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 border-b border-gray-200">
+                  Line
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 border-b border-gray-200">
+                  Position
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 border-b border-gray-200">
+                  Fragments
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {statements.map((statement, index) => {
+                const line = statement.meta?.line ?? index + 1;
+                const columnStart = statement.meta?.columnStart ?? 0;
+                const columnEnd = statement.meta?.columnEnd ?? 0;
+                
+                return (
+                  <tr
+                    key={index}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => onStatementClick?.(index)}
+                    data-testid={`statement-${index}`}
+                  >
+                    <td className="px-4 py-3 border-b border-gray-100 text-sm font-mono">
+                      {line}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-100 text-sm font-mono text-gray-600">
+                      [{columnStart}-{columnEnd}]
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-100">
+                      <FragmentVisualizer fragments={statement.fragments} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@
 // All interfaces follow strict TypeScript patterns for React component library
 
 import type { ScriptRuntime as RealScriptRuntime } from '../../runtime/ScriptRuntime';
+import type { ICodeStatement } from '../../CodeStatement';
 
 // ============================================================================
 // 1. UI STATE LAYER
@@ -454,16 +455,12 @@ export interface ControlsPanelProps extends BasePanelProps {
   status: ExecutionStatus;
   /** Whether controls are enabled */
   enabled: boolean;
-  /** Execution speed multiplier (1.0 = normal speed) */
-  speed: number;
   /** Callback for play/pause toggle */
   onPlayPause: () => void;
   /** Callback for stop execution */
   onStop: () => void;
   /** Callback for reset execution */
   onReset: () => void;
-  /** Callback for speed change */
-  onSpeedChange: (speed: number) => void;
   /** Callback for step execution */
   onStep: () => void;
   /** Whether step mode is enabled */
@@ -544,8 +541,8 @@ export interface NextEvent {
   // Existing interface - no modifications
 }
 
-export interface CodeStatement {
-  // Existing interface - no modifications
+export interface CodeStatement extends ICodeStatement {
+  // Extending ICodeStatement which has: id, parent, children, fragments, isLeaf, meta
 }
 
 export interface SearchCriteria {

@@ -1,19 +1,17 @@
 import React from 'react';
 import { ControlsPanelProps } from '../types/interfaces';
-import { panelBase, panelHeader, panelHeaderTitle, panelContent, buttonPrimary, buttonSecondary, buttonSuccess, buttonError } from '../styles/tailwind-components';
+import { panelBase, panelHeader, panelHeaderTitle, panelContent, buttonSecondary, buttonSuccess, buttonError } from '../styles/tailwind-components';
 
 /**
  * ControlsPanel - Execution control panel for runtime test bench
- * Provides play/pause/stop/reset controls, speed adjustment, and step execution
+ * Provides play/pause/stop/reset controls and step execution
  */
 export const ControlsPanel: React.FC<ControlsPanelProps> = ({
   status,
   enabled,
-  speed,
   onPlayPause,
   onStop,
   onReset,
-  onSpeedChange,
   onStep,
   stepMode,
   onStepModeToggle,
@@ -113,23 +111,6 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = ({
           >
             Step ▶️
           </button>
-        </div>
-
-        {/* Speed Control */}
-        <div className="flex items-center justify-center space-x-2">
-          <label className="text-sm text-muted-foreground">Speed:</label>
-          <input
-            type="range"
-            min="0.1"
-            max="5.0"
-            step="0.1"
-            value={speed}
-            onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            disabled={!enabled}
-            className="w-24 h-2 bg-muted rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title={`Execution speed: ${speed}x`}
-          />
-          <span className="text-sm text-muted-foreground min-w-[3rem]">{speed}x</span>
         </div>
 
         {/* Status Indicators */}

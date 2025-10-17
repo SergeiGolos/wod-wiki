@@ -58,6 +58,24 @@ export enum MemoryTypeEnum {
   METRIC_VALUES = 'metric-values',
   
   /**
+   * Repetition count metric - number of reps for current context (round/interval)
+   * Allocated by RoundsBlock for inheritance by child EffortBlocks
+   */
+  METRIC_REPS = 'metric:reps',
+  
+  /**
+   * Duration metric - time in milliseconds for current context
+   * Allocated by TimerBlock for inheritance by child blocks
+   */
+  METRIC_DURATION = 'metric:duration',
+  
+  /**
+   * Resistance/weight metric - weight value for current context
+   * Allocated by parent blocks for inheritance by child EffortBlocks
+   */
+  METRIC_RESISTANCE = 'metric:resistance',
+  
+  /**
    * Anchor reference - a stable pointer to dynamically resolved memory references
    * Used for UI data binding without tight coupling to specific data sources
    */

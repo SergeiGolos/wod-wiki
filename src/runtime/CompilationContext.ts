@@ -69,4 +69,70 @@ export interface CompilationContext {
    * Allows grandchildren to access grandparent context.
    */
   parent?: CompilationContext;
+
+  /**
+   * Parent block reference (for coordination).
+   * Allows behaviors to query parent block state during compilation.
+   */
+  parentBlock?: any; // IRuntimeBlock causes circular dependency
+
+  /**
+   * Inherited metrics from parent blocks.
+   * Strategies should check inheritedMetrics before extracting from fragments.
+   */
+  inheritedMetrics?: InheritedMetrics;
+
+  /**
+   * Current round state (for round-based workouts).
+   * Provides complete round context for child compilation.
+   */
+  roundState?: RoundState;
+}
+
+/**
+ * Metrics inherited from parent blocks during compilation.
+ * Strategies use these as defaults when fragments don't specify values.
+ */
+export interface InheritedMetrics {
+  /**
+   * Rep count for the current context.
+   * Example: 21 for first round of Fran (21-15-9).
+   */
+  reps?: number;
+
+  /**
+   * Duration in milliseconds for the current context.
+   * Example: 1200000 for "20:00 For Time".
+   */
+  duration?: number;
+
+  /**
+   * Resistance/weight for the current context.
+   * Example: 135 for "135# Thrusters".
+   */
+  resistance?: number;
+}
+
+/**
+ * Round state information for round-based workouts.
+ * Provides complete round context for child compilation and display.
+ */
+export interface RoundState {
+  /**
+   * Current round number (1-indexed).
+   * Example: 1, 2, 3 for a 3-round workout.
+   */
+  currentRound: number;
+
+  /**
+   * Total number of rounds in the workout.
+   * Example: 3 for "(3) Pullups, Pushups".
+   */
+  totalRounds: number;
+
+  /**
+   * Rep scheme for variable-rep workouts.
+   * Example: [21, 15, 9] for Fran.
+   */
+  repScheme?: number[];
 }

@@ -3,6 +3,7 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IEvent } from '../IEvent';
+import { PopBlockAction } from '../PopBlockAction';
 
 /**
  * CompletionBehavior provides generic completion detection.
@@ -12,6 +13,7 @@ import { IEvent } from '../IEvent';
  * - Checks condition on onNext() calls
  * - Can be configured to check on specific events
  * - Emits block:complete when condition is met
+ * - Returns PopBlockAction when block completes
  * - Flexible for various completion scenarios
  * 
  * API Contract: contracts/runtime-blocks-api.md
@@ -21,7 +23,8 @@ export class CompletionBehavior implements IRuntimeBehavior {
 
   constructor(
     private readonly condition: (runtime: IScriptRuntime, block: IRuntimeBlock) => boolean,
-    private readonly triggerEvents?: string[]
+    private readonly triggerEvents?: string[],
+    private readonly checkOnPush: boolean = false
   ) {
     if (!condition || typeof condition !== 'function') {
       throw new TypeError('CompletionBehavior requires a valid condition function');
@@ -30,11 +33,17 @@ export class CompletionBehavior implements IRuntimeBehavior {
 
   /**
    * Check completion condition on push() calls.
-   * Allows immediate completion for leaf blocks.
+   * Only checks if checkOnPush flag is true.
+   * Allows immediate completion for blocks that complete on mount.
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     if (this.isCompleteFlag) {
       return []; // Already complete
+    }
+
+    // Only check on push if explicitly enabled
+    if (!this.checkOnPush) {
+      return [];
     }
 
     // Check completion condition
@@ -49,6 +58,9 @@ export class CompletionBehavior implements IRuntimeBehavior {
           blockId: block.key.toString(),
         },
       });
+
+      // Return PopBlockAction to remove this block from the stack
+      return [new PopBlockAction()];
     }
 
     return [];
@@ -75,6 +87,9 @@ export class CompletionBehavior implements IRuntimeBehavior {
           blockId: block.key.toString(),
         },
       });
+
+      // Return PopBlockAction to remove this block from the stack
+      return [new PopBlockAction()];
     }
 
     return [];
@@ -106,6 +121,9 @@ export class CompletionBehavior implements IRuntimeBehavior {
           blockId: block.key.toString(),
         },
       });
+
+      // Return PopBlockAction to remove this block from the stack
+      return [new PopBlockAction()];
     }
 
     return [];

@@ -244,18 +244,23 @@ This change introduces and modifies the following capabilities:
 
 1. **Should LazyCompilationBehavior be fully removed or kept for other block types?**
    - Decision: Keep for TimerBlock, EffortBlock; deprecate for RoundsBlock
+    > Answer: fully remove
 
 2. **How to handle AMRAP completion when timer expires mid-exercise?**
    - Decision: Allow current exercise to complete, then emit completion event
+   > Answer: the timer on the parent, it should create a pop event for all the children and the existing endting timer.
 
 3. **Should metric inheritance use push (parent provides) or pull (child requests) model?**
    - Decision: Push model via CompilationContext for better type safety
+	> Answer: The JIT has knowledge of public element on the current stack node, and should be alliable to the strategies to pick up on.
 
-4. **What happens if rep scheme has fewer values than rounds requested?**
+2. **What happens if rep scheme has fewer values than rounds requested?**
    - Decision: Error during compilation with clear message
+   >Answer: it ends when the rounds are complete. but this is a none realisatic state as the reps insteces drive the rounds value.
 
-5. **Should old behaviors remain for backward compatibility or hard cutover?**
+3. **Should old behaviors remain for backward compatibility or hard cutover?**
    - Decision: Hard cutover for RoundsBlock, gradual for others with deprecation warnings
+	> Answer: hard cutover, but we should fix the test.
 
 ## Dependencies
 

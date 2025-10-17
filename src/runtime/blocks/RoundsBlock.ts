@@ -6,6 +6,8 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { TypedMemoryReference } from '../IMemoryReference';
 
 /**
  * RoundsBlock Configuration
@@ -32,6 +34,7 @@ export interface RoundsBlockConfig {
  */
 export class RoundsBlock extends RuntimeBlock {
   private loopCoordinator: LoopCoordinatorBehavior;
+  private repsMetricRef?: TypedMemoryReference<number>;
 
   constructor(
     runtime: IScriptRuntime,
@@ -91,6 +94,18 @@ export class RoundsBlock extends RuntimeBlock {
 
     // Store reference to loop coordinator for context access
     this.loopCoordinator = loopCoordinator;
+
+    // Allocate public reps metric for child blocks to inherit
+    // Initialize with first round's reps (from rep scheme if available)
+    if (config.repScheme && config.repScheme.length > 0) {
+      const initialReps = config.repScheme[0];
+      this.repsMetricRef = this.allocate<number>({
+        type: MemoryTypeEnum.METRIC_REPS,
+        visibility: 'public',
+        initialValue: initialReps
+      });
+      console.log(`📊 RoundsBlock allocated public reps metric: ${initialReps} (round 1/${config.totalRounds})`);
+    }
   }
 
   /**
@@ -137,5 +152,25 @@ export class RoundsBlock extends RuntimeBlock {
    */
   getRepsForCurrentRound(): number | undefined {
     return this.loopCoordinator.getRepsForCurrentRound();
+  }
+
+  /**
+   * Override next() to update public reps metric after round advances.
+   */
+  next(runtime: IScriptRuntime): IRuntimeAction[] {
+    // Call parent implementation (invokes behaviors)
+    const actions = super.next(runtime);
+
+    // Update public reps metric if rep scheme is configured
+    if (this.repsMetricRef && this.config.repScheme) {
+      const currentRound = this.getCurrentRound() - 1; // Convert to 0-indexed
+      if (currentRound >= 0 && currentRound < this.config.repScheme.length) {
+        const currentReps = this.config.repScheme[currentRound];
+        runtime.memory.set(this.repsMetricRef, currentReps);
+        console.log(`📊 RoundsBlock updated public reps metric: ${currentReps} (round ${currentRound + 1}/${this.config.totalRounds})`);
+      }
+    }
+
+    return actions;
   }
 }

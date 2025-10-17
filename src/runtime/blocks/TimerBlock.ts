@@ -3,8 +3,10 @@ import { CodeStatement } from '../../CodeStatement';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
+import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
+import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 
 /**
  * TimerBlock Configuration
@@ -53,30 +55,39 @@ export class TimerBlock extends RuntimeBlock {
     // Create timer behavior
     const timerBehavior = new TimerBehavior(config.direction, config.durationMs);
 
+    // Create behaviors array
+    const behaviors: IRuntimeBehavior[] = [timerBehavior];
+
+    // If TimerBlock has children, add LoopCoordinatorBehavior for child management
+    let loopCoordinator: LoopCoordinatorBehavior | undefined;
+    if (config.children && config.children.length > 0) {
+      loopCoordinator = new LoopCoordinatorBehavior({
+        childGroups: [config.children], // Single group (timer wraps one child block)
+        loopType: LoopType.FIXED,
+        totalRounds: 1, // Timer pushes child once
+      });
+      behaviors.push(loopCoordinator);
+    }
+
     // Create completion behavior
     // For count-up: complete when children finish
     // For countdown: complete when timer reaches zero OR children finish
     const completionBehavior = new CompletionBehavior(
-      (rt, block) => {
+      (rt, _block) => {
         // Check if timer completed (for countdown)
         const isTimerComplete = config.direction === 'down' && 
           config.durationMs !== undefined &&
           timerBehavior.getElapsedMs() >= config.durationMs;
 
         // Check if children completed (if any)
-        const childrenComplete = !config.children || config.children.length === 0 ||
-          (block as any).childrenComplete?.() || false;
+        const childrenComplete = !loopCoordinator || loopCoordinator.isComplete(rt);
 
         return isTimerComplete || childrenComplete;
       },
       ['timer:complete', 'children:complete']
     );
-
-    // Create behaviors (timer blocks with children should use LoopCoordinatorBehavior in future)
-    // For now, timers without children are leaf nodes
-    const behaviors = [timerBehavior, completionBehavior];
     
-    // TODO: If TimerBlock needs to support children in future, add LoopCoordinatorBehavior here
+    behaviors.push(completionBehavior);
 
     // Initialize RuntimeBlock with behaviors
     super(

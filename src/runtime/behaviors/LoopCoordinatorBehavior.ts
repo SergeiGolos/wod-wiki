@@ -310,4 +310,21 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
     return context;
   }
+
+  /**
+   * Called when the block is popped from the stack.
+   * Cleanup any state if needed.
+   */
+  onPop(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
+    // No cleanup needed for stateless behavior
+    return [];
+  }
+
+  /**
+   * Disposes of resources.
+   * Safe to call multiple times.
+   */
+  dispose(): void {
+    // No resources to dispose (no timers, no event listeners)
+  }
 }
