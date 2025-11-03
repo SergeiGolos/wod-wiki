@@ -1,8 +1,0 @@
-Docs: Enhance Copilot guidelines and refactor JitCompiler docs
-
-- Added comprehensive Copilot guidelines to `gemini.md` for consistent documentation.
-- Refactored `JitCompiler` documentation location and updated all related links.
-- Improved descriptions for `BlockKey.md` and `Stack.md`.
-- Added new documentation files for runtime actions and metric inheritance.
-- Removed `testing-configuration.md`.
-- Updated `BlockKey.ts` to make `children` property readonly.
