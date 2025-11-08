@@ -1,297 +1,215 @@
-# Gemini Workspace
+# Gemini.md
 
-This document provides context for the Gemini agent to understand the wod-wiki project.
+This file provides guidance for Google Gemini when working with code in this repository.
 
 ## Project Overview
 
-wod-wiki is a project that appears to be a tool for creating and managing workout-of-the-day (WOD) descriptions. It includes a parser for a custom syntax, a component for displaying clocks and timers, and a Storybook setup for component development and testing.
+WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using a specialized syntax. It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
 
-## Tech Stack
+**Tech Stack**: TypeScript, React, Storybook, Vitest, Monaco Editor, Tailwind CSS, Chevrotain parser
+**Package Manager**: npm
 
-- **Language:** TypeScript
-- **Framework:** React (likely, based on the presence of `.tsx` files and Storybook)
-- **Styling:** Tailwind CSS
-- **Testing:** Vitest, Storybook
-- **Linting:** ESLint
-- **Package Manager:** npm
+## Essential Development Commands
 
-## Key Files
+### Environment Setup
+- `npm install` - Install dependencies (~15 seconds)
+- `npm run setup` - Install Playwright browsers (may fail with download errors - this is expected)
 
-- `package.json`: Defines project scripts, dependencies, and metadata.
-- `README.md`: Provides an overview of the project.
-- `src/`: Contains the main source code for the application.
-- `stories/`: Contains Storybook stories for component development and testing.
-- `wod-wiki/`: Contains documentation and notes related to the project.
+### Development Workflow
+- `npm run storybook` - Start Storybook development server on http://localhost:6006 (~2 seconds startup)
+- `npm run build-storybook` - Build static Storybook (~30 seconds - NEVER CANCEL, set timeout to 60+ minutes)
+- `npm run docs:check` - Validate documentation links (<1 second)
 
-## Commands
+### Testing Commands
+- `npm test` - Run all tests using Vitest (~2-3 seconds)
+- `npm run test:unit` - Run unit tests only (~2-3 seconds)
+- `npm run test:storybook` - Run Storybook component tests (requires Playwright)
+- `npm run test:watch` - Run unit tests in watch mode
+- `npm run test:e2e` - Run end-to-end tests with Playwright
 
-- `npm install`: Installs project dependencies.
-- `npm run dev`: Starts the development server.
-- `npm run build`: Builds the project for production.
-- `npm test`: Runs the test suite.
-- `npm run lint`: Lints the codebase.
-- `npm run storybook`: Starts the Storybook development server.
-- `npm run build-storybook`: Builds the Storybook for deployment.
+### Build & Type Checking
+- `npm run build-storybook` - Build static Storybook (~30 seconds)
+- `npx vitest run src/path/to/test.test.ts` - Run single test file
+- `npx tsc --noEmit` - Type check without emitting files
 
+## Project Architecture
 
+### Core Components
 
-----
+**JIT Compiler System** (`src/runtime/JitCompiler.ts`)
+- Just-In-Time compiler for workout scripts
+- Uses strategy pattern with `IRuntimeBlockStrategy` implementations
+- Coordinates fragment compilation, metric inheritance, and block creation
 
----
-applyTo: '**'
----
-# GitHub Copilot Instructions for WOD Wiki Project
+**Runtime Stack** (`src/runtime/RuntimeStack.ts`)
+- Stack-based execution environment for workout blocks
+- Constructor-based initialization pattern (blocks initialize during construction)
+- Consumer-managed disposal pattern (consumer must call `dispose()` on popped blocks)
+- Performance targets: push/pop < 1ms, current() < 0.1ms, dispose() < 50ms
 
-## Overview
-This document provides guidelines for GitHub Copilot when working with the WOD Wiki project, which uses Obsidian for note-taking and documentation. The project follows specific conventions for file organization and content relationships.
+**Parser System** (`src/parser/`)
+- Chevrotain-based parser for workout syntax
+- Files: `timer.parser.ts`, `timer.tokens.ts`, `timer.visitor.ts`
+- Parses workout scripts into `CodeStatement` nodes
 
-## Project Structure
+**Fragment System** (`src/fragments/`)
+- Types for parsed workout components (TimerFragment, RepFragment, EffortFragment, etc.)
+- Each fragment represents a specific workout metric or action
 
-### Directory Layout
+**Editor Integration** (`src/editor/`)
+- Monaco Editor integration with custom syntax highlighting
+- Suggestion engine and semantic token processing
+- `WodWiki.tsx` is the main editor component
+
+### Key Directories Structure
 ```
-./wod-wiki/
-├── Core/           # Design documents and specifications
-└── Working/        # Generated markdown documents
-```
+src/
+├── clock/              # Timer/clock components and hooks
+├── components/         # Shared React components
+│   └── fragments/      # Fragment visualization components
+├── editor/             # Monaco Editor integration
+├── fragments/          # Parsed statement fragment types
+├── parser/             # Workout script parsing logic
+├── runtime/            # JIT compiler and execution engine
+└── types/              # TypeScript type definitions
 
-### Directory Purposes
-
-#### `/wod-wiki/Core`
-- **Purpose**: Contains authoritative design documents
-- **Usage**: Reference these documents to validate designs and ensure compliance with established patterns
-- **Key responsibilities**:
-  - Read and understand design specifications before implementing features
-  - Validate that any proposed changes align with existing design documents
-  - Reference interface and workflow specifications when generating code or documentation
-
-#### `/wod-wiki/Working`
-- **Purpose**: Directory for all generated markdown documents
-- **Usage**: Place any new markdown files created during development here
-- **Key responsibilities**:
-  - All generated documentation should be saved to this directory
-  - Maintain consistent naming conventions
-  - Include appropriate metadata and tags for Obsidian
-
-## Working with Obsidian Documents
-
-### File Format Requirements
-1. **File Extension**: All documents must use `.md` extension
-2. **Front Matter**: Include YAML front matter for metadata
-   ```yaml
-   ---
-   title: "Document Title"
-   date: 2025-06-19
-   tags: [tag1, tag2]
-   ---
-   ```
-
-### Expressing Complex Relationships
-1. **Relative Links**: Use standard markdown link syntax with relative paths
-   - From Working to Core: `[Design Document](../Core/design-document.md)`
-   - Within Working: `[Related Document](./related-document.md)`
-   - Within Core: `[Core Document](./core-document.md)`
-2. **Relationship Types in Front Matter**:
-   - Parent-Child: Use `parent: ../Core/parent-document.md` in front matter
-   - Related: Use `related: ["./related-doc-1.md", "./related-doc-2.md"]`
-   - Implements: Use `implements: ../Core/design-document.md` when implementing a design
-
-### Example Document Structure
-```markdown
----
-title: "Feature Implementation"
-date: 2025-06-19
-tags: [implementation, feature-x]
-parent: ../Core/main-feature.md
-implements: ../Core/feature-x-design.md
-related: ["./feature-y.md", "./feature-z.md"]
----
-
-# Feature Implementation
-
-## Overview
-Brief description linking to [Feature X Design](../Core/feature-x-design.md).
-
-## Implementation Details
-...
+stories/                # Storybook stories
+├── clock/             # Clock component demonstrations
+├── compiler/          # JIT compiler visualization
+├── parsing/           # Parser examples
+└── runtime/           # Runtime execution demos
 ```
 
-## Workflow Guidelines
+## Critical Development Patterns
 
-### Before Creating New Content
-1. **Check Core Directory**: Review relevant design documents in `/wod-wiki/Core`
-2. **Validate Against Designs**: Ensure new content aligns with existing specifications
-3. **Identify Relationships**: Determine which existing documents should be linked
+### Runtime Block Lifecycle
+1. **Constructor-based initialization**: Blocks initialize during construction, not when pushed to stack
+2. **Consumer-managed disposal**: When popping blocks, consumer must call `dispose()`
+3. **Resource cleanup**: Implement robust disposal patterns with multiple-call safety
 
-### When Creating New Documents
-1. **Location**: Always save new documents to `/wod-wiki/Working`
-2. **Naming Convention**: Use descriptive, kebab-case names (e.g., `feature-implementation-guide.md`)
-3. **Include Metadata**: Add appropriate front matter with tags and relationships
-4. **Link Appropriately**: Create relative links to related documents
+### Parser Development
+- Update token definitions in `src/parser/timer.tokens.ts`
+- Modify parser rules in `src/parser/timer.parser.ts`
+- Update visitor in `src/parser/timer.visitor.ts`
+- Test with Parser stories in Storybook
 
-### Document Types and Templates
+### Component Development
+- Use existing Tailwind CSS classes rather than custom CSS
+- Follow TypeScript interfaces for props
+- Create corresponding Storybook stories in `stories/` directory
+- Export from appropriate index files if part of public API
 
-#### Design Implementation Document
-```markdown
----
-title: "Implementation: [Feature Name]"
-date: 2025-06-19
-tags: [implementation]
-implements: ../Core/design-document-name.md
-status: draft|in-progress|complete
----
+## Code Style Guidelines
 
-# Implementation: [Feature Name]
+### TypeScript & Imports
+- Use strict TypeScript with interfaces for all props and return types
+- Import order: external libraries, internal modules, relative imports
+- Use `@/*` path alias for src imports (configured in tsconfig.json)
+- Prefer `interface` over `type` for object shapes
 
-## Design Reference
-This implementation follows the specifications in [Design Document Name](../Core/design-document-name.md).
+### Naming Conventions
+- Components: PascalCase (e.g., `WorkoutTimer`)
+- Functions/variables: camelCase (e.g., `parseWorkoutScript`)
+- Constants: UPPER_SNAKE_CASE (e.g., `DEFAULT_TIMEOUT`)
+- Files: PascalCase for components, camelCase for utilities
 
-## Implementation Details
-...
+### Error Handling
+- Use TypeScript union types for error states
+- Return `Result<T, Error>` pattern or throw descriptive errors
+- Validate inputs at API boundaries
 
-## Validation Checklist
-- [ ] Complies with design specifications
-- [ ] All interfaces match design document
-- [ ] Workflow follows prescribed patterns
-```
+### React & Components
+- Use functional components with hooks
+- Follow existing Tailwind CSS patterns, avoid custom CSS
+- Create Storybook stories for all public components
+- Export components from `src/index.ts` if part of public API
 
-#### Technical Specification
-```markdown
----
-title: "Spec: [Component Name]"
-date: 2025-06-19
-tags: [specification, technical]
-related: ["./related-spec-1.md", "./related-spec-2.md"]
----
+### Testing
+- Unit tests: `src/**/*.test.ts` or `src/**/*.spec.ts`
+- Integration tests: `tests/**/*.test.ts`
+- Story files: `stories/**/*.stories.tsx`
+- Test files should be co-located with source files when possible
 
-# Technical Specification: [Component Name]
+## Validation Requirements
 
-## Overview
-...
+After making changes, always validate:
 
-## Interfaces
-...
+1. **Storybook Development Flow**:
+   - Run `npm run storybook`
+   - Verify Storybook loads on http://localhost:6006
+   - Navigate to Clock > Default > Default story
+   - Test component interactions in Controls panel
 
-## Dependencies
-- [Dependency 1](./dependency-1.md)
-- [Dependency 2](./dependency-2.md)
-```
+2. **Build Validation**:
+   - Run `npm run build-storybook` and wait for completion (~30 seconds)
+   - Verify build completes without errors and creates `storybook-static/` directory
 
-## Best Practices
+3. **Unit Test Regression**:
+   - Run `npm run test:unit`
+   - Ensure no NEW test failures are introduced
+   - Accept existing 4 module failures and 1 integration test failure as baseline
 
-### 1. Always Reference Core Documents
-- Before implementing any feature, check if there's a corresponding design in `/wod-wiki/Core`
-- Link to core documents using relative paths: `[Design](../Core/design.md)`
-- Include `implements:` reference in front matter
+## Known Issues and Constraints
 
-### 2. Maintain Link Integrity
-- Use consistent file names (kebab-case)
-- Use relative paths for all internal links
-- Update links if documents are moved or renamed
-- Verify links resolve correctly
+- **Playwright Browser Download**: `npm run setup` may fail downloading Chromium browsers (expected)
+- **TypeScript Errors**: 369 TypeScript errors exist in the codebase - only fix errors related to your changes
+- **No ESLint**: Code style enforced through TypeScript and manual review
+- **Build Times**: NEVER cancel builds - `npm run build-storybook` may take up to 60 minutes
 
-### 3. Link Path Guidelines
-- **From Working to Core**: Use `../Core/filename.md`
-- **From Working to Working**: Use `./filename.md`
-- **From subdirectory in Working**: Use `../other-file.md` or `../../Core/design.md`
-- **Always use `.md` extension** in links
+## Testing Guidelines
 
-### 4. Document Relationships
-- Express formal relationships in front matter with file paths
-- Use inline markdown links for contextual references
-- Maintain bidirectional linking when appropriate
+### Unit Tests
+- Use Vitest configuration files for different test types
+- `vitest.unit.config.js` for unit tests
+- `vitest.storybook.config.js` for Storybook component tests
+- Place test files alongside source files with `.test.ts` or `.spec.ts` suffix
 
-## Common Tasks
+### Storybook Tests
+- Interaction tests defined in story `play` functions
+- Example: timer test in `src/stories/TimerTest.stories.tsx`
+- Requires Storybook running and Playwright browsers installed
 
-### Creating a New Feature Implementation
-1. Review design document in `/wod-wiki/Core`
-2. Create new document in `/wod-wiki/Working`
-3. Add front matter with `implements: ../Core/design-name.md`
-4. Structure content according to design specifications
-5. Link to design using `[Design Name](../Core/design-name.md)`
+## File Organization
 
-### Documenting a Workflow
-1. Check `/wod-wiki/Core` for workflow patterns
-2. Create workflow document with appropriate relative links
-3. Use mermaid diagrams for visual representation
-4. Link to all involved components using relative paths
+### Public API Exports
+- Main library exports are handled through individual component exports
+- Fragment visualization components exported from `src/components/fragments/index.ts`
+- No single main index.ts file exists - exports are distributed across modules
 
-### Updating Existing Documentation
-1. Preserve existing relative links
-2. Update front matter if relationships change
-3. Add revision notes if significant changes are made
-4. Verify all links still resolve correctly
+### Documentation Files
+- Save new Markdown documentation to `/docs` directory
+- Documentation auto-published to GitHub Wiki when pushed to main branch
+- API documentation in `docs/runtime-api.md` provides detailed runtime stack patterns
 
-## Validation Rules
+## Performance Considerations
 
-### Before Saving Any Document
-1. ✓ File is in `/wod-wiki/Working` directory
-2. ✓ Has appropriate front matter with file paths for relationships
-3. ✓ Links to relevant Core documents using relative paths
-4. ✓ All internal links use relative paths with `.md` extension
-5. ✓ Follows kebab-case naming convention
+- All runtime stack operations must meet performance targets (see Lifecycle section)
+- JIT compilation should complete within milliseconds for typical workout scripts
+- Monaco Editor performance depends on efficient syntax highlighting and suggestion systems
+- Memory management is critical - always dispose of runtime blocks properly
 
-### For Design Implementations
-1. ✓ References specific design document from Core using relative path
-2. ✓ Follows all specifications in the design
-3. ✓ Does not deviate from prescribed interfaces or workflows
-4. ✓ Documents any necessary clarifications or assumptions
+## Gemini-Specific Guidelines
 
-## Error Prevention
+### Code Generation Approach
+- Focus on type-safe TypeScript implementations
+- Generate comprehensive JSDoc comments for complex logic
+- Create modular, reusable components following the existing patterns
+- Always include appropriate error handling and validation
 
-### Common Mistakes to Avoid
-1. ❌ Creating documents outside of `/wod-wiki/Working`
-2. ❌ Using wiki-link syntax `[[Document]]` instead of markdown links
-3. ❌ Using absolute paths instead of relative paths
-4. ❌ Forgetting `.md` extension in links
-5. ❌ Creating orphaned documents with no links
+### File Structure Adherence
+- Follow the established directory structure strictly
+- Use co-located test files with `.test.ts` suffix
+- Create corresponding Storybook stories in the `stories/` directory
+- Maintain consistent naming conventions across the project
 
-### Correct Patterns
-1. ✅ Always check Core before implementing: `[Design](../Core/design.md)`
-2. ✅ Use standard markdown links: `[Text](./path/to/file.md)`
-3. ✅ Save all new content to Working directory
-4. ✅ Include comprehensive front matter with file paths
-5. ✅ Express all relationships through relative links
+### Integration Best Practices
+- Leverage the existing JIT compiler patterns for new features
+- Use the runtime stack lifecycle management correctly
+- Integrate with the Monaco Editor system when working on editor features
+- Follow the fragment system patterns for new workout components
 
-## Link Examples
-
-### Correct Link Formats
-```markdown
-# From a file in /wod-wiki/Working/
-
-[Core Design Document](../Core/main-design.md)
-[Another Working Document](./another-document.md)
-[Subdirectory Document](./subdirectory/document.md)
-
-# From a file in /wod-wiki/Working/subdirectory/
-
-[Core Design](../../Core/design.md)
-[Parent Working Document](../parent-document.md)
-[Sibling Document](./sibling.md)
-```
-
-### Front Matter with Paths
-```yaml
----
-title: "My Implementation"
-implements: ../Core/design-spec.md
-parent: ./parent-feature.md
-related: 
-  - ./related-feature-1.md
-  - ./related-feature-2.md
-  - ../Core/reference-design.md
----
-```
-
-## Integration with Copilot
-
-When asked to:
-- **"Create documentation"**: Save to `/wod-wiki/Working` with proper front matter and relative links
-- **"Implement a feature"**: First check `/wod-wiki/Core` for relevant designs, link using `../Core/design.md`
-- **"Document relationships"**: Use relative paths in both front matter and inline links
-- **"Validate implementation"**: Compare against Core design documents using relative paths
-
-Remember: 
-- The Core directory is read-only for reference
-- All new content goes to Working directory
-- Always use relative paths with `.md` extension
-- Never use wiki-link `[[]]` syntax
+### Documentation Standards
+- Provide clear API documentation with examples
+- Include performance considerations for runtime components
+- Document any breaking changes or migration paths
+- Maintain consistency with existing code documentation style
