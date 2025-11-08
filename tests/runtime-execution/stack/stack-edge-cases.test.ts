@@ -5,7 +5,7 @@
  * in the RuntimeStack implementation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { BlockKey } from '../../../src/BlockKey';
 import { IRuntimeBlock } from '../../../src/runtime/IRuntimeBlock';
@@ -36,7 +36,7 @@ describe('RuntimeStack Error Conditions', () => {
     consoleSpy.mockRestore();
   });
   
-  test('invalid block types are rejected', () => {
+  it('invalid block types are rejected', () => {
     // Test various invalid inputs
     const invalidInputs = [
       null,
@@ -55,7 +55,7 @@ describe('RuntimeStack Error Conditions', () => {
     });
   });
   
-  test('blocks with problematic keys are handled', () => {
+  it('blocks with problematic keys are handled', () => {
     // Test edge cases for block keys
     const edgeCases = [
       { key: null, expectError: true },
@@ -83,7 +83,7 @@ describe('RuntimeStack Error Conditions', () => {
     });
   });
   
-  test('concurrent modifications do not corrupt stack', () => {
+  it('concurrent modifications do not corrupt stack', () => {
     // This tests that rapid push/pop operations don't corrupt internal state
     const blocks: MinimalBlock[] = [];
     
@@ -107,7 +107,7 @@ describe('RuntimeStack Error Conditions', () => {
     expect(stack.current).toBe(blocks[7]); // Last originally pushed block
   });
   
-  test('memory pressure with large numbers of blocks', () => {
+  it('memory pressure with large numbers of blocks', () => {
     // Test with max stack depth - max is 10
     const STRESS_TEST_SIZE = 10;
     const blocks: MinimalBlock[] = [];
@@ -144,7 +144,7 @@ describe('RuntimeStack Boundary Conditions', () => {
     stack = new RuntimeStack();
   });
   
-  test('empty stack operations', () => {
+  it('empty stack operations', () => {
     // Test all operations on empty stack
     expect(stack.current).toBeUndefined();
     expect(stack.blocks).toEqual([]);
@@ -158,7 +158,7 @@ describe('RuntimeStack Boundary Conditions', () => {
     expect(stack.pop()).toBeUndefined();
   });
   
-  test('stack with one element operations', () => {
+  it('stack with one element operations', () => {
     const block = new MinimalBlock(new BlockKey('single'));
     
     // Single push
@@ -176,7 +176,7 @@ describe('RuntimeStack Boundary Conditions', () => {
     expect(stack.blocks).toEqual([]);
   });
   
-  test('repeated push and pop of same block', () => {
+  it('repeated push and pop of same block', () => {
     const block = new MinimalBlock(new BlockKey('reused'));
     
     // Push and pop same block multiple times
@@ -190,7 +190,7 @@ describe('RuntimeStack Boundary Conditions', () => {
     }
   });
   
-  test('blocks with identical keys', () => {
+  it('blocks with identical keys', () => {
     // Test blocks with same key content (but different instances)
     const key1 = new BlockKey('duplicate');
     const key2 = new BlockKey('duplicate'); // Same content, different instance
@@ -220,7 +220,7 @@ describe('RuntimeStack Graph Method Edge Cases', () => {
     stack = new RuntimeStack();
   });
   
-  test('graph() with various stack sizes', () => {
+  it('graph() with various stack sizes', () => {
     const blocks: MinimalBlock[] = [];
     
     // Test empty
@@ -253,7 +253,7 @@ describe('RuntimeStack Graph Method Edge Cases', () => {
     });
   });
   
-  test('graph() returns independent arrays', () => {
+  it('graph() returns independent arrays', () => {
     const block1 = new MinimalBlock(new BlockKey('independent-1'));
     const block2 = new MinimalBlock(new BlockKey('independent-2'));
     
@@ -285,7 +285,7 @@ describe('RuntimeStack Performance Edge Cases', () => {
     stack = new RuntimeStack();
   });
   
-  test('operations maintain O(1) time complexity', () => {
+  it('operations maintain O(1) time complexity', () => {
     // Max stack depth is 10, so we test by doing multiple cycles
     const CYCLES = 1000;
     const STACK_SIZE = 10;
@@ -334,7 +334,7 @@ describe('RuntimeStack Performance Edge Cases', () => {
     expect(avgLatePop).toBeLessThan(avgEarlyPop * 10);
   });
   
-  test('graph() performance scales linearly', () => {
+  it('graph() performance scales linearly', () => {
     // Max stack depth is 10, test with different sizes up to max
     const sizes = [2, 4, 6, 8, 10];
     const times: number[] = [];

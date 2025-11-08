@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextEvent } from '../../../src/runtime/NextEvent';
 import { NextEventHandler } from '../../../src/runtime/NextEventHandler';
-import { NextAction } from '../../src/runtime/NextAction';
-import { ErrorAction } from '../../src/runtime/actions/ErrorAction';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
+import { NextAction } from '../../../src/runtime/NextAction';
+import { ErrorAction } from '../../../src/runtime/actions/ErrorAction';
+import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
 
 describe('Next Button Integration Tests', () => {
   let mockRuntime: IScriptRuntime;

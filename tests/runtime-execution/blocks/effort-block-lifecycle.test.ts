@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockRuntime } from '../../../tests/unit/runtime/test-utils';
+import { createMockRuntime } from '../../helpers/test-utils';
 import { EffortBlock } from '../../../src/runtime/blocks/EffortBlock';
 
 /**

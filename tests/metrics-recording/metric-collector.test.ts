@@ -10,7 +10,7 @@ describe('MetricCollector', () => {
   });
 
   describe('collect()', () => {
-    test('should collect a metric', () => {
+    it('should collect a metric', () => {
       const metric: RuntimeMetric = {
         exerciseId: 'bench-press',
         values: [{ type: 'repetitions', value: 10, unit: 'reps' }],
@@ -24,7 +24,7 @@ describe('MetricCollector', () => {
       expect(metrics[0]).toEqual(metric);
     });
 
-    test('should collect multiple metrics', () => {
+    it('should collect multiple metrics', () => {
       const metric1: RuntimeMetric = {
         exerciseId: 'bench-press',
         values: [{ type: 'repetitions', value: 10, unit: 'reps' }],
@@ -48,12 +48,12 @@ describe('MetricCollector', () => {
   });
 
   describe('getMetrics()', () => {
-    test('should return empty array when no metrics collected', () => {
+    it('should return empty array when no metrics collected', () => {
       const metrics = collector.getMetrics();
       expect(metrics).toEqual([]);
     });
 
-    test('should return copy of metrics array', () => {
+    it('should return copy of metrics array', () => {
       const metric: RuntimeMetric = {
         exerciseId: 'bench-press',
         values: [{ type: 'repetitions', value: 10, unit: 'reps' }],
@@ -72,7 +72,7 @@ describe('MetricCollector', () => {
   });
 
   describe('clear()', () => {
-    test('should clear all collected metrics', () => {
+    it('should clear all collected metrics', () => {
       const metric: RuntimeMetric = {
         exerciseId: 'bench-press',
         values: [{ type: 'repetitions', value: 10, unit: 'reps' }],

@@ -85,13 +85,15 @@ describe('Block Compilation Contract', () => {
 
   describe('TBC-002: RoundsStrategy compiles block with "Rounds" type metadata', () => {
     it('should create block with Rounds type when compiling rounds statement', () => {
-      // GIVEN: A rounds statement
+      // GIVEN: A rounds statement with child
       const statement: ICodeStatement = {
         id: new BlockKey('rounds-1'),
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
         ],
-        children: [],
+        children: [
+          { id: new BlockKey('child-1'), fragments: [{ fragmentType: FragmentType.Effort, value: 'Push-ups', type: 'effort' }], children: [], meta: undefined }
+        ],
         meta: undefined
       };
 

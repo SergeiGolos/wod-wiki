@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NextEventHandler } from '../../../src/runtime/NextEventHandler';
 import { NextEvent } from '../../../src/runtime/NextEvent';
-import { IEventHandler } from '../../src/runtime/IEventHandler';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
-import { ErrorAction } from '../../src/runtime/actions/ErrorAction';
+import { NextEventHandler } from '../../../src/runtime/NextEventHandler';
+import { IEventHandler } from '../../../src/runtime/IEventHandler';
+import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
+import { ErrorAction } from '../../../src/runtime/actions/ErrorAction';
 
 /**
  * NEW EVENT HANDLER PATTERN:

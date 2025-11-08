@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { BlockContext } from '../../../src/runtime/BlockContext';
-import { IScriptRuntime } from '../../../src/IScriptRuntime';
+import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 
@@ -13,7 +13,7 @@ describe('BlockContext', () => {
         // Create minimal runtime with memory
         runtime = {
             memory: new RuntimeMemory(),
-        } as IScriptRuntime;
+        } as unknown as IScriptRuntime;
         
         context = new BlockContext(runtime, ownerId, '');
     });
@@ -191,9 +191,11 @@ describe('BlockContext', () => {
             const ref = context.allocate<number>('test', 42);
             
             // Should be searchable in runtime memory
-            const found = runtime.memory.search({ 
+            const found = runtime.memory.search({
                 type: 'test',
-                ownerId: ownerId 
+                ownerId: ownerId,
+                id: null,
+                visibility: null
             });
             
             expect(found).toHaveLength(1);
@@ -206,9 +208,11 @@ describe('BlockContext', () => {
             context.release();
             
             // Should no longer be searchable
-            const found = runtime.memory.search({ 
+            const found = runtime.memory.search({
                 type: 'test',
-                ownerId: ownerId 
+                ownerId: ownerId,
+                id: null,
+                visibility: null
             });
             
             expect(found).toHaveLength(0);

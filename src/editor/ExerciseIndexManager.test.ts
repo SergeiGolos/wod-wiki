@@ -451,14 +451,17 @@ describe('ExerciseIndexManager', () => {
 
       (global.fetch as any).mockRejectedValue(new Error('Persistent network error'));
 
-      const loadPromise = manager.loadExerciseData('Push-Up');
+      // Create promise and attach error handler immediately to prevent unhandled rejection
+      const loadPromise = manager.loadExerciseData('Push-Up').catch(err => err);
 
       // Fast-forward through all retry attempts
       await vi.advanceTimersByTimeAsync(1000); // Attempt 1
       await vi.advanceTimersByTimeAsync(2000); // Attempt 2
       await vi.advanceTimersByTimeAsync(4000); // Attempt 3
 
-      await expect(loadPromise).rejects.toThrow('Persistent network error');
+      const result = await loadPromise;
+      expect(result).toBeInstanceOf(Error);
+      expect(result.message).toBe('Persistent network error');
     });
   });
 });

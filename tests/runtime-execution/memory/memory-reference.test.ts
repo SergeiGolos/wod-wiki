@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { TypedMemoryReference } from './IMemoryReference';
-import { RuntimeMemory } from './RuntimeMemory';
+import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 
 describe('TypedMemoryReference Subscription System', () => {
     it('should allow subscribing to memory changes', () => {

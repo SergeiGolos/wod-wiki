@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RoundsBlock } from '../../src/runtime/blocks/RoundsBlock';
-import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
-import { WodScript } from '../../../src/WodScript';
-import { BlockKey } from '../../../src/BlockKey';
-import { ICodeStatement } from '../../../src/CodeStatement';
-import { FragmentType } from '../../../src/CodeFragment';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
+import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { JitCompiler } from '../../src/runtime/JitCompiler';
+import { WodScript } from '../../src/WodScript';
+import { BlockKey } from '../../src/BlockKey';
+import { ICodeStatement } from '../../src/CodeStatement';
+import { FragmentType } from '../../src/CodeFragment';
+import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
 
 describe('RoundsBlock - Metric Inheritance', () => {
   let runtime: ScriptRuntime;

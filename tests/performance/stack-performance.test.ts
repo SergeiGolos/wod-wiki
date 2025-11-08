@@ -78,8 +78,8 @@ describe('RuntimeStack Performance Tests - Basic Operations', () => {
   beforeEach(() => {
     stack = new RuntimeStack();
   });
-  
-  test('single push operation completes within timing requirement', () => {
+
+  it('single push operation completes within timing requirement', () => {
     // Arrange
     const block = new PerformanceTestBlock(new BlockKey('perf-single'));
     
@@ -94,7 +94,7 @@ describe('RuntimeStack Performance Tests - Basic Operations', () => {
     expect(stack.current).toBe(block);
   });
   
-  test('single pop operation completes within timing requirement', () => {
+  it('single pop operation completes within timing requirement', () => {
     // Arrange
     const block = new PerformanceTestBlock(new BlockKey('perf-single-pop'));
     stack.push(block);
@@ -110,7 +110,7 @@ describe('RuntimeStack Performance Tests - Basic Operations', () => {
     expect(popped).toBe(block);
   });
   
-  test('current() getter completes within timing requirement', () => {
+  it('current() getter completes within timing requirement', () => {
     // Arrange - max stack depth is 10
     const blocks: PerformanceTestBlock[] = [];
     for (let i = 0; i < 10; i++) {
@@ -130,7 +130,7 @@ describe('RuntimeStack Performance Tests - Basic Operations', () => {
     expect(current).toBe(blocks[9]); // Last pushed block
   });
   
-  test('graph() operation completes within timing requirement', () => {
+  it('graph() operation completes within timing requirement', () => {
     // Arrange - max stack depth is 10
     const TYPICAL_DEPTH = 10;
     for (let i = 0; i < TYPICAL_DEPTH; i++) {
@@ -156,7 +156,7 @@ describe('RuntimeStack Performance Tests - Batch Operations', () => {
     stack = new RuntimeStack();
   });
   
-  test('batch push operations maintain performance', () => {
+  it('batch push operations maintain performance', () => {
     // Arrange - max stack depth is 10
     const BATCH_SIZE = 10;
     const blocks: PerformanceTestBlock[] = [];
@@ -179,7 +179,7 @@ describe('RuntimeStack Performance Tests - Batch Operations', () => {
     expect(stack.blocks.length).toBe(BATCH_SIZE);
   });
   
-  test('batch pop operations maintain performance', () => {
+  it('batch pop operations maintain performance', () => {
     // Arrange - max stack depth is 10
     const BATCH_SIZE = 10;
     for (let i = 0; i < BATCH_SIZE; i++) {
@@ -207,7 +207,7 @@ describe('RuntimeStack Performance Tests - Batch Operations', () => {
     expect(stack.blocks.length).toBe(0);
   });
   
-  test('mixed push/pop operations maintain performance', () => {
+  it('mixed push/pop operations maintain performance', () => {
     // Arrange - max stack depth is 10
     const OPERATIONS = 20; // 10 push + 10 pop
     const blocks: PerformanceTestBlock[] = [];
@@ -246,7 +246,7 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
     stack = new RuntimeStack();
   });
   
-  test('large stack operations scale appropriately', () => {
+  it('large stack operations scale appropriately', () => {
     // Max stack depth is 10
     const LARGE_SIZE = 10;
     const measurementPoints = [2, 4, 6, 8, 10];
@@ -305,7 +305,7 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
     });
   });
   
-  test('heavy blocks still meet performance requirements', () => {
+  it('heavy blocks still meet performance requirements', () => {
     // Arrange - blocks with expensive initialization/disposal
     const HEAVY_COUNT = 10;
     const blocks: HeavyTestBlock[] = [];
@@ -345,7 +345,7 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
     expect(poppedBlocks.length).toBe(HEAVY_COUNT);
   });
   
-  test('rapid push/pop cycles maintain consistent performance', () => {
+  it('rapid push/pop cycles maintain consistent performance', () => {
     // Test rapid cycles of push/pop to check for performance degradation
     const CYCLES = 1000;
     const cycleTimes: number[] = [];
@@ -379,7 +379,7 @@ describe('RuntimeStack Performance Tests - Memory Usage', () => {
     stack = new RuntimeStack();
   });
   
-  test('memory usage patterns are reasonable', () => {
+  it('memory usage patterns are reasonable', () => {
     // This test checks for memory leaks or excessive memory usage
     // Max stack depth is 10
     const MEMORY_TEST_SIZE = 10;
@@ -425,7 +425,7 @@ describe('RuntimeStack Performance Tests - Memory Usage', () => {
     expect(stack.current).toBeUndefined();
   });
   
-  test('no memory leaks in graph operations', () => {
+  it('no memory leaks in graph operations', () => {
     // Max stack depth is 10
     const GRAPH_TEST_SIZE = 10;
     
