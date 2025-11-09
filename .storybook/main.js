@@ -1,4 +1,4 @@
-
+const path = require('path');
 
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 const config = {
@@ -32,8 +32,8 @@ const config = {
     );
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      react: require('path').resolve(process.cwd(), 'node_modules/react'),
-      'react-dom': require('path').resolve(process.cwd(), 'node_modules/react-dom'),
+      react: path.resolve(process.cwd(), 'node_modules/react'),
+      'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),
     };
     
     // Disable Vite's publicDir to avoid conflict with Storybook's staticDirs
@@ -43,4 +43,5 @@ const config = {
     return config;
   }
 };
+
 module.exports = config;

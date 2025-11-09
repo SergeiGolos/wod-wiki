@@ -181,7 +181,30 @@ npm install
 npm run storybook
 ```
 
-This will start the Storybook development server, typically on `http://localhost:6006`.
+This will start both the Storybook development server on `http://localhost:6006` and the workout API server on `http://localhost:6007`.
+
+#### API Server
+
+The API server runs automatically with Storybook to serve workout data via HTTP requests instead of bundling it with the page. This significantly improves page load times by moving large workout datasets out of JavaScript bundles.
+
+**Features:**
+- Serves workout data from JSON files via REST API
+- Runs concurrently with Storybook on port 6007
+- CORS enabled for Storybook integration
+- Hot-reload friendly
+
+**Available endpoints:**
+- `GET /api/health` - Server health check
+- `GET /api/workouts/categories` - List all workout categories
+- `GET /api/workouts/:category` - Get all workouts in a category
+- `GET /api/workouts/:category/:name` - Get a specific workout
+
+**Running API server standalone:**
+```bash
+npm run api-server
+```
+
+For detailed API documentation, see [.storybook/api/README.md](.storybook/api/README.md).
 
 ## Building the Library
 
