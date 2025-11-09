@@ -157,6 +157,89 @@ app.get(/^\/api\/exercises\/(.+)$/, (req, res) => {
   res.json(exercise);
 });
 
+// Save exercise data (PUT for updates, POST for new)
+app.put('/api/exercises/:exercisePath', (req, res) => {
+  const exercisePath = req.params.exercisePath;
+  const exerciseData = req.body;
+  
+  // Validate path to prevent directory traversal
+  if (exercisePath.includes('..') || exercisePath.startsWith('/')) {
+    return res.status(400).json({ error: 'Invalid exercise path' });
+  }
+  
+  // Validate required fields
+  if (!exerciseData.name) {
+    return res.status(400).json({ error: 'Exercise name is required' });
+  }
+  
+  const filePath = path.join(__dirname, 'data', 'exercises', exercisePath, 'exercise.json');
+  const dirPath = path.dirname(filePath);
+  
+  try {
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    
+    // Write exercise data
+    fs.writeFileSync(filePath, JSON.stringify(exerciseData, null, 2), 'utf8');
+    
+    res.json({ 
+      success: true, 
+      message: 'Exercise saved successfully',
+      path: exercisePath 
+    });
+  } catch (error) {
+    console.error(`Error saving exercise ${exercisePath}:`, error);
+    res.status(500).json({ error: 'Failed to save exercise' });
+  }
+});
+
+// Create new exercise (POST)
+app.post('/api/exercises', (req, res) => {
+  const exerciseData = req.body;
+  
+  // Validate required fields
+  if (!exerciseData.name) {
+    return res.status(400).json({ error: 'Exercise name is required' });
+  }
+  
+  // Generate path from name (replace spaces and special chars with underscores)
+  const exercisePath = exerciseData.name
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/-+/g, '_');
+  
+  const filePath = path.join(__dirname, 'data', 'exercises', exercisePath, 'exercise.json');
+  const dirPath = path.dirname(filePath);
+  
+  // Check if exercise already exists
+  if (fs.existsSync(filePath)) {
+    return res.status(409).json({ 
+      error: 'Exercise already exists', 
+      path: exercisePath,
+      message: 'Use PUT to update existing exercise'
+    });
+  }
+  
+  try {
+    // Create directory
+    fs.mkdirSync(dirPath, { recursive: true });
+    
+    // Write exercise data
+    fs.writeFileSync(filePath, JSON.stringify(exerciseData, null, 2), 'utf8');
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Exercise created successfully',
+      path: exercisePath 
+    });
+  } catch (error) {
+    console.error(`Error creating exercise:`, error);
+    res.status(500).json({ error: 'Failed to create exercise' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -173,6 +256,8 @@ const server = app.listen(PORT, () => {
   console.log(`   GET /api/exercises/index - Get exercise index`);
   console.log(`   GET /api/exercises/search?q=<query>&limit=<n> - Search exercises`);
   console.log(`   GET /api/exercises/:exercisePath - Get specific exercise data`);
+  console.log(`   POST /api/exercises - Create new exercise`);
+  console.log(`   PUT /api/exercises/:exercisePath - Update existing exercise`);
 });
 
 // Graceful shutdown
