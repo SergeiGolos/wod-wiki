@@ -27,6 +27,19 @@ jobs:
         run: npm run test:coverage
         continue-on-error: true
         
+      - name: Check coverage file exists
+        run: |
+          # Ensure coverage directory exists
+          mkdir -p coverage
+          
+          # Check if coverage file was generated
+          if [ ! -f "coverage/coverage-summary.json" ]; then
+            echo "⚠️ Coverage file not found. Tests may have failed."
+            echo '{"total":{"lines":{"total":0,"covered":0,"pct":0},"statements":{"total":0,"covered":0,"pct":0},"functions":{"total":0,"covered":0,"pct":0},"branches":{"total":0,"covered":0,"pct":0}}}' > coverage/coverage-summary.json
+          else
+            echo "✅ Coverage file found at coverage/coverage-summary.json"
+          fi
+        
       - name: Generate coverage summary
         id: coverage
         run: |
