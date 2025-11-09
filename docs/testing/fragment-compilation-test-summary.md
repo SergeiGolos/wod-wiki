@@ -17,6 +17,22 @@ Complete test suite for the Fragment Compilation System covering all 10 fragment
 tests/jit-compilation/fragment-compilation.test.ts
 ```
 
+## Key Terminology
+
+### Actions vs Efforts
+
+**Actions** (`ActionFragment`):
+- **Syntax**: `[:action_name]` (e.g., `[:AMRAP]`, `[:EMOM]`, `[:For Time]`)
+- **Purpose**: Semantic markers that describe the workout format/style
+- **Examples**: `[:AMRAP]`, `[:EMOM]`, `[:Tabata]`, `[:For Time]`
+- **Parser**: `ActionOpen` (`[`) + `Collon` (`:`) + identifier + `ActionClose` (`]`)
+
+**Efforts** (`EffortFragment`):
+- **Syntax**: Plain text identifiers (e.g., `Pullups`, `Thrusters`)
+- **Purpose**: Exercise/movement labels that represent the actual work being done
+- **Examples**: `Pullups`, `Thrusters`, `Handstand Pushups`, `Box Jumps`
+- **Parser**: Regular identifiers with optional symbols (hyphens, parentheses)
+
 ## Test Structure
 
 ### 1. Individual Compiler Tests (10 suites, ~80 tests)
@@ -50,24 +66,27 @@ Each compiler has dedicated test coverage for:
 ### ActionFragmentCompiler
 
 **Purpose**: Compiles action fragments (AMRAP, EMOM, For Time) into action metrics  
+**Syntax**: Actions are parsed from `[:action_name]` syntax (e.g., `[:AMRAP]`, `[:EMOM]`, `[:For Time]`)  
 **Depends on**: `runtime.options.emitTags` flag
 
 #### Test Data
 
-| Input | emitTags | Expected Output |
-|-------|----------|-----------------|
-| `'AMRAP'` | `true` | `{ type: 'action', value: undefined, unit: 'action:AMRAP' }` |
-| `'EMOM'` | `true` | `{ type: 'action', value: undefined, unit: 'action:EMOM' }` |
-| `'For Time'` | `true` | `{ type: 'action', value: undefined, unit: 'action:For Time' }` |
-| `'AMRAP'` | `false` | `[]` (empty array) |
-| `''` | `true` | `[]` (empty array) |
-| `'  Tabata  '` | `true` | `{ type: 'action', value: undefined, unit: 'action:Tabata' }` (trimmed) |
+| Input (from syntax) | Parsed Value | emitTags | Expected Output                                                         |
+| ------------------- | ------------ | -------- | ----------------------------------------------------------------------- |
+| `[:AMRAP]`          | `'AMRAP'`    | `true`   | `{ type: 'action', value: undefined, unit: 'action:AMRAP' }`           |
+| `[:EMOM]`           | `'EMOM'`     | `true`   | `{ type: 'action', value: undefined, unit: 'action:EMOM' }`            |
+| `[:For Time]`       | `'For Time'` | `true`   | `{ type: 'action', value: undefined, unit: 'action:For Time' }`        |
+| `[:AMRAP]`          | `'AMRAP'`    | `false`  | `[]` (empty array)                                                      |
+| `[:]`               | `''`         | `true`   | `[]` (empty array)                                                      |
+| `[:  Tabata  ]`     | `'Tabata'`   | `true`   | `{ type: 'action', value: undefined, unit: 'action:Tabata' }` (trimmed) |
 
 #### Edge Cases
 - Empty strings return empty array
 - Whitespace-only strings return empty array
 - Labels are trimmed before compilation
 - No emitTags = no metrics emitted
+
+**Note**: Actions are semantic markers parsed with bracket-colon syntax `[:action]`. In contrast, efforts are plain text exercise names like `Pullups`, `Thrusters`, etc.
 
 ---
 
@@ -99,12 +118,13 @@ Each compiler has dedicated test coverage for:
 ### EffortFragmentCompiler
 
 **Purpose**: Compiles effort fragments (exercise names) into effort metrics  
+**Syntax**: Efforts are plain text identifiers for exercises (e.g., `Pullups`, `Thrusters`, `Handstand Pushups`)  
 **Depends on**: `runtime.options.emitTags` flag
 
 #### Test Data
 
-| Exercise Name | emitTags | Expected Output |
-|---------------|----------|-----------------|
+| Exercise Name (plain text) | emitTags | Expected Output |
+|---------------------------|----------|-----------------|
 | `'Pull-ups'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Pull-ups' }` |
 | `'Thrusters'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Thrusters' }` |
 | `'Double-Unders'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Double-Unders' }` |
@@ -118,6 +138,8 @@ Each compiler has dedicated test coverage for:
 - Empty effort names return empty array
 - Whitespace trimmed
 - No emitTags = no metrics emitted
+
+**Note**: Efforts are exercise labels parsed as plain identifiers. They differ from actions (which use `[:action]` syntax) in that efforts represent the actual work being done, while actions describe the workout format/style.
 
 ---
 

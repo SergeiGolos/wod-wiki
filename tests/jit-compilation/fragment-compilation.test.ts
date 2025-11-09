@@ -71,7 +71,7 @@ describe('Fragment Compilation System', () => {
 
     it('should compile action fragment with emitTags enabled', () => {
       runtime.options = { emitTags: true };
-      const fragment = new ActionFragment('AMRAP');
+      const fragment = new ActionFragment('AMRAP'); // Parsed from [:AMRAP]
       const result = compiler.compile(fragment, runtime);
 
       expect(result).toHaveLength(1);
@@ -84,7 +84,7 @@ describe('Fragment Compilation System', () => {
 
     it('should return empty array when emitTags is disabled', () => {
       runtime.options = { emitTags: false };
-      const fragment = new ActionFragment('AMRAP');
+      const fragment = new ActionFragment('AMRAP'); // Parsed from [:AMRAP]
       const result = compiler.compile(fragment, runtime);
 
       expect(result).toEqual([]);
@@ -123,10 +123,11 @@ describe('Fragment Compilation System', () => {
 
     it('should handle various action types', () => {
       runtime.options = { emitTags: true };
+      // Actions are parsed from [:action_name] syntax
       const actions = ['AMRAP', 'EMOM', 'For Time', 'Tabata', 'RFT'];
 
       actions.forEach(action => {
-        const fragment = new ActionFragment(action);
+        const fragment = new ActionFragment(action); // e.g., from [:AMRAP]
         const result = compiler.compile(fragment, runtime);
         
         expect(result).toHaveLength(1);
