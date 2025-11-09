@@ -7,7 +7,7 @@ Complete test suite for the Fragment Compilation System covering all 10 fragment
 ## Test Statistics
 
 - **Total Test Suites**: 13
-- **Total Test Cases**: 120+
+- **Total Test Cases**: 79
 - **Compilers Tested**: 10/10 (100%)
 - **Code Coverage Target**: 100% of FragmentCompilers.ts and FragmentCompilationManager.ts
 
@@ -67,24 +67,22 @@ Each compiler has dedicated test coverage for:
 
 **Purpose**: Compiles action fragments (AMRAP, EMOM, For Time) into action metrics  
 **Syntax**: Actions are parsed from `[:action_name]` syntax (e.g., `[:AMRAP]`, `[:EMOM]`, `[:For Time]`)  
-**Depends on**: `runtime.options.emitTags` flag
+**Always emits metrics**: Like all other fragment compilers
 
 #### Test Data
 
-| Input (from syntax) | Parsed Value | emitTags | Expected Output                                                         |
-| ------------------- | ------------ | -------- | ----------------------------------------------------------------------- |
-| `[:AMRAP]`          | `'AMRAP'`    | `true`   | `{ type: 'action', value: undefined, unit: 'action:AMRAP' }`           |
-| `[:EMOM]`           | `'EMOM'`     | `true`   | `{ type: 'action', value: undefined, unit: 'action:EMOM' }`            |
-| `[:For Time]`       | `'For Time'` | `true`   | `{ type: 'action', value: undefined, unit: 'action:For Time' }`        |
-| `[:AMRAP]`          | `'AMRAP'`    | `false`  | `[]` (empty array)                                                      |
-| `[:]`               | `''`         | `true`   | `[]` (empty array)                                                      |
-| `[:  Tabata  ]`     | `'Tabata'`   | `true`   | `{ type: 'action', value: undefined, unit: 'action:Tabata' }` (trimmed) |
+| Input (from syntax) | Parsed Value | Expected Output                                                         |
+| ------------------- | ------------ | ----------------------------------------------------------------------- |
+| `[:AMRAP]`          | `'AMRAP'`    | `{ type: 'action', value: undefined, unit: 'action:AMRAP' }`           |
+| `[:EMOM]`           | `'EMOM'`     | `{ type: 'action', value: undefined, unit: 'action:EMOM' }`            |
+| `[:For Time]`       | `'For Time'` | `{ type: 'action', value: undefined, unit: 'action:For Time' }`        |
+| `[:]`               | `''`         | `[]` (empty array)                                                      |
+| `[:  Tabata  ]`     | `'Tabata'`   | `{ type: 'action', value: undefined, unit: 'action:Tabata' }` (trimmed) |
 
 #### Edge Cases
 - Empty strings return empty array
 - Whitespace-only strings return empty array
 - Labels are trimmed before compilation
-- No emitTags = no metrics emitted
 
 **Note**: Actions are semantic markers parsed with bracket-colon syntax `[:action]`. In contrast, efforts are plain text exercise names like `Pullups`, `Thrusters`, etc.
 
@@ -119,25 +117,23 @@ Each compiler has dedicated test coverage for:
 
 **Purpose**: Compiles effort fragments (exercise names) into effort metrics  
 **Syntax**: Efforts are plain text identifiers for exercises (e.g., `Pullups`, `Thrusters`, `Handstand Pushups`)  
-**Depends on**: `runtime.options.emitTags` flag
+**Always emits metrics**: Like all other fragment compilers
 
 #### Test Data
 
-| Exercise Name (plain text) | emitTags | Expected Output |
-|---------------------------|----------|-----------------|
-| `'Pull-ups'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Pull-ups' }` |
-| `'Thrusters'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Thrusters' }` |
-| `'Double-Unders'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Double-Unders' }` |
-| `'Box Jumps (24")'` | `true` | `{ type: 'effort', value: undefined, unit: 'effort:Box Jumps (24")' }` |
-| `'Pull-ups'` | `false` | `[]` (empty array) |
-| `''` | `true` | `[]` (empty array) |
-| `'  Turkish Get-up  '` | `true` | Trimmed to `'effort:Turkish Get-up'` |
+| Exercise Name (plain text) | Expected Output |
+|---------------------------|-----------------|
+| `'Pull-ups'` | `{ type: 'effort', value: undefined, unit: 'effort:Pull-ups' }` |
+| `'Thrusters'` | `{ type: 'effort', value: undefined, unit: 'effort:Thrusters' }` |
+| `'Double-Unders'` | `{ type: 'effort', value: undefined, unit: 'effort:Double-Unders' }` |
+| `'Box Jumps (24")'` | `{ type: 'effort', value: undefined, unit: 'effort:Box Jumps (24")' }` |
+| `''` | `[]` (empty array) |
+| `'  Turkish Get-up  '` | Trimmed to `'effort:Turkish Get-up'` |
 
 #### Edge Cases
 - Complex exercise names with hyphens, spaces, parentheses
 - Empty effort names return empty array
 - Whitespace trimmed
-- No emitTags = no metrics emitted
 
 **Note**: Efforts are exercise labels parsed as plain identifiers. They differ from actions (which use `[:action]` syntax) in that efforts represent the actual work being done, while actions describe the workout format/style.
 
@@ -263,16 +259,16 @@ Each compiler has dedicated test coverage for:
 
 #### Test Data
 
-| Input Format | Input | Expected Value (ms) | Description |
-|--------------|-------|---------------------|-------------|
-| Seconds | `'30'` | `30000` | 30 seconds |
-| Minutes:Seconds | `'5:00'` | `300000` | 5 minutes |
-| Hours:Minutes:Seconds | `'1:30:00'` | `5400000` | 1.5 hours |
-| Zero | `'0'` | `0` | Zero duration |
-| Complex | `'45'` | `45000` | 45 seconds |
-| Complex | `'1:00'` | `60000` | 1 minute |
-| Complex | `'12:30'` | `750000` | 12.5 minutes |
-| Complex | `'2:15:30'` | `8130000` | 2h 15m 30s |
+| Input Format          | Input       | Expected Value (ms) | Description   |
+| --------------------- | ----------- | ------------------- | ------------- |
+| Seconds               | `'30'`      | `30000`             | 30 seconds    |
+| Minutes:Seconds       | `'5:00'`    | `300000`            | 5 minutes     |
+| Hours:Minutes:Seconds | `'1:30:00'` | `5400000`           | 1.5 hours     |
+| Zero                  | `'0'`       | `0`                 | Zero duration |
+| Complex               | `'45'`      | `45000`             | 45 seconds    |
+| Complex               | `'1:00'`    | `60000`             | 1 minute      |
+| Complex               | `'12:30'`   | `750000`            | 12.5 minutes  |
+| Complex               | `'2:15:30'` | `8130000`           | 2h 15m 30s    |
 
 #### Edge Cases
 - All values converted to milliseconds
@@ -425,7 +421,6 @@ The test suite verifies:
 ✅ **Manager integration** for multi-fragment statements  
 ✅ **Error handling** for unknown fragments and edge cases  
 ✅ **Type conversions** (string → number) tested  
-✅ **Context dependencies** (emitTags flag) verified  
 ✅ **Effort label extraction** from mixed fragments  
 ✅ **Fragment ordering** preservation validated  
 
@@ -433,9 +428,10 @@ The test suite verifies:
 
 ## Key Insights
 
-1. **Two compilers depend on runtime options**:
-   - `ActionFragmentCompiler` - requires `emitTags: true`
-   - `EffortFragmentCompiler` - requires `emitTags: true`
+1. **All compilers have consistent behavior**:
+   - All fragment types emit metrics when they have valid values
+   - Empty/whitespace-only values return empty arrays
+   - No special flags or options needed
 
 2. **Three compilers return empty arrays**:
    - `IncrementFragmentCompiler` - logic at behavior level
@@ -490,6 +486,6 @@ This comprehensive test suite provides **100% coverage** of the Fragment Compila
 - ✅ Integration scenarios
 - ✅ Real-world workout examples (Fran, distance runs, EMOM)
 
-**Total Test Cases**: 120+  
-**Execution Time**: ~500ms  
+**Total Test Cases**: 79  
+**Execution Time**: ~35ms  
 **Coverage Target**: 100% of FragmentCompilers.ts and FragmentCompilationManager.ts
