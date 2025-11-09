@@ -142,3 +142,7 @@ storybook-static
 playwright-report/
 test-results/
 tests/e2e/screenshots/
+# API server data (copied from public/ during startup)
+.storybook/api/data/exercises/
+.storybook/api/data/exercise-path-index.json
+

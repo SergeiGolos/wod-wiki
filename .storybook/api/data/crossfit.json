@@ -1,0 +1,62 @@
+{
+  "Fran": {
+    "name": "Fran",
+    "workout": "(21-15-9) \n  Thursters 95lb\n  Pullups"
+  },
+  "Annie": {
+    "name": "Annie",
+    "workout": "(50-40-30-20-10)\n  Double-Unders\n  Situps"
+  },
+  "Barbara": {
+    "name": "Barbara",
+    "workout": "(5)\n  + 20 Pullups\n  + 30 Pushups\n  + 40 Situps\n  + 50 Air Squats\n  3:00 Rest"
+  },
+  "Chelsea": {
+    "name": "Chelsea",
+    "workout": "(30) :60 EMOM\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats"
+  },
+  "Cindy": {
+    "name": "Cindy",
+    "workout": "20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats"
+  },
+  "Diane": {
+    "name": "Diane",
+    "workout": "(21-15-9)\n  Deadlift 225lb\n  Handstand Pushups"
+  },
+  "Elizabeth": {
+    "name": "Elizabeth",
+    "workout": "(21-15-9)\n  Clean 135lb\n  Ring Dips"
+  },
+  "Grace": {
+    "name": "Grace",
+    "workout": "30 Clean & Jerk 135lb"
+  },
+  "Helen": {
+    "name": "Helen",
+    "workout": "(3)\n  400m Run\n  21 KB Swings 53lb\n  12 Pullups"
+  },
+  "Isabel": {
+    "name": "Isabel",
+    "workout": "30 Snatch 135lb"
+  },
+  "Jackie": {
+    "name": "Jackie",
+    "workout": "1000m Row\n50 Thrusters 45lb\n30 Pullups"
+  },
+  "Karen": {
+    "name": "Karen",
+    "workout": "150 Wall Ball Shots 20lb"
+  },
+  "Linda": {
+    "name": "Linda",
+    "workout": "(10-9-8-7-6-5-4-3-2-1)\n \n  Deadlift 1.5BW\n  Bench Press 1BW\n  Clean 0.75BW"
+  },
+  "Mary": {
+    "name": "Mary",
+    "workout": "20:00 AMRAP\n  + 5 Handstand Pushups\n  + 10 Single-leg Squats\n  + 15 Pullups"
+  },
+  "Nancy": {
+    "name": "Nancy",
+    "workout": "(5)\n  400m Run\n  15 Overhead Squats 95lb"
+  }
+}

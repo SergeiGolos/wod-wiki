@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WorkoutJournal } from '../../src/components/WorkoutJournal';
-import * as CrossfitWorkouts from './crossfit';
-import * as SwimmingWorkouts from './swimming';
-import * as StrongFirstWorkouts from './strongfirst';
-import * as DanJonWorkouts from './dan-jon';
+import { useEffect, useState } from 'react';
+import { fetchWorkoutsByCategory } from '../utils/workoutApi';
 
 /**
  * Workouts Index Story Component
@@ -11,6 +8,53 @@ import * as DanJonWorkouts from './dan-jon';
  * Displays all pre-defined workouts organized by category, each as a separate subpage
  */
 const WorkoutsIndexComponent = () => {
+  const [workouts, setWorkouts] = useState<{
+    crossfit: string[];
+    swimming: string[];
+    strongfirst: string[];
+    'dan-john': string[];
+  }>({
+    crossfit: [],
+    swimming: [],
+    strongfirst: [],
+    'dan-john': [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAllWorkouts = async () => {
+      try {
+        const [crossfit, swimming, strongfirst, danJohn] = await Promise.all([
+          fetchWorkoutsByCategory('crossfit'),
+          fetchWorkoutsByCategory('swimming'),
+          fetchWorkoutsByCategory('strongfirst'),
+          fetchWorkoutsByCategory('dan-john'),
+        ]);
+        
+        setWorkouts({
+          crossfit: Object.keys(crossfit),
+          swimming: Object.keys(swimming),
+          strongfirst: Object.keys(strongfirst),
+          'dan-john': Object.keys(danJohn),
+        });
+      } catch (error) {
+        console.error('Error loading workouts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadAllWorkouts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg text-gray-600">Loading workout library...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 font-sans">
       <h1 className="text-3xl font-bold text-gray-900 mb-4">Workout Library</h1>
@@ -24,7 +68,7 @@ const WorkoutsIndexComponent = () => {
         <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">CrossFit Workouts</h2>
           <ul className="space-y-2">
-            {Object.keys(CrossfitWorkouts).map((name) => (
+            {workouts.crossfit.map((name) => (
               <li key={name} className="text-blue-600 hover:text-blue-800">
                 <a href={`?path=/story/workouts-crossfit--${name.toLowerCase()}`}>
                   {name}
@@ -38,10 +82,10 @@ const WorkoutsIndexComponent = () => {
         <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">Swimming Workouts</h2>
           <ul className="space-y-2">
-            {Object.keys(SwimmingWorkouts).map((name) => (
+            {workouts.swimming.map((name) => (
               <li key={name} className="text-blue-600 hover:text-blue-800">
                 <a href={`?path=/story/workouts-swimming--${name.toLowerCase().replace(/_/g, '-')}`}>
-                  {name.replace(/_/g, ' ')}
+                  {name.replace(/([A-Z])/g, ' $1').trim()}
                 </a>
               </li>
             ))}
@@ -52,10 +96,10 @@ const WorkoutsIndexComponent = () => {
         <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">StrongFirst Workouts</h2>
           <ul className="space-y-2">
-            {Object.keys(StrongFirstWorkouts).map((name) => (
+            {workouts.strongfirst.map((name) => (
               <li key={name} className="text-blue-600 hover:text-blue-800">
                 <a href={`?path=/story/workouts-strongfirst--${name.toLowerCase().replace(/_/g, '-')}`}>
-                  {name.replace(/_/g, ' ')}
+                  {name.replace(/([A-Z])/g, ' $1').trim()}
                 </a>
               </li>
             ))}
@@ -66,10 +110,10 @@ const WorkoutsIndexComponent = () => {
         <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">Dan John Workouts</h2>
           <ul className="space-y-2">
-            {Object.keys(DanJonWorkouts).map((name) => (
+            {workouts['dan-john'].map((name) => (
               <li key={name} className="text-blue-600 hover:text-blue-800">
                 <a href={`?path=/story/workouts-dan-john--${name.toLowerCase().replace(/_/g, '-')}`}>
-                  {name.replace(/_/g, ' ')}
+                  {name.replace(/([A-Z])/g, ' $1').trim()}
                 </a>
               </li>
             ))}
@@ -84,6 +128,7 @@ const WorkoutsIndexComponent = () => {
           <li>Click on any workout name to view it in the editor</li>
           <li>Use the Storybook sidebar to navigate between workouts</li>
           <li>Each workout category has its own section in the sidebar</li>
+          <li>Workout data is loaded from the API server running on port 6007</li>
         </ul>
       </div>
     </div>

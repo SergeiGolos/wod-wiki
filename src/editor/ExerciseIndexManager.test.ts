@@ -118,7 +118,7 @@ describe('ExerciseIndexManager', () => {
 
       expect(manager.isIndexLoaded()).toBe(true);
       expect(manager.getAllEntries()).toHaveLength(2);
-      expect(global.fetch).toHaveBeenCalledWith('/exercise-path-index.json');
+      expect(global.fetch).toHaveBeenCalledWith('http://localhost:6007/api/exercises/index');
     });
 
     it('should save loaded index to localStorage', async () => {
@@ -135,7 +135,7 @@ describe('ExerciseIndexManager', () => {
       );
       expect(localStorage.setItem).toHaveBeenCalledWith(
         'wod-wiki-exercise-index-version',
-        '1.0.0'
+        '2.0.0'
       );
     });
 
@@ -252,7 +252,7 @@ describe('ExerciseIndexManager', () => {
 
       expect(exercise.name).toBe('Push-Up');
       expect(global.fetch).toHaveBeenCalledWith(
-        '/exercises/Push-Up/exercise.json',
+        'http://localhost:6007/api/exercises/Push-Up',
         expect.objectContaining({ signal: expect.any(Object) })
       );
     });
