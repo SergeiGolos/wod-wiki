@@ -22,7 +22,7 @@
     "test:perf": "vitest run tests/performance/**/*.test.ts",
     "test:e2e": "npx playwright test",
     "playwright": "npx playwright test",
-    "api-server": "node .storybook/api/server.js",
+    "api-server": "node .storybook/api/setup-data.js && node .storybook/api/server.js",
     "prestorybook": "npx dotenv-cli -e .env -- node scripts/inject-ga-id.js",
     "storybook": "npm run prestorybook && concurrently --kill-others \"npm run api-server\" \"storybook dev -p 6006\"",
     "storybook:no-api": "npm run prestorybook && storybook dev -p 6006",

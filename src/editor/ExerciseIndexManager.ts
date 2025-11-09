@@ -19,9 +19,9 @@ export class ExerciseIndexManager {
   private exerciseCache: LRUCache<string, Exercise>;
   private loadingPromises: Map<string, Promise<Exercise>>;
 
-  private readonly INDEX_PATH = '/exercise-path-index.json';
+  private readonly INDEX_PATH = 'http://localhost:6007/api/exercises/index';
   private readonly CACHE_KEY = 'wod-wiki-exercise-index';
-  private readonly CACHE_VERSION = '1.0.0';
+  private readonly CACHE_VERSION = '2.0.0'; // Bumped version for API migration
   private readonly CACHE_VERSION_KEY = 'wod-wiki-exercise-index-version';
 
   /**
@@ -276,7 +276,7 @@ export class ExerciseIndexManager {
       throw new Error(`Invalid exercise path: ${path}`);
     }
 
-    const exercisePath = `/exercises/${path}/exercise.json`;
+    const exercisePath = `http://localhost:6007/api/exercises/${path}`;
     
     try {
       // Use retry with exponential backoff for transient errors

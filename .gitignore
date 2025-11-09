@@ -601,3 +601,7 @@ tests/e2e/screenshots/fran-initial-state.png
 tests/e2e/screenshots/fran-parsed-fragments.png
 tests/e2e/screenshots/fran-script-initial.png
 tests/e2e/screenshots/invalid-script-display.png
+
+# API server data (copied from public/ during startup)
+.storybook/api/data/exercises/
+.storybook/api/data/exercise-path-index.json
