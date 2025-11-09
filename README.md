@@ -215,29 +215,58 @@ npm run api-server
 
 For detailed API documentation, see [.storybook/api/README.md](.storybook/api/README.md).
 
-## Building the Library
+## Building for Production
 
-To build the library for publishing or use in other projects:
+The WOD Wiki application consists of two deployable parts: a frontend (Storybook static site) and an API server (Node.js/Express).
 
-```shell
-npm run build
-```
+### Build Commands
 
-This command will:
-
-1. Compile TypeScript types (`tsc`).
-2. Bundle the library code using Vite into the `dist` folder (creating ES and UMD formats).
-3. Process and output the Tailwind CSS into `dist/style.css`.
-
-## Building Storybook
-
-To build a static version of the Storybook application (e.g., for deployment):
-
+**Build API Server:**
 ```bash
+npm run build:api
+```
+Packages the API server into `dist/api/` with all necessary data files and deployment configurations.
+
+**Build Frontend (Storybook):**
+```bash
+npm run build:frontend
+# or
 npm run build-storybook
 ```
+Builds the static Storybook site to `storybook-static/`.
 
-This will output the static Storybook site to the `storybook-static` directory.
+**Build Everything:**
+```bash
+npm run build
+# or
+npm run build:all
+```
+Builds both the API server and frontend in one command.
+
+### Configuring API URL
+
+The frontend is built with a configurable API URL. Set the `VITE_API_URL` environment variable before building:
+
+```bash
+# For production deployment
+VITE_API_URL=https://api.wod.wiki/api npm run build:frontend
+
+# Or create .env file
+echo "VITE_API_URL=https://api.wod.wiki/api" > .env
+npm run build:frontend
+```
+
+For detailed deployment instructions, see [API Configuration Guide](./docs/api-configuration.md).
+
+### Deployment Options
+
+The built API server (`dist/api/`) can be deployed to:
+- **AWS Lambda**: Serverless deployment with provided Lambda handler
+- **Heroku/Railway**: Git-based deployment
+- **Docker**: Container-based deployment (Dockerfile template included)
+- **Any Node.js host**: Standard Express application
+
+See `dist/api/DEPLOYMENT.md` for platform-specific guides.
 
 > **Note**: This project uses Storybook 9.0.4. The dark mode functionality is temporarily disabled pending community addon compatibility updates.
 

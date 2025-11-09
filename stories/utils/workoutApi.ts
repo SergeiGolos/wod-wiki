@@ -5,7 +5,7 @@
  * that runs alongside Storybook in development mode.
  */
 
-const API_BASE_URL = 'http://localhost:6007/api';
+import { API_BASE_URL } from '../../src/config/api';
 
 export interface WorkoutData {
   name: string;

@@ -3,6 +3,13 @@ import { ExerciseIndexManager } from './ExerciseIndexManager';
 import type { ExercisePathIndex } from '../tools/ExercisePathIndexer';
 import type { Exercise } from '../exercise';
 
+// Mock the API config module to return localhost for tests
+vi.mock('../config/api', () => ({
+  getApiUrl: (path: string) => `http://localhost:6007/api${path}`,
+  getApiBaseUrl: () => 'http://localhost:6007/api',
+  API_BASE_URL: 'http://localhost:6007/api'
+}));
+
 // Mock data
 const mockIndex: ExercisePathIndex = {
   groups: [
