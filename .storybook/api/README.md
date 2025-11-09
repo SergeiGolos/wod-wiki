@@ -87,6 +87,82 @@ curl http://localhost:6007/api/workouts/crossfit/Fran
 }
 ```
 
+### Get Exercise Index
+```
+GET /api/exercises/index
+```
+Returns the complete exercise index with all 873+ exercises.
+
+**Example:**
+```bash
+curl http://localhost:6007/api/exercises/index
+```
+
+**Response:**
+```json
+{
+  "groups": [...],
+  "groupsByName": {...},
+  "allEntries": [...],
+  "totalExercises": 873
+}
+```
+
+### Search Exercises
+```
+GET /api/exercises/search?q=<query>&limit=<n>
+```
+Search for exercises by name or search terms.
+
+**Parameters:**
+- `q` (required): Search query
+- `limit` (optional): Maximum results (default: 50, max: 100)
+
+**Example:**
+```bash
+curl "http://localhost:6007/api/exercises/search?q=push&limit=5"
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "name": "Push-Up",
+      "path": "Push-Up",
+      "searchTerms": ["push", "up", "chest", "bodyweight"]
+    }
+  ],
+  "query": "push",
+  "count": 1
+}
+```
+
+### Get Specific Exercise
+```
+GET /api/exercises/:exercisePath
+```
+Returns detailed exercise data including instructions, muscles, equipment, etc.
+
+**Example:**
+```bash
+curl http://localhost:6007/api/exercises/Push-Up
+```
+
+**Response:**
+```json
+{
+  "name": "Push-Up",
+  "force": "push",
+  "level": "beginner",
+  "mechanic": "compound",
+  "equipment": "body only",
+  "primaryMuscles": ["chest", "triceps"],
+  "secondaryMuscles": ["shoulders"],
+  "instructions": [...]
+}
+```
+
 ## Running the Server
 
 ### With Storybook (Recommended)
