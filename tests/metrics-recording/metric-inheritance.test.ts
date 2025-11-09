@@ -10,32 +10,32 @@ import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
 
 describe('RoundsBlock - Metric Inheritance', () => {
   let runtime: ScriptRuntime;
+  let mockScript: WodScript;
 
   beforeEach(() => {
-    const emptyScript = {
-      statements: [],
-      errors: []
-    } as unknown as WodScript;
-    const jitCompiler = new JitCompiler([]);
-    runtime = new ScriptRuntime(emptyScript, jitCompiler);
-  });
-
-  it('should allocate public METRIC_REPS when rep scheme is configured', () => {
     // Create child statement (Push-ups without explicit reps)
-    const childStatement = {
+    const childStatement: ICodeStatement = {
       id: 1,
       fragments: [
         { fragmentType: FragmentType.Effort, value: undefined, type: 'effort' }
       ],
       children: [],
       meta: {}
-    } as unknown as ICodeStatement;
+    };
 
+    // Create mock script with proper ID resolution
+    mockScript = new WodScript('mock source', [childStatement], []);
+    const jitCompiler = new JitCompiler([]);
+    runtime = new ScriptRuntime(mockScript, jitCompiler);
+  });
+
+  it('should allocate public METRIC_REPS when rep scheme is configured', () => {
     // Create RoundsBlock with rep scheme [21, 15, 9]
+    // Pass child IDs as number[][] format
     const roundsBlock = new RoundsBlock(runtime, [], {
       totalRounds: 3,
       repScheme: [21, 15, 9],
-      children: [childStatement]
+      children: [[1]] // Single group containing statement ID 1
     });
 
     console.log('✅ Created RoundsBlock');
@@ -59,17 +59,11 @@ describe('RoundsBlock - Metric Inheritance', () => {
   });
 
   it('should update public METRIC_REPS when rounds advance', () => {
-    const childStatement = {
-      id: 1,
-      fragments: [{ fragmentType: FragmentType.Effort, value: undefined, type: 'effort' }],
-      children: [],
-      meta: {}
-    } as unknown as ICodeStatement;
-
+    // Child statement already created in beforeEach
     const roundsBlock = new RoundsBlock(runtime, [], {
       totalRounds: 3,
       repScheme: [21, 15, 9],
-      children: [childStatement]
+      children: [[1]] // Single group containing statement ID 1
     });
 
     // Get the metric reference
@@ -123,17 +117,12 @@ describe('RoundsBlock - Metric Inheritance', () => {
   });
 
   it('should NOT allocate METRIC_REPS when no rep scheme is configured', () => {
-    const childStatement = {
-      id: 1,
-      fragments: [{ fragmentType: FragmentType.Effort, value: undefined, type: 'effort' }],
-      children: [],
-      meta: {}
-    } as unknown as ICodeStatement;
-
+    // Child statement already created in beforeEach
+    
     // Create RoundsBlock with fixed rounds (no rep scheme)
     const roundsBlock = new RoundsBlock(runtime, [], {
       totalRounds: 3,
-      children: [childStatement]
+      children: [[1]] // Single group containing statement ID 1
     });
 
     // Search for public METRIC_REPS

@@ -15,7 +15,8 @@ import { TypedMemoryReference } from '../IMemoryReference';
 export interface RoundsBlockConfig {
   totalRounds: number;
   repScheme?: number[];
-  children: CodeStatement[];
+  /** Child statement IDs grouped by execution. Each number[] is compiled together. */
+  children: number[][];
 }
 
 /**
@@ -69,7 +70,7 @@ export class RoundsBlock extends RuntimeBlock {
     // Create behaviors using unified LoopCoordinatorBehavior
     const loopType = config.repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
     const loopCoordinator = new LoopCoordinatorBehavior({
-      childGroups: [config.children], // Single group for now (no compose grouping yet)
+      childGroups: config.children, // Already grouped number[][] from parser
       loopType,
       totalRounds: config.totalRounds,
       repScheme: config.repScheme,

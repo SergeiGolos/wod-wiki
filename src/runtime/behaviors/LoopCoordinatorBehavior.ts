@@ -55,8 +55,11 @@ export enum LoopType {
  * Configuration for LoopCoordinatorBehavior.
  */
 export interface LoopConfig {
-  /** Array of child statement groups (separated by rounds/intervals) */
-  childGroups: CodeStatement[][];
+  /** Array of child statement ID groups (separated by rounds/intervals).
+   * Each number[] represents statement IDs to JIT-compile together.
+   * Example: [[1, 2], [3]] = "compile statements 1+2 together, then 3"
+   */
+  childGroups: number[][];
   
   /** Type of loop execution */
   loopType: LoopType;
@@ -192,10 +195,17 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       this.emitRoundChanged(runtime, state.rounds);
     }
 
-    // Get the child group at current position
-    const childGroup = this.config.childGroups[state.position];
-    if (!childGroup || childGroup.length === 0) {
+    // Get the child group IDs at current position
+    const childGroupIds = this.config.childGroups[state.position];
+    if (!childGroupIds || childGroupIds.length === 0) {
       console.warn(`LoopCoordinatorBehavior: No children at position ${state.position}`);
+      return [];
+    }
+
+    // Resolve child IDs to statements (lazy JIT resolution)
+    const childStatements = runtime.script.getIds(childGroupIds);
+    if (childStatements.length === 0) {
+      console.warn(`LoopCoordinatorBehavior: Failed to resolve child IDs at position ${state.position}`);
       return [];
     }
 
@@ -204,7 +214,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
     // Compile the child group using JIT compiler with context
     try {
-      const compiledBlock = runtime.jit.compile(childGroup, runtime, compilationContext);
+      const compiledBlock = runtime.jit.compile(childStatements, runtime, compilationContext);
       
       if (!compiledBlock) {
         console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);

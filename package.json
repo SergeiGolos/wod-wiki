@@ -18,6 +18,7 @@
     "setup": "node setup-testing.js",
     "test": "vitest run -c vitest.unit.config.js",
     "test:watch": "vitest -c vitest.unit.config.js",
+    "test:coverage": "vitest run -c vitest.unit.config.js --coverage --coverage.reporter=html --coverage.reporter=json-summary",
     "test:ui": "vitest run -c vitest.storybook.config.js && npm run test:e2e",
     "test:perf": "vitest run tests/performance/**/*.test.ts",
     "test:e2e": "npx playwright test",
