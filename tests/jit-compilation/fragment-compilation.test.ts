@@ -16,7 +16,6 @@
  * - Valid inputs with expected outputs
  * - Edge cases (empty, null, undefined)
  * - Boundary values (zero, negative, max)
- * - Context-dependent behavior (emitTags option)
  * - Type conversions (string to number)
  */
 
@@ -69,8 +68,7 @@ describe('Fragment Compilation System', () => {
       expect(compiler.type).toBe('action');
     });
 
-    it('should compile action fragment with emitTags enabled', () => {
-      runtime.options = { emitTags: true };
+    it('should compile action fragment', () => {
       const fragment = new ActionFragment('AMRAP'); // Parsed from [:AMRAP]
       const result = compiler.compile(fragment, runtime);
 
@@ -82,23 +80,7 @@ describe('Fragment Compilation System', () => {
       });
     });
 
-    it('should return empty array when emitTags is disabled', () => {
-      runtime.options = { emitTags: false };
-      const fragment = new ActionFragment('AMRAP'); // Parsed from [:AMRAP]
-      const result = compiler.compile(fragment, runtime);
-
-      expect(result).toEqual([]);
-    });
-
-    it('should return empty array when runtime has no options', () => {
-      const fragment = new ActionFragment('AMRAP');
-      const result = compiler.compile(fragment, runtime);
-
-      expect(result).toEqual([]);
-    });
-
     it('should trim whitespace from action labels', () => {
-      runtime.options = { emitTags: true };
       const fragment = new ActionFragment('  For Time  ');
       const result = compiler.compile(fragment, runtime);
 
@@ -106,7 +88,6 @@ describe('Fragment Compilation System', () => {
     });
 
     it('should return empty array for empty action string', () => {
-      runtime.options = { emitTags: true };
       const fragment = new ActionFragment('');
       const result = compiler.compile(fragment, runtime);
 
@@ -114,7 +95,6 @@ describe('Fragment Compilation System', () => {
     });
 
     it('should return empty array for whitespace-only action string', () => {
-      runtime.options = { emitTags: true };
       const fragment = new ActionFragment('   ');
       const result = compiler.compile(fragment, runtime);
 
@@ -122,7 +102,6 @@ describe('Fragment Compilation System', () => {
     });
 
     it('should handle various action types', () => {
-      runtime.options = { emitTags: true };
       // Actions are parsed from [:action_name] syntax
       const actions = ['AMRAP', 'EMOM', 'For Time', 'Tabata', 'RFT'];
 
@@ -236,8 +215,7 @@ describe('Fragment Compilation System', () => {
       expect(compiler.type).toBe('effort');
     });
 
-    it('should compile effort fragment with emitTags enabled', () => {
-      runtime.options = { emitTags: true };
+    it('should compile effort fragment', () => {
       const fragment = new EffortFragment('Pull-ups');
       const result = compiler.compile(fragment, runtime);
 
@@ -249,23 +227,7 @@ describe('Fragment Compilation System', () => {
       });
     });
 
-    it('should return empty array when emitTags is disabled', () => {
-      runtime.options = { emitTags: false };
-      const fragment = new EffortFragment('Pull-ups');
-      const result = compiler.compile(fragment, runtime);
-
-      expect(result).toEqual([]);
-    });
-
-    it('should return empty array when runtime has no options', () => {
-      const fragment = new EffortFragment('Pull-ups');
-      const result = compiler.compile(fragment, runtime);
-
-      expect(result).toEqual([]);
-    });
-
     it('should trim whitespace from effort labels', () => {
-      runtime.options = { emitTags: true };
       const fragment = new EffortFragment('  Thrusters  ');
       const result = compiler.compile(fragment, runtime);
 
@@ -273,7 +235,6 @@ describe('Fragment Compilation System', () => {
     });
 
     it('should return empty array for empty effort string', () => {
-      runtime.options = { emitTags: true };
       const fragment = new EffortFragment('');
       const result = compiler.compile(fragment, runtime);
 
@@ -281,7 +242,6 @@ describe('Fragment Compilation System', () => {
     });
 
     it('should handle complex exercise names', () => {
-      runtime.options = { emitTags: true };
       const exercises = [
         'Double-Unders',
         'Muscle-ups',
@@ -704,7 +664,6 @@ describe('Fragment Compilation System', () => {
       ];
       manager = new FragmentCompilationManager(compilers);
       runtime = createMockRuntime();
-      runtime.options = { emitTags: true };
     });
 
     describe('Compiler Registration', () => {
@@ -945,7 +904,6 @@ describe('Fragment Compilation System', () => {
       });
 
       it('should handle mixed valid and empty fragments', () => {
-        runtime.options = { emitTags: false }; // Disable tags
         const statement: ICodeStatement = {
           id: 201,
           position: 0,
@@ -961,7 +919,7 @@ describe('Fragment Compilation System', () => {
         const result = manager.compileStatementFragments(statement, runtime);
 
         expect(result.effort).toBe('Rest'); // Only text fragment
-        expect(result.values).toHaveLength(1); // Only rep
+        expect(result.values).toHaveLength(1); // Only rep (empty effort returns no metric)
       });
 
       it('should preserve metric order from fragment order', () => {
@@ -994,7 +952,6 @@ describe('Fragment Compilation System', () => {
 
     beforeEach(() => {
       runtime = createMockRuntime();
-      runtime.options = { emitTags: true };
     });
 
     it('should validate repetitions metric format', () => {

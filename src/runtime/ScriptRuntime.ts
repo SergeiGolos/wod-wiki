@@ -28,7 +28,6 @@ export class ScriptRuntime implements IScriptRuntime {
         this._setupMemoryAwareStack();
         console.log(`🧠 ScriptRuntime created with memory system and metrics collector`);
     }
-    options?: { emitTags?: boolean; } | undefined;
 
     /**
      * Enhanced stack management with constructor-based initialization and consumer-managed disposal.

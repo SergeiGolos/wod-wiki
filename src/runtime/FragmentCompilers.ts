@@ -14,8 +14,7 @@ import { IScriptRuntime } from "./IScriptRuntime";
 
 export class ActionFragmentCompiler implements IFragmentCompiler {
     readonly type = 'action';
-    compile(fragment: ActionFragment, context: IScriptRuntime): MetricValue[] {
-    if (!context?.options?.emitTags) return [];
+    compile(fragment: ActionFragment, _context: IScriptRuntime): MetricValue[] {
     const label = fragment.value?.toString().trim();
     if (!label) return [];
     return [{ type: 'action', value: undefined, unit: `action:${label}` }];
@@ -32,8 +31,7 @@ export class DistanceFragmentCompiler implements IFragmentCompiler {
 
 export class EffortFragmentCompiler implements IFragmentCompiler {
     readonly type = 'effort';
-    compile(fragment: EffortFragment, context: IScriptRuntime): MetricValue[] {
-    if (!context?.options?.emitTags) return [];
+    compile(fragment: EffortFragment, _context: IScriptRuntime): MetricValue[] {
     const label = fragment.value?.toString().trim();
     if (!label) return [];
     return [{ type: 'effort', value: undefined, unit: `effort:${label}` }];
