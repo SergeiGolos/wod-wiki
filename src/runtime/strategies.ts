@@ -344,14 +344,14 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
         const fragments = statements[0].fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
-        const hasAction = fragments.some(f => 
-            f.fragmentType === FragmentType.Action && 
+        const hasEmomAction = fragments.some(f => 
+            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
             (f.value as string)?.toUpperCase().includes('EMOM')
         );
 
-        // Match if has Timer AND Action with "EMOM"
+        // Match if has Timer AND Action/Effort with "EMOM"
         // This takes precedence over simple TimerStrategy
-        return hasTimer && hasAction;
+        return hasTimer && hasEmomAction;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
@@ -426,11 +426,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
         const hasAmrapAction = fragments.some(f => 
-            f.fragmentType === FragmentType.Action && 
+            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
             (f.value as string)?.toUpperCase().includes('AMRAP')
         );
 
-        // Match if has Timer AND (Rounds OR AMRAP action)
+        // Match if has Timer AND (Rounds OR AMRAP action/effort)
         return hasTimer && (hasRounds || hasAmrapAction);
     }
 
