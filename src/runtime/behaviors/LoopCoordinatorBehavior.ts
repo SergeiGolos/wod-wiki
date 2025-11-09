@@ -32,7 +32,6 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
-import { CompilationContext } from '../CompilationContext';
 
 /**
  * Loop type determines completion logic.
@@ -209,12 +208,10 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       return [];
     }
 
-    // Get compilation context for this child
-    const compilationContext = this.getCompilationContext();
-
-    // Compile the child group using JIT compiler with context
+    // Compile the child group using JIT compiler
+    // Children will search memory for public metrics from parent blocks
     try {
-      const compiledBlock = runtime.jit.compile(childStatements, runtime, compilationContext);
+      const compiledBlock = runtime.jit.compile(childStatements, runtime);
       
       if (!compiledBlock) {
         console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);
@@ -295,31 +292,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     return state.rounds;
   }
 
-  /**
-   * Gets the compilation context for child blocks.
-   * This context provides inherited values like reps, round, totalRounds.
-   */
-  getCompilationContext(): CompilationContext {
-    const state = this.getState();
 
-    const context: CompilationContext = {
-      round: state.rounds + 1, // 1-indexed for display
-      totalRounds: this.config.totalRounds,
-      position: state.position,
-    };
-
-    // Add reps if this is a rep scheme loop
-    if (this.config.loopType === LoopType.REP_SCHEME && this.config.repScheme) {
-      context.reps = this.config.repScheme[state.rounds];
-    }
-
-    // Add interval duration if this is an interval loop
-    if (this.config.loopType === LoopType.INTERVAL) {
-      context.intervalDurationMs = this.config.intervalDurationMs;
-    }
-
-    return context;
-  }
 
   /**
    * Called when the block is popped from the stack.

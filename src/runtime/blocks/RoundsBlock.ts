@@ -139,13 +139,7 @@ export class RoundsBlock extends RuntimeBlock {
     return this.loopCoordinator.isComplete(this._runtime);
   }
 
-  /**
-   * Get compilation context for current round.
-   * Used by JIT compiler to provide round-specific data to child blocks.
-   */
-  getCompilationContext() {
-    return this.loopCoordinator.getCompilationContext();
-  }
+
 
   /**
    * Get reps for current round from rep scheme.

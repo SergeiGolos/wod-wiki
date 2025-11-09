@@ -344,11 +344,10 @@ describe('LoopCoordinatorBehavior', () => {
       expect(actions1).toHaveLength(1);
       expect(actions1[0].type).toBe('push-block');
       expect((actions1[0] as any).block).toBe(mockCompiledBlock);
-      // Now includes context parameter
+      // Context parameter removed - inheritance via public memory
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 1 }], // Resolved by getIds
-        mockRuntime,
-        expect.objectContaining({ round: 1, totalRounds: 3, position: 0 })
+        mockRuntime
       );
 
       // Second call: position 1
@@ -356,8 +355,7 @@ describe('LoopCoordinatorBehavior', () => {
       expect(actions2).toHaveLength(1);
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 2 }], // Resolved by getIds
-        mockRuntime,
-        expect.objectContaining({ round: 1, totalRounds: 3, position: 1 })
+        mockRuntime
       );
     });
 
@@ -386,20 +384,15 @@ describe('LoopCoordinatorBehavior', () => {
         const actions = behavior.onNext(mockRuntime, {} as any);
         
         expect(actions).toHaveLength(1);
+        expect(actions[0].type).toBe('push-block');
         
         // Check which child was compiled based on position
         const expectedChildId = i % 2 === 0 ? 1 : 2;
-        const expectedRound = i < 2 ? 1 : 2; // Round 1 for first 2 calls, round 2 for next 2
-        const expectedPosition = i % 2;
         
+        // Context parameter removed - verify child ID only
         expect(mockRuntime.jit.compile).toHaveBeenLastCalledWith(
           [{ id: expectedChildId }], // Resolved by getIds
-          mockRuntime,
-          expect.objectContaining({
-            round: expectedRound,
-            totalRounds: 2,
-            position: expectedPosition
-          })
+          mockRuntime
         );
       }
 
@@ -445,11 +438,10 @@ describe('LoopCoordinatorBehavior', () => {
       expect(actions).toHaveLength(1);
       expect(actions[0].type).toBe('push-block');
       expect((actions[0] as any).block).toBe(mockCompiledBlock);
-      // Now includes context parameter
+      // Context parameter removed - inheritance via public memory
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 1 }], // Resolved by getIds
-        mockRuntime,
-        expect.objectContaining({ round: 1, totalRounds: 3, position: 0 })
+        mockRuntime
       );
 
       // Verify state advanced to index 0
@@ -458,32 +450,13 @@ describe('LoopCoordinatorBehavior', () => {
     });
   });
 
-  describe('Compilation Context', () => {
-    it('should create context with round and totalRounds for fixed loop', () => {
-      const config: LoopConfig = {
-        childGroups: [[{} as any], [{} as any]],
-        loopType: LoopType.FIXED,
-        totalRounds: 3,
-      };
+  describe('Rep Scheme Access', () => {
+    // NOTE: CompilationContext has been deprecated in favor of public memory references.
+    // Parent blocks (like RoundsBlock) expose metrics via allocate(..., 'public'), 
+    // and child strategies search memory for inherited values.
+    // Tests for metric inheritance are in tests/integration/metric-inheritance/
 
-      const behavior = new LoopCoordinatorBehavior(config);
-
-      // Simulate different states
-      (behavior as any).index = 0; // round 0
-      let context = behavior.getCompilationContext();
-      expect(context.round).toBe(1); // 1-indexed
-      expect(context.totalRounds).toBe(3);
-      expect(context.position).toBe(0);
-      expect(context.reps).toBeUndefined(); // No rep scheme
-
-      (behavior as any).index = 2; // round 1
-      context = behavior.getCompilationContext();
-      expect(context.round).toBe(2); // 1-indexed
-      expect(context.totalRounds).toBe(3);
-      expect(context.position).toBe(0);
-    });
-
-    it('should include reps in context for rep scheme loop', () => {
+    it('should provide round information via getRepsForCurrentRound for rep scheme loops', () => {
       const config: LoopConfig = {
         childGroups: [[{} as any], [{} as any]],
         loopType: LoopType.REP_SCHEME,
@@ -495,37 +468,26 @@ describe('LoopCoordinatorBehavior', () => {
 
       // Round 0: 21 reps
       (behavior as any).index = 0;
-      let context = behavior.getCompilationContext();
-      expect(context.round).toBe(1);
-      expect(context.reps).toBe(21);
+      expect(behavior.getRepsForCurrentRound()).toBe(21);
 
       // Round 1: 15 reps
       (behavior as any).index = 2;
-      context = behavior.getCompilationContext();
-      expect(context.round).toBe(2);
-      expect(context.reps).toBe(15);
+      expect(behavior.getRepsForCurrentRound()).toBe(15);
 
       // Round 2: 9 reps
       (behavior as any).index = 4;
-      context = behavior.getCompilationContext();
-      expect(context.round).toBe(3);
-      expect(context.reps).toBe(9);
+      expect(behavior.getRepsForCurrentRound()).toBe(9);
     });
 
-    it('should include intervalDurationMs in context for interval loop', () => {
+    it('should return undefined for getRepsForCurrentRound when not a rep scheme loop', () => {
       const config: LoopConfig = {
-        childGroups: [[{} as any]],
-        loopType: LoopType.INTERVAL,
-        totalRounds: 30,
-        intervalDurationMs: 60000, // 60 seconds
+        childGroups: [[{} as any], [{} as any]],
+        loopType: LoopType.FIXED,
+        totalRounds: 3,
       };
 
       const behavior = new LoopCoordinatorBehavior(config);
-
-      (behavior as any).index = 0;
-      const context = behavior.getCompilationContext();
-      expect(context.intervalDurationMs).toBe(60000);
-      expect(context.totalRounds).toBe(30);
+      expect(behavior.getRepsForCurrentRound()).toBeUndefined();
     });
   });
 });

@@ -32,7 +32,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Only match if NO timer AND NO rounds (pure effort)
         return !hasTimer && !hasRounds;
     }
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
 
         // 1. Generate BlockKey
@@ -74,12 +74,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
               console.log(`  📊 EffortStrategy: Inherited reps from parent: ${reps} (from ${latestRepsRef.ownerId})`);
             }
           }
-        }
-        
-        // If still no reps, could use _context.reps as fallback
-        if (reps === undefined && _context?.reps !== undefined) {
-          reps = _context.reps;
-          console.log(`  📊 EffortStrategy: Using reps from compilation context: ${reps}`);
         }
         
         // 5. Create behaviors
@@ -136,7 +130,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         return fragments.some(f => f.fragmentType === FragmentType.Timer);
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
 
         // 1. Generate BlockKey
@@ -148,8 +142,6 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
-        
-        // TODO Phase 2.5: Use _context parameter if needed
         
         // 4. Allocate timer memory
         const timeSpansRef = context.allocate(
@@ -232,7 +224,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         return hasRounds && !hasTimer;
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _parentContext?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
 
         // Extract rounds configuration from fragments
@@ -351,7 +343,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         return hasTimer && hasEmomAction;
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 IntervalStrategy compiling ${code.length} statement(s)`);
         console.warn(`  ⚠️  IntervalStrategy.compile() is a placeholder - full implementation pending`);
 
@@ -431,11 +423,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         return hasTimer && (hasRounds || hasAmrapAction);
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 TimeBoundRoundsStrategy compiling ${code.length} statement(s)`);
 
         const stmt = code[0];
-        const fragments = stmt.fragments || [];
+        const fragments = stmt.fragments || [];;
 
         // Extract timer duration from Timer fragment
         const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
@@ -549,7 +541,7 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
         return hasChildren;
     }
 
-    compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 GroupStrategy compiling ${code.length} statement(s) with ${code[0].children?.length || 0} children`);
         console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
 
