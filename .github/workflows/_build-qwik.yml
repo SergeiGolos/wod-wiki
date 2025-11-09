@@ -81,8 +81,22 @@ jobs:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
      
+      - name: Build API Server
+        run: npm run build:api
+
       - name: Build Storybook
-        run: npm run build-storybook    
+        run: npm run build-storybook
+        env:
+          # Configure API URL for production build
+          # Default to localhost for GitHub Pages, can be overridden with repository variable
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:6007/api' }}
+
+      - name: Upload API Server
+        uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+        with:
+          name: api-server
+          path: dist/api/
 
       - name: Upload Storybook 
         uses: actions/upload-artifact@v4
