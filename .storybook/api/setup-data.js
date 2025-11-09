@@ -36,6 +36,30 @@ const exercisesSource = path.join(publicDir, 'exercises');
 const exercisesDest = path.join(dataDir, 'exercises');
 
 if (fs.existsSync(exercisesSource)) {
+  // Remove existing symlink/directory if it exists but is invalid
+  if (fs.existsSync(exercisesDest)) {
+    try {
+      const stats = fs.lstatSync(exercisesDest);
+      if (stats.isSymbolicLink()) {
+        const target = fs.readlinkSync(exercisesDest);
+        // Check if symlink target exists, if not, remove it
+        if (!fs.existsSync(path.resolve(path.dirname(exercisesDest), target))) {
+          console.log('   Removing invalid symlink...');
+          fs.unlinkSync(exercisesDest);
+        } else {
+          console.log('   ✓ exercises directory already exists');
+          return;
+        }
+      } else {
+        console.log('   ✓ exercises directory already exists');
+        return;
+      }
+    } catch (error) {
+      // If we can't check, try to remove and recreate
+      console.log('   Checking exercises directory...');
+    }
+  }
+  
   if (!fs.existsSync(exercisesDest)) {
     console.log('   Creating symlink to exercises directory...');
     try {
@@ -48,8 +72,6 @@ if (fs.existsSync(exercisesSource)) {
       copyDirRecursive(exercisesSource, exercisesDest);
       console.log('   ✓ Copied exercises directory');
     }
-  } else {
-    console.log('   ✓ exercises directory already exists');
   }
 } else {
   console.warn('   ⚠ Warning: exercises directory not found in public/');
