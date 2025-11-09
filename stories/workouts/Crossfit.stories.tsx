@@ -1,31 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WorkoutJournal } from '../../src/components/WorkoutJournal';
-import * as Workouts from './crossfit';
-
-/**
- * Workout Display Component
- * Shows a workout in the journal editor with a specific date
- */
-const WorkoutDisplay = ({ workout, name }: { workout: string; name: string }) => {
-  // Pre-fill localStorage with the workout
-  const workoutDate = '2025-01-01'; // Fixed date for display
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(`workout-journal-${workoutDate}`, workout);
-  }
-  
-  return (
-    <div>
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">{name}</h3>
-        <p className="text-sm text-blue-800">
-          This is a pre-defined CrossFit benchmark workout. The workout is displayed in the editor below.
-          You can edit and save it to a different date if needed.
-        </p>
-      </div>
-      <WorkoutJournal initialDate={workoutDate} />
-    </div>
-  );
-};
+import { WorkoutDisplay } from './WorkoutDisplayComponent';
 
 const meta: Meta<typeof WorkoutDisplay> = {
   title: 'Workouts/CrossFit',
@@ -52,6 +26,8 @@ their progress over time.
 - View any workout by selecting it from the sidebar
 - Edit the workout in the editor
 - Save it to a different date if you want to track when you completed it
+
+**Note:** Workout data is loaded from the API server running on port 6007.
         `,
       },
     },
@@ -63,105 +39,105 @@ type Story = StoryObj<typeof WorkoutDisplay>;
 
 export const Fran: Story = {
   args: {
-    workout: Workouts.Fran,
-    name: 'Fran',
+    category: 'crossfit',
+    workoutName: 'Fran',
   },
 };
 
 export const Annie: Story = {
   args: {
-    workout: Workouts.Annie,
-    name: 'Annie',
+    category: 'crossfit',
+    workoutName: 'Annie',
   },
 };
 
 export const Barbara: Story = {
   args: {
-    workout: Workouts.Barbara,
-    name: 'Barbara',
+    category: 'crossfit',
+    workoutName: 'Barbara',
   },
 };
 
 export const Chelsea: Story = {
   args: {
-    workout: Workouts.Chelsea,
-    name: 'Chelsea',
+    category: 'crossfit',
+    workoutName: 'Chelsea',
   },
 };
 
 export const Cindy: Story = {
   args: {
-    workout: Workouts.Cindy,
-    name: 'Cindy',
+    category: 'crossfit',
+    workoutName: 'Cindy',
   },
 };
 
 export const Diane: Story = {
   args: {
-    workout: Workouts.Diane,
-    name: 'Diane',
+    category: 'crossfit',
+    workoutName: 'Diane',
   },
 };
 
 export const Elizabeth: Story = {
   args: {
-    workout: Workouts.Elizabeth,
-    name: 'Elizabeth',
+    category: 'crossfit',
+    workoutName: 'Elizabeth',
   },
 };
 
 export const Grace: Story = {
   args: {
-    workout: Workouts.Grace,
-    name: 'Grace',
+    category: 'crossfit',
+    workoutName: 'Grace',
   },
 };
 
 export const Helen: Story = {
   args: {
-    workout: Workouts.Helen,
-    name: 'Helen',
+    category: 'crossfit',
+    workoutName: 'Helen',
   },
 };
 
 export const Isabel: Story = {
   args: {
-    workout: Workouts.Isabel,
-    name: 'Isabel',
+    category: 'crossfit',
+    workoutName: 'Isabel',
   },
 };
 
 export const Jackie: Story = {
   args: {
-    workout: Workouts.Jackie,
-    name: 'Jackie',
+    category: 'crossfit',
+    workoutName: 'Jackie',
   },
 };
 
 export const Karen: Story = {
   args: {
-    workout: Workouts.Karen,
-    name: 'Karen',
+    category: 'crossfit',
+    workoutName: 'Karen',
   },
 };
 
 export const Linda: Story = {
   args: {
-    workout: Workouts.Linda,
-    name: 'Linda',
+    category: 'crossfit',
+    workoutName: 'Linda',
   },
 };
 
 export const Mary: Story = {
   args: {
-    workout: Workouts.Mary,
-    name: 'Mary',
+    category: 'crossfit',
+    workoutName: 'Mary',
   },
 };
 
 export const Nancy: Story = {
   args: {
-    workout: Workouts.Nancy,
-    name: 'Nancy',
+    category: 'crossfit',
+    workoutName: 'Nancy',
   },
 };
