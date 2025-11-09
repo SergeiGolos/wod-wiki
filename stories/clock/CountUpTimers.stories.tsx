@@ -4,7 +4,6 @@ import { UnifiedClockStory } from './UnifiedClockStory';
 const meta: Meta<typeof UnifiedClockStory> = {
   title: 'Clock/Count Up Timers',
   component: UnifiedClockStory,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
     docs: {

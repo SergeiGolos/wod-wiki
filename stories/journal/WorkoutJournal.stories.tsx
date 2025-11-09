@@ -4,7 +4,6 @@ import { WorkoutJournal } from '../../src/components/WorkoutJournal';
 const meta: Meta<typeof WorkoutJournal> = {
   title: 'Journal/Workout Journal',
   component: WorkoutJournal,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {

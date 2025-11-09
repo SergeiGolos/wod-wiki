@@ -63,7 +63,6 @@ const ExerciseSuggestionsStory = ({ initialText, instructions }: { initialText: 
 const meta: Meta<typeof ExerciseSuggestionsStory> = {
   title: 'Editor/Exercise Suggestions',
   component: ExerciseSuggestionsStory,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {

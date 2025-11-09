@@ -12,7 +12,6 @@ const meta: Meta<typeof RuntimeTestBench> = {
       }
     }
   },
-  tags: ['autodocs'],
   argTypes: {
     initialCode: {
       control: 'text',

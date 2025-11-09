@@ -236,7 +236,6 @@ automatically update to display the correct timer!
       },
     },
   },
-  tags: ['autodocs'],
 };
 
 export default meta;

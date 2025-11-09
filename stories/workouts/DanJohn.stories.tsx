@@ -4,7 +4,6 @@ import { WorkoutDisplay } from './WorkoutDisplayComponent';
 const meta: Meta<typeof WorkoutDisplay> = {
   title: 'Workouts/Dan John',
   component: WorkoutDisplay,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {

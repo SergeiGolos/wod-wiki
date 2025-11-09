@@ -12,7 +12,6 @@ const meta: Meta<typeof JitCompilerDemo> = {
       }
     }
   },
-  tags: ['autodocs'],
   argTypes: {
     initialScript: {
       control: 'text',

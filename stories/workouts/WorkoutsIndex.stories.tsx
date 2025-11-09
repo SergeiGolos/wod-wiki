@@ -138,7 +138,6 @@ const WorkoutsIndexComponent = () => {
 const meta: Meta<typeof WorkoutsIndexComponent> = {
   title: 'Workouts/Index',
   component: WorkoutsIndexComponent,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {

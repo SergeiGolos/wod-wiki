@@ -8,7 +8,6 @@ const meta: Meta<typeof DigitalClock> = {
   parameters: {
     layout: 'centered',
   },
-  tags: ['autodocs'],
   argTypes: {
     title: {
       control: 'text',
