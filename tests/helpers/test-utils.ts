@@ -3,10 +3,19 @@ import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { IEvent } from '../../src/runtime/IEvent';
 import { IRuntimeAction } from '../../src/runtime/IRuntimeAction';
+import { WodScript } from '../../src/WodScript';
+import { ICodeStatement } from '../../src/CodeStatement';
 
 /**
  * Shared test utilities for runtime testing
  */
+
+/**
+ * Creates a mock WodScript with proper ID resolution for testing
+ */
+export function createMockScript(statements: ICodeStatement[]): WodScript {
+  return new WodScript('mock source', statements, []);
+}
 
 /**
  * Creates a mock IScriptRuntime for testing

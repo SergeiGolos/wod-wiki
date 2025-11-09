@@ -321,12 +321,10 @@ describe('LoopCoordinatorBehavior', () => {
     });
 
     it('should compile and push child at current position', () => {
-      const child1 = { id: 1 } as any;
-      const child2 = { id: 2 } as any;
       const mockCompiledBlock = { key: 'mock-block-1' } as any;
 
       const config: LoopConfig = {
-        childGroups: [[child1], [child2]],
+        childGroups: [[1], [2]], // number[][] format (child IDs)
         loopType: LoopType.FIXED,
         totalRounds: 3,
       };
@@ -336,6 +334,9 @@ describe('LoopCoordinatorBehavior', () => {
         jit: {
           compile: vi.fn().mockReturnValue(mockCompiledBlock),
         },
+        script: {
+          getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        }
       } as any;
 
       // First call: position 0
@@ -345,7 +346,7 @@ describe('LoopCoordinatorBehavior', () => {
       expect((actions1[0] as any).block).toBe(mockCompiledBlock);
       // Now includes context parameter
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
-        [child1],
+        [{ id: 1 }], // Resolved by getIds
         mockRuntime,
         expect.objectContaining({ round: 1, totalRounds: 3, position: 0 })
       );
@@ -354,19 +355,17 @@ describe('LoopCoordinatorBehavior', () => {
       const actions2 = behavior.onNext(mockRuntime, {} as any);
       expect(actions2).toHaveLength(1);
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
-        [child2],
+        [{ id: 2 }], // Resolved by getIds
         mockRuntime,
         expect.objectContaining({ round: 1, totalRounds: 3, position: 1 })
       );
     });
 
     it('should loop back to first child after completing round', () => {
-      const child1 = { id: 1 } as any;
-      const child2 = { id: 2 } as any;
       const mockCompiledBlock = { key: 'mock-block' } as any;
 
       const config: LoopConfig = {
-        childGroups: [[child1], [child2]],
+        childGroups: [[1], [2]], // number[][] format (child IDs)
         loopType: LoopType.FIXED,
         totalRounds: 2, // Change to 2 rounds for simpler test
       };
@@ -376,6 +375,9 @@ describe('LoopCoordinatorBehavior', () => {
         jit: {
           compile: vi.fn().mockReturnValue(mockCompiledBlock),
         },
+        script: {
+          getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        }
       } as any;
 
       // Advance through 4 calls (2 rounds × 2 children)
@@ -386,17 +388,17 @@ describe('LoopCoordinatorBehavior', () => {
         expect(actions).toHaveLength(1);
         
         // Check which child was compiled based on position
-        const expectedChild = i % 2 === 0 ? child1 : child2;
+        const expectedChildId = i % 2 === 0 ? 1 : 2;
         const expectedRound = i < 2 ? 1 : 2; // Round 1 for first 2 calls, round 2 for next 2
         const expectedPosition = i % 2;
         
         expect(mockRuntime.jit.compile).toHaveBeenLastCalledWith(
-          [expectedChild],
+          [{ id: expectedChildId }], // Resolved by getIds
           mockRuntime,
-          expect.objectContaining({ 
-            round: expectedRound, 
-            totalRounds: 2, 
-            position: expectedPosition 
+          expect.objectContaining({
+            round: expectedRound,
+            totalRounds: 2,
+            position: expectedPosition
           })
         );
       }
@@ -419,12 +421,10 @@ describe('LoopCoordinatorBehavior', () => {
 
   describe('onPush() Behavior', () => {
     it('should immediately compile and push first child', () => {
-      const child1 = { id: 1 } as any;
-      const child2 = { id: 2 } as any;
       const mockCompiledBlock = { key: 'mock-block-1' } as any;
 
       const config: LoopConfig = {
-        childGroups: [[child1], [child2]],
+        childGroups: [[1], [2]], // number[][] format (child IDs)
         loopType: LoopType.FIXED,
         totalRounds: 3,
       };
@@ -434,6 +434,9 @@ describe('LoopCoordinatorBehavior', () => {
         jit: {
           compile: vi.fn().mockReturnValue(mockCompiledBlock),
         },
+        script: {
+          getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        }
       } as any;
 
       // onPush should immediately compile first child
@@ -444,7 +447,7 @@ describe('LoopCoordinatorBehavior', () => {
       expect((actions[0] as any).block).toBe(mockCompiledBlock);
       // Now includes context parameter
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
-        [child1],
+        [{ id: 1 }], // Resolved by getIds
         mockRuntime,
         expect.objectContaining({ round: 1, totalRounds: 3, position: 0 })
       );

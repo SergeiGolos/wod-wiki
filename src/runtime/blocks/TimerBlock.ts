@@ -14,7 +14,8 @@ import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorB
 export interface TimerBlockConfig {
   direction: 'up' | 'down';
   durationMs?: number;
-  children?: CodeStatement[];
+  /** Optional child statement IDs grouped by execution. Each number[] is compiled together. */
+  children?: number[][];
 }
 
 /**
@@ -62,7 +63,7 @@ export class TimerBlock extends RuntimeBlock {
     let loopCoordinator: LoopCoordinatorBehavior | undefined;
     if (config.children && config.children.length > 0) {
       loopCoordinator = new LoopCoordinatorBehavior({
-        childGroups: [config.children], // Single group (timer wraps one child block)
+        childGroups: config.children, // Already grouped number[][] from strategy
         loopType: LoopType.FIXED,
         totalRounds: 1, // Timer pushes child once
       });

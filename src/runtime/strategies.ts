@@ -260,32 +260,29 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
           console.log(`  📊 RoundsStrategy: Fixed rounds detected: ${totalRounds}`);
         }
 
-        // Get children from statement - these are child STATEMENTS to execute per round
-        const childStatements: CodeStatement[] = [];
+        // Get children IDs from statement - these are child statement IDs to JIT-compile per round
+        let children = code[0]?.children || [];
         
-        // Check if children are embedded in the statement
-        if (code[0]?.children && code[0].children.length > 0 && (code[0].children[0] as any).fragments) {
-          // Children are already resolved as statements (ideal parser behavior)
-          childStatements.push(...code[0].children as any);
-          console.log(`  📊 RoundsStrategy: Found ${childStatements.length} embedded child statements`);
-        } else if (code.length > 1) {
-          // Parser passed multiple statements: first is rounds, rest are children
-          // This is a workaround for parsers that don't create tree structure
-          childStatements.push(...code.slice(1) as CodeStatement[]);
-          console.log(`  📊 RoundsStrategy: Using ${childStatements.length} sibling statements as children`);
-        } else {
+        if (children.length === 0 && code.length > 1) {
+          // Parser passed multiple statements: first is rounds, rest are children (siblings)
+          // This is a workaround for parsers that don't create parent-child tree structure
+          // Wrap sibling statements in a single group
+          const siblingIds = code.slice(1).map(s => s.id as number);
+          children = [siblingIds]; // Single group containing all siblings
+          console.log(`  📊 RoundsStrategy: Using ${siblingIds.length} sibling statements as children`);
+        } else if (children.length === 0) {
           // No children available - this is an error condition
-          console.error('RoundsStrategy: No children statements found for rounds block!');
-          throw new Error(`RoundsStrategy requires child statements to execute. Got ${code.length} statement(s).`);
+          console.error('RoundsStrategy: No children found for rounds block!');
+          throw new Error(`RoundsStrategy requires child statements to execute. Statement has no children.`);
         }
 
-        console.log(`  📊 RoundsStrategy: Creating RoundsBlock with ${totalRounds} rounds, ${childStatements.length} children`);
+        console.log(`  📊 RoundsStrategy: Creating RoundsBlock with ${totalRounds} rounds, ${children.flat().length} child statement IDs`);
 
-        // Create RoundsBlock instance
+        // Create RoundsBlock instance with child IDs (will be JIT-compiled by LoopCoordinator)
         return new RoundsBlock(runtime, code[0]?.id ? [code[0].id] : [], {
           totalRounds,
           repScheme,
-          children: childStatements
+          children // Pass number[][] directly - no type casting needed
         });
     }
 }
@@ -344,14 +341,14 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
         const fragments = statements[0].fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
-        const hasAction = fragments.some(f => 
-            f.fragmentType === FragmentType.Action && 
+        const hasEmomAction = fragments.some(f => 
+            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
             (f.value as string)?.toUpperCase().includes('EMOM')
         );
 
-        // Match if has Timer AND Action with "EMOM"
+        // Match if has Timer AND Action/Effort with "EMOM"
         // This takes precedence over simple TimerStrategy
-        return hasTimer && hasAction;
+        return hasTimer && hasEmomAction;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime, _context?: import("./CompilationContext").CompilationContext): IRuntimeBlock {
@@ -426,11 +423,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
         const hasAmrapAction = fragments.some(f => 
-            f.fragmentType === FragmentType.Action && 
+            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
             (f.value as string)?.toUpperCase().includes('AMRAP')
         );
 
-        // Match if has Timer AND (Rounds OR AMRAP action)
+        // Match if has Timer AND (Rounds OR AMRAP action/effort)
         return hasTimer && (hasRounds || hasAmrapAction);
     }
 
@@ -474,19 +471,8 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             }
         }
 
-        // Extract children (exercises to perform each round)
+        // Extract children IDs (exercises to perform each round)
         const children = stmt.children || [];
-
-        // Create RoundsBlock with LoopCoordinatorBehavior in TIME_BOUND mode
-        const roundsBlock = new RoundsBlock(
-            runtime,
-            stmt.id ? [stmt.id] : [],
-            {
-                totalRounds,
-                repScheme,
-                children: children as any[], // CodeStatement array
-            }
-        );
 
         // If no valid timer duration found, use a default (for testing)
         if (!durationMs || durationMs <= 0) {
@@ -494,19 +480,30 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             durationMs = 20 * 60 * 1000; // Default to 20 minutes
         }
 
-        // Create TimerBlock wrapping the RoundsBlock
-        // Timer should count down and stop when it expires OR when rounds complete
-        const timerBlock = new TimerBlock(
+        // TODO: ARCHITECTURAL ISSUE - Need to support nested block compilation
+        // Current problem: TimerBlock expects children: number[][] (statement IDs),
+        // but we want to wrap a RoundsBlock (pre-compiled block) inside it.
+        // 
+        // Possible solutions:
+        // 1. Create a synthetic "wrapper statement" that RoundsStrategy can compile
+        // 2. Add TimerBlock.compiledChildren: IRuntimeBlock[] config option
+        // 3. Change JIT compiler to support pre-compiled block insertion
+        // 4. Use TimerBehavior + RoundsBehavior in single composite block
+        //
+        // For now, create RoundsBlock directly (bypasses TimerBlock wrapping)
+        console.warn(`TimeBoundRoundsStrategy: Creating RoundsBlock without TimerBlock wrapper (architectural limitation)`);
+        
+        const roundsBlock = new RoundsBlock(
             runtime,
             stmt.id ? [stmt.id] : [],
             {
-                direction: 'down',
-                durationMs,
-                children: [roundsBlock] as any[], // Pass RoundsBlock as child
+                totalRounds,
+                repScheme,
+                children // Pass number[][] directly - no type casting needed
             }
         );
 
-        return timerBlock;
+        return roundsBlock;
     }
 }
 
