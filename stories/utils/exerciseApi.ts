@@ -52,7 +52,7 @@ export async function searchExercises(query: string, limit: number = 50): Promis
  */
 export async function fetchExercise(exercisePath: string): Promise<ExerciseData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/exercises/${exercisePath}`);
+    const response = await fetch(`${API_BASE_URL}/exercises/${encodeURIComponent(exercisePath)}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch exercise: ${response.statusText}`);
     }
@@ -93,7 +93,7 @@ export async function createExercise(exerciseData: ExerciseData): Promise<{ succ
  */
 export async function updateExercise(exercisePath: string, exerciseData: ExerciseData): Promise<{ success: boolean; path: string; message: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/exercises/${exercisePath}`, {
+    const response = await fetch(`${API_BASE_URL}/exercises/${encodeURIComponent(exercisePath)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
