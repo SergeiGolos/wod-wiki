@@ -38,3 +38,13 @@ export type {
 // Components
 export { WodBlockManager } from './components/WodBlockManager';
 export type { WodBlockManagerProps } from './components/WodBlockManager';
+
+export { ContextPanel } from './components/ContextPanel';
+export type { ContextPanelProps } from './components/ContextPanel';
+
+// Widgets
+export { ReactMonacoWidget } from './widgets/ReactMonacoWidget';
+export { ContextOverlay } from './widgets/ContextOverlay';
+
+// Hooks
+export { useContextOverlay } from './hooks/useContextOverlay';

@@ -83,7 +83,22 @@ Classic benchmark WOD.`,
 export const WithToolbar: Story = {
   args: {
     ...Default.args,
-    showToolbar: true
+    showToolbar: true,
+    showContextOverlay: true
+  }
+};
+
+export const WithContextOverlay: Story = {
+  args: {
+    ...Default.args,
+    showContextOverlay: true
+  }
+};
+
+export const NoContextOverlay: Story = {
+  args: {
+    ...Default.args,
+    showContextOverlay: false
   }
 };
 

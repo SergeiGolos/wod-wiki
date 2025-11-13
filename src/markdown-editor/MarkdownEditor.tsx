@@ -8,6 +8,7 @@ import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
 import { useWodBlocks } from './hooks/useWodBlocks';
 import { WodBlockManager } from './components/WodBlockManager';
+import { useContextOverlay } from './hooks/useContextOverlay';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -21,6 +22,9 @@ export interface MarkdownEditorProps {
   
   /** Whether to show markdown toolbar */
   showToolbar?: boolean;
+  
+  /** Whether to show context overlay */
+  showContextOverlay?: boolean;
   
   /** Whether editor is read-only */
   readonly?: boolean;
@@ -49,6 +53,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   onContentChange,
   onTitleChange,
   showToolbar = false,
+  showContextOverlay = true,
   readonly = false,
   theme = 'vs',
   className = '',
@@ -62,6 +67,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // Use the WOD blocks hook
   const { blocks, activeBlock } = useWodBlocks(editorRef.current, content);
+  
+  // Use context overlay for active block
+  useContextOverlay(editorRef.current, activeBlock, showContextOverlay);
 
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
