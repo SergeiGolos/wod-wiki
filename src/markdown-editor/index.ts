@@ -28,3 +28,13 @@ export type {
   UseWodBlocksOptions,
   UseWodBlocksResult
 } from './hooks/useWodBlocks';
+
+export { useBlockParser } from './hooks/useBlockParser';
+export type {
+  UseBlockParserOptions,
+  UseBlockParserResult
+} from './hooks/useBlockParser';
+
+// Components
+export { WodBlockManager } from './components/WodBlockManager';
+export type { WodBlockManagerProps } from './components/WodBlockManager';

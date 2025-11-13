@@ -6,6 +6,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
+import { useWodBlocks } from './hooks/useWodBlocks';
+import { WodBlockManager } from './components/WodBlockManager';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -58,12 +60,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const monacoRef = useRef<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
 
+  // Use the WOD blocks hook
+  const { blocks, activeBlock } = useWodBlocks(editorRef.current, content);
+
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
     monaco: Monaco
   ) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    
+    // Enable glyph margin for icons
+    editor.updateOptions({ glyphMargin: true });
     
     // Focus editor
     editor.focus();
@@ -104,7 +112,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       {showToolbar && (
         <div className="markdown-toolbar border-b border-gray-300 bg-gray-50 p-2">
           {/* Toolbar will be implemented in later phase */}
-          <div className="text-sm text-gray-500">Markdown Editor</div>
+          <div className="text-sm text-gray-500">
+            Markdown Editor
+            {blocks.length > 0 && (
+              <span className="ml-2 text-blue-600">
+                ({blocks.length} WOD block{blocks.length !== 1 ? 's' : ''} detected)
+              </span>
+            )}
+          </div>
         </div>
       )}
       <Editor
@@ -115,6 +130,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         options={defaultOptions}
         onMount={handleEditorDidMount}
         onChange={handleEditorChange}
+      />
+      {/* WodBlockManager adds visual decorations */}
+      <WodBlockManager
+        editor={editorRef.current}
+        monaco={monacoRef.current}
+        blocks={blocks}
+        activeBlock={activeBlock}
       />
     </div>
   );
