@@ -42,9 +42,14 @@ export type { WodBlockManagerProps } from './components/WodBlockManager';
 export { ContextPanel } from './components/ContextPanel';
 export type { ContextPanelProps } from './components/ContextPanel';
 
+export { FragmentEditor } from './components/FragmentEditor';
+export type { FragmentEditorProps } from './components/FragmentEditor';
+
 // Widgets
 export { ReactMonacoWidget } from './widgets/ReactMonacoWidget';
 export { ContextOverlay } from './widgets/ContextOverlay';
 
 // Hooks
 export { useContextOverlay } from './hooks/useContextOverlay';
+export { useBlockEditor } from './hooks/useBlockEditor';
+export type { UseBlockEditorOptions, UseBlockEditorReturn } from './hooks/useBlockEditor';

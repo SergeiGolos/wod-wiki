@@ -7,6 +7,7 @@ import { editor as monacoEditor } from 'monaco-editor';
 import { WodBlock } from '../types';
 import { ContextOverlay } from '../widgets/ContextOverlay';
 import { useBlockParser } from './useBlockParser';
+import { useBlockEditor } from './useBlockEditor';
 
 /**
  * Hook to manage context overlay for active block
@@ -22,6 +23,12 @@ export function useContextOverlay(
   const { statements, errors, status } = useBlockParser(activeBlock, {
     autoParse: true,
     debounceMs: 500
+  });
+
+  // Block editor for making changes
+  const { addStatement, editStatement, deleteStatement } = useBlockEditor({
+    editor,
+    block: activeBlock
   });
 
   // Create enriched block with parsed data (immutable)
@@ -52,14 +59,21 @@ export function useContextOverlay(
     }
 
     if (enrichedBlock) {
+      // Editor callbacks
+      const callbacks = {
+        onAddStatement: addStatement,
+        onEditStatement: editStatement,
+        onDeleteStatement: deleteStatement
+      };
+      
       // Create or update overlay
       if (overlayRef.current) {
         // Update existing overlay
-        overlayRef.current.update(enrichedBlock);
+        overlayRef.current.update(enrichedBlock, callbacks);
         editor.layoutOverlayWidget(overlayRef.current);
       } else {
         // Create new overlay
-        overlayRef.current = new ContextOverlay(editor, enrichedBlock);
+        overlayRef.current = new ContextOverlay(editor, enrichedBlock, callbacks);
         editor.addOverlayWidget(overlayRef.current);
       }
     } else {
@@ -79,7 +93,7 @@ export function useContextOverlay(
         overlayRef.current = null;
       }
     };
-  }, [editor, enrichedBlock, enabled]);
+  }, [editor, enrichedBlock, enabled, addStatement, editStatement, deleteStatement]);
 
   return overlayRef.current;
 }

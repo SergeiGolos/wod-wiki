@@ -5,6 +5,7 @@
 import React from 'react';
 import { WodBlock } from '../types';
 import { FragmentVisualizer } from '../../components/fragments/FragmentVisualizer';
+import { FragmentEditor } from './FragmentEditor';
 
 export interface ContextPanelProps {
   /** Block data to display */
@@ -12,6 +13,18 @@ export interface ContextPanelProps {
   
   /** Whether panel is in compact mode */
   compact?: boolean;
+  
+  /** Whether to show fragment editor */
+  showEditor?: boolean;
+  
+  /** Callback when adding a statement */
+  onAddStatement?: (text: string) => void;
+  
+  /** Callback when editing a statement */
+  onEditStatement?: (index: number, text: string) => void;
+  
+  /** Callback when deleting a statement */
+  onDeleteStatement?: (index: number) => void;
 }
 
 /**
@@ -19,7 +32,11 @@ export interface ContextPanelProps {
  */
 export const ContextPanel: React.FC<ContextPanelProps> = ({
   block,
-  compact = false
+  compact = false,
+  showEditor = true,
+  onAddStatement,
+  onEditStatement,
+  onDeleteStatement
 }) => {
   const hasStatements = block.statements && block.statements.length > 0;
   const hasErrors = block.errors && block.errors.length > 0;
@@ -86,6 +103,16 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               Start typing to see parsed fragments
             </p>
           </div>
+        )}
+
+        {/* Fragment Editor */}
+        {showEditor && hasStatements && !hasErrors && (
+          <FragmentEditor
+            statements={block.statements || []}
+            onAddStatement={onAddStatement}
+            onEditStatement={onEditStatement}
+            onDeleteStatement={onDeleteStatement}
+          />
         )}
 
         {/* Block Info */}

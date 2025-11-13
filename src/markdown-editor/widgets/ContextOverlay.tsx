@@ -13,11 +13,25 @@ import { WodBlock } from '../types';
 export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps> 
   implements monacoEditor.IOverlayWidget {
   
+  private onAddStatement?: (text: string) => void;
+  private onEditStatement?: (index: number, text: string) => void;
+  private onDeleteStatement?: (index: number) => void;
+  
   constructor(
     editor: monacoEditor.IStandaloneCodeEditor,
-    private block: WodBlock
+    private block: WodBlock,
+    callbacks?: {
+      onAddStatement?: (text: string) => void;
+      onEditStatement?: (index: number, text: string) => void;
+      onDeleteStatement?: (index: number) => void;
+    }
   ) {
     super(editor, `context-overlay-${block.id}`);
+    
+    // Store callbacks
+    this.onAddStatement = callbacks?.onAddStatement;
+    this.onEditStatement = callbacks?.onEditStatement;
+    this.onDeleteStatement = callbacks?.onDeleteStatement;
     
     // Style the widget container for right-side positioning
     this.domNode.style.position = 'fixed';
@@ -34,13 +48,32 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
   }
   
   /**
-   * Update the overlay with new block data
+   * Update the overlay with new block data and callbacks
    */
-  update(block: WodBlock): void {
+  update(
+    block: WodBlock,
+    callbacks?: {
+      onAddStatement?: (text: string) => void;
+      onEditStatement?: (index: number, text: string) => void;
+      onDeleteStatement?: (index: number) => void;
+    }
+  ): void {
     this.block = block;
+    
+    // Update callbacks if provided
+    if (callbacks) {
+      this.onAddStatement = callbacks.onAddStatement;
+      this.onEditStatement = callbacks.onEditStatement;
+      this.onDeleteStatement = callbacks.onDeleteStatement;
+    }
+    
     this.renderComponent(ContextPanel, {
       block: this.block,
-      compact: false
+      compact: false,
+      showEditor: true,
+      onAddStatement: this.onAddStatement,
+      onEditStatement: this.onEditStatement,
+      onDeleteStatement: this.onDeleteStatement
     });
   }
   
