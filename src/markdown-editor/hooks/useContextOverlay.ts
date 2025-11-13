@@ -2,7 +2,7 @@
  * Hook for managing the context overlay widget
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { editor as monacoEditor } from 'monaco-editor';
 import { WodBlock } from '../types';
 import { ContextOverlay } from '../widgets/ContextOverlay';
@@ -24,13 +24,19 @@ export function useContextOverlay(
     debounceMs: 500
   });
 
-  // Update active block with parsed data
-  useEffect(() => {
-    if (activeBlock && statements.length > 0) {
-      activeBlock.statements = statements;
-      activeBlock.errors = errors;
-      activeBlock.state = status === 'error' ? 'error' : 'parsed';
-    }
+  // Create enriched block with parsed data (immutable)
+  const enrichedBlock = useMemo(() => {
+    if (!activeBlock) return null;
+    
+    return {
+      ...activeBlock,
+      statements: statements.length > 0 ? statements : activeBlock.statements,
+      errors: errors.length > 0 ? errors : activeBlock.errors,
+      state: status === 'parsing' ? 'parsing' as const :
+             status === 'error' ? 'error' as const :
+             statements.length > 0 ? 'parsed' as const :
+             activeBlock.state
+    };
   }, [activeBlock, statements, errors, status]);
 
   // Manage overlay lifecycle
@@ -45,15 +51,15 @@ export function useContextOverlay(
       return;
     }
 
-    if (activeBlock) {
+    if (enrichedBlock) {
       // Create or update overlay
       if (overlayRef.current) {
         // Update existing overlay
-        overlayRef.current.update(activeBlock);
+        overlayRef.current.update(enrichedBlock);
         editor.layoutOverlayWidget(overlayRef.current);
       } else {
         // Create new overlay
-        overlayRef.current = new ContextOverlay(editor, activeBlock);
+        overlayRef.current = new ContextOverlay(editor, enrichedBlock);
         editor.addOverlayWidget(overlayRef.current);
       }
     } else {
@@ -73,7 +79,7 @@ export function useContextOverlay(
         overlayRef.current = null;
       }
     };
-  }, [editor, activeBlock, enabled]);
+  }, [editor, enrichedBlock, enabled]);
 
   return overlayRef.current;
 }

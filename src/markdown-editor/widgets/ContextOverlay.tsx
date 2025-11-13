@@ -19,12 +19,15 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
   ) {
     super(editor, `context-overlay-${block.id}`);
     
-    // Style the widget container
-    this.domNode.style.position = 'absolute';
+    // Style the widget container for right-side positioning
+    this.domNode.style.position = 'fixed';
+    this.domNode.style.right = '0';
+    this.domNode.style.top = '0';
     this.domNode.style.width = '400px';
     this.domNode.style.height = '100%';
-    this.domNode.style.zIndex = '10';
+    this.domNode.style.zIndex = '1000';
     this.domNode.style.pointerEvents = 'auto';
+    this.domNode.style.boxShadow = '-2px 0 8px rgba(0, 0, 0, 0.1)';
     
     // Initial render
     this.update(block);
@@ -43,23 +46,9 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
   
   /**
    * Get the position of the overlay widget
+   * Return null to use custom CSS positioning
    */
-  getPosition(): monacoEditor.IOverlayWidgetPosition {
-    const layout = this.editor.getLayoutInfo();
-    const lineTop = this.editor.getTopForLineNumber(this.block.startLine + 1); // Monaco is 1-indexed
-    
-    return {
-      preference: {
-        top: Math.max(0, lineTop),
-        left: layout.width / 2  // Position on right half
-      }
-    };
-  }
-  
-  /**
-   * Allow the widget to overflow the editor
-   */
-  get allowEditorOverflow(): boolean {
-    return false;
+  getPosition(): monacoEditor.IOverlayWidgetPosition | null {
+    return null;
   }
 }
