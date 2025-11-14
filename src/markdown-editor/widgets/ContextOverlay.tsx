@@ -47,7 +47,7 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
     
     // Append directly to body for proper fixed positioning
     // Monaco's overlayWidgets container has positioning constraints
-    document.body.appendChild(this.domNode);I. Hey Google. What kind of long sleep insurance do you want? All right, now we're going. It's from Veteran Display. What kind of long sleeve shirts do you want? The real one. It's from Zeb's room speaker. Who are you talking to? Hey, Google broadcast. You alright? You. Hey, Cortana. Where does like, not doing my voice some of the time. It's like I'm not saying. Message coming from bedrooms. Broadcast from Zeb's room speaker don't really care. A Google broadcast. What's the message? Roger that. Alright. Do that. OK. Hey, Cortana, close the wall. In Sandy, **** **** it doesn't sound like a running song. It sounds good. What? It sounds good? What? 
+    document.body.appendChild(this.domNode);
     
     // Initial render
     this.update(block);
