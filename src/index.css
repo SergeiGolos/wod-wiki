@@ -99,3 +99,17 @@ th {
   width: 16px !important;
   margin-left: 3px;
 }
+
+/* Hide backtick lines when cursor is outside WOD block */
+.wod-block-backtick-hidden {
+  opacity: 0 !important;
+  height: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Header widget styling */
+.wod-block-header {
+  user-select: none;
+}

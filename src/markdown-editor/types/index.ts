@@ -95,6 +95,9 @@ export interface WodBlock {
   /** Raw text content of the WOD block (without backticks) */
   content: string;
   
+  /** Optional label from ```wod:label syntax */
+  label?: string;
+  
   /** Parser instance for this block (lazy-initialized) */
   parser?: MdTimerRuntime;
   
@@ -115,6 +118,7 @@ export interface WodBlock {
     overlay?: string;
     clockZone?: string;
     resultsZone?: string;
+    header?: string;
   };
   
   /** Collected workout data (after completion) */

@@ -206,3 +206,35 @@ export const WithComplexMarkdown: Story = {
 - Check out **CrossFit** workouts`
   }
 };
+
+export const WithLabeledWorkouts: Story = {
+  args: {
+    initialContent: `# CrossFit Training - Monday
+
+## Benchmark WOD
+\`\`\`wod:Fran
+(21-15-9) For Time
+  Thrusters 95lb
+  Pullups
+\`\`\`
+
+**Notes:** This is the famous "Fran" benchmark. Goal is sub-5 minutes.
+
+## Strength Work
+\`\`\`wod:Back Squat 5x5
+5 Rounds
+  5 Back Squats @ 80% 1RM
+  Rest 3:00
+\`\`\`
+
+## Accessory Work
+\`\`\`wod
+3 Rounds
+  + 10 DB Rows each arm
+  + 15 Russian Twists
+  + 20 Calf Raises
+\`\`\`
+
+**Recovery:** Foam rolling and stretching for 15 minutes.`
+  }
+};

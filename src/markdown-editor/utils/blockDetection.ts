@@ -22,13 +22,22 @@ export function detectWodBlocks(content: string): WodBlock[] {
     const normalizedLine = trimmedLine.toLowerCase();
     
     if (!inBlock && normalizedLine.startsWith('```wod')) {
-      // Start of WOD block
+      // Start of WOD block - extract optional label
       inBlock = true;
+      
+      // Parse label from ```wod:label syntax
+      let label: string | undefined;
+      const labelMatch = trimmedLine.match(/```wod:(.+)/i);
+      if (labelMatch && labelMatch[1]) {
+        label = labelMatch[1].trim();
+      }
+      
       currentBlock = {
         id: `wod-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         startLine: index,
         state: 'idle',
-        widgetIds: {}
+        widgetIds: {},
+        label
       };
       blockContent = [];
     } else if (inBlock && trimmedLine.startsWith('```')) {

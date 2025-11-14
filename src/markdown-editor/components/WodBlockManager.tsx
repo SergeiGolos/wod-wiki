@@ -6,6 +6,7 @@ import React, { useEffect, useRef } from 'react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
 import { WodBlock } from '../types';
+import { WodBlockHeaderWidget } from '../widgets/WodBlockHeaderWidget';
 
 export interface WodBlockManagerProps {
   /** Monaco editor instance */
@@ -35,6 +36,7 @@ export const WodBlockManager: React.FC<WodBlockManagerProps> = ({
   onBlocksParsed
 }) => {
   const decorationsRef = useRef<monacoEditor.IEditorDecorationsCollection | null>(null);
+  const headerWidgetsRef = useRef<Map<string, WodBlockHeaderWidget>>(new Map());
 
   // Update decorations when blocks or active block changes
   useEffect(() => {
@@ -78,6 +80,38 @@ export const WodBlockManager: React.FC<WodBlockManagerProps> = ({
           glyphMarginClassName: 'wod-block-start-icon'
         }
       });
+      
+      // Hide the opening ``` line when not active
+      if (!isActive) {
+        decorations.push({
+          range: new monaco.Range(
+            block.startLine + 1,
+            1,
+            block.startLine + 1,
+            1
+          ),
+          options: {
+            isWholeLine: true,
+            className: 'wod-block-backtick-hidden'
+          }
+        });
+      }
+      
+      // Hide the closing ``` line when not active
+      if (!isActive && block.endLine !== undefined) {
+        decorations.push({
+          range: new monaco.Range(
+            block.endLine + 1,
+            1,
+            block.endLine + 1,
+            1
+          ),
+          options: {
+            isWholeLine: true,
+            className: 'wod-block-backtick-hidden'
+          }
+        });
+      }
     });
 
     // Create decorations collection
@@ -87,6 +121,61 @@ export const WodBlockManager: React.FC<WodBlockManagerProps> = ({
       if (decorationsRef.current) {
         decorationsRef.current.clear();
       }
+    };
+  }, [editor, monaco, blocks, activeBlock]);
+
+  // Manage header widgets
+  useEffect(() => {
+    if (!editor || !monaco) return;
+
+    const currentWidgets = headerWidgetsRef.current;
+    const newBlockIds = new Set(blocks.map(b => b.id));
+    
+    // Remove widgets for blocks that no longer exist
+    currentWidgets.forEach((widget, blockId) => {
+      if (!newBlockIds.has(blockId)) {
+        editor.removeContentWidget(widget);
+        widget.dispose();
+        currentWidgets.delete(blockId);
+      }
+    });
+
+    // Add or update widgets for current blocks
+    blocks.forEach((block, index) => {
+      const isActive = activeBlock?.id === block.id;
+      const existingWidget = currentWidgets.get(block.id);
+      
+      if (existingWidget) {
+        // Update existing widget
+        existingWidget.update(block, index + 1, isActive, {
+          onRecord: () => console.log('Record clicked for block', block.id),
+          onTrack: () => console.log('Track clicked for block', block.id)
+        });
+        editor.layoutContentWidget(existingWidget);
+      } else {
+        // Create new widget
+        const widget = new WodBlockHeaderWidget(
+          editor,
+          block,
+          index + 1,
+          isActive,
+          {
+            onRecord: () => console.log('Record clicked for block', block.id),
+            onTrack: () => console.log('Track clicked for block', block.id)
+          }
+        );
+        editor.addContentWidget(widget);
+        currentWidgets.set(block.id, widget);
+      }
+    });
+
+    return () => {
+      // Cleanup on unmount
+      currentWidgets.forEach(widget => {
+        editor.removeContentWidget(widget);
+        widget.dispose();
+      });
+      currentWidgets.clear();
     };
   }, [editor, monaco, blocks, activeBlock]);
 
