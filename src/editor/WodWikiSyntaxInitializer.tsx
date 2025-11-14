@@ -30,6 +30,7 @@ export class WodWikiSyntaxInitializer {
   exerciseHoverProvider: ExerciseHoverProvider;
   private editorId: string;
   private editorModel: editor.ITextModel | undefined;
+  private currentCursorLine: number | null = null;
 
   constructor(
     private tokenEngine: SemantcTokenEngine, 
@@ -171,6 +172,11 @@ export class WodWikiSyntaxInitializer {
         for (let fragment of outcome) {
           const hint = this.tokenEngine.tokens.find(token => token.token == fragment.type);
           for (let apply of hint?.hints || []) {
+            // Skip hints on the line where the cursor is currently positioned
+            if (this.currentCursorLine !== null && fragment.meta.line === this.currentCursorLine) {
+              continue;
+            }
+            
             this.hints.push({
               kind: monaco!.languages.InlayHintKind.Parameter,
               position: {
@@ -196,6 +202,23 @@ export class WodWikiSyntaxInitializer {
       this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
       this.onChange?.(this.objectCode);
     }        
+    
+    // Track cursor position changes to hide hints on the current line
+    const updateCursorLine = () => {
+      const position = editor.getPosition();
+      const newLine = position?.lineNumber ?? null;
+      
+      // Update cursor line even if it's the same to ensure state is correct
+      this.currentCursorLine = newLine;
+    };
+    
+    // Initialize cursor position
+    updateCursorLine();
+    
+    // Listen for cursor position changes
+    this.contentChangeDisposable.push(editor.onDidChangeCursorPosition(() => {
+      updateCursorLine();
+    }));
     
     this.contentChangeDisposable.push(editor.onDidChangeModelContent((event) => {
       parse();
