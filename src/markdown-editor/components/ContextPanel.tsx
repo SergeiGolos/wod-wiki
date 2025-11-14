@@ -4,8 +4,7 @@
 
 import React from 'react';
 import { WodBlock } from '../types';
-import { FragmentVisualizer } from '../../components/fragments/FragmentVisualizer';
-import { FragmentEditor } from './FragmentEditor';
+import { EditableStatementList } from './EditableStatementList';
 
 export interface ContextPanelProps {
   /** Block data to display */
@@ -77,19 +76,18 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
           </div>
         )}
 
-        {/* Parsed Fragments */}
-        {hasStatements && !hasErrors && (
+        {/* Unified Editable Statement List */}
+        {hasStatements && !hasErrors && showEditor && (
           <div>
             <h4 className="text-sm font-semibold text-gray-700 mb-3">
-              Parsed Workout
+              Workout
             </h4>
-            <div className="space-y-2">
-              {block.statements!.map((statement, idx) => (
-                <div key={statement.id || idx} className="border border-gray-200 rounded p-2">
-                  <FragmentVisualizer fragments={statement.fragments || []} />
-                </div>
-              ))}
-            </div>
+            <EditableStatementList
+              statements={block.statements || []}
+              onAddStatement={onAddStatement}
+              onEditStatement={onEditStatement}
+              onDeleteStatement={onDeleteStatement}
+            />
           </div>
         )}
 
@@ -103,16 +101,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               Start typing to see parsed fragments
             </p>
           </div>
-        )}
-
-        {/* Fragment Editor */}
-        {showEditor && hasStatements && !hasErrors && (
-          <FragmentEditor
-            statements={block.statements || []}
-            onAddStatement={onAddStatement}
-            onEditStatement={onEditStatement}
-            onDeleteStatement={onDeleteStatement}
-          />
         )}
 
         {/* Block Info */}

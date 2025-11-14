@@ -1,0 +1,469 @@
+/**
+ * EditableStatementList - Unified component for viewing and editing workout statements
+ * Combines the functionality of FragmentVisualizer and FragmentEditor
+ */
+
+import React, { useState } from 'react';
+import { ICodeStatement } from '../../CodeStatement';
+import { FragmentVisualizer } from '../../components/fragments/FragmentVisualizer';
+
+export interface EditableStatementListProps {
+  /** Current statements in the block */
+  statements: ICodeStatement[];
+  
+  /** Callback when adding a new statement */
+  onAddStatement?: (statementText: string, parentId?: number) => void;
+  
+  /** Callback when editing an existing statement */
+  onEditStatement?: (index: number, statementText: string) => void;
+  
+  /** Callback when deleting a statement */
+  onDeleteStatement?: (index: number) => void;
+}
+
+interface StatementItemProps {
+  statement: ICodeStatement;
+  index: number;
+  indentLevel: number;
+  onEdit: (index: number, text: string) => void;
+  onDelete: (index: number) => void;
+  onAddToGroup?: (parentId: number, text: string) => void;
+  onAddAtLevel?: (text: string) => void;
+}
+
+/**
+ * Individual statement row with inline editing
+ */
+const StatementItem: React.FC<StatementItemProps> = ({
+  statement,
+  index,
+  indentLevel,
+  onEdit,
+  onDelete,
+  onAddToGroup,
+  onAddAtLevel
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [showAddInGroup, setShowAddInGroup] = useState(false);
+  const [showAddAtLevel, setShowAddAtLevel] = useState(false);
+  const [addInGroupText, setAddInGroupText] = useState('');
+  const [addAtLevelText, setAddAtLevelText] = useState('');
+
+  const hasChildren = statement.children && statement.children.length > 0;
+  const indentPx = indentLevel * 20;
+
+  const handleStartEdit = () => {
+    setEditText(getStatementText(statement));
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editText.trim()) {
+      onEdit(index, editText.trim());
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditText('');
+  };
+
+  const handleAddInGroup = () => {
+    if (addInGroupText.trim() && onAddToGroup) {
+      onAddToGroup(statement.id, addInGroupText.trim());
+      setAddInGroupText('');
+      setShowAddInGroup(false);
+    }
+  };
+
+  const handleAddAtLevel = () => {
+    if (addAtLevelText.trim() && onAddAtLevel) {
+      onAddAtLevel(addAtLevelText.trim());
+      setAddAtLevelText('');
+      setShowAddAtLevel(false);
+    }
+  };
+
+  return (
+    <div className="statement-item-container">
+      <div 
+        className="flex items-start gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:border-gray-300 transition-colors"
+        style={{ marginLeft: `${indentPx}px` }}
+      >
+        {isEditing ? (
+          <>
+            <input
+              type="text"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveEdit();
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <button
+              onClick={handleSaveEdit}
+              className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
+              title="Save (Enter)"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+              title="Cancel (Esc)"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex-1 min-w-0">
+              <FragmentVisualizer fragments={statement.fragments || []} />
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <button
+                onClick={handleStartEdit}
+                className="px-2 py-1 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100"
+                title="Edit this line"
+              >
+                ✏️
+              </button>
+              {hasChildren && (
+                <button
+                  onClick={() => setShowAddInGroup(!showAddInGroup)}
+                  className="px-2 py-1 text-xs bg-green-50 border border-green-300 text-green-700 rounded hover:bg-green-100"
+                  title="Add to this group"
+                >
+                  +
+                </button>
+              )}
+              <button
+                onClick={() => setShowAddAtLevel(!showAddAtLevel)}
+                className="px-2 py-1 text-xs bg-blue-50 border border-blue-300 text-blue-700 rounded hover:bg-blue-100"
+                title="Add line at this level"
+              >
+                ⊕
+              </button>
+              <button
+                onClick={() => onDelete(index)}
+                className="px-2 py-1 text-xs bg-red-50 border border-red-300 text-red-700 rounded hover:bg-red-100"
+                title="Delete this line"
+              >
+                ×
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Add to group input (indented) */}
+      {showAddInGroup && hasChildren && (
+        <div 
+          className="flex items-center gap-2 mt-1 p-2 bg-green-50 border border-green-200 rounded"
+          style={{ marginLeft: `${indentPx + 20}px` }}
+        >
+          <span className="text-xs text-green-700 shrink-0">Add to group:</span>
+          <input
+            type="text"
+            value={addInGroupText}
+            onChange={(e) => setAddInGroupText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddInGroup();
+              if (e.key === 'Escape') setShowAddInGroup(false);
+            }}
+            placeholder="e.g., + 5 Pullups"
+            className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+            autoFocus
+          />
+          <button
+            onClick={handleAddInGroup}
+            className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => setShowAddInGroup(false)}
+            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Add at level input (same indent) */}
+      {showAddAtLevel && (
+        <div 
+          className="flex items-center gap-2 mt-1 p-2 bg-blue-50 border border-blue-200 rounded"
+          style={{ marginLeft: `${indentPx}px` }}
+        >
+          <span className="text-xs text-blue-700 shrink-0">Add at level:</span>
+          <input
+            type="text"
+            value={addAtLevelText}
+            onChange={(e) => setAddAtLevelText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddAtLevel();
+              if (e.key === 'Escape') setShowAddAtLevel(false);
+            }}
+            placeholder="e.g., + 10 Pushups"
+            className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+          <button
+            onClick={handleAddAtLevel}
+            className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => setShowAddAtLevel(false)}
+            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Main component for editable statement list
+ */
+export const EditableStatementList: React.FC<EditableStatementListProps> = ({
+  statements,
+  onAddStatement,
+  onEditStatement,
+  onDeleteStatement
+}) => {
+  const [showAddNew, setShowAddNew] = useState(false);
+  const [newStatementText, setNewStatementText] = useState('');
+  const [showAddGroup, setShowAddGroup] = useState(false);
+  const [newGroupText, setNewGroupText] = useState('');
+
+  const handleAddNew = () => {
+    if (newStatementText.trim() && onAddStatement) {
+      onAddStatement(newStatementText.trim());
+      setNewStatementText('');
+      setShowAddNew(false);
+    }
+  };
+
+  const handleAddGroup = () => {
+    if (newGroupText.trim() && onAddStatement) {
+      onAddStatement(newGroupText.trim());
+      setNewGroupText('');
+      setShowAddGroup(false);
+    }
+  };
+
+  return (
+    <div className="editable-statement-list space-y-2">
+      {/* Existing statements */}
+      {statements.map((statement, index) => (
+        <StatementItem
+          key={statement.id || index}
+          statement={statement}
+          index={index}
+          indentLevel={statement.parent ? 1 : 0}
+          onEdit={onEditStatement!}
+          onDelete={onDeleteStatement!}
+          onAddToGroup={(parentId, text) => onAddStatement?.(text, parentId)}
+          onAddAtLevel={(text) => onAddStatement?.(text)}
+        />
+      ))}
+
+      {/* Add new line button */}
+      {!showAddNew && (
+        <button
+          onClick={() => setShowAddNew(true)}
+          className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-2"
+        >
+          <span>➕</span>
+          <span>Add Line</span>
+        </button>
+      )}
+
+      {/* Add new line input */}
+      {showAddNew && (
+        <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+          <input
+            type="text"
+            value={newStatementText}
+            onChange={(e) => setNewStatementText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddNew();
+              if (e.key === 'Escape') setShowAddNew(false);
+            }}
+            placeholder="e.g., + 5 Pullups or 20:00 AMRAP"
+            className="flex-1 px-3 py-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+          <button
+            onClick={handleAddNew}
+            className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => setShowAddNew(false)}
+            className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Add group button */}
+      {!showAddGroup && (
+        <button
+          onClick={() => setShowAddGroup(true)}
+          className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-2"
+        >
+          <span>📁</span>
+          <span>Add Group</span>
+        </button>
+      )}
+
+      {/* Add group input */}
+      {showAddGroup && (
+        <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded">
+          <input
+            type="text"
+            value={newGroupText}
+            onChange={(e) => setNewGroupText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddGroup();
+              if (e.key === 'Escape') setShowAddGroup(false);
+            }}
+            placeholder="e.g., (3) or 5 Rounds"
+            className="flex-1 px-3 py-2 text-sm border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+            autoFocus
+          />
+          <button
+            onClick={handleAddGroup}
+            className="px-4 py-2 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 shrink-0"
+          >
+            Add Group
+          </button>
+          <button
+            onClick={() => setShowAddGroup(false)}
+            className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Quick add buttons */}
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+        <QuickAddButton
+          label="Timer"
+          icon="⏱"
+          template="20:00 AMRAP"
+          onClick={(text) => onAddStatement?.(text)}
+        />
+        <QuickAddButton
+          label="Rounds"
+          icon="🔄"
+          template="(3)"
+          onClick={(text) => onAddStatement?.(text)}
+        />
+        <QuickAddButton
+          label="Effort"
+          icon="💪"
+          template="+ 10 Exercise"
+          onClick={(text) => onAddStatement?.(text)}
+        />
+        <QuickAddButton
+          label="Rest"
+          icon="⏸"
+          template="Rest 2:00"
+          onClick={(text) => onAddStatement?.(text)}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Quick add button for common fragment types
+ */
+interface QuickAddButtonProps {
+  label: string;
+  icon: string;
+  template: string;
+  onClick: (text: string) => void;
+}
+
+const QuickAddButton: React.FC<QuickAddButtonProps> = ({
+  label,
+  icon,
+  template,
+  onClick
+}) => (
+  <button
+    onClick={() => onClick(template)}
+    className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-1"
+    title={`Add ${label}`}
+  >
+    <span>{icon}</span>
+    <span>{label}</span>
+  </button>
+);
+
+/**
+ * Extract displayable text from a code statement
+ */
+function getStatementText(statement: ICodeStatement): string {
+  const fragments = statement.fragments || [];
+  
+  if (fragments.length === 0) {
+    return '(empty statement)';
+  }
+
+  const parts: string[] = [];
+  
+  fragments.forEach(fragment => {
+    // Use image if available (this is the original text token)
+    if (fragment.image) {
+      parts.push(fragment.image);
+      return;
+    }
+    
+    // Otherwise, try to extract meaningful value
+    if (fragment.value !== undefined) {
+      if (typeof fragment.value === 'object') {
+        // For complex values, try to extract key properties
+        const val = fragment.value as any;
+        if (val.duration !== undefined) {
+          parts.push(formatDuration(val.duration));
+        } else if (val.count !== undefined) {
+          parts.push(String(val.count));
+        } else if (val.exercise !== undefined) {
+          parts.push(val.exercise);
+        } else {
+          parts.push(JSON.stringify(val));
+        }
+      } else {
+        parts.push(String(fragment.value));
+      }
+    }
+  });
+
+  return parts.join(' ') || '(unknown format)';
+}
+
+/**
+ * Format duration in seconds to MM:SS
+ */
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
