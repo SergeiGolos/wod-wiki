@@ -50,6 +50,7 @@ export function useBlockParser(
   
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const parserRef = useRef<MdTimerRuntime | null>(null);
+  const previousBlockIdRef = useRef<string | null>(null);
 
   // Initialize parser for this block
   useEffect(() => {
@@ -104,22 +105,40 @@ export function useBlockParser(
 
   // Auto-parse on block content change (debounced)
   useEffect(() => {
-    if (!autoParse || !block) return;
+    if (!autoParse || !block) {
+      // Clear state when block is null
+      if (!block) {
+        setStatements([]);
+        setErrors([]);
+        setStatus('idle');
+      }
+      return;
+    }
+
+    // Check if this is a new block (block ID changed)
+    const isNewBlock = previousBlockIdRef.current !== block.id;
+    previousBlockIdRef.current = block.id;
 
     // Clear existing timer
     if (parseTimerRef.current) {
       clearTimeout(parseTimerRef.current);
     }
 
-    // Schedule parse
-    parseTimerRef.current = setTimeout(parse, debounceMs);
+    // Parse immediately for new blocks, debounce for content changes
+    if (isNewBlock) {
+      // Small delay to ensure parser is initialized
+      parseTimerRef.current = setTimeout(parse, 50);
+    } else {
+      // Debounce content changes
+      parseTimerRef.current = setTimeout(parse, debounceMs);
+    }
 
     return () => {
       if (parseTimerRef.current) {
         clearTimeout(parseTimerRef.current);
       }
     };
-  }, [block?.content, autoParse, debounceMs, parse]);
+  }, [block, block?.content, autoParse, debounceMs, parse]);
 
   // Clear function
   const clear = useCallback(() => {
