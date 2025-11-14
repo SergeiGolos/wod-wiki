@@ -51,7 +51,7 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
   }
 
   // Empty state
-  if (fragments.length === 0) {
+  if (!fragments || fragments.length === 0) {
     return (
       <div className={`border border-gray-300 rounded-lg p-4 bg-gray-50 text-center text-gray-500 text-sm ${className}`}>
         No fragments to display
