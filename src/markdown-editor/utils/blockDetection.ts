@@ -19,8 +19,9 @@ export function detectWodBlocks(content: string): WodBlock[] {
   
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
+    const normalizedLine = trimmedLine.toLowerCase();
     
-    if (!inBlock && trimmedLine.startsWith('```wod')) {
+    if (!inBlock && normalizedLine.startsWith('```wod')) {
       // Start of WOD block
       inBlock = true;
       currentBlock = {

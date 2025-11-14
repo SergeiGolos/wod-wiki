@@ -63,13 +63,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
+  const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
 
   // Use the WOD blocks hook
-  const { blocks, activeBlock } = useWodBlocks(editorRef.current, content);
+  const { blocks, activeBlock } = useWodBlocks(editorInstance, content);
   
   // Use context overlay for active block
-  useContextOverlay(editorRef.current, activeBlock, showContextOverlay);
+  useContextOverlay(editorInstance, activeBlock, showContextOverlay);
 
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
@@ -77,6 +79,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   ) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    setEditorInstance(editor);
+    setMonacoInstance(monaco);
     
     // Enable glyph margin for icons
     editor.updateOptions({ glyphMargin: true });
@@ -141,8 +145,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       />
       {/* WodBlockManager adds visual decorations */}
       <WodBlockManager
-        editor={editorRef.current}
-        monaco={monacoRef.current}
+        editor={editorInstance}
+        monaco={monacoInstance}
         blocks={blocks}
         activeBlock={activeBlock}
       />

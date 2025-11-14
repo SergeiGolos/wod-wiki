@@ -84,6 +84,16 @@ Some text here
     expect(blocks).toHaveLength(1);
   });
 
+  it('should detect WOD blocks regardless of case', () => {
+    const content = `\`\`\`WOD
+21-15-9
+\`\`\``;
+
+    const blocks = detectWodBlocks(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].content).toBe('21-15-9');
+  });
+
   it('should not detect code blocks that are not wod', () => {
     const content = `\`\`\`javascript
 const x = 5;

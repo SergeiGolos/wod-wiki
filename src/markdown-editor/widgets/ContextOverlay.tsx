@@ -39,9 +39,15 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
     this.domNode.style.top = '0';
     this.domNode.style.width = '400px';
     this.domNode.style.height = '100%';
-    this.domNode.style.zIndex = '1000';
+    this.domNode.style.zIndex = '10000';
     this.domNode.style.pointerEvents = 'auto';
     this.domNode.style.boxShadow = '-2px 0 8px rgba(0, 0, 0, 0.1)';
+    this.domNode.style.backgroundColor = '#ffffff';
+    this.domNode.style.overflow = 'auto';
+    
+    // Append directly to body for proper fixed positioning
+    // Monaco's overlayWidgets container has positioning constraints
+    document.body.appendChild(this.domNode);I. Hey Google. What kind of long sleep insurance do you want? All right, now we're going. It's from Veteran Display. What kind of long sleeve shirts do you want? The real one. It's from Zeb's room speaker. Who are you talking to? Hey, Google broadcast. You alright? You. Hey, Cortana. Where does like, not doing my voice some of the time. It's like I'm not saying. Message coming from bedrooms. Broadcast from Zeb's room speaker don't really care. A Google broadcast. What's the message? Roger that. Alright. Do that. OK. Hey, Cortana, close the wall. In Sandy, **** **** it doesn't sound like a running song. It sounds good. What? It sounds good? What? 
     
     // Initial render
     this.update(block);
@@ -79,9 +85,11 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
   
   /**
    * Get the position of the overlay widget
-   * Return null to use custom CSS positioning
+   * Use Monaco's TOP_RIGHT_CORNER preference and let CSS handle exact positioning
    */
   getPosition(): monacoEditor.IOverlayWidgetPosition | null {
-    return null;
+    return {
+      preference: monacoEditor.OverlayWidgetPositionPreference.TOP_RIGHT_CORNER
+    };
   }
 }

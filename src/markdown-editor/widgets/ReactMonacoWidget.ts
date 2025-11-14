@@ -54,10 +54,17 @@ export abstract class ReactMonacoWidget<P = any> {
    */
   dispose(): void {
     if (this.reactRoot) {
-      this.reactRoot.unmount();
+      // Defer unmount to avoid race condition with React rendering
+      const root = this.reactRoot;
       this.reactRoot = null;
+      setTimeout(() => {
+        root.unmount();
+      }, 0);
     }
-    this.domNode.remove();
+    // Remove from DOM if still attached
+    if (this.domNode.parentNode) {
+      this.domNode.parentNode.removeChild(this.domNode);
+    }
   }
   
   getId(): string {

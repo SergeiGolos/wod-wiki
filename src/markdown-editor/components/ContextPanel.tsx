@@ -86,7 +86,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             <div className="space-y-2">
               {block.statements!.map((statement, idx) => (
                 <div key={statement.id || idx} className="border border-gray-200 rounded p-2">
-                  <FragmentVisualizer statement={statement} compact={compact} />
+                  <FragmentVisualizer fragments={statement.fragments || []} />
                 </div>
               ))}
             </div>
