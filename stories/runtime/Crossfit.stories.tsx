@@ -1,129 +1,68 @@
-import { JitCompilerDemo } from "../compiler/JitCompilerDemo";
+import type { Meta, StoryObj } from '@storybook/react';
+import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
 
-export default {
+import annieMarkdown from '../../wod/annie.md?raw';
+import barbaraMarkdown from '../../wod/barbara.md?raw';
+import chelseaMarkdown from '../../wod/chelsea.md?raw';
+import cindyMarkdown from '../../wod/cindy.md?raw';
+import dianeMarkdown from '../../wod/diane.md?raw';
+import elizabethMarkdown from '../../wod/elizabeth.md?raw';
+import franMarkdown from '../../wod/fran.md?raw';
+import graceMarkdown from '../../wod/grace.md?raw';
+import helenMarkdown from '../../wod/helen.md?raw';
+import isabelMarkdown from '../../wod/isabel.md?raw';
+import jackieMarkdown from '../../wod/jackie.md?raw';
+import karenMarkdown from '../../wod/karen.md?raw';
+import lindaMarkdown from '../../wod/linda.md?raw';
+import maryMarkdown from '../../wod/mary.md?raw';
+import nancyMarkdown from '../../wod/nancy.md?raw';
+
+const meta: Meta<typeof MarkdownEditor> = {
   title: 'Runtime/Crossfit',
-  component: JitCompilerDemo,
+  component: MarkdownEditor,
+  args: {
+    showToolbar: false,
+    showContextOverlay: true,
+    readonly: true,
+    theme: 'vs',
+    height: '85vh'
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'CrossFit benchmark workouts rendered with the MarkdownEditor. Each story sources its content directly from the markdown files stored in `wod/` to keep the runtime demos aligned with their canonical definitions.'
+      }
+    }
+  }
 };
 
-export const Fran = {
-  args: {
-    initialScript: `(21-15-9) 
-  Thursters 95lb
-  Pullups`
-  },
-};
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const Annie = {
-  args: {
-    initialScript: `(50-40-30-20-10)
-  Double-Unders
-  Situps`
-  },
-};
+const createWorkoutStory = (content: string, source: string): Story => ({
+  args: { initialContent: content },
+  parameters: {
+    docs: {
+      description: {
+        story: `Markdown source: ${source}`
+      }
+    }
+  }
+});
 
-export const Barbara = {
-  args: {
-    initialScript: `(5)
-  + 20 Pullups
-  + 30 Pushups
-  + 40 Situps
-  + 50 Air Squats
-  3:00 Rest`
-  },
-};
-
-export const Chelsea = {
-  args: {
-    initialScript: `(30) :60 EMOM
-  + 5 Pullups
-  + 10 Pushups
-  + 15 Air Squats`
-  },
-};
-
-export const Cindy = {
-  args: {
-    initialScript: `20:00 AMRAP
-  5 Pullups
-  10 Pushups
-  15 Air Squats`
-  },
-};
-
-export const Diane = {
-  args: {
-    initialScript: `(21-15-9)
-  Deadlift 225lb
-  Handstand Pushups`
-  },
-};
-
-export const Elizabeth = {
-  args: {
-    initialScript: `(21-15-9)
-  Clean 135lb
-  Ring Dips`
-  },
-};
-
-export const Grace = {
-  args: {
-    initialScript: `30 Clean & Jerk 135lb`
-  },
-};
-
-export const Helen = {
-  args: {
-    initialScript: `(3)
-  400m Run
-  21 KB Swings 53lb
-  12 Pullups`
-  },
-};
-
-export const Isabel = {
-  args: {
-    initialScript: `30 Snatch 135lb`
-  },
-};
-
-export const Jackie = {
-  args: {
-    initialScript: `1000m Row
-50 Thrusters 45lb
-30 Pullups`
-  },
-};
-
-export const Karen = {
-  args: {
-    initialScript: `150 Wall Ball Shots 20lb`
-  },
-};
-
-export const Linda = {
-  args: {
-    initialScript: `(10-9-8-7-6-5-4-3-2-1)
- 
-  Deadlift 1.5BW
-  Bench Press 1BW
-  Clean 0.75BW`
-  },
-};
-
-export const Mary = {
-  args: {
-    initialScript: `20:00 AMRAP
-  + 5 Handstand Pushups
-  + 10 Single-leg Squats
-  + 15 Pullups`
-  },
-};
-
-export const Nancy = {
-  args: {
-    initialScript: `(5)
-  400m Run
-  15 Overhead Squats 95lb`
-  },
-};
+export const Fran = createWorkoutStory(franMarkdown, 'wod/fran.md');
+export const Annie = createWorkoutStory(annieMarkdown, 'wod/annie.md');
+export const Barbara = createWorkoutStory(barbaraMarkdown, 'wod/barbara.md');
+export const Chelsea = createWorkoutStory(chelseaMarkdown, 'wod/chelsea.md');
+export const Cindy = createWorkoutStory(cindyMarkdown, 'wod/cindy.md');
+export const Diane = createWorkoutStory(dianeMarkdown, 'wod/diane.md');
+export const Elizabeth = createWorkoutStory(elizabethMarkdown, 'wod/elizabeth.md');
+export const Grace = createWorkoutStory(graceMarkdown, 'wod/grace.md');
+export const Helen = createWorkoutStory(helenMarkdown, 'wod/helen.md');
+export const Isabel = createWorkoutStory(isabelMarkdown, 'wod/isabel.md');
+export const Jackie = createWorkoutStory(jackieMarkdown, 'wod/jackie.md');
+export const Karen = createWorkoutStory(karenMarkdown, 'wod/karen.md');
+export const Linda = createWorkoutStory(lindaMarkdown, 'wod/linda.md');
+export const Mary = createWorkoutStory(maryMarkdown, 'wod/mary.md');
+export const Nancy = createWorkoutStory(nancyMarkdown, 'wod/nancy.md');

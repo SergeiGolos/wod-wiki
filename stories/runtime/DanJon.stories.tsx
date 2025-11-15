@@ -1,28 +1,42 @@
-import { JitCompilerDemo } from "../compiler/JitCompilerDemo";
+import type { Meta, StoryObj } from '@storybook/react';
+import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
 
-export default {
+import abcMarkdown from '../../wod/abc.md?raw';
+import abcSingleBellMarkdown from '../../wod/abc-single-bell.md?raw';
+
+const meta: Meta<typeof MarkdownEditor> = {
   title: 'Runtime/DanJon',
-  component: JitCompilerDemo,
+  component: MarkdownEditor,
+  args: {
+    showToolbar: false,
+    showContextOverlay: true,
+    readonly: true,
+    theme: 'vs',
+    height: '85vh'
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'Dan John complexes rendered via MarkdownEditor using their markdown sources. This keeps the runtime demos synchronized with the curated Dan John library.'
+      }
+    }
+  }
 };
 
-export const ABC = {
-  args: {
-    initialScript: `(20) 1:00
-  + 2 Clean
-  + 1 Press
-  + 3 Front Squat`
-  },
-};
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const ABC_SigleBell = {
-  args: {
-    initialScript: `(20)
-  + 1 Clean & Press Left
-  + 1 Clean & Press Right 
-  + 2 Front Squat Right
-  + 1 Clean & Press Left
-  + 1 Clean & Press Right 
-  + 2 Front Squat Right
-  :30 Rest`
-  },
-};
+const createStory = (content: string, source: string): Story => ({
+  args: { initialContent: content },
+  parameters: {
+    docs: {
+      description: {
+        story: `Markdown source: ${source}`
+      }
+    }
+  }
+});
+
+export const ABC = createStory(abcMarkdown, 'wod/abc.md');
+export const ABCSingleBell = createStory(abcSingleBellMarkdown, 'wod/abc-single-bell.md');
