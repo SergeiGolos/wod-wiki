@@ -9,11 +9,13 @@ export default defineConfig({
     react(),
     dts({
       // Generate TypeScript declaration files
-      rollupTypes: true,
+      rollupTypes: false, // Disable rollup to avoid api-extractor issues
       // Include types from src directory
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       // Exclude test files and stories
       exclude: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'stories/**/*'],
+      // Preserve module structure
+      insertTypesEntry: true,
     })
   ],
   resolve: {

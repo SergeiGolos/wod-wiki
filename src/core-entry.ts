@@ -16,7 +16,8 @@ export { BlockKey } from './BlockKey';
 export { Duration, SpanDuration } from './Duration';
 export { CodeStatement } from './CodeStatement';
 export type { CodeMetadata } from './CodeMetadata';
-export { CollectionSpan, TimeSpan } from './CollectionSpan';
+export { CollectionSpan } from './CollectionSpan';
+export type { TimeSpan, Metric, MetricValue } from './CollectionSpan';
 
 // Parser
 export * from './parser/timer.parser';
@@ -80,7 +81,8 @@ export * from './fragments/LapFragment';
 export * from './fragments/TextFragment';
 
 // Fragment types
-export { FragmentType, ICodeFragment } from './CodeFragment';
+export { FragmentType } from './CodeFragment';
+export type { ICodeFragment } from './CodeFragment';
 
 // Utility exports
 export { MetricCollector } from './runtime/MetricCollector';

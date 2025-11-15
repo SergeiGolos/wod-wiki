@@ -26,7 +26,8 @@ export { LabelAnchor } from './clock/anchors/LabelAnchor';
 export { MetricAnchor } from './clock/anchors/MetricAnchor';
 
 // Timer hooks
-export { useStopwatch } from './clock/hooks/useStopwatch';
+export { useTimespan } from './clock/hooks/useStopwatch';
+export type { TimeValue } from './clock/hooks/useStopwatch';
 export { useTimerElapsed } from './runtime/hooks/useTimerElapsed';
 
 // Timer memory visualization
