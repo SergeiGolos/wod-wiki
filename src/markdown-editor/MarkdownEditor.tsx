@@ -11,6 +11,8 @@ import { WodBlockManager } from './components/WodBlockManager';
 import { useContextOverlay } from './hooks/useContextOverlay';
 import { useWodDecorations } from './hooks/useWodDecorations';
 import { useParseAllBlocks } from './hooks/useParseAllBlocks';
+// Import Monaco loader configuration to use local Monaco instead of CDN
+import './utils/monacoLoader';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
