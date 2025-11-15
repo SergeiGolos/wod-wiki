@@ -2,7 +2,7 @@
  * WorkoutTimerDialog - Dialog for executing workouts with timer controls
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { WodBlock } from '../types';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { JitCompiler } from '../../runtime/JitCompiler';
-import { WodScript } from '../../WodScript';
-import { RuntimeProvider } from '../../runtime/context/RuntimeContext';
-import { ClockAnchor } from '../../clock/anchors/ClockAnchor';
 import { Play, Pause, Square, RotateCcw } from 'lucide-react';
 
 export interface WorkoutTimerDialogProps {
@@ -32,137 +27,88 @@ export interface WorkoutTimerDialogProps {
 
 /**
  * Dialog component for executing workouts with timer
+ * 
+ * This is a simplified version that displays a stopwatch timer.
+ * Full runtime integration will be implemented in a future iteration.
  */
 export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
   open,
   onOpenChange,
   block
 }) => {
-  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [blockKey, setBlockKey] = useState<string | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [pausedTime, setPausedTime] = useState(0);
 
-  // Initialize runtime when dialog opens
+  // Reset timer when dialog opens
   useEffect(() => {
-    if (open && block.statements) {
-      // Create WodScript from block statements
-      const script = new WodScript(block.content, block.statements);
-      
-      // Create JIT compiler with empty strategies (will use default ones)
-      const jitCompiler = new JitCompiler([]);
-      
-      // Create runtime
-      const newRuntime = new ScriptRuntime(script, jitCompiler);
-      
-      // Compile the script
-      const compiledBlock = jitCompiler.compile(block.statements, newRuntime);
-      
-      if (compiledBlock) {
-        // Mount the block to initialize it
-        compiledBlock.mount(newRuntime);
-        setRuntime(newRuntime);
-        setBlockKey(compiledBlock.key.toString());
-      }
+    if (open) {
+      setIsRunning(false);
+      setElapsedMs(0);
+      setStartTime(null);
+      setPausedTime(0);
     }
-    
-    // Cleanup when dialog closes
+  }, [open]);
+
+  // Timer tick effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isRunning && startTime !== null) {
+      intervalId = setInterval(() => {
+        const now = Date.now();
+        setElapsedMs(now - startTime + pausedTime);
+      }, 10); // Update every 10ms for smooth display
+    }
+
     return () => {
-      if (runtime) {
-        // Cleanup runtime if needed
-        setRuntime(null);
-        setBlockKey(null);
-        setIsRunning(false);
+      if (intervalId) {
+        clearInterval(intervalId);
       }
     };
-  }, [open, block]);
+  }, [isRunning, startTime, pausedTime]);
 
   // Handle start/resume
-  const handleStart = () => {
-    if (runtime && blockKey) {
-      // Find timer memory references
-      const isRunningRefs = runtime.memory.search({
-        id: null,
-        ownerId: blockKey,
-        type: 'timer:isRunning',
-        visibility: null
-      });
-
-      if (isRunningRefs.length > 0) {
-        const isRunningRef = isRunningRefs[0];
-        isRunningRef.set(true);
-        setIsRunning(true);
-      }
-    }
-  };
+  const handleStart = useCallback(() => {
+    setStartTime(Date.now());
+    setIsRunning(true);
+  }, []);
 
   // Handle pause
-  const handlePause = () => {
-    if (runtime && blockKey) {
-      // Find timer memory references
-      const isRunningRefs = runtime.memory.search({
-        id: null,
-        ownerId: blockKey,
-        type: 'timer:isRunning',
-        visibility: null
-      });
-
-      if (isRunningRefs.length > 0) {
-        const isRunningRef = isRunningRefs[0];
-        isRunningRef.set(false);
-        setIsRunning(false);
-      }
+  const handlePause = useCallback(() => {
+    if (startTime !== null) {
+      setPausedTime(Date.now() - startTime + pausedTime);
     }
-  };
+    setIsRunning(false);
+    setStartTime(null);
+  }, [startTime, pausedTime]);
 
   // Handle stop
-  const handleStop = () => {
-    if (runtime && blockKey) {
-      // Stop timer and reset
-      const isRunningRefs = runtime.memory.search({
-        id: null,
-        ownerId: blockKey,
-        type: 'timer:isRunning',
-        visibility: null
-      });
-
-      if (isRunningRefs.length > 0) {
-        const isRunningRef = isRunningRefs[0];
-        isRunningRef.set(false);
-        setIsRunning(false);
-      }
-      
-      // Close dialog
-      onOpenChange(false);
-    }
-  };
+  const handleStop = useCallback(() => {
+    setIsRunning(false);
+    setElapsedMs(0);
+    setStartTime(null);
+    setPausedTime(0);
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   // Handle reset
-  const handleReset = () => {
-    if (runtime && blockKey) {
-      // Reset timer
-      const timeSpansRefs = runtime.memory.search({
-        id: null,
-        ownerId: blockKey,
-        type: 'timer:timeSpans',
-        visibility: null
-      });
-      
-      const isRunningRefs = runtime.memory.search({
-        id: null,
-        ownerId: blockKey,
-        type: 'timer:isRunning',
-        visibility: null
-      });
+  const handleReset = useCallback(() => {
+    setIsRunning(false);
+    setElapsedMs(0);
+    setStartTime(null);
+    setPausedTime(0);
+  }, []);
 
-      if (timeSpansRefs.length > 0) {
-        timeSpansRefs[0].set([]);
-      }
-      
-      if (isRunningRefs.length > 0) {
-        isRunningRefs[0].set(false);
-        setIsRunning(false);
-      }
-    }
+  // Format time for display
+  const formatTime = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const centiseconds = Math.floor((ms % 1000) / 10);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -177,24 +123,16 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
 
         <div className="space-y-6">
           {/* Timer Display */}
-          {runtime && blockKey && (
-            <RuntimeProvider runtime={runtime}>
-              <div className="flex justify-center py-8">
-                <ClockAnchor
-                  blockKey={blockKey}
-                  timerType="countup"
-                  className="text-6xl font-mono"
-                />
+          <div className="flex justify-center py-8">
+            <div className="text-center">
+              <div className="text-6xl font-mono font-bold mb-2">
+                {formatTime(elapsedMs)}
               </div>
-            </RuntimeProvider>
-          )}
-
-          {/* No runtime yet */}
-          {!runtime && (
-            <div className="text-center py-8 text-muted-foreground">
-              Initializing workout...
+              <div className="text-sm text-gray-500">
+                {isRunning ? 'Running' : 'Stopped'}
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Timer Controls */}
           <div className="flex justify-center gap-2">
@@ -205,7 +143,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
                 className="gap-2"
               >
                 <Play className="h-5 w-5" />
-                Start
+                {elapsedMs > 0 ? 'Resume' : 'Start'}
               </Button>
             ) : (
               <Button
@@ -234,6 +172,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
               size="lg"
               variant="outline"
               className="gap-2"
+              disabled={isRunning}
             >
               <RotateCcw className="h-5 w-5" />
               Reset
