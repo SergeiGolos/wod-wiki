@@ -1,10 +1,9 @@
 /**
- * Monaco Decorations Manager for WOD blocks
- * Shows emoji icons inline with WOD block content using Decorations API
- * Provides instant, synchronous updates when cursor moves
+ * Monaco Inlay Hints Provider for WOD blocks
+ * Shows emoji icons inline with WOD block content
  */
 
-import { editor as monacoEditor, Range } from 'monaco-editor';
+import { editor as monacoEditor, languages, IRange } from 'monaco-editor';
 import { WodBlock } from '../types';
 
 export interface WodInlayHint {
@@ -31,138 +30,89 @@ export const DEFAULT_HINT_CONFIG: FragmentHintConfig[] = [
 ];
 
 /**
- * WodDecorationsManager - Manages inline emoji decorations for WOD blocks
- * Uses Monaco's Decorations API for instant, synchronous updates
+ * Creates an inlay hints provider for WOD blocks
  */
-export class WodDecorationsManager {
-  private decorationsCollection: monacoEditor.IEditorDecorationsCollection;
-  private decorationOptionsCache: Map<string, monacoEditor.IModelDecorationOptions>;
-  private hintConfig: FragmentHintConfig[];
+export function createWodInlayHintsProvider(
+  blocks: WodBlock[],
+  _activeBlockId: string | null,
+  cursorLine: number | null,
+  hintConfig: FragmentHintConfig[] = DEFAULT_HINT_CONFIG
+): languages.InlayHintsProvider {
+  return {
+    provideInlayHints(
+      _model: monacoEditor.ITextModel,
+      _range: IRange,
+      _token: any
+    ): languages.ProviderResult<languages.InlayHintList> {
+      const hints: languages.InlayHint[] = [];
 
-  constructor(
-    editor: monacoEditor.IStandaloneCodeEditor,
-    hintConfig: FragmentHintConfig[] = DEFAULT_HINT_CONFIG
-  ) {
-    this.decorationsCollection = editor.createDecorationsCollection();
-    this.decorationOptionsCache = new Map();
-    this.hintConfig = hintConfig;
-    
-    // Pre-cache decoration options for performance
-    this.cacheDecorationOptions();
-  }
+      // Find which block contains the cursor (if any)
+      // Note: cursorLine is 1-indexed, block.startLine/endLine are 0-indexed
+      const activeBlock = blocks.find(b => {
+        const blockStart = b.startLine + 1; // Convert to 1-indexed
+        const blockEnd = b.endLine + 1;     // Convert to 1-indexed
+        return cursorLine !== null && cursorLine >= blockStart && cursorLine <= blockEnd;
+      });
 
-  /**
-   * Pre-cache decoration options for all emoji types
-   */
-  private cacheDecorationOptions(): void {
-    for (const config of this.hintConfig) {
-      for (const hint of config.hints) {
-        const key = `${hint.hint}-${hint.position}`;
-        if (!this.decorationOptionsCache.has(key)) {
-          // Use Monaco's InjectedTextOptions for before/after content
-          this.decorationOptionsCache.set(key, {
-            [hint.position]: {
-              content: hint.hint,
-              inlineClassName: 'wod-fragment-icon',
-            }
-          });
-        }
-      }
-    }
-  }
-
-  /**
-   * Update decorations based on current blocks and cursor position
-   * This is called synchronously on cursor movement for instant updates
-   */
-  updateDecorations(blocks: WodBlock[], cursorLine: number | null): void {
-    // Guard against use after disposal
-    if (!this.decorationsCollection) return;
-    
-    const decorations: monacoEditor.IModelDeltaDecoration[] = [];
-
-    // Find which block contains the cursor (if any)
-    // Note: cursorLine is 1-indexed, block.startLine/endLine are 0-indexed
-    const activeBlock = blocks.find(b => {
-      const blockStart = b.startLine + 1; // Convert to 1-indexed
-      const blockEnd = b.endLine + 1;     // Convert to 1-indexed
-      return cursorLine !== null && cursorLine >= blockStart && cursorLine <= blockEnd;
-    });
-
-    // Process each block
-    for (const block of blocks) {
-      // Skip active block (where cursor is focused) - decorations hidden
-      if (activeBlock && block.id === activeBlock.id) {
-        continue;
-      }
-
-      // Skip blocks without parsed statements
-      if (!block.statements || block.statements.length === 0) {
-        continue;
-      }
-
-      // Process all fragments in all statements
-      const fragments = block.statements.flatMap(stmt => stmt.fragments || []);
-
-      for (const fragment of fragments) {
-        if (!fragment.meta) {
+      // Process each block
+      for (const block of blocks) {
+        // Skip active block (where cursor is focused)
+        if (activeBlock && block.id === activeBlock.id) {
           continue;
         }
 
-        // Find hint config for this fragment type
-        const config = this.hintConfig.find(c => c.type === fragment.type);
-        if (!config || !config.hints.length) {
+        // Skip blocks without parsed statements
+        if (!block.statements || block.statements.length === 0) {
           continue;
         }
 
-        // Add decorations for this fragment
-        for (const hintDef of config.hints) {
-          // Calculate absolute line number in Monaco's 1-indexed coordinate system:
-          // - block.startLine is 0-indexed (points to ```wod line)
-          // - fragment.meta.line is 1-indexed relative to block content (1 = first content line)
-          // - Content starts at (block.startLine + 1) in 0-indexed terms
-          // - In Monaco's 1-indexed: block.startLine becomes (block.startLine + 1)
-          // - Therefore: absoluteLineNumber = (block.startLine + 1) + fragment.meta.line
-          const absoluteLineNumber = block.startLine + 1 + fragment.meta.line;
-          const columnStart = fragment.meta.columnStart;
-          const length = fragment.meta.length;
+        // Process all fragments in all statements
+        const fragments = block.statements.flatMap(stmt => stmt.fragments || []);
 
-          // Calculate position based on hint configuration
-          const column = hintDef.position === 'before'
-            ? columnStart + (hintDef.offset || 0)
-            : columnStart + length + 1 + (hintDef.offset || 0);
+        for (const fragment of fragments) {
+          if (!fragment.meta) {
+            continue;
+          }
 
-          // Get cached decoration options
-          const key = `${hintDef.hint}-${hintDef.position}`;
-          const options = this.decorationOptionsCache.get(key);
-          
-          if (options) {
-            decorations.push({
-              range: new Range(absoluteLineNumber, column, absoluteLineNumber, column),
-              options
+          // Find hint config for this fragment type
+          const config = hintConfig.find(c => c.type === fragment.type);
+          if (!config || !config.hints.length) {
+            continue;
+          }
+
+          // Add hints for this fragment
+          for (const hintDef of config.hints) {
+            // Fragment line is relative to block content (1-indexed within block)
+            // Need to adjust to absolute document line number
+            // Block content starts at block.startLine + 1 (after opening ```wod)
+            // Fragment line 1 = block.startLine + 2 (Monaco is 1-indexed)
+            const absoluteLineNumber = block.startLine + 1 + fragment.meta.line;
+            const columnStart = fragment.meta.columnStart;
+            const length = fragment.meta.length;
+
+            // Calculate position based on hint configuration
+            const column = hintDef.position === 'before'
+              ? columnStart + (hintDef.offset || 0)
+              : columnStart + length + 1 + (hintDef.offset || 0);
+
+            hints.push({
+              kind: languages.InlayHintKind.Parameter,
+              position: {
+                lineNumber: absoluteLineNumber,
+                column
+              },
+              label: hintDef.hint,
+              paddingLeft: hintDef.position === 'after',
+              paddingRight: hintDef.position === 'before',
             });
           }
         }
       }
-    }
 
-    // Apply all decorations at once - synchronous update
-    this.decorationsCollection.set(decorations);
-    
-    // Log only summary for debugging
-    if (decorations.length > 0) {
-      console.log(`[WodDecorationsManager] Applied ${decorations.length} decorations to ${blocks.filter(b => b.statements && b.statements.length > 0).length} blocks`);
+      return {
+        hints,
+        dispose: () => {}
+      };
     }
-  }
-
-  /**
-   * Dispose of the decorations manager
-   */
-  dispose(): void {
-    if (this.decorationsCollection) {
-      this.decorationsCollection.clear();
-      (this.decorationsCollection as any) = null;
-    }
-    this.decorationOptionsCache.clear();
-  }
+  };
 }

@@ -95,9 +95,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setEditorInstance(editor);
     setMonacoInstance(monaco);
     
-    // Enable glyph margin for icons
+    // Enable glyph margin for icons and inlay hints
     editor.updateOptions({ 
-      glyphMargin: true
+      glyphMargin: true,
+      inlayHints: { enabled: 'on' }
     });
     
     // Focus editor
@@ -131,6 +132,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     padding: { top: 16, bottom: 16 },
     scrollBeyondLastLine: false,
     automaticLayout: true,
+    inlayHints: { enabled: 'on' },
     ...editorOptions
   };
 

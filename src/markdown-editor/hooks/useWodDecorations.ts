@@ -1,13 +1,12 @@
 /**
- * Hook for managing WOD block Monaco decorations
- * Uses Decorations API for instant, synchronous updates
+ * Hook for managing WOD block Monaco decorations (inlay hints & semantic tokens)
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { editor as monacoEditor, IDisposable } from 'monaco-editor';
 import { Monaco } from '@monaco-editor/react';
 import { WodBlock } from '../types';
-import { WodDecorationsManager } from '../utils/wodInlayHintsProvider';
+import { createWodInlayHintsProvider } from '../utils/wodInlayHintsProvider';
 import { createWodSemanticTokensProvider } from '../utils/wodSemanticTokensProvider';
 
 export interface UseWodDecorationsOptions {
@@ -20,7 +19,7 @@ export interface UseWodDecorationsOptions {
 
 /**
  * Hook to register Monaco decorations for WOD blocks
- * Provides inline emoji decorations and semantic token highlighting
+ * Provides inlay hints (emojis) and semantic token highlighting
  */
 export function useWodDecorations(
   editor: monacoEditor.IStandaloneCodeEditor | null,
@@ -34,96 +33,88 @@ export function useWodDecorations(
     languageId = 'markdown'
   } = options;
 
-  const decorationsManagerRef = useRef<WodDecorationsManager | null>(null);
-  const semanticDisposableRef = useRef<IDisposable | null>(null);
-  const cursorDisposableRef = useRef<IDisposable | null>(null);
+  const disposablesRef = useRef<IDisposable[]>([]);
   const blocksRef = useRef<WodBlock[]>([]);
+  const activeBlockIdRef = useRef<string | null>(null);
+  const cursorLineRef = useRef<number | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
-  // Keep blocks ref updated
+  // Update refs
   blocksRef.current = blocks;
+  activeBlockIdRef.current = activeBlock?.id || null;
 
-  // Create decorations manager once when editor is ready
+  // Track cursor position - this should trigger immediately
   useEffect(() => {
-    if (!editor || !enabled) {
-      // Clean up existing manager
-      if (decorationsManagerRef.current) {
-        decorationsManagerRef.current.dispose();
-        decorationsManagerRef.current = null;
-      }
-      return;
-    }
+    if (!editor || !enabled) return;
 
-    // Create manager
-    console.log('[useWodDecorations] Creating WodDecorationsManager');
-    decorationsManagerRef.current = new WodDecorationsManager(editor);
-
-    // Initial update with no cursor
-    decorationsManagerRef.current.updateDecorations(blocksRef.current, null);
-
-    return () => {
-      if (decorationsManagerRef.current) {
-        console.log('[useWodDecorations] Disposing WodDecorationsManager');
-        decorationsManagerRef.current.dispose();
-        decorationsManagerRef.current = null;
-      }
-    };
-  }, [editor, enabled]);
-
-  // Track cursor position and update decorations synchronously
-  useEffect(() => {
-    if (!editor || !enabled || !decorationsManagerRef.current) return;
-
-    const updateDecorations = () => {
+    const updateCursorLine = () => {
       const position = editor.getPosition();
-      const cursorLine = position?.lineNumber || null;
+      const newLine = position?.lineNumber || null;
       
-      // Synchronous update - instant response
-      decorationsManagerRef.current?.updateDecorations(blocksRef.current, cursorLine);
+      // Always update cursor line
+      const oldLine = cursorLineRef.current;
+      cursorLineRef.current = newLine;
+      
+      // Immediately refresh hints on any cursor movement
+      if (oldLine !== newLine) {
+        // Synchronous refresh - don't wait for state update
+        const action = editor.getAction('editor.action.inlayHints.refresh');
+        if (action) {
+          action.run();
+        }
+        
+        // Also trigger state update for other dependencies
+        setRefreshCounter(prev => prev + 1);
+      }
     };
 
-    // Initial update
-    updateDecorations();
+    // Initial position
+    updateCursorLine();
 
-    // Listen for cursor changes - synchronous updates
+    // Listen for cursor changes - immediate refresh
     const disposable = editor.onDidChangeCursorPosition(() => {
-      updateDecorations();
+      updateCursorLine();
     });
 
-    cursorDisposableRef.current = disposable;
-
-    return () => {
-      if (cursorDisposableRef.current) {
-        cursorDisposableRef.current.dispose();
-        cursorDisposableRef.current = null;
-      }
-    };
+    return () => disposable.dispose();
   }, [editor, enabled]);
 
-  // Update decorations when blocks change (using ref to avoid infinite loops)
+  // Additional refresh for blocks changes
   useEffect(() => {
-    if (!editor || !enabled || !decorationsManagerRef.current) return;
-
-    const position = editor.getPosition();
-    const cursorLine = position?.lineNumber || null;
+    if (!editor || !enabled) return;
     
-    // Update decorations with current cursor position using ref
-    decorationsManagerRef.current.updateDecorations(blocksRef.current, cursorLine);
-    
-    console.log('[useWodDecorations] Updated decorations for', blocksRef.current.length, 'blocks');
-  }, [editor, enabled, blocks.length]); // Use blocks.length instead of blocks array
-
-  // Register semantic tokens provider (once)
-  useEffect(() => {
-    if (!editor || !monaco || !enabled) {
-      // Clean up existing provider
-      if (semanticDisposableRef.current) {
-        semanticDisposableRef.current.dispose();
-        semanticDisposableRef.current = null;
-      }
-      return;
+    // Trigger Monaco's inlay hints refresh
+    const action = editor.getAction('editor.action.inlayHints.refresh');
+    if (action) {
+      action.run();
     }
+  }, [editor, enabled, refreshCounter, blocks.length, activeBlock?.id]);
 
-    console.log('[useWodDecorations] Registering semantic tokens provider');
+  // Register providers
+  useEffect(() => {
+    if (!editor || !monaco || !enabled) return;
+
+    console.log('[useWodDecorations] Registering providers for', blocks.length, 'blocks');
+
+    // Clean up previous providers
+    disposablesRef.current.forEach(d => d.dispose());
+    disposablesRef.current = [];
+
+    const inlayDisposable = monaco.languages.registerInlayHintsProvider(
+      languageId,
+      {
+        provideInlayHints: (model, range, token) => {
+          // Use current refs to get latest values
+          const provider = createWodInlayHintsProvider(
+            blocksRef.current,
+            activeBlockIdRef.current,
+            cursorLineRef.current
+          );
+          return provider.provideInlayHints(model, range, token);
+        }
+      }
+    );
+    disposablesRef.current.push(inlayDisposable);
 
     // Register semantic tokens provider
     const semanticTokensProvider = createWodSemanticTokensProvider(blocksRef.current);
@@ -139,17 +130,28 @@ export function useWodDecorations(
         releaseDocumentSemanticTokens: semanticTokensProvider.releaseDocumentSemanticTokens
       }
     );
-    
-    semanticDisposableRef.current = semanticDisposable;
+    disposablesRef.current.push(semanticDisposable);
 
-    console.log('[useWodDecorations] Semantic tokens provider registered');
+    console.log('[useWodDecorations] Providers registered');
 
     return () => {
-      if (semanticDisposableRef.current) {
-        console.log('[useWodDecorations] Cleaning up semantic tokens provider');
-        semanticDisposableRef.current.dispose();
-        semanticDisposableRef.current = null;
-      }
+      console.log('[useWodDecorations] Cleaning up providers');
+      disposablesRef.current.forEach(d => d.dispose());
+      disposablesRef.current = [];
     };
   }, [editor, monaco, enabled, languageId]);
+
+  // Trigger refresh when blocks or active block changes
+  useEffect(() => {
+    if (!editor || !monaco || !enabled) return;
+
+    // Force Monaco to refresh inlay hints and semantic tokens
+    const model = editor.getModel();
+    if (model) {
+      // Force editor to recompute decorations
+      editor.getAction('editor.action.inlayHints.refresh')?.run();
+      
+      console.log('[useWodDecorations] Refreshed decorations');
+    }
+  }, [editor, monaco, blocks, activeBlock, enabled]);
 }
