@@ -27,7 +27,14 @@ export class ExerciseSuggestionProvider {
     }
 
     this.initPromise = (async () => {
-      const indexManager = await ExerciseIndexManager.getInstance();
+      const indexManager = ExerciseIndexManager.getInstance();
+      
+      // Check if provider is configured
+      if (!indexManager.hasProvider()) {
+        console.warn('[ExerciseSuggestionProvider] No exercise provider configured, suggestions will be disabled');
+        return;
+      }
+      
       this.searchEngine = new ExerciseSearchEngine(indexManager);
     })();
 

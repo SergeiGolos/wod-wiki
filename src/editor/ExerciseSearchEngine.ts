@@ -45,8 +45,8 @@ export class ExerciseSearchEngine {
     }
 
     // Set new timeout
-    this.debounceTimeout = setTimeout(() => {
-      const results = this.performSearch(query, options);
+    this.debounceTimeout = setTimeout(async () => {
+      const results = await this.performSearch(query, options);
       this.lastQuery = query;
       this.lastResults = results;
       callback(results);
@@ -59,7 +59,7 @@ export class ExerciseSearchEngine {
    * @param options Search options
    * @returns Search results
    */
-  searchImmediate(query: string, options: SearchOptions = {}): ExercisePathEntry[] {
+  async searchImmediate(query: string, options: SearchOptions = {}): Promise<ExercisePathEntry[]> {
     // Cancel pending debounced search
     if (this.debounceTimeout) {
       clearTimeout(this.debounceTimeout);
@@ -72,7 +72,7 @@ export class ExerciseSearchEngine {
   /**
    * Perform the actual search with caching and filtering
    */
-  private performSearch(query: string, options: SearchOptions): ExercisePathEntry[] {
+  private async performSearch(query: string, options: SearchOptions): Promise<ExercisePathEntry[]> {
     const normalizedQuery = query.toLowerCase().trim();
     const limit = options.limit || this.DEFAULT_LIMIT;
 
@@ -88,7 +88,7 @@ export class ExerciseSearchEngine {
     if (!normalizedQuery && this.hasFilters(options)) {
       results = this.indexManager.getAllEntries();
     } else {
-      results = this.indexManager.searchExercises(normalizedQuery, limit * 2); // Get more for filtering
+      results = await this.indexManager.searchExercises(normalizedQuery, limit * 2); // Get more for filtering
     }
 
     // Apply filters
