@@ -1,5 +1,12 @@
 import React from 'react';
 import { ToolbarProps } from '../types/interfaces';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * Toolbar component - provides navigation, actions, and branding
@@ -65,28 +72,86 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <div className="flex items-center gap-4">
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {actionButtons.map(button => (
-              <button
-                key={button.id}
-                onClick={() => onAction(button.id)}
-                disabled={button.disabled || button.loading}
-                className={`
-                  flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors
-                  ${button.disabled
-                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  }
-                `}
-                title={button.tooltip}
-                data-testid={`action-${button.id}`}
-              >
-                <span>{button.icon}</span>
-                <span>{button.label}</span>
-                {button.loading && (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                )}
-              </button>
-            ))}
+            {actionButtons.map(button => {
+              // If button has dropdown items, render as dropdown
+              if (button.dropdown && button.dropdown.length > 0) {
+                return (
+                  <div key={button.id} className="flex items-center">
+                    <button
+                      onClick={() => onAction(button.id)}
+                      disabled={button.disabled || button.loading}
+                      className={`
+                        flex items-center gap-2 px-3 py-2 rounded-l text-sm font-medium transition-colors
+                        ${button.disabled
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        }
+                      `}
+                      title={button.tooltip}
+                      data-testid={`action-${button.id}`}
+                    >
+                      <span>{button.icon}</span>
+                      <span>{button.label}</span>
+                      {button.loading && (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      )}
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        disabled={button.disabled || button.loading}
+                        className={`
+                          px-2 py-2 rounded-r border-l border-white/20 text-sm font-medium transition-colors
+                          ${button.disabled
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          }
+                        `}
+                        data-testid={`action-${button.id}-dropdown`}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {button.dropdown.map(item => (
+                          <DropdownMenuItem
+                            key={item.id}
+                            onClick={() => onAction(item.id)}
+                            disabled={item.disabled}
+                            data-testid={`action-${item.id}`}
+                          >
+                            {item.icon && <span className="mr-2">{item.icon}</span>}
+                            <span>{item.label}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              }
+
+              // Regular button without dropdown
+              return (
+                <button
+                  key={button.id}
+                  onClick={() => onAction(button.id)}
+                  disabled={button.disabled || button.loading}
+                  className={`
+                    flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors
+                    ${button.disabled
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    }
+                  `}
+                  title={button.tooltip}
+                  data-testid={`action-${button.id}`}
+                >
+                  <span>{button.icon}</span>
+                  <span>{button.label}</span>
+                  {button.loading && (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Settings and Help */}

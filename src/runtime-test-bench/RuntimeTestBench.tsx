@@ -44,6 +44,7 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
   // Basic state
   const [code, setCode] = useState(initialCode);
   const [compilationLog, setCompilationLog] = useState<any[]>([]); // TODO: Type with LogEntry interface
+  const [debugMode, setDebugMode] = useState(false);
   
   // Debounce timer ref for parsing
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -344,7 +345,15 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
           onNavigate={() => {}} // TODO: Implement navigation
           actionButtons={[
             { id: 'compile', label: 'Compile', icon: '⚙️', disabled: status === 'running' },
-            { id: 'execute', label: status === 'paused' ? 'Resume' : 'Run', icon: '▶️', disabled: status === 'running' },
+            { 
+              id: 'execute', 
+              label: status === 'paused' ? 'Resume' : 'Run', 
+              icon: '▶️', 
+              disabled: status === 'running',
+              dropdown: [
+                { id: 'execute-debug', label: 'Run with Debug', icon: '🐛', disabled: status === 'running' }
+              ]
+            },
             { id: 'pause', label: 'Pause', icon: '⏸️', disabled: status !== 'running' },
             { id: 'stop', label: 'Stop', icon: '⏹️', disabled: status === 'idle' },
             { id: 'reset', label: 'Reset', icon: '🔄', disabled: false },
@@ -354,14 +363,34 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
             switch (actionId) {
               case 'compile': handleCompile(); break;
               case 'execute': handleExecute(); break;
+              case 'execute-debug': 
+                setDebugMode(true);
+                handleExecute(); 
+                break;
               case 'pause': handlePause(); break;
-              case 'stop': handleStop(); break;
-              case 'reset': handleReset(); break;
+              case 'stop': 
+                setDebugMode(false);
+                handleStop(); 
+                break;
+              case 'reset': 
+                setDebugMode(false);
+                handleReset(); 
+                break;
               case 'step': handleStep(); break;
             }
           }}
           />
         </div>
+
+        {/* Debug Mode Indicator */}
+        {debugMode && (
+          <div className="bg-orange-100 border-l-4 border-orange-500 p-4 rounded">
+            <div className="flex items-center">
+              <span className="text-orange-800 font-semibold mr-2">🐛 Debug Mode Active</span>
+              <span className="text-orange-700 text-sm">Showing detailed memory allocation and runtime stack information</span>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -390,29 +419,33 @@ export const RuntimeTestBench: React.FC<RuntimeTestBenchProps> = ({
             />
           </div>
 
-          {/* Runtime Stack Panel */}
-          <div className="bg-card rounded-lg p-4">
-            <RuntimeStackPanel
-          blocks={blocks}
-          highlightedBlockKey={highlightState.blockKey}
-          onBlockHover={(blockKey) => setBlockHighlight(blockKey, 'stack')}
-          onBlockClick={() => {}} // TODO: Implement block selection
-            />
-          </div>
+          {/* Runtime Stack Panel - Always visible in debug mode, hidden otherwise */}
+          {debugMode && (
+            <div className="bg-card rounded-lg p-4">
+              <RuntimeStackPanel
+            blocks={blocks}
+            highlightedBlockKey={highlightState.blockKey}
+            onBlockHover={(blockKey) => setBlockHighlight(blockKey, 'stack')}
+            onBlockClick={() => {}} // TODO: Implement block selection
+              />
+            </div>
+          )}
 
-          {/* Memory Panel */}
-          <div className="bg-card rounded-lg p-4">
-            <MemoryPanel
-          entries={memory}
-          highlightedMemoryId={highlightState.memoryId}
-          onEntryHover={(memoryId) => setMemoryHighlight(memoryId, 'memory')}
-          onEntryClick={() => {}} // TODO: Implement entry selection
-          filterText=""
-          onFilterChange={() => {}}
-          groupBy="none"
-          onGroupByChange={() => {}}
-            />
-          </div>
+          {/* Memory Panel - Always visible in debug mode, hidden otherwise */}
+          {debugMode && (
+            <div className="bg-card rounded-lg p-4">
+              <MemoryPanel
+            entries={memory}
+            highlightedMemoryId={highlightState.memoryId}
+            onEntryHover={(memoryId) => setMemoryHighlight(memoryId, 'memory')}
+            onEntryClick={() => {}} // TODO: Implement entry selection
+            filterText=""
+            onFilterChange={() => {}}
+            groupBy="none"
+            onGroupByChange={() => {}}
+              />
+            </div>
+          )}
         </div>
 
         {/* Controls Panel */}

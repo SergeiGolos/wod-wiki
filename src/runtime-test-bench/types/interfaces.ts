@@ -423,6 +423,14 @@ export interface ActionButton {
   disabled?: boolean;
   loading?: boolean;
   tooltip?: string;
+  dropdown?: ActionButtonDropdownItem[];
+}
+
+export interface ActionButtonDropdownItem {
+  id: string;
+  label: string;
+  icon?: string;
+  disabled?: boolean;
 }
 
 /**

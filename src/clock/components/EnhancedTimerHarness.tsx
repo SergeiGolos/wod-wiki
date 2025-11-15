@@ -386,6 +386,7 @@ interface TimerControlsProps {
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
+  onNext?: () => void;
 }
 
 export const TimerControls: React.FC<TimerControlsProps> = ({
@@ -394,7 +395,8 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   onStop,
   onPause,
   onResume,
-  onReset
+  onReset,
+  onNext
 }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
@@ -439,6 +441,16 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         >
           Reset
         </button>
+
+        {onNext && (
+          <button
+            onClick={onNext}
+            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors col-span-2"
+            title="Complete current section and advance to next"
+          >
+            Next →
+          </button>
+        )}
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
