@@ -59,8 +59,9 @@ export class WodDecorationsManager {
       for (const hint of config.hints) {
         const key = `${hint.hint}-${hint.position}`;
         if (!this.decorationOptionsCache.has(key)) {
+          // Use Monaco's InjectedTextOptions for before/after content
           this.decorationOptionsCache.set(key, {
-            [hint.position === 'before' ? 'before' : 'after']: {
+            [hint.position]: {
               content: hint.hint,
               inlineClassName: 'wod-fragment-icon',
             }
