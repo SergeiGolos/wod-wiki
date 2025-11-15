@@ -75,6 +75,9 @@ export class WodDecorationsManager {
    * This is called synchronously on cursor movement for instant updates
    */
   updateDecorations(blocks: WodBlock[], cursorLine: number | null): void {
+    // Guard against use after disposal
+    if (!this.decorationsCollection) return;
+    
     const decorations: monacoEditor.IModelDeltaDecoration[] = [];
 
     // Find which block contains the cursor (if any)
@@ -113,10 +116,12 @@ export class WodDecorationsManager {
 
         // Add decorations for this fragment
         for (const hintDef of config.hints) {
-          // Fragment line is relative to block content (1-indexed within block)
-          // Need to adjust to absolute document line number
-          // Block content starts at block.startLine + 1 (after opening ```wod)
-          // Fragment line 1 = block.startLine + 2 (Monaco is 1-indexed)
+          // Calculate absolute line number in Monaco's 1-indexed coordinate system:
+          // - block.startLine is 0-indexed (points to ```wod line)
+          // - fragment.meta.line is 1-indexed relative to block content (1 = first content line)
+          // - Content starts at (block.startLine + 1) in 0-indexed terms
+          // - In Monaco's 1-indexed: block.startLine becomes (block.startLine + 1)
+          // - Therefore: absoluteLineNumber = (block.startLine + 1) + fragment.meta.line
           const absoluteLineNumber = block.startLine + 1 + fragment.meta.line;
           const columnStart = fragment.meta.columnStart;
           const length = fragment.meta.length;
@@ -148,7 +153,10 @@ export class WodDecorationsManager {
    * Dispose of the decorations manager
    */
   dispose(): void {
-    this.decorationsCollection.clear();
+    if (this.decorationsCollection) {
+      this.decorationsCollection.clear();
+      (this.decorationsCollection as any) = null;
+    }
     this.decorationOptionsCache.clear();
   }
 }

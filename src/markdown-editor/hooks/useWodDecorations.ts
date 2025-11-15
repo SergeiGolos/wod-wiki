@@ -99,18 +99,18 @@ export function useWodDecorations(
     };
   }, [editor, enabled]);
 
-  // Update decorations when blocks change
+  // Update decorations when blocks change (using ref to avoid infinite loops)
   useEffect(() => {
     if (!editor || !enabled || !decorationsManagerRef.current) return;
 
     const position = editor.getPosition();
     const cursorLine = position?.lineNumber || null;
     
-    // Update decorations with current cursor position
-    decorationsManagerRef.current.updateDecorations(blocks, cursorLine);
+    // Update decorations with current cursor position using ref
+    decorationsManagerRef.current.updateDecorations(blocksRef.current, cursorLine);
     
-    console.log('[useWodDecorations] Updated decorations for', blocks.length, 'blocks');
-  }, [editor, enabled, blocks]);
+    console.log('[useWodDecorations] Updated decorations for', blocksRef.current.length, 'blocks');
+  }, [editor, enabled, blocks.length]); // Use blocks.length instead of blocks array
 
   // Register semantic tokens provider (once)
   useEffect(() => {
