@@ -2,8 +2,8 @@
  * Hook for managing WOD block Monaco decorations (inlay hints & semantic tokens)
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { editor as monacoEditor, IDisposable } from 'monaco-editor';
+import { useEffect, useRef } from 'react';
+import { editor as monacoEditor, IDisposable, Emitter } from 'monaco-editor';
 import { Monaco } from '@monaco-editor/react';
 import { WodBlock } from '../types';
 import { createWodInlayHintsProvider } from '../utils/wodInlayHintsProvider';
@@ -37,7 +37,7 @@ export function useWodDecorations(
   const blocksRef = useRef<WodBlock[]>([]);
   const activeBlockIdRef = useRef<string | null>(null);
   const cursorLineRef = useRef<number | null>(null);
-  const [refreshCounter, setRefreshCounter] = useState(0);
+  const inlayHintsEmitterRef = useRef<Emitter<void> | null>(null);
 
   // Update refs
   blocksRef.current = blocks;
@@ -55,16 +55,10 @@ export function useWodDecorations(
       const oldLine = cursorLineRef.current;
       cursorLineRef.current = newLine;
       
-      // Immediately refresh hints on any cursor movement
-      if (oldLine !== newLine) {
-        // Synchronous refresh - don't wait for state update
-        const action = editor.getAction('editor.action.inlayHints.refresh');
-        if (action) {
-          action.run();
-        }
-        
-        // Also trigger state update for other dependencies
-        setRefreshCounter(prev => prev + 1);
+      // Fire the emitter to notify Monaco that hints need updating
+      if (oldLine !== newLine && inlayHintsEmitterRef.current) {
+        console.log('[useWodDecorations] Cursor moved from line', oldLine, 'to', newLine, '- firing hint refresh');
+        inlayHintsEmitterRef.current.fire();
       }
     };
 
@@ -79,16 +73,13 @@ export function useWodDecorations(
     return () => disposable.dispose();
   }, [editor, enabled]);
 
-  // Additional refresh for blocks changes
+  // Fire emitter when blocks change (not just cursor movement)
   useEffect(() => {
-    if (!editor || !enabled) return;
+    if (!editor || !enabled || !inlayHintsEmitterRef.current) return;
     
-    // Trigger Monaco's inlay hints refresh
-    const action = editor.getAction('editor.action.inlayHints.refresh');
-    if (action) {
-      action.run();
-    }
-  }, [editor, enabled, refreshCounter, blocks.length, activeBlock?.id]);
+    console.log('[useWodDecorations] Blocks or active block changed - firing hint refresh');
+    inlayHintsEmitterRef.current.fire();
+  }, [editor, enabled, blocks.length, activeBlock?.id]);
 
   // Register providers
   useEffect(() => {
@@ -96,13 +87,23 @@ export function useWodDecorations(
 
     console.log('[useWodDecorations] Registering providers for', blocks.length, 'blocks');
 
-    // Clean up previous providers
+    // Clean up previous providers and emitter
     disposablesRef.current.forEach(d => d.dispose());
     disposablesRef.current = [];
+    
+    if (inlayHintsEmitterRef.current) {
+      inlayHintsEmitterRef.current.dispose();
+    }
+
+    // Create new emitter for this provider instance
+    const emitter = new monaco.Emitter<void>();
+    inlayHintsEmitterRef.current = emitter;
+    disposablesRef.current.push(emitter);
 
     const inlayDisposable = monaco.languages.registerInlayHintsProvider(
       languageId,
       {
+        onDidChangeInlayHints: emitter.event,
         provideInlayHints: (model, range, token) => {
           // Use current refs to get latest values
           const provider = createWodInlayHintsProvider(
@@ -141,17 +142,4 @@ export function useWodDecorations(
     };
   }, [editor, monaco, enabled, languageId]);
 
-  // Trigger refresh when blocks count or active block ID changes
-  useEffect(() => {
-    if (!editor || !monaco || !enabled) return;
-
-    // Force Monaco to refresh inlay hints and semantic tokens
-    const model = editor.getModel();
-    if (model) {
-      // Force editor to recompute decorations
-      editor.getAction('editor.action.inlayHints.refresh')?.run();
-      
-      console.log('[useWodDecorations] Refreshed decorations');
-    }
-  }, [editor, monaco, blocks.length, activeBlock?.id, enabled]);
 }
