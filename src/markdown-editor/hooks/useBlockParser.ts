@@ -93,6 +93,7 @@ export function useBlockParser(
       setErrors(parseErrors);
       setStatus(parseErrors.length > 0 ? 'error' : 'success');
     } catch (error: any) {
+      console.error('[useBlockParser] Parse error:', error);
       const errorMsg = error?.message || 'Unknown parse error';
       setErrors([{
         message: errorMsg,

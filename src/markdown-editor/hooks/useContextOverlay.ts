@@ -2,11 +2,10 @@
  * Hook for managing the context overlay widget
  */
 
-import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { editor as monacoEditor } from 'monaco-editor';
 import { WodBlock } from '../types';
 import { ContextOverlay } from '../widgets/ContextOverlay';
-import { useBlockParser } from './useBlockParser';
 import { useBlockEditor } from './useBlockEditor';
 
 /**
@@ -18,12 +17,6 @@ export function useContextOverlay(
   enabled: boolean = true
 ) {
   const overlayRef = useRef<ContextOverlay | null>(null);
-  
-  // Parse the active block
-  const { statements, errors, status } = useBlockParser(activeBlock, {
-    autoParse: true,
-    debounceMs: 500
-  });
 
   // Block editor for making changes
   const { addStatement, editStatement, deleteStatement } = useBlockEditor({
@@ -31,20 +24,14 @@ export function useContextOverlay(
     block: activeBlock
   });
 
-  // Create enriched block with parsed data (immutable)
+  // Use the already-parsed block data (from useParseAllBlocks)
+  // No need to re-parse here, it's already done!
   const enrichedBlock = useMemo(() => {
     if (!activeBlock) return null;
     
-    return {
-      ...activeBlock,
-      statements: statements.length > 0 ? statements : activeBlock.statements,
-      errors: errors.length > 0 ? errors : activeBlock.errors,
-      state: status === 'parsing' ? 'parsing' as const :
-             status === 'error' ? 'error' as const :
-             statements.length > 0 ? 'parsed' as const :
-             activeBlock.state
-    };
-  }, [activeBlock, statements, errors, status]);
+    // Active block should already have statements/errors from useParseAllBlocks
+    return activeBlock;
+  }, [activeBlock]);
 
   // Memoize callbacks to prevent unnecessary effect re-runs
   const callbacks = useMemo(() => ({

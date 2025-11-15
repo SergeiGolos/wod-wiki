@@ -15,8 +15,32 @@ export interface FragmentVisualizerProps {
 }
 
 /**
+ * Get icon/emoji for fragment type
+ */
+function getFragmentIcon(type: string): string | null {
+  const iconMap: Record<string, string> = {
+    'timer': '⏱️',
+    'duration': '⏱️',
+    'rounds': '🔄',
+    'rep': '×',
+    'reps': '×',
+    'resistance': '💪',
+    'weight': '💪',
+    'distance': '📏',
+    'action': '▶️',
+    'rest': '⏸️',
+    'effort': '🏃',
+    'lap': '+',
+    'increment': '↕️',
+    'text': '📝',
+  };
+  
+  return iconMap[type.toLowerCase()] || null;
+}
+
+/**
  * FragmentVisualizer component displays parsed code fragments grouped by type
- * with color-coded visualization.
+ * with color-coded visualization and icons.
  */
 export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({ 
   fragments, 
@@ -65,14 +89,16 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
         const type = fragment.type || 'unknown';
         const colorClasses = getFragmentColorClasses(type);
         const tokenValue = fragment.image || (typeof fragment.value === 'object' ? JSON.stringify(fragment.value) : String(fragment.value));
+        const icon = getFragmentIcon(type);
 
         return (
           <span
             key={index}
-            className={`inline-block px-2 py-0.5 rounded text-sm font-mono border ${colorClasses} bg-white bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border ${colorClasses} bg-white bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`}
             title={`${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`}
           >
-            {tokenValue}
+            {icon && <span className="text-base leading-none">{icon}</span>}
+            <span>{tokenValue}</span>
           </span>
         );
       })}

@@ -2,13 +2,15 @@
  * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
 import { useWodBlocks } from './hooks/useWodBlocks';
 import { WodBlockManager } from './components/WodBlockManager';
 import { useContextOverlay } from './hooks/useContextOverlay';
+import { useWodDecorations } from './hooks/useWodDecorations';
+import { useParseAllBlocks } from './hooks/useParseAllBlocks';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -68,10 +70,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [content, setContent] = useState(initialContent);
 
   // Use the WOD blocks hook
-  const { blocks, activeBlock } = useWodBlocks(editorInstance, content);
+  const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
+  
+  // Parse ALL blocks for inlay hints (not just active block)
+  useParseAllBlocks(blocks, updateBlock);
   
   // Use context overlay for active block
   useContextOverlay(editorInstance, activeBlock, showContextOverlay);
+  
+  // Use WOD decorations (inlay hints & semantic tokens)
+  useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {
+    enabled: true,
+    languageId: 'markdown'
+  });
 
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
@@ -82,8 +93,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setEditorInstance(editor);
     setMonacoInstance(monaco);
     
-    // Enable glyph margin for icons
-    editor.updateOptions({ glyphMargin: true });
+    // Enable glyph margin for icons and inlay hints
+    editor.updateOptions({ 
+      glyphMargin: true,
+      inlayHints: { enabled: 'on' }
+    });
     
     // Focus editor
     editor.focus();
@@ -116,6 +130,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     padding: { top: 16, bottom: 16 },
     scrollBeyondLastLine: false,
     automaticLayout: true,
+    inlayHints: { enabled: 'on' },
     ...editorOptions
   };
 
