@@ -1,8 +1,16 @@
 // scripts/inject-ga-id.js
 // Replaces __GA_ID__ in .storybook/preview-head.html with process.env.GA_ID
+// Also ensures the public directory exists for Storybook builds
 
 const fs = require('fs');
 const path = require('path');
+
+// Ensure public directory exists for Storybook static files
+const publicDir = path.join(__dirname, '../public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+  console.log('[inject-ga-id] Created public directory for Storybook static files.');
+}
 
 const filePath = path.join(__dirname, '../.storybook/preview-head.html');
 const gaId = process.env.GA_ID;
