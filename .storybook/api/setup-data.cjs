@@ -16,7 +16,7 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Copy exercise-path-index.json
+// Copy or generate exercise-path-index.json
 const indexSource = path.join(publicDir, 'exercise-path-index.json');
 const indexDest = path.join(dataDir, 'exercise-path-index.json');
 
@@ -27,8 +27,20 @@ if (fs.existsSync(indexSource)) {
   } else {
     console.log('   ✓ exercise-path-index.json already exists');
   }
+} else if (!fs.existsSync(indexDest)) {
+  // Generate exercise index from exercises directory
+  console.log('   Generating exercise-path-index.json from exercises directory...');
+  const exercisesSource = path.join(publicDir, 'exercises');
+  
+  if (fs.existsSync(exercisesSource)) {
+    const index = generateExerciseIndex(exercisesSource);
+    fs.writeFileSync(indexDest, JSON.stringify(index, null, 2));
+    console.log(`   ✓ Generated exercise index with ${index.totalExercises} exercises`);
+  } else {
+    console.warn('   ⚠ Warning: exercises directory not found in public/');
+  }
 } else {
-  console.warn('   ⚠ Warning: exercise-path-index.json not found in public/');
+  console.log('   ✓ exercise-path-index.json already exists');
 }
 
 // Copy or symlink exercises directory
@@ -101,4 +113,70 @@ function copyDirRecursive(src, dest) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+}
+
+/**
+ * Generate exercise index from exercises directory
+ * @param {string} exercisesDir Path to exercises directory
+ * @returns {Object} Exercise path index
+ */
+function generateExerciseIndex(exercisesDir) {
+  const groups = [];
+  const groupsByName = {};
+  const allEntries = [];
+  
+  const entries = fs.readdirSync(exercisesDir, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    
+    const exercisePath = entry.name;
+    const exerciseJsonPath = path.join(exercisesDir, exercisePath, 'exercise.json');
+    
+    if (fs.existsSync(exerciseJsonPath)) {
+      try {
+        const exerciseData = JSON.parse(fs.readFileSync(exerciseJsonPath, 'utf8'));
+        const exerciseName = exerciseData.name || exercisePath;
+        
+        // Create search terms from name
+        const searchTerms = exerciseName
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '')
+          .split(/\s+/)
+          .filter(term => term.length > 0);
+        
+        const pathEntry = {
+          name: exerciseName,
+          path: exercisePath,
+          searchTerms
+        };
+        
+        allEntries.push(pathEntry);
+        
+        // Group by first letter of root name
+        const rootName = exercisePath.split(/[_\/\\-]/)[0];
+        const firstLetter = rootName[0].toUpperCase();
+        
+        if (!groupsByName[firstLetter]) {
+          const group = {
+            rootName: firstLetter,
+            variations: []
+          };
+          groups.push(group);
+          groupsByName[firstLetter] = group;
+        }
+        
+        groupsByName[firstLetter].variations.push(pathEntry);
+      } catch (error) {
+        console.warn(`   Warning: Failed to read exercise ${exercisePath}: ${error.message}`);
+      }
+    }
+  }
+  
+  return {
+    groups,
+    groupsByName,
+    allEntries,
+    totalExercises: allEntries.length
+  };
 }
