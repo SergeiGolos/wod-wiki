@@ -99,3 +99,11 @@ th {
   width: 16px !important;
   margin-left: 3px;
 }
+
+/* WOD Fragment Icon Decorations - Inline emoji hints */
+.wod-fragment-icon {
+  opacity: 0.7;
+  font-size: 0.9em;
+  user-select: none;
+  pointer-events: none;
+}
