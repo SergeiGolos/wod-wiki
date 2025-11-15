@@ -20,7 +20,7 @@ export function useParseAllBlocks(
   useEffect(() => {
     // Parse each block that hasn't been parsed yet or has changed
     blocks.forEach(block => {
-      // Skip if already parsed and state is not idle
+      // Skip if already parsed (not idle anymore and in parsed set)
       if (block.state !== 'idle' && parsedBlocksRef.current.has(block.id)) {
         return;
       }
