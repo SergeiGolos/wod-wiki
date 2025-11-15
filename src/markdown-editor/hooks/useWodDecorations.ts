@@ -141,7 +141,7 @@ export function useWodDecorations(
     };
   }, [editor, monaco, enabled, languageId]);
 
-  // Trigger refresh when blocks or active block changes
+  // Trigger refresh when blocks count or active block ID changes
   useEffect(() => {
     if (!editor || !monaco || !enabled) return;
 
@@ -153,5 +153,5 @@ export function useWodDecorations(
       
       console.log('[useWodDecorations] Refreshed decorations');
     }
-  }, [editor, monaco, blocks, activeBlock, enabled]);
+  }, [editor, monaco, blocks.length, activeBlock?.id, enabled]);
 }
