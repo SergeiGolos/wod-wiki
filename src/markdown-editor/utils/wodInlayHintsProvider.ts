@@ -147,6 +147,11 @@ export class WodDecorationsManager {
 
     // Apply all decorations at once - synchronous update
     this.decorationsCollection.set(decorations);
+    
+    // Log only summary for debugging
+    if (decorations.length > 0) {
+      console.log(`[WodDecorationsManager] Applied ${decorations.length} decorations to ${blocks.filter(b => b.statements && b.statements.length > 0).length} blocks`);
+    }
   }
 
   /**
