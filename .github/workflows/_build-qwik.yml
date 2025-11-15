@@ -80,10 +80,8 @@ jobs:
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-     
-      - name: Build API Server
-        run: npm run build:api
-
+ 
+    
       - name: Build Storybook
         run: npm run build-storybook
         env:
