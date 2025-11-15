@@ -8,7 +8,7 @@
 Barbara is a challenging benchmark that combines gymnastics movements with structured rest periods.
 
 ## WOD Wiki Syntax
-```
+```wod
 (5)
   + 20 Pullups
   + 30 Pushups

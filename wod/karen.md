@@ -8,7 +8,7 @@
 Karen is a simple but brutal workout that tests muscular endurance and mental toughness.
 
 ## WOD Wiki Syntax
-```
+```wod
 150 Wall Ball Shots 20lb
 ```
 

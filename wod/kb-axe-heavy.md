@@ -8,7 +8,7 @@
 A high-intensity kettlebell interval workout focusing on power and conditioning.
 
 ## WOD Wiki Syntax
-```
+```wod
 (20) 1:00 
   4 KB Swings 106lb
 ```

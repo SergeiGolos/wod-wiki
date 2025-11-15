@@ -8,7 +8,7 @@
 An Individual Medley (IM) workout practicing all four competitive strokes.
 
 ## WOD Wiki Syntax
-```
+```wod
 (4) Warmup
   100m IM
   :30 Rest

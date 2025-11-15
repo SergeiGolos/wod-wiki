@@ -8,7 +8,7 @@
 A swimming workout focused on technique development and basic conditioning for new swimmers.
 
 ## WOD Wiki Syntax
-```
+```wod
 (6) Warmup
   25m Swim
   :20 Rest

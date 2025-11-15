@@ -8,7 +8,7 @@
 Linda (also known as "3 Bars of Death") is a brutal strength endurance workout with bodyweight percentages.
 
 ## WOD Wiki Syntax
-```
+```wod
 (10-9-8-7-6-5-4-3-2-1)
   
   Deadlift 1.5BW
