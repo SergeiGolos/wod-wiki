@@ -6,7 +6,7 @@ import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from '../../../src/runtim
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../../src/WodScript';
-import { ClockAnchor } from '../../anchors/ClockAnchor';
+import { NextEvent } from '../../../src/runtime/NextEvent';
 
 export interface EnhancedTimerHarnessResult {
   runtime: ScriptRuntime;
@@ -22,6 +22,7 @@ export interface EnhancedTimerHarnessResult {
     reset: () => void;
     pause: () => void;
     resume: () => void;
+    next: () => void;
   };
   isRunning: boolean;
   recalculateElapsed: () => void;
@@ -205,6 +206,14 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     setRecalcTrigger(prev => prev + 1);
   }, []);
 
+  const handleNext = useCallback(() => {
+    console.log('[EnhancedTimerHarness] Next button clicked');
+    // Emit NextEvent to the runtime
+    const nextEvent = new NextEvent({ source: 'timer-controls' });
+    runtime.handle(nextEvent);
+    setRecalcTrigger(prev => prev + 1);
+  }, [runtime]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -223,7 +232,8 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
       stop: handleStop,
       pause: handlePause,
       resume: handleResume,
-      reset: handleReset
+      reset: handleReset,
+      next: handleNext
     },
     isRunning,
     recalculateElapsed

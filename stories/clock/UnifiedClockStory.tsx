@@ -101,6 +101,7 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                   onPause={controls.pause}
                   onResume={controls.resume}
                   onReset={controls.reset}
+                  onNext={controls.next}
                 />
               </>
             )}
