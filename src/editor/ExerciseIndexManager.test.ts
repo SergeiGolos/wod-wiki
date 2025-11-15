@@ -2,13 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import type { ExercisePathIndex } from '../tools/ExercisePathIndexer';
 import type { Exercise } from '../exercise';
-
-// Mock the API config module to return localhost for tests
-vi.mock('../config/api', () => ({
-  getApiUrl: (path: string) => `http://localhost:6007/api${path}`,
-  getApiBaseUrl: () => 'http://localhost:6007/api',
-  API_BASE_URL: 'http://localhost:6007/api'
-}));
+import type { ExerciseDataProvider } from '../types/providers';
 
 // Mock data
 const mockIndex: ExercisePathIndex = {
@@ -51,15 +45,48 @@ const mockExercise: Exercise = {
   instructions: ['Get into plank position', 'Lower body', 'Push back up']
 };
 
+// Mock provider
+class MockExerciseProvider implements ExerciseDataProvider {
+  private shouldFail = false;
+  private failWith404 = false;
+  
+  setFailure(fail: boolean, with404: boolean = false) {
+    this.shouldFail = fail;
+    this.failWith404 = with404;
+  }
+  
+  async loadIndex(): Promise<ExercisePathIndex> {
+    if (this.shouldFail) {
+      throw new Error('Network error');
+    }
+    return mockIndex;
+  }
+  
+  async loadExercise(path: string): Promise<Exercise> {
+    if (this.shouldFail) {
+      if (this.failWith404) {
+        const error: any = new Error('Exercise not found: 404 Not Found');
+        error.permanent = true;
+        throw error;
+      }
+      throw new Error('Persistent network error');
+    }
+    return { ...mockExercise, name: path };
+  }
+  
+  async searchExercises(query: string, limit?: number): Promise<any[]> {
+    const results = mockIndex.allEntries.filter(e => 
+      e.name.toLowerCase().includes(query.toLowerCase())
+    );
+    return results.slice(0, limit || 50);
+  }
+}
+
 describe('ExerciseIndexManager', () => {
-  let originalFetch: typeof global.fetch;
   let originalLocalStorage: Storage;
+  let mockProvider: MockExerciseProvider;
 
   beforeEach(() => {
-    // Mock fetch
-    originalFetch = global.fetch;
-    global.fetch = vi.fn();
-
     // Mock localStorage
     originalLocalStorage = global.localStorage;
     const storage: Record<string, string> = {};
@@ -71,6 +98,9 @@ describe('ExerciseIndexManager', () => {
       length: 0,
       key: vi.fn(() => null)
     } as any;
+
+    // Create mock provider
+    mockProvider = new MockExerciseProvider();
 
     // Clear singleton instance for testing
     (ExerciseIndexManager as any).instance = null;
