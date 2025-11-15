@@ -12,8 +12,43 @@
   },
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
-  "main": "index.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core-entry.d.ts",
+      "import": "./dist/core-entry.js",
+      "require": "./dist/core-entry.cjs"
+    },
+    "./editor": {
+      "types": "./dist/editor-entry.d.ts",
+      "import": "./dist/editor-entry.js",
+      "require": "./dist/editor-entry.cjs"
+    },
+    "./clock": {
+      "types": "./dist/clock-entry.d.ts",
+      "import": "./dist/clock-entry.js",
+      "require": "./dist/clock-entry.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.cjs"
+    },
+    "./styles.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "setup": "node setup-testing.js",
     "test": "vitest run -c vitest.unit.config.js",
@@ -23,23 +58,21 @@
     "test:perf": "vitest run tests/performance/**/*.test.ts",
     "test:e2e": "npx playwright test",
     "playwright": "npx playwright test",
-    "api-server": "node .storybook/api/setup-data.js && node .storybook/api/server.js",
-    "build:api": "node scripts/build-api.js",
+    "api-server": "node .storybook/api/setup-data.cjs && node .storybook/api/server.cjs",
+    "build:lib": "vite build",
+    "build:api": "node scripts/build-api.cjs",
     "build:frontend": "npm run build-storybook",
     "build:all": "npm run build:api && npm run build:frontend",
     "prebuild": "npm run build:api",
     "build": "npm run build:all",
-    "prestorybook": "npx dotenv-cli -e .env -- node scripts/inject-ga-id.js",
+    "prestorybook": "npx dotenv-cli -e .env -- node scripts/inject-ga-id.cjs",
     "storybook": "npm run prestorybook && concurrently --kill-others \"npm run api-server\" \"storybook dev -p 6006\"",
     "storybook:no-api": "npm run prestorybook && storybook dev -p 6006",
     "storybook:debug": "npm run prestorybook && set NODE_OPTIONS=--inspect=9229 && storybook dev -p 6006",
     "clean-storybook": "node -e \"require('fs').rmSync('storybook-static', { recursive: true, force: true })\"",
-    "prebuild-storybook": "npm run clean-storybook && npx dotenv-cli -e .env -- node scripts/inject-ga-id.js",
+    "prebuild-storybook": "npm run clean-storybook && npx dotenv-cli -e .env -- node scripts/inject-ga-id.cjs",
     "build-storybook": "npm run prestorybook && storybook build",
-    "docs:check": "node scripts/check-docs-links.js",
-    "generate-exercise-index": "node dist/generateExerciseIndex.js public/exercises exercise-index.json",
-    "generate-exercise-name-index": "node dist/buildExerciseNameIndex.js public/exercises public/exercise-name-index.json",
-    "generate-exercise-path-index": "node dist/buildExercisePathIndex.js public/exercises public/exercise-path-index.json"
+    "docs:check": "node scripts/check-docs-links.cjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -56,6 +89,20 @@
     "sharp": "^0.34.4",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "monaco-editor": "^0.44.0 || ^0.45.0 || ^0.46.0 || ^0.47.0 || ^0.48.0 || ^0.49.0 || ^0.50.0",
+    "@monaco-editor/react": "^4.6.0 || ^4.7.0"
+  },
+  "peerDependenciesMeta": {
+    "monaco-editor": {
+      "optional": true
+    },
+    "@monaco-editor/react": {
+      "optional": true
+    }
   },
   "optionalDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.43.0"
@@ -91,6 +138,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
     "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   }
 }

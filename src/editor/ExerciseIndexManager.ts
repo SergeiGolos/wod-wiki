@@ -1,14 +1,17 @@
 import { LRUCache } from './LRUCache';
 import { ExercisePathIndex, ExercisePathEntry, ExercisePathGroup } from '../tools/ExercisePathIndexer';
 import { Exercise } from '../exercise';
-import { getApiUrl } from '../config/api';
+import { ExerciseDataProvider } from '../types/providers';
 
 /**
  * Singleton manager for exercise index and data loading
  * 
+ * Now uses a provider pattern for data access, allowing consumers
+ * to inject their own data sources instead of bundling data.
+ * 
  * Provides:
  * - Asynchronous index loading with localStorage caching
- * - Search operations across 873 exercises
+ * - Search operations across exercises
  * - LRU cache for exercise data (max 100 entries)
  * - Lazy loading of exercise JSON files
  */
@@ -19,10 +22,10 @@ export class ExerciseIndexManager {
   private index: ExercisePathIndex | null = null;
   private exerciseCache: LRUCache<string, Exercise>;
   private loadingPromises: Map<string, Promise<Exercise>>;
+  private provider: ExerciseDataProvider | null = null;
 
-  private readonly INDEX_PATH = getApiUrl('/exercises/index');
   private readonly CACHE_KEY = 'wod-wiki-exercise-index';
-  private readonly CACHE_VERSION = '2.0.0'; // Bumped version for API migration
+  private readonly CACHE_VERSION = '3.0.0'; // Bumped version for provider pattern
   private readonly CACHE_VERSION_KEY = 'wod-wiki-exercise-index-version';
 
   /**
@@ -35,39 +38,56 @@ export class ExerciseIndexManager {
 
   /**
    * Get the singleton instance
-   * Creates and initializes on first call
-   * @returns Promise resolving to ExerciseIndexManager instance
+   * Creates instance without initialization (provider must be set)
+   * @returns ExerciseIndexManager instance
    */
-  static async getInstance(): Promise<ExerciseIndexManager> {
-    if (this.instance) {
-      return this.instance;
+  static getInstance(): ExerciseIndexManager {
+    if (!this.instance) {
+      this.instance = new ExerciseIndexManager();
     }
-
-    if (this.initPromise) {
-      return this.initPromise;
-    }
-
-    this.initPromise = this.initialize();
-    this.instance = await this.initPromise;
     return this.instance;
   }
 
   /**
-   * Initialize the manager and load index
+   * Set the exercise data provider
+   * Must be called before using search or load operations
+   * @param provider ExerciseDataProvider implementation
    */
-  private static async initialize(): Promise<ExerciseIndexManager> {
-    const manager = new ExerciseIndexManager();
-    await manager.loadIndex();
-    return manager;
+  setProvider(provider: ExerciseDataProvider): void {
+    this.provider = provider;
+    // Clear cache when provider changes
+    this.index = null;
+    this.exerciseCache.clear();
+    this.loadingPromises.clear();
+  }
+
+  /**
+   * Check if provider is configured
+   * @returns true if provider is set
+   */
+  hasProvider(): boolean {
+    return this.provider !== null;
   }
 
   /**
    * Load exercise index with caching strategy
    * 1. Check localStorage cache
-   * 2. Load from network if cache miss or invalid
+   * 2. Load from provider if cache miss or invalid
    * 3. Save to localStorage on successful load
    */
   private async loadIndex(): Promise<void> {
+    // Check if provider is configured
+    if (!this.provider) {
+      console.warn('[ExerciseIndexManager] No provider configured, using empty index');
+      this.index = {
+        groups: [],
+        groupsByName: {},
+        allEntries: [],
+        totalExercises: 0
+      };
+      return;
+    }
+
     try {
       // Try loading from localStorage cache
       const cachedIndex = this.loadFromCache();
@@ -77,16 +97,11 @@ export class ExerciseIndexManager {
         return;
       }
 
-      // Load from network
-      console.log('[ExerciseIndexManager] Loading index from network...');
+      // Load from provider
+      console.log('[ExerciseIndexManager] Loading index from provider...');
       const startTime = performance.now();
       
-      const response = await fetch(this.INDEX_PATH);
-      if (!response.ok) {
-        throw new Error(`Failed to load exercise index: ${response.statusText}`);
-      }
-
-      const loadedIndex = await response.json() as ExercisePathIndex;
+      const loadedIndex = await this.provider.loadIndex();
       this.index = loadedIndex;
       const loadTime = performance.now() - startTime;
       
@@ -160,11 +175,27 @@ export class ExerciseIndexManager {
    * @param limit Maximum results (default: 50)
    * @returns Array of matching exercise entries
    */
-  searchExercises(query: string, limit: number = 50): ExercisePathEntry[] {
+  async searchExercises(query: string, limit: number = 50): Promise<ExercisePathEntry[]> {
+    // Ensure index is loaded
+    if (!this.index) {
+      await this.loadIndex();
+    }
+
     if (!this.index || !query) {
       return [];
     }
 
+    // If provider supports search directly, use it
+    if (this.provider && typeof (this.provider as any).searchExercises === 'function') {
+      try {
+        return await this.provider.searchExercises(query, limit);
+      } catch (error) {
+        console.error('[ExerciseIndexManager] Provider search failed, falling back to local search:', error);
+        // Fall through to local search
+      }
+    }
+
+    // Local search through index
     const normalizedQuery = query.toLowerCase().trim();
     const results: Array<{ entry: ExercisePathEntry; score: number }> = [];
 
@@ -267,7 +298,7 @@ export class ExerciseIndexManager {
   }
 
   /**
-   * Fetch exercise data from JSON file with retry and timeout
+   * Fetch exercise data using provider
    * @param path Relative path to exercise directory
    * @returns Promise resolving to Exercise data
    */
@@ -277,53 +308,20 @@ export class ExerciseIndexManager {
       throw new Error(`Invalid exercise path: ${path}`);
     }
 
-    const exercisePath = getApiUrl(`/exercises/${path}`);
+    if (!this.provider) {
+      throw new Error('[ExerciseIndexManager] No provider configured');
+    }
     
     try {
       // Use retry with exponential backoff for transient errors
       const exercise = await this.retryWithBackoff(
-        () => this.fetchWithTimeout(exercisePath, 500),
+        () => this.provider!.loadExercise(path),
         3, // max retries
         1000 // initial delay
       );
       return exercise;
     } catch (error) {
-      console.error(`[ExerciseIndexManager] Error loading exercise data from ${exercisePath}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Fetch with timeout
-   * @param url URL to fetch
-   * @param timeoutMs Timeout in milliseconds
-   * @returns Promise resolving to Exercise data
-   */
-  private async fetchWithTimeout(url: string, timeoutMs: number): Promise<Exercise> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        // Don't retry 404s - permanent error
-        if (response.status === 404) {
-          const error: any = new Error(`Exercise not found: ${response.statusText}`);
-          error.permanent = true;
-          throw error;
-        }
-        throw new Error(`Failed to load exercise: ${response.statusText}`);
-      }
-
-      const exercise = await response.json() as Exercise;
-      return exercise;
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${timeoutMs}ms`);
-      }
+      console.error(`[ExerciseIndexManager] Error loading exercise data from ${path}:`, error);
       throw error;
     }
   }

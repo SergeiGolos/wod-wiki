@@ -26,7 +26,12 @@ export class ExerciseHoverProvider {
     }
 
     this.initPromise = (async () => {
-      this.indexManager = await ExerciseIndexManager.getInstance();
+      this.indexManager = ExerciseIndexManager.getInstance();
+      
+      // Check if provider is configured
+      if (!this.indexManager.hasProvider()) {
+        console.warn('[ExerciseHoverProvider] No exercise provider configured, hover will be disabled');
+      }
     })();
 
     return this.initPromise;
@@ -57,7 +62,7 @@ export class ExerciseHoverProvider {
     }
 
     // Search for exercises matching this word
-    const results = this.indexManager.searchExercises(word.word, 5);
+    const results = await this.indexManager.searchExercises(word.word, 5);
     
     // If no exact or close match, don't show hover
     if (results.length === 0) {

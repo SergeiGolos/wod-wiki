@@ -10,6 +10,8 @@ import { Monaco } from '@monaco-editor/react';
 import { DefaultSuggestionService } from './SuggestionService';
 import { IScript } from '../WodScript';
 import { CodeMetadata } from '../CodeMetadata';
+import { ExerciseDataProvider } from '../types/providers';
+import { ExerciseIndexManager } from './ExerciseIndexManager';
 
 interface WodWikiProps {
   id: string;
@@ -23,6 +25,8 @@ interface WodWikiProps {
   readonly?: boolean;
   /** Line number to highlight */
   highlightedLine?: number;
+  /** Optional exercise data provider for suggestions and hover */
+  exerciseProvider?: ExerciseDataProvider;
 }
 
 export interface WodWikiTokenHint {
@@ -50,12 +54,21 @@ const tokens: WodWikiToken[] = [
 
 
 
-export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine }: WodWikiProps) => {        
+export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine, exerciseProvider }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id, readonly);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
     const [height, setHeight] = useState(50); // Initial height
     const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
+    
+    // Configure exercise provider when it changes
+    useEffect(() => {
+      if (exerciseProvider) {
+        const manager = ExerciseIndexManager.getInstance();
+        manager.setProvider(exerciseProvider);
+        console.log('[WodWiki] Exercise provider configured');
+      }
+    }, [exerciseProvider]);
     function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
       editorRef.current = editor;
       monacoRef.current = monaco;
