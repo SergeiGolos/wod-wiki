@@ -8,7 +8,7 @@
 Grace is a pure Olympic lifting workout that tests explosive power and technique.
 
 ## WOD Wiki Syntax
-```
+```wod
 30 Clean & Jerk 135lb
 ```
 

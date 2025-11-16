@@ -8,7 +8,7 @@
 Diane combines heavy deadlifts with demanding gymnastics work, testing both strength and skill.
 
 ## WOD Wiki Syntax
-```
+```wod
 (21-15-9)
   Deadlift 225lb
   Handstand Pushups

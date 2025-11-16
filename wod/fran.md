@@ -8,7 +8,7 @@
 One of the most famous CrossFit benchmark workouts. Fran is a sprint that tests both metabolic conditioning and strength endurance.
 
 ## WOD Wiki Syntax
-```
+```wod
 (21-15-9) 
   Thrusters 95lb
   Pullups

@@ -8,7 +8,7 @@
 Annie is a classic CrossFit benchmark that tests gymnastics endurance and double-under skill.
 
 ## WOD Wiki Syntax
-```
+```wod
 (50-40-30-20-10)
   Double-Unders
   Situps

@@ -8,7 +8,7 @@
 A challenging swimming workout with higher volume and intensity for experienced swimmers.
 
 ## WOD Wiki Syntax
-```
+```wod
 (4) Warmup
   100m Swim
   :30 Rest

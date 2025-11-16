@@ -8,7 +8,7 @@
 A 15-minute EMOM focusing on Olympic lifting complex with heavy weights.
 
 ## WOD Wiki Syntax
-```
+```wod
 (15) :60 EMOM
   + 3 Deadlifts 315lb
   + 6 Hang Power Cleans 185lb

@@ -8,7 +8,7 @@
 Nancy combines running endurance with Olympic lifting skill under fatigue.
 
 ## WOD Wiki Syntax
-```
+```wod
 (5)
   400m Run
   15 Overhead Squats 95lb

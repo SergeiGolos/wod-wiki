@@ -1,28 +1,38 @@
-import { JitCompilerDemo } from "../compiler/JitCompilerDemo";
+import type { Meta, StoryObj } from '@storybook/react';
+import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
 
-export default {
+import beginnerFriendlyMarkdown from '../../wod/beginner-friendly-swimming.md?raw';
+
+const meta: Meta<typeof MarkdownEditor> = {
   title: 'Runtime/Swimming',
-  component: JitCompilerDemo,
+  component: MarkdownEditor,
+  args: {
+    showToolbar: false,
+    showContextOverlay: true,
+    readonly: true,
+    theme: 'vs',
+    height: '85vh'
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'Swim programming rendered via MarkdownEditor. Content is synchronized with the markdown sources in the `wod/` directory.'
+      }
+    }
+  }
 };
 
-export const BeginnerFriendlySwimming = {
-  args: {
-    initialScript: `(6) Warmup
-  25m Swim
-  :20 Rest
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-100m Kick
-
-(6) Warmup
-  25m Swim
-  :20 Rest
-
-100m Kick
-
-(6) Warmup
-  25m Swim
-  :20 Rest
-  
-100m Cooldown`
-  },
+export const BeginnerFriendlySwimming: Story = {
+  args: { initialContent: beginnerFriendlyMarkdown },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: wod/beginner-friendly-swimming.md'
+      }
+    }
+  }
 };

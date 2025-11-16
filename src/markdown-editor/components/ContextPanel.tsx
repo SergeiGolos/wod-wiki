@@ -2,9 +2,12 @@
  * ContextPanel - Displays parsed WOD block information and controls
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WodBlock } from '../types';
 import { EditableStatementList } from './EditableStatementList';
+import { WorkoutTimerDialog } from './WorkoutTimerDialog';
+import { Button } from '@/components/ui/button';
+import { Play, BookOpen } from 'lucide-react';
 
 export interface ContextPanelProps {
   /** Block data to display */
@@ -39,6 +42,18 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 }) => {
   const hasStatements = block.statements && block.statements.length > 0;
   const hasErrors = block.errors && block.errors.length > 0;
+  const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
+
+  // Track button handler
+  const handleTrack = () => {
+    setIsTimerDialogOpen(true);
+  };
+
+  // Log button handler (placeholder for now)
+  const handleLog = () => {
+    console.log('Log workout clicked');
+    // TODO: Implement log functionality
+  };
 
   return (
     <div className="context-panel bg-white border-l border-gray-300 h-full overflow-y-auto">
@@ -51,6 +66,30 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
           Lines {block.startLine + 1} - {block.endLine + 1}
         </p>
       </div>
+
+      {/* Action Buttons */}
+      {hasStatements && !hasErrors && (
+        <div className="p-4 border-b border-gray-200 bg-white">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleTrack}
+              className="flex-1 gap-2"
+              size="default"
+            >
+              <Play className="h-4 w-4" />
+              Track
+            </Button>
+            <Button
+              onClick={handleLog}
+              className="flex-1 gap-2"
+              variant="outline"
+            >
+              <BookOpen className="h-4 w-4" />
+              Log
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-4">
@@ -126,6 +165,13 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Workout Timer Dialog */}
+      <WorkoutTimerDialog
+        open={isTimerDialogOpen}
+        onOpenChange={setIsTimerDialogOpen}
+        block={block}
+      />
     </div>
   );
 };

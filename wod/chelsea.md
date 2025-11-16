@@ -8,7 +8,7 @@
 Chelsea is a 30-minute EMOM that tests consistency and pacing over an extended period.
 
 ## WOD Wiki Syntax
-```
+```wod
 (30) :60 EMOM
   + 5 Pullups
   + 10 Pushups

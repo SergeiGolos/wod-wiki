@@ -8,7 +8,7 @@
 A well-rounded swimming workout combining all competitive strokes and skills.
 
 ## WOD Wiki Syntax
-```
+```wod
 (4) Warmup
   50m Swim
   :30 Rest
