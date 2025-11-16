@@ -1,8 +1,8 @@
+import { MarkdownEditor } from '@/markdown-editor';
 import type { Meta, StoryObj } from '@storybook/react';
-import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
 
 const meta: Meta<typeof MarkdownEditor> = {
-  title: 'Markdown Editor/MarkdownEditor',
+  title: 'Markdown Editor',
   component: MarkdownEditor,
   parameters: {
     layout: 'fullscreen',
