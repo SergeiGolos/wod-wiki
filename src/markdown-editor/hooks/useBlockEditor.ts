@@ -43,13 +43,19 @@ export function useBlockEditor({
     if (!model) return;
     
     // Calculate position to insert (before the closing ```)
-    const insertLine = block.endLine; // Line with closing ```
+    // block.endLine is 0-based index of closing ```
+    // In Monaco (1-based), this is block.endLine + 1
+    const closingBackticksLine = block.endLine + 1;
     
     // Find the last non-empty line before closing ```
-    let lastContentLine = insertLine - 1;
+    let lastContentLine = closingBackticksLine - 1;
     let indentation = '';
 
-    while (lastContentLine > block.startLine) {
+    // block.startLine is 0-based index of opening ```wod
+    // In Monaco (1-based), this is block.startLine + 1
+    const openingBackticksLine = block.startLine + 1;
+
+    while (lastContentLine > openingBackticksLine) {
       const content = model.getLineContent(lastContentLine);
       if (content.trim()) {
         // Capture indentation from the last content line
@@ -104,14 +110,24 @@ export function useBlockEditor({
     }
     
     // Use metadata line number (1-based in Monaco)
-    const statementLine = statement.meta.line;
+    // block.startLine is 0-based index of ```wod
+    // statement.meta.line is 1-based index relative to block content
+    const absoluteLine = block.startLine + 1 + statement.meta.line;
     
-    if (statementLine >= block.endLine || statementLine <= block.startLine) {
-      console.warn('Statement line out of range');
+    // Validate range (1-based)
+    // block.startLine + 1 is the line with ```wod (1-based)
+    // block.endLine + 1 is the line with ``` (1-based)
+    if (absoluteLine <= block.startLine + 1 || absoluteLine >= block.endLine + 1) {
+      console.warn('Statement line out of range', { 
+        absoluteLine, 
+        startLine: block.startLine, 
+        endLine: block.endLine,
+        metaLine: statement.meta.line 
+      });
       return;
     }
     
-    const lineContent = model.getLineContent(statementLine);
+    const lineContent = model.getLineContent(absoluteLine);
     const lineLength = lineContent.length;
     
     // Preserve indentation
@@ -121,9 +137,9 @@ export function useBlockEditor({
     // Replace the entire line
     editor.executeEdits('fragment-editor', [{
       range: {
-        startLineNumber: statementLine,
+        startLineNumber: absoluteLine,
         startColumn: 1,
-        endLineNumber: statementLine,
+        endLineNumber: absoluteLine,
         endColumn: lineLength + 1
       },
       text: `${indentation}${text}`
@@ -148,19 +164,26 @@ export function useBlockEditor({
     }
     
     // Use metadata line number
-    const statementLine = statement.meta.line;
+    // block.startLine is 0-based index of ```wod
+    // statement.meta.line is 1-based index relative to block content
+    const absoluteLine = block.startLine + 1 + statement.meta.line;
     
-    if (statementLine >= block.endLine || statementLine <= block.startLine) {
-      console.warn('Statement line out of range');
+    if (absoluteLine <= block.startLine + 1 || absoluteLine >= block.endLine + 1) {
+      console.warn('Statement line out of range', { 
+        absoluteLine, 
+        startLine: block.startLine, 
+        endLine: block.endLine,
+        metaLine: statement.meta.line 
+      });
       return;
     }
     
     // Delete the entire line including newline
     editor.executeEdits('fragment-editor', [{
       range: {
-        startLineNumber: statementLine,
+        startLineNumber: absoluteLine,
         startColumn: 1,
-        endLineNumber: statementLine + 1,
+        endLineNumber: absoluteLine + 1,
         endColumn: 1
       },
       text: ''
