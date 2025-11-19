@@ -1,31 +1,26 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
-import type { ExercisePathIndex } from '../tools/ExercisePathIndexer';
 import type { Exercise } from '../exercise';
-import type { ExerciseDataProvider } from '../types/providers';
+import type { ExerciseDataProvider, ExercisePathIndex } from '../types/providers';
 
 // Mock data
 const mockIndex: ExercisePathIndex = {
   groups: [
     {
       rootName: 'Push-Up',
-      variations: [
+      entries: [
         { name: 'Push-Up', path: 'Push-Up', searchTerms: ['push', 'up', 'chest', 'bodyweight'] },
         { name: 'Diamond Push-Up', path: 'Diamond_Push-Up', searchTerms: ['diamond', 'push', 'up', 'triceps'] }
-      ],
-      searchTerms: ['push', 'up', 'chest', 'bodyweight', 'diamond', 'triceps'],
-      variationCount: 2
+      ]
     }
   ],
   groupsByName: {
     'Push-Up': {
       rootName: 'Push-Up',
-      variations: [
+      entries: [
         { name: 'Push-Up', path: 'Push-Up', searchTerms: ['push', 'up', 'chest', 'bodyweight'] },
         { name: 'Diamond Push-Up', path: 'Diamond_Push-Up', searchTerms: ['diamond', 'push', 'up', 'triceps'] }
-      ],
-      searchTerms: ['push', 'up', 'chest', 'bodyweight', 'diamond', 'triceps'],
-      variationCount: 2
+      ]
     }
   },
   allEntries: [
@@ -49,6 +44,8 @@ const mockExercise: Exercise = {
 class MockExerciseProvider implements ExerciseDataProvider {
   private shouldFail = false;
   private failWith404 = false;
+  public loadIndexSpy = vi.fn();
+  public loadExerciseSpy = vi.fn();
   
   setFailure(fail: boolean, with404: boolean = false) {
     this.shouldFail = fail;
@@ -56,6 +53,7 @@ class MockExerciseProvider implements ExerciseDataProvider {
   }
   
   async loadIndex(): Promise<ExercisePathIndex> {
+    this.loadIndexSpy();
     if (this.shouldFail) {
       throw new Error('Network error');
     }
@@ -63,6 +61,7 @@ class MockExerciseProvider implements ExerciseDataProvider {
   }
   
   async loadExercise(path: string): Promise<Exercise> {
+    this.loadExerciseSpy(path);
     if (this.shouldFail) {
       if (this.failWith404) {
         const error: any = new Error('Exercise not found: 404 Not Found');
@@ -71,12 +70,18 @@ class MockExerciseProvider implements ExerciseDataProvider {
       }
       throw new Error('Persistent network error');
     }
+    if (path === 'NonExistent') {
+        const error: any = new Error('Exercise not found: 404 Not Found');
+        error.permanent = true;
+        throw error;
+    }
     return { ...mockExercise, name: path };
   }
   
   async searchExercises(query: string, limit?: number): Promise<any[]> {
     const results = mockIndex.allEntries.filter(e => 
-      e.name.toLowerCase().includes(query.toLowerCase())
+      e.name.toLowerCase().includes(query.toLowerCase()) ||
+      e.searchTerms.some(term => term.toLowerCase().includes(query.toLowerCase()))
     );
     return results.slice(0, limit || 50);
   }
@@ -105,66 +110,40 @@ describe('ExerciseIndexManager', () => {
     // Clear singleton instance for testing
     (ExerciseIndexManager as any).instance = null;
     (ExerciseIndexManager as any).initPromise = null;
+
+    // Initialize manager and set provider
+    const manager = ExerciseIndexManager.getInstance();
+    manager.setProvider(mockProvider);
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
     global.localStorage = originalLocalStorage;
   });
 
   describe('singleton pattern', () => {
-    it('should return same instance on multiple calls', async () => {
-      // Mock successful fetch
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
-
-      const instance1 = await ExerciseIndexManager.getInstance();
-      const instance2 = await ExerciseIndexManager.getInstance();
+    it('should return same instance on multiple calls', () => {
+      const instance1 = ExerciseIndexManager.getInstance();
+      const instance2 = ExerciseIndexManager.getInstance();
 
       expect(instance1).toBe(instance2);
-    });
-
-    it('should initialize only once even with concurrent calls', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
-
-      const [instance1, instance2, instance3] = await Promise.all([
-        ExerciseIndexManager.getInstance(),
-        ExerciseIndexManager.getInstance(),
-        ExerciseIndexManager.getInstance()
-      ]);
-
-      expect(instance1).toBe(instance2);
-      expect(instance2).toBe(instance3);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('index loading', () => {
-    it('should load index from network on first call', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
-
-      const manager = await ExerciseIndexManager.getInstance();
+    it('should load index from provider on first search', async () => {
+      const manager = ExerciseIndexManager.getInstance();
+      
+      // Trigger load via search
+      await manager.searchExercises('');
 
       expect(manager.isIndexLoaded()).toBe(true);
       expect(manager.getAllEntries()).toHaveLength(2);
-      expect(global.fetch).toHaveBeenCalledWith('http://localhost:6007/api/exercises/index');
+      expect(mockProvider.loadIndexSpy).toHaveBeenCalled();
     });
 
     it('should save loaded index to localStorage', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
-
-      await ExerciseIndexManager.getInstance();
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises('');
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
         'wod-wiki-exercise-index',
@@ -172,14 +151,15 @@ describe('ExerciseIndexManager', () => {
       );
       expect(localStorage.setItem).toHaveBeenCalledWith(
         'wod-wiki-exercise-index-version',
-        '2.0.0'
+        '3.0.0'
       );
     });
 
     it('should handle network errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      mockProvider.setFailure(true);
+      const manager = ExerciseIndexManager.getInstance();
 
-      const manager = await ExerciseIndexManager.getInstance();
+      await manager.searchExercises('');
 
       expect(manager.isIndexLoaded()).toBe(true); // Fallback empty index
       expect(manager.getAllEntries()).toHaveLength(0);
@@ -188,79 +168,66 @@ describe('ExerciseIndexManager', () => {
 
   describe('search', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
     });
 
     it('should find exact name matches', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('Push-Up');
+      const manager = ExerciseIndexManager.getInstance();
+      const results = await manager.searchExercises('Push-Up');
 
       expect(results.length).toBeGreaterThan(0);
-      // Exact match should be first
       expect(results[0].name).toBe('Push-Up');
     });
 
     it('should find partial name matches', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('push');
+      const manager = ExerciseIndexManager.getInstance();
+      const results = await manager.searchExercises('push');
 
       expect(results.length).toBeGreaterThan(0);
       expect(results.some(r => r.name.includes('Push'))).toBe(true);
     });
 
     it('should match against search terms', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('chest');
+      const manager = ExerciseIndexManager.getInstance();
+      const results = await manager.searchExercises('chest');
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].searchTerms).toContain('chest');
     });
 
     it('should limit results', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('push', 1);
+      const manager = ExerciseIndexManager.getInstance();
+      const results = await manager.searchExercises('push', 1);
 
       expect(results).toHaveLength(1);
     });
 
     it('should return empty array for empty query', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('');
+      const manager = ExerciseIndexManager.getInstance();
+      const results = await manager.searchExercises('');
 
       expect(results).toHaveLength(0);
-    });
-
-    it('should rank exact matches higher than partial matches', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const results = manager.searchExercises('Push-Up');
-
-      // Exact match should be first
-      expect(results[0].name).toBe('Push-Up');
     });
   });
 
   describe('exercise group retrieval', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
     });
 
-    it('should retrieve exercise group by name', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-      const group = manager.getExerciseGroup('Push-Up');
+    it('should retrieve exercise group by name', () => {
+      const manager = ExerciseIndexManager.getInstance();
+      const group = manager.getExerciseGroup('Push-Up') as any;
 
       expect(group).toBeDefined();
       expect(group?.rootName).toBe('Push-Up');
-      expect(group?.variationCount).toBe(2);
+      expect(group?.entries).toHaveLength(2);
     });
 
-    it('should return undefined for non-existent group', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
+    it('should return undefined for non-existent group', () => {
+      const manager = ExerciseIndexManager.getInstance();
       const group = manager.getExerciseGroup('Non-Existent');
 
       expect(group).toBeUndefined();
@@ -269,86 +236,57 @@ describe('ExerciseIndexManager', () => {
 
   describe('exercise data loading', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
     });
 
-    it('should load exercise data from file', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      // Mock exercise data fetch
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockExercise,
-        signal: undefined
-      });
-
+    it('should load exercise data from provider', async () => {
+      const manager = ExerciseIndexManager.getInstance();
       const exercise = await manager.loadExerciseData('Push-Up');
 
       expect(exercise.name).toBe('Push-Up');
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:6007/api/exercises/Push-Up',
-        expect.objectContaining({ signal: expect.any(Object) })
-      );
+      expect(mockProvider.loadExerciseSpy).toHaveBeenCalledWith('Push-Up');
     });
 
     it('should cache loaded exercise data', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockExercise
-      });
+      const manager = ExerciseIndexManager.getInstance();
 
       // First load
       await manager.loadExerciseData('Push-Up');
       expect(manager.isCached('Push-Up')).toBe(true);
 
-      // Reset mock to track calls
-      (global.fetch as any).mockClear();
+      // Reset spy
+      mockProvider.loadExerciseSpy.mockClear();
 
       // Second load should use cache
       const exercise = await manager.loadExerciseData('Push-Up');
       expect(exercise.name).toBe('Push-Up');
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockProvider.loadExerciseSpy).not.toHaveBeenCalled();
     });
 
     it('should validate paths to prevent directory traversal', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
+      const manager = ExerciseIndexManager.getInstance();
 
       await expect(manager.loadExerciseData('../../../etc/passwd')).rejects.toThrow('Invalid exercise path');
       await expect(manager.loadExerciseData('/etc/passwd')).rejects.toThrow('Invalid exercise path');
     });
 
     it('should handle loading errors', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      // Mock a persistent error that will exhaust retries
-      const error: any = new Error('404 Not Found');
-      error.permanent = true;
-      (global.fetch as any).mockRejectedValue(error);
-
+      const manager = ExerciseIndexManager.getInstance();
+      
+      // NonExistent triggers 404 in mock
       await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow('404 Not Found');
     });
   });
 
   describe('cache management', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
     });
 
     it('should clear exercise cache', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockExercise
-      });
+      const manager = ExerciseIndexManager.getInstance();
 
       await manager.loadExerciseData('Push-Up');
       expect(manager.isCached('Push-Up')).toBe(true);
@@ -358,12 +296,7 @@ describe('ExerciseIndexManager', () => {
     });
 
     it('should invalidate specific exercise', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockExercise
-      });
+      const manager = ExerciseIndexManager.getInstance();
 
       await manager.loadExerciseData('Push-Up');
       expect(manager.isCached('Push-Up')).toBe(true);
@@ -373,7 +306,7 @@ describe('ExerciseIndexManager', () => {
     });
 
     it('should provide cache statistics', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
+      const manager = ExerciseIndexManager.getInstance();
 
       const stats = manager.getCacheStats();
       expect(stats.indexLoaded).toBe(true);
@@ -384,55 +317,24 @@ describe('ExerciseIndexManager', () => {
 
   describe('batch loading', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
     });
 
     it('should load multiple exercises concurrently', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      const mockExercise1 = { name: 'Push-Up', muscles: ['chest'], equipment: ['bodyweight'] };
-      const mockExercise2 = { name: 'Pull-Up', muscles: ['back'], equipment: ['bar'] };
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise1, signal: undefined })
-        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise2, signal: undefined });
-
-      const exercises = await manager.loadExercises(['Push-Up', 'Pull-Up']);
+      const manager = ExerciseIndexManager.getInstance();
+      const exercises = await manager.loadExercises(['Push-Up', 'Diamond_Push-Up']);
 
       expect(exercises).toHaveLength(2);
       expect(exercises[0].name).toBe('Push-Up');
-      expect(exercises[1].name).toBe('Pull-Up');
-    });
-
-    it('should return exercises in same order as input', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      const mockExercise1 = { name: 'Exercise-A', muscles: ['chest'], equipment: ['bodyweight'] };
-      const mockExercise2 = { name: 'Exercise-B', muscles: ['back'], equipment: ['bar'] };
-      const mockExercise3 = { name: 'Exercise-C', muscles: ['legs'], equipment: ['barbell'] };
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise1, signal: undefined })
-        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise2, signal: undefined })
-        .mockResolvedValueOnce({ ok: true, json: async () => mockExercise3, signal: undefined });
-
-      const exercises = await manager.loadExercises(['Exercise-A', 'Exercise-B', 'Exercise-C']);
-
-      expect(exercises[0].name).toBe('Exercise-A');
-      expect(exercises[1].name).toBe('Exercise-B');
-      expect(exercises[2].name).toBe('Exercise-C');
+      expect(exercises[1].name).toBe('Diamond_Push-Up');
     });
   });
 
   describe('retry and timeout', () => {
     beforeEach(async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockIndex
-      });
+      const manager = ExerciseIndexManager.getInstance();
+      await manager.searchExercises(''); // Ensure loaded
       vi.useFakeTimers();
     });
 
@@ -441,19 +343,16 @@ describe('ExerciseIndexManager', () => {
     });
 
     it('should retry transient errors with exponential backoff', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
+      const manager = ExerciseIndexManager.getInstance();
 
       let attemptCount = 0;
-      (global.fetch as any).mockImplementation(() => {
+      // Override mock implementation for this test
+      mockProvider.loadExercise = vi.fn().mockImplementation(async (path) => {
         attemptCount++;
         if (attemptCount < 3) {
-          return Promise.reject(new Error('Network error'));
+          throw new Error('Network error');
         }
-        return Promise.resolve({
-          ok: true,
-          json: async () => mockExercise,
-          signal: undefined
-        });
+        return { ...mockExercise, name: path };
       });
 
       const loadPromise = manager.loadExerciseData('Push-Up');
@@ -468,25 +367,19 @@ describe('ExerciseIndexManager', () => {
     });
 
     it('should not retry 404 errors', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        signal: undefined
-      });
-
-      await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow('Exercise not found');
+      const manager = ExerciseIndexManager.getInstance();
+      
+      // NonExistent triggers 404 in mock
+      await expect(manager.loadExerciseData('NonExistent')).rejects.toThrow('404 Not Found');
       
       // Only one fetch attempt, no retries
-      expect(global.fetch).toHaveBeenCalledTimes(2); // 1 for index + 1 for exercise
+      expect(mockProvider.loadExerciseSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should fail after max retries', async () => {
-      const manager = await ExerciseIndexManager.getInstance();
+      const manager = ExerciseIndexManager.getInstance();
 
-      (global.fetch as any).mockRejectedValue(new Error('Persistent network error'));
+      mockProvider.setFailure(true); // Persistent error
 
       // Create promise and attach error handler immediately to prevent unhandled rejection
       const loadPromise = manager.loadExerciseData('Push-Up').catch(err => err);

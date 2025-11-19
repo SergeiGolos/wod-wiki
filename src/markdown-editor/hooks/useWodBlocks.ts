@@ -66,35 +66,52 @@ export function useWodBlocks(
     try {
       const detected = detectWodBlocks(content);
       
-      // Preserve state from existing blocks where possible
-      const updatedBlocks = detected.map(newBlock => {
-        const existingBlock = blocks.find(b => 
-          b.startLine === newBlock.startLine && 
-          b.content === newBlock.content
-        );
-        
-        if (existingBlock) {
-          // Keep existing block state
-          return {
-            ...newBlock,
-            id: existingBlock.id,
-            state: existingBlock.state,
-            parser: existingBlock.parser,
-            statements: existingBlock.statements,
-            errors: existingBlock.errors,
-            runtime: existingBlock.runtime,
-            results: existingBlock.results
-          };
+      setBlocks(prevBlocks => {
+        // Preserve state from existing blocks where possible
+        const updatedBlocks = detected.map(newBlock => {
+          const existingBlock = prevBlocks.find(b => 
+            b.startLine === newBlock.startLine && 
+            b.content === newBlock.content
+          );
+          
+          if (existingBlock) {
+            // Keep existing block state
+            return {
+              ...newBlock,
+              id: existingBlock.id,
+              state: existingBlock.state,
+              parser: existingBlock.parser,
+              statements: existingBlock.statements,
+              errors: existingBlock.errors,
+              runtime: existingBlock.runtime,
+              results: existingBlock.results
+            };
+          }
+          
+          return newBlock;
+        });
+
+        // Check if blocks actually changed to avoid unnecessary re-renders
+        if (prevBlocks.length === updatedBlocks.length) {
+          const isSame = prevBlocks.every((b, i) => {
+            const ub = updatedBlocks[i];
+            return b.id === ub.id && 
+                   b.content === ub.content && 
+                   b.startLine === ub.startLine &&
+                   b.endLine === ub.endLine;
+          });
+          
+          if (isSame) {
+            return prevBlocks;
+          }
         }
         
-        return newBlock;
+        return updatedBlocks;
       });
-      
-      setBlocks(updatedBlocks);
     } finally {
       setDetecting(false);
     }
-  }, [content, blocks]);
+  }, [content]);
 
   // Debounced detection on content change
   useEffect(() => {
@@ -120,14 +137,27 @@ export function useWodBlocks(
     const updateActiveBlock = () => {
       const position = editor.getPosition();
       if (!position) {
-        setActiveBlock(null);
+        setActiveBlock(prev => prev ? null : prev);
         return;
       }
 
       // Convert to 0-indexed
       const lineNumber = position.lineNumber - 1;
       const block = findBlockAtLine(blocks, lineNumber);
-      setActiveBlock(block);
+      const newBlock = block || null;
+      
+      setActiveBlock(prev => {
+        // If reference is same, no update needed
+        if (prev === newBlock) return prev;
+        
+        // If ID is same (and content presumably same if blocks didn't change), 
+        // but object reference is different (e.g. blocks regenerated),
+        // we SHOULD update to the new block object to get latest state.
+        // However, if blocks didn't change (due to our optimization above),
+        // then block === prev should catch it.
+        
+        return newBlock;
+      });
     };
 
     // Initial check

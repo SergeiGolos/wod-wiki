@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { ICodeStatement } from '../../CodeStatement';
 import { FragmentVisualizer } from '../../components/fragments/FragmentVisualizer';
+import { SmartStatementInput } from './SmartStatementInput';
 
 export interface EditableStatementListProps {
   /** Current statements in the block */
@@ -94,17 +95,15 @@ const StatementItem: React.FC<StatementItemProps> = ({
       >
         {isEditing ? (
           <>
-            <input
-              type="text"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveEdit();
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
+            <div className="flex-1">
+              <SmartStatementInput
+                value={editText}
+                onChange={setEditText}
+                onCommit={handleSaveEdit}
+                onCancel={handleCancelEdit}
+                autoFocus
+              />
+            </div>
             <button
               onClick={handleSaveEdit}
               className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
@@ -168,18 +167,16 @@ const StatementItem: React.FC<StatementItemProps> = ({
           style={{ marginLeft: `${indentPx + 20}px` }}
         >
           <span className="text-xs text-green-700 shrink-0">Add to group:</span>
-          <input
-            type="text"
-            value={addInGroupText}
-            onChange={(e) => setAddInGroupText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddInGroup();
-              if (e.key === 'Escape') setShowAddInGroup(false);
-            }}
-            placeholder="e.g., + 5 Pullups"
-            className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-            autoFocus
-          />
+          <div className="flex-1">
+            <SmartStatementInput
+              value={addInGroupText}
+              onChange={setAddInGroupText}
+              onCommit={handleAddInGroup}
+              onCancel={() => setShowAddInGroup(false)}
+              placeholder="e.g., + 5 Pullups"
+              autoFocus
+            />
+          </div>
           <button
             onClick={handleAddInGroup}
             className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
@@ -202,18 +199,16 @@ const StatementItem: React.FC<StatementItemProps> = ({
           style={{ marginLeft: `${indentPx}px` }}
         >
           <span className="text-xs text-blue-700 shrink-0">Add at level:</span>
-          <input
-            type="text"
-            value={addAtLevelText}
-            onChange={(e) => setAddAtLevelText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddAtLevel();
-              if (e.key === 'Escape') setShowAddAtLevel(false);
-            }}
-            placeholder="e.g., + 10 Pushups"
-            className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
+          <div className="flex-1">
+            <SmartStatementInput
+              value={addAtLevelText}
+              onChange={setAddAtLevelText}
+              onCommit={handleAddAtLevel}
+              onCancel={() => setShowAddAtLevel(false)}
+              placeholder="e.g., + 10 Pushups"
+              autoFocus
+            />
+          </div>
           <button
             onClick={handleAddAtLevel}
             className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
@@ -292,18 +287,16 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       {/* Add new line input */}
       {showAddNew && (
         <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
-          <input
-            type="text"
-            value={newStatementText}
-            onChange={(e) => setNewStatementText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddNew();
-              if (e.key === 'Escape') setShowAddNew(false);
-            }}
-            placeholder="e.g., + 5 Pullups or 20:00 AMRAP"
-            className="flex-1 px-3 py-2 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
+          <div className="flex-1">
+            <SmartStatementInput
+              value={newStatementText}
+              onChange={setNewStatementText}
+              onCommit={handleAddNew}
+              onCancel={() => setShowAddNew(false)}
+              placeholder="e.g., + 5 Pullups or 20:00 AMRAP"
+              autoFocus
+            />
+          </div>
           <button
             onClick={handleAddNew}
             className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
@@ -333,18 +326,16 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       {/* Add group input */}
       {showAddGroup && (
         <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded">
-          <input
-            type="text"
-            value={newGroupText}
-            onChange={(e) => setNewGroupText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddGroup();
-              if (e.key === 'Escape') setShowAddGroup(false);
-            }}
-            placeholder="e.g., (3) or 5 Rounds"
-            className="flex-1 px-3 py-2 text-sm border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-            autoFocus
-          />
+          <div className="flex-1">
+            <SmartStatementInput
+              value={newGroupText}
+              onChange={setNewGroupText}
+              onCommit={handleAddGroup}
+              onCancel={() => setShowAddGroup(false)}
+              placeholder="e.g., (3) or 5 Rounds"
+              autoFocus
+            />
+          </div>
           <button
             onClick={handleAddGroup}
             className="px-4 py-2 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 shrink-0"

@@ -44,13 +44,19 @@ export function useBlockEditor({
     
     // Calculate position to insert (before the closing ```)
     const insertLine = block.endLine; // Line with closing ```
-    const lineContent = model.getLineContent(insertLine);
     
     // Find the last non-empty line before closing ```
     let lastContentLine = insertLine - 1;
+    let indentation = '';
+
     while (lastContentLine > block.startLine) {
       const content = model.getLineContent(lastContentLine);
-      if (content.trim()) break;
+      if (content.trim()) {
+        // Capture indentation from the last content line
+        const match = content.match(/^(\s*)/);
+        if (match) indentation = match[1];
+        break;
+      }
       lastContentLine--;
     }
     
@@ -61,7 +67,7 @@ export function useBlockEditor({
     };
     
     // Format the new line with proper indentation
-    const newText = `${text}\n`;
+    const newText = `${indentation}${text}\n`;
     
     editor.executeEdits('fragment-editor', [{
       range: {
@@ -86,22 +92,31 @@ export function useBlockEditor({
    * Edit an existing statement in the block
    */
   const editStatement = useCallback((index: number, text: string) => {
-    if (!editor || !block) return;
+    if (!editor || !block || !block.statements) return;
     
     const model = editor.getModel();
     if (!model) return;
     
-    // Find the line number for this statement
-    // Statements start at block.startLine + 1 (after opening ```)
-    const statementLine = block.startLine + 1 + index;
+    const statement = block.statements[index];
+    if (!statement) {
+      console.warn('Statement not found at index', index);
+      return;
+    }
     
-    if (statementLine >= block.endLine) {
-      console.warn('Statement index out of range');
+    // Use metadata line number (1-based in Monaco)
+    const statementLine = statement.meta.line;
+    
+    if (statementLine >= block.endLine || statementLine <= block.startLine) {
+      console.warn('Statement line out of range');
       return;
     }
     
     const lineContent = model.getLineContent(statementLine);
     const lineLength = lineContent.length;
+    
+    // Preserve indentation
+    const match = lineContent.match(/^(\s*)/);
+    const indentation = match ? match[1] : '';
     
     // Replace the entire line
     editor.executeEdits('fragment-editor', [{
@@ -111,7 +126,7 @@ export function useBlockEditor({
         endLineNumber: statementLine,
         endColumn: lineLength + 1
       },
-      text: text
+      text: `${indentation}${text}`
     }]);
     
     editor.focus();
@@ -121,16 +136,22 @@ export function useBlockEditor({
    * Delete a statement from the block
    */
   const deleteStatement = useCallback((index: number) => {
-    if (!editor || !block) return;
+    if (!editor || !block || !block.statements) return;
     
     const model = editor.getModel();
     if (!model) return;
     
-    // Find the line number for this statement
-    const statementLine = block.startLine + 1 + index;
+    const statement = block.statements[index];
+    if (!statement) {
+      console.warn('Statement not found at index', index);
+      return;
+    }
     
-    if (statementLine >= block.endLine) {
-      console.warn('Statement index out of range');
+    // Use metadata line number
+    const statementLine = statement.meta.line;
+    
+    if (statementLine >= block.endLine || statementLine <= block.startLine) {
+      console.warn('Statement line out of range');
       return;
     }
     

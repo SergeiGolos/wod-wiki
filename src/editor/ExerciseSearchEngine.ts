@@ -86,6 +86,10 @@ export class ExerciseSearchEngine {
     // Perform search - if query is empty but filters are present, get all entries
     let results: ExercisePathEntry[];
     if (!normalizedQuery && this.hasFilters(options)) {
+      // Ensure index is loaded
+      if (!this.indexManager.isIndexLoaded()) {
+        await this.indexManager.searchExercises('', 1);
+      }
       results = this.indexManager.getAllEntries();
     } else {
       results = await this.indexManager.searchExercises(normalizedQuery, limit * 2); // Get more for filtering

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ExerciseSearchEngine } from './ExerciseSearchEngine';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
-import type { ExercisePathIndex } from '../tools/ExercisePathIndexer';
+import type { ExercisePathIndex, ExerciseDataProvider } from '../types/providers';
 
 // Mock data
 const mockIndex: ExercisePathIndex = {
@@ -16,17 +16,30 @@ const mockIndex: ExercisePathIndex = {
   totalExercises: 4
 };
 
+// Mock provider
+class MockExerciseProvider implements ExerciseDataProvider {
+  async loadIndex(): Promise<ExercisePathIndex> {
+    return mockIndex;
+  }
+  
+  async loadExercise(path: string): Promise<any> {
+    return { name: path };
+  }
+  
+  async searchExercises(query: string, limit?: number): Promise<any[]> {
+    const results = mockIndex.allEntries.filter(e => 
+      e.name.toLowerCase().includes(query.toLowerCase()) ||
+      e.searchTerms.some(term => term.toLowerCase().includes(query.toLowerCase()))
+    );
+    return results.slice(0, limit || 50);
+  }
+}
+
 describe('ExerciseSearchEngine', () => {
   let indexManager: ExerciseIndexManager;
   let searchEngine: ExerciseSearchEngine;
 
   beforeEach(async () => {
-    // Mock fetch for index loading
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockIndex
-    });
-
     // Mock localStorage
     const storage: Record<string, string> = {};
     global.localStorage = {
@@ -42,7 +55,9 @@ describe('ExerciseSearchEngine', () => {
     (ExerciseIndexManager as any).instance = null;
     (ExerciseIndexManager as any).initPromise = null;
 
-    indexManager = await ExerciseIndexManager.getInstance();
+    indexManager = ExerciseIndexManager.getInstance();
+    indexManager.setProvider(new MockExerciseProvider());
+    
     searchEngine = new ExerciseSearchEngine(indexManager);
   });
 
@@ -51,21 +66,21 @@ describe('ExerciseSearchEngine', () => {
   });
 
   describe('immediate search', () => {
-    it('should search without debouncing', () => {
-      const results = searchEngine.searchImmediate('barbell');
+    it('should search without debouncing', async () => {
+      const results = await searchEngine.searchImmediate('barbell');
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].name).toContain('Barbell');
     });
 
-    it('should respect search limit', () => {
-      const results = searchEngine.searchImmediate('', { limit: 2 });
+    it('should respect search limit', async () => {
+      const results = await searchEngine.searchImmediate('', { limit: 2 });
 
       expect(results.length).toBeLessThanOrEqual(2);
     });
 
-    it('should return empty array for no matches', () => {
-      const results = searchEngine.searchImmediate('nonexistent');
+    it('should return empty array for no matches', async () => {
+      const results = await searchEngine.searchImmediate('nonexistent');
 
       expect(results).toEqual([]);
     });
@@ -113,7 +128,7 @@ describe('ExerciseSearchEngine', () => {
       searchEngine.search('barbell', {}, callback);
 
       // Immediate search should cancel debounced search
-      const results = searchEngine.searchImmediate('dumbbell');
+      const results = await searchEngine.searchImmediate('dumbbell');
 
       await new Promise(resolve => setTimeout(resolve, 200));
 
@@ -124,16 +139,16 @@ describe('ExerciseSearchEngine', () => {
   });
 
   describe('filtering', () => {
-    it('should filter by equipment', () => {
-      const results = searchEngine.searchImmediate('', {
+    it('should filter by equipment', async () => {
+      const results = await searchEngine.searchImmediate('', {
         equipment: ['barbell']
       });
 
       expect(results.every(r => r.searchTerms.includes('barbell'))).toBe(true);
     });
 
-    it('should filter by muscles', () => {
-      const results = searchEngine.searchImmediate('', {
+    it('should filter by muscles', async () => {
+      const results = await searchEngine.searchImmediate('', {
         muscles: ['chest']
       });
 
@@ -143,16 +158,16 @@ describe('ExerciseSearchEngine', () => {
       )).toBe(true);
     });
 
-    it('should filter by difficulty', () => {
-      const results = searchEngine.searchImmediate('', {
+    it('should filter by difficulty', async () => {
+      const results = await searchEngine.searchImmediate('', {
         difficulty: ['beginner']
       });
 
       expect(results.every(r => r.searchTerms.includes('beginner'))).toBe(true);
     });
 
-    it('should apply multiple filters', () => {
-      const results = searchEngine.searchImmediate('', {
+    it('should apply multiple filters', async () => {
+      const results = await searchEngine.searchImmediate('', {
         equipment: ['barbell'],
         difficulty: ['intermediate']
       });
@@ -165,50 +180,50 @@ describe('ExerciseSearchEngine', () => {
   });
 
   describe('caching', () => {
-    it('should cache search results', () => {
+    it('should cache search results', async () => {
       const spy = vi.spyOn(indexManager, 'searchExercises');
 
       // First search
-      searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('barbell');
       expect(spy).toHaveBeenCalledTimes(1);
 
       // Second search with same query should use cache
-      searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('barbell');
       expect(spy).toHaveBeenCalledTimes(1); // Still only called once
     });
 
-    it('should use different cache for different queries', () => {
+    it('should use different cache for different queries', async () => {
       const spy = vi.spyOn(indexManager, 'searchExercises');
 
-      searchEngine.searchImmediate('barbell');
-      searchEngine.searchImmediate('dumbbell');
+      await searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('dumbbell');
 
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should use different cache for different options', () => {
+    it('should use different cache for different options', async () => {
       const spy = vi.spyOn(indexManager, 'searchExercises');
 
-      searchEngine.searchImmediate('barbell', { equipment: ['barbell'] });
-      searchEngine.searchImmediate('barbell', { equipment: ['dumbbell'] });
+      await searchEngine.searchImmediate('barbell', { equipment: ['barbell'] });
+      await searchEngine.searchImmediate('barbell', { equipment: ['dumbbell'] });
 
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should clear cache on demand', () => {
+    it('should clear cache on demand', async () => {
       const spy = vi.spyOn(indexManager, 'searchExercises');
 
-      searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('barbell');
       searchEngine.clearCache();
-      searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('barbell');
 
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should limit cache size', () => {
+    it('should limit cache size', async () => {
       // Perform many searches to fill cache
       for (let i = 0; i < 150; i++) {
-        searchEngine.searchImmediate(`query${i}`);
+        await searchEngine.searchImmediate(`query${i}`);
       }
 
       const stats = searchEngine.getCacheStats();
@@ -252,9 +267,9 @@ describe('ExerciseSearchEngine', () => {
   });
 
   describe('statistics', () => {
-    it('should provide cache statistics', () => {
-      searchEngine.searchImmediate('barbell');
-      searchEngine.searchImmediate('dumbbell');
+    it('should provide cache statistics', async () => {
+      await searchEngine.searchImmediate('barbell');
+      await searchEngine.searchImmediate('dumbbell');
 
       const stats = searchEngine.getCacheStats();
       expect(stats.cacheSize).toBeGreaterThan(0);
