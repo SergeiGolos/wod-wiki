@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
+import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
 
 import abcMarkdown from '../../wod/abc.md?raw';
 import abcSingleBellMarkdown from '../../wod/abc-single-bell.md?raw';
 
-const meta: Meta<typeof MarkdownEditor> = {
+const meta: Meta<typeof WodWorkbench> = {
   title: 'Runtime/DanJon',
-  component: MarkdownEditor,
+  component: WodWorkbench,
   args: {
     showToolbar: false,
-    showContextOverlay: true,
+    showContextOverlay: false,
     readonly: true,
     theme: 'vs',
     height: '85vh'

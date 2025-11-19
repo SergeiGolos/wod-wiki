@@ -1,9 +1,9 @@
-import { MarkdownEditor } from '@/markdown-editor';
+import { WodWorkbench } from '@/components/layout/WodWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const meta: Meta<typeof MarkdownEditor> = {
+const meta: Meta<typeof WodWorkbench> = {
   title: 'Markdown Editor',
-  component: MarkdownEditor,
+  component: WodWorkbench,
   parameters: {
     layout: 'fullscreen',
     docs: {

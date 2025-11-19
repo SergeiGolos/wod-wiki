@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
+import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
 
 import annieMarkdown from '../../wod/annie.md?raw';
 import barbaraMarkdown from '../../wod/barbara.md?raw';
@@ -17,12 +17,12 @@ import lindaMarkdown from '../../wod/linda.md?raw';
 import maryMarkdown from '../../wod/mary.md?raw';
 import nancyMarkdown from '../../wod/nancy.md?raw';
 
-const meta: Meta<typeof MarkdownEditor> = {
+const meta: Meta<typeof WodWorkbench> = {
   title: 'Runtime/Crossfit',
-  component: MarkdownEditor,
+  component: WodWorkbench,
   args: {
     showToolbar: false,
-    showContextOverlay: true,
+    showContextOverlay: false,
     readonly: true,
     theme: 'vs',
     height: '85vh'

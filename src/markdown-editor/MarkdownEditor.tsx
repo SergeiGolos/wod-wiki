@@ -2,7 +2,7 @@
  * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
  */
 
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
@@ -47,15 +47,24 @@ export interface MarkdownEditorProps {
   
   /** Optional Monaco options override */
   editorOptions?: monacoEditor.IStandaloneEditorConstructionOptions;
+
+  /** Callback when editor is mounted */
+  onMount?: (editor: monacoEditor.IStandaloneCodeEditor, monaco: Monaco) => void;
+
+  /** Callback when blocks change */
+  onBlocksChange?: (blocks: any[]) => void;
+
+  /** Callback when active block changes */
+  onActiveBlockChange?: (block: any | null) => void;
 }
 
-import { CommandProvider, useRegisterCommand, useCommandPalette } from '@/components/command-palette/CommandContext';
-import { CommandPalette } from '@/components/command-palette/CommandPalette';
+import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
+import { CommandPalette } from '../components/command-palette/CommandPalette';
 
 /**
  * Main markdown editor component wrapping Monaco
  */
-const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
+export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   initialContent = '',
   onContentChange,
   onTitleChange,
@@ -66,7 +75,10 @@ const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
   className = '',
   height = '100vh',
   width = '100%',
-  editorOptions = {}
+  editorOptions = {},
+  onMount,
+  onBlocksChange,
+  onActiveBlockChange
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -117,6 +129,20 @@ const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
     languageId: 'markdown'
   });
 
+  // Notify parent of block changes
+  useEffect(() => {
+    if (onBlocksChange) {
+      onBlocksChange(blocks);
+    }
+  }, [blocks, onBlocksChange]);
+
+  // Notify parent of active block changes
+  useEffect(() => {
+    if (onActiveBlockChange) {
+      onActiveBlockChange(activeBlock);
+    }
+  }, [activeBlock, onActiveBlockChange]);
+
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
     monaco: Monaco
@@ -145,6 +171,10 @@ const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
     
     // Focus editor
     editor.focus();
+
+    if (onMount) {
+      onMount(editor, monaco);
+    }
   };
 
   const handleEditorChange = (value: string | undefined) => {
@@ -215,7 +245,7 @@ const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => (
   <CommandProvider>
-    <MarkdownEditorContent {...props} />
+    <MarkdownEditorBase {...props} />
     <CommandPalette />
   </CommandProvider>
 );

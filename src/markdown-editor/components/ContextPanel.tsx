@@ -27,6 +27,9 @@ export interface ContextPanelProps {
   
   /** Callback when deleting a statement */
   onDeleteStatement?: (index: number) => void;
+
+  /** Callback when track button is clicked */
+  onTrack?: () => void;
 }
 
 /**
@@ -38,7 +41,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   showEditor = true,
   onAddStatement,
   onEditStatement,
-  onDeleteStatement
+  onDeleteStatement,
+  onTrack
 }) => {
   const hasStatements = block.statements && block.statements.length > 0;
   const hasErrors = block.errors && block.errors.length > 0;
@@ -46,7 +50,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
 
   // Track button handler
   const handleTrack = () => {
-    setIsTimerDialogOpen(true);
+    if (onTrack) {
+      onTrack();
+    } else {
+      setIsTimerDialogOpen(true);
+    }
   };
 
   // Log button handler (placeholder for now)

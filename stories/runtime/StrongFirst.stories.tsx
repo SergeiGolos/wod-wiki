@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
+import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
 
 import simpleAndSinisterMarkdown from '../../wod/simple-and-sinister.md?raw';
 import kbAxeHeavyMarkdown from '../../wod/kb-axe-heavy.md?raw';
 import kbAxeLiteMarkdown from '../../wod/kb-axe-lite.md?raw';
 
-const meta: Meta<typeof MarkdownEditor> = {
+const meta: Meta<typeof WodWorkbench> = {
   title: 'Runtime/StrongFirst',
-  component: MarkdownEditor,
+  component: WodWorkbench,
   args: {
     showToolbar: false,
-    showContextOverlay: true,
+    showContextOverlay: false,
     readonly: true,
     theme: 'vs',
     height: '85vh'
