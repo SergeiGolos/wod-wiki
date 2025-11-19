@@ -123,7 +123,7 @@ const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null
 };
 
 // Analytics View Component
-const AnalyticsView = ({ activeBlock }: { activeBlock: WodBlock | null }) => {
+const AnalyticsView = ({ activeBlock, onContinue }: { activeBlock: WodBlock | null, onContinue: () => void }) => {
   // Fake data for the table
   const metrics = [
     { id: 1, metric: 'Total Time', value: '12:45', unit: 'min' },
@@ -137,8 +137,13 @@ const AnalyticsView = ({ activeBlock }: { activeBlock: WodBlock | null }) => {
   ];
 
   return (
-    <div className="h-full p-8 bg-white overflow-auto">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Workout Analysis</h2>
+    <div className="h-full p-8 bg-white overflow-auto flex flex-col">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Workout Analysis</h2>
+        <Button onClick={onContinue} className="bg-blue-600 hover:bg-blue-700 text-white">
+          Continue
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
@@ -252,6 +257,10 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = ({
     setViewMode('analyze');
   };
 
+  const handleBackToEdit = () => {
+    setViewMode('edit');
+  };
+
   return (
     <CommandProvider>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-100">
@@ -303,7 +312,9 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = ({
           {/* Panel 1: Editor (Visible in Edit Mode) */}
           <div 
             className={`h-full border-r border-gray-200 transition-all duration-500 ease-in-out ${
-              viewMode === 'edit' ? 'w-2/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
+              viewMode === 'edit' 
+                ? (activeBlock ? 'w-2/3 opacity-100' : 'w-full opacity-100') 
+                : 'w-0 opacity-0 overflow-hidden border-none'
             }`}
           >
             <div ref={editorContainerRef} className="h-full w-full">
@@ -323,7 +334,9 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = ({
           {/* In Edit Mode: Right side (1/3) */}
           {/* In Run/Analyze Mode: Left side (1/3) */}
           <div 
-            className={`h-full border-r border-gray-200 transition-all duration-500 ease-in-out w-1/3`}
+            className={`h-full border-r border-gray-200 transition-all duration-500 ease-in-out ${
+              (viewMode === 'edit' && !activeBlock) ? 'w-0 opacity-0 overflow-hidden border-none' : 'w-1/3 opacity-100'
+            }`}
           >
             {activeBlock ? (
               <ContextPanel 
@@ -355,7 +368,7 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = ({
               viewMode === 'analyze' ? 'w-2/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
             }`}
           >
-            <AnalyticsView activeBlock={activeBlock} />
+            <AnalyticsView activeBlock={activeBlock} onContinue={handleBackToEdit} />
           </div>
 
         </div>
