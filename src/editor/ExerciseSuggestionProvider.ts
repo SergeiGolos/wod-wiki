@@ -86,6 +86,25 @@ export class ExerciseSuggestionProvider {
           this.createCompletionItem(entry, word, position)
         );
 
+        // Add hint item
+        suggestions.push({
+          label: 'Hit Ctrl+. for help',
+          kind: 18, // Text
+          insertText: '',
+          detail: 'Open Command Palette',
+          sortText: 'zzz_help', // Ensure it's at the bottom
+          range: {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn
+          },
+          command: {
+            id: 'editor.action.triggerSuggest', // Just re-trigger or do nothing, effectively a hint
+            title: 'Help'
+          }
+        } as any);
+
         resolve({
           suggestions,
           incomplete: false // We have all results

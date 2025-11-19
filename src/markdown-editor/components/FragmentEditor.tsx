@@ -229,40 +229,41 @@ function getStatementText(statement: ICodeStatement): string {
   const parts: string[] = [];
   
   fragments.forEach(fragment => {
+    const f = fragment as any;
     switch (fragment.type) {
       case 'Timer':
-        if (fragment.duration) {
-          parts.push(`${formatDuration(fragment.duration)}`);
+        if (f.duration) {
+          parts.push(`${formatDuration(f.duration)}`);
         }
-        if (fragment.action) {
-          parts.push(fragment.action);
+        if (f.action) {
+          parts.push(f.action);
         }
         break;
       
       case 'Rounds':
-        if (fragment.count) {
-          parts.push(`(${fragment.count})`);
+        if (f.count) {
+          parts.push(`(${f.count})`);
         }
-        if (fragment.repScheme) {
-          parts.push(fragment.repScheme);
+        if (f.repScheme) {
+          parts.push(f.repScheme);
         }
         break;
       
       case 'Effort':
-        if (fragment.count) {
-          parts.push(`${fragment.count}`);
+        if (f.count) {
+          parts.push(`${f.count}`);
         }
-        if (fragment.exercise) {
-          parts.push(fragment.exercise);
+        if (f.exercise) {
+          parts.push(f.exercise);
         }
-        if (fragment.modifier) {
-          parts.push(fragment.modifier);
+        if (f.modifier) {
+          parts.push(f.modifier);
         }
         break;
       
       case 'Action':
-        if (fragment.action) {
-          parts.push(fragment.action);
+        if (f.action) {
+          parts.push(f.action);
         }
         break;
       

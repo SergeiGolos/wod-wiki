@@ -86,4 +86,5 @@ export type { ICodeFragment } from './CodeFragment';
 
 // Utility exports
 export { MetricCollector } from './runtime/MetricCollector';
-export type { IMetricCollector, MetricValue } from './runtime/MetricCollector';
+export type { IMetricCollector } from './runtime/MetricCollector';
+

@@ -2,7 +2,7 @@
  * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
@@ -49,10 +49,13 @@ export interface MarkdownEditorProps {
   editorOptions?: monacoEditor.IStandaloneEditorConstructionOptions;
 }
 
+import { CommandProvider, useRegisterCommand, useCommandPalette } from '@/components/command-palette/CommandContext';
+import { CommandPalette } from '@/components/command-palette/CommandPalette';
+
 /**
  * Main markdown editor component wrapping Monaco
  */
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+const MarkdownEditorContent: React.FC<MarkdownEditorProps> = ({
   initialContent = '',
   onContentChange,
   onTitleChange,
@@ -70,6 +73,34 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
+  
+  const { setIsOpen } = useCommandPalette();
+
+  // Register default commands
+  const saveCommand = useMemo(() => ({
+    id: 'editor.save',
+    label: 'Save',
+    action: () => {
+      console.log('Save command triggered');
+      // In a real app, this would trigger a save callback or context action
+    },
+    shortcut: ['Meta', 'S'],
+    group: 'Editor',
+    context: 'editor'
+  }), []);
+  useRegisterCommand(saveCommand);
+
+  const formatCommand = useMemo(() => ({
+    id: 'editor.format',
+    label: 'Format Document',
+    action: () => {
+      editorInstance?.getAction('editor.action.formatDocument')?.run();
+    },
+    shortcut: ['Shift', 'Alt', 'F'],
+    group: 'Editor',
+    context: 'editor'
+  }), [editorInstance]);
+  useRegisterCommand(formatCommand);
 
   // Use the WOD blocks hook
   const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
@@ -99,6 +130,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     editor.updateOptions({ 
       glyphMargin: true,
       inlayHints: { enabled: 'on' }
+    });
+
+    // Disable default Command Palette (F1)
+    editor.addCommand(monaco.KeyCode.F1, () => {
+      // Do nothing or show hint
+      console.log('Default Command Palette disabled. Use Ctrl+.');
+    });
+
+    // Bind Ctrl+. to open our Command Palette
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
+      setIsOpen(true);
     });
     
     // Focus editor
@@ -170,3 +212,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     </div>
   );
 };
+
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => (
+  <CommandProvider>
+    <MarkdownEditorContent {...props} />
+    <CommandPalette />
+  </CommandProvider>
+);

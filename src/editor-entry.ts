@@ -36,3 +36,10 @@ export { LRUCache } from './editor/LRUCache';
 
 // Exercise types
 export type { Exercise, Muscle, Force, Level, Mechanic, Equipment, Category } from './exercise';
+
+// UI Components
+export { CommandPalette } from './components/command-palette/CommandPalette';
+export { CommandProvider, useCommandPalette, useRegisterCommand } from './components/command-palette/CommandContext';
+export type { Command, CommandContextType } from './components/command-palette/types';
+export { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/headless/Dialog';
+export type { DialogProps } from './components/headless/Dialog';

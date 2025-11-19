@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from '@/components/headless/Dialog';
 import { Button } from '@/components/ui/button';
 import { WodBlock } from '../types';
 import { Play, Pause, Square, RotateCcw } from 'lucide-react';

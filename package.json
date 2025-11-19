@@ -69,6 +69,7 @@
     "docs:check": "node scripts/check-docs-links.cjs"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@monaco-editor/react": "^4.6.0 || ^4.7.0",
     "@phosphor-icons/react": "^2.1.10",
     "@playwright/test": "^1.56.1",
@@ -79,6 +80,7 @@
     "chevrotain": "^11.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "lucide-react": "^0.545.0",
     "pnpm": "^10.20.0",
     "react-markdown": "^10.1.0",
