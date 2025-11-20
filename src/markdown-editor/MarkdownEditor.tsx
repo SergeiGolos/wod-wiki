@@ -88,6 +88,11 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   
   const { setIsOpen } = useCommandPalette();
 
+  // Log theme prop changes
+  useEffect(() => {
+    console.log('[MarkdownEditor] Theme prop received:', theme);
+  }, [theme]);
+
   // Register default commands
   const saveCommand = useMemo(() => ({
     id: 'editor.save',
@@ -143,6 +148,29 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     }
   }, [activeBlock, onActiveBlockChange]);
 
+  const handleEditorWillMount = (monaco: Monaco) => {
+    // Define custom themes to match application look and feel
+    console.log('[MarkdownEditor] Defining custom themes');
+    monaco.editor.defineTheme('wod-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#020817', // Matches --background in dark mode
+      }
+    });
+
+    monaco.editor.defineTheme('wod-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#ffffff', // Matches --background in light mode
+      }
+    });
+    console.log('[MarkdownEditor] Custom themes defined: wod-light, wod-dark');
+  };
+
   const handleEditorDidMount = (
     editor: monacoEditor.IStandaloneCodeEditor,
     monaco: Monaco
@@ -151,6 +179,10 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     monacoRef.current = monaco;
     setEditorInstance(editor);
     setMonacoInstance(monaco);
+    
+    // Apply initial theme
+    console.log('[MarkdownEditor] Initial theme application:', theme);
+    monaco.editor.setTheme(theme);
     
     // Enable glyph margin for icons and inlay hints
     editor.updateOptions({ 
@@ -193,6 +225,18 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     }
   };
 
+  // Update theme when prop changes
+  useEffect(() => {
+    if (monacoInstance && editorInstance) {
+      console.log('[MarkdownEditor] Theme changing to:', theme);
+      monacoInstance.editor.setTheme(theme);
+      // Force editor to refresh
+      editorInstance.updateOptions({});
+    } else {
+      console.log('[MarkdownEditor] Monaco not ready yet, theme:', theme);
+    }
+  }, [theme, monacoInstance, editorInstance]);
+
   // Default Monaco options
   const defaultOptions: monacoEditor.IStandaloneEditorConstructionOptions = {
     readOnly: readonly,
@@ -211,9 +255,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   return (
     <div className={`markdown-editor-container ${className}`} style={{ height, width }}>
       {showToolbar && (
-        <div className="markdown-toolbar border-b border-gray-300 bg-gray-50 p-2">
+        <div className="markdown-toolbar border-b border-border bg-muted/50 p-2">
           {/* Toolbar will be implemented in later phase */}
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Markdown Editor
             {blocks.length > 0 && (
               <span className="ml-2 text-blue-600">
@@ -229,6 +273,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
         defaultValue={initialContent}
         theme={theme}
         options={defaultOptions}
+        beforeMount={handleEditorWillMount}
         onMount={handleEditorDidMount}
         onChange={handleEditorChange}
       />

@@ -120,7 +120,7 @@ export const SmartStatementInput: React.FC<SmartStatementInputProps> = ({
       <input
         ref={inputRef}
         type="text"
-        className="w-full px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full px-2 py-1 text-sm border border-input bg-background text-foreground rounded focus:outline-none focus:ring-1 focus:ring-ring"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -128,12 +128,12 @@ export const SmartStatementInput: React.FC<SmartStatementInputProps> = ({
       />
       
       {showSuggestions && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded shadow-lg max-h-48 overflow-y-auto">
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.path}
               className={`px-3 py-2 text-sm cursor-pointer ${
-                index === selectedIndex ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                index === selectedIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50 text-popover-foreground'
               }`}
               onClick={() => applySuggestion(suggestion)}
             >

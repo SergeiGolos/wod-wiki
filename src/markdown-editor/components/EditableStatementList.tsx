@@ -90,7 +90,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
   return (
     <div className="statement-item-container">
       <div 
-        className="flex items-start gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:border-gray-300 transition-colors"
+        className="flex items-start gap-2 p-2 bg-card rounded border border-border hover:border-primary/50 transition-colors"
         style={{ marginLeft: `${indentPx}px` }}
       >
         {isEditing ? (
@@ -113,7 +113,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
             </button>
             <button
               onClick={handleCancelEdit}
-              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+              className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 shrink-0"
               title="Cancel (Esc)"
             >
               Cancel
@@ -127,7 +127,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
             <div className="flex gap-1 shrink-0">
               <button
                 onClick={handleStartEdit}
-                className="px-2 py-1 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100"
+                className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
                 title="Edit this line"
               >
                 ✏️
@@ -135,7 +135,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
               {hasChildren && (
                 <button
                   onClick={() => setShowAddInGroup(!showAddInGroup)}
-                  className="px-2 py-1 text-xs bg-green-50 border border-green-300 text-green-700 rounded hover:bg-green-100"
+                  className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
                   title="Add to this group"
                 >
                   +
@@ -143,14 +143,14 @@ const StatementItem: React.FC<StatementItemProps> = ({
               )}
               <button
                 onClick={() => setShowAddAtLevel(!showAddAtLevel)}
-                className="px-2 py-1 text-xs bg-blue-50 border border-blue-300 text-blue-700 rounded hover:bg-blue-100"
+                className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
                 title="Add line at this level"
               >
                 ⊕
               </button>
               <button
                 onClick={() => onDelete(index)}
-                className="px-2 py-1 text-xs bg-red-50 border border-red-300 text-red-700 rounded hover:bg-red-100"
+                className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
                 title="Delete this line"
               >
                 ×
@@ -185,7 +185,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
           </button>
           <button
             onClick={() => setShowAddInGroup(false)}
-            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+            className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 shrink-0"
           >
             Cancel
           </button>
@@ -217,7 +217,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
           </button>
           <button
             onClick={() => setShowAddAtLevel(false)}
-            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+            className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 shrink-0"
           >
             Cancel
           </button>
@@ -277,7 +277,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       {!showAddNew && (
         <button
           onClick={() => setShowAddNew(true)}
-          className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
         >
           <span>➕</span>
           <span>Add Line</span>
@@ -286,7 +286,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
 
       {/* Add new line input */}
       {showAddNew && (
-        <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+        <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
           <div className="flex-1">
             <SmartStatementInput
               value={newStatementText}
@@ -305,7 +305,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           </button>
           <button
             onClick={() => setShowAddNew(false)}
-            className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+            className="px-4 py-2 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 shrink-0"
           >
             Cancel
           </button>
@@ -316,7 +316,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       {!showAddGroup && (
         <button
           onClick={() => setShowAddGroup(true)}
-          className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
         >
           <span>📁</span>
           <span>Add Group</span>
@@ -325,7 +325,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
 
       {/* Add group input */}
       {showAddGroup && (
-        <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded">
+        <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
           <div className="flex-1">
             <SmartStatementInput
               value={newGroupText}
@@ -344,7 +344,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           </button>
           <button
             onClick={() => setShowAddGroup(false)}
-            className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 shrink-0"
+            className="px-4 py-2 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 shrink-0"
           >
             Cancel
           </button>
@@ -352,7 +352,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       )}
 
       {/* Quick add buttons */}
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
         <QuickAddButton
           label="Timer"
           icon="⏱"
@@ -400,7 +400,7 @@ const QuickAddButton: React.FC<QuickAddButtonProps> = ({
 }) => (
   <button
     onClick={() => onClick(template)}
-    className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-1"
+    className="px-2 py-1 text-xs bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center gap-1"
     title={`Add ${label}`}
   >
     <span>{icon}</span>

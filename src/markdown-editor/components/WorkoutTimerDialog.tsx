@@ -125,10 +125,10 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
           {/* Timer Display */}
           <div className="flex justify-center py-8">
             <div className="text-center">
-              <div className="text-6xl font-mono font-bold mb-2">
+              <div className="text-6xl font-mono font-bold mb-2 text-foreground">
                 {formatTime(elapsedMs)}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {isRunning ? 'Running' : 'Stopped'}
               </div>
             </div>
@@ -180,11 +180,11 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
           </div>
 
           {/* Workout Content Preview */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+          <div className="border-t border-border pt-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">
               Workout
             </h4>
-            <div className="text-sm text-gray-600 whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded">
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded">
               {block.content}
             </div>
           </div>

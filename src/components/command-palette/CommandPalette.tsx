@@ -30,24 +30,24 @@ export const CommandPalette: React.FC = () => {
     >
       <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
       
-      <div className="relative w-full max-w-lg overflow-hidden rounded-xl border bg-white shadow-2xl dark:bg-gray-900 dark:border-gray-800">
-        <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-xl border border-border bg-popover shadow-2xl text-popover-foreground">
+        <div className="flex items-center border-b border-border px-3" cmdk-input-wrapper="">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Command.Input
             value={search}
             onValueChange={setSearch}
             placeholder="Type a command or search..."
-            className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-100"
+            className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
           />
         </div>
         
         <Command.List className="max-h-[300px] overflow-y-auto overflow-x-hidden p-2">
-          <Command.Empty className="py-6 text-center text-sm text-gray-500">
+          <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
             No results found.
           </Command.Empty>
           
           {Object.entries(groups).map(([group, groupCommands]) => (
-            <Command.Group key={group} heading={group} className="overflow-hidden p-1 text-gray-700 dark:text-gray-200 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-gray-500">
+            <Command.Group key={group} heading={group} className="overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground">
               {groupCommands.map((cmd) => (
                 <Command.Item
                   key={cmd.id}
@@ -56,11 +56,11 @@ export const CommandPalette: React.FC = () => {
                     cmd.action();
                     setIsOpen(false);
                   }}
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-gray-100 aria-selected:text-gray-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:aria-selected:bg-gray-800 dark:aria-selected:text-gray-100"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <span>{cmd.label}</span>
                   {cmd.shortcut && (
-                    <span className="ml-auto text-xs tracking-widest text-gray-500">
+                    <span className="ml-auto text-xs tracking-widest text-muted-foreground">
                       {cmd.shortcut.join('+')}
                     </span>
                   )}

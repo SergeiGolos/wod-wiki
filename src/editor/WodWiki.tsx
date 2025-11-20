@@ -27,6 +27,8 @@ interface WodWikiProps {
   highlightedLine?: number;
   /** Optional exercise data provider for suggestions and hover */
   exerciseProvider?: ExerciseDataProvider;
+  /** Editor theme */
+  theme?: string;
 }
 
 export interface WodWikiTokenHint {
@@ -54,7 +56,7 @@ const tokens: WodWikiToken[] = [
 
 
 
-export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine, exerciseProvider }: WodWikiProps) => {        
+export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine, exerciseProvider, theme = "wod-wiki-theme" }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id, readonly);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
@@ -73,9 +75,17 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       editorRef.current = editor;
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
+
       if (onMount) {
         onMount(editor);
       }
+      
+      // Apply theme AFTER initializer has defined custom themes
+      if (theme) {
+        console.log('[WodWiki] Applying theme:', theme);
+        monaco.editor.setTheme(theme);
+      }
+      
       editor.onDidContentSizeChange(() => {
         handleContentSizeChange();
       });
@@ -154,6 +164,14 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       }
     };
   }, [highlightedLine]);
+
+  // Update theme when prop changes
+  useEffect(() => {
+    if (monacoRef.current && theme) {
+      console.log('[WodWiki] Theme changed to:', theme);
+      monacoRef.current.editor.setTheme(theme);
+    }
+  }, [theme]);
   
     return (
       <div data-highlighted-line={highlightedLine} className="wodwiki-container">
@@ -161,7 +179,6 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
           height={`${height}px`}
           path={id}
           language={initializer.syntax} 
-          theme={initializer.theme}        
           defaultValue={code}
           beforeMount={handleBeforeMount}      
           onMount={handleMount}     

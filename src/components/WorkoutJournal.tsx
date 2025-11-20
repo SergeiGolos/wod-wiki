@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WodWiki } from '../editor/WodWiki';
 import { IScript } from '../WodScript';
+import { useTheme } from './theme/ThemeProvider';
 
 interface WorkoutJournalProps {
   /** Optional initial date (defaults to today) */
@@ -18,6 +19,8 @@ interface WorkoutJournalProps {
  * - Half-page width layout
  */
 export const WorkoutJournal: React.FC<WorkoutJournalProps> = ({ initialDate }) => {
+  const { theme } = useTheme();
+  const [monacoTheme, setMonacoTheme] = useState('vs');
   const [selectedDate, setSelectedDate] = useState<string>(
     initialDate || new Date().toISOString().split('T')[0]
   );
@@ -25,6 +28,21 @@ export const WorkoutJournal: React.FC<WorkoutJournalProps> = ({ initialDate }) =
   const [script, setScript] = useState<IScript | undefined>(undefined);
   const editorRef = useRef<any>(null);
   const currentContentRef = useRef<string>('');
+
+  // Sync Monaco theme with global theme
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const updateTheme = () => {
+      const isDark = theme === 'dark' || (theme === 'system' && mediaQuery.matches);
+      setMonacoTheme(isDark ? 'vs-dark' : 'vs');
+    };
+
+    updateTheme();
+
+    mediaQuery.addEventListener('change', updateTheme);
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, [theme]);
 
   // Load workout from localStorage when date changes
   useEffect(() => {
@@ -129,10 +147,11 @@ export const WorkoutJournal: React.FC<WorkoutJournalProps> = ({ initialDate }) =
         </div>
         <div className="bg-white" style={{ minHeight: '400px' }}>
           <WodWiki 
-            id={`workout-journal-${selectedDate}`}
-            code={workoutContent} 
+            id={`workout-editor-${selectedDate}`}
+            code={workoutContent}
             onValueChange={handleValueChange}
             onMount={handleEditorMount}
+            theme={monacoTheme}
           />
         </div>
       </div>

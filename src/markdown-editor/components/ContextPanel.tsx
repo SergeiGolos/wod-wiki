@@ -64,58 +64,37 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   };
 
   return (
-    <div className="context-panel bg-white border-l border-gray-300 h-full overflow-y-auto">
+    <div className="context-panel bg-background border-l border-border h-full overflow-y-auto">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h3 className="text-sm font-semibold text-gray-700">
+      <div className="p-4 border-b border-border bg-muted/50">
+        <h3 className="text-sm font-semibold text-foreground">
           WOD Block Context
         </h3>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Lines {block.startLine + 1} - {block.endLine + 1}
         </p>
       </div>
 
-      {/* Action Buttons */}
-      {hasStatements && !hasErrors && (
-        <div className="p-4 border-b border-gray-200 bg-white">
-          <div className="flex gap-2">
-            <Button
-              onClick={handleTrack}
-              className="flex-1 gap-2"
-              size="default"
-            >
-              <Play className="h-4 w-4" />
-              Track
-            </Button>
-            <Button
-              onClick={handleLog}
-              className="flex-1 gap-2"
-              variant="outline"
-            >
-              <BookOpen className="h-4 w-4" />
-              Log
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Action Buttons removed as requested */}
+
 
       {/* Content */}
       <div className="p-4">
         {/* Parsing Status */}
         {block.state === 'parsing' && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm text-blue-700">Parsing workout...</p>
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+            <p className="text-sm text-blue-700 dark:text-blue-300">Parsing workout...</p>
           </div>
         )}
 
         {/* Parse Errors */}
         {hasErrors && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
-            <h4 className="text-sm font-semibold text-red-700 mb-2">
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
+            <h4 className="text-sm font-semibold text-destructive mb-2">
               Parse Errors
             </h4>
             {block.errors!.map((error, idx) => (
-              <div key={idx} className="text-xs text-red-600 mb-1">
+              <div key={idx} className="text-xs text-destructive mb-1">
                 {error.line && <span className="font-mono">Line {error.line}: </span>}
                 {error.message}
               </div>

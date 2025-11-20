@@ -104,6 +104,22 @@ export class WodWikiSyntaxInitializer {
       registeredThemes.add(this.theme);
     }
 
+    // Define dark theme
+    const darkTheme = this.theme + "-dark";
+    if (!registeredThemes.has(darkTheme)) {
+      monaco.editor.defineTheme(darkTheme, {
+        base: "vs-dark",
+        inherit: true,
+        rules: tokens,
+        colors: {
+          "editor.background": "#020817", // Matches --background in dark mode
+          "editor.lineHighlightBackground": "#1e293b",
+          "editor.selectionBackground": "#1e40af",
+        }
+      });
+      registeredThemes.add(darkTheme);
+    }
+
     // Add a CSS class for the current line decoration (only once)
     if (!document.getElementById('wod-wiki-line-decoration-styles')) {
       const styleElement = document.createElement('style');
@@ -116,6 +132,14 @@ export class WodWikiSyntaxInitializer {
         .currentLineGlyphMargin {
           background-color: #1890FF;
           width: 4px !important;
+        }
+        /* Dark mode support */
+        .dark .currentLineDecoration {
+          background-color: #1e293b !important;
+          border-left: 2px solid #3b82f6 !important;
+        }
+        .dark .currentLineGlyphMargin {
+          background-color: #3b82f6;
         }
       `;
       document.head.appendChild(styleElement);

@@ -64,8 +64,8 @@ export const FragmentEditor: React.FC<FragmentEditorProps> = ({
   };
 
   return (
-    <div className="fragment-editor p-4 border-t border-gray-200">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+    <div className="fragment-editor p-4 border-t border-border">
+      <h4 className="text-sm font-semibold text-foreground mb-3">
         Edit Workout
       </h4>
 
@@ -79,7 +79,7 @@ export const FragmentEditor: React.FC<FragmentEditorProps> = ({
             return (
               <div
                 key={statement.id || index}
-                className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200"
+                className="flex items-center gap-2 p-2 bg-muted/50 rounded border border-border"
               >
                 {isEditing ? (
                   <>
