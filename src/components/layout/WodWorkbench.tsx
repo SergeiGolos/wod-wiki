@@ -35,6 +35,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   
+  // View Mode State
+  const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
+  
   // Selected block for Right Panel (distinct from activeBlock which tracks cursor)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
@@ -53,10 +56,10 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
   // Sync selected block with active block when cursor moves into a block
   useEffect(() => {
-    if (activeBlockId) {
-      setSelectedBlockId(activeBlockId);
+    if (viewMode === 'edit') {
+      setSelectedBlockId(activeBlockId || null);
     }
-  }, [activeBlockId]);
+  }, [activeBlockId, viewMode]);
 
   // Handle Escape key to clear selection
   useEffect(() => {
@@ -80,9 +83,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
       setTheme(targetTheme);
     }
   }, [propTheme]);
-
-  // View Mode State
-  const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
 
   // Compute Monaco theme reactively based on global theme
   const monacoTheme = useMemo(() => {
@@ -112,7 +112,13 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   
   // Handle navigation from index panel
   const handleBlockClick = (item: DocumentItem) => {
-    if (editorInstance) {
+    // Set selected block if it's a WOD block
+    if (item.type === 'wod') {
+      setSelectedBlockId(item.id);
+    }
+
+    // Only scroll editor if we are in edit mode
+    if (viewMode === 'edit' && editorInstance) {
       const line = item.startLine + 1; // Monaco is 1-indexed, item is 0-indexed
       editorInstance.revealLineInCenter(line);
       editorInstance.setPosition({ lineNumber: line, column: 1 });
@@ -121,11 +127,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
       // Highlight the line briefly
       setHighlightedLine(line);
       setTimeout(() => setHighlightedLine(null), 2000);
-      
-      // Set selected block if it's a WOD block
-      if (item.type === 'wod') {
-        setSelectedBlockId(item.id);
-      }
     }
   };
 
@@ -144,6 +145,8 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
   const handleClearSelection = () => {
     setSelectedBlockId(null);
+    // If we are in run or analyze mode, clearing selection should just show the index in the left panel
+    // but we stay in the current view mode.
   };
 
   // Find the selected block object
@@ -272,7 +275,13 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <RuntimeLayout activeBlock={selectedBlock || activeBlock} onComplete={handleComplete} />
+            <RuntimeLayout 
+              activeBlock={selectedBlock || activeBlock} 
+              documentItems={documentItems}
+              onBlockClick={handleBlockClick}
+              onComplete={handleComplete} 
+              onBack={handleClearSelection}
+            />
           </div>
 
           {/* Panel 4: Analytics (Visible in Analyze Mode) */}
@@ -284,6 +293,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               activeBlock={selectedBlock || activeBlock} 
               documentItems={documentItems}
               onBlockClick={handleBlockClick}
+              onBack={handleClearSelection}
             />
           </div>
 

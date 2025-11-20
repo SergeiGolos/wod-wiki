@@ -36,7 +36,7 @@ const getBlockPreview = (content: string): string => {
 };
 
 /**
- * WodIndexPanel - Unified "Post at a Glance" view
+ * WodIndexPanel - Unified "Index" view
  */
 export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
   items,
@@ -54,7 +54,7 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
     <div className="h-full bg-background flex flex-col overflow-hidden border-l border-border">
       {/* Header */}
       <div className="p-4 border-b border-border flex-shrink-0 bg-muted/30">
-        <h3 className="text-sm font-semibold text-foreground">Post at a Glance</h3>
+        <h3 className="text-sm font-semibold text-foreground">Index</h3>
       </div>
 
       {/* Document Items List */}

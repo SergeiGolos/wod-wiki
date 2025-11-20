@@ -4,11 +4,14 @@ import { TimelineView } from '../../timeline/TimelineView';
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
 interface AnalyticsLayoutProps {
   activeBlock: WodBlock | null;
   documentItems: DocumentItem[];
   onBlockClick: (item: DocumentItem) => void;
+  onBack: () => void;
 }
 
 // --- Mock Data Generation (Moved from TimelineView) ---
@@ -90,7 +93,8 @@ const generateSessionData = () => {
 export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ 
   activeBlock, 
   documentItems,
-  onBlockClick 
+  onBlockClick,
+  onBack
 }) => {
   // Generate data once
   const { data: rawData, segments } = useMemo(() => generateSessionData(), []);
@@ -110,11 +114,19 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
       {/* Left Panel: Index or Git View (1/3) */}
       <div className="w-1/3 border-r border-border flex flex-col bg-background overflow-hidden">
         {activeBlock ? (
-          <GitTreeSidebar 
-            segments={segments}
-            selectedIds={selectedSegmentIds}
-            onSelect={handleSelectSegment}
-          />
+          <>
+            <div className="p-2 border-b border-border flex items-center">
+              <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+                <ChevronLeft className="h-4 w-4" />
+                Back to Index
+              </Button>
+            </div>
+            <GitTreeSidebar 
+              segments={segments}
+              selectedIds={selectedSegmentIds}
+              onSelect={handleSelectSegment}
+            />
+          </>
         ) : (
           <WodIndexPanel 
             items={documentItems}

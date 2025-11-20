@@ -7,8 +7,11 @@ import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 
+import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
+import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
+
 // Placeholder for Timer (reuse logic from WodWorkbench later or import)
-const TimerDisplay = ({ isRunning, elapsedMs }: { isRunning: boolean, elapsedMs: number }) => {
+const TimerDisplay = ({ isRunning, elapsedMs, hasActiveBlock }: { isRunning: boolean, elapsedMs: number, hasActiveBlock: boolean }) => {
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -16,6 +19,14 @@ const TimerDisplay = ({ isRunning, elapsedMs }: { isRunning: boolean, elapsedMs:
     const milliseconds = Math.floor((ms % 1000) / 10);
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
   };
+
+  if (!hasActiveBlock) {
+    return (
+      <div className="text-8xl font-mono font-bold mb-12 tabular-nums tracking-wider text-muted-foreground/20 select-none">
+        --:--:--
+      </div>
+    );
+  }
 
   return (
     <div className="text-8xl font-mono font-bold mb-12 tabular-nums tracking-wider text-primary">
@@ -26,10 +37,19 @@ const TimerDisplay = ({ isRunning, elapsedMs }: { isRunning: boolean, elapsedMs:
 
 interface RuntimeLayoutProps {
   activeBlock: WodBlock | null;
+  documentItems: DocumentItem[];
+  onBlockClick: (item: DocumentItem) => void;
   onComplete: () => void;
+  onBack: () => void;
 }
 
-export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ activeBlock, onComplete }) => {
+export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ 
+  activeBlock, 
+  documentItems,
+  onBlockClick,
+  onComplete, 
+  onBack 
+}) => {
   const [showDebug, setShowDebug] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -138,60 +158,77 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ activeBlock, onCom
       {/* Left Panel: Execution Log (1/3) */}
       <div className="w-1/3 border-r border-border flex flex-col bg-background">
         
-        {/* Top: Segment Topology (Growing Log) */}
-        <div className="flex-1 overflow-hidden flex flex-col relative">
-           <GitTreeSidebar 
-             segments={runtimeSegments}
-             selectedIds={new Set(activeSegmentId ? [activeSegmentId] : [])}
-             onSelect={() => {}}
-             scrollContainerRef={scrollRef}
-           >
-              {/* "Feeding" Connector Visual */}
-              <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
-           </GitTreeSidebar>
-        </div>
+        {activeBlock ? (
+          <>
+            {/* Top: Segment Topology (Growing Log) */}
+            <div className="flex-1 overflow-hidden flex flex-col relative">
+               <div className="p-2 border-b border-border flex items-center">
+                  <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+                    <ChevronLeft className="h-4 w-4" />
+                    Back to Index
+                  </Button>
+               </div>
+               <GitTreeSidebar 
+                 segments={runtimeSegments}
+                 selectedIds={new Set(activeSegmentId ? [activeSegmentId] : [])}
+                 onSelect={() => {}}
+                 scrollContainerRef={scrollRef}
+               >
+                  {/* "Feeding" Connector Visual */}
+                  <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
+               </GitTreeSidebar>
+            </div>
 
-        {/* Bottom: Active Block Context (Source) */}
-        <div className="h-1/3 border-t border-border bg-muted/10 flex flex-col">
-          <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
-            <span>Active Context</span>
-            <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">READ ONLY</span>
-          </div>
-          <div className="flex-1 p-4 overflow-auto font-mono text-sm relative">
-             {/* Visual indicator connecting to top */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-background border border-border rotate-45 z-10"></div>
-             
-             <div className="space-y-1">
-               {(activeBlock?.content || '').split('\n').map((line, i) => (
-                 <div key={i} className="group flex items-center gap-2 hover:bg-muted/50 rounded px-2 py-1 -mx-2 transition-colors">
-                   <span className="text-muted-foreground w-6 text-right select-none text-xs">{i + 1}</span>
-                   <span className="flex-1 text-foreground/80 whitespace-pre-wrap">{line}</span>
-                   
-                   {/* Line Actions */}
-                   <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                     <Button 
-                       variant="ghost" 
-                       size="icon" 
-                       className="h-6 w-6"
-                       onClick={() => {
-                         setSearch(line.trim());
-                         setIsOpen(true);
-                       }}
-                     >
-                       <Edit2 className="h-3 w-3" />
-                     </Button>
-                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
-                       <Trash2 className="h-3 w-3" />
-                     </Button>
-                   </div>
+            {/* Bottom: Active Block Context (Source) */}
+            <div className="h-1/3 border-t border-border bg-muted/10 flex flex-col">
+              <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
+                <span>Active Context</span>
+                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">READ ONLY</span>
+              </div>
+              <div className="flex-1 p-4 overflow-auto font-mono text-sm relative">
+                 {/* Visual indicator connecting to top */}
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-background border border-border rotate-45 z-10"></div>
+                 
+                 <div className="space-y-1">
+                   {(activeBlock?.content || '').split('\n').map((line, i) => (
+                     <div key={i} className="group flex items-center gap-2 hover:bg-muted/50 rounded px-2 py-1 -mx-2 transition-colors">
+                       <span className="text-muted-foreground w-6 text-right select-none text-xs">{i + 1}</span>
+                       <span className="flex-1 text-foreground/80 whitespace-pre-wrap">{line}</span>
+                       
+                       {/* Line Actions */}
+                       <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-6 w-6"
+                           onClick={() => {
+                             setSearch(line.trim());
+                             setIsOpen(true);
+                           }}
+                         >
+                           <Edit2 className="h-3 w-3" />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
+                           <Trash2 className="h-3 w-3" />
+                         </Button>
+                       </div>
+                     </div>
+                   ))}
+                   {!activeBlock?.content && (
+                     <div className="text-muted-foreground italic">// No active block content</div>
+                   )}
                  </div>
-               ))}
-               {!activeBlock?.content && (
-                 <div className="text-muted-foreground italic">// No active block content</div>
-               )}
-             </div>
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <WodIndexPanel 
+            items={documentItems}
+            activeBlockId={null}
+            onBlockClick={onBlockClick}
+            onBlockHover={() => {}}
+          />
+        )}
       </div>
 
       {/* Right Panel: Timer (2/3) */}
@@ -210,23 +247,30 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ activeBlock, onCom
         </div>
 
         <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
-        <TimerDisplay isRunning={isRunning} elapsedMs={elapsedMs} />
+        <TimerDisplay isRunning={isRunning} elapsedMs={elapsedMs} hasActiveBlock={!!activeBlock} />
         
-        <div className="flex gap-6 mt-12">
-           {!isRunning ? (
-             <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
-               <Play className="h-8 w-8 fill-current" />
+        {activeBlock ? (
+          <div className="flex gap-6 mt-12">
+             {!isRunning ? (
+               <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
+                 <Play className="h-8 w-8 fill-current" />
+               </Button>
+             ) : (
+               <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
+                 <Pause className="h-8 w-8 fill-current" />
+               </Button>
+             )}
+             
+             <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
+               <Square className="h-6 w-6 fill-current" />
              </Button>
-           ) : (
-             <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
-               <Pause className="h-8 w-8 fill-current" />
-             </Button>
-           )}
-           
-           <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
-             <Square className="h-6 w-6 fill-current" />
-           </Button>
-        </div>
+          </div>
+        ) : (
+          <div className="mt-12 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md text-center">
+             <h3 className="font-semibold mb-2">No Workout Selected</h3>
+             <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
+          </div>
+        )}
       </div>
 
       {/* Debug Drawer (Slide out) */}
