@@ -79,17 +79,17 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
     return groups;
   }, [filteredEntries, groupBy]);
 
-  // Render a single memory entry
-  const renderEntry = (entry: typeof entries[0]) => {
+  // Render a single memory entry as a table row
+  const renderEntryRow = (entry: typeof entries[0]) => {
     const isHighlighted = highlightedMemoryId === entry.id ||
                          highlightedOwnerKey === entry.ownerId;
 
     return (
-      <div
+      <tr
         key={entry.id}
         className={`
-          flex items-center gap-3 p-3 rounded border cursor-pointer transition-colors
-          ${isHighlighted ? 'bg-primary/20 border-primary' : 'bg-card border-border hover:border-primary/50'}
+          cursor-pointer transition-colors border-b border-border/40 last:border-0
+          ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
           ${!entry.isValid ? 'opacity-60' : ''}
         `}
         onMouseEnter={() => onEntryHover?.(entry.id, entry.ownerId)}
@@ -97,117 +97,85 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
         onClick={() => onEntryClick?.(entry.id)}
         data-testid={`memory-entry-${entry.id}`}
       >
-        {/* Status indicator */}
-        <div
-          className={`w-3 h-3 rounded-full flex-shrink-0 ${
-            entry.isValid ? 'bg-green-500' : 'bg-red-500'
-          }`}
-        />
+        {/* Status */}
+        <td className="px-3 py-2 w-8">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              entry.isValid ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          />
+        </td>
 
-        {/* Icon */}
-        {entry.icon && (
-          <span className="text-muted-foreground flex-shrink-0">
-            {entry.icon}
-          </span>
-        )}
+        {/* Label */}
+        <td className="px-3 py-2 font-medium text-foreground truncate max-w-[120px]" title={entry.label}>
+          {entry.label}
+        </td>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-foreground truncate">
-              {entry.label}
-            </span>
-            <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
-              {entry.type}
-            </span>
-          </div>
+        {/* Type */}
+        <td className="px-3 py-2 text-muted-foreground truncate max-w-[80px]" title={entry.type}>
+          {entry.type}
+        </td>
 
-          <div className="text-sm text-muted-foreground mb-1">
-            Owner: {entry.ownerLabel || entry.ownerId}
-          </div>
+        {/* Owner */}
+        <td className="px-3 py-2 text-muted-foreground truncate max-w-[100px]" title={entry.ownerLabel || entry.ownerId}>
+          {entry.ownerLabel || entry.ownerId}
+        </td>
 
-          <div className={`text-sm font-mono ${
-            expandValues ? 'whitespace-pre-wrap' : 'truncate'
-          }`}>
-            {entry.valueFormatted}
-          </div>
-
-          {/* Metadata */}
-          {showMetadata && entry.metadata && (
-            <div className="text-xs text-muted-foreground/80 mt-2 space-y-1">
-              {entry.metadata.createdAt && (
-                <div>Created: {new Date(entry.metadata.createdAt).toLocaleString()}</div>
-              )}
-              {entry.metadata.lastModified && (
-                <div>Modified: {new Date(entry.metadata.lastModified).toLocaleString()}</div>
-              )}
-              {entry.metadata.accessCount !== undefined && (
-                <div>Access count: {entry.metadata.accessCount}</div>
-              )}
-            </div>
-          )}
-
-          {/* References */}
-          {(entry.references?.length || entry.referencedBy?.length) && (
-            <div className="text-xs text-muted-foreground/80 mt-2">
-              {entry.references?.length && (
-                <div>References: {entry.references.length} items</div>
-              )}
-              {entry.referencedBy?.length && (
-                <div>Referenced by: {entry.referencedBy.length} items</div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+        {/* Value */}
+        <td className="px-3 py-2 font-mono text-foreground truncate max-w-[100px]" title={entry.valueFormatted}>
+          {entry.valueFormatted}
+        </td>
+      </tr>
     );
   };
 
   // Render a group of entries
   const renderGroup = (groupName: string, groupEntries: typeof entries) => (
-    <div key={groupName} className="mb-6">
-      <h4 className="text-foreground font-medium mb-3 pb-2 border-b border-border">
-        {groupName} ({groupEntries.length})
-      </h4>
-      <div className="space-y-2">
-        {groupEntries.map(renderEntry)}
-      </div>
-    </div>
+    <React.Fragment key={groupName}>
+      {groupBy !== 'none' && (
+        <tr className="bg-muted/20">
+          <td colSpan={5} className="px-3 py-1.5 text-xs font-semibold text-muted-foreground border-b border-border/40">
+            {groupName} ({groupEntries.length})
+          </td>
+        </tr>
+      )}
+      {groupEntries.map(renderEntryRow)}
+    </React.Fragment>
   );
 
   return (
-    <div className={`${panelBase} ${className}`} data-testid={testId}>
+    <div className={`${panelBase} ${className} border-0 shadow-none`} data-testid={testId}>
       {/* Panel Header */}
-      <div className={panelHeader}>
-        <h3 className={panelHeaderTitle}>Memory</h3>
-        <span className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded">
+      <div className={`${panelHeader} py-2 min-h-0`}>
+        <h3 className={`${panelHeaderTitle} text-sm`}>Memory</h3>
+        <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded">
           {filteredEntries.length} entries
         </span>
       </div>
 
       {/* Panel Content */}
-      <div className={panelContent}>
+      <div className={`${panelContent} p-0`}>
         {/* Controls */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex gap-2 p-2 border-b border-border/40 bg-muted/10">
           {/* Filter input */}
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Filter memory entries..."
+              placeholder="Filter..."
               value={localFilterText}
               onChange={handleFilterChange}
-              className="w-full px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground/50 focus:border-primary focus:outline-none"
+              className="w-full px-2 py-1 text-xs bg-background border border-border rounded text-foreground placeholder-muted-foreground/50 focus:border-primary focus:outline-none"
               data-testid="memory-filter-input"
             />
           </div>
 
           {/* Group by selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Group by:</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground">Group:</span>
             <select
               value={groupBy}
               onChange={(e) => onGroupByChange?.(e.target.value as typeof groupBy)}
-              className="px-3 py-2 bg-card border border-border rounded text-foreground focus:border-primary focus:outline-none"
+              className="px-2 py-1 text-xs bg-background border border-border rounded text-foreground focus:border-primary focus:outline-none"
               data-testid="memory-group-select"
             >
               <option value="none">None</option>
@@ -217,18 +185,31 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
           </div>
         </div>
 
-        {/* Entries */}
-        {Object.keys(groupedEntries).length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            No memory entries to display
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(groupedEntries).map(([groupName, groupEntries]) =>
-              renderGroup(groupName, groupEntries)
-            )}
-          </div>
-        )}
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {Object.keys(groupedEntries).length === 0 ? (
+            <div className="text-center text-muted-foreground py-4 text-xs">
+              No memory entries
+            </div>
+          ) : (
+            <table className="w-full text-xs text-left border-collapse">
+              <thead className="text-[10px] text-muted-foreground bg-muted/30 uppercase tracking-wider sticky top-0 z-10">
+                <tr>
+                  <th className="px-3 py-1.5 font-medium w-8"></th>
+                  <th className="px-3 py-1.5 font-medium">Label</th>
+                  <th className="px-3 py-1.5 font-medium">Type</th>
+                  <th className="px-3 py-1.5 font-medium">Owner</th>
+                  <th className="px-3 py-1.5 font-medium">Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {Object.entries(groupedEntries).map(([groupName, groupEntries]) =>
+                  renderGroup(groupName, groupEntries)
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

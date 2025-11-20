@@ -22,6 +22,8 @@ interface GitTreeSidebarProps {
   onSelect: (id: number) => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
   children?: React.ReactNode;
+  hideHeader?: boolean;
+  disableScroll?: boolean;
 }
 
 const formatTime = (seconds: number) => {
@@ -37,7 +39,15 @@ const formatDuration = (seconds: number) => {
   return `${secs}s`;
 };
 
-export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, selectedIds, onSelect, scrollContainerRef, children }) => {
+export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ 
+  segments, 
+  selectedIds, 
+  onSelect, 
+  scrollContainerRef, 
+  children,
+  hideHeader = false,
+  disableScroll = false
+}) => {
   // Sort by start time to create the vertical flow
   const sortedSegs = [...segments].sort((a, b) => a.startTime - b.startTime || a.depth - b.depth);
   
@@ -85,15 +95,20 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, select
   };
 
   return (
-    <div className="h-full flex flex-col bg-background w-full">
-      <div className="p-4 border-b border-border bg-muted/30">
-        <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <GitBranch className="w-4 h-4 text-primary" />
-          Segment Topology
-        </h2>
-      </div>
+    <div className={`flex flex-col bg-background w-full ${disableScroll ? '' : 'h-full'}`}>
+      {!hideHeader && (
+        <div className="p-4 border-b border-border bg-muted/30">
+          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-primary" />
+            Segment Topology
+          </h2>
+        </div>
+      )}
       
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative" ref={scrollContainerRef}>
+      <div 
+        className={`relative ${disableScroll ? '' : 'flex-1 overflow-y-auto custom-scrollbar'}`} 
+        ref={scrollContainerRef}
+      >
         {/* SVG Layer for Lines */}
         <svg className="absolute top-0 left-0 w-full pointer-events-none" style={{ height: sortedSegs.length * ROW_HEIGHT }}>
           {renderConnections()}

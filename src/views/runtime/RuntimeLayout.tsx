@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Bug, Play, Pause, Square, Edit2, Trash2 } from 'lucide-react';
+import { ChevronLeft, Bug, Play, Pause, Square, X } from 'lucide-react';
 import { WodBlock } from '../../markdown-editor/types';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
+import { EditableStatementList } from '../../markdown-editor/components/EditableStatementList';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -156,70 +157,75 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   return (
     <div className="flex h-full w-full relative overflow-hidden">
       {/* Left Panel: Execution Log (1/3) */}
-      <div className="w-1/3 border-r border-border flex flex-col bg-background">
+      <div className="w-1/3 border-r border-border flex flex-col bg-background relative overflow-y-auto custom-scrollbar" ref={scrollRef}>
         
         {activeBlock ? (
           <>
-            {/* Top: Segment Topology (Growing Log) */}
-            <div className="flex-1 overflow-hidden flex flex-col relative">
-               <div className="p-2 border-b border-border flex items-center">
-                  <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
-                    <ChevronLeft className="h-4 w-4" />
-                    Back to Index
-                  </Button>
-               </div>
-               <GitTreeSidebar 
-                 segments={runtimeSegments}
-                 selectedIds={new Set(activeSegmentId ? [activeSegmentId] : [])}
-                 onSelect={() => {}}
-                 scrollContainerRef={scrollRef}
-               >
-                  {/* "Feeding" Connector Visual */}
-                  <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
-               </GitTreeSidebar>
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 border-b border-border flex items-center justify-between">
+               <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+                 <ChevronLeft className="h-4 w-4" />
+                 Back to Index
+               </Button>
+               <Button variant="ghost" size="icon" onClick={() => setShowDebug(true)}>
+                 <Bug className="h-4 w-4" />
+               </Button>
             </div>
 
-            {/* Bottom: Active Block Context (Source) */}
-            <div className="h-1/3 border-t border-border bg-muted/10 flex flex-col">
-              <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
+            {/* Segment Topology (Growing Log) */}
+            <GitTreeSidebar 
+              segments={runtimeSegments}
+              selectedIds={new Set(activeSegmentId ? [activeSegmentId] : [])}
+              onSelect={() => {}}
+              disableScroll={true}
+              hideHeader={true}
+            >
+               {/* "Feeding" Connector Visual */}
+               <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
+            </GitTreeSidebar>
+
+            {/* Active Block Context (Source) */}
+            <div className="border-t border-border bg-muted/10 flex flex-col min-h-[200px]">
+              <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center bg-muted/20">
                 <span>Active Context</span>
                 <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">READ ONLY</span>
               </div>
-              <div className="flex-1 p-4 overflow-auto font-mono text-sm relative">
+              <div className="p-4 font-mono text-sm relative">
                  {/* Visual indicator connecting to top */}
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-background border border-border rotate-45 z-10"></div>
                  
-                 <div className="space-y-1">
-                   {(activeBlock?.content || '').split('\n').map((line, i) => (
-                     <div key={i} className="group flex items-center gap-2 hover:bg-muted/50 rounded px-2 py-1 -mx-2 transition-colors">
-                       <span className="text-muted-foreground w-6 text-right select-none text-xs">{i + 1}</span>
-                       <span className="flex-1 text-foreground/80 whitespace-pre-wrap">{line}</span>
-                       
-                       {/* Line Actions */}
-                       <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                         <Button 
-                           variant="ghost" 
-                           size="icon" 
-                           className="h-6 w-6"
-                           onClick={() => {
-                             setSearch(line.trim());
-                             setIsOpen(true);
-                           }}
-                         >
-                           <Edit2 className="h-3 w-3" />
-                         </Button>
-                         <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
-                           <Trash2 className="h-3 w-3" />
-                         </Button>
-                       </div>
-                     </div>
-                   ))}
-                   {!activeBlock?.content && (
-                     <div className="text-muted-foreground italic">// No active block content</div>
-                   )}
-                 </div>
+                 <EditableStatementList 
+                    statements={activeBlock.statements || []} 
+                    readonly={true} 
+                 />
+                 
+                 {(!activeBlock.statements || activeBlock.statements.length === 0) && (
+                    <div className="text-muted-foreground italic">// No parsed statements available</div>
+                 )}
               </div>
             </div>
+
+            {/* Debug Overlay */}
+            {showDebug && (
+              <div className="absolute inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200">
+                <div className="p-2 border-b border-border flex items-center justify-between bg-muted/30">
+                  <h3 className="font-semibold ml-2">Runtime Debugger</h3>
+                  <Button variant="ghost" size="icon" onClick={() => setShowDebug(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  <RuntimeStackPanel 
+                    blocks={mockBlocks as any} 
+                    activeBlockIndex={0}
+                    highlightedBlockKey={undefined}
+                    className="border-b border-border"
+                  />
+                  <MemoryPanel 
+                    entries={mockMemory as any}
+                  />
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <WodIndexPanel 
@@ -233,19 +239,6 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
 
       {/* Right Panel: Timer (2/3) */}
       <div className="w-2/3 flex flex-col items-center justify-center bg-background relative">
-        {/* Debug Toggle Button */}
-        <div className="absolute top-4 right-4 z-10">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDebug(!showDebug)}
-            className={showDebug ? "bg-muted" : ""}
-          >
-            <Bug className="h-4 w-4 mr-2" />
-            Debug
-          </Button>
-        </div>
-
         <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
         <TimerDisplay isRunning={isRunning} elapsedMs={elapsedMs} hasActiveBlock={!!activeBlock} />
         
@@ -271,32 +264,6 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
              <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
           </div>
         )}
-      </div>
-
-      {/* Debug Drawer (Slide out) */}
-      <div 
-        className={`absolute top-0 right-0 h-full w-80 bg-background border-l border-border shadow-xl transform transition-transform duration-300 ease-in-out z-20 ${
-          showDebug ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="h-full flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
-            <h3 className="font-semibold">Runtime Debugger</h3>
-            <Button variant="ghost" size="icon" onClick={() => setShowDebug(false)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-auto p-4 space-y-4">
-            <RuntimeStackPanel 
-              blocks={mockBlocks as any} // Cast for now as types might mismatch slightly
-              activeBlockIndex={0}
-              highlightedBlockKey={undefined}
-            />
-            <MemoryPanel 
-              entries={mockMemory as any}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );

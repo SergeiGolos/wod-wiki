@@ -39,9 +39,9 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
       <div
         key={block.key}
         className={`
-          flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-          ${isHighlighted ? 'bg-primary/20 border border-primary/50' : 'hover:bg-muted/50'}
-          ${isActive ? 'ring-2 ring-primary' : ''}
+          flex items-center gap-2 py-1 px-2 border-b border-border/40 cursor-pointer transition-colors text-sm
+          ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
+          ${isActive ? 'bg-muted/50 font-medium' : ''}
         `}
         onMouseEnter={() => onBlockHover?.(block.key, block.lineNumber)}
         onMouseLeave={() => onBlockHover?.(undefined)}
@@ -50,13 +50,13 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
       >
         {/* Indentation */}
         <div
-          className="flex-shrink-0"
-          style={{ width: `${block.depth * 16}px` }}
+          className="flex-shrink-0 border-l border-border/30 h-4 mr-1"
+          style={{ width: `${block.depth * 12}px`, borderColor: block.depth > 0 ? 'currentColor' : 'transparent' }}
         />
 
         {/* Status indicator */}
         <div
-          className={`w-3 h-3 rounded-full flex-shrink-0 ${
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
             block.status === 'complete' ? 'bg-green-500' :
             block.status === 'active' || block.status === 'running' ? 'bg-primary' :
             'bg-gray-400'
@@ -65,13 +65,13 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
 
         {/* Icon */}
         {showIcons && block.icon && (
-          <span className="text-muted-foreground flex-shrink-0">
+          <span className="text-muted-foreground flex-shrink-0 scale-75">
             {block.icon}
           </span>
         )}
 
         {/* Label */}
-        <span className={`flex-1 text-foreground ${
+        <span className={`flex-1 truncate ${
           block.status === 'complete' ? 'line-through opacity-60' : ''
         }`}>
           {block.label}
@@ -79,9 +79,9 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
 
         {/* Metrics */}
         {showMetrics && block.metrics && Object.keys(block.metrics).length > 0 && (
-          <div className="flex gap-1 text-xs text-muted-foreground">
+          <div className="flex gap-1 text-[10px] text-muted-foreground">
             {Object.entries(block.metrics).slice(0, 2).map(([key, value]) => (
-              <span key={key} className="bg-muted px-1 rounded">
+              <span key={key} className="bg-muted px-1 rounded-sm">
                 {key}: {String(value)}
               </span>
             ))}
@@ -89,7 +89,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         )}
 
         {/* Block type badge */}
-        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
+        <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground opacity-70">
           {block.blockType}
         </span>
       </div>
@@ -104,37 +104,33 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
     const children = block.children.map(childKey => renderBlockTree(childKey));
 
     return (
-      <div key={blockKey}>
+      <div key={blockKey} className="flex flex-col">
         {renderBlock(block)}
-        {children.length > 0 && (
-          <div className="ml-4 border-l border-border">
-            {children}
-          </div>
-        )}
+        {children}
       </div>
     );
   }, [blockMap, renderBlock]);
 
   return (
-    <div className={`${panelBase} ${className}`} data-testid={testId}>
+    <div className={`${panelBase} ${className} border-0 shadow-none`} data-testid={testId}>
       {/* Panel Header */}
-      <div className={panelHeader}>
-        <h3 className={panelHeaderTitle}>Runtime Stack</h3>
+      <div className={`${panelHeader} py-2 min-h-0`}>
+        <h3 className={`${panelHeaderTitle} text-sm`}>Runtime Stack</h3>
         {activeBlockIndex !== undefined && (
-          <span className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded">
+          <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded">
             {blocks.length} blocks
           </span>
         )}
       </div>
 
       {/* Panel Content */}
-      <div className={panelContent}>
+      <div className={`${panelContent} p-0`}>
         {blocks.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            No runtime blocks to display
+          <div className="text-center text-muted-foreground py-4 text-xs">
+            No runtime blocks
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="flex flex-col">
             {rootBlocks.map(block => renderBlockTree(block.key))}
           </div>
         )}
