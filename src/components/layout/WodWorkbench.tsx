@@ -194,13 +194,25 @@ export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' |
 
 const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   initialContent = "# My Workout\n\n```wod\nTimer: 10:00\n  - 10 Pushups\n  - 10 Situps\n```\n",
+  theme: propTheme,
   ...editorProps
 }) => {
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [activeBlock, setActiveBlock] = useState<WodBlock | null>(null);
   const [, setBlocks] = useState<WodBlock[]>([]);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Sync prop theme to context theme (for Storybook controls)
+  useEffect(() => {
+    if (!propTheme) return;
+    
+    const targetTheme = (propTheme === 'vs-dark' || propTheme === 'wod-dark') ? 'dark' : 'light';
+    // Only update if we're not in system mode and the theme is different
+    if (theme !== 'system' && theme !== targetTheme) {
+      setTheme(targetTheme);
+    }
+  }, [propTheme]);
 
   // View Mode State
   const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
@@ -352,8 +364,8 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
                 onBlocksChange={setBlocks}
                 onMount={handleEditorMount}
                 height="100%"
-                theme={monacoTheme}
                 {...editorProps}
+                theme={monacoTheme}
               />
             </div>
           </div>
@@ -404,8 +416,15 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 };
 
 export const WodWorkbench: React.FC<WodWorkbenchProps> = (props) => {
+  // Determine default theme based on props
+  const defaultTheme = useMemo(() => {
+    if (props.theme === 'vs-dark' || props.theme === 'wod-dark') return 'dark';
+    if (props.theme === 'vs' || props.theme === 'wod-light') return 'light';
+    return 'dark';
+  }, [props.theme]);
+
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="wod-wiki-theme">
+    <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <WodWorkbenchContent {...props} />
     </ThemeProvider>
   );
