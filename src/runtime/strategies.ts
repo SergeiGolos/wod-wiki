@@ -33,8 +33,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds;
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
-
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
@@ -53,7 +51,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
         if (repsFragment && typeof repsFragment.value === 'number') {
           reps = repsFragment.value;
-          console.log(`  📊 EffortStrategy: Using explicit reps from fragment: ${reps}`);
         }
         
         // If no explicit reps, check for inherited reps from parent blocks
@@ -71,7 +68,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             const inheritedReps = runtime.memory.get(latestRepsRef as any);
             if (inheritedReps !== undefined) {
               reps = inheritedReps as number;
-              console.log(`  📊 EffortStrategy: Inherited reps from parent: ${reps} (from ${latestRepsRef.ownerId})`);
             }
           }
         }
@@ -101,9 +97,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // 7. Store reps in block for inspection/debugging
         if (reps !== undefined) {
           (block as any).reps = reps;
-          console.log(`  ✅ EffortStrategy: Created EffortBlock with ${reps} reps`);
-        } else {
-          console.log(`  ⚠️  EffortStrategy: Created EffortBlock with no reps specified`);
         }
 
         return block;
@@ -117,12 +110,10 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 export class TimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('TimerStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('TimerStrategy: Statement missing fragments array');
             return false;
         }
 
@@ -131,8 +122,6 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
-
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
@@ -207,12 +196,10 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
 export class RoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('RoundsStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('RoundsStrategy: Statement missing fragments array');
             return false;
         }
 
@@ -225,8 +212,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
-
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
         const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
@@ -245,7 +230,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
           // Value is already an array of numbers (rep scheme)
           repScheme = roundsFragment.value as number[];
           totalRounds = repScheme.length;
-          console.log(`  📊 RoundsStrategy: Rep scheme detected: [${repScheme.join(', ')}]`);
         } else if (typeof roundsFragment.value === 'number') {
           // Value is a single number (fixed rounds)
           totalRounds = roundsFragment.value;

@@ -160,12 +160,10 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith(
+    // Logging disabled
+    expect(consoleSpy).not.toHaveBeenCalledWith(
       '🎯 NEXT-BLOCK | Action Start',
-      expect.objectContaining({
-        block: 'test-block',
-        depth: 0
-      })
+      expect.anything()
     );
     consoleSpy.mockRestore();
   });
@@ -177,12 +175,10 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(consoleSpy).toHaveBeenCalledWith(
+    // Logging disabled
+    expect(consoleSpy).not.toHaveBeenCalledWith(
       '✅ NEXT-BLOCK | Action Complete',
-      expect.objectContaining({
-        actionsExecuted: 0,
-        newDepth: 2
-      })
+      expect.anything()
     );
     consoleSpy.mockRestore();
   });

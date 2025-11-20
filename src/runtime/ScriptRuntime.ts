@@ -26,7 +26,11 @@ export class ScriptRuntime implements IScriptRuntime {
         this.metrics = new MetricCollector();
         this.jit = compiler;
         this._setupMemoryAwareStack();
-        console.log(`🧠 ScriptRuntime created with memory system and metrics collector`);
+        
+        // Log memory changes
+        this.memory.subscribe((ref, value, oldValue) => {
+            console.log(`💾 Memory Change | ${ref.ownerId}.${ref.type} | ${oldValue} -> ${value}`);
+        });
     }
 
     /**
@@ -44,15 +48,14 @@ export class ScriptRuntime implements IScriptRuntime {
             const poppedBlock = originalPop();
 
             if (poppedBlock) {
-                console.log(`🧠 ScriptRuntime - Popped block: ${poppedBlock.key.toString()}`);
-                console.log(`  ⚠️  Consumer must call dispose() on this block when finished`);
+                console.log(`📚 Stack Pop | ${poppedBlock.key.toString()}`);
             }
 
             return poppedBlock; // Consumer responsibility to dispose
         };
 
         this.stack.push = (block) => {
-            console.log(`🧠 ScriptRuntime - Pushing block: ${block.key.toString()}`);
+            console.log(`📚 Stack Push | ${block.key.toString()}`);
             
             // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)
             if (typeof (block as any).setRuntime === 'function') {
@@ -61,16 +64,10 @@ export class ScriptRuntime implements IScriptRuntime {
             
             // Push block (no lifecycle method calls - constructor-based initialization)
             originalPush(block);
-            
-            console.log(`  ✅ Block pushed with constructor-based initialization`);
         };
     }
 
     handle(event: IEvent): void {
-        console.log(`🎯 ScriptRuntime.handle() - Processing event: ${event.name}`);
-        console.log(`  📚 Stack depth: ${this.stack.blocks.length}`);
-        console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
-
         const allActions: IRuntimeAction[] = [];
         const updatedBlocks = new Set<string>();
 
@@ -80,20 +77,14 @@ export class ScriptRuntime implements IScriptRuntime {
             .map(ref => this.memory.get(ref as any))
             .filter(Boolean) as IEventHandler[];
 
-        console.log(`  🔍 Found ${allHandlers.length} handlers across ALL blocks in memory`);
-
         // Process ALL handlers in memory
         for (let i = 0; i < allHandlers.length; i++) {
             const handler = allHandlers[i];
             
-            console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id})`);
-
             const actions = handler.handler(event, this);
-            console.log(`      ✅ Returned ${actions.length} action(s)`);
 
             if (actions.length > 0) {
                 allActions.push(...actions);
-                console.log(`      📦 Added ${actions.length} action(s) to queue`);
             }
             
             // Check for errors - if runtime has errors, abort further processing

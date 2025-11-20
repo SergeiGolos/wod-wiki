@@ -6,9 +6,25 @@ const MAX_STACK_DEPTH = 10;
 
 export class RuntimeStack {
     private readonly _blocks: IRuntimeBlock[] = [];
+    private _subscribers: Set<() => void> = new Set();
 
     public get blocks(): readonly IRuntimeBlock[] {
         return [...this._blocks].reverse();
+    }
+
+    /**
+     * Subscribe to stack changes (push/pop).
+     * Returns a function to unsubscribe.
+     */
+    public subscribe(callback: () => void): () => void {
+        this._subscribers.add(callback);
+        return () => {
+            this._subscribers.delete(callback);
+        };
+    }
+
+    private _notifySubscribers(): void {
+        this._subscribers.forEach(callback => callback());
     }
 
     /**
@@ -65,6 +81,7 @@ export class RuntimeStack {
 
         // Log stack modification for next block validation
         NextBlockLogger.logStackPush(blockKey, depthBefore, depthAfter);
+        this._notifySubscribers();
     }
 
     public pop(): IRuntimeBlock | undefined {
@@ -76,12 +93,14 @@ export class RuntimeStack {
         // Simple pop - no cleanup calls (consumer-managed dispose)
         const popped = this._blocks.pop();
         
+        this._notifySubscribers();
         return popped; // Consumer must call dispose()
     }
 
     public setBlocks(blocks: IRuntimeBlock[]): void {
         this._blocks.length = 0;
         this._blocks.push(...blocks);
+        this._notifySubscribers();
     }
 
     public getParentBlocks(): IRuntimeBlock[] {
@@ -99,22 +118,10 @@ export class RuntimeStack {
      * @returns New array with top-first ordering
      */
     public graph(): IRuntimeBlock[] {
-        console.log(`📊 RuntimeStack.graph() - Creating stack visualization`);
-        console.log(`  📏 Current stack depth: ${this._blocks.length}`);
-        
         // Return new array (not reference to internal storage)
         // Top block first (index 0), bottom block last
         const graph = [...this._blocks].reverse();
         
-        if (graph.length > 0) {
-            console.log(`  🎯 Top block: ${graph[0].key.toString()}`);
-            console.log(`  🏗️  Bottom block: ${graph[graph.length - 1].key.toString()}`);
-            console.log(`  📋 Stack order (top→bottom): [${graph.map(b => b.key.toString()).join(' → ')}]`);
-        } else {
-            console.log(`  📭 Stack is empty`);
-        }
-        
-        console.log(`  ✅ Graph generation completed`);
         return graph;
     }
 }

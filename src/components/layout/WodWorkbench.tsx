@@ -25,9 +25,10 @@ import {
   EffortStrategy 
 } from '../../runtime/strategies';
 import { RuntimeDebugView } from '../runtime/RuntimeDebugView';
+import { NextEvent } from '../../runtime/NextEvent';
 
 // Runtime View Component
-const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null, onComplete: () => void }) => {
+const RuntimeView = ({ activeBlock, onComplete, onActiveSourceIdsChange }: { activeBlock: WodBlock | null, onComplete: () => void, onActiveSourceIdsChange?: (ids: number[]) => void }) => {
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -83,6 +84,40 @@ const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null
       setRuntime(null);
     }
   }, [activeBlock]);
+
+  // Subscribe to runtime changes
+  useEffect(() => {
+    if (!runtime) return;
+
+    const updateActiveSourceIds = () => {
+        const currentBlock = runtime.stack.current;
+        if (currentBlock && currentBlock.sourceIds) {
+            onActiveSourceIdsChange?.(currentBlock.sourceIds);
+        } else {
+            onActiveSourceIdsChange?.([]);
+        }
+    };
+
+    // Subscribe to stack changes
+    const unsubscribeStack = runtime.stack.subscribe(() => {
+        updateActiveSourceIds();
+        // Force re-render if needed
+        setElapsedMs(prev => prev); 
+    });
+
+    // Subscribe to memory changes (if needed for clock updates beyond tick)
+    const unsubscribeMemory = runtime.memory.subscribe(() => {
+        // potentially update UI based on memory changes
+    });
+
+    // Initial update
+    updateActiveSourceIds();
+
+    return () => {
+        unsubscribeStack();
+        unsubscribeMemory();
+    };
+  }, [runtime, onActiveSourceIdsChange]);
 
   // Timer tick effect
   useEffect(() => {
@@ -146,6 +181,12 @@ const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null
     setPausedTime(0);
   };
 
+  const handleNext = () => {
+      if (runtime) {
+          runtime.handle(new NextEvent());
+      }
+  };
+
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -178,7 +219,7 @@ const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null
           {formatTime(elapsedMs)}
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex gap-6 items-center">
           {!isRunning ? (
             <Button
               onClick={handleStart}
@@ -207,6 +248,16 @@ const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null
             className="h-16 w-16 rounded-full bg-gray-600 hover:bg-gray-700 flex items-center justify-center"
           >
             <RotateCcw className="h-6 w-6" />
+          </Button>
+
+          <div className="h-12 w-px bg-border mx-2"></div>
+
+          <Button
+            onClick={handleNext}
+            className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
+            title="Next Block"
+          >
+            <ArrowRight className="h-8 w-8" />
           </Button>
         </div>
 
@@ -415,6 +466,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const [forceShowIndex, setForceShowIndex] = useState(false);
   // View Mode State
   const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
+  const [activeSourceIds, setActiveSourceIds] = useState<number[]>([]);
 
   // Reset forceShowIndex when active block changes
   useEffect(() => {
@@ -526,6 +578,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
                 onContentChange={handleContentChange}
                 enableSmartIncrement={true}
                 height="100%"
+                activeSourceIds={activeSourceIds}
                 {...editorProps}
                 theme={monacoTheme}
               />
@@ -586,7 +639,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' ? 'w-2/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <RuntimeView activeBlock={activeBlock} onComplete={handleComplete} />
+            <RuntimeView activeBlock={activeBlock} onComplete={handleComplete} onActiveSourceIdsChange={setActiveSourceIds} />
           </div>
 
           {/* Panel 4: Analytics (Visible in Analyze Mode) */}

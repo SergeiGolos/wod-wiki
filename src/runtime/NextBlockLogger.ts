@@ -57,10 +57,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`🎯 NEXT-BLOCK | Action Start`, {
-            block: blockKey,
-            depth: stackDepth,
-        });
     }
 
     /**
@@ -76,10 +72,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`✅ NEXT-BLOCK | Action Complete`, {
-            newDepth: stackDepth,
-            actionsExecuted: actionCount,
-        });
     }
 
     /**
@@ -96,12 +88,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`📍 NEXT-BLOCK | Child Advancement`, {
-            index: childIndex,
-            total: childTotal,
-            complete: isComplete,
-            progress: `${childIndex}/${childTotal}`,
-        });
     }
 
     /**
@@ -117,10 +103,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`🔨 NEXT-BLOCK | Compilation Start`, {
-            childIndex,
-            statementId: Array.isArray(statementId) ? statementId.join(',') : statementId,
-        });
     }
 
     /**
@@ -136,10 +118,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`✅ NEXT-BLOCK | Compilation Success`, {
-            childIndex,
-            newBlock: compiledBlockKey,
-        });
     }
 
     /**
@@ -174,10 +152,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`⬆️  NEXT-BLOCK | Push Start`, {
-            block: blockKey,
-            depthBefore: stackDepthBefore,
-        });
     }
 
     /**
@@ -194,11 +168,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`✅ NEXT-BLOCK | Push Complete`, {
-            block: blockKey,
-            depthAfter: stackDepthAfter,
-            initActions: initActionCount,
-        });
     }
 
     /**
@@ -214,10 +183,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`📚 NEXT-BLOCK | Stack Modified`, {
-            block: blockKey,
-            depthChange: `${depthBefore} → ${depthAfter}`,
-        });
     }
 
     /**
@@ -233,10 +198,6 @@ export class NextBlockLogger {
         };
 
         this.addToHistory(data);
-        console.log(`🔄 NEXT-BLOCK | Behavior Orchestration`, {
-            block: blockKey,
-            behaviorCount,
-        });
     }
 
     /**

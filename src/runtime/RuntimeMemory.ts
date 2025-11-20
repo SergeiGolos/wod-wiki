@@ -9,6 +9,7 @@ export type MemoryLocation = {
 export class RuntimeMemory implements IRuntimeMemory {
     // Linear storage for memory locations
     private _references: MemoryLocation[] = [];
+    private _globalSubscribers: Set<(ref: IMemoryReference, value: any, oldValue: any) => void> = new Set();
 
     // Allocates a new memory location and returns a reference to it.
     allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
@@ -37,6 +38,17 @@ export class RuntimeMemory implements IRuntimeMemory {
         if (reference.hasSubscribers()) {
             reference.notifySubscribers(value, oldValue);
         }
+
+        // Notify global subscribers
+        this._globalSubscribers.forEach(callback => callback(reference, value, oldValue));
+    }
+
+    // Subscribe to all memory changes
+    subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void): () => void {
+        this._globalSubscribers.add(callback);
+        return () => {
+            this._globalSubscribers.delete(callback);
+        };
     }
 
     // Searches for references matching any non-null fields in the criteria object.

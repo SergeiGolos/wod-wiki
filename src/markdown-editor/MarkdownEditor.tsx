@@ -63,6 +63,9 @@ export interface MarkdownEditorProps {
 
   /** Enable smart increment feature (Ctrl+Up/Down on time values) */
   enableSmartIncrement?: boolean;
+
+  /** Active source IDs (line numbers) to highlight from runtime */
+  activeSourceIds?: number[];
 }
 
 import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
@@ -87,7 +90,8 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   onBlocksChange,
   onActiveBlockChange,
   onCursorPositionChange,
-  enableSmartIncrement = true
+  enableSmartIncrement = true,
+  activeSourceIds = []
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -146,7 +150,8 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   // Use WOD decorations (inlay hints & semantic tokens)
   useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {
     enabled: true,
-    languageId: 'markdown'
+    languageId: 'markdown',
+    activeSourceIds
   });
 
   // Notify parent of block changes

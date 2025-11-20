@@ -15,6 +15,9 @@ export interface UseWodDecorationsOptions {
   
   /** Language ID for Monaco (default: 'markdown') */
   languageId?: string;
+
+  /** Active source IDs (line numbers) to highlight from runtime */
+  activeSourceIds?: number[];
 }
 
 /**
@@ -30,18 +33,43 @@ export function useWodDecorations(
 ) {
   const {
     enabled = true,
-    languageId = 'markdown'
+    languageId = 'markdown',
+    activeSourceIds = []
   } = options;
 
   const disposablesRef = useRef<IDisposable[]>([]);
   const blocksRef = useRef<WodBlock[]>([]);
   const activeBlockIdRef = useRef<string | null>(null);
+  const activeSourceIdsRef = useRef<number[]>([]);
   const cursorLineRef = useRef<number | null>(null);
   const inlayHintsEmitterRef = useRef<Emitter<void> | null>(null);
+  const runtimeDecorationsCollectionRef = useRef<monacoEditor.IEditorDecorationsCollection | null>(null);
 
   // Update refs
   blocksRef.current = blocks;
   activeBlockIdRef.current = activeBlock?.id || null;
+  activeSourceIdsRef.current = activeSourceIds;
+
+  // Handle runtime active line highlighting
+  useEffect(() => {
+    if (!editor || !monaco || !enabled) return;
+
+    if (!runtimeDecorationsCollectionRef.current) {
+      runtimeDecorationsCollectionRef.current = editor.createDecorationsCollection();
+    }
+
+    const decorations: monacoEditor.IModelDeltaDecoration[] = activeSourceIds.map(line => ({
+      range: new monaco.Range(line, 1, line, 1),
+      options: {
+        isWholeLine: true,
+        className: 'runtime-active-line-highlight',
+        glyphMarginClassName: 'runtime-active-line-glyph'
+      }
+    }));
+
+    runtimeDecorationsCollectionRef.current.set(decorations);
+
+  }, [editor, monaco, enabled, activeSourceIds]);
 
   // Track cursor position - this should trigger immediately
   useEffect(() => {
