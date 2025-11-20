@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ICodeFragment, FragmentType } from '../../CodeFragment';
+import type { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import type { ParseError } from './types';
 
 // These tests will FAIL initially because FragmentVisualizer doesn't exist yet (TDD requirement)

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from './TimerBehavior';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeBlock } from '../RuntimeBlock';
-import { WodScript } from '../../WodScript';
+import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../JitCompiler';
 
 describe('TimerBehavior', () => {

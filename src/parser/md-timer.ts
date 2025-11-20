@@ -2,8 +2,8 @@ import { Lexer } from "chevrotain";
 import { MdTimerInterpreter } from "./timer.visitor";
 import { MdTimerParse } from "./timer.parser";
 import { allTokens } from "./timer.tokens";
-import { ICodeStatement } from "../CodeStatement";
-import { IScript, WodScript } from "../WodScript";
+import { ICodeStatement } from "../core/models/CodeStatement";
+import { IScript, WodScript } from "./WodScript";
 
 export class MdTimerRuntime {
   lexer: Lexer;

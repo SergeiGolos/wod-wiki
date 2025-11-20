@@ -1,6 +1,6 @@
 import { JitCompiler } from './JitCompiler';
 import { RuntimeStack } from './RuntimeStack';
-import { WodScript } from '../WodScript';
+import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';

@@ -30,6 +30,9 @@ export interface ContextPanelProps {
 
   /** Callback when track button is clicked */
   onTrack?: () => void;
+
+  /** Whether the panel is read-only */
+  readonly?: boolean;
 }
 
 /**
@@ -42,7 +45,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   onAddStatement,
   onEditStatement,
   onDeleteStatement,
-  onTrack
+  onTrack,
+  readonly = false
 }) => {
   const hasStatements = block.statements && block.statements.length > 0;
   const hasErrors = block.errors && block.errors.length > 0;
@@ -55,12 +59,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     } else {
       setIsTimerDialogOpen(true);
     }
-  };
-
-  // Log button handler (placeholder for now)
-  const handleLog = () => {
-    console.log('Log workout clicked');
-    // TODO: Implement log functionality
   };
 
   return (
@@ -113,6 +111,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               onAddStatement={onAddStatement}
               onEditStatement={onEditStatement}
               onDeleteStatement={onDeleteStatement}
+              readonly={readonly}
             />
           </div>
         )}

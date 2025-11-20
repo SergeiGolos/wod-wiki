@@ -1,15 +1,12 @@
-
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
-import { RuntimeMetric } from "./RuntimeMetric";
+import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
-import { BlockKey } from "../BlockKey";
-import { ICodeStatement } from "@/CodeStatement";
-import { CodeStatement } from "../CodeStatement";
+import { BlockKey } from "../core/models/BlockKey";
+import { ICodeStatement, CodeStatement } from "../core/models/CodeStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
-import { FragmentType } from "../CodeFragment";
-import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { TimerBehavior, TIMER_MEMORY_TYPES } from "./behaviors/TimerBehavior";
+import { FragmentType } from "../core/models/CodeFragment";
+import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from "./behaviors/TimerBehavior";
 import { BlockContext } from "./BlockContext";
 import { CompletionBehavior } from "./behaviors/CompletionBehavior";
 import { TimerBlock } from "./blocks/TimerBlock";
@@ -17,9 +14,6 @@ import { RoundsBlock } from "./blocks/RoundsBlock";
 import { MemoryTypeEnum } from "./MemoryTypeEnum";
 
 /**
- * The default strategy that creates a simple EffortBlock for repetition-based workouts.
- * This is the fallback strategy that always matches.
- */
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
@@ -144,7 +138,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const context = new BlockContext(runtime, blockId, exerciseId);
         
         // 4. Allocate timer memory
-        const timeSpansRef = context.allocate(
+        const timeSpansRef = context.allocate<TimeSpan[]>(
             TIMER_MEMORY_TYPES.TIME_SPANS,
             [{ start: new Date(), stop: undefined }],
             'public'

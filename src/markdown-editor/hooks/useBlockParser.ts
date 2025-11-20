@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { WodBlock, ParseError } from '../types';
 import { MdTimerRuntime } from '../../parser/md-timer';
-import { ICodeStatement } from '../../CodeStatement';
+import { ICodeStatement } from '../../core/models/CodeStatement';
 
 export interface UseBlockParserOptions {
   /** Debounce delay (default: 500ms) */

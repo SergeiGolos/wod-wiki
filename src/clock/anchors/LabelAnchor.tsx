@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollectionSpan } from '../../CollectionSpan';
+import { CollectionSpan } from '../../core/models/CollectionSpan';
 
 interface LabelAnchorProps {
   span?: CollectionSpan;

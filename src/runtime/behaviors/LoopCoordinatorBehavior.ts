@@ -26,7 +26,7 @@
  * - next6: index=5, pos=1, round=2 → complete (rounds=2, totalRounds=3)
  */
 
-import { CodeStatement } from '../../CodeStatement';
+import { CodeStatement } from '../../core/models/CodeStatement';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';

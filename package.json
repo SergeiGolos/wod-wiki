@@ -10,45 +10,6 @@
     "type": "git",
     "url": "git+https://github.com/SergeiGolos/wod-wiki.git"
   },
-  "license": "ISC",
-  "author": "",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./core": {
-      "types": "./dist/core-entry.d.ts",
-      "import": "./dist/core-entry.js",
-      "require": "./dist/core-entry.cjs"
-    },
-    "./editor": {
-      "types": "./dist/editor-entry.d.ts",
-      "import": "./dist/editor-entry.js",
-      "require": "./dist/editor-entry.cjs"
-    },
-    "./clock": {
-      "types": "./dist/clock-entry.d.ts",
-      "import": "./dist/clock-entry.js",
-      "require": "./dist/clock-entry.cjs"
-    },
-    "./types": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/types/index.js",
-      "require": "./dist/types/index.cjs"
-    },
-    "./styles.css": "./dist/style.css"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "setup": "node setup-testing.js",
     "test": "vitest run -c vitest.unit.config.js",
@@ -84,6 +45,7 @@
     "lucide-react": "^0.545.0",
     "pnpm": "^10.20.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.4.1",
     "sharp": "^0.34.4",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0"

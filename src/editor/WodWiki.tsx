@@ -8,8 +8,8 @@ import Editor, { MonacoDiffEditor } from '@monaco-editor/react';
 import { Monaco } from '@monaco-editor/react';
 
 import { DefaultSuggestionService } from './SuggestionService';
-import { IScript } from '../WodScript';
-import { CodeMetadata } from '../CodeMetadata';
+import { IScript } from '../parser/WodScript';
+import { CodeMetadata } from '../core/models/CodeMetadata';
 import { ExerciseDataProvider } from '../types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 

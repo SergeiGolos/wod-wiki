@@ -5,7 +5,7 @@ import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from '../../../src/runtime/behaviors/TimerBehavior';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
-import { WodScript } from '../../../src/WodScript';
+import { WodScript } from '../../parser/WodScript';
 import { ClockAnchor } from '../../anchors/ClockAnchor';
 
 export interface EnhancedTimerHarnessResult {

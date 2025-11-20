@@ -5,8 +5,8 @@
  * representing workout scripts, code statements, and basic data structures.
  */
 
-import { CodeMetadata } from '../CodeMetadata';
-import { ICodeFragment } from '../CodeFragment';
+import { CodeMetadata } from '../core/models/CodeMetadata';
+import { ICodeFragment } from '../core/models/CodeFragment';
 
 /**
  * Represents a parsed workout script
@@ -73,24 +73,24 @@ export enum FragmentType {
 /**
  * Re-export WodScript class
  */
-export type { WodScript } from '../WodScript';
+export type { WodScript } from '../parser/WodScript';
 
 /**
  * Re-export BlockKey class
  */
-export type { BlockKey } from '../BlockKey';
+export type { BlockKey } from '../core/models/BlockKey';
 
 /**
  * Re-export Duration class
  */
-export type { Duration } from '../Duration';
+export type { Duration } from '../core/models/Duration';
 
 /**
  * Re-export CodeMetadata
  */
-export type { CodeMetadata } from '../CodeMetadata';
+export type { CodeMetadata } from '../core/models/CodeMetadata';
 
 /**
  * Re-export ICodeFragment
  */
-export type { ICodeFragment } from '../CodeFragment';
+export type { ICodeFragment } from '../core/models/CodeFragment';

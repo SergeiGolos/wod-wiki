@@ -1,5 +1,5 @@
-import { BlockKey } from '../../BlockKey';
-import { CodeStatement } from '../../CodeStatement';
+import { BlockKey } from '../../core/models/BlockKey';
+import { CodeStatement } from '../../core/models/CodeStatement';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';

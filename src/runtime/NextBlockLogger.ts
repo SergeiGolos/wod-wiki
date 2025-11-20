@@ -293,4 +293,11 @@ export class NextBlockLogger {
             this.logHistory = this.logHistory.slice(-this.maxHistorySize);
         }
     }
+    
+    /**
+     * Generic log method for compatibility
+     */
+    log(message: string, data?: any) {
+        console.log(`[NextBlock] ${message}`, data || '');
+    }
 }

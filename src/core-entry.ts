@@ -11,13 +11,13 @@
  */
 
 // Core classes
-export { WodScript } from './WodScript';
-export { BlockKey } from './BlockKey';
-export { Duration, SpanDuration } from './Duration';
-export { CodeStatement } from './CodeStatement';
-export type { CodeMetadata } from './CodeMetadata';
-export { CollectionSpan } from './CollectionSpan';
-export type { TimeSpan, Metric, MetricValue } from './CollectionSpan';
+export { WodScript } from './parser/WodScript';
+export { BlockKey } from './core/models/BlockKey';
+export { Duration, SpanDuration } from './core/models/Duration';
+export { CodeStatement } from './core/models/CodeStatement';
+export type { CodeMetadata } from './core/models/CodeMetadata';
+export { CollectionSpan } from './core/models/CollectionSpan';
+export type { TimeSpan, Metric, MetricValue } from './core/models/CollectionSpan';
 
 // Parser
 export * from './parser/timer.parser';
@@ -41,7 +41,7 @@ export type { IRuntimeBlockStrategy } from './runtime/IRuntimeBlockStrategy';
 export type { IMemoryReference, TypedMemoryReference } from './runtime/IMemoryReference';
 export type { IEvent } from './runtime/IEvent';
 export type { IEventHandler } from './runtime/IEventHandler';
-export type { IBehavior } from './runtime/IBehavior';
+// export type { IBehavior } from './runtime/IBehavior';
 export type { IBlockContext } from './runtime/IBlockContext';
 
 // Runtime actions
@@ -81,8 +81,8 @@ export * from './fragments/LapFragment';
 export * from './fragments/TextFragment';
 
 // Fragment types
-export { FragmentType } from './CodeFragment';
-export type { ICodeFragment } from './CodeFragment';
+export { FragmentType } from './core/models/CodeFragment';
+export type { ICodeFragment } from './core/models/CodeFragment';
 
 // Utility exports
 export { MetricCollector } from './runtime/MetricCollector';

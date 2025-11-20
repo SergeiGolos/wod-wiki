@@ -1,4 +1,4 @@
-import { BlockKey } from '../../BlockKey';
+import { BlockKey } from '../../core/models/BlockKey';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';

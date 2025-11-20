@@ -1,5 +1,5 @@
 import React from 'react';
-import { ICodeFragment } from '../../CodeFragment';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 import { getFragmentColorClasses } from './fragmentColorMap';
 import type { ParseError } from './types';
 

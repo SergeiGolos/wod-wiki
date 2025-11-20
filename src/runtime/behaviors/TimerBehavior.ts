@@ -396,4 +396,21 @@ export class TimerBehavior implements IRuntimeBehavior {
 
     return total;
   }
+  /**
+   * Reset the timer. Clears all time spans and stops the timer.
+   */
+  reset(): void {
+    if (this.intervalId !== undefined) {
+      clearInterval(this.intervalId);
+      this.intervalId = undefined;
+    }
+    this._isPaused = false;
+    this.elapsedMs = 0;
+    this.startTime = 0;
+
+    if (this.timeSpansRef && this.isRunningRef) {
+      this.timeSpansRef.set([]);
+      this.isRunningRef.set(false);
+    }
+  }
 }

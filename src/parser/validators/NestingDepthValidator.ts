@@ -5,7 +5,7 @@
  * and maintain performance.
  */
 
-import { CodeStatement } from '../../CodeStatement';
+import { CodeStatement } from '../../core/models/CodeStatement';
 import { IValidationRule, IValidationResult } from '../IValidationRule';
 
 const MAX_NESTING_DEPTH = 10;

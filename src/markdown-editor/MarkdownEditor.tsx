@@ -11,6 +11,7 @@ import { WodBlockManager } from './components/WodBlockManager';
 import { useContextOverlay } from './hooks/useContextOverlay';
 import { useWodDecorations } from './hooks/useWodDecorations';
 import { useParseAllBlocks } from './hooks/useParseAllBlocks';
+import { useSmartIncrement } from './hooks/useSmartIncrement';
 // Import Monaco loader configuration to use local Monaco instead of CDN
 import './utils/monacoLoader';
 
@@ -56,10 +57,17 @@ export interface MarkdownEditorProps {
 
   /** Callback when active block changes */
   onActiveBlockChange?: (block: any | null) => void;
+
+  /** Callback when cursor position changes */
+  onCursorPositionChange?: (lineNumber: number, column: number) => void;
+
+  /** Line number to highlight (1-indexed) */
+  highlightedLine?: number | null;
 }
 
 import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
 import { CommandPalette } from '../components/command-palette/CommandPalette';
+
 
 /**
  * Main markdown editor component wrapping Monaco
@@ -78,15 +86,22 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   editorOptions = {},
   onMount,
   onBlocksChange,
-  onActiveBlockChange
+  onActiveBlockChange,
+  onCursorPositionChange,
+  highlightedLine
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
+
   
   const { setIsOpen } = useCommandPalette();
+  
+  
+  // Use smart increment hook
+  useSmartIncrement({ editor: editorInstance, enabled: !readonly });
 
   // Log theme prop changes
   useEffect(() => {
@@ -128,11 +143,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   // Use context overlay for active block
   useContextOverlay(editorInstance, activeBlock, showContextOverlay);
   
-  // Use WOD decorations (inlay hints & semantic tokens)
-  useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {
-    enabled: true,
-    languageId: 'markdown'
-  });
+
 
   // Notify parent of block changes
   useEffect(() => {
@@ -204,10 +215,24 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     // Focus editor
     editor.focus();
 
+    // Track cursor position
+    editor.onDidChangeCursorPosition((e) => {
+      if (onCursorPositionChange) {
+        onCursorPositionChange(e.position.lineNumber, e.position.column);
+      }
+    });
+
     if (onMount) {
       onMount(editor, monaco);
     }
   };
+
+  // Use WOD decorations (inlay hints & semantic tokens & highlighting)
+  useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {
+    enabled: true,
+    languageId: 'markdown',
+    highlightedLine
+  });
 
   const handleEditorChange = (value: string | undefined) => {
     const newContent = value || '';

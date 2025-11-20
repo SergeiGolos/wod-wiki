@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollectionSpan, Metric } from '../../CollectionSpan';
+import { CollectionSpan, Metric } from '../../core/models/CollectionSpan';
 
 interface MetricAnchorProps {
   span?: CollectionSpan;

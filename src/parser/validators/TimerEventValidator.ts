@@ -5,7 +5,7 @@
  * to ensure proper timer behavior.
  */
 
-import { CodeStatement } from '../../CodeStatement';
+import { CodeStatement } from '../../core/models/CodeStatement';
 import { IValidationRule, IValidationResult } from '../IValidationRule';
 
 export class TimerEventValidator implements IValidationRule {

@@ -5,7 +5,7 @@
  * during script execution.
  */
 
-import { CodeStatement } from '../../CodeStatement';
+import { CodeStatement } from '../../core/models/CodeStatement';
 import { IValidationRule, IValidationResult } from '../IValidationRule';
 
 export class CircularReferenceValidator implements IValidationRule {

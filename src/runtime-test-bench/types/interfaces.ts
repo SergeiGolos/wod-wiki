@@ -3,7 +3,7 @@
 // All interfaces follow strict TypeScript patterns for React component library
 
 import type { ScriptRuntime as RealScriptRuntime } from '../../runtime/ScriptRuntime';
-import type { ICodeStatement } from '../../CodeStatement';
+import type { ICodeStatement } from '../../core/models/CodeStatement';
 
 // ============================================================================
 // 1. UI STATE LAYER

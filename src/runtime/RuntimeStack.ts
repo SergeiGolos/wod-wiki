@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { BlockKey } from '../BlockKey';
+import { BlockKey } from '../core/models/BlockKey';
 import { NextBlockLogger } from './NextBlockLogger';
 
 const MAX_STACK_DEPTH = 10;
@@ -11,20 +11,8 @@ export class RuntimeStack {
         return [...this._blocks].reverse();
     }
 
-    /**
-     * Returns the stack from top (current) to bottom. Alias of `blocks`.
-     * Useful when you want to render the active frame first.
-     */
     public get blocksTopFirst(): readonly IRuntimeBlock[] {
-        return this.blocks;
-    }
-
-    /**
-     * Returns the stack from bottom (root) to top (current).
-     * Useful when you want to index into the root as position 0.
-     */
-    public get blocksBottomFirst(): readonly IRuntimeBlock[] {
-        return [...this._blocks];
+        return [...this._blocks].reverse();
     }
 
     public get keys(): BlockKey[] {

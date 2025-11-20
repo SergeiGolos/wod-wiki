@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WodWiki } from '../editor/WodWiki';
-import { IScript } from '../WodScript';
+import { IScript } from '../parser/WodScript';
 import { useTheme } from './theme/ThemeProvider';
 
 interface WorkoutJournalProps {

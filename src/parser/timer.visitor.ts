@@ -1,4 +1,4 @@
-import { ICodeFragment, FragmentType } from "../CodeFragment";
+import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
 import { ICodeStatement } from "../CodeStatement";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";

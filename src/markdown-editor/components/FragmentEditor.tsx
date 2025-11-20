@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { ICodeStatement } from '../../CodeStatement';
+import { ICodeStatement } from '../../core/models/CodeStatement';
 
 export interface FragmentEditorProps {
   /** Current statements in the block */

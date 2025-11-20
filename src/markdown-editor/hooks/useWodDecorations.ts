@@ -15,6 +15,9 @@ export interface UseWodDecorationsOptions {
   
   /** Language ID for Monaco (default: 'markdown') */
   languageId?: string;
+
+  /** Line number to highlight (1-indexed) */
+  highlightedLine?: number | null;
 }
 
 /**
@@ -141,5 +144,33 @@ export function useWodDecorations(
       disposablesRef.current = [];
     };
   }, [editor, monaco, enabled, languageId]);
+
+  // Handle runtime line highlighting
+  useEffect(() => {
+    if (!editor || !monaco || !enabled) return;
+    
+    const highlightedLine = options.highlightedLine;
+    
+    if (highlightedLine) {
+      // Add decoration for highlighted line
+      const decorations = editor.deltaDecorations([], [
+        {
+          range: new monaco.Range(highlightedLine, 1, highlightedLine, 1),
+          options: {
+            isWholeLine: true,
+            className: 'runtime-active-line-highlight',
+            glyphMarginClassName: 'runtime-active-line-glyph'
+          }
+        }
+      ]);
+      
+      // Reveal the line
+      editor.revealLineInCenter(highlightedLine);
+      
+      return () => {
+        editor.deltaDecorations(decorations, []);
+      };
+    }
+  }, [editor, monaco, enabled, options.highlightedLine]);
 
 }

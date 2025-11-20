@@ -1,5 +1,5 @@
-import { ICodeFragment, FragmentType } from "../CodeFragment";
-import { CodeMetadata } from "../CodeMetadata";
+import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
+import { CodeMetadata } from "../core/models/CodeMetadata";
 import { GroupType } from "../parser/timer.visitor";
 
 export class LapFragment implements ICodeFragment {

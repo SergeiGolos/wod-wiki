@@ -2,7 +2,7 @@
  * Type definitions for markdown editor components
  */
 
-import { ICodeStatement } from '../../CodeStatement';
+import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MdTimerRuntime } from '../../parser/md-timer';
 

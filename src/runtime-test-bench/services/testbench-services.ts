@@ -1,32 +1,5 @@
 /**
  * Module-Level Services for RuntimeTestBench
- * 
- * This file exports singleton instances of parser and compiler services
- * that are shared across all RuntimeTestBench component instances.
- * 
- * Benefits:
- * - Single initialization per module load (not per component instance)
- * - Reduced memory footprint
- * - Consistent behavior across all testbench instances
- * - No need for useMemo hooks in components
- * 
- * @module runtime-test-bench/services
- */
-
-import { MdTimerRuntime } from '../../parser/md-timer';
-import { JitCompiler } from '../../runtime/JitCompiler';
-import {
-  TimerStrategy,
-  RoundsStrategy,
-  EffortStrategy,
-  IntervalStrategy,
-  TimeBoundRoundsStrategy,
-  GroupStrategy
-} from '../../runtime/strategies';
-
-/**
- * Global parser instance for workout script parsing.
- * 
  * This singleton is created once when the module loads and shared
  * across all RuntimeTestBench instances.
  * 

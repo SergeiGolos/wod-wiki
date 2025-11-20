@@ -6,10 +6,12 @@ import { CommandPalette } from '../../components/command-palette/CommandPalette'
 import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Play, Pause, Square, RotateCcw, Edit, BarChart2 } from 'lucide-react';
+import { Play, Pause, Square, RotateCcw, Edit, BarChart2, Sidebar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { WodIndexPanel } from './WodIndexPanel';
+import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 
 // Runtime View Component
 const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null, onComplete: () => void }) => {
@@ -188,7 +190,7 @@ const AnalyticsView = ({ activeBlock, onContinue }: { activeBlock: WodBlock | nu
   );
 };
 
-export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange'> {
+export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
 }
 
@@ -199,9 +201,27 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const [activeBlock, setActiveBlock] = useState<WodBlock | null>(null);
-  const [, setBlocks] = useState<WodBlock[]>([]);
+  const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  
+  const [content, setContent] = useState(initialContent);
+  const [cursorLine, setCursorLine] = useState(1);
+  const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
+  const [showIndex, setShowIndex] = useState(true);
+
+  // Calculate document structure for index panel
+  const documentItems = useMemo(() => {
+    return parseDocumentStructure(content, blocks);
+  }, [content, blocks]);
+
+  // Determine active block ID based on cursor line
+  const activeBlockId = useMemo(() => {
+    const item = documentItems.find(item => 
+      cursorLine >= item.startLine && cursorLine <= item.endLine
+    );
+    return item?.id;
+  }, [documentItems, cursorLine]);
 
   // Sync prop theme to context theme (for Storybook controls)
   useEffect(() => {
@@ -242,41 +262,20 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
   };
-
-  // Scroll synchronization logic
-  useEffect(() => {
-    if (!editorInstance || !editorContainerRef.current) return;
-
-    const editor = editorInstance;
-    let lastScrollTop = editor.getScrollTop();
-    let lastCursorLine = editor.getPosition()?.lineNumber || 1;
-    let lastCursorTopOffset = editor.getTopForLineNumber(lastCursorLine) - lastScrollTop;
-
-    const resizeObserver = new ResizeObserver(() => {
-      const currentCursor = editor.getPosition();
-      if (currentCursor) {
-        lastCursorLine = currentCursor.lineNumber;
-      }
-      editor.layout();
-      const newScrollTop = editor.getTopForLineNumber(lastCursorLine) - lastCursorTopOffset;
-      editor.setScrollTop(newScrollTop);
-    });
-
-    resizeObserver.observe(editorContainerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [editorInstance]);
-
-  // Update cursor offset reference when selection changes
-  useEffect(() => {
-    if (!editorInstance) return;
-    const disposable = editorInstance.onDidChangeCursorPosition(() => {
-      // Logic handled in ResizeObserver closure
-    });
-    return () => disposable.dispose();
-  }, [editorInstance]);
+  
+  // Handle navigation from index panel
+  const handleBlockClick = (item: DocumentItem) => {
+    if (editorInstance) {
+      const line = item.startLine + 1; // Monaco is 1-indexed, item is 0-indexed
+      editorInstance.revealLineInCenter(line);
+      editorInstance.setPosition({ lineNumber: line, column: 1 });
+      editorInstance.focus();
+      
+      // Highlight the line briefly
+      setHighlightedLine(line);
+      setTimeout(() => setHighlightedLine(null), 2000);
+    }
+  };
 
   // Handlers
   const handleTrack = () => {
@@ -316,6 +315,21 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
           <div className="flex gap-2 items-center">
             <ThemeToggle />
             <div className="h-6 w-px bg-border mx-2"></div>
+            
+            {viewMode === 'edit' && (
+              <Button
+                variant={showIndex ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setShowIndex(!showIndex)}
+                className="gap-2"
+                title="Toggle Outline"
+              >
+                <Sidebar className="h-4 w-4" />
+              </Button>
+            )}
+            
+            <div className="h-6 w-px bg-border mx-2"></div>
+            
             <Button
               variant={viewMode === 'edit' ? "default" : "ghost"}
               size="sm"
@@ -348,11 +362,23 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden flex">
+          
+          {/* Panel 0: Index Panel (Left Sidebar) */}
+          {viewMode === 'edit' && showIndex && (
+            <div className="w-64 border-r border-border h-full overflow-hidden shrink-0 transition-all duration-300">
+              <WodIndexPanel 
+                items={documentItems}
+                activeBlockId={activeBlockId}
+                onBlockClick={handleBlockClick}
+                onBlockHover={() => {}}
+              />
+            </div>
+          )}
 
           {/* Panel 1: Editor (Visible in Edit Mode) */}
           <div
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit'
-                ? (activeBlock ? 'w-2/3 opacity-100' : 'w-full opacity-100')
+                ? (activeBlock ? 'flex-1 opacity-100' : 'flex-1 opacity-100')
                 : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
@@ -362,6 +388,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
                 showContextOverlay={false}
                 onActiveBlockChange={setActiveBlock}
                 onBlocksChange={setBlocks}
+                onContentChange={setContent}
+                onCursorPositionChange={(line) => setCursorLine(line)}
+                highlightedLine={highlightedLine}
                 onMount={handleEditorMount}
                 height="100%"
                 {...editorProps}

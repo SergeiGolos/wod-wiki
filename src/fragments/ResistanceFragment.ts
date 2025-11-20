@@ -1,5 +1,5 @@
-import { ICodeFragment, FragmentType } from "../CodeFragment";
-import { CodeMetadata } from "../CodeMetadata";
+import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
+import { CodeMetadata } from "../core/models/CodeMetadata";
 
 export class ResistanceFragment implements ICodeFragment {
   readonly value: { amount: number, units: string };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CollectionSpan, TimeSpan } from '../../CollectionSpan';
+import { CollectionSpan, TimeSpan } from '../../core/models/CollectionSpan';
 
 export interface TimeValue {
     value: string;

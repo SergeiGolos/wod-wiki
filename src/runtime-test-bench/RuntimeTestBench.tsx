@@ -13,7 +13,7 @@ import { RuntimeTestBenchProps, ExecutionSnapshot, ParseResults } from './types/
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { RuntimeAdapter } from './adapters/RuntimeAdapter';
 import { globalParser, globalCompiler } from './services/testbench-services';
-import { WodScript } from '../WodScript';
+import { WodScript } from '../parser/WodScript';
 
 /**
  * Main Runtime Test Bench component

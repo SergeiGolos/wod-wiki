@@ -5,7 +5,7 @@
  * during the parsing phase to prevent runtime advancement errors.
  */
 
-import { CodeStatement } from '../CodeStatement';
+import { CodeStatement } from '../core/models/CodeStatement';
 
 /**
  * Result of a validation check

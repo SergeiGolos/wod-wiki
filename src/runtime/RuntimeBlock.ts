@@ -1,4 +1,4 @@
-import { BlockKey } from '../BlockKey';
+import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IRuntimeBlock } from './IRuntimeBlock';

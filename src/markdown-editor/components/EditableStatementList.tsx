@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { ICodeStatement } from '../../CodeStatement';
-import { FragmentVisualizer } from '../../components/fragments/FragmentVisualizer';
+import { ICodeStatement } from '../../core/models/CodeStatement';
+import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { SmartStatementInput } from './SmartStatementInput';
 
 export interface EditableStatementListProps {
@@ -20,6 +20,9 @@ export interface EditableStatementListProps {
   
   /** Callback when deleting a statement */
   onDeleteStatement?: (index: number) => void;
+
+  /** Whether the list is read-only */
+  readonly?: boolean;
 }
 
 interface StatementItemProps {
@@ -30,6 +33,7 @@ interface StatementItemProps {
   onDelete: (index: number) => void;
   onAddToGroup?: (parentId: number, text: string) => void;
   onAddAtLevel?: (text: string) => void;
+  readonly?: boolean;
 }
 
 /**
@@ -42,7 +46,8 @@ const StatementItem: React.FC<StatementItemProps> = ({
   onEdit,
   onDelete,
   onAddToGroup,
-  onAddAtLevel
+  onAddAtLevel,
+  readonly = false
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -125,36 +130,40 @@ const StatementItem: React.FC<StatementItemProps> = ({
               <FragmentVisualizer fragments={statement.fragments || []} />
             </div>
             <div className="flex gap-1 shrink-0">
-              <button
-                onClick={handleStartEdit}
-                className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
-                title="Edit this line"
-              >
-                ✏️
-              </button>
-              {hasChildren && (
-                <button
-                  onClick={() => setShowAddInGroup(!showAddInGroup)}
-                  className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
-                  title="Add to this group"
-                >
-                  +
-                </button>
+              {!readonly && (
+                <>
+                  <button
+                    onClick={handleStartEdit}
+                    className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
+                    title="Edit this line"
+                  >
+                    ✏️
+                  </button>
+                  {hasChildren && (
+                    <button
+                      onClick={() => setShowAddInGroup(!showAddInGroup)}
+                      className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
+                      title="Add to this group"
+                    >
+                      +
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowAddAtLevel(!showAddAtLevel)}
+                    className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    title="Add line at this level"
+                  >
+                    ⊕
+                  </button>
+                  <button
+                    onClick={() => onDelete(index)}
+                    className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                    title="Delete this line"
+                  >
+                    ×
+                  </button>
+                </>
               )}
-              <button
-                onClick={() => setShowAddAtLevel(!showAddAtLevel)}
-                className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                title="Add line at this level"
-              >
-                ⊕
-              </button>
-              <button
-                onClick={() => onDelete(index)}
-                className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
-                title="Delete this line"
-              >
-                ×
-              </button>
             </div>
           </>
         )}
@@ -234,7 +243,8 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
   statements,
   onAddStatement,
   onEditStatement,
-  onDeleteStatement
+  onDeleteStatement,
+  readonly = false
 }) => {
   const [showAddNew, setShowAddNew] = useState(false);
   const [newStatementText, setNewStatementText] = useState('');
@@ -270,11 +280,12 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           onDelete={onDeleteStatement!}
           onAddToGroup={(parentId, text) => onAddStatement?.(text, parentId)}
           onAddAtLevel={(text) => onAddStatement?.(text)}
+          readonly={readonly}
         />
       ))}
 
       {/* Add new line button */}
-      {!showAddNew && (
+      {!showAddNew && !readonly && (
         <button
           onClick={() => setShowAddNew(true)}
           className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
@@ -313,7 +324,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       )}
 
       {/* Add group button */}
-      {!showAddGroup && (
+      {!showAddGroup && !readonly && (
         <button
           onClick={() => setShowAddGroup(true)}
           className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
@@ -352,32 +363,34 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       )}
 
       {/* Quick add buttons */}
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-        <QuickAddButton
-          label="Timer"
-          icon="⏱"
-          template="20:00 AMRAP"
-          onClick={(text) => onAddStatement?.(text)}
-        />
-        <QuickAddButton
-          label="Rounds"
-          icon="🔄"
-          template="(3)"
-          onClick={(text) => onAddStatement?.(text)}
-        />
-        <QuickAddButton
-          label="Effort"
-          icon="💪"
-          template="+ 10 Exercise"
-          onClick={(text) => onAddStatement?.(text)}
-        />
-        <QuickAddButton
-          label="Rest"
-          icon="⏸"
-          template="Rest 2:00"
-          onClick={(text) => onAddStatement?.(text)}
-        />
-      </div>
+      {!readonly && (
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+          <QuickAddButton
+            label="Timer"
+            icon="⏱"
+            template="20:00 AMRAP"
+            onClick={(text) => onAddStatement?.(text)}
+          />
+          <QuickAddButton
+            label="Rounds"
+            icon="🔄"
+            template="(3)"
+            onClick={(text) => onAddStatement?.(text)}
+          />
+          <QuickAddButton
+            label="Effort"
+            icon="💪"
+            template="+ 10 Exercise"
+            onClick={(text) => onAddStatement?.(text)}
+          />
+          <QuickAddButton
+            label="Rest"
+            icon="⏸"
+            template="Rest 2:00"
+            onClick={(text) => onAddStatement?.(text)}
+          />
+        </div>
+      )}
     </div>
   );
 };
