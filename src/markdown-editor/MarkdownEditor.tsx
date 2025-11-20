@@ -11,6 +11,7 @@ import { WodBlockManager } from './components/WodBlockManager';
 import { useContextOverlay } from './hooks/useContextOverlay';
 import { useWodDecorations } from './hooks/useWodDecorations';
 import { useParseAllBlocks } from './hooks/useParseAllBlocks';
+import { useSmartIncrement } from './hooks/useSmartIncrement';
 // Import Monaco loader configuration to use local Monaco instead of CDN
 import './utils/monacoLoader';
 
@@ -56,6 +57,12 @@ export interface MarkdownEditorProps {
 
   /** Callback when active block changes */
   onActiveBlockChange?: (block: any | null) => void;
+
+  /** Callback when cursor position changes */
+  onCursorPositionChange?: (lineNumber: number, column: number) => void;
+
+  /** Enable smart increment feature (Ctrl+Up/Down on time values) */
+  enableSmartIncrement?: boolean;
 }
 
 import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
@@ -78,7 +85,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   editorOptions = {},
   onMount,
   onBlocksChange,
-  onActiveBlockChange
+  onActiveBlockChange,
+  onCursorPositionChange,
+  enableSmartIncrement = true
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -121,6 +130,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
   // Use the WOD blocks hook
   const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
+
+  // Enable smart increment feature (after activeBlock is declared)
+  useSmartIncrement({
+    editor: editorInstance,
+    enabled: enableSmartIncrement && activeBlock !== null // Only enable inside WOD blocks
+  });
   
   // Parse ALL blocks for inlay hints (not just active block)
   useParseAllBlocks(blocks, updateBlock);
@@ -147,6 +162,17 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       onActiveBlockChange(activeBlock);
     }
   }, [activeBlock, onActiveBlockChange]);
+
+  // Track cursor position changes
+  useEffect(() => {
+    if (!editorInstance || !onCursorPositionChange) return;
+
+    const disposable = editorInstance.onDidChangeCursorPosition((e) => {
+      onCursorPositionChange(e.position.lineNumber, e.position.column);
+    });
+
+    return () => disposable.dispose();
+  }, [editorInstance, onCursorPositionChange]);
 
   const handleEditorWillMount = (monaco: Monaco) => {
     // Define custom themes to match application look and feel
@@ -198,6 +224,11 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
     // Bind Ctrl+. to open our Command Palette
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
+      setIsOpen(true);
+    });
+
+    // Bind Ctrl+Space to open Command Palette
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Space, () => {
       setIsOpen(true);
     });
     

@@ -12,6 +12,9 @@ export interface EditableStatementListProps {
   /** Current statements in the block */
   statements: ICodeStatement[];
   
+  /** Whether the list is read-only */
+  readOnly?: boolean;
+  
   /** Callback when adding a new statement */
   onAddStatement?: (statementText: string, parentId?: number) => void;
   
@@ -26,6 +29,7 @@ interface StatementItemProps {
   statement: ICodeStatement;
   index: number;
   indentLevel: number;
+  readOnly?: boolean;
   onEdit: (index: number, text: string) => void;
   onDelete: (index: number) => void;
   onAddToGroup?: (parentId: number, text: string) => void;
@@ -39,6 +43,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
   statement,
   index,
   indentLevel,
+  readOnly,
   onEdit,
   onDelete,
   onAddToGroup,
@@ -124,38 +129,40 @@ const StatementItem: React.FC<StatementItemProps> = ({
             <div className="flex-1 min-w-0">
               <FragmentVisualizer fragments={statement.fragments || []} />
             </div>
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={handleStartEdit}
-                className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
-                title="Edit this line"
-              >
-                ✏️
-              </button>
-              {hasChildren && (
+            {!readOnly && (
+              <div className="flex gap-1 shrink-0">
                 <button
-                  onClick={() => setShowAddInGroup(!showAddInGroup)}
-                  className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
-                  title="Add to this group"
+                  onClick={handleStartEdit}
+                  className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
+                  title="Edit this line"
                 >
-                  +
+                  ✏️
                 </button>
-              )}
-              <button
-                onClick={() => setShowAddAtLevel(!showAddAtLevel)}
-                className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                title="Add line at this level"
-              >
-                ⊕
-              </button>
-              <button
-                onClick={() => onDelete(index)}
-                className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
-                title="Delete this line"
-              >
-                ×
-              </button>
-            </div>
+                {hasChildren && (
+                  <button
+                    onClick={() => setShowAddInGroup(!showAddInGroup)}
+                    className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded hover:bg-green-100 dark:hover:bg-green-900/50"
+                    title="Add to this group"
+                  >
+                    +
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowAddAtLevel(!showAddAtLevel)}
+                  className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                  title="Add line at this level"
+                >
+                  ⊕
+                </button>
+                <button
+                  onClick={() => onDelete(index)}
+                  className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                  title="Delete this line"
+                >
+                  ×
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -232,6 +239,7 @@ const StatementItem: React.FC<StatementItemProps> = ({
  */
 export const EditableStatementList: React.FC<EditableStatementListProps> = ({
   statements,
+  readOnly = false,
   onAddStatement,
   onEditStatement,
   onDeleteStatement
@@ -266,6 +274,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           statement={statement}
           index={index}
           indentLevel={statement.parent ? 1 : 0}
+          readOnly={readOnly}
           onEdit={onEditStatement!}
           onDelete={onDeleteStatement!}
           onAddToGroup={(parentId, text) => onAddStatement?.(text, parentId)}
@@ -274,7 +283,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       ))}
 
       {/* Add new line button */}
-      {!showAddNew && (
+      {!readOnly && !showAddNew && (
         <button
           onClick={() => setShowAddNew(true)}
           className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
@@ -313,7 +322,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       )}
 
       {/* Add group button */}
-      {!showAddGroup && (
+      {!readOnly && !showAddGroup && (
         <button
           onClick={() => setShowAddGroup(true)}
           className="w-full px-3 py-2 text-sm bg-card border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
@@ -352,6 +361,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
       )}
 
       {/* Quick add buttons */}
+      {!readOnly && (
       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
         <QuickAddButton
           label="Timer"
@@ -378,6 +388,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           onClick={(text) => onAddStatement?.(text)}
         />
       </div>
+      )}
     </div>
   );
 };

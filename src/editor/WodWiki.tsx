@@ -89,6 +89,13 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       editor.onDidContentSizeChange(() => {
         handleContentSizeChange();
       });
+
+      editor.onDidLayoutChange(() => {
+        const position = editor.getPosition();
+        if (position) {
+          editor.revealLine(position.lineNumber);
+        }
+      });
     };
   
     const handleContentSizeChange = () => {

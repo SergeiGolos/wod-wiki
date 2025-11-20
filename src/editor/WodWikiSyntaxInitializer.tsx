@@ -69,12 +69,14 @@ export class WodWikiSyntaxInitializer {
       readOnly: this.readonly,
       // Add these options to enable semantic tokens
       "semanticHighlighting.enabled": true,
+      minimap: { enabled: false },
+      quickSuggestions: false,
       scrollbar: {
-        vertical: 'hidden',
-        horizontal: 'hidden',
-        verticalScrollbarSize: 0,
-        horizontalScrollbarSize: 0,
-        alwaysConsumeMouseWheel: false
+        vertical: 'visible',
+        horizontal: 'visible',
+        useShadows: false,
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10
       }
   }
 

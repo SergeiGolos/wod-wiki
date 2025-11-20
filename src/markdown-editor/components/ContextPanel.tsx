@@ -7,7 +7,7 @@ import { WodBlock } from '../types';
 import { EditableStatementList } from './EditableStatementList';
 import { WorkoutTimerDialog } from './WorkoutTimerDialog';
 import { Button } from '@/components/ui/button';
-import { Play, BookOpen } from 'lucide-react';
+import { Play, BookOpen, ArrowLeft } from 'lucide-react';
 
 export interface ContextPanelProps {
   /** Block data to display */
@@ -18,6 +18,12 @@ export interface ContextPanelProps {
   
   /** Whether to show fragment editor */
   showEditor?: boolean;
+
+  /** Whether to hide the header */
+  hideHeader?: boolean;
+
+  /** Callback to close the panel */
+  onClose?: () => void;
   
   /** Callback when adding a statement */
   onAddStatement?: (text: string) => void;
@@ -39,6 +45,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   block,
   compact = false,
   showEditor = true,
+  hideHeader = false,
+  onClose,
   onAddStatement,
   onEditStatement,
   onDeleteStatement,
@@ -64,16 +72,33 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   };
 
   return (
-    <div className="context-panel bg-background border-l border-border h-full overflow-y-auto">
+    <div className={`context-panel bg-background border-l border-border overflow-y-auto ${compact ? 'max-h-full' : 'h-full'}`}>
       {/* Header */}
-      <div className="p-4 border-b border-border bg-muted/50">
-        <h3 className="text-sm font-semibold text-foreground">
-          WOD Block Context
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Lines {block.startLine + 1} - {block.endLine + 1}
-        </p>
-      </div>
+      {!hideHeader && (
+        <div className="p-4 border-b border-border bg-muted/50">
+          <h3 className="text-sm font-semibold text-foreground">
+            WOD Block Context
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Lines {block.startLine + 1} - {block.endLine + 1}
+          </p>
+        </div>
+      )}
+
+      {/* Close Button for "hideHeader" mode */}
+      {hideHeader && onClose && (
+        <div className="flex justify-start p-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onClose} 
+            className="h-8 w-8 hover:bg-muted"
+            title="Back to Index (Esc)"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Action Buttons removed as requested */}
 
@@ -103,13 +128,14 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         )}
 
         {/* Unified Editable Statement List */}
-        {hasStatements && !hasErrors && showEditor && (
+        {hasStatements && !hasErrors && (
           <div>
             <h4 className="text-sm font-semibold text-gray-700 mb-3">
               Workout
             </h4>
             <EditableStatementList
               statements={block.statements || []}
+              readOnly={!showEditor}
               onAddStatement={onAddStatement}
               onEditStatement={onEditStatement}
               onDeleteStatement={onDeleteStatement}
