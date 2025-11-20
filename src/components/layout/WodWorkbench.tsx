@@ -6,189 +6,15 @@ import { CommandPalette } from '../../components/command-palette/CommandPalette'
 import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Play, Pause, Square, RotateCcw, Edit, BarChart2, Sidebar } from 'lucide-react';
+import { Play, Edit, BarChart2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
-
-// Runtime View Component
-const RuntimeView = ({ activeBlock, onComplete }: { activeBlock: WodBlock | null, onComplete: () => void }) => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [pausedTime, setPausedTime] = useState(0);
-
-  // Timer tick effect
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-
-    if (isRunning && startTime !== null) {
-      intervalId = setInterval(() => {
-        const now = Date.now();
-        setElapsedMs(now - startTime + pausedTime);
-      }, 10);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isRunning, startTime, pausedTime]);
-
-  const handleStart = () => {
-    setStartTime(Date.now());
-    setIsRunning(true);
-  };
-
-  const handlePause = () => {
-    if (startTime !== null) {
-      setPausedTime(Date.now() - startTime + pausedTime);
-    }
-    setIsRunning(false);
-    setStartTime(null);
-  };
-
-  const handleStop = () => {
-    setIsRunning(false);
-    setElapsedMs(0);
-    setStartTime(null);
-    setPausedTime(0);
-    onComplete();
-  };
-
-  const handleReset = () => {
-    setIsRunning(false);
-    setElapsedMs(0);
-    setStartTime(null);
-    setPausedTime(0);
-  };
-
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = Math.floor((ms % 1000) / 10);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="h-full p-8 bg-background text-foreground flex flex-col items-center justify-center">
-      <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
-
-      <div className="text-8xl font-mono font-bold mb-12 tabular-nums tracking-wider text-primary">
-        {formatTime(elapsedMs)}
-      </div>
-
-      <div className="flex gap-6">
-        {!isRunning ? (
-          <Button
-            onClick={handleStart}
-            className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 flex items-center justify-center"
-          >
-            <Play className="h-8 w-8 fill-current" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handlePause}
-            className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 flex items-center justify-center"
-          >
-            <Pause className="h-8 w-8 fill-current" />
-          </Button>
-        )}
-
-        <Button
-          onClick={handleStop}
-          className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center"
-        >
-          <Square className="h-6 w-6 fill-current" />
-        </Button>
-
-        <Button
-          onClick={handleReset}
-          className="h-16 w-16 rounded-full bg-gray-600 hover:bg-gray-700 flex items-center justify-center"
-        >
-          <RotateCcw className="h-6 w-6" />
-        </Button>
-      </div>
-
-      {activeBlock && (
-        <div className="mt-12 p-4 bg-card rounded-lg max-w-md w-full border border-border">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-2">Active Block</h3>
-          <pre className="text-xs text-foreground overflow-hidden text-ellipsis">
-            {activeBlock.id}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Analytics View Component
-const AnalyticsView = ({ activeBlock, onContinue }: { activeBlock: WodBlock | null, onContinue: () => void }) => {
-  // Fake data for the table
-  const metrics = [
-    { id: 1, metric: 'Total Time', value: '12:45', unit: 'min' },
-    { id: 2, metric: 'Avg Heart Rate', value: '145', unit: 'bpm' },
-    { id: 3, metric: 'Max Heart Rate', value: '178', unit: 'bpm' },
-    { id: 4, metric: 'Calories', value: '320', unit: 'kcal' },
-    { id: 5, metric: 'Rounds', value: '5', unit: 'rounds' },
-    { id: 6, metric: 'Split 1', value: '2:15', unit: 'min' },
-    { id: 7, metric: 'Split 2', value: '2:20', unit: 'min' },
-    { id: 8, metric: 'Split 3', value: '2:35', unit: 'min' },
-  ];
-
-  return (
-    <div className="h-full p-8 bg-background overflow-auto flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Workout Analysis</h2>
-        <Button onClick={onContinue} className="bg-blue-600 hover:bg-blue-700 text-white">
-          Continue
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-800">
-          <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-2">Performance Score</h3>
-          <div className="text-4xl font-bold text-blue-900 dark:text-blue-100">92/100</div>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-100 dark:border-green-800">
-          <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">Intensity Zone</h3>
-          <div className="text-4xl font-bold text-green-900 dark:text-green-100">High</div>
-        </div>
-      </div>
-
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-        <table className="min-w-full divide-y divide-border">
-          <thead className="bg-muted/50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Metric</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Value</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Unit</th>
-            </tr>
-          </thead>
-          <tbody className="bg-card divide-y divide-border">
-            {metrics.map((item) => (
-              <tr key={item.id} className="hover:bg-muted/50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{item.metric}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.value}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.unit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {activeBlock && (
-        <div className="mt-8 text-xs text-muted-foreground">
-          Source Block: {activeBlock.id}
-        </div>
-      )}
-    </div>
-  );
-};
+import { MetricsProvider } from '../../services/MetricsContext';
+import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
+import { AnalyticsLayout } from '../../views/analytics/AnalyticsLayout';
 
 export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
@@ -208,7 +34,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const [content, setContent] = useState(initialContent);
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
-  const [showIndex, setShowIndex] = useState(true);
+  
+  // Selected block for Right Panel (distinct from activeBlock which tracks cursor)
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
   // Calculate document structure for index panel
   const documentItems = useMemo(() => {
@@ -222,6 +50,25 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
     );
     return item?.id;
   }, [documentItems, cursorLine]);
+
+  // Sync selected block with active block when cursor moves into a block
+  useEffect(() => {
+    if (activeBlockId) {
+      setSelectedBlockId(activeBlockId);
+    }
+  }, [activeBlockId]);
+
+  // Handle Escape key to clear selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedBlockId(null);
+        // Optional: Clear active block in editor too if needed, but usually we just want to clear the right panel focus
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Sync prop theme to context theme (for Storybook controls)
   useEffect(() => {
@@ -274,6 +121,11 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
       // Highlight the line briefly
       setHighlightedLine(line);
       setTimeout(() => setHighlightedLine(null), 2000);
+      
+      // Set selected block if it's a WOD block
+      if (item.type === 'wod') {
+        setSelectedBlockId(item.id);
+      }
     }
   };
 
@@ -289,6 +141,15 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const handleBackToEdit = () => {
     setViewMode('edit');
   };
+
+  const handleClearSelection = () => {
+    setSelectedBlockId(null);
+  };
+
+  // Find the selected block object
+  const selectedBlock = useMemo(() => {
+    return blocks.find(b => b.id === selectedBlockId) || null;
+  }, [blocks, selectedBlockId]);
 
   return (
     <CommandProvider>
@@ -316,20 +177,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             <ThemeToggle />
             <div className="h-6 w-px bg-border mx-2"></div>
             
-            {viewMode === 'edit' && (
-              <Button
-                variant={showIndex ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setShowIndex(!showIndex)}
-                className="gap-2"
-                title="Toggle Outline"
-              >
-                <Sidebar className="h-4 w-4" />
-              </Button>
-            )}
-            
-            <div className="h-6 w-px bg-border mx-2"></div>
-            
             <Button
               variant={viewMode === 'edit' ? "default" : "ghost"}
               size="sm"
@@ -337,7 +184,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               className={`gap-2 ${viewMode === 'edit' ? '' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Edit className="h-4 w-4" />
-              Editor
+              Edit
             </Button>
             <Button
               variant={viewMode === 'run' ? "default" : "ghost"}
@@ -346,7 +193,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               className={`gap-2 ${viewMode === 'run' ? '' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Play className="h-4 w-4" />
-              Runtime
+              Track
             </Button>
             <Button
               variant={viewMode === 'analyze' ? "default" : "ghost"}
@@ -355,7 +202,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               className={`gap-2 ${viewMode === 'analyze' ? '' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <BarChart2 className="h-4 w-4" />
-              Analytics
+              Analyze
             </Button>
           </div>
         </div>
@@ -363,22 +210,10 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden flex">
           
-          {/* Panel 0: Index Panel (Left Sidebar) */}
-          {viewMode === 'edit' && showIndex && (
-            <div className="w-64 border-r border-border h-full overflow-hidden shrink-0 transition-all duration-300">
-              <WodIndexPanel 
-                items={documentItems}
-                activeBlockId={activeBlockId}
-                onBlockClick={handleBlockClick}
-                onBlockHover={() => {}}
-              />
-            </div>
-          )}
-
-          {/* Panel 1: Editor (Visible in Edit Mode) */}
+          {/* Panel 1: Editor (Left 2/3 in Edit Mode) */}
           <div
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit'
-                ? (activeBlock ? 'flex-1 opacity-100' : 'flex-1 opacity-100')
+                ? 'w-2/3 opacity-100'
                 : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
@@ -399,42 +234,57 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             </div>
           </div>
 
-          {/* Panel 2: Staging (Visible in All Modes, but position/width changes) */}
-          {/* In Edit Mode: Right side (1/3) */}
-          {/* In Run/Analyze Mode: Left side (1/3) */}
+          {/* Panel 2: Right Panel (Index or Staging) (Right 1/3 in Edit Mode) */}
           <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${(viewMode === 'edit' && !activeBlock) ? 'w-0 opacity-0 overflow-hidden border-none' : 'w-1/3 opacity-100'
+            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit' ? 'w-1/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            {activeBlock ? (
-              <ContextPanel
-                block={activeBlock}
-                onAddStatement={addStatement}
-                onEditStatement={editStatement}
-                onDeleteStatement={deleteStatement}
-                onTrack={handleTrack}
-              />
-            ) : (
-              <div className="p-4 text-muted-foreground flex items-center justify-center h-full bg-muted/20">
-                Select a WOD block to view details
+            {selectedBlock ? (
+              <div className="h-full flex flex-col">
+                <div className="p-2 border-b border-border flex items-center">
+                  <Button variant="ghost" size="sm" onClick={handleClearSelection} className="gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Index
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <ContextPanel
+                    block={selectedBlock}
+                    onAddStatement={addStatement}
+                    onEditStatement={editStatement}
+                    onDeleteStatement={deleteStatement}
+                    onTrack={handleTrack}
+                  />
+                </div>
               </div>
+            ) : (
+              <WodIndexPanel 
+                items={documentItems}
+                activeBlockId={activeBlockId}
+                onBlockClick={handleBlockClick}
+                onBlockHover={() => {}}
+              />
             )}
           </div>
 
           {/* Panel 3: Runtime (Visible in Run Mode) */}
           <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' ? 'w-2/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
+            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <RuntimeView activeBlock={activeBlock} onComplete={handleComplete} />
+            <RuntimeLayout activeBlock={selectedBlock || activeBlock} onComplete={handleComplete} />
           </div>
 
           {/* Panel 4: Analytics (Visible in Analyze Mode) */}
           <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'analyze' ? 'w-2/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
+            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'analyze' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <AnalyticsView activeBlock={activeBlock} onContinue={handleBackToEdit} />
+            <AnalyticsLayout 
+              activeBlock={selectedBlock || activeBlock} 
+              documentItems={documentItems}
+              onBlockClick={handleBlockClick}
+            />
           </div>
 
         </div>
@@ -454,7 +304,9 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = (props) => {
 
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
-      <WodWorkbenchContent {...props} />
+      <MetricsProvider>
+        <WodWorkbenchContent {...props} />
+      </MetricsProvider>
     </ThemeProvider>
   );
 };

@@ -20,6 +20,8 @@ interface GitTreeSidebarProps {
   segments: Segment[];
   selectedIds: Set<number>;
   onSelect: (id: number) => void;
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
+  children?: React.ReactNode;
 }
 
 const formatTime = (seconds: number) => {
@@ -35,7 +37,7 @@ const formatDuration = (seconds: number) => {
   return `${secs}s`;
 };
 
-export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, selectedIds, onSelect }) => {
+export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, selectedIds, onSelect, scrollContainerRef, children }) => {
   // Sort by start time to create the vertical flow
   const sortedSegs = [...segments].sort((a, b) => a.startTime - b.startTime || a.depth - b.depth);
   
@@ -74,7 +76,7 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, select
           key={`conn-${seg.id}`}
           d={path}
           fill="none"
-          stroke={selectedIds.has(seg.id) ? "#818cf8" : "#475569"}
+          stroke={selectedIds.has(seg.id) ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
           strokeWidth="2"
           className="transition-colors duration-300"
         />
@@ -83,15 +85,15 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, select
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900 border-r border-slate-800 w-80 flex-shrink-0">
-      <div className="p-4 border-b border-slate-800 bg-slate-800/30">
-        <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-          <GitBranch className="w-4 h-4 text-indigo-400" />
+    <div className="h-full flex flex-col bg-background w-full">
+      <div className="p-4 border-b border-border bg-muted/30">
+        <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <GitBranch className="w-4 h-4 text-primary" />
           Segment Topology
         </h2>
       </div>
       
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative" ref={scrollContainerRef}>
         {/* SVG Layer for Lines */}
         <svg className="absolute top-0 left-0 w-full pointer-events-none" style={{ height: sortedSegs.length * ROW_HEIGHT }}>
           {renderConnections()}
@@ -108,8 +110,8 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, select
                 key={seg.id}
                 onClick={() => onSelect(seg.id)}
                 className={`
-                  group relative h-16 flex items-center cursor-pointer transition-all border-b border-slate-800/30
-                  ${isSelected ? 'bg-slate-800/80' : 'hover:bg-slate-800/30'}
+                  group relative h-16 flex items-center cursor-pointer transition-all border-b border-border
+                  ${isSelected ? 'bg-muted/80' : 'hover:bg-muted/30'}
                 `}
                 style={{ height: ROW_HEIGHT }}
               >
@@ -120,41 +122,60 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({ segments, select
                       className={`
                         absolute top-6 w-2.5 h-2.5 rounded-full border-2 z-10 transition-all
                         ${isSelected 
-                          ? 'bg-white border-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] scale-125' 
-                          : 'bg-slate-900 border-slate-500 group-hover:border-slate-300'}
+                          ? 'bg-background border-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] scale-125' 
+                          : 'bg-background border-muted-foreground group-hover:border-foreground'}
                       `}
                       style={{ left: xOffset }}
                    />
                 </div>
 
-                {/* Content Area */}
-                <div className="flex-1 pr-4 min-w-0 flex flex-col justify-center gap-0.5">
-                  
-                  {/* Top Row: Label + Start Time */}
-                  <div className="flex justify-between items-baseline">
-                    <span className={`text-sm font-medium truncate ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                      {seg.name}
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {formatTime(seg.startTime)}
-                    </span>
-                  </div>
+                {/* Content Area - Visual Block */}
+                <div className="flex-1 pr-4 min-w-0 flex flex-col justify-center">
+                  <div 
+                    className={`
+                      relative rounded-md border overflow-hidden transition-all
+                      ${isSelected ? 'border-primary ring-1 ring-primary' : 'border-border hover:border-foreground/50'}
+                    `}
+                    style={{
+                      height: '48px',
+                      background: `linear-gradient(90deg, 
+                        hsl(var(--primary) / ${Math.min(seg.avgPower / 400, 1) * 0.3}) 0%, 
+                        transparent 100%)`
+                    }}
+                  >
+                    {/* HR Bar Indicator */}
+                    <div 
+                      className="absolute bottom-0 left-0 h-1 bg-red-500/70 transition-all"
+                      style={{ width: `${Math.min((seg.avgHr - 60) / 140, 1) * 100}%` }}
+                    />
 
-                  {/* Bottom Row: Duration */}
-                  <div className="flex items-center gap-2">
-                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                        seg.type === 'work' ? 'bg-rose-500/10 text-rose-400' : 
-                        seg.type === 'rest' ? 'bg-emerald-500/10 text-emerald-400' : 
-                        'text-slate-500 bg-slate-800'
-                     }`}>
-                        {formatDuration(seg.duration)}
-                     </span>
+                    <div className="px-3 py-1.5 flex flex-col justify-center h-full">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold truncate">{seg.name}</span>
+                        <span className="text-[10px] font-mono opacity-70">{formatTime(seg.startTime)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mt-0.5">
+                        <div className="flex gap-2 text-[10px] font-mono text-muted-foreground">
+                          <span>{Math.round(seg.avgPower)}W</span>
+                          <span>{Math.round(seg.avgHr)}bpm</span>
+                        </div>
+                        <span className={`text-[10px] px-1 rounded-sm ${
+                            seg.type === 'work' ? 'bg-red-500/20 text-red-500' : 
+                            seg.type === 'rest' ? 'bg-green-500/20 text-green-500' : 
+                            'bg-muted text-muted-foreground'
+                        }`}>
+                          {formatDuration(seg.duration)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        {children}
       </div>
     </div>
   );

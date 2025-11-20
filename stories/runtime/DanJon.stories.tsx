@@ -5,7 +5,7 @@ import abcMarkdown from '../../wod/abc.md?raw';
 import abcSingleBellMarkdown from '../../wod/abc-single-bell.md?raw';
 
 const meta: Meta<typeof WodWorkbench> = {
-  title: 'Runtime/DanJon',
+  title: 'Examples/DanJon',
   component: WodWorkbench,
   args: {
     showToolbar: false,

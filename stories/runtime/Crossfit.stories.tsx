@@ -18,7 +18,7 @@ import maryMarkdown from '../../wod/mary.md?raw';
 import nancyMarkdown from '../../wod/nancy.md?raw';
 
 const meta: Meta<typeof WodWorkbench> = {
-  title: 'Runtime/Crossfit',
+  title: 'Examples/Crossfit',
   component: WodWorkbench,
   args: {
     showToolbar: false,

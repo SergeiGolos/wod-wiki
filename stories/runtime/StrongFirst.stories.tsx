@@ -6,7 +6,7 @@ import kbAxeHeavyMarkdown from '../../wod/kb-axe-heavy.md?raw';
 import kbAxeLiteMarkdown from '../../wod/kb-axe-lite.md?raw';
 
 const meta: Meta<typeof WodWorkbench> = {
-  title: 'Runtime/StrongFirst',
+  title: 'Examples/StrongFirst',
   component: WodWorkbench,
   args: {
     showToolbar: false,

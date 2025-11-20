@@ -4,7 +4,7 @@ import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
 import beginnerFriendlyMarkdown from '../../wod/beginner-friendly-swimming.md?raw';
 
 const meta: Meta<typeof WodWorkbench> = {
-  title: 'Runtime/Swimming',
+  title: 'Examples/Swimming',
   component: WodWorkbench,
   args: {
     showToolbar: false,
