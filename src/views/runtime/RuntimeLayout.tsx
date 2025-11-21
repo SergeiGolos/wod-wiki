@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Bug, Play, Pause, Square, X } from 'lucide-react';
+import { ChevronLeft, Bug, Play, Pause, Square, X, SkipForward } from 'lucide-react';
 import { WodBlock } from '../../markdown-editor/types';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
@@ -142,6 +142,11 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
     onComplete();
   };
 
+  const handleNext = () => {
+    // TODO: Trigger actual runtime next event
+    console.log('Next event triggered');
+  };
+
   // Mock data for Debug View
   const mockBlocks = [
     { key: '1', label: 'Timer 10:00', status: 'active', depth: 0, children: ['2', '3'], blockType: 'Timer' },
@@ -254,6 +259,10 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                </Button>
              )}
              
+             <Button onClick={handleNext} size="lg" className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 p-0">
+               <SkipForward className="h-8 w-8 fill-current" />
+             </Button>
+
              <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
                <Square className="h-6 w-6 fill-current" />
              </Button>

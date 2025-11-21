@@ -96,15 +96,7 @@ export const GitTreeSidebar: React.FC<GitTreeSidebarProps> = ({
 
   return (
     <div className={`flex flex-col bg-background w-full ${disableScroll ? '' : 'h-full'}`}>
-      {!hideHeader && (
-        <div className="p-4 border-b border-border bg-muted/30">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <GitBranch className="w-4 h-4 text-primary" />
-            Segment Topology
-          </h2>
-        </div>
-      )}
-      
+    
       <div 
         className={`relative ${disableScroll ? '' : 'flex-1 overflow-y-auto custom-scrollbar'}`} 
         ref={scrollContainerRef}
