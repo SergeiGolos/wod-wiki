@@ -276,7 +276,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               }`}
           >
             <RuntimeLayout 
-              activeBlock={selectedBlock || activeBlock} 
+              activeBlock={selectedBlock} 
               documentItems={documentItems}
               onBlockClick={handleBlockClick}
               onComplete={handleComplete} 
@@ -290,7 +290,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               }`}
           >
             <AnalyticsLayout 
-              activeBlock={selectedBlock || activeBlock} 
+              activeBlock={selectedBlock} 
               documentItems={documentItems}
               onBlockClick={handleBlockClick}
               onBack={handleClearSelection}
