@@ -129,6 +129,17 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
+     * Checks if the runtime execution has completed.
+     * Returns true if the stack is empty.
+     * Note: A fresh runtime starts with an empty stack, so this will return true
+     * until a block is pushed. Consumers should ensure the runtime is initialized
+     * with a root block before checking completion.
+     */
+    public isComplete(): boolean {
+        return this.stack.blocks.length === 0;
+    }
+
+    /**
      * Helper method to safely pop and dispose a block following the new lifecycle pattern.
      * This demonstrates the consumer-managed dispose pattern.
      */

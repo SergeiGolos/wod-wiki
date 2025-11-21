@@ -18,5 +18,11 @@ export interface IScriptRuntime {
     /** Metrics collection subsystem for workout analytics */
     readonly metrics?: IMetricCollector;
     
+    /**
+     * Checks if the runtime execution has completed.
+     * Returns true if the stack is empty and execution has finished.
+     */
+    isComplete(): boolean;
+
     handle(event: IEvent): void;
 }

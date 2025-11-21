@@ -13,7 +13,7 @@ import { TimerBlock } from "./blocks/TimerBlock";
 import { RoundsBlock } from "./blocks/RoundsBlock";
 import { MemoryTypeEnum } from "./MemoryTypeEnum";
 
-/**
+
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
