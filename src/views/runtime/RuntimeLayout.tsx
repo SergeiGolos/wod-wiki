@@ -1,18 +1,104 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Bug, Play, Pause, Square, X } from 'lucide-react';
+import { ChevronLeft, Bug, Play, Pause, Square, X, SkipForward } from 'lucide-react';
 import { WodBlock } from '../../markdown-editor/types';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { EditableStatementList } from '../../markdown-editor/components/EditableStatementList';
+import { TimelineView } from '../../timeline/TimelineView';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 
+import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { WodScript } from '../../parser/WodScript';
+import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
+import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
+import { NextEvent } from '../../runtime/NextEvent';
+import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
+import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
+import { TimeSpan } from '../../runtime/behaviors/TimerBehavior';
+
+// --- Mock Data Generation (Moved from TimelineView) ---
+const generateSessionData = () => {
+  const data: any[] = [];
+  const segments: Segment[] = [];
+  const totalDuration = 1200; // 20 min
+
+  // Helper to add noise
+  const noise = (amp: number) => (Math.random() - 0.5) * amp;
+
+  // 1. Generate Raw Telemetry Stream
+  for (let t = 0; t <= totalDuration; t++) {
+    let targetPower = 100;
+    
+    if (t > 300 && t < 900) { // Main Set
+      targetPower = 200;
+      if ((t - 300) % 180 < 120) targetPower = 280; // Hard
+      else targetPower = 120; // Easy
+    } else if (t >= 900) {
+      targetPower = 110;
+    }
+
+    const power = Math.max(0, targetPower + noise(20));
+    const hrLag = (t > 0 ? data[t-1].hr : 60) * 0.95 + (60 + power * 0.5) * 0.05;
+    const hr = hrLag + noise(2);
+    const cadence = power > 150 ? 90 + noise(5) : 70 + noise(5);
+
+    data.push({
+      time: t,
+      power: Math.round(power),
+      hr: Math.round(hr),
+      cadence: Math.round(cadence),
+    });
+  }
+
+  // 2. Define Hierarchical Segments
+  let segIdCounter = 0;
+  const addSeg = (name: string, start: number, end: number, type: string, parentId: number | null = null, depth: number = 0) => {
+    segIdCounter++;
+    const segPoints = data.slice(start, end);
+    const avgPwr = Math.round(segPoints.reduce((a,b) => a + b.power, 0) / segPoints.length);
+    const avgHr = Math.round(segPoints.reduce((a,b) => a + b.hr, 0) / segPoints.length);
+    
+    const segment: Segment = {
+      id: segIdCounter,
+      name,
+      type,
+      startTime: start,
+      endTime: end,
+      duration: end - start,
+      parentId,
+      depth,
+      avgPower: avgPwr || 0,
+      avgHr: avgHr || 0,
+      lane: depth // Map depth to visual lane 
+    };
+    segments.push(segment);
+    return segment.id;
+  };
+
+  const rootId = addSeg("Full Session", 0, totalDuration, "root", null, 0);
+  const wuId = addSeg("Warmup", 0, 300, "warmup", rootId, 1);
+  addSeg("Spin Up", 200, 280, "ramp", wuId, 2); // Nested in warmup
+
+  const mainId = addSeg("Main Set", 300, 900, "work", rootId, 1);
+  for (let i = 0; i < 3; i++) {
+    const start = 300 + (i * 180);
+    addSeg(`Interval ${i+1}`, start, start + 120, "interval", mainId, 2);
+    addSeg(`Recovery ${i+1}`, start + 120, start + 180, "rest", mainId, 2);
+  }
+  addSeg(`Interval 4`, 840, 900, "interval", mainId, 2);
+
+  const cdId = addSeg("Cooldown", 900, totalDuration, "cooldown", rootId, 1);
+
+  return { data, segments };
+};
+
 // Placeholder for Timer (reuse logic from WodWorkbench later or import)
-const TimerDisplay = ({ isRunning, elapsedMs, hasActiveBlock }: { isRunning: boolean, elapsedMs: number, hasActiveBlock: boolean }) => {
+const TimerDisplay = ({ elapsedMs, hasActiveBlock }: { elapsedMs: number, hasActiveBlock: boolean }) => {
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -42,6 +128,7 @@ interface RuntimeLayoutProps {
   onBlockClick: (item: DocumentItem) => void;
   onComplete: () => void;
   onBack: () => void;
+  viewMode: 'run' | 'analyze';
 }
 
 export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ 
@@ -49,70 +136,189 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   documentItems,
   onBlockClick,
   onComplete, 
-  onBack 
+  onBack,
+  viewMode
 }) => {
   const [showDebug, setShowDebug] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [pausedTime, setPausedTime] = useState(0);
   
-  // Command Palette
-  const { setIsOpen, setSearch } = useCommandPalette();
+  // Analytics Data (Mock)
+  const { data: analyticsData, segments: analyticsSegments } = React.useMemo(() => generateSessionData(), []);
+  const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set([5, 7, 9, 11]));
 
-  // Runtime Simulation State
+  const handleSelectAnalyticsSegment = (id: number) => {
+    const newSet = new Set(selectedAnalyticsIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedAnalyticsIds(newSet);
+  };
+  
+  // Runtime State
+  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
+  const adapter = useRef(new RuntimeAdapter()).current;
+  
+  // Initialize Runtime when activeBlock changes
+  useEffect(() => {
+    if (activeBlock && activeBlock.statements) {
+      // Create a new runtime instance
+      const script = new WodScript(activeBlock.content, activeBlock.statements);
+      const newRuntime = new ScriptRuntime(script, globalCompiler);
+      
+      // Initialize with root block
+      // We need to cast statements to any because of type mismatch between ICodeStatement and CodeStatement
+      // In a real app, we should unify these types
+      const rootBlock = globalCompiler.compile(activeBlock.statements as any, newRuntime);
+      
+      if (rootBlock) {
+          console.log('🚀 Initializing runtime with root block:', rootBlock.key.toString());
+          newRuntime.stack.push(rootBlock);
+          
+          // Mount the block to register handlers and get initial actions
+          const actions = rootBlock.mount(newRuntime);
+          actions.forEach(action => action.do(newRuntime));
+      } else {
+          console.warn('⚠️ Failed to compile root block for runtime');
+      }
+
+      setRuntime(newRuntime);
+    } else {
+      setRuntime(null);
+    }
+  }, [activeBlock]);
+
+  // Use execution hook
+  const execution = useRuntimeExecution(runtime);
+  
+  // Create snapshot for UI rendering
+  const snapshot = React.useMemo(() => {
+    if (!runtime) return null;
+    return adapter.createSnapshot(runtime);
+  }, [runtime, execution.stepCount]);
+
+  // Command Palette
+  const { setIsOpen: _setIsOpen, setSearch: _setSearch } = useCommandPalette();
+
+  // Runtime Simulation State (Legacy/Visuals)
   const [runtimeSegments, setRuntimeSegments] = useState<Segment[]>([]);
   const [activeSegmentId, setActiveSegmentId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Timer Logic
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-    if (isRunning && startTime !== null) {
-      intervalId = setInterval(() => {
-        const now = Date.now();
-        setElapsedMs(now - startTime + pausedTime);
-      }, 10);
+  // Helper to generate stable ID from string
+  const hashCode = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
     }
-    return () => { if (intervalId) clearInterval(intervalId); };
-  }, [isRunning, startTime, pausedTime]);
+    return Math.abs(hash);
+  };
 
-  // Simulate Segment Generation
+  // Real Runtime Data Integration
   useEffect(() => {
-    if (!isRunning) return;
+    if (!runtime) return;
 
-    // Add a new segment every 5 seconds for demo purposes
-    const interval = setInterval(() => {
-      const id = Date.now();
-      const newSegment: Segment = {
-        id,
-        name: `Interval ${runtimeSegments.length + 1}`,
-        type: runtimeSegments.length % 2 === 0 ? 'work' : 'rest',
-        startTime: Math.floor(elapsedMs / 1000),
-        endTime: Math.floor(elapsedMs / 1000) + 30,
-        duration: 30,
-        parentId: runtimeSegments.length > 0 ? runtimeSegments[0].id : null, // Link to first for demo
-        depth: 1,
-        avgPower: 200 + Math.random() * 50,
-        avgHr: 140 + Math.random() * 20,
-        lane: 1
-      };
-      
-      setRuntimeSegments(prev => [...prev, newSegment]);
-      setActiveSegmentId(id);
-      
-      // Auto-scroll to bottom
-      if (scrollRef.current) {
+    // 1. Get Completed Segments from Execution Log
+    const historySegments: Segment[] = runtime.executionLog.map(record => ({
+        id: hashCode(record.blockId),
+        name: record.label,
+        type: record.type.toLowerCase(),
+        startTime: Math.floor(record.startTime / 1000),
+        endTime: Math.floor(record.endTime / 1000),
+        duration: (record.endTime - record.startTime) / 1000,
+        parentId: record.parentId ? hashCode(record.parentId) : null,
+        depth: 0, // Will be calculated later if needed, or handled by GitTreeSidebar
+        avgPower: 0,
+        avgHr: 0,
+        lane: 0
+    }));
+
+    // 2. Get Active Segments from Stack
+    const activeSegments: Segment[] = runtime.stack.blocks.map(block => {
+        let startTime = Date.now();
+        let duration = 0;
+        
+        // Check for start time in memory (allocated by HistoryBehavior)
+        const startTimeRefs = runtime.memory.search({ 
+            type: MemoryTypeEnum.METRIC_START_TIME, 
+            ownerId: block.key.toString(),
+            id: null,
+            visibility: null
+        });
+        
+        if (startTimeRefs.length > 0) {
+            const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
+            if (storedStartTime) {
+                startTime = storedStartTime;
+                duration = (Date.now() - startTime) / 1000;
+            }
+        } else {
+            // Fallback: Check for timer memory (legacy support)
+            const timeSpansRef = runtime.memory.search({ 
+                type: MemoryTypeEnum.TIMER_TIME_SPANS, 
+                ownerId: block.key.toString(),
+                id: null,
+                visibility: null
+            })[0];
+            
+            if (timeSpansRef) {
+                const timeSpans = runtime.memory.get(timeSpansRef as any) as TimeSpan[];
+                if (timeSpans && timeSpans.length > 0 && timeSpans[0].start) {
+                    startTime = timeSpans[0].start.getTime();
+                    duration = (Date.now() - startTime) / 1000;
+                }
+            }
+        }
+
+        // Determine parent
+        const stackIndex = runtime.stack.blocks.indexOf(block);
+        const parentId = stackIndex > 0 ? runtime.stack.blocks[stackIndex - 1].key.toString() : null;
+
+        return {
+            id: hashCode(block.key.toString()),
+            name: block.blockType || block.key.toString(),
+            type: (block.blockType || 'unknown').toLowerCase(),
+            startTime: Math.floor(startTime / 1000),
+            endTime: Math.floor(Date.now() / 1000), // Currently running
+            duration: duration,
+            parentId: parentId ? hashCode(parentId) : null,
+            depth: stackIndex,
+            avgPower: 0,
+            avgHr: 0,
+            lane: 0
+        };
+    });
+
+    // Combine and Sort
+    const allSegments = [...historySegments, ...activeSegments].sort((a, b) => a.startTime - b.startTime);
+    
+    // Normalize Start Times (relative to first segment)
+    if (allSegments.length > 0) {
+        const minStartTime = allSegments[0].startTime;
+        allSegments.forEach(s => {
+            s.startTime -= minStartTime;
+            s.endTime -= minStartTime;
+        });
+    }
+
+    setRuntimeSegments(allSegments);
+
+    // 3. Determine Active Segment from Stack
+    if (snapshot && snapshot.stack.blocks.length > 0) {
+        const topBlock = snapshot.stack.blocks[snapshot.stack.blocks.length - 1];
+        setActiveSegmentId(hashCode(topBlock.key));
+    } else {
+        setActiveSegmentId(null);
+    }
+    
+    // Auto-scroll to bottom if running
+    if (execution.status === 'running' && scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-    }, 5000);
+    }
 
-    return () => clearInterval(interval);
-  }, [isRunning, runtimeSegments, elapsedMs]);
+  }, [runtime, execution.stepCount, execution.elapsedTime, snapshot, execution.status]);
 
   const handleStart = () => {
-    setStartTime(Date.now());
-    setIsRunning(true);
+    execution.start();
     // Add initial root segment if empty
     if (runtimeSegments.length === 0) {
       setRuntimeSegments([{
@@ -132,27 +338,21 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   };
 
   const handlePause = () => {
-    if (startTime !== null) setPausedTime(Date.now() - startTime + pausedTime);
-    setIsRunning(false);
-    setStartTime(null);
+    execution.pause();
   };
 
   const handleStop = () => {
-    setIsRunning(false);
+    execution.stop();
     onComplete();
   };
 
-  // Mock data for Debug View
-  const mockBlocks = [
-    { key: '1', label: 'Timer 10:00', status: 'active', depth: 0, children: ['2', '3'], blockType: 'Timer' },
-    { key: '2', label: '10 Pushups', status: 'pending', depth: 1, children: [], blockType: 'Exercise' },
-    { key: '3', label: '10 Situps', status: 'pending', depth: 1, children: [], blockType: 'Exercise' },
-  ];
-
-  const mockMemory = [
-    { id: '1', address: '0x001', valueFormatted: '10:00', label: 'Timer Duration', type: 'Time', isValid: true, ownerId: '1' },
-    { id: '2', address: '0x002', valueFormatted: '0', label: 'Rounds Completed', type: 'Counter', isValid: true, ownerId: '1' },
-  ];
+  const handleNext = () => {
+    if (runtime) {
+      runtime.handle(new NextEvent());
+      // Force a step to update UI immediately
+      execution.step();
+    }
+  };
 
   return (
     <div className="flex h-full w-full relative overflow-hidden">
@@ -166,9 +366,11 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                  <ChevronLeft className="h-4 w-4" />
                  Back to Index
                </Button>
+               {viewMode === 'run' && (
                <Button variant="ghost" size="icon" onClick={() => setShowDebug(true)}>
                  <Bug className="h-4 w-4" />
                </Button>
+               )}
             </div>
 
             {/* Segment Topology (Growing Log) */}
@@ -183,7 +385,8 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
             </GitTreeSidebar>
 
-            {/* Active Block Context (Source) */}
+            {/* Active Block Context (Source) - Only visible in Run mode */}
+            {viewMode === 'run' && (
             <div className="border-t border-border bg-muted/10 flex flex-col min-h-[200px]">
               <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center bg-muted/20">
                 <span>Active Context</span>
@@ -203,6 +406,7 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                  )}
               </div>
             </div>
+            )}
 
             {/* Debug Overlay */}
             {showDebug && (
@@ -215,13 +419,14 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                 </div>
                 <div className="flex-1 overflow-auto">
                   <RuntimeStackPanel 
-                    blocks={mockBlocks as any} 
-                    activeBlockIndex={0}
+                    blocks={snapshot?.stack.blocks || []} 
+                    activeBlockIndex={snapshot?.stack.activeIndex}
                     highlightedBlockKey={undefined}
                     className="border-b border-border"
                   />
                   <MemoryPanel 
-                    entries={mockMemory as any}
+                    entries={snapshot?.memory.entries || []}
+                    groupBy="owner"
                   />
                 </div>
               </div>
@@ -230,40 +435,59 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
         ) : (
           <WodIndexPanel 
             items={documentItems}
-            activeBlockId={null}
+            activeBlockId={undefined}
             onBlockClick={onBlockClick}
             onBlockHover={() => {}}
           />
         )}
       </div>
 
-      {/* Right Panel: Timer (2/3) */}
-      <div className="w-2/3 flex flex-col items-center justify-center bg-background relative">
-        <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
-        <TimerDisplay isRunning={isRunning} elapsedMs={elapsedMs} hasActiveBlock={!!activeBlock} />
-        
-        {activeBlock ? (
-          <div className="flex gap-6 mt-12">
-             {!isRunning ? (
-               <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
-                 <Play className="h-8 w-8 fill-current" />
-               </Button>
-             ) : (
-               <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
-                 <Pause className="h-8 w-8 fill-current" />
-               </Button>
-             )}
-             
-             <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
-               <Square className="h-6 w-6 fill-current" />
-             </Button>
-          </div>
-        ) : (
-          <div className="mt-12 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md text-center">
-             <h3 className="font-semibold mb-2">No Workout Selected</h3>
-             <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
-          </div>
-        )}
+      {/* Right Panel: Timer or Analytics (2/3) */}
+      <div className="w-2/3 bg-background relative overflow-hidden">
+        {/* Timer Panel */}
+        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-transform duration-500 ease-in-out ${viewMode === 'analyze' ? '-translate-x-full' : 'translate-x-0'}`}>
+            <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
+            <TimerDisplay elapsedMs={execution.elapsedTime} hasActiveBlock={!!activeBlock} />
+            
+            {activeBlock ? (
+              <div className="flex gap-6 mt-12">
+                 {execution.status !== 'running' ? (
+                   <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
+                     <Play className="h-8 w-8 fill-current" />
+                   </Button>
+                 ) : (
+                   <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
+                     <Pause className="h-8 w-8 fill-current" />
+                   </Button>
+                 )}
+                 
+                 <Button onClick={handleNext} size="lg" className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 p-0">
+                   <SkipForward className="h-8 w-8 fill-current" />
+                 </Button>
+
+                 <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
+                   <Square className="h-6 w-6 fill-current" />
+                 </Button>
+              </div>
+            ) : (
+              <div className="mt-12 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md text-center">
+                 <h3 className="font-semibold mb-2">No Workout Selected</h3>
+                 <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
+              </div>
+            )}
+        </div>
+
+        {/* Analytics Panel */}
+        <div className={`absolute inset-0 flex flex-col transition-transform duration-500 ease-in-out ${viewMode === 'analyze' ? 'translate-x-0' : 'translate-x-full'}`}>
+           <div className="flex-1 overflow-hidden">
+             <TimelineView 
+               rawData={analyticsData}
+               segments={analyticsSegments}
+               selectedSegmentIds={selectedAnalyticsIds}
+               onSelectSegment={handleSelectAnalyticsSegment}
+             />
+           </div>
+        </div>
       </div>
     </div>
   );

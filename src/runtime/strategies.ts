@@ -12,8 +12,9 @@ import { CompletionBehavior } from "./behaviors/CompletionBehavior";
 import { TimerBlock } from "./blocks/TimerBlock";
 import { RoundsBlock } from "./blocks/RoundsBlock";
 import { MemoryTypeEnum } from "./MemoryTypeEnum";
+import { HistoryBehavior } from "./behaviors/HistoryBehavior";
 
-/**
+
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;

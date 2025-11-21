@@ -22,4 +22,7 @@ export interface IRuntimeBehavior {
 
   /** Called right before the owning block is popped from the stack. */
   onPop?(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
+
+  /** Called when the block is being disposed. Use this to clean up resources or log final metrics. */
+  onDispose?(runtime: IScriptRuntime, block: IRuntimeBlock): void;
 }

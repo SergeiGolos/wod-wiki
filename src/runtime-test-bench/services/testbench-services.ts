@@ -1,3 +1,14 @@
+import { MdTimerRuntime } from '../../parser/md-timer';
+import { JitCompiler } from '../../runtime/JitCompiler';
+import { 
+  TimeBoundRoundsStrategy,
+  IntervalStrategy,
+  TimerStrategy,
+  RoundsStrategy,
+  GroupStrategy,
+  EffortStrategy
+} from '../../runtime/strategies';
+
 /**
  * Module-Level Services for RuntimeTestBench
  * This singleton is created once when the module loads and shared

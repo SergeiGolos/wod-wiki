@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(gh api:*)",
-      "Bash(npm run test:unit:*)",
+      "Bash(npm run test*)",
       "Bash(.specify/scripts/powershell*)",
       "Bash(gh pr view:*)",
       "WebFetch(domain:github.com)",
