@@ -124,3 +124,46 @@ th {
   user-select: none;
   pointer-events: none;
 }
+
+/* Rich Markdown Editor Styles */
+.rich-md-hidden {
+  color: transparent !important;
+  font-size: 0px !important;
+  line-height: 0px !important;
+  letter-spacing: -100px;
+  opacity: 0;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.rich-md-hidden-line {
+  color: transparent !important;
+  font-size: 0px !important;
+  line-height: 0px !important;
+  opacity: 0;
+}
+
+.rich-md-heading-1 {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  color: var(--foreground);
+}
+
+.rich-md-heading-2 {
+  font-size: 1.3em !important;
+  font-weight: bold !important;
+  color: var(--foreground);
+}
+
+.rich-md-heading-3 {
+  font-size: 1.1em !important;
+  font-weight: bold !important;
+  color: var(--foreground);
+}
+
+.rich-md-blockquote {
+  background-color: rgba(128, 128, 128, 0.1);
+  border-left: 4px solid var(--primary);
+}

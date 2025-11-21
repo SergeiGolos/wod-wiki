@@ -14,6 +14,7 @@ import { useParseAllBlocks } from './hooks/useParseAllBlocks';
 import { useSmartIncrement } from './hooks/useSmartIncrement';
 // Import Monaco loader configuration to use local Monaco instead of CDN
 import './utils/monacoLoader';
+import { RichMarkdownManager } from '../editor/RichMarkdownManager';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -92,6 +93,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
@@ -191,6 +193,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     setEditorInstance(editor);
     setMonacoInstance(monaco);
     
+    // Initialize Rich Markdown Manager
+    richMarkdownManagerRef.current = new RichMarkdownManager(editor);
+
     // Apply initial theme
     console.log('[MarkdownEditor] Initial theme application:', theme);
     monaco.editor.setTheme(theme);
@@ -226,6 +231,16 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       onMount(editor, monaco);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (richMarkdownManagerRef.current) {
+        richMarkdownManagerRef.current.dispose();
+      }
+    };
+  }, []);
+
 
   // Use WOD decorations (inlay hints & semantic tokens & highlighting)
   useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {

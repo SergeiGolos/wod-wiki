@@ -12,6 +12,7 @@ import { IScript } from '../parser/WodScript';
 import { CodeMetadata } from '../core/models/CodeMetadata';
 import { ExerciseDataProvider } from '../types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
+import { RichMarkdownManager } from './RichMarkdownManager';
 
 interface WodWikiProps {
   id: string;
@@ -60,6 +61,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id, readonly);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
+    const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
     const [height, setHeight] = useState(50); // Initial height
     const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
     
@@ -76,6 +78,9 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
 
+      // Initialize Rich Markdown Manager
+      richMarkdownManagerRef.current = new RichMarkdownManager(editor);
+
       if (onMount) {
         onMount(editor);
       }
@@ -90,6 +95,15 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
         handleContentSizeChange();
       });
     };
+
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        if (richMarkdownManagerRef.current) {
+          richMarkdownManagerRef.current.dispose();
+        }
+      };
+    }, []);
   
     const handleContentSizeChange = () => {
       if (editorRef.current) {
