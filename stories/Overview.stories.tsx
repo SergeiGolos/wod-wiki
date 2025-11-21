@@ -8,7 +8,7 @@ const meta: Meta<typeof WodWorkbench> = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'Overview of the WOD Wiki editor capabilities with complex markdown content.'
+        component: 'Overview of the WOD Wiki editor capabilities.'
       }
     }
   }
@@ -19,42 +19,37 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    initialContent: `# Workout Journal - Week 47
+    initialContent: `# WOD Wiki Overview
 
-## Goals for this week
-- [ ] 3 strength sessions
-- [ ] 2 conditioning sessions
-- [x] Mobility work daily
+Welcome to WOD Wiki! This tool lets you define, execute, and track your workouts using a powerful text-based interface.
 
-## Monday - 11/13/2024
+## 1. Recording a Workout
+You define workouts using **WOD Blocks**. These blocks use a special syntax to describe exercises, rounds, and timers.
 
-**Weather:** Sunny, 72°F  
-**Energy Level:** 8/10  
-**Sleep:** 7 hours
+Here is a simple recording example:
 
-### Main Workout
 \`\`\`wod
-(15) :60 EMOM
-  + 3 Deadlifts 315lb
-  + 6 Hang Power Cleans 185lb
-  + 9 Front Squats 135lb
+3 Rounds
+  10 Thrusters 95lb
+  10 Pullups
+  [Rest] :60
 \`\`\`
 
-#### Notes
-- Felt great today
-- Form was solid on all lifts
-- Need to work on breathing during EMOM
+## 2. Running the Workout
+Once a workout is defined, you can interact with it:
+- Click **Edit** to modify the script.
+- Click **Track** to enter execution mode. The runtime engine will guide you through the workout, tracking time and sets.
+- Click **Analyze** to see performance data.
 
-### Accessories
-1. Bicep curls 3x10
-2. Tricep extensions 3x10
-3. Core work - planks
+## 3. Metrics Collection
+The system automatically parses and collects metrics from your workout:
+- **Reps**: Tracked from lines like \`10 Pullups\`.
+- **Load**: Extracted from weights like \`95lb\`.
+- **Time**: Managed by timers like \`:60\`.
+- **Structure**: Rounds and sets are preserved.
 
----
-
-## Resources
-- [Workout programming guide](https://example.com)
-- Check out **CrossFit** workouts`,
+Everything happens inline, giving you full control over your training data.
+`,
     showToolbar: true,
     readonly: false,
     theme: 'vs'

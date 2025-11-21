@@ -40,28 +40,11 @@ export const Default: Story = {
   args: {
     initialContent: `# My Workout Log - ${new Date().toLocaleDateString()}
 
-Welcome to the markdown editor with WOD block support!
+Use this blank canvas to log your daily training.
 
-## Morning Session
+**Quick Tip:** Press **Ctrl+Space** to view available templates and start inserting exercises.
 
-\`\`\`wod
-20:00 AMRAP
-  + 5 Pullups
-  + 10 Pushups
-  + 15 Squats
-\`\`\`
-
-Great workout today! Felt strong.
-
-## Evening Session
-
-\`\`\`wod
-(21-15-9)
-  Thrusters 95lb
-  Pullups
-\`\`\`
-
-Classic benchmark WOD.`,
+`,
     showToolbar: false,
     readonly: false,
     theme: 'vs'
