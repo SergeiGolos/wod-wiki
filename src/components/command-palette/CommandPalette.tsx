@@ -1,25 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Command } from 'cmdk';
 import { useCommandPalette } from './CommandContext';
 import { Search } from 'lucide-react';
 
-
-
 export const CommandPalette: React.FC = () => {
-  const { isOpen, setIsOpen, commands, activeContext, search, setSearch } = useCommandPalette();
+  const { isOpen, setIsOpen, commands, activeContext, search, setSearch, activeStrategy } = useCommandPalette();
 
-  // Filter commands based on context
-  const filteredCommands = commands.filter(cmd => 
-    !cmd.context || cmd.context === 'global' || cmd.context === activeContext
-  );
+  // Initialize search value from strategy if available
+  useEffect(() => {
+    if (isOpen && activeStrategy?.initialInputValue) {
+      setSearch(activeStrategy.initialInputValue);
+    } else if (!isOpen) {
+      setSearch('');
+    }
+  }, [isOpen, activeStrategy, setSearch]);
+
+  // Determine which commands to show
+  const displayedCommands = activeStrategy 
+    ? activeStrategy.getCommands()
+    : commands.filter(cmd => !cmd.context || cmd.context === 'global' || cmd.context === activeContext);
 
   // Group commands
-  const groups = filteredCommands.reduce((acc, cmd) => {
+  const groups = displayedCommands.reduce((acc, cmd) => {
     const group = cmd.group || 'General';
     if (!acc[group]) acc[group] = [];
     acc[group].push(cmd);
     return acc;
-  }, {} as Record<string, typeof commands>);
+  }, {} as Record<string, typeof displayedCommands>);
+
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && activeStrategy?.handleInput) {
+      e.preventDefault();
+      const shouldClose = await activeStrategy.handleInput(search);
+      if (shouldClose) {
+        setIsOpen(false);
+      }
+    }
+  };
 
   return (
     <Command.Dialog
@@ -36,7 +53,8 @@ export const CommandPalette: React.FC = () => {
           <Command.Input
             value={search}
             onValueChange={setSearch}
-            placeholder="Type a command or search..."
+            onKeyDown={handleKeyDown}
+            placeholder={activeStrategy?.placeholder || "Type a command or search..."}
             className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
           />
         </div>

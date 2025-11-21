@@ -6,7 +6,7 @@ import { CommandPalette } from '../../components/command-palette/CommandPalette'
 import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Play, Edit, BarChart2, ArrowLeft } from 'lucide-react';
+import { Play, Edit, BarChart2, ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -14,6 +14,7 @@ import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
+import { useCommandPalette } from '../../components/command-palette/CommandContext';
 
 export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
@@ -25,6 +26,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   ...editorProps
 }) => {
   const { theme, setTheme } = useTheme();
+  const { setIsOpen, setStrategy } = useCommandPalette();
   const [activeBlock, setActiveBlock] = useState<WodBlock | null>(null);
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
@@ -154,7 +156,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   }, [blocks, selectedBlockId]);
 
   return (
-    <CommandProvider>
+    <>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
         {/* Header / Navigation */}
         <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
@@ -177,6 +179,17 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
           </div>
           <div className="flex gap-2 items-center">
             <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setStrategy(null);
+                setIsOpen(true);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
             <div className="h-6 w-px bg-border mx-2"></div>
             
             <Button
@@ -287,7 +300,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
         </div>
       </div>
       <CommandPalette />
-    </CommandProvider>
+    </>
   );
 };
 
@@ -302,7 +315,9 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = (props) => {
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <MetricsProvider>
-        <WodWorkbenchContent {...props} />
+        <CommandProvider>
+          <WodWorkbenchContent {...props} />
+        </CommandProvider>
       </MetricsProvider>
     </ThemeProvider>
   );

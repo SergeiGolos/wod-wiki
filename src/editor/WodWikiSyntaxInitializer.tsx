@@ -65,6 +65,7 @@ export class WodWikiSyntaxInitializer {
         top: 12,
         bottom: 12
       },
+      minimap: { enabled: false },
       inlayHints: { enabled: "on" },
       readOnly: this.readonly,
       // Add these options to enable semantic tokens

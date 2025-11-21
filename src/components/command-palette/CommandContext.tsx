@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { Command, CommandContextType } from './types';
+import { Command, CommandContextType, CommandStrategy } from './types';
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
 
@@ -8,6 +8,7 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   const [isOpen, setIsOpen] = useState(initialIsOpen);
   const [activeContext, setActiveContext] = useState('global');
   const [search, setSearch] = useState('');
+  const [activeStrategy, setStrategy] = useState<CommandStrategy | null>(null);
 
   const registerCommand = useCallback((command: Command) => {
     setCommands((prev) => {
@@ -22,10 +23,10 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   }, []);
 
   // Use refs for state accessed in event handlers to avoid re-attaching listeners
-  const stateRef = useRef({ commands, isOpen, activeContext });
+  const stateRef = useRef({ commands, isOpen, activeContext, activeStrategy });
   useEffect(() => {
-    stateRef.current = { commands, isOpen, activeContext };
-  }, [commands, isOpen, activeContext]);
+    stateRef.current = { commands, isOpen, activeContext, activeStrategy };
+  }, [commands, isOpen, activeContext, activeStrategy]);
 
   // Handle global keyboard shortcut to open palette
   useEffect(() => {
@@ -43,10 +44,13 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   // Handle command shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { isOpen, commands, activeContext } = stateRef.current;
+      const { isOpen, commands, activeContext, activeStrategy } = stateRef.current;
       
       if (!isOpen) { 
          // Check shortcuts
+         // If a strategy is active, we might want to delegate to it, but for now let's keep global shortcuts working
+         // unless the strategy explicitly consumes them (not implemented yet)
+         
          commands.forEach(cmd => {
             if (cmd.shortcut && cmd.shortcut.length > 0) {
                 const modifiers = {
@@ -89,8 +93,10 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
     activeContext,
     setActiveContext,
     search,
-    setSearch
-  }), [registerCommand, commands, isOpen, activeContext, search]);
+    setSearch,
+    activeStrategy,
+    setStrategy
+  }), [registerCommand, commands, isOpen, activeContext, search, activeStrategy]);
 
   return (
     <CommandContext.Provider value={contextValue}>
