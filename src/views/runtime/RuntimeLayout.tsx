@@ -7,6 +7,7 @@ import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { EditableStatementList } from '../../markdown-editor/components/EditableStatementList';
+import { TimelineView } from '../../timeline/TimelineView';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -19,6 +20,82 @@ import { NextEvent } from '../../runtime/NextEvent';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
 import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
 import { TimeSpan } from '../../runtime/behaviors/TimerBehavior';
+
+// --- Mock Data Generation (Moved from TimelineView) ---
+const generateSessionData = () => {
+  const data: any[] = [];
+  const segments: Segment[] = [];
+  const totalDuration = 1200; // 20 min
+
+  // Helper to add noise
+  const noise = (amp: number) => (Math.random() - 0.5) * amp;
+
+  // 1. Generate Raw Telemetry Stream
+  for (let t = 0; t <= totalDuration; t++) {
+    let targetPower = 100;
+    
+    if (t > 300 && t < 900) { // Main Set
+      targetPower = 200;
+      if ((t - 300) % 180 < 120) targetPower = 280; // Hard
+      else targetPower = 120; // Easy
+    } else if (t >= 900) {
+      targetPower = 110;
+    }
+
+    const power = Math.max(0, targetPower + noise(20));
+    const hrLag = (t > 0 ? data[t-1].hr : 60) * 0.95 + (60 + power * 0.5) * 0.05;
+    const hr = hrLag + noise(2);
+    const cadence = power > 150 ? 90 + noise(5) : 70 + noise(5);
+
+    data.push({
+      time: t,
+      power: Math.round(power),
+      hr: Math.round(hr),
+      cadence: Math.round(cadence),
+    });
+  }
+
+  // 2. Define Hierarchical Segments
+  let segIdCounter = 0;
+  const addSeg = (name: string, start: number, end: number, type: string, parentId: number | null = null, depth: number = 0) => {
+    segIdCounter++;
+    const segPoints = data.slice(start, end);
+    const avgPwr = Math.round(segPoints.reduce((a,b) => a + b.power, 0) / segPoints.length);
+    const avgHr = Math.round(segPoints.reduce((a,b) => a + b.hr, 0) / segPoints.length);
+    
+    const segment: Segment = {
+      id: segIdCounter,
+      name,
+      type,
+      startTime: start,
+      endTime: end,
+      duration: end - start,
+      parentId,
+      depth,
+      avgPower: avgPwr || 0,
+      avgHr: avgHr || 0,
+      lane: depth // Map depth to visual lane 
+    };
+    segments.push(segment);
+    return segment.id;
+  };
+
+  const rootId = addSeg("Full Session", 0, totalDuration, "root", null, 0);
+  const wuId = addSeg("Warmup", 0, 300, "warmup", rootId, 1);
+  addSeg("Spin Up", 200, 280, "ramp", wuId, 2); // Nested in warmup
+
+  const mainId = addSeg("Main Set", 300, 900, "work", rootId, 1);
+  for (let i = 0; i < 3; i++) {
+    const start = 300 + (i * 180);
+    addSeg(`Interval ${i+1}`, start, start + 120, "interval", mainId, 2);
+    addSeg(`Recovery ${i+1}`, start + 120, start + 180, "rest", mainId, 2);
+  }
+  addSeg(`Interval 4`, 840, 900, "interval", mainId, 2);
+
+  const cdId = addSeg("Cooldown", 900, totalDuration, "cooldown", rootId, 1);
+
+  return { data, segments };
+};
 
 // Placeholder for Timer (reuse logic from WodWorkbench later or import)
 const TimerDisplay = ({ elapsedMs, hasActiveBlock }: { elapsedMs: number, hasActiveBlock: boolean }) => {
@@ -51,6 +128,7 @@ interface RuntimeLayoutProps {
   onBlockClick: (item: DocumentItem) => void;
   onComplete: () => void;
   onBack: () => void;
+  viewMode: 'run' | 'analyze';
 }
 
 export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ 
@@ -58,9 +136,21 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   documentItems,
   onBlockClick,
   onComplete, 
-  onBack 
+  onBack,
+  viewMode
 }) => {
   const [showDebug, setShowDebug] = useState(false);
+  
+  // Analytics Data (Mock)
+  const { data: analyticsData, segments: analyticsSegments } = React.useMemo(() => generateSessionData(), []);
+  const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set([5, 7, 9, 11]));
+
+  const handleSelectAnalyticsSegment = (id: number) => {
+    const newSet = new Set(selectedAnalyticsIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedAnalyticsIds(newSet);
+  };
   
   // Runtime State
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
@@ -276,9 +366,11 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                  <ChevronLeft className="h-4 w-4" />
                  Back to Index
                </Button>
+               {viewMode === 'run' && (
                <Button variant="ghost" size="icon" onClick={() => setShowDebug(true)}>
                  <Bug className="h-4 w-4" />
                </Button>
+               )}
             </div>
 
             {/* Segment Topology (Growing Log) */}
@@ -293,7 +385,8 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
             </GitTreeSidebar>
 
-            {/* Active Block Context (Source) */}
+            {/* Active Block Context (Source) - Only visible in Run mode */}
+            {viewMode === 'run' && (
             <div className="border-t border-border bg-muted/10 flex flex-col min-h-[200px]">
               <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center bg-muted/20">
                 <span>Active Context</span>
@@ -313,6 +406,7 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                  )}
               </div>
             </div>
+            )}
 
             {/* Debug Overlay */}
             {showDebug && (
@@ -348,37 +442,52 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
         )}
       </div>
 
-      {/* Right Panel: Timer (2/3) */}
-      <div className="w-2/3 flex flex-col items-center justify-center bg-background relative">
-        <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
-        <TimerDisplay elapsedMs={execution.elapsedTime} hasActiveBlock={!!activeBlock} />
-        
-        {activeBlock ? (
-          <div className="flex gap-6 mt-12">
-             {execution.status !== 'running' ? (
-               <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
-                 <Play className="h-8 w-8 fill-current" />
-               </Button>
-             ) : (
-               <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
-                 <Pause className="h-8 w-8 fill-current" />
-               </Button>
-             )}
-             
-             <Button onClick={handleNext} size="lg" className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 p-0">
-               <SkipForward className="h-8 w-8 fill-current" />
-             </Button>
+      {/* Right Panel: Timer or Analytics (2/3) */}
+      <div className="w-2/3 bg-background relative overflow-hidden">
+        {/* Timer Panel */}
+        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-transform duration-500 ease-in-out ${viewMode === 'analyze' ? '-translate-x-full' : 'translate-x-0'}`}>
+            <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
+            <TimerDisplay elapsedMs={execution.elapsedTime} hasActiveBlock={!!activeBlock} />
+            
+            {activeBlock ? (
+              <div className="flex gap-6 mt-12">
+                 {execution.status !== 'running' ? (
+                   <Button onClick={handleStart} size="lg" className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700 p-0">
+                     <Play className="h-8 w-8 fill-current" />
+                   </Button>
+                 ) : (
+                   <Button onClick={handlePause} size="lg" className="h-16 w-16 rounded-full bg-yellow-600 hover:bg-yellow-700 p-0">
+                     <Pause className="h-8 w-8 fill-current" />
+                   </Button>
+                 )}
+                 
+                 <Button onClick={handleNext} size="lg" className="h-16 w-16 rounded-full bg-blue-600 hover:bg-blue-700 p-0">
+                   <SkipForward className="h-8 w-8 fill-current" />
+                 </Button>
 
-             <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
-               <Square className="h-6 w-6 fill-current" />
-             </Button>
-          </div>
-        ) : (
-          <div className="mt-12 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md text-center">
-             <h3 className="font-semibold mb-2">No Workout Selected</h3>
-             <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
-          </div>
-        )}
+                 <Button onClick={handleStop} size="lg" variant="destructive" className="h-16 w-16 rounded-full p-0">
+                   <Square className="h-6 w-6 fill-current" />
+                 </Button>
+              </div>
+            ) : (
+              <div className="mt-12 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md text-center">
+                 <h3 className="font-semibold mb-2">No Workout Selected</h3>
+                 <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
+              </div>
+            )}
+        </div>
+
+        {/* Analytics Panel */}
+        <div className={`absolute inset-0 flex flex-col transition-transform duration-500 ease-in-out ${viewMode === 'analyze' ? 'translate-x-0' : 'translate-x-full'}`}>
+           <div className="flex-1 overflow-hidden">
+             <TimelineView 
+               rawData={analyticsData}
+               segments={analyticsSegments}
+               selectedSegmentIds={selectedAnalyticsIds}
+               onSelectSegment={handleSelectAnalyticsSegment}
+             />
+           </div>
+        </div>
       </div>
     </div>
   );

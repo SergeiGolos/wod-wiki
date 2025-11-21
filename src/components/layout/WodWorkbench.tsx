@@ -14,7 +14,6 @@ import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
-import { AnalyticsLayout } from '../../views/analytics/AnalyticsLayout';
 
 export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
@@ -270,9 +269,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             )}
           </div>
 
-          {/* Panel 3: Runtime (Visible in Run Mode) */}
+          {/* Panel 3: Runtime (Visible in Run or Analyze Mode) */}
           <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
+            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' || viewMode === 'analyze' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
             <RuntimeLayout 
@@ -281,19 +280,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               onBlockClick={handleBlockClick}
               onComplete={handleComplete} 
               onBack={handleClearSelection}
-            />
-          </div>
-
-          {/* Panel 4: Analytics (Visible in Analyze Mode) */}
-          <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'analyze' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
-              }`}
-          >
-            <AnalyticsLayout 
-              activeBlock={selectedBlock} 
-              documentItems={documentItems}
-              onBlockClick={handleBlockClick}
-              onBack={handleClearSelection}
+              viewMode={viewMode === 'analyze' ? 'analyze' : 'run'}
             />
           </div>
 
