@@ -6,7 +6,7 @@ import { CommandPalette } from '../../components/command-palette/CommandPalette'
 import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Play, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
+import { Timer, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -208,7 +208,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               onClick={() => setViewMode('run')}
               className={`gap-2 ${viewMode === 'run' ? '' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              <Play className="h-4 w-4" />
+              <Timer className="h-4 w-4" />
               Track
             </Button>
             <Button
