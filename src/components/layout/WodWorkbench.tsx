@@ -6,10 +6,11 @@ import { CommandPalette } from '../../components/command-palette/CommandPalette'
 import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Play, Edit, BarChart2, ArrowLeft, Plus } from 'lucide-react';
+import { Play, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { CommitGraph } from '../ui/CommitGraph';
 import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
@@ -31,14 +32,14 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [content, setContent] = useState(initialContent);
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
-  
+
   // View Mode State
   const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
-  
+
   // Selected block for Right Panel (distinct from activeBlock which tracks cursor)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
@@ -49,7 +50,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
   // Determine active block ID based on cursor line
   const activeBlockId = useMemo(() => {
-    const item = documentItems.find(item => 
+    const item = documentItems.find(item =>
       cursorLine >= item.startLine && cursorLine <= item.endLine
     );
     return item?.id;
@@ -77,7 +78,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   // Sync prop theme to context theme (for Storybook controls)
   useEffect(() => {
     if (!propTheme) return;
-    
+
     const targetTheme = (propTheme === 'vs-dark' || propTheme === 'wod-dark') ? 'dark' : 'light';
     // Only update if we're not in system mode and the theme is different
     if (theme !== 'system' && theme !== targetTheme) {
@@ -89,13 +90,13 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const monacoTheme = useMemo(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     let computedTheme: string;
-    
+
     if (theme === 'system') {
       computedTheme = mediaQuery.matches ? 'vs-dark' : 'vs';
     } else {
       computedTheme = theme === 'dark' ? 'vs-dark' : 'vs';
     }
-    
+
     console.log('[WodWorkbench] Theme computed - global:', theme, '→ monaco:', computedTheme);
     return computedTheme;
   }, [theme]);
@@ -110,7 +111,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
   };
-  
+
   // Handle navigation from index panel
   const handleBlockClick = (item: DocumentItem) => {
     // Set selected block if it's a WOD block
@@ -124,7 +125,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
       editorInstance.revealLineInCenter(line);
       editorInstance.setPosition({ lineNumber: line, column: 1 });
       editorInstance.focus();
-      
+
       // Highlight the line briefly
       setHighlightedLine(line);
       setTimeout(() => setHighlightedLine(null), 2000);
@@ -161,16 +162,16 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
         {/* Header / Navigation */}
         <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
           <div className="font-bold flex items-center gap-4">
-            <div className="flex items-center">
-              <img
-                src="/images/wod-wiki-logo-light.png"
-                alt="WOD Wiki"
-                className="h-8 block dark:hidden"
-              />
-              <img
-                src="/images/wod-wiki-logo-dark.png"
-                alt="WOD Wiki"
-                className="h-8 hidden dark:block"
+            <div className="h-10 w-[300px] flex items-center">
+              <CommitGraph
+                text="WOD.WIKI++"
+                rows={16}
+                cols={90}
+                gap={1}
+                padding={0}
+                fontScale={0.8}
+                fontWeight={200}
+                letterSpacing={1.6}
               />
             </div>
             <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground">
@@ -178,7 +179,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             </span>
           </div>
           <div className="flex gap-2 items-center">
-            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
@@ -190,8 +190,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             >
               <Plus className="h-4 w-4" />
             </Button>
+
             <div className="h-6 w-px bg-border mx-2"></div>
-            
+
             <Button
               variant={viewMode === 'edit' ? "default" : "ghost"}
               size="sm"
@@ -219,17 +220,30 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               <BarChart2 className="h-4 w-4" />
               Analyze
             </Button>
+
+            <div className="h-6 w-px bg-border mx-2"></div>
+
+            <ThemeToggle />
+            <a
+              href="https://github.com/SergeiGolos/wod-wiki"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors ml-2"
+              title="Check us out on GitHub"
+            >
+              <Github className="h-5 w-5" />
+            </a>
           </div>
         </div>
 
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden flex">
-          
+
           {/* Panel 1: Editor (Left 2/3 in Edit Mode) */}
           <div
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit'
-                ? 'w-2/3 opacity-100'
-                : 'w-0 opacity-0 overflow-hidden border-none'
+              ? 'w-2/3 opacity-100'
+              : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
             <div ref={editorContainerRef} className="h-full w-full">
@@ -273,11 +287,11 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
                 </div>
               </div>
             ) : (
-              <WodIndexPanel 
+              <WodIndexPanel
                 items={documentItems}
                 activeBlockId={activeBlockId}
                 onBlockClick={handleBlockClick}
-                onBlockHover={() => {}}
+                onBlockHover={() => { }}
               />
             )}
           </div>
@@ -287,11 +301,11 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'run' || viewMode === 'analyze' ? 'w-full opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <RuntimeLayout 
-              activeBlock={selectedBlock} 
+            <RuntimeLayout
+              activeBlock={selectedBlock}
               documentItems={documentItems}
               onBlockClick={handleBlockClick}
-              onComplete={handleComplete} 
+              onComplete={handleComplete}
               onBack={handleClearSelection}
               viewMode={viewMode === 'analyze' ? 'analyze' : 'run'}
             />
