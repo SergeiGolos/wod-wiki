@@ -76,6 +76,11 @@ export enum MemoryTypeEnum {
   METRIC_RESISTANCE = 'metric:resistance',
   
   /**
+   * Start time timestamp (ms) for the block execution
+   */
+  METRIC_START_TIME = 'metric:start-time',
+  
+  /**
    * Anchor reference - a stable pointer to dynamically resolved memory references
    * Used for UI data binding without tight coupling to specific data sources
    */

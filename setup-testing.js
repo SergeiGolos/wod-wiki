@@ -43,7 +43,6 @@ for (const file of configFiles) {
 }
 
 console.log('\n🎉 Setup complete! You can now run:');
-console.log('  npm test              # Run all tests');
-console.log('  npm run test:unit     # Run unit tests only');
+console.log('  npm run test          # Run unit tests only');
 console.log('  npm run test:storybook # Run Storybook tests only');
 console.log('  npm run storybook     # Start Storybook dev server');

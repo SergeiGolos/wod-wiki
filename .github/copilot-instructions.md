@@ -55,7 +55,6 @@ Each strategy implements `match()` and `compile()` methods. First matching strat
 Multi-project Vitest configuration with three test suites:
 
 - `npm test` - Run all test projects (~2-3 seconds)
-- `npm run test:unit` - Node.js unit tests (`src/**/*.{test,spec}.ts`)
 - `npm run test:watch` - Unit tests in watch mode
 - `npm run test:storybook` - Storybook component tests with Playwright (requires browsers)
 - `npm run test:e2e` - End-to-end Playwright tests
@@ -82,7 +81,7 @@ Multi-project Vitest configuration with three test suites:
    - Verify build completes without errors and creates `storybook-static/` directory
 
 3. **Unit Test Regression**:
-   - Run `npm run test:unit`
+   - Run `npm run test`
    - Ensure no NEW test failures are introduced
    - Accept existing 4 module failures and 1 integration test failure as baseline
 
@@ -92,7 +91,7 @@ Multi-project Vitest configuration with three test suites:
 - `npm install`: ~15 seconds
 - `npm run storybook`: ~2 seconds to start
 - `npm run build-storybook`: ~30 seconds (NEVER CANCEL - set timeout to 60+ minutes)
-- `npm run test:unit`: ~2-3 seconds
+- `npm run test`: ~2-3 seconds
 - `npm run setup`: ~30 seconds (may fail on Playwright download - expected)
 
 ## Project Structure

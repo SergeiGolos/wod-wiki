@@ -7,6 +7,7 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
+import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 
 /**
  * TimerBlock Configuration
@@ -57,7 +58,10 @@ export class TimerBlock extends RuntimeBlock {
     const timerBehavior = new TimerBehavior(config.direction, config.durationMs);
 
     // Create behaviors array
-    const behaviors: IRuntimeBehavior[] = [timerBehavior];
+    const behaviors: IRuntimeBehavior[] = [
+        timerBehavior,
+        new HistoryBehavior("Timer")
+    ];
 
     // If TimerBlock has children, add LoopCoordinatorBehavior for child management
     let loopCoordinator: LoopCoordinatorBehavior | undefined;

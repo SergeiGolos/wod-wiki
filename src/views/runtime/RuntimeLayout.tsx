@@ -127,65 +127,92 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   useEffect(() => {
     if (!runtime) return;
 
-    // 1. Get TimeSpans from memory
-    const timeSpanRefs = runtime.memory.search({ 
-      type: MemoryTypeEnum.TIMER_TIME_SPANS,
-      id: null,
-      ownerId: null,
-      visibility: null
-    });
-    
-    let minStartTime = Infinity;
+    // 1. Get Completed Segments from Execution Log
+    const historySegments: Segment[] = runtime.executionLog.map(record => ({
+        id: hashCode(record.blockId),
+        name: record.label,
+        type: record.type.toLowerCase(),
+        startTime: Math.floor(record.startTime / 1000),
+        endTime: Math.floor(record.endTime / 1000),
+        duration: (record.endTime - record.startTime) / 1000,
+        parentId: record.parentId ? hashCode(record.parentId) : null,
+        depth: 0, // Will be calculated later if needed, or handled by GitTreeSidebar
+        avgPower: 0,
+        avgHr: 0,
+        lane: 0
+    }));
 
-    const rawSegments = timeSpanRefs.map(ref => {
-      const timeSpans = runtime.memory.get(ref as any) as TimeSpan[];
-      if (!timeSpans || timeSpans.length === 0) return null;
+    // 2. Get Active Segments from Stack
+    const activeSegments: Segment[] = runtime.stack.blocks.map(block => {
+        let startTime = Date.now();
+        let duration = 0;
+        
+        // Check for start time in memory (allocated by HistoryBehavior)
+        const startTimeRefs = runtime.memory.search({ 
+            type: MemoryTypeEnum.METRIC_START_TIME, 
+            ownerId: block.key.toString(),
+            id: null,
+            visibility: null
+        });
+        
+        if (startTimeRefs.length > 0) {
+            const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
+            if (storedStartTime) {
+                startTime = storedStartTime;
+                duration = (Date.now() - startTime) / 1000;
+            }
+        } else {
+            // Fallback: Check for timer memory (legacy support)
+            const timeSpansRef = runtime.memory.search({ 
+                type: MemoryTypeEnum.TIMER_TIME_SPANS, 
+                ownerId: block.key.toString(),
+                id: null,
+                visibility: null
+            })[0];
+            
+            if (timeSpansRef) {
+                const timeSpans = runtime.memory.get(timeSpansRef as any) as TimeSpan[];
+                if (timeSpans && timeSpans.length > 0 && timeSpans[0].start) {
+                    startTime = timeSpans[0].start.getTime();
+                    duration = (Date.now() - startTime) / 1000;
+                }
+            }
+        }
 
-      const firstStart = timeSpans[0].start?.getTime() || Date.now();
-      if (firstStart < minStartTime) minStartTime = firstStart;
-      
-      const lastStop = timeSpans[timeSpans.length - 1].stop?.getTime() || Date.now();
-      
-      // Calculate actual active duration (sum of spans)
-      const durationSeconds = timeSpans.reduce((acc, span) => {
-        const start = span.start?.getTime() || 0;
-        const stop = span.stop?.getTime() || Date.now();
-        return acc + (stop - start);
-      }, 0) / 1000;
+        // Determine parent
+        const stackIndex = runtime.stack.blocks.indexOf(block);
+        const parentId = stackIndex > 0 ? runtime.stack.blocks[stackIndex - 1].key.toString() : null;
 
-      return {
-        ref,
-        firstStart,
-        lastStop,
-        durationSeconds
-      };
-    }).filter((s): s is NonNullable<typeof s> => s !== null);
-
-    if (rawSegments.length === 0) {
-        setRuntimeSegments([]);
-        setActiveSegmentId(null);
-        return;
-    }
-
-    const newSegments: Segment[] = rawSegments.map(item => {
         return {
-            id: hashCode(item.ref.ownerId),
-            name: item.ref.ownerId, // TODO: Improve naming based on block type/content
-            type: 'work',
-            startTime: Math.floor((item.firstStart - minStartTime) / 1000),
-            endTime: Math.floor((item.lastStop - minStartTime) / 1000),
-            duration: item.durationSeconds,
-            parentId: null,
-            depth: 0,
+            id: hashCode(block.key.toString()),
+            name: block.blockType || block.key.toString(),
+            type: (block.blockType || 'unknown').toLowerCase(),
+            startTime: Math.floor(startTime / 1000),
+            endTime: Math.floor(Date.now() / 1000), // Currently running
+            duration: duration,
+            parentId: parentId ? hashCode(parentId) : null,
+            depth: stackIndex,
             avgPower: 0,
             avgHr: 0,
             lane: 0
         };
-    }).sort((a, b) => a.startTime - b.startTime);
+    });
 
-    setRuntimeSegments(newSegments);
+    // Combine and Sort
+    const allSegments = [...historySegments, ...activeSegments].sort((a, b) => a.startTime - b.startTime);
+    
+    // Normalize Start Times (relative to first segment)
+    if (allSegments.length > 0) {
+        const minStartTime = allSegments[0].startTime;
+        allSegments.forEach(s => {
+            s.startTime -= minStartTime;
+            s.endTime -= minStartTime;
+        });
+    }
 
-    // 2. Determine Active Segment from Stack
+    setRuntimeSegments(allSegments);
+
+    // 3. Determine Active Segment from Stack
     if (snapshot && snapshot.stack.blocks.length > 0) {
         const topBlock = snapshot.stack.blocks[snapshot.stack.blocks.length - 1];
         setActiveSegmentId(hashCode(topBlock.key));

@@ -8,6 +8,7 @@ import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorB
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
+import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 
 /**
  * RoundsBlock Configuration
@@ -82,7 +83,8 @@ export class RoundsBlock extends RuntimeBlock {
       new CompletionBehavior(
         () => loopCoordinator.isComplete(runtime),
         ['rounds:complete']
-      )
+      ),
+      new HistoryBehavior("Rounds")
     ];
 
     // Initialize RuntimeBlock with behaviors

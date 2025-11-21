@@ -9,6 +9,7 @@ import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
+import { ExecutionRecord } from './models/ExecutionRecord';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -18,6 +19,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly memory: IRuntimeMemory;
     public readonly metrics: IMetricCollector;
     public readonly errors: RuntimeError[] = [];
+    public readonly executionLog: ExecutionRecord[] = [];
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {

@@ -24,7 +24,6 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 
 ### Testing Commands
 - `npm test` - Run all tests using Vitest (~2-3 seconds)
-- `npm run test:unit` - Run unit tests only (~2-3 seconds)
 - `npm run test:storybook` - Run Storybook component tests (requires Playwright)
 - `npm run test:watch` - Run unit tests in watch mode
 - `npm run test:e2e` - Run end-to-end tests with Playwright
@@ -111,7 +110,7 @@ After making changes, always validate:
    - Verify build completes without errors and creates `storybook-static/` directory
 
 3. **Unit Test Regression**:
-   - Run `npm run test:unit`
+   - Run `npm run test`
    - Ensure no NEW test failures are introduced
    - Accept existing 4 module failures and 1 integration test failure as baseline
 
