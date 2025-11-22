@@ -29,7 +29,7 @@ try {
 // Verify configuration files exist
 const configFiles = [
   'vitest.config.js',
-  '.storybook/main.js',
+  '.storybook/main.mjs',
   '.storybook/vitest.setup.js'
 ];
 
