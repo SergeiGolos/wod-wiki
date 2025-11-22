@@ -200,7 +200,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               className={`gap-2 ${viewMode === 'edit' ? '' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Edit className="h-4 w-4" />
-              Edit
+              Plan
             </Button>
             <Button
               variant={viewMode === 'run' ? "default" : "ghost"}
