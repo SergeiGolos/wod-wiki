@@ -13,6 +13,8 @@ export class RichMarkdownManager {
     private zoneRoots: Map<string, ReactDOM.Root> = new Map();
     private zoneResizeObservers: Map<string, ResizeObserver> = new Map();
     private isDisposed = false;
+    private lastViewZoneState: string = '';
+    private lastHiddenAreasState: string = '';
 
     constructor(editor: editor.IStandaloneCodeEditor) {
         this.editor = editor;
@@ -20,7 +22,7 @@ export class RichMarkdownManager {
         this.editor.onDidChangeCursorPosition(() => this.updateDecorations());
         // Listen to content changes to update ranges
         this.editor.onDidChangeModelContent(() => this.updateDecorations());
-        
+
         // Initial update
         this.updateDecorations();
     }
@@ -63,6 +65,7 @@ export class RichMarkdownManager {
         const model = this.editor.getModel();
         if (!model) return;
 
+        const isReadonly = this.editor.getOption(editor.EditorOption.readOnly);
         const cursorPosition = this.editor.getPosition();
         const currentLine = cursorPosition?.lineNumber || -1;
 
@@ -76,94 +79,131 @@ export class RichMarkdownManager {
         const mediaBlocks = MediaParser.parse(lines);
 
         const hiddenAreas: Range[] = [];
-        
-        // Handle View Zones for Front Matter & Media
-        this.editor.changeViewZones((changeAccessor) => {
-            // Clear existing zones first (simple approach for now, can be optimized)
-            this.viewZones.forEach(id => {
-                changeAccessor.removeZone(id);
-                const root = this.zoneRoots.get(id);
-                if (root) {
-                    root.unmount();
-                    this.zoneRoots.delete(id);
-                }
-                const observer = this.zoneResizeObservers.get(id);
-                if (observer) {
-                    observer.disconnect();
-                    this.zoneResizeObservers.delete(id);
-                }
-            });
-            this.viewZones = [];
+        const viewZonesToRender: { type: 'frontmatter' | 'media', block: any, id: string }[] = [];
 
-            // Front Matter Logic
-            frontMatterBlocks.forEach(block => {
-                const isCursorInside = currentLine >= block.startLine && currentLine <= block.endLine;
-                
-                if (!isCursorInside) {
-                    // Mark for hiding (using setHiddenAreas instead of decorations)
-                    hiddenAreas.push(new Range(block.startLine, 1, block.endLine, 1));
+        // 1. Calculate Front Matter State
+        frontMatterBlocks.forEach(block => {
+            // If readonly, we never consider the cursor "inside" for the purpose of unhiding
+            const isCursorInside = !isReadonly && (currentLine >= block.startLine && currentLine <= block.endLine);
 
-                    // Create View Zone
+            if (!isCursorInside) {
+                // Mark for hiding
+                hiddenAreas.push(new Range(block.startLine, 1, block.endLine, 1));
+
+                // Mark for View Zone
+                const id = `fm:${block.startLine}-${block.endLine}`;
+                viewZonesToRender.push({ type: 'frontmatter', block, id });
+            }
+        });
+
+        // 2. Calculate Media State
+        mediaBlocks.forEach(block => {
+            if (block.isWholeLine) {
+                const isCursorOnLine = !isReadonly && (currentLine === block.line);
+                if (!isCursorOnLine) {
+                    // Hide line
+                    hiddenAreas.push(new Range(block.line, 1, block.line, 1));
+
+                    // Mark for View Zone
+                    const id = `media:${block.line}-${block.url}`;
+                    viewZonesToRender.push({ type: 'media', block, id });
+                }
+            }
+        });
+
+        // 3. Calculate WOD Block State (for hidden areas only)
+        for (let i = 1; i <= lineCount; i++) {
+            const lineContent = model.getLineContent(i);
+            const isCurrentLine = !isReadonly && (i === currentLine);
+            const trimmed = lineContent.trim();
+
+            if (trimmed === '```wod' || trimmed === '```') {
+                if (!isCurrentLine) {
+                    // Use setHiddenAreas to completely collapse the line
+                    hiddenAreas.push(new Range(i, 1, i, 1));
+                }
+            }
+        }
+
+        // --- Update View Zones if changed ---
+        const newViewZoneState = viewZonesToRender.map(z => z.id).join('|');
+
+        if (newViewZoneState !== this.lastViewZoneState) {
+            console.log(`[RichMarkdown] ViewZone state changed. Updating zones.`);
+            this.lastViewZoneState = newViewZoneState;
+
+            this.editor.changeViewZones((changeAccessor) => {
+                // Clear existing zones
+                this.viewZones.forEach(id => {
+                    changeAccessor.removeZone(id);
+                    const root = this.zoneRoots.get(id);
+                    if (root) {
+                        root.unmount();
+                        this.zoneRoots.delete(id);
+                    }
+                    const observer = this.zoneResizeObservers.get(id);
+                    if (observer) {
+                        observer.disconnect();
+                        this.zoneResizeObservers.delete(id);
+                    }
+                });
+                this.viewZones = [];
+
+                // Render new zones
+                viewZonesToRender.forEach(item => {
+                    const { type, block } = item;
+
                     const domNode = document.createElement('div');
                     const root = ReactDOM.createRoot(domNode);
-                    
-                    const handleEdit = () => {
-                        (this.editor as any).setHiddenAreas([]); 
-                        this.editor.setPosition({ lineNumber: block.startLine, column: 1 });
-                        this.editor.revealLine(block.startLine);
-                        this.editor.focus();
-                    };
 
-                    root.render(React.createElement(FrontMatterTable, { 
-                        properties: block.properties,
-                        onEdit: handleEdit
-                    }));
+                    let handleEdit;
+                    let component;
+                    let afterLineNumber;
+                    let heightInLines;
 
-                    const viewZoneId = changeAccessor.addZone({
-                        afterLineNumber: block.startLine - 1, 
-                        heightInLines: Object.keys(block.properties).length + 2, 
-                        domNode: domNode
-                    });
-                    this.viewZones.push(viewZoneId);
-                    this.zoneRoots.set(viewZoneId, root);
-                }
-            });
-
-            // Media Logic
-            mediaBlocks.forEach(block => {
-                if (block.isWholeLine) {
-                    const isCursorOnLine = currentLine === block.line;
-                    if (!isCursorOnLine) {
-                        // Hide line
-                        hiddenAreas.push(new Range(block.line, 1, block.line, 1));
-                        
-                        // Create View Zone
-                        const domNode = document.createElement('div');
-                        const root = ReactDOM.createRoot(domNode);
-                        
-                        const handleEdit = () => {
-                            (this.editor as any).setHiddenAreas([]); 
+                    if (type === 'frontmatter') {
+                        handleEdit = () => {
+                            (this.editor as any).setHiddenAreas([]);
+                            this.editor.setPosition({ lineNumber: block.startLine, column: 1 });
+                            this.editor.revealLine(block.startLine);
+                            this.editor.focus();
+                        };
+                        component = React.createElement(FrontMatterTable, {
+                            properties: block.properties,
+                            onEdit: handleEdit
+                        });
+                        afterLineNumber = block.startLine - 1;
+                        heightInLines = Object.keys(block.properties).length + 2;
+                    } else {
+                        // Media
+                        handleEdit = () => {
+                            (this.editor as any).setHiddenAreas([]);
                             this.editor.setPosition({ lineNumber: block.line, column: 1 });
                             this.editor.revealLine(block.line);
                             this.editor.focus();
                         };
-
-                        root.render(React.createElement(MediaWidget, { 
-                            type: block.type, 
-                            url: block.url, 
+                        component = React.createElement(MediaWidget, {
+                            type: block.type,
+                            url: block.url,
                             alt: block.alt,
                             onEdit: handleEdit
-                        }));
-
-                        const viewZoneId = changeAccessor.addZone({
-                            afterLineNumber: block.line - 1,
-                            heightInLines: block.type === 'youtube' ? 15 : 10, 
-                            domNode: domNode
                         });
-                        this.viewZones.push(viewZoneId);
-                        this.zoneRoots.set(viewZoneId, root);
+                        afterLineNumber = block.line - 1;
+                        heightInLines = block.type === 'youtube' ? 15 : 10;
+                    }
 
-                        // Add ResizeObserver
+                    root.render(component);
+
+                    const viewZoneId = changeAccessor.addZone({
+                        afterLineNumber,
+                        heightInLines,
+                        domNode
+                    });
+                    this.viewZones.push(viewZoneId);
+                    this.zoneRoots.set(viewZoneId, root);
+
+                    // Add ResizeObserver for Media
+                    if (type === 'media') {
                         const observer = new ResizeObserver(() => {
                             this.editor.changeViewZones(accessor => {
                                 accessor.layoutZone(viewZoneId);
@@ -172,19 +212,26 @@ export class RichMarkdownManager {
                         observer.observe(domNode);
                         this.zoneResizeObservers.set(viewZoneId, observer);
                     }
-                }
+                });
             });
-        });
+        }
 
-        // Apply hidden areas
-        // This replaces the 'rich-md-hidden-line' decoration for Front Matter
-        // (this.editor as any).setHiddenAreas(hiddenAreas); // Moved to end
+        // --- Update Hidden Areas if changed ---
+        // Sort ranges to ensure consistent state string
+        hiddenAreas.sort((a, b) => a.startLineNumber - b.startLineNumber);
+        const newHiddenAreasState = hiddenAreas.map(r => `${r.startLineNumber}-${r.endLineNumber}`).join('|');
+
+        if (newHiddenAreasState !== this.lastHiddenAreasState) {
+            console.log(`[RichMarkdown] HiddenAreas state changed. Updating.`);
+            this.lastHiddenAreasState = newHiddenAreasState;
+            (this.editor as any).setHiddenAreas(hiddenAreas);
+        }
 
         console.log(`[RichMarkdown] Updating decorations. Current line: ${currentLine}`);
 
         for (let i = 1; i <= lineCount; i++) {
             const lineContent = model.getLineContent(i);
-            const isCurrentLine = i === currentLine;
+            const isCurrentLine = !isReadonly && (i === currentLine);
 
             // 1. Headings
             // Matches # Heading, ## Heading, ### Heading
@@ -194,16 +241,16 @@ export class RichMarkdownManager {
                 const hashes = headingMatch[2];
                 const text = headingMatch[3];
                 const level = hashes.length;
-                
+
                 // Range of the hashes + space: 
                 // Start: 1 + leadingSpace.length
                 // End: 1 + leadingSpace.length + hashes.length + (whitespace after hashes)
                 // Re-calculating exact range for the "hidden" part
                 const fullMatch = headingMatch[0];
-                const prefixLength = fullMatch.length - text.length; 
-                
+                const prefixLength = fullMatch.length - text.length;
+
                 if (!isCurrentLine) {
-                    console.log(`[RichMarkdown] Hiding heading on line ${i}`);
+                    // console.log(`[RichMarkdown] Hiding heading on line ${i}`);
                     newDecorations.push({
                         range: new Range(i, 1, i, 1 + prefixLength),
                         options: { inlineClassName: 'rich-md-hidden' }
@@ -235,31 +282,22 @@ export class RichMarkdownManager {
                     // Apply block style to the whole line
                     newDecorations.push({
                         range: new Range(i, 1, i, lineContent.length + 1),
-                        options: { 
+                        options: {
                             isWholeLine: true,
-                            className: 'rich-md-blockquote' 
+                            className: 'rich-md-blockquote'
                         }
                     });
                 }
             }
 
-            // 3. WOD Blocks
-            // Matches ```wod or ```
-            const trimmed = lineContent.trim();
-            if (trimmed === '```wod' || trimmed === '```') {
-                if (!isCurrentLine) {
-                    console.log(`[RichMarkdown] Hiding WOD block fence on line ${i}`);
-                    // Use setHiddenAreas to completely collapse the line
-                    hiddenAreas.push(new Range(i, 1, i, 1));
-                }
-            }
+            // 3. WOD Blocks - Handled in Hidden Areas calculation above
         }
-        
+
         // Apply hidden areas (Front Matter + WOD Fences)
-        (this.editor as any).setHiddenAreas(hiddenAreas);
-        
+        // (this.editor as any).setHiddenAreas(hiddenAreas);
+
         if (newDecorations.length > 0) {
-             console.log(`[RichMarkdown] Applying ${newDecorations.length} decorations`);
+            console.log(`[RichMarkdown] Applying ${newDecorations.length} decorations`);
         }
 
         this.decorations = this.editor.deltaDecorations(this.decorations, newDecorations);

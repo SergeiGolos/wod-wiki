@@ -217,8 +217,10 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       setIsOpen(true);
     });
     
-    // Focus editor
-    editor.focus();
+    // Focus editor only if not in readonly mode
+    if (!readonly) {
+      editor.focus();
+    }
 
     // Track cursor position
     editor.onDidChangeCursorPosition((e) => {
