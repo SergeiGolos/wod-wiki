@@ -5,13 +5,17 @@ import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, BarChart3 } from 'lucide-react';
+import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { useExecutionLog } from '../../clock/hooks/useExecutionLog';
+import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
 
 interface AnalyticsLayoutProps {
   activeBlock: WodBlock | null;
   documentItems: DocumentItem[];
   onBlockClick: (item: DocumentItem) => void;
   onBack: () => void;
+  runtime: ScriptRuntime | null;
 }
 
 // --- Mock Data Generation (Moved from TimelineView) ---
@@ -94,13 +98,48 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
   activeBlock, 
   documentItems,
   onBlockClick,
-  onBack
+  onBack,
+  runtime
 }) => {
-  // Generate data once
-  const { data: rawData, segments } = useMemo(() => generateSessionData(), []);
+  // Get real execution log data from runtime
+  const { history, active } = useExecutionLog(runtime);
+  
+  // Helper to generate stable ID from string
+  const hashCode = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  };
+
+  // Convert ExecutionRecords to Segments for timeline visualization
+  const segments = useMemo(() => {
+    const allRecords = [...history, ...active];
+    return allRecords.map((record: ExecutionRecord) => ({
+      id: hashCode(record.id),
+      name: record.label,
+      type: record.type.toLowerCase(),
+      startTime: Math.floor(record.startTime / 1000),
+      endTime: record.endTime ? Math.floor(record.endTime / 1000) : Math.floor(Date.now() / 1000),
+      duration: record.endTime 
+        ? (record.endTime - record.startTime) / 1000
+        : (Date.now() - record.startTime) / 1000,
+      parentId: record.parentId ? hashCode(record.parentId) : null,
+      depth: 0,
+      avgPower: 0,
+      avgHr: 0,
+      lane: 0
+    }));
+  }, [history, active]);
+
+  // Generate mock raw data for telemetry graphs (will be replaced with real metrics later)
+  const { data: rawData } = useMemo(() => generateSessionData(), []);
   
   // Selection state
-  const [selectedSegmentIds, setSelectedSegmentIds] = useState(new Set([5, 7, 9, 11])); // Default: Intervals
+  const [selectedSegmentIds, setSelectedSegmentIds] = useState(new Set<number>());
 
   const handleSelectSegment = (id: number) => {
     const newSet = new Set(selectedSegmentIds);
@@ -108,6 +147,9 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
     else newSet.add(id);
     setSelectedSegmentIds(newSet);
   };
+
+  // Check if we have any data
+  const hasData = history.length > 0 || active.length > 0;
 
   return (
     <div className="flex h-full w-full overflow-hidden">
@@ -130,7 +172,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
         ) : (
           <WodIndexPanel 
             items={documentItems}
-            activeBlockId={null}
+            activeBlockId={undefined}
             onBlockClick={onBlockClick}
             onBlockHover={() => {}}
           />
@@ -140,12 +182,31 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
       {/* Right Panel: Table & Graphs (2/3) */}
       <div className="w-2/3 flex flex-col bg-background overflow-hidden">
         <div className="flex-1 overflow-hidden">
-           <TimelineView 
-             rawData={rawData}
-             segments={segments}
-             selectedSegmentIds={selectedSegmentIds}
-             onSelectSegment={handleSelectSegment}
-           />
+          {hasData ? (
+            <TimelineView 
+              rawData={rawData}
+              segments={segments}
+              selectedSegmentIds={selectedSegmentIds}
+              onSelectSegment={handleSelectSegment}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm max-w-md">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="font-semibold mb-2 text-lg">No Workout Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {activeBlock 
+                    ? "Start a workout to see performance metrics and analysis."
+                    : "Select a WOD block from the index to begin tracking."}
+                </p>
+                {!activeBlock && (
+                  <p className="text-xs text-muted-foreground">
+                    Once you run a workout, you'll see detailed analytics including timing, metrics, and performance graphs here.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

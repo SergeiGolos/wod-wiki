@@ -20,6 +20,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly metrics: IMetricCollector;
     public readonly errors: RuntimeError[] = [];
     public readonly executionLog: ExecutionRecord[] = [];
+    private _activeSpans: Map<string, ExecutionRecord> = new Map();
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
@@ -29,6 +30,14 @@ export class ScriptRuntime implements IScriptRuntime {
         this.jit = compiler;
         this._setupMemoryAwareStack();
         console.log(`🧠 ScriptRuntime created with memory system and metrics collector`);
+    }
+
+    /**
+     * Gets the currently active execution spans.
+     * Used by UI to display ongoing execution state.
+     */
+    public get activeSpans(): ReadonlyMap<string, ExecutionRecord> {
+        return this._activeSpans;
     }
 
     /**
@@ -46,15 +55,50 @@ export class ScriptRuntime implements IScriptRuntime {
             const poppedBlock = originalPop();
 
             if (poppedBlock) {
-                console.log(`🧠 ScriptRuntime - Popped block: ${poppedBlock.key.toString()}`);
+                const blockId = poppedBlock.key.toString();
+                console.log(`🧠 ScriptRuntime - Popped block: ${blockId}`);
                 console.log(`  ⚠️  Consumer must call dispose() on this block when finished`);
+
+                // Finalize execution span
+                const record = this._activeSpans.get(blockId);
+                if (record) {
+                    record.endTime = Date.now();
+                    record.status = 'completed';
+                    
+                    // Move to execution log
+                    this.executionLog.push(record);
+                    this._activeSpans.delete(blockId);
+                    
+                    console.log(`  📊 Finalized execution record: ${record.label} (${record.endTime - record.startTime}ms)`);
+                }
             }
 
             return poppedBlock; // Consumer responsibility to dispose
         };
 
         this.stack.push = (block) => {
-            console.log(`🧠 ScriptRuntime - Pushing block: ${block.key.toString()}`);
+            const blockId = block.key.toString();
+            console.log(`🧠 ScriptRuntime - Pushing block: ${blockId}`);
+            
+            // Identify parent span
+            const parentBlock = this.stack.current;
+            const parentSpan = parentBlock ? this._activeSpans.get(parentBlock.key.toString()) : null;
+
+            // Create execution record
+            const record: ExecutionRecord = {
+                id: `${Date.now()}-${blockId}`, // Simple unique ID
+                blockId: blockId,
+                parentId: parentSpan ? parentSpan.id : null,
+                type: block.blockType || 'unknown',
+                label: block.label || blockId,
+                startTime: Date.now(),
+                status: 'active',
+                metrics: []
+            };
+
+            // Store in active spans
+            this._activeSpans.set(blockId, record);
+            console.log(`  📊 Created execution record: ${record.label} (parent: ${record.parentId || 'none'})`);
             
             // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)
             if (typeof (block as any).setRuntime === 'function') {

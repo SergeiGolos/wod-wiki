@@ -50,8 +50,19 @@ export class EffortBlock extends RuntimeBlock {
       ['reps:updated']
     );
 
+    // Generate label from exercise name and reps
+    const label = `${config.targetReps} ${config.exerciseName}`;
+
     // Initialize RuntimeBlock with completion behavior
-    super(runtime, sourceIds, [completionBehavior], "Effort");
+    super(
+      runtime,
+      sourceIds,
+      [completionBehavior],
+      "Effort",  // blockType
+      undefined, // blockKey
+      undefined, // blockTypeParam
+      label      // label
+    );
   }
 
   /**

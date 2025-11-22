@@ -87,12 +87,20 @@ export class RoundsBlock extends RuntimeBlock {
       new HistoryBehavior("Rounds")
     ];
 
+    // Generate label based on configuration
+    const label = config.repScheme
+      ? config.repScheme.join('-')
+      : `${config.totalRounds} Round${config.totalRounds !== 1 ? 's' : ''}`;
+
     // Initialize RuntimeBlock with behaviors
     super(
       runtime,
       sourceIds,
       behaviors,
-      "Rounds"  // blockType
+      "Rounds",  // blockType
+      undefined, // blockKey
+      undefined, // blockTypeParam
+      label      // label
     );
 
     // Store reference to loop coordinator for context access

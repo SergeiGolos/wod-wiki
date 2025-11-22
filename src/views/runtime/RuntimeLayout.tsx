@@ -223,8 +223,8 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
         name: record.label,
         type: record.type.toLowerCase(),
         startTime: Math.floor(record.startTime / 1000),
-        endTime: Math.floor(record.endTime / 1000),
-        duration: (record.endTime - record.startTime) / 1000,
+        endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
+        duration: ((record.endTime ?? Date.now()) - record.startTime) / 1000,
         parentId: record.parentId ? hashCode(record.parentId) : null,
         depth: 0, // Will be calculated later if needed, or handled by GitTreeSidebar
         avgPower: 0,

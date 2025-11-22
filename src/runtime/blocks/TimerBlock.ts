@@ -94,12 +94,20 @@ export class TimerBlock extends RuntimeBlock {
     
     behaviors.push(completionBehavior);
 
+    // Generate label based on timer configuration
+    const label = config.direction === 'down' && config.durationMs
+      ? `${Math.floor(config.durationMs / 60000)}:${String(Math.floor((config.durationMs % 60000) / 1000)).padStart(2, '0')}`
+      : 'For Time';
+
     // Initialize RuntimeBlock with behaviors
     super(
       runtime,
       sourceIds,
       behaviors,
-      "Timer"  // blockType
+      "Timer",  // blockType
+      undefined, // blockKey
+      undefined, // blockTypeParam
+      label      // label
     );
 
     // Store reference to timer behavior for state access

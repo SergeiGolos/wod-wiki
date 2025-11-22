@@ -28,7 +28,21 @@ export class EmitMetricAction implements IRuntimeAction {
   ) {}
 
   do(runtime: IScriptRuntime): void {
-    // Assumes runtime has a metric collection subsystem
+    // Attach metric to the active execution span
+    const currentBlock = runtime.stack.current;
+    if (currentBlock) {
+      // Access activeSpans via type assertion since it's added to ScriptRuntime
+      const activeSpans = (runtime as any)._activeSpans as Map<string, any>;
+      if (activeSpans) {
+        const span = activeSpans.get(currentBlock.key.toString());
+        if (span && span.metrics) {
+          span.metrics.push(this.metric);
+          console.log(`  📊 Attached metric to span: ${span.label}`);
+        }
+      }
+    }
+
+    // Also collect in the global metrics system for aggregate stats
     if ('metrics' in runtime && runtime.metrics && typeof runtime.metrics.collect === 'function') {
       runtime.metrics.collect(this.metric);
     } else {

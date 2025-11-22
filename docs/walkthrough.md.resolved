@@ -1,0 +1,44 @@
+# Folding Logic Refactor Walkthrough
+
+The monolithic [RichMarkdownManager](file:///d:/Dev/wod-wiki/src/editor/RichMarkdownManager.ts#9-44) has been refactored into a modular feature-based system.
+
+## Architecture
+
+*   **[RichFeature](file:///d:/Dev/wod-wiki/src/editor/features/RichFeature.ts#15-50) Interface**: Defines the contract for all folding/hiding features.
+*   **[FeatureRegistry](file:///d:/Dev/wod-wiki/src/editor/features/FeatureRegistry.ts#5-212)**: Manages active features and orchestrates the update cycle.
+*   **Feature Classes**:
+    *   [FrontMatterFeature](file:///d:/Dev/wod-wiki/src/editor/features/FrontMatterFeature.ts#7-40): Handles YAML front matter.
+    *   [MediaFeature](file:///d:/Dev/wod-wiki/src/editor/features/MediaFeature.ts#7-41): Handles Images and YouTube links.
+    *   [WodBlockFeature](file:///d:/Dev/wod-wiki/src/editor/features/WodBlockFeature.ts#4-36): Handles ` ```wod ` fences.
+    *   [HeadingFeature](file:///d:/Dev/wod-wiki/src/editor/features/HeadingFeature.ts#4-62): Handles `# Heading` syntax hiding.
+    *   [BlockquoteFeature](file:///d:/Dev/wod-wiki/src/editor/features/BlockquoteFeature.ts#4-62): Handles `> Quote` syntax hiding.
+
+## Verification Steps
+
+1.  **Front Matter**:
+    *   Open a file with YAML front matter.
+    *   Verify it is folded into a table.
+    *   Click "Edit" to verify it unhides.
+
+2.  **Media**:
+    *   Add an image `![alt](url)` on a new line.
+    *   Verify it renders the image widget.
+    *   Move cursor to the line to verify it unhides (if not read-only).
+
+3.  **Wod Blocks**:
+    *   Add a ` ```wod ` block.
+    *   Verify the fence lines are hidden/collapsed.
+
+4.  **Headings**:
+    *   Add a heading `# Test`.
+    *   Verify the `# ` is hidden and text is styled.
+    *   Move cursor to the line to verify `# ` appears.
+
+5.  **Blockquotes**:
+    *   Add a quote `> Test`.
+    *   Verify the `> ` is hidden and text is styled.
+    *   Move cursor to the line to verify `> ` appears.
+
+## Debugging
+
+Each feature has a `debugName`. You can enable logging in [FeatureRegistry.ts](file:///d:/Dev/wod-wiki/src/editor/features/FeatureRegistry.ts) to see which features are processing ranges.

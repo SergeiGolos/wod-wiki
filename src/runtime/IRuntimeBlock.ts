@@ -56,7 +56,14 @@ export interface IRuntimeBlock {
      * Type discriminator for UI display and logging.
      * Enables identification of block types (Timer, Rounds, Effort, etc.).
      */
-    readonly blockType?: string;  
+    readonly blockType?: string;
+
+    /**
+     * Human-readable label for the block.
+     * Used for logging, UI display, and execution history.
+     * e.g., "Round 1 of 3", "21 Reps", "For Time"
+     */
+    readonly label: string;  
 
     /**
      * Called when this block is pushed onto the runtime stack.

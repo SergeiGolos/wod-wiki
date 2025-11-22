@@ -19,6 +19,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     protected readonly behaviors: IRuntimeBehavior[] = []
     public readonly key: BlockKey;
     public readonly blockType?: string;
+    public readonly label: string;
     public readonly context: IBlockContext;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
@@ -29,20 +30,23 @@ export class RuntimeBlock implements IRuntimeBlock{
         behaviors: IRuntimeBehavior[] = [],
         contextOrBlockType?: IBlockContext | string,
         blockKey?: BlockKey,
-        blockTypeParam?: string
+        blockTypeParam?: string,
+        label?: string
     ) {
         // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
         if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
             // Old signature: (runtime, sourceIds, behaviors, blockType)
             this.key = new BlockKey();
-            this.blockType = contextOrBlockType;
+            this.blockType = contextOrBlockType as string | undefined;
+            this.label = label || (contextOrBlockType as string) || 'Block';
             // Create a default context for backward compatibility
             this.context = new BlockContext(_runtime, this.key.toString());
         } else {
-            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?)
+            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?)
             this.key = blockKey ?? new BlockKey();
             this.context = contextOrBlockType;
             this.blockType = blockTypeParam;
+            this.label = label || blockTypeParam || 'Block';
         }
         
         this.behaviors = behaviors;
