@@ -282,7 +282,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   // Default Monaco options
   const defaultOptions: monacoEditor.IStandaloneEditorConstructionOptions = {
     readOnly: readonly,
-    minimap: { enabled: true },
+    minimap: { enabled: false },
     lineNumbers: 'on',
     wordWrap: 'on',
     fontSize: 14,

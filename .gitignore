@@ -148,3 +148,7 @@ tests/e2e/screenshots/
 .storybook/api/data/exercises/
 .storybook/api/data/exercise-path-index.json
 
+
+# lock files
+pnpm-lock.yaml
+package-lock.json
