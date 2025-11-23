@@ -111,9 +111,6 @@ export const useRuntimeExecution = (
     setStatus('running');
     startTimeRef.current = Date.now() - elapsedTime; // Resume from paused time
 
-    // Execute first step immediately
-    executeStep();
-
     // Start interval for subsequent steps
     intervalRef.current = setInterval(executeStep, EXECUTION_TICK_RATE_MS);
   }, [runtime, status, elapsedTime, executeStep]);

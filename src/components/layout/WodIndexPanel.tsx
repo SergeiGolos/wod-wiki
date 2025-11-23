@@ -17,6 +17,9 @@ export interface WodIndexPanelProps {
   
   /** Callback when a block is hovered */
   onBlockHover: (blockId: string | null) => void;
+
+  /** Whether to render in mobile mode */
+  mobile?: boolean;
 }
 
 /**
@@ -43,7 +46,8 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
   activeBlockId,
   highlightedBlockId,
   onBlockClick,
-  onBlockHover
+  onBlockHover,
+  mobile = false
 }) => {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -51,14 +55,14 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
   const filteredItems = items.filter(item => item.type !== 'paragraph');
 
   return (
-    <div className="h-full bg-background flex flex-col overflow-hidden border-l border-border">
+    <div className={`h-full bg-background flex flex-col overflow-hidden ${mobile ? '' : 'border-l border-border'}`}>
       {/* Header */}
-      <div className="p-4 border-b border-border flex-shrink-0 bg-muted/30">
-        <h3 className="text-sm font-semibold text-foreground">Index</h3>
+      <div className={`border-b border-border flex-shrink-0 bg-muted/30 ${mobile ? 'p-6' : 'p-4'}`}>
+        <h3 className={`${mobile ? 'text-lg' : 'text-sm'} font-semibold text-foreground`}>Index</h3>
       </div>
 
       {/* Document Items List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className={`flex-1 overflow-y-auto space-y-1 ${mobile ? 'p-4' : 'p-2'}`}>
         {filteredItems.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground text-center italic">
             Empty document
@@ -85,20 +89,21 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
               >
                 {/* Item Header / Summary */}
                 <div className={`
-                  flex items-center gap-2 p-2 cursor-pointer
-                  ${isWod ? 'min-h-[40px]' : 'min-h-[28px]'}
+                  flex items-center gap-2 cursor-pointer
+                  ${mobile ? 'p-4' : 'p-2'}
+                  ${isWod ? (mobile ? 'min-h-[60px]' : 'min-h-[40px]') : 'min-h-[28px]'}
                 `}>
                   {/* Icon based on type */}
                   <div className="flex-shrink-0 text-muted-foreground">
-                    {item.type === 'header' && <Hash className="h-3.5 w-3.5" />}
-                    {item.type === 'wod' && <Timer className="h-3.5 w-3.5" />}
+                    {item.type === 'header' && <Hash className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {item.type === 'wod' && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
                   </div>
 
                   {/* Content Preview */}
                   <div className="flex-1 min-w-0">
                     {item.type === 'header' && (
                       <div className={`font-medium truncate ${
-                        item.level === 1 ? 'text-sm' : 'text-xs text-muted-foreground'
+                        item.level === 1 ? (mobile ? 'text-base' : 'text-sm') : (mobile ? 'text-sm text-muted-foreground' : 'text-xs text-muted-foreground')
                       }`}>
                         {item.content}
                       </div>
@@ -106,7 +111,7 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
 
                     {item.type === 'wod' && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium truncate">
+                        <span className={`${mobile ? 'text-base' : 'text-sm'} font-medium truncate`}>
                           {getBlockPreview(item.content)}
                         </span>
                         {item.wodBlock?.state && (

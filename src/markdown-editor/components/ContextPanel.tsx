@@ -33,6 +33,9 @@ export interface ContextPanelProps {
 
   /** Whether the panel is read-only */
   readonly?: boolean;
+
+  /** Whether to render in mobile mode */
+  mobile?: boolean;
 }
 
 /**
@@ -46,7 +49,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   onEditStatement,
   onDeleteStatement,
   onTrack,
-  readonly = false
+  readonly = false,
+  mobile = false
 }) => {
   const hasStatements = block.statements && block.statements.length > 0;
   const hasErrors = block.errors && block.errors.length > 0;
@@ -62,10 +66,10 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   };
 
   return (
-    <div className="context-panel bg-background border-l border-border h-full overflow-y-auto">
+    <div className={`context-panel bg-background h-full overflow-y-auto ${mobile ? '' : 'border-l border-border'}`}>
       {/* Header */}
-      <div className="p-4 border-b border-border bg-muted/50">
-        <h3 className="text-sm font-semibold text-foreground">
+      <div className={`border-b border-border bg-muted/50 ${mobile ? 'p-6' : 'p-4'}`}>
+        <h3 className={`${mobile ? 'text-lg' : 'text-sm'} font-semibold text-foreground`}>
           WOD Block Context
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
@@ -73,11 +77,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         </p>
       </div>
 
-      {/* Action Buttons removed as requested */}
-
-
       {/* Content */}
-      <div className="p-4">
+      <div className={`${mobile ? 'p-6' : 'p-4'}`}>
         {/* Parsing Status */}
         {block.state === 'parsing' && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
@@ -103,7 +104,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         {/* Unified Editable Statement List */}
         {hasStatements && !hasErrors && showEditor && (
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+            <h4 className={`${mobile ? 'text-base' : 'text-sm'} font-semibold text-gray-700 mb-3`}>
               Workout
             </h4>
             <EditableStatementList
@@ -128,8 +129,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
           </div>
         )}
 
-        {/* Block Info */}
-        {!compact && (
+        {/* Block Info - Hidden on mobile unless requested */}
+        {!compact && !mobile && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <h4 className="text-xs font-semibold text-gray-600 mb-2">
               Block Information
@@ -149,6 +150,15 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               </div>
             </dl>
           </div>
+        )}
+        
+        {/* Mobile Track Button (if not handled by parent) */}
+        {mobile && hasStatements && (
+           <div className="mt-8">
+             <Button className="w-full" size="lg" onClick={handleTrack}>
+               <Play className="mr-2 h-5 w-5" /> Start Workout
+             </Button>
+           </div>
         )}
       </div>
 

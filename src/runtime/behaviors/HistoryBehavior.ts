@@ -50,23 +50,9 @@ export class HistoryBehavior implements IRuntimeBehavior {
     }
 
     onDispose(runtime: IScriptRuntime, block: IRuntimeBlock): void {
-        const endTime = Date.now();
-        
-        // Collect metrics (placeholder for now - could query memory for specific metrics)
-        const metrics: any = {};
-        if ((block as any).reps !== undefined) metrics.reps = (block as any).reps;
-        
-        const record: ExecutionRecord = {
-            blockId: block.key.toString(),
-            parentId: this.parentId,
-            type: block.blockType || 'unknown',
-            label: this.label,
-            startTime: this.startTime,
-            endTime: endTime,
-            metrics: metrics
-        };
-
-        runtime.executionLog.push(record);
-        console.log(`📜 HistoryBehavior: Logged execution for ${block.key.toString()} (${this.label})`);
+        // ScriptRuntime now handles execution logging automatically via stack hooks.
+        // We no longer need to manually push to executionLog here.
+        // Keeping this method for potential future cleanup or specific metric handling.
+        console.log(`📜 HistoryBehavior: Block disposed ${block.key.toString()} (${this.label})`);
     }
 }

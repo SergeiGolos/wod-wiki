@@ -129,6 +129,7 @@ interface RuntimeLayoutProps {
   onComplete: () => void;
   onBack: () => void;
   viewMode: 'run' | 'analyze';
+  layoutMode?: 'split' | 'stacked';
 }
 
 export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ 
@@ -137,9 +138,11 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   onBlockClick,
   onComplete, 
   onBack,
-  viewMode
+  viewMode,
+  layoutMode = 'split'
 }) => {
   const [showDebug, setShowDebug] = useState(false);
+  const [showLog, setShowLog] = useState(false); // For stacked mode
   
   // Analytics Data (Mock)
   const { data: analyticsData, segments: analyticsSegments } = React.useMemo(() => generateSessionData(), []);
@@ -183,7 +186,7 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
     } else {
       setRuntime(null);
     }
-  }, [activeBlock]);
+  }, [activeBlock?.id, activeBlock?.content]);
 
   // Use execution hook
   const execution = useRuntimeExecution(runtime);
@@ -354,17 +357,26 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
     }
   };
 
+  // Determine panel widths based on layout mode
+  const leftPanelClass = layoutMode === 'stacked' 
+    ? `absolute inset-0 z-20 bg-background transition-transform duration-300 ${showLog ? 'translate-x-0' : '-translate-x-full'}`
+    : 'w-1/3 border-r border-border relative';
+    
+  const rightPanelClass = layoutMode === 'stacked'
+    ? 'w-full relative'
+    : 'w-2/3 relative';
+
   return (
     <div className="flex h-full w-full relative overflow-hidden">
-      {/* Left Panel: Execution Log (1/3) */}
-      <div className="w-1/3 border-r border-border flex flex-col bg-background relative overflow-y-auto custom-scrollbar" ref={scrollRef}>
+      {/* Left Panel: Execution Log */}
+      <div className={`${leftPanelClass} flex flex-col overflow-y-auto custom-scrollbar`} ref={scrollRef}>
         
         {activeBlock ? (
           <>
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 border-b border-border flex items-center justify-between">
-               <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+               <Button variant="ghost" size="sm" onClick={layoutMode === 'stacked' ? () => setShowLog(false) : onBack} className="gap-2">
                  <ChevronLeft className="h-4 w-4" />
-                 Back to Index
+                 {layoutMode === 'stacked' ? 'Back to Timer' : 'Back to Index'}
                </Button>
                {viewMode === 'run' && (
                <Button variant="ghost" size="icon" onClick={() => setShowDebug(true)}>
@@ -442,8 +454,8 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
         )}
       </div>
 
-      {/* Right Panel: Timer or Analytics (2/3) */}
-      <div className="w-2/3 bg-background relative overflow-hidden">
+      {/* Right Panel: Timer or Analytics */}
+      <div className={`${rightPanelClass} bg-background relative overflow-hidden`}>
         {/* Timer Panel */}
         <div className={`absolute inset-0 flex flex-col items-center justify-center transition-transform duration-500 ease-in-out ${viewMode === 'analyze' ? '-translate-x-full' : 'translate-x-0'}`}>
             <h2 className="text-2xl font-bold mb-8 text-muted-foreground">Workout Timer</h2>
@@ -474,6 +486,13 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                  <h3 className="font-semibold mb-2">No Workout Selected</h3>
                  <p className="text-sm text-muted-foreground">Select a WOD block from the index to begin tracking.</p>
               </div>
+            )}
+            
+            {/* Toggle Log Button (Stacked Mode) */}
+            {layoutMode === 'stacked' && activeBlock && (
+               <Button variant="outline" size="sm" className="mt-12 gap-2" onClick={() => setShowLog(true)}>
+                 <ChevronLeft className="h-4 w-4" /> View Log
+               </Button>
             )}
         </div>
 

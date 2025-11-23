@@ -47,19 +47,29 @@ export function useExecutionLog(runtime: ScriptRuntime | null): ExecutionLogData
 
     // Initial load
     const updateLogData = () => {
+      const refs = runtime.memory.search({ type: 'execution-record' });
+      const allRecords = refs
+        .map(ref => runtime.memory.get(ref as any) as ExecutionRecord)
+        .filter(Boolean);
+
       setLogData({
-        history: [...runtime.executionLog],
-        active: Array.from(runtime.activeSpans.values())
+        history: allRecords.filter(r => r.status === 'completed'),
+        active: allRecords.filter(r => r.status === 'active')
       });
     };
 
     updateLogData();
 
-    // Poll for updates (could be optimized with event subscription if ScriptRuntime emits events)
-    const interval = setInterval(updateLogData, 100);
+    // Subscribe to memory changes
+    const unsubscribe = runtime.memory.subscribe((ref, value, oldValue) => {
+      // Only update if the changed memory is an execution record
+      if (ref.type === 'execution-record') {
+        updateLogData();
+      }
+    });
 
     return () => {
-      clearInterval(interval);
+      unsubscribe();
     };
   }, [runtime]);
 

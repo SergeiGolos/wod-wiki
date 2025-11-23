@@ -32,7 +32,7 @@ Here is a simple recording example:
 3 Rounds
   10 Thrusters 95lb
   10 Pullups
-  [Rest] :60
+  Rest :60
 \`\`\`
 
 ## 2. Running the Workout

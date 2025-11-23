@@ -10,6 +10,7 @@ import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
+import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -19,8 +20,6 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly memory: IRuntimeMemory;
     public readonly metrics: IMetricCollector;
     public readonly errors: RuntimeError[] = [];
-    public readonly executionLog: ExecutionRecord[] = [];
-    private _activeSpans: Map<string, ExecutionRecord> = new Map();
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
@@ -33,11 +32,29 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Gets the currently active execution spans.
+     * Gets the currently active execution spans from memory.
      * Used by UI to display ongoing execution state.
      */
     public get activeSpans(): ReadonlyMap<string, ExecutionRecord> {
-        return this._activeSpans;
+        const map = new Map<string, ExecutionRecord>();
+        this.memory.search({ type: 'execution-record', visibility: 'public', id: null, ownerId: null })
+            .forEach(ref => {
+                const record = this.memory.get(ref as any) as ExecutionRecord;
+                if (record && record.status === 'active') {
+                    map.set(record.blockId, record);
+                }
+            });
+        return map;
+    }
+
+    /**
+     * Gets the execution history from memory.
+     * Note: This returns a copy of the records.
+     */
+    public get executionLog(): ExecutionRecord[] {
+        return this.memory.search({ type: 'execution-record', id: null, ownerId: null, visibility: null })
+            .map(ref => this.memory.get(ref as any) as ExecutionRecord)
+            .filter(r => r && r.status === 'completed');
     }
 
     /**
@@ -59,17 +76,24 @@ export class ScriptRuntime implements IScriptRuntime {
                 console.log(`🧠 ScriptRuntime - Popped block: ${blockId}`);
                 console.log(`  ⚠️  Consumer must call dispose() on this block when finished`);
 
-                // Finalize execution span
-                const record = this._activeSpans.get(blockId);
-                if (record) {
-                    record.endTime = Date.now();
-                    record.status = 'completed';
+                // Finalize execution span in memory
+                const refs = this.memory.search({ type: 'execution-record', ownerId: blockId, id: null, visibility: null });
+                if (refs.length > 0) {
+                    // Use TypedMemoryReference to ensure type safety if possible, or cast
+                    const ref = refs[0] as TypedMemoryReference<ExecutionRecord>;
+                    const record = this.memory.get(ref);
                     
-                    // Move to execution log
-                    this.executionLog.push(record);
-                    this._activeSpans.delete(blockId);
-                    
-                    console.log(`  📊 Finalized execution record: ${record.label} (${record.endTime - record.startTime}ms)`);
+                    if (record) {
+                        const updatedRecord: ExecutionRecord = {
+                            ...record,
+                            endTime: Date.now(),
+                            status: 'completed'
+                        };
+                        
+                        // Update memory (triggers subscribers)
+                        this.memory.set(ref, updatedRecord);
+                        console.log(`  📊 Finalized execution record: ${updatedRecord.label} (${updatedRecord.endTime! - updatedRecord.startTime}ms)`);
+                    }
                 }
             }
 
@@ -82,13 +106,23 @@ export class ScriptRuntime implements IScriptRuntime {
             
             // Identify parent span
             const parentBlock = this.stack.current;
-            const parentSpan = parentBlock ? this._activeSpans.get(parentBlock.key.toString()) : null;
+            let parentId: string | null = null;
+            
+            if (parentBlock) {
+                const parentRefs = this.memory.search({ type: 'execution-record', ownerId: parentBlock.key.toString(), id: null, visibility: null });
+                if (parentRefs.length > 0) {
+                    const parentRecord = this.memory.get(parentRefs[0] as any) as ExecutionRecord;
+                    if (parentRecord) {
+                        parentId = parentRecord.id;
+                    }
+                }
+            }
 
             // Create execution record
             const record: ExecutionRecord = {
                 id: `${Date.now()}-${blockId}`, // Simple unique ID
                 blockId: blockId,
-                parentId: parentSpan ? parentSpan.id : null,
+                parentId: parentId,
                 type: block.blockType || 'unknown',
                 label: block.label || blockId,
                 startTime: Date.now(),
@@ -96,8 +130,8 @@ export class ScriptRuntime implements IScriptRuntime {
                 metrics: []
             };
 
-            // Store in active spans
-            this._activeSpans.set(blockId, record);
+            // Store in memory
+            this.memory.allocate<ExecutionRecord>('execution-record', blockId, record, 'public');
             console.log(`  📊 Created execution record: ${record.label} (parent: ${record.parentId || 'none'})`);
             
             // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)

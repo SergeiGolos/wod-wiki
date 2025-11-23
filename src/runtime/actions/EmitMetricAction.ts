@@ -31,13 +31,26 @@ export class EmitMetricAction implements IRuntimeAction {
     // Attach metric to the active execution span
     const currentBlock = runtime.stack.current;
     if (currentBlock) {
-      // Access activeSpans via type assertion since it's added to ScriptRuntime
-      const activeSpans = (runtime as any)._activeSpans as Map<string, any>;
-      if (activeSpans) {
-        const span = activeSpans.get(currentBlock.key.toString());
-        if (span && span.metrics) {
-          span.metrics.push(this.metric);
-          console.log(`  📊 Attached metric to span: ${span.label}`);
+      const blockId = currentBlock.key.toString();
+      
+      // Find record in memory
+      const refs = runtime.memory.search({ type: 'execution-record', ownerId: blockId });
+      if (refs.length > 0) {
+        // We need to cast to TypedMemoryReference to use it with set()
+        // In a real implementation, we might want a safer way to get the typed reference
+        const ref = refs[0] as any; 
+        const record = runtime.memory.get(ref);
+        
+        if (record) {
+          // Create updated record (immutability pattern)
+          const updatedRecord = {
+            ...record,
+            metrics: [...(record.metrics || []), this.metric]
+          };
+          
+          // Update memory to trigger subscribers
+          runtime.memory.set(ref, updatedRecord);
+          console.log(`  📊 Attached metric to span: ${record.label}`);
         }
       }
     }
