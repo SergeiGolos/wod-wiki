@@ -1,4 +1,4 @@
-# Monaco Editor Folding Analysis
+=# Monaco Editor Folding Analysis
 
 This document analyzes the custom folding and content hiding mechanisms implemented in the Monaco Editor setup for the WodWiki project.
 
