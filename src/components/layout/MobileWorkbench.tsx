@@ -6,10 +6,12 @@ import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { WodBlock } from '../../markdown-editor/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, ArrowLeft, Edit3 } from 'lucide-react';
+import { Plus, Search, ArrowLeft, Edit3, Menu, X } from 'lucide-react';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { FragmentType } from '../../core/models/CodeFragment';
+import { ThemeToggle } from '../theme/ThemeToggle';
+import { CommitGraph } from '../ui/CommitGraph';
 
 type MobileScreen = 'index' | 'detail' | 'track' | 'analyze' | 'editor';
 
@@ -23,6 +25,7 @@ export const MobileWorkbench: React.FC<WodWorkbenchProps> = ({
   const [activeScreen, setActiveScreen] = useState<MobileScreen>('index');
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const { setIsOpen } = useCommandPalette();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Parse content into blocks (Simulation for MobileWorkbench)
   useEffect(() => {
@@ -119,29 +122,125 @@ export const MobileWorkbench: React.FC<WodWorkbenchProps> = ({
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden relative">
       {/* Mobile Header */}
-      <div className="h-14 border-b border-border flex items-center px-4 justify-between bg-background z-10">
-        <div className="flex items-center gap-3">
+      <div className="h-14 border-b border-border flex items-center px-4 justify-between bg-background z-20 shrink-0 relative">
+        <div className="flex items-center gap-3 overflow-hidden flex-1">
+          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)} className="-ml-2 shrink-0">
+            <Menu className="h-5 w-5" />
+          </Button>
+          
           {activeScreen !== 'index' && (
-            <Button variant="ghost" size="icon" onClick={handleBack} className="-ml-2">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="-ml-2 shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="font-bold text-lg truncate max-w-[200px]">
-            {activeScreen === 'index' && 'Workouts'}
-            {activeScreen === 'detail' && (activeBlock ? 'Workout Details' : 'Details')}
-            {activeScreen === 'track' && 'Tracking'}
-            {activeScreen === 'analyze' && 'Analysis'}
-          </h1>
+          
+          {activeScreen === 'index' ? (
+             <div className="h-10 w-full max-w-[200px] flex items-center overflow-hidden">
+               <CommitGraph
+                 text="WOD.WIKI"
+                 rows={16}
+                 cols={60}
+                 gap={1}
+                 padding={0}
+                 fontScale={0.8}
+                 fontWeight={200}
+                 letterSpacing={1.6}
+               />
+             </div>
+          ) : (
+            <h1 className="font-bold text-lg truncate">
+              {activeScreen === 'detail' && (activeBlock ? 'Workout Details' : 'Details')}
+              {activeScreen === 'track' && 'Tracking'}
+              {activeScreen === 'analyze' && 'Analysis'}
+            </h1>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1 items-center shrink-0">
+           <ThemeToggle />
            {/* Command Palette Trigger */}
            <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)}>
              <Search className="h-5 w-5" />
            </Button>
         </div>
       </div>
+
+      {/* Navigation Drawer */}
+      {isMenuOpen && (
+        <div className="absolute inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          
+          {/* Drawer Content */}
+          <div className="relative w-[80%] max-w-[300px] h-full bg-card border-r border-border shadow-xl flex flex-col animate-in slide-in-from-left duration-200">
+            <div className="h-14 border-b border-border flex items-center px-4 justify-between shrink-0">
+              <span className="font-bold text-lg">Menu</span>
+              <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Main Navigation */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-2">Navigation</h3>
+                <Button 
+                  variant={activeScreen === 'index' ? 'secondary' : 'ghost'} 
+                  className="w-full justify-start" 
+                  onClick={() => { setActiveScreen('index'); setIsMenuOpen(false); }}
+                >
+                  Workouts
+                </Button>
+                {activeBlock && (
+                  <>
+                    <Button 
+                      variant={activeScreen === 'detail' ? 'secondary' : 'ghost'} 
+                      className="w-full justify-start" 
+                      onClick={() => { setActiveScreen('detail'); setIsMenuOpen(false); }}
+                    >
+                      Current Details
+                    </Button>
+                    <Button 
+                      variant={activeScreen === 'track' ? 'secondary' : 'ghost'} 
+                      className="w-full justify-start" 
+                      onClick={() => { setActiveScreen('track'); setIsMenuOpen(false); }}
+                    >
+                      Track Workout
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Quick Jump (Index Values) */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-2">Quick Jump</h3>
+                <div className="space-y-1">
+                  {documentItems.filter(i => i.type === 'wod').map((item) => (
+                    <Button
+                      key={item.id}
+                      variant="ghost"
+                      className="w-full justify-start text-sm font-normal truncate"
+                      onClick={() => {
+                        handleBlockClick(item);
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      {item.title || 'Untitled Workout'}
+                    </Button>
+                  ))}
+                  {documentItems.filter(i => i.type === 'wod').length === 0 && (
+                    <div className="px-2 text-sm text-muted-foreground">No workouts found</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden relative">

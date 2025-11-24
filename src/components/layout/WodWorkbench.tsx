@@ -3,7 +3,7 @@ import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/M
 import { WodBlock } from '../../markdown-editor/types';
 import { CommandProvider } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
-import { ContextPanel } from '../../markdown-editor/components/ContextPanel';
+import { WorkoutContextPanel } from '../workout/WorkoutContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
 import { Timer, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
@@ -269,20 +269,21 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               }`}
           >
             {selectedBlock ? (
-              <div className="h-full flex flex-col">
+              <div className="h-full flex flex-col overflow-hidden">
                 <div className="p-2 border-b border-border flex items-center">
                   <Button variant="ghost" size="sm" onClick={handleClearSelection} className="gap-2">
                     <ArrowLeft className="h-4 w-4" />
                     Back to Index
                   </Button>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                  <ContextPanel
+                <div className="flex-1 overflow-y-auto">
+                  <WorkoutContextPanel
                     block={selectedBlock}
-                    onAddStatement={addStatement}
+                    mode="edit"
+                    showStartButton={true}
+                    onStart={handleTrack}
                     onEditStatement={editStatement}
                     onDeleteStatement={deleteStatement}
-                    onTrack={handleTrack}
                   />
                 </div>
               </div>

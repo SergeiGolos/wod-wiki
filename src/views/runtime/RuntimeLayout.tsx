@@ -4,10 +4,11 @@ import { ChevronLeft, Bug, Play, Pause, Square, X, SkipForward } from 'lucide-re
 import { WodBlock } from '../../markdown-editor/types';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
-import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
+import { Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
-import { EditableStatementList } from '../../markdown-editor/components/EditableStatementList';
 import { TimelineView } from '../../timeline/TimelineView';
+import { ExecutionLogPanel } from '../../components/workout/ExecutionLogPanel';
+import { WorkoutContextPanel } from '../../components/workout/WorkoutContextPanel';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -385,40 +386,22 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
                )}
             </div>
 
-            {/* Segment Topology (Growing Log) */}
-            <GitTreeSidebar 
-              segments={runtimeSegments}
-              selectedIds={new Set(activeSegmentId ? [activeSegmentId] : [])}
-              onSelect={() => {}}
+            {/* Execution Log (Growing as workout progresses) */}
+            <ExecutionLogPanel
+              runtime={viewMode === 'run' ? runtime : null}
+              historicalSegments={viewMode === 'analyze' ? runtimeSegments : undefined}
+              activeSegmentId={activeSegmentId}
               disableScroll={true}
-              hideHeader={true}
             >
-               {/* "Feeding" Connector Visual */}
-               <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
-            </GitTreeSidebar>
+              {/* "Feeding" Connector Visual */}
+              <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
+            </ExecutionLogPanel>
 
-            {/* Active Block Context (Source) - Only visible in Run mode */}
-            {viewMode === 'run' && (
-            <div className="border-t border-border bg-muted/10 flex flex-col min-h-[200px]">
-              <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center bg-muted/20">
-                <span>Active Context</span>
-                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">READ ONLY</span>
-              </div>
-              <div className="p-4 font-mono text-sm relative">
-                 {/* Visual indicator connecting to top */}
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-background border border-border rotate-45 z-10"></div>
-                 
-                 <EditableStatementList 
-                    statements={activeBlock.statements || []} 
-                    readonly={true} 
-                 />
-                 
-                 {(!activeBlock.statements || activeBlock.statements.length === 0) && (
-                    <div className="text-muted-foreground italic">// No parsed statements available</div>
-                 )}
-              </div>
-            </div>
-            )}
+            {/* Workout Context Panel */}
+            <WorkoutContextPanel
+              block={activeBlock}
+              mode={viewMode === 'analyze' ? 'analyze' : 'run'}
+            />
 
             {/* Debug Overlay */}
             {showDebug && (
