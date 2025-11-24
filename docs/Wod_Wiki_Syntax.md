@@ -43,13 +43,13 @@ Special actions or instructions can be enclosed in brackets.
 - `[Rest]`
 - `[Walk]`
 
-### 5. Trends `^`
-The caret symbol `^` can be used to indicate an increasing trend or scale.
+### 5. Trends `^`  
+The caret symbol `^` can be used to indicate an increasing trend or scale. Since default timers are decresing fromt he time value.
 
 ## Grammar Rules
 
 - **Separators**: Newlines separate statements.
-- **Indentation**: Used to nest exercises within groups (though the parser handles some flexibility).
+- **Indentation**: Used to nest exercises within groups (though the parser handles some flexibility). 111
 - **Comments**: Standard Markdown text outside of code blocks is treated as description.
 
 ## Advanced Examples
