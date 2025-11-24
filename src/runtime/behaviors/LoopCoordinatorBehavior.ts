@@ -32,6 +32,7 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
+import { TimerBehavior } from './TimerBehavior';
 
 /**
  * Loop type determines completion logic.
@@ -184,7 +185,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     const state = this.getState();
 
     // Check completion AFTER incrementing
-    if (this.isComplete(runtime)) {
+    if (this.isComplete(runtime, _block)) {
       return [];
     }
 
@@ -229,7 +230,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   /**
    * Checks if the loop has completed.
    */
-  isComplete(runtime: IScriptRuntime): boolean {
+  isComplete(runtime: IScriptRuntime, block?: IRuntimeBlock): boolean {
     const state = this.getState();
 
     switch (this.config.loopType) {
@@ -240,7 +241,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
       case LoopType.TIME_BOUND:
         // Complete when timer expires
-        return this.isTimerExpired(runtime);
+        return this.isTimerExpired(runtime, block);
 
       case LoopType.INTERVAL:
         // Complete after specified number of intervals
@@ -267,9 +268,15 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   /**
    * Checks if the timer has expired (for time-bound loops).
    */
-  private isTimerExpired(runtime: IScriptRuntime): boolean {
-    // TODO: Implement timer checking
-    // For now, return false
+  private isTimerExpired(_runtime: IScriptRuntime, block?: IRuntimeBlock): boolean {
+    if (!block) return false;
+
+    // Find TimerBehavior on the block
+    const timerBehavior = block.getBehavior(TimerBehavior);
+    if (timerBehavior) {
+      return timerBehavior.isComplete();
+    }
+    
     return false;
   }
 

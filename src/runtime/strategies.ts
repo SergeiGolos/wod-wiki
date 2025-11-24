@@ -12,7 +12,10 @@ import { CompletionBehavior } from "./behaviors/CompletionBehavior";
 import { TimerBlock } from "./blocks/TimerBlock";
 import { RoundsBlock } from "./blocks/RoundsBlock";
 import { MemoryTypeEnum } from "./MemoryTypeEnum";
+import { LoopCoordinatorBehavior, LoopType } from "./behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "./behaviors/HistoryBehavior";
+import { EffortBlock } from "./blocks/EffortBlock";
+import { PopBlockAction } from "./PopBlockAction";
 
 
 export class EffortStrategy implements IRuntimeBlockStrategy {
@@ -77,13 +80,32 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Effort blocks are leaf nodes that complete on first next() call (not on push)
         // This prevents recursion during mount where push -> complete -> pop -> next -> push...
         // TODO: If we need to support effort blocks with children, add LoopCoordinatorBehavior here
+        
+        // For generic Effort blocks (no reps), we want them to complete ONLY on user 'next' action
+        // NOT on periodic 'tick' (which calls next())
+        // So we disable checkOnNext, and rely on triggerEvents=['next']
         behaviors.push(new CompletionBehavior(
             () => true, // Always complete when checked
-            [], // No event triggers
-            false // Don't check on push - only check on next()
+            ['next'], // Check on 'next' event (User Action)
+            false, // Don't check on push
+            false  // Don't check on next() (Tick)
         ));
 
         // 6. Create RuntimeBlock with context
+        // Use EffortBlock if reps are specified, otherwise fallback to generic RuntimeBlock
+        // This ensures proper rep tracking and completion logic
+        if (reps !== undefined) {
+            console.log(`  🧠 EffortStrategy: Creating specialized EffortBlock`);
+            return new EffortBlock(
+                runtime,
+                code[0]?.id ? [code[0].id] : [],
+                {
+                    exerciseName: (code[0] as any)?.exerciseName || "Exercise",
+                    targetReps: reps
+                }
+            );
+        }
+
         const block = new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
@@ -150,24 +172,49 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             'public'
         );
         
-        // 5. Create behaviors with injected memory
+        // 5. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
         
-        // Add timer behavior with memory injection
-        // TODO: Extract timer configuration from fragments (direction, duration)
-        behaviors.push(new TimerBehavior('up', undefined, timeSpansRef, isRunningRef));
+        // Add timer behavior (Count Up)
+        const timerBehavior = new TimerBehavior('up', undefined, timeSpansRef, isRunningRef);
+        behaviors.push(timerBehavior);
+        behaviors.push(new HistoryBehavior("Timer"));
 
-        // TODO: If we need to support timer blocks with children, add LoopCoordinatorBehavior here
-        // For now, timer blocks are leaf nodes
+        // Add LoopCoordinator if children exist (Fixed 1 round)
+        const children = code[0]?.children || [];
+        let loopCoordinator: LoopCoordinatorBehavior | undefined;
+        
+        if (children.length > 0) {
+             loopCoordinator = new LoopCoordinatorBehavior({
+                childGroups: children,
+                loopType: LoopType.FIXED,
+                totalRounds: 1
+            });
+            behaviors.push(loopCoordinator);
+        }
 
-        // 6. Create RuntimeBlock with context
+        // Add CompletionBehavior
+        // Complete when children complete (if any), otherwise manual completion?
+        // For simple timer, maybe it never completes automatically unless children complete?
+        behaviors.push(new CompletionBehavior(
+            (_rt, block) => {
+                if (loopCoordinator) {
+                    return loopCoordinator.isComplete(_rt, block);
+                }
+                return false; // Simple timer runs until stopped manually
+            },
+            ['timer:complete', 'children:complete']
+        ));
+
+        // 6. Create RuntimeBlock
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
             behaviors,
             context,
             blockKey,
-            "Timer"
+            "Timer",
+            "For Time"
         );
     }
 }
@@ -231,46 +278,95 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
           throw new Error('RoundsStrategy requires Rounds fragment');
         }
 
-        // Extract rep scheme from fragment value
-        // Example: "(21-15-9)" -> [21, 15, 9]
+        // Extract rep scheme
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
         if (Array.isArray(roundsFragment.value)) {
-          // Value is already an array of numbers (rep scheme)
           repScheme = roundsFragment.value as number[];
           totalRounds = repScheme.length;
-          console.log(`  📊 RoundsStrategy: Rep scheme detected: [${repScheme.join(', ')}]`);
         } else if (typeof roundsFragment.value === 'number') {
-          // Value is a single number (fixed rounds)
           totalRounds = roundsFragment.value;
-          console.log(`  📊 RoundsStrategy: Fixed rounds detected: ${totalRounds}`);
         }
 
-        // Get children IDs from statement - these are child statement IDs to JIT-compile per round
+        // Get children IDs
         let children = code[0]?.children || [];
         
         if (children.length === 0 && code.length > 1) {
-          // Parser passed multiple statements: first is rounds, rest are children (siblings)
-          // This is a workaround for parsers that don't create parent-child tree structure
-          // Wrap sibling statements in a single group
           const siblingIds = code.slice(1).map(s => s.id as number);
-          children = [siblingIds]; // Single group containing all siblings
-          console.log(`  📊 RoundsStrategy: Using ${siblingIds.length} sibling statements as children`);
+          children = [siblingIds];
         } else if (children.length === 0) {
-          // No children available - this is an error condition
-          console.error('RoundsStrategy: No children found for rounds block!');
-          throw new Error(`RoundsStrategy requires child statements to execute. Statement has no children.`);
+          throw new Error(`RoundsStrategy requires child statements to execute.`);
         }
 
-        console.log(`  📊 RoundsStrategy: Creating RoundsBlock with ${totalRounds} rounds, ${children.flat().length} child statement IDs`);
+        // Create BlockContext
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const context = new BlockContext(runtime, blockId, exerciseId);
 
-        // Create RoundsBlock instance with child IDs (will be JIT-compiled by LoopCoordinator)
-        return new RoundsBlock(runtime, code[0]?.id ? [code[0].id] : [], {
-          totalRounds,
-          repScheme,
-          children // Pass number[][] directly - no type casting needed
+        // Create Behaviors
+        const behaviors: IRuntimeBehavior[] = [];
+        
+        const loopType = repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
+        const loopCoordinator = new LoopCoordinatorBehavior({
+            childGroups: children,
+            loopType,
+            totalRounds,
+            repScheme
         });
+        behaviors.push(loopCoordinator);
+        behaviors.push(new HistoryBehavior("Rounds"));
+
+        // Completion Behavior
+        behaviors.push(new CompletionBehavior(
+            (_rt, block) => loopCoordinator.isComplete(_rt, block),
+            ['rounds:complete']
+        ));
+
+        // Allocate public reps metric if rep scheme
+        if (repScheme && repScheme.length > 0) {
+             context.allocate(
+                MemoryTypeEnum.METRIC_REPS,
+                repScheme[0],
+                'public'
+            );
+            
+            // Note: RoundsBlock had logic to update this metric on next().
+            // LoopCoordinatorBehavior doesn't inherently update memory.
+            // We might need a MetricBehavior or handle it in LoopCoordinator.
+            // For now, let's assume LoopCoordinator handles context passing or we add a listener?
+            // Actually, RoundsBlock.next() did this.
+            // We can add a custom behavior or hook here if needed.
+            // But LoopCoordinatorBehavior has getRepsForCurrentRound().
+            // Let's add a simple behavior to update the metric on next.
+            behaviors.push({
+                onNext: (rt, _blk) => {
+                    const currentReps = loopCoordinator.getRepsForCurrentRound();
+                    if (currentReps !== undefined) {
+                         // Find the memory ref we just allocated?
+                         // Or just search for it.
+                         const refs = rt.memory.search({ type: MemoryTypeEnum.METRIC_REPS, ownerId: blockId });
+                         if (refs.length > 0) {
+                             rt.memory.set(refs[0], currentReps);
+                         }
+                    }
+                    return [];
+                }
+            });
+        }
+
+        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
+
+        return new RuntimeBlock(
+            runtime,
+            code[0]?.id ? [code[0].id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "Rounds",
+            label
+        );
     }
 }
 
@@ -340,21 +436,34 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         console.log(`  🧠 IntervalStrategy compiling ${code.length} statement(s)`);
-        console.warn(`  ⚠️  IntervalStrategy.compile() is a placeholder - full implementation pending`);
 
-        // Placeholder implementation - creates a simple block
-        // Full implementation will use LoopCoordinatorBehavior with LoopType.INTERVAL
-        
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         const exerciseId = (code[0] as any)?.exerciseId || '';
-        
         const context = new BlockContext(runtime, blockId, exerciseId);
         
+        // Extract interval duration and rounds
+        // Placeholder values for now
+        const intervalDurationMs = 60000; 
+        const totalRounds = 10;
+        const children = code[0]?.children || [];
+
         const behaviors: IRuntimeBehavior[] = [];
+        
+        // Loop Coordinator (Interval)
+        const loopCoordinator = new LoopCoordinatorBehavior({
+            childGroups: children,
+            loopType: LoopType.INTERVAL,
+            totalRounds,
+            intervalDurationMs
+        });
+        behaviors.push(loopCoordinator);
+        behaviors.push(new HistoryBehavior("EMOM"));
+
+        // Completion Behavior
         behaviors.push(new CompletionBehavior(
-            () => true, // Temporary - should check interval completion
-            []
+            (_rt, block) => loopCoordinator.isComplete(_rt, block),
+            ['interval:complete']
         ));
 
         return new RuntimeBlock(
@@ -363,7 +472,8 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             behaviors,
             context,
             blockKey,
-            "Interval"
+            "Interval",
+            "EMOM"
         );
     }
 }
@@ -424,11 +534,10 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const stmt = code[0];
         const fragments = stmt.fragments || [];;
 
-        // Extract timer duration from Timer fragment
+        // Extract timer duration
         const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
         let durationMs: number | undefined;
         if (timerFragment && timerFragment.value) {
-            // Parse duration from fragment value (e.g., "20:00" -> 1200000ms)
             const timeStr = String(timerFragment.value);
             const parts = timeStr.split(':');
             if (parts.length === 2) {
@@ -438,59 +547,64 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             }
         }
 
-        // Extract rounds and rep scheme from Rounds fragment
-        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
-        let totalRounds = 3; // Default
-        let repScheme: number[] | undefined;
-        
-        if (roundsFragment && roundsFragment.value) {
-            const roundsValue = String(roundsFragment.value);
-            // Check if it's a rep scheme like "(21-15-9)" or simple rounds like "(3)"
-            if (roundsValue.includes('-')) {
-                // Variable rep scheme
-                const repsStr = roundsValue.replace(/[()]/g, '');
-                repScheme = repsStr.split('-').map(r => parseInt(r.trim(), 10));
-                totalRounds = repScheme.length;
-            } else {
-                // Fixed rounds
-                const roundsStr = roundsValue.replace(/[()]/g, '');
-                totalRounds = parseInt(roundsStr, 10) || 3;
-            }
+        if (!durationMs || durationMs <= 0) {
+            durationMs = 20 * 60 * 1000; // Default 20 mins
         }
 
-        // Extract children IDs (exercises to perform each round)
+        // Extract children
         const children = stmt.children || [];
 
-        // If no valid timer duration found, use a default (for testing)
-        if (!durationMs || durationMs <= 0) {
-            console.warn(`TimeBoundRoundsStrategy: Invalid or missing timer duration, using default 20 minutes`);
-            durationMs = 20 * 60 * 1000; // Default to 20 minutes
-        }
+        // Create BlockContext
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = (stmt as any)?.exerciseId || '';
+        const context = new BlockContext(runtime, blockId, exerciseId);
 
-        // TODO: ARCHITECTURAL ISSUE - Need to support nested block compilation
-        // Current problem: TimerBlock expects children: number[][] (statement IDs),
-        // but we want to wrap a RoundsBlock (pre-compiled block) inside it.
-        // 
-        // Possible solutions:
-        // 1. Create a synthetic "wrapper statement" that RoundsStrategy can compile
-        // 2. Add TimerBlock.compiledChildren: IRuntimeBlock[] config option
-        // 3. Change JIT compiler to support pre-compiled block insertion
-        // 4. Use TimerBehavior + RoundsBehavior in single composite block
-        //
-        // For now, create RoundsBlock directly (bypasses TimerBlock wrapping)
-        console.warn(`TimeBoundRoundsStrategy: Creating RoundsBlock without TimerBlock wrapper (architectural limitation)`);
-        
-        const roundsBlock = new RoundsBlock(
-            runtime,
-            stmt.id ? [stmt.id] : [],
-            {
-                totalRounds,
-                repScheme,
-                children // Pass number[][] directly - no type casting needed
-            }
+        // Allocate timer memory
+        const timeSpansRef = context.allocate<TimeSpan[]>(
+            TIMER_MEMORY_TYPES.TIME_SPANS,
+            [{ start: new Date(), stop: undefined }],
+            'public'
+        );
+        const isRunningRef = context.allocate<boolean>(
+            TIMER_MEMORY_TYPES.IS_RUNNING,
+            true,
+            'public'
         );
 
-        return roundsBlock;
+        // Create Behaviors
+        const behaviors: IRuntimeBehavior[] = [];
+
+        // 1. Timer Behavior (Countdown)
+        const timerBehavior = new TimerBehavior('down', durationMs, timeSpansRef, isRunningRef);
+        behaviors.push(timerBehavior);
+        behaviors.push(new HistoryBehavior("AMRAP"));
+
+        // 2. Loop Coordinator (Time Bound / Infinite)
+        const loopCoordinator = new LoopCoordinatorBehavior({
+            childGroups: children,
+            loopType: LoopType.TIME_BOUND,
+            totalRounds: Infinity // Run until timer expires
+        });
+        behaviors.push(loopCoordinator);
+
+        // 3. Completion Behavior
+        behaviors.push(new CompletionBehavior(
+            (_rt, block) => loopCoordinator.isComplete(_rt, block),
+            ['timer:complete', 'children:complete']
+        ));
+
+        const label = `${Math.floor(durationMs / 60000)}:${String(Math.floor((durationMs % 60000) / 1000)).padStart(2, '0')} AMRAP`;
+
+        return new RuntimeBlock(
+            runtime,
+            stmt.id ? [stmt.id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "Timer", // It's technically a Timer block structure
+            label
+        );
     }
 }
 

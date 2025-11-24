@@ -1,6 +1,7 @@
-import { BlockKey } from "../BlockKey";
+import { BlockKey } from "../core/models/BlockKey";
 import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeBehavior } from "./IRuntimeBehavior";
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -117,4 +118,11 @@ export interface IRuntimeBlock {
      * @throws Never - Should handle all cleanup errors internally
      */
     dispose(runtime: IScriptRuntime): void;
+
+    /**
+     * Gets a specific behavior by type from the behaviors array.
+     * @param behaviorType Constructor/class of the behavior to find
+     * @returns The behavior instance or undefined if not found
+     */
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
 }

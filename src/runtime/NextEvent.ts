@@ -1,5 +1,31 @@
 import { IEvent } from './IEvent';
 
+export class TickEvent implements IEvent {
+  private _name = 'tick';
+  private _timestamp: Date;
+  private _data?: any;
+  private static _counter = 0;
+
+  constructor(data?: any) {
+    const now = Date.now();
+    TickEvent._counter++;
+    this._timestamp = new Date(now + TickEvent._counter);
+    this._data = data;
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  get timestamp(): Date {
+    return this._timestamp;
+  }
+
+  get data(): any {
+    return this._data;
+  }
+}
+
 export class NextEvent implements IEvent {
   private _name = 'next';
   private _timestamp: Date;

@@ -24,6 +24,9 @@ export interface EditableStatementListProps {
 
   /** Whether the list is read-only */
   readonly?: boolean;
+
+  /** Active statement IDs (blocks currently on the stack) */
+  activeStatementIds?: Set<number>;
 }
 
 interface StatementItemProps {
@@ -33,6 +36,7 @@ interface StatementItemProps {
   onDelete: (index: number) => void;
   readonly?: boolean;
   isGrouped?: boolean;
+  isActive?: boolean;
 }
 
 interface LinkedGroup {
@@ -49,7 +53,8 @@ const StatementItem: React.FC<StatementItemProps> = ({
   onEdit,
   onDelete,
   readonly = false,
-  isGrouped = false
+  isGrouped = false,
+  isActive = false
 }) => {
   const { setStrategy, setIsOpen } = useCommandPalette();
 
@@ -70,8 +75,8 @@ const StatementItem: React.FC<StatementItemProps> = ({
   };
 
   const containerClass = isGrouped
-    ? "flex items-center gap-2 p-2 hover:bg-accent/5 transition-colors"
-    : "flex items-center gap-2 p-2 bg-card rounded border border-border hover:border-primary/50 transition-colors";
+    ? `flex items-center gap-2 p-2 hover:bg-accent/5 transition-colors ${isActive ? 'bg-primary/10' : ''}`
+    : `flex items-center gap-2 p-2 bg-card rounded border border-border hover:border-primary/50 transition-colors ${isActive ? 'bg-primary/10 border-primary' : ''}`;
 
   return (
     <div className={containerClass}>
@@ -108,12 +113,14 @@ const StatementGroupItem: React.FC<{
   statements: ICodeStatement[],
   onEdit: (index: number, text: string) => void,
   onDelete: (index: number) => void,
-  readonly?: boolean
-}> = ({ group, statements, onEdit, onDelete, readonly }) => {
+  readonly?: boolean,
+  activeStatementIds?: Set<number>
+}> = ({ group, statements, onEdit, onDelete, readonly, activeStatementIds }) => {
   return (
     <div className="bg-card rounded border border-border overflow-hidden mb-2 hover:border-primary/50 transition-colors">
       {group.statements.map((stmt, i) => {
         const index = statements.findIndex(s => s.id === stmt.id);
+        const isActive = activeStatementIds?.has(stmt.id) ?? false;
         return (
           <div key={stmt.id} className={i < group.statements.length - 1 ? "border-b border-border" : ""}>
             <StatementItem 
@@ -123,6 +130,7 @@ const StatementGroupItem: React.FC<{
               onDelete={onDelete}
               readonly={readonly}
               isGrouped={true}
+              isActive={isActive}
             />
           </div>
         );
@@ -146,7 +154,8 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
   onAddStatement,
   onEditStatement,
   onDeleteStatement,
-  readonly = false
+  readonly = false,
+  activeStatementIds = new Set()
 }) => {
   
   // Group statements logic
@@ -217,12 +226,14 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
                 onEdit={onEditStatement!}
                 onDelete={onDeleteStatement!}
                 readonly={readonly}
+                activeStatementIds={activeStatementIds}
               />
             </div>
           );
         } else {
           const stmt = item as ICodeStatement;
           const index = statements.findIndex(s => s.id === stmt.id);
+          const isActive = activeStatementIds.has(stmt.id);
           return (
             <div key={stmt.id} style={indentStyle}>
               <StatementItem
@@ -231,6 +242,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
                 onEdit={onEditStatement!}
                 onDelete={onDeleteStatement!}
                 readonly={readonly}
+                isActive={isActive}
               />
             </div>
           );

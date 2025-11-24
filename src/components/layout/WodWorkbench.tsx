@@ -10,6 +10,7 @@ import { Timer, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { DebugButton } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -39,6 +40,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
   // View Mode State
   const [viewMode, setViewMode] = useState<'edit' | 'run' | 'analyze'>('edit');
+  const [isDebugMode, setIsDebugMode] = useState(false);
 
   // Selected block for Right Panel (distinct from activeBlock which tracks cursor)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -223,6 +225,12 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
             <div className="h-6 w-px bg-border mx-2"></div>
 
+            {viewMode === 'run' && (
+              <DebugButton
+                isDebugMode={isDebugMode}
+                onClick={() => setIsDebugMode(!isDebugMode)}
+              />
+            )}
             <ThemeToggle />
             <a
               href="https://github.com/SergeiGolos/wod-wiki"
@@ -309,6 +317,8 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               onComplete={handleComplete}
               onBack={handleClearSelection}
               viewMode={viewMode === 'analyze' ? 'analyze' : 'run'}
+              isDebugMode={isDebugMode}
+              onDebugModeChange={setIsDebugMode}
             />
           </div>
 

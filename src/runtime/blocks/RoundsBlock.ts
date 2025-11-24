@@ -81,7 +81,7 @@ export class RoundsBlock extends RuntimeBlock {
       loopCoordinator,
       // Completion behavior delegates to loop coordinator
       new CompletionBehavior(
-        () => loopCoordinator.isComplete(runtime),
+        () => loopCoordinator.isComplete(runtime, this),
         ['rounds:complete']
       ),
       new HistoryBehavior("Rounds")

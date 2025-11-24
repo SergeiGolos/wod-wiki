@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Bug, Play, Pause, Square, X, SkipForward } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Square, SkipForward } from 'lucide-react';
 import { WodBlock } from '../../markdown-editor/types';
-import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
-import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { Segment } from '../../timeline/GitTreeSidebar';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { TimelineView } from '../../timeline/TimelineView';
-import { ExecutionLogPanel } from '../../components/workout/ExecutionLogPanel';
+import { RuntimeHistoryPanel } from '../../components/workout/RuntimeHistoryPanel';
+import { AnalyticsHistoryPanel } from '../../components/workout/AnalyticsHistoryPanel';
 import { WorkoutContextPanel } from '../../components/workout/WorkoutContextPanel';
+import { RuntimeDebugPanel, DebugButton } from '../../components/workout/RuntimeDebugPanel';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -18,9 +18,6 @@ import { WodScript } from '../../parser/WodScript';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { NextEvent } from '../../runtime/NextEvent';
-import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
-import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
-import { TimeSpan } from '../../runtime/behaviors/TimerBehavior';
 
 // --- Mock Data Generation (Moved from TimelineView) ---
 const generateSessionData = () => {
@@ -131,6 +128,8 @@ interface RuntimeLayoutProps {
   onBack: () => void;
   viewMode: 'run' | 'analyze';
   layoutMode?: 'split' | 'stacked';
+  isDebugMode?: boolean;
+  onDebugModeChange?: (isDebug: boolean) => void;
 }
 
 export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({ 
@@ -140,7 +139,9 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   onComplete, 
   onBack,
   viewMode,
-  layoutMode = 'split'
+  layoutMode = 'split',
+  isDebugMode = false,
+  onDebugModeChange
 }) => {
   const [showDebug, setShowDebug] = useState(false);
   const [showLog, setShowLog] = useState(false); // For stacked mode
@@ -158,7 +159,6 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   
   // Runtime State
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
-  const adapter = useRef(new RuntimeAdapter()).current;
   
   // Initialize Runtime when activeBlock changes
   useEffect(() => {
@@ -168,8 +168,6 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
       const newRuntime = new ScriptRuntime(script, globalCompiler);
       
       // Initialize with root block
-      // We need to cast statements to any because of type mismatch between ICodeStatement and CodeStatement
-      // In a real app, we should unify these types
       const rootBlock = globalCompiler.compile(activeBlock.statements as any, newRuntime);
       
       if (rootBlock) {
@@ -191,154 +189,44 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
 
   // Use execution hook
   const execution = useRuntimeExecution(runtime);
-  
-  // Create snapshot for UI rendering
-  const snapshot = React.useMemo(() => {
-    if (!runtime) return null;
-    return adapter.createSnapshot(runtime);
-  }, [runtime, execution.stepCount]);
 
   // Command Palette
   const { setIsOpen: _setIsOpen, setSearch: _setSearch } = useCommandPalette();
 
-  // Runtime Simulation State (Legacy/Visuals)
-  const [runtimeSegments, setRuntimeSegments] = useState<Segment[]>([]);
-  const [activeSegmentId, setActiveSegmentId] = useState<number | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Active segments for runtime tracking
+  const activeSegmentIds = React.useMemo(() => {
+    if (!runtime || viewMode !== 'run') return new Set<number>();
+    
+    const hashCode = (str: string): number => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return Math.abs(hash);
+    };
+    
+    return new Set(runtime.stack.blocks.map(block => hashCode(block.key.toString())));
+  }, [runtime, execution.stepCount, viewMode]);
 
-  // Helper to generate stable ID from string
-  const hashCode = (str: string): number => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
-  };
-
-  // Real Runtime Data Integration
-  useEffect(() => {
-    if (!runtime) return;
-
-    // 1. Get Completed Segments from Execution Log
-    const historySegments: Segment[] = runtime.executionLog.map(record => ({
-        id: hashCode(record.blockId),
-        name: record.label,
-        type: record.type.toLowerCase(),
-        startTime: Math.floor(record.startTime / 1000),
-        endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
-        duration: ((record.endTime ?? Date.now()) - record.startTime) / 1000,
-        parentId: record.parentId ? hashCode(record.parentId) : null,
-        depth: 0, // Will be calculated later if needed, or handled by GitTreeSidebar
-        avgPower: 0,
-        avgHr: 0,
-        lane: 0
-    }));
-
-    // 2. Get Active Segments from Stack
-    const activeSegments: Segment[] = runtime.stack.blocks.map(block => {
-        let startTime = Date.now();
-        let duration = 0;
-        
-        // Check for start time in memory (allocated by HistoryBehavior)
-        const startTimeRefs = runtime.memory.search({ 
-            type: MemoryTypeEnum.METRIC_START_TIME, 
-            ownerId: block.key.toString(),
-            id: null,
-            visibility: null
-        });
-        
-        if (startTimeRefs.length > 0) {
-            const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
-            if (storedStartTime) {
-                startTime = storedStartTime;
-                duration = (Date.now() - startTime) / 1000;
-            }
-        } else {
-            // Fallback: Check for timer memory (legacy support)
-            const timeSpansRef = runtime.memory.search({ 
-                type: MemoryTypeEnum.TIMER_TIME_SPANS, 
-                ownerId: block.key.toString(),
-                id: null,
-                visibility: null
-            })[0];
-            
-            if (timeSpansRef) {
-                const timeSpans = runtime.memory.get(timeSpansRef as any) as TimeSpan[];
-                if (timeSpans && timeSpans.length > 0 && timeSpans[0].start) {
-                    startTime = timeSpans[0].start.getTime();
-                    duration = (Date.now() - startTime) / 1000;
-                }
-            }
-        }
-
-        // Determine parent
-        const stackIndex = runtime.stack.blocks.indexOf(block);
-        const parentId = stackIndex > 0 ? runtime.stack.blocks[stackIndex - 1].key.toString() : null;
-
-        return {
-            id: hashCode(block.key.toString()),
-            name: block.blockType || block.key.toString(),
-            type: (block.blockType || 'unknown').toLowerCase(),
-            startTime: Math.floor(startTime / 1000),
-            endTime: Math.floor(Date.now() / 1000), // Currently running
-            duration: duration,
-            parentId: parentId ? hashCode(parentId) : null,
-            depth: stackIndex,
-            avgPower: 0,
-            avgHr: 0,
-            lane: 0
-        };
+  // Active statement IDs (blocks currently on the stack)
+  const activeStatementIds = React.useMemo(() => {
+    if (!runtime || viewMode !== 'run') return new Set<number>();
+    
+    // Collect all source IDs from blocks on the stack
+    const ids = new Set<number>();
+    runtime.stack.blocks.forEach(block => {
+      if (block.sourceIds) {
+        block.sourceIds.forEach(id => ids.add(id));
+      }
     });
-
-    // Combine and Sort
-    const allSegments = [...historySegments, ...activeSegments].sort((a, b) => a.startTime - b.startTime);
     
-    // Normalize Start Times (relative to first segment)
-    if (allSegments.length > 0) {
-        const minStartTime = allSegments[0].startTime;
-        allSegments.forEach(s => {
-            s.startTime -= minStartTime;
-            s.endTime -= minStartTime;
-        });
-    }
-
-    setRuntimeSegments(allSegments);
-
-    // 3. Determine Active Segment from Stack
-    if (snapshot && snapshot.stack.blocks.length > 0) {
-        const topBlock = snapshot.stack.blocks[snapshot.stack.blocks.length - 1];
-        setActiveSegmentId(hashCode(topBlock.key));
-    } else {
-        setActiveSegmentId(null);
-    }
-    
-    // Auto-scroll to bottom if running
-    if (execution.status === 'running' && scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-
-  }, [runtime, execution.stepCount, execution.elapsedTime, snapshot, execution.status]);
+    return ids;
+  }, [runtime, execution.stepCount, viewMode]);
 
   const handleStart = () => {
     execution.start();
-    // Add initial root segment if empty
-    if (runtimeSegments.length === 0) {
-      setRuntimeSegments([{
-        id: 1,
-        name: "Workout Session",
-        type: "root",
-        startTime: 0,
-        endTime: 0,
-        duration: 0,
-        parentId: null,
-        depth: 0,
-        avgPower: 0,
-        avgHr: 0,
-        lane: 0
-      }]);
-    }
   };
 
   const handlePause = () => {
@@ -369,63 +257,57 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
 
   return (
     <div className="flex h-full w-full relative overflow-hidden">
-      {/* Left Panel: Execution Log */}
-      <div className={`${leftPanelClass} flex flex-col overflow-y-auto custom-scrollbar`} ref={scrollRef}>
+      {/* Left Panel: Execution History */}
+      <div className={`${leftPanelClass} flex flex-col`}>
         
         {activeBlock ? (
           <>
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 border-b border-border flex items-center justify-between">
+            {/* Header with Back button */}
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 border-b border-border flex items-center shrink-0">
                <Button variant="ghost" size="sm" onClick={layoutMode === 'stacked' ? () => setShowLog(false) : onBack} className="gap-2">
                  <ChevronLeft className="h-4 w-4" />
                  {layoutMode === 'stacked' ? 'Back to Timer' : 'Back to Index'}
                </Button>
-               {viewMode === 'run' && (
-               <Button variant="ghost" size="icon" onClick={() => setShowDebug(true)}>
-                 <Bug className="h-4 w-4" />
-               </Button>
-               )}
             </div>
 
-            {/* Execution Log (Growing as workout progresses) */}
-            <ExecutionLogPanel
-              runtime={viewMode === 'run' ? runtime : null}
-              historicalSegments={viewMode === 'analyze' ? runtimeSegments : undefined}
-              activeSegmentId={activeSegmentId}
-              disableScroll={true}
-            >
-              {/* "Feeding" Connector Visual */}
-              <div className="h-8 w-px bg-border mx-auto my-2 border-l-2 border-dashed border-muted-foreground/30"></div>
-            </ExecutionLogPanel>
-
-            {/* Workout Context Panel */}
-            <WorkoutContextPanel
-              block={activeBlock}
-              mode={viewMode === 'analyze' ? 'analyze' : 'run'}
-            />
-
-            {/* Debug Overlay */}
-            {showDebug && (
-              <div className="absolute inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200">
-                <div className="p-2 border-b border-border flex items-center justify-between bg-muted/30">
-                  <h3 className="font-semibold ml-2">Runtime Debugger</h3>
-                  <Button variant="ghost" size="icon" onClick={() => setShowDebug(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-auto">
-                  <RuntimeStackPanel 
-                    blocks={snapshot?.stack.blocks || []} 
-                    activeBlockIndex={snapshot?.stack.activeIndex}
-                    highlightedBlockKey={undefined}
-                    className="border-b border-border"
+            {/* Active Context + Execution History - Different components for Run vs Analyze */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {viewMode === 'run' ? (
+                <>
+                  {/* Active Context Panel - At Top */}
+                  <WorkoutContextPanel
+                    block={activeBlock}
+                    mode="run"
+                    activeStatementIds={activeStatementIds}
+                    className="shrink-0 border-b border-border"
                   />
-                  <MemoryPanel 
-                    entries={snapshot?.memory.entries || []}
-                    groupBy="owner"
+
+                  {/* Execution History Panel - Below Context */}
+                  <RuntimeHistoryPanel
+                    runtime={runtime}
+                    activeSegmentIds={activeSegmentIds}
+                    autoScroll={execution.status === 'running'}
+                    className="flex-1"
                   />
-                </div>
-              </div>
-            )}
+                </>
+              ) : (
+                <>
+                  <AnalyticsHistoryPanel
+                    segments={analyticsSegments}
+                    selectedSegmentIds={selectedAnalyticsIds}
+                    onSelectSegment={handleSelectAnalyticsSegment}
+                    className="flex-1"
+                  />
+
+                  {/* Workout Context Panel */}
+                  <WorkoutContextPanel
+                    block={activeBlock}
+                    mode="analyze"
+                    className="shrink-0"
+                  />
+                </>
+              )}
+            </div>
           </>
         ) : (
           <WodIndexPanel 
@@ -436,6 +318,13 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
           />
         )}
       </div>
+
+      {/* Debug Panel - Slide-out from right */}
+      <RuntimeDebugPanel
+        runtime={runtime}
+        isOpen={isDebugMode && viewMode === 'run'}
+        onClose={() => onDebugModeChange?.(false)}
+      />
 
       {/* Right Panel: Timer or Analytics */}
       <div className={`${rightPanelClass} bg-background relative overflow-hidden`}>

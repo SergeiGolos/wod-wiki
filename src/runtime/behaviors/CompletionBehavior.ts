@@ -24,7 +24,8 @@ export class CompletionBehavior implements IRuntimeBehavior {
   constructor(
     private readonly condition: (runtime: IScriptRuntime, block: IRuntimeBlock) => boolean,
     private readonly triggerEvents?: string[],
-    private readonly checkOnPush: boolean = false
+    private readonly checkOnPush: boolean = false,
+    private readonly checkOnNext: boolean = true
   ) {
     if (!condition || typeof condition !== 'function') {
       throw new TypeError('CompletionBehavior requires a valid condition function');
@@ -73,6 +74,11 @@ export class CompletionBehavior implements IRuntimeBehavior {
   onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     if (this.isCompleteFlag) {
       return []; // Already complete
+    }
+
+    // Only check on next if explicitly enabled (default true)
+    if (!this.checkOnNext) {
+        return [];
     }
 
     // Check completion condition

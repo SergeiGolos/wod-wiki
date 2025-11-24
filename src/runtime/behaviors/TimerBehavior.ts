@@ -239,6 +239,16 @@ export class TimerBehavior implements IRuntimeBehavior {
   }
 
   /**
+   * Check if timer is complete (only for countdown timers).
+   */
+  isComplete(): boolean {
+    if (this.direction === 'down' && this.durationMs !== undefined) {
+      return this.getElapsedMs() >= this.durationMs;
+    }
+    return false;
+  }
+
+  /**
    * Check if timer is currently paused.
    * A timer is paused if it has time spans but the last one is stopped and there's an interval running.
    */

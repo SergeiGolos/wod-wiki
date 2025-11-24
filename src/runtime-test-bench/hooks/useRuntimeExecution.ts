@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { NextEvent } from '../../runtime/NextEvent';
+import { NextEvent, TickEvent } from '../../runtime/NextEvent';
 import { EXECUTION_TICK_RATE_MS } from '../config/constants';
 
 /**
@@ -81,8 +81,9 @@ export const useRuntimeExecution = (
     if (!runtime) return;
 
     try {
-      const nextEvent = new NextEvent();
-      runtime.handle(nextEvent);
+      // Use TickEvent for periodic updates instead of NextEvent
+      const tickEvent = new TickEvent();
+      runtime.handle(tickEvent);
       setStepCount(prev => prev + 1);
 
       // Check if runtime is complete

@@ -7,6 +7,8 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { NextBlockLogger } from './NextBlockLogger';
 import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
+import { IEventHandler } from './IEventHandler';
+import { IEvent } from './IEvent';
 
 
 export type AllocateRequest<T> = { 
@@ -50,6 +52,56 @@ export class RuntimeBlock implements IRuntimeBlock{
         }
         
         this.behaviors = behaviors;
+
+        // Register default 'tick' handler to bridge event-driven runtime with block.next() method
+        this.registerDefaultHandler();
+        
+        // Register event dispatcher to route events to behaviors
+        this.registerEventDispatcher();
+    }
+
+    private registerDefaultHandler() {
+        const handler: IEventHandler = {
+            id: `handler-tick-${this.key.toString()}`,
+            name: `TickHandler-${this.label}`,
+            handler: (event: IEvent, runtime: IScriptRuntime) => {
+                // Only handle 'tick' event (periodic updates)
+                if (event.name !== 'tick') return [];
+                
+                // Only handle if this is the current block
+                if (runtime.stack.current !== this) return [];
+                
+                // Delegate to next() method for state updates
+                return this.next(runtime);
+            }
+        };
+        
+        // Allocate handler in memory
+        this.context.allocate<IEventHandler>('handler', handler, 'private');
+    }
+
+    private registerEventDispatcher() {
+        const handler: IEventHandler = {
+            id: `dispatcher-${this.key.toString()}`,
+            name: `EventDispatcher-${this.label}`,
+            handler: (event: IEvent, runtime: IScriptRuntime) => {
+                // Only dispatch if this is the current block
+                if (runtime.stack.current !== this) return [];
+                
+                const actions: IRuntimeAction[] = [];
+                for (const behavior of this.behaviors) {
+                    if (behavior.onEvent) {
+                        const result = behavior.onEvent(event, runtime, this);
+                        if (result) {
+                            actions.push(...result);
+                        }
+                    }
+                }
+                return actions;
+            }
+        };
+        
+        this.context.allocate<IEventHandler>('handler', handler, 'private');
     }
 
     

@@ -34,6 +34,9 @@ export interface WorkoutContextPanelProps {
   /** Callback when deleting a statement (edit mode only) */
   onDeleteStatement?: (index: number) => void;
   
+  /** Active statement IDs (blocks currently on the stack) */
+  activeStatementIds?: Set<number>;
+  
   /** Additional CSS classes */
   className?: string;
 }
@@ -48,6 +51,7 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
   onStart,
   onEditStatement,
   onDeleteStatement,
+  activeStatementIds = new Set(),
   className = ''
 }) => {
   if (!block) {
@@ -62,32 +66,16 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
   const hasStatements = block.statements && block.statements.length > 0;
 
   return (
-    <div className={`border-t border-border bg-muted/10 flex flex-col min-h-[200px] ${className}`}>
-      {/* Header */}
-      <div className="p-2 border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center bg-muted/20">
-        <span>
-          {mode === 'edit' && 'Workout Context'}
-          {mode === 'run' && 'Active Context'}
-          {mode === 'analyze' && 'Workout Summary'}
-        </span>
-        <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
-          {readonly ? 'READ ONLY' : 'EDITABLE'}
-        </span>
-      </div>
-
+    <div className={`bg-muted/10 flex flex-col min-h-[200px] ${className}`}>
       {/* Content */}
       <div className="p-4 font-mono text-sm relative flex-1">
-        {mode === 'run' && (
-          // Visual connector for run mode
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-background border border-border rotate-45 z-10"></div>
-        )}
-        
         {hasStatements ? (
           <EditableStatementList 
             statements={block.statements || []} 
             onEditStatement={readonly ? undefined : onEditStatement}
             onDeleteStatement={readonly ? undefined : onDeleteStatement}
-            readonly={readonly} 
+            readonly={readonly}
+            activeStatementIds={activeStatementIds}
           />
         ) : (
           <div className="text-muted-foreground italic">
