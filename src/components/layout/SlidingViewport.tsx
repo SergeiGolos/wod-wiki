@@ -107,6 +107,11 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
   if (isMobile) {
     return (
       <div className={cn('h-full w-full overflow-hidden', className)}>
+        {/* Hidden Monaco Editor - Must be rendered for WOD block parsing to work */}
+        <div className="absolute w-0 h-0 overflow-hidden" aria-hidden="true">
+          {planPrimaryPanel}
+        </div>
+        
         <div
           className="flex h-full transition-transform duration-500 ease-in-out"
           style={{

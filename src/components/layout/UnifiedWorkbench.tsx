@@ -503,6 +503,14 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
           </div>
           
           <div className="flex gap-2 items-center">
+            {/* Debug Button - Always visible, to the left */}
+            {!isMobile && (
+              <DebugButton
+                isDebugMode={isDebugMode}
+                onClick={() => setIsDebugMode(!isDebugMode)}
+              />
+            )}
+            
             {!isMobile && (
               <Button
                 variant="ghost"
@@ -550,12 +558,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
             <div className="h-6 w-px bg-border mx-2" />
 
-            {viewMode === 'track' && !isMobile && (
-              <DebugButton
-                isDebugMode={isDebugMode}
-                onClick={() => setIsDebugMode(!isDebugMode)}
-              />
-            )}
             <ThemeToggle />
             {!isMobile && (
               <a

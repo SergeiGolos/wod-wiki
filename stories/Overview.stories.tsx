@@ -1,9 +1,9 @@
-import { WodWorkbench } from '@/components/layout/WodWorkbench';
+import { UnifiedWorkbench } from '@/components/layout/UnifiedWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const meta: Meta<typeof WodWorkbench> = {
+const meta: Meta<typeof UnifiedWorkbench> = {
   title: 'Overview',
-  component: WodWorkbench,
+  component: UnifiedWorkbench,
   parameters: {
     layout: 'fullscreen',
     docs: {
