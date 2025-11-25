@@ -1,43 +1,53 @@
 import { editor } from 'monaco-editor';
-import { FeatureRegistry } from './features/FeatureRegistry';
-import { FrontMatterFeature } from './features/FrontMatterFeature';
-import { MediaFeature } from './features/MediaFeature';
-import { WodBlockFeature } from './features/WodBlockFeature';
-import { HeadingFeature } from './features/HeadingFeature';
-import { BlockquoteFeature } from './features/BlockquoteFeature';
+import { InlineWidgetCardManager, InlineWidgetCard } from './inline-cards';
+import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
 
 export class RichMarkdownManager {
     private editor: editor.IStandaloneCodeEditor;
-    private registry: FeatureRegistry;
-    private isDisposed = false;
+    private cardManager: InlineWidgetCardManager;
+    
+    // Callback for card actions (e.g., start workout)
+    private onCardAction?: (card: InlineWidgetCard, action: string, payload?: unknown) => void;
 
-    constructor(editor: editor.IStandaloneCodeEditor) {
-        this.editor = editor;
-        this.registry = new FeatureRegistry(editor);
+    constructor(
+        editorInstance: editor.IStandaloneCodeEditor,
+        onCardAction?: (card: InlineWidgetCard, action: string, payload?: unknown) => void,
+        hiddenAreasCoordinator?: HiddenAreasCoordinator
+    ) {
+        this.editor = editorInstance;
+        this.onCardAction = onCardAction;
 
-        // Register Features
-        this.registry.register(new FrontMatterFeature());
-        this.registry.register(new MediaFeature());
-        this.registry.register(new WodBlockFeature());
-        this.registry.register(new HeadingFeature());
-        this.registry.register(new BlockquoteFeature());
-
-        // Listen to cursor changes to toggle visibility
-        this.editor.onDidChangeCursorPosition(() => this.update());
-        // Listen to content changes to update ranges
-        this.editor.onDidChangeModelContent(() => this.update());
-
-        // Initial update
-        this.update();
+        // Initialize the inline widget card system
+        this.cardManager = new InlineWidgetCardManager(
+            this.editor,
+            (card, action, payload) => {
+                if (this.onCardAction) {
+                    this.onCardAction(card, action, payload);
+                }
+                // Default handling for common actions
+                if (action === 'start-workout') {
+                    console.log('[RichMarkdownManager] Start workout requested for:', card.id);
+                }
+            },
+            hiddenAreasCoordinator
+        );
     }
 
     public dispose() {
-        this.isDisposed = true;
-        this.registry.dispose();
+        this.cardManager.dispose();
     }
-
-    private update() {
-        if (this.isDisposed) return;
-        this.registry.update();
+    
+    /**
+     * Force refresh of all cards
+     */
+    public refresh() {
+        this.cardManager.refresh();
+    }
+    
+    /**
+     * Get all current cards
+     */
+    public getCards(): InlineWidgetCard[] {
+        return this.cardManager.getCards();
     }
 }

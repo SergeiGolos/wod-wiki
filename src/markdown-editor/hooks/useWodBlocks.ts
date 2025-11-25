@@ -69,10 +69,22 @@ export function useWodBlocks(
       setBlocks(prevBlocks => {
         // Preserve state from existing blocks where possible
         const updatedBlocks = detected.map(newBlock => {
-          const existingBlock = prevBlocks.find(b => 
+          // 1. Try exact match (content + position)
+          let existingBlock = prevBlocks.find(b => 
             b.startLine === newBlock.startLine && 
             b.content === newBlock.content
           );
+          
+          // 2. Try position match (same start line) - assumes editing content in place
+          if (!existingBlock) {
+            existingBlock = prevBlocks.find(b => 
+              b.startLine === newBlock.startLine
+            );
+          }
+
+          // 3. Try fuzzy match (same ID if we can track it? No, ID is on the block object)
+          // If we had a way to track "this block moved", we'd need more complex diffing.
+          // For now, startLine match handles the most common case (editing inside block).
           
           if (existingBlock) {
             // Keep existing block state

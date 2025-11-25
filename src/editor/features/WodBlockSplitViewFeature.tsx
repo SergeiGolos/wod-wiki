@@ -26,6 +26,8 @@ import { StatementDisplay } from '../../components/fragments/StatementDisplay';
 import { Button } from '../../components/ui/button';
 import { Play, Timer, X, Edit3, Eye } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { HiddenAreasCoordinator } from '../utils/HiddenAreasCoordinator';
+import { CARD_SYSTEM_CONFIG } from '../inline-cards/config';
 
 interface WodSplitViewProps {
   block: WodBlock;
@@ -197,7 +199,7 @@ const WodSplitView: React.FC<WodSplitViewProps> = ({
         
         {onStartWorkout && block.state === 'parsed' && hasStatements && (
           <div className="p-3 border-t border-border flex-shrink-0">
-            <Button onClick={onStartWorkout} className="w-full gap-2" size="default">
+            <Button onClick={onStartWorkout} className="w-full gap-2" size="default" data-no-edit>
               <Play className="h-4 w-4" />
               Run Workout
             </Button>
@@ -217,6 +219,7 @@ const WodSplitView: React.FC<WodSplitViewProps> = ({
 export class WodBlockSplitViewManager {
   private editor: editor.IStandaloneCodeEditor;
   private monaco: Monaco;
+  private hiddenAreasCoordinator?: HiddenAreasCoordinator;
   private viewZones: Map<string, {
     zoneId: string;
     root: ReactDOM.Root;
@@ -234,11 +237,13 @@ export class WodBlockSplitViewManager {
   constructor(
     editorInstance: editor.IStandaloneCodeEditor,
     monaco: Monaco,
-    onStartWorkout?: (block: WodBlock) => void
+    onStartWorkout?: (block: WodBlock) => void,
+    hiddenAreasCoordinator?: HiddenAreasCoordinator
   ) {
     this.editor = editorInstance;
     this.monaco = monaco;
     this.onStartWorkout = onStartWorkout;
+    this.hiddenAreasCoordinator = hiddenAreasCoordinator;
 
     // Detect desktop mode
     this.isDesktop = window.innerWidth >= 1024;
@@ -255,9 +260,20 @@ export class WodBlockSplitViewManager {
     // Listen for content changes
     const contentListener = this.editor.onDidChangeModelContent(() => {
       // Debounce the update
-      setTimeout(() => this.updateViewZones(), 100);
+      setTimeout(() => {
+        console.log('[WodBlockSplitViewManager] Content changed, refreshing view zones');
+        this.updateViewZones();
+      }, 100);
     });
     this.disposables.push(contentListener);
+
+    // Listen for layout changes - just log for debugging
+    const layoutListener = this.editor.onDidLayoutChange(() => {
+      if (CARD_SYSTEM_CONFIG.debug) {
+        console.log('[WodBlockSplitViewManager] Layout changed, view zones:', this.viewZones.size);
+      }
+    });
+    this.disposables.push(layoutListener);
 
     // Listen for cursor position changes to detect editing
     const cursorListener = this.editor.onDidChangeCursorPosition((e) => {
@@ -272,6 +288,22 @@ export class WodBlockSplitViewManager {
       if (newActiveBlockId !== this.activeBlockId) {
         this.activeBlockId = newActiveBlockId;
         // Re-render all blocks to update editing state
+        this.updateViewZones();
+      }
+      
+      // Detect if view zones have been lost (cursor jumping over hidden area)
+      // Check if cursor jumped over a block that should have a view zone
+      const parsedBlocks = this.blocks.filter(b => b.state === 'parsed' && b.id !== this.activeBlockId);
+      if (CARD_SYSTEM_CONFIG.debug) {
+        console.log('[WodBlockSplitViewManager] Cursor at line', cursorLine, '- parsed blocks:', parsedBlocks.length, 'view zones:', this.viewZones.size);
+      }
+      
+      // Only check zone visibility if we have blocks but no view zones tracked
+      // This avoids constant recreation loops when zones are being created
+      if (parsedBlocks.length > 0 && this.viewZones.size === 0) {
+        if (CARD_SYSTEM_CONFIG.debug) {
+          console.log('[WodBlockSplitViewManager] Parsed blocks exist but no view zones tracked - recreating');
+        }
         this.updateViewZones();
       }
     });
@@ -299,8 +331,38 @@ export class WodBlockSplitViewManager {
   public updateBlocks(blocks: WodBlock[]): void {
     console.log('[WodBlockSplitViewManager] updateBlocks called with', blocks.length, 'blocks');
     this.blocks = blocks;
+    
+    // Re-evaluate active block based on current cursor position
+    // This handles cases where block IDs changed but cursor is still in the "same" block
+    this.updateActiveBlockFromCursor();
+
     if (this.enabled) {
       this.updateViewZones();
+    }
+  }
+
+  private updateActiveBlockFromCursor(): void {
+    const position = this.editor.getPosition();
+    if (!position) {
+      // Don't clear activeBlockId if we just lost focus, 
+      // but if cursor is truly gone (e.g. editor disposed), maybe?
+      // Actually, getPosition() returns null if editor is not ready.
+      return;
+    }
+    
+    const cursorLine = position.lineNumber;
+    // Find block containing cursor
+    const blockAtCursor = this.blocks.find(b => 
+      (b.startLine !== undefined && b.endLine !== undefined) && 
+      cursorLine >= (b.startLine + 1) && cursorLine <= (b.endLine + 1)
+    );
+    
+    const newActiveBlockId = blockAtCursor?.id || null;
+    
+    // Only update if changed (to avoid log spam, though logic is cheap)
+    if (newActiveBlockId !== this.activeBlockId) {
+      console.log('[WodBlockSplitViewManager] Active block updated from cursor:', newActiveBlockId);
+      this.activeBlockId = newActiveBlockId;
     }
   }
 
@@ -308,13 +370,22 @@ export class WodBlockSplitViewManager {
    * Clear hidden areas
    */
   private clearHiddenAreas(): void {
-    (this.editor as any).setHiddenAreas([]);
+    if (this.hiddenAreasCoordinator) {
+      this.hiddenAreasCoordinator.clearHiddenAreas('wod-blocks');
+    } else {
+      (this.editor as any).setHiddenAreas([]);
+    }
   }
 
   /**
    * Update which areas of the editor are hidden
-   * Hide all parsed WOD blocks (they're replaced by split views)
+   * Hide all parsed WOD blocks EXCEPT the active one (being edited)
    * Note: WodBlock uses 0-indexed lines, Monaco uses 1-indexed
+   * 
+   * IMPORTANT: We hide starting from the SECOND line of the block (after ```wod)
+   * because Monaco collapses view zones that are adjacent to hidden areas.
+   * By keeping the first line visible (but empty/minimal), the view zone has
+   * a place to render.
    */
   private updateHiddenAreas(): void {
     const hiddenRanges: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }[] = [];
@@ -323,28 +394,50 @@ export class WodBlockSplitViewManager {
       // Convert from 0-indexed (WodBlock) to 1-indexed (Monaco)
       const startLine = block.startLine + 1;
       const endLine = block.endLine + 1;
-      console.log('[WodBlockSplitViewManager] Processing block:', block.id, 'state:', block.state, 'lines (1-indexed):', startLine, '-', endLine);
+      console.log('[WodBlockSplitViewManager] Processing block:', block.id, 'state:', block.state, 'lines (1-indexed):', startLine, '-', endLine, 'activeBlockId:', this.activeBlockId);
       if (!block.startLine && block.startLine !== 0) continue;
       if (!block.endLine && block.endLine !== 0) continue;
       if (block.state !== 'parsed') continue;
       
-      // Hide all parsed WOD blocks (they're replaced by split view)
-      hiddenRanges.push({
-        startLineNumber: startLine,
-        startColumn: 1,
-        endLineNumber: endLine,
-        endColumn: 1
-      });
+      // Don't hide the block that's currently being edited
+      // This allows the cursor to enter the block for editing
+      if (block.id === this.activeBlockId) {
+        console.log('[WodBlockSplitViewManager] Skipping hide for active block:', block.id);
+        continue;
+      }
+      
+      // Hide WOD block content starting from line AFTER the opening fence
+      // This leaves the ```wod line visible so the view zone has somewhere to attach
+      // The view zone will visually cover this line
+      const hideStartLine = startLine + 1; // Line after ```wod
+      if (hideStartLine <= endLine) {
+        hiddenRanges.push({
+          startLineNumber: hideStartLine,
+          startColumn: 1,
+          endLineNumber: endLine,
+          endColumn: 1
+        });
+      }
     }
     
     console.log('[WodBlockSplitViewManager] Hiding', hiddenRanges.length, 'ranges:', hiddenRanges);
-    // Apply hidden areas
-    (this.editor as any).setHiddenAreas(hiddenRanges);
+    
+    if (this.hiddenAreasCoordinator) {
+      const ranges = hiddenRanges.map(r => new this.monaco.Range(r.startLineNumber, r.startColumn, r.endLineNumber, r.endColumn));
+      this.hiddenAreasCoordinator.updateHiddenAreas('wod-blocks', ranges);
+    } else {
+      // Apply hidden areas directly if no coordinator
+      (this.editor as any).setHiddenAreas(hiddenRanges);
+    }
   }
 
   private updateViewZones(): void {
-    if (!this.enabled) return;
-    console.log('[WodBlockSplitViewManager] updateViewZones called');
+    if (!this.enabled) {
+      console.log('[WodBlockSplitViewManager] updateViewZones skipped - not enabled');
+      return;
+    }
+    console.log('[WodBlockSplitViewManager] updateViewZones called with', this.blocks.length, 'blocks');
+    console.log('[WodBlockSplitViewManager] Current view zones:', Array.from(this.viewZones.keys()));
 
     // Always update hidden areas to hide WOD blocks (they're replaced by split views)
     this.updateHiddenAreas();
@@ -354,15 +447,16 @@ export class WodBlockSplitViewManager {
     // Remove view zones for blocks that no longer exist
     for (const [id] of this.viewZones) {
       if (!currentBlockIds.has(id)) {
+        console.log('[WodBlockSplitViewManager] Removing stale view zone:', id);
         this.removeViewZone(id);
       }
     }
 
     // Create or update view zones for each parsed block
     for (const block of this.blocks) {
-      console.log('[WodBlockSplitViewManager] Checking block', block.id, 'state:', block.state, 'activeBlockId:', this.activeBlockId);
+      console.log('[WodBlockSplitViewManager] Checking block', block.id, 'state:', block.state, 'activeBlockId:', this.activeBlockId, 'hasExistingZone:', this.viewZones.has(block.id));
       if (block.state !== 'parsed') {
-        console.log('[WodBlockSplitViewManager] Block not parsed, skipping');
+        console.log('[WodBlockSplitViewManager] Block not parsed, skipping. Removing zone if exists.');
         // Remove zone if block is not parsed
         if (this.viewZones.has(block.id)) {
           this.removeViewZone(block.id);
@@ -374,25 +468,29 @@ export class WodBlockSplitViewManager {
       const isEditing = this.activeBlockId === block.id;
       const existingZone = this.viewZones.get(block.id);
 
-      // Show inline visualization (with editing state)
-      if (existingZone) {
-        // Check if editing state changed
-        if (existingZone.isEditing !== isEditing) {
-          console.log('[WodBlockSplitViewManager] Editing state changed, recreating view zone');
-          // Need to recreate the zone to update the isEditing state
+      // When editing, remove the view zone and let the user edit the raw code
+      // The block is un-hidden (via updateHiddenAreas) so the code is visible
+      if (isEditing) {
+        console.log('[WodBlockSplitViewManager] Block is being edited, removing view zone if exists');
+        if (existingZone) {
           this.removeViewZone(block.id);
-          this.createViewZone(block, isEditing);
-        } else {
-          console.log('[WodBlockSplitViewManager] Updating existing view zone content');
-          // Just update the content
-          this.updateViewZoneContent(block, isEditing);
         }
+        continue;
+      }
+
+      // Show inline visualization for non-editing blocks
+      if (existingZone) {
+        console.log('[WodBlockSplitViewManager] Updating existing view zone content');
+        // Just update the content
+        this.updateViewZoneContent(block, false);
       } else {
-        console.log('[WodBlockSplitViewManager] Creating new view zone');
+        console.log('[WodBlockSplitViewManager] Creating new view zone for block:', block.id);
         // Create new zone
-        this.createViewZone(block, isEditing);
+        this.createViewZone(block, false);
       }
     }
+    
+    console.log('[WodBlockSplitViewManager] updateViewZones completed. Final view zones:', Array.from(this.viewZones.keys()));
   }
 
   private createViewZone(block: WodBlock, isEditing: boolean = false): void {
@@ -417,10 +515,26 @@ export class WodBlockSplitViewManager {
     domNode.style.cssText = `
       width: 100%;
       height: 100%;
+      min-height: 200px;
       pointer-events: auto;
       box-sizing: border-box;
       padding: 4px 8px;
+      cursor: pointer;
+      background: var(--vscode-editor-background, #fff);
     `;
+    
+    console.log('[WodBlockSplitViewManager] Created DOM node:', domNode);
+
+    // Add click handler to enter edit mode when clicking anywhere on the view zone
+    domNode.addEventListener('click', (e) => {
+      // Don't trigger if clicking on buttons or interactive elements
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('[data-no-edit]')) {
+        return;
+      }
+      console.log('[WodBlockSplitViewManager] View zone clicked, focusing block:', block.id);
+      this.focusBlock(block);
+    });
 
     // Create margin decoration
     const marginDomNode = document.createElement('div');
@@ -486,6 +600,12 @@ export class WodBlockSplitViewManager {
         monaco={this.monaco}
       />
     );
+    
+    // Log after render - check DOM dimensions after a short delay
+    setTimeout(() => {
+      const rect = domNode.getBoundingClientRect();
+      console.log('[WodBlockSplitViewManager] After React render - domNode rect:', rect.width, 'x', rect.height, 'parent:', domNode.parentElement?.className);
+    }, 100);
   }
 
   /**
@@ -520,9 +640,20 @@ export class WodBlockSplitViewManager {
 
   private focusBlock(block: WodBlock): void {
     if (block.startLine !== undefined) {
+      console.log('[WodBlockSplitViewManager] focusBlock called for:', block.id);
       // Trigger edit mode for this block
       this.activeBlockId = block.id;
       this.updateViewZones();
+      
+      // Move cursor to the first content line of the block (after ```wod)
+      // and focus the editor
+      const contentLine = block.startLine + 2; // Line after ```wod (0-indexed + 1 for Monaco + 1 for content)
+      setTimeout(() => {
+        this.editor.setPosition({ lineNumber: contentLine, column: 1 });
+        this.editor.focus();
+        this.editor.revealLineInCenter(contentLine);
+        console.log('[WodBlockSplitViewManager] Cursor moved to line:', contentLine);
+      }, 50);
     }
   }
 
@@ -551,6 +682,8 @@ export class WodBlockSplitViewManager {
   private removeViewZone(id: string): void {
     const zone = this.viewZones.get(id);
     if (!zone) return;
+
+    console.log('[WodBlockSplitViewManager] removeViewZone called for:', id, 'stack:', new Error().stack);
 
     zone.root.unmount();
     

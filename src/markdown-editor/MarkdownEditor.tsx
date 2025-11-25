@@ -18,6 +18,7 @@ import { RichMarkdownManager } from '../editor/RichMarkdownManager';
 import { HeadingSectionFoldingManager } from '../editor/features/HeadingSectionFoldingFeature';
 import { WodBlockSplitViewManager } from '../editor/features/WodBlockSplitViewFeature';
 import { ChevronDown, List } from 'lucide-react';
+import { HiddenAreasCoordinator } from '../editor/utils/HiddenAreasCoordinator';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -103,6 +104,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
   const splitViewManagerRef = useRef<WodBlockSplitViewManager | null>(null);
   const foldingManagerRef = useRef<HeadingSectionFoldingManager | null>(null);
+  const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
@@ -203,11 +205,14 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     setEditorInstance(editor);
     setMonacoInstance(monaco);
 
+    // Initialize Hidden Areas Coordinator
+    hiddenAreasCoordinatorRef.current = new HiddenAreasCoordinator(editor, monaco);
+
     // Initialize Rich Markdown Manager
-    richMarkdownManagerRef.current = new RichMarkdownManager(editor);
+    richMarkdownManagerRef.current = new RichMarkdownManager(editor, undefined, hiddenAreasCoordinatorRef.current);
 
     // Initialize WOD Block Split View Manager with onStartWorkout callback
-    splitViewManagerRef.current = new WodBlockSplitViewManager(editor, monaco, onStartWorkout);
+    splitViewManagerRef.current = new WodBlockSplitViewManager(editor, monaco, onStartWorkout, hiddenAreasCoordinatorRef.current);
     console.log('[MarkdownEditor] WOD Block Split View Manager initialized');
 
     // Initialize Heading Section Folding Manager (provides fold/unfold all)
