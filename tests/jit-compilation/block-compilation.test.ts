@@ -187,10 +187,10 @@ describe('Block Compilation Contract', () => {
       const strategy = new TimeBoundRoundsStrategy();
       const block = strategy.compile(statements, mockRuntime);
 
-      // THEN: Block has Rounds type metadata (architectural limitation - see TODO in strategy)
-      // TODO: Once nested block compilation is supported, this should return TimerBlock wrapping RoundsBlock
+      // THEN: Block has Timer type metadata
+      // TimeBoundRoundsStrategy creates a Timer block that contains a LoopCoordinatorBehavior
       expect(block).toBeDefined();
-      expect(block!.blockType).toBe("Rounds");
+      expect(block!.blockType).toBe("Timer");
       expect(block!.sourceIds).toEqual([statements[0].id]);
     });
 
