@@ -196,16 +196,26 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   rounds(ctx: any): ICodeFragment[] {
     const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
-    const groups = this.visit(ctx.sequence[0]);
+
+    if (ctx.sequence) {
+      const groups = this.visit(ctx.sequence[0]);
+
+      if (groups.length == 1) {
+        return [new RoundsFragment(groups[0], meta)];
+      }
+
+      return [
+        new RoundsFragment(groups.length, meta),
+        ...groups.map((group: any) => new RepFragment(group, meta)),
+      ];
+    }
     
-    if (groups.length == 1) {
-      return [new RoundsFragment(groups[0], meta)];
+    if (ctx.label) {
+      const label = ctx.label[0].image;
+      return [new RoundsFragment(label, meta)];
     }
 
-    return [
-      new RoundsFragment(groups.length, meta),
-      ...groups.map((group: any) => new RepFragment(group, meta)),
-    ];
+    return [];
   }
 
   sequence(ctx: any): number[] {
