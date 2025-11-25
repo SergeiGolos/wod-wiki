@@ -430,6 +430,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       activeStatementIds={activeStatementIds}
       autoScroll={execution.status === 'running'}
       mobile={isMobile}
+      workoutStartTime={execution.startTime}
     />
   );
 

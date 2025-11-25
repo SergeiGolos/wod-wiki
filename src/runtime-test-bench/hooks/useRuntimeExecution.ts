@@ -35,6 +35,7 @@ export interface UseRuntimeExecutionReturn {
   status: ExecutionStatus;
   elapsedTime: number;
   stepCount: number;
+  startTime: number | null;
   start: () => void;
   pause: () => void;
   stop: () => void;
@@ -69,6 +70,7 @@ export const useRuntimeExecution = (
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [stepCount, setStepCount] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -110,7 +112,13 @@ export const useRuntimeExecution = (
     if (status === 'running') return;
 
     setStatus('running');
-    startTimeRef.current = Date.now() - elapsedTime; // Resume from paused time
+    const now = Date.now();
+    startTimeRef.current = now - elapsedTime; // Resume from paused time
+    
+    // Only set startTime on first start (not resume)
+    if (elapsedTime === 0) {
+      setStartTime(now);
+    }
 
     // Start interval for subsequent steps
     intervalRef.current = setInterval(executeStep, EXECUTION_TICK_RATE_MS);
@@ -138,6 +146,7 @@ export const useRuntimeExecution = (
     setElapsedTime(0);
     setStepCount(0);
     setStatus('idle');
+    setStartTime(null);
     startTimeRef.current = null;
   }, []);
 
@@ -149,6 +158,7 @@ export const useRuntimeExecution = (
     stop();
     setElapsedTime(0);
     setStepCount(0);
+    setStartTime(null);
     startTimeRef.current = null;
 
     // Reset runtime if available
@@ -213,6 +223,7 @@ export const useRuntimeExecution = (
     status,
     elapsedTime,
     stepCount,
+    startTime,
     start,
     pause,
     stop,

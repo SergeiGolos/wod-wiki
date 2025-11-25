@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { MemoryPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
+import { MemoryValueDialog, MemoryValueCell, useMemoryValueDialog, MemoryValueData } from './MemoryValuePopover';
 
 /**
  * MemoryPanel component - displays memory entries with filtering and grouping
@@ -22,6 +23,9 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   testId = 'memory-panel'
 }) => {
   const [localFilterText, setLocalFilterText] = useState(filterText);
+  
+  // Single shared dialog for all memory values
+  const { dialogData, isOpen, openDialog, closeDialog } = useMemoryValueDialog();
 
   // Update local filter when prop changes
   React.useEffect(() => {
@@ -121,9 +125,20 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
           {entry.ownerLabel || entry.ownerId}
         </td>
 
-        {/* Value */}
-        <td className="px-3 py-2 font-mono text-foreground truncate max-w-[100px]" title={entry.valueFormatted}>
-          {entry.valueFormatted}
+        {/* Value - clickable to open dialog with details */}
+        <td className="px-3 py-2">
+          <MemoryValueCell
+            data={{
+              value: entry.value,
+              displayValue: entry.valueFormatted,
+              label: entry.label,
+              type: entry.type,
+              isValid: entry.isValid,
+              ownerId: entry.ownerId,
+              ownerLabel: entry.ownerLabel,
+            }}
+            onClick={openDialog}
+          />
         </td>
       </tr>
     );
@@ -211,6 +226,13 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
           )}
         </div>
       </div>
+
+      {/* Single shared dialog for memory value details */}
+      <MemoryValueDialog
+        data={dialogData}
+        isOpen={isOpen}
+        onClose={closeDialog}
+      />
     </div>
   );
 };
