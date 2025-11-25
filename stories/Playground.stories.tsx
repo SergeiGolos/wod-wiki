@@ -45,7 +45,7 @@ Use this blank canvas to log your daily training.
 **Quick Tip:** Press **Ctrl+Space** to view available templates and start inserting exercises.
 
 \`\`\`wod
-Timer: 10:00
+Timer 10:00
   - 10 Pushups
   - 10 Situps
   - 10 Squats

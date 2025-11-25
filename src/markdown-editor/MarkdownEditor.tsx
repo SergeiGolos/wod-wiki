@@ -2,7 +2,7 @@
  * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
  */
 
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
@@ -15,38 +15,41 @@ import { useSmartIncrement } from './hooks/useSmartIncrement';
 // Import Monaco loader configuration to use local Monaco instead of CDN
 import './utils/monacoLoader';
 import { RichMarkdownManager } from '../editor/RichMarkdownManager';
+import { HeadingSectionFoldingManager } from '../editor/features/HeadingSectionFoldingFeature';
+import { WodBlockSplitViewManager } from '../editor/features/WodBlockSplitViewFeature';
+import { ChevronDown, List } from 'lucide-react';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
   initialContent?: string;
-  
+
   /** Callback when content changes */
   onContentChange?: (content: string) => void;
-  
+
   /** Callback when title changes (first line) */
   onTitleChange?: (title: string) => void;
-  
+
   /** Whether to show markdown toolbar */
   showToolbar?: boolean;
-  
+
   /** Whether to show context overlay */
   showContextOverlay?: boolean;
-  
+
   /** Whether editor is read-only */
   readonly?: boolean;
-  
+
   /** Custom theme name */
   theme?: string;
-  
+
   /** Custom CSS class */
   className?: string;
-  
+
   /** Height of editor (default: 100vh) */
   height?: string | number;
-  
+
   /** Width of editor (default: 100%) */
   width?: string | number;
-  
+
   /** Optional Monaco options override */
   editorOptions?: monacoEditor.IStandaloneEditorConstructionOptions;
 
@@ -64,6 +67,9 @@ export interface MarkdownEditorProps {
 
   /** Line number to highlight (1-indexed) */
   highlightedLine?: number | null;
+
+  /** Callback when Start Workout is clicked on a WOD block */
+  onStartWorkout?: (block: any) => void;
 }
 
 import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
@@ -89,19 +95,23 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   onBlocksChange,
   onActiveBlockChange,
   onCursorPositionChange,
-  highlightedLine
+  highlightedLine,
+  onStartWorkout
 }) => {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
+  const splitViewManagerRef = useRef<WodBlockSplitViewManager | null>(null);
+  const foldingManagerRef = useRef<HeadingSectionFoldingManager | null>(null);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
+  const [isAllFolded, setIsAllFolded] = useState(false);
 
-  
+
   const { setIsOpen } = useCommandPalette();
-  
-  
+
+
   // Use smart increment hook
   useSmartIncrement({ editor: editorInstance, enabled: !readonly });
 
@@ -138,13 +148,13 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
   // Use the WOD blocks hook
   const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
-  
+
   // Parse ALL blocks for inlay hints (not just active block)
   useParseAllBlocks(blocks, updateBlock);
-  
+
   // Use context overlay for active block
   useContextOverlay(editorInstance, activeBlock, showContextOverlay);
-  
+
 
 
   // Notify parent of block changes
@@ -192,16 +202,27 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     monacoRef.current = monaco;
     setEditorInstance(editor);
     setMonacoInstance(monaco);
-    
+
     // Initialize Rich Markdown Manager
     richMarkdownManagerRef.current = new RichMarkdownManager(editor);
+
+    // Initialize WOD Block Split View Manager with onStartWorkout callback
+    splitViewManagerRef.current = new WodBlockSplitViewManager(editor, monaco, onStartWorkout);
+    console.log('[MarkdownEditor] WOD Block Split View Manager initialized');
+
+    // Initialize Heading Section Folding Manager (provides fold/unfold all)
+    foldingManagerRef.current = new HeadingSectionFoldingManager(editor, monaco);
+    foldingManagerRef.current.onFoldStateChange((folded) => {
+      setIsAllFolded(folded);
+    });
+    console.log('[MarkdownEditor] Heading section folding manager initialized');
 
     // Apply initial theme
     console.log('[MarkdownEditor] Initial theme application:', theme);
     monaco.editor.setTheme(theme);
-    
+
     // Enable glyph margin for icons and inlay hints
-    editor.updateOptions({ 
+    editor.updateOptions({
       glyphMargin: true,
       inlayHints: { enabled: 'on' }
     });
@@ -216,7 +237,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
       setIsOpen(true);
     });
-    
+
     // Focus editor only if not in readonly mode
     if (!readonly) {
       editor.focus();
@@ -226,6 +247,24 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     editor.onDidChangeCursorPosition((e) => {
       if (onCursorPositionChange) {
         onCursorPositionChange(e.position.lineNumber, e.position.column);
+      }
+    });
+
+    // Click-to-fold on headings
+    editor.onMouseDown((e) => {
+      if (e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
+        const position = e.target.position;
+        if (position) {
+          const model = editor.getModel();
+          const lineContent = model?.getLineContent(position.lineNumber);
+          // Check if it's a heading (starts with #)
+          if (lineContent?.trim().startsWith('#')) {
+            // Move cursor to the line (so toggleFold works on it)
+            editor.setPosition(position);
+            // Toggle fold
+            editor.getAction('editor.toggleFold')?.run();
+          }
+        }
       }
     });
 
@@ -240,8 +279,22 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       if (richMarkdownManagerRef.current) {
         richMarkdownManagerRef.current.dispose();
       }
+      if (splitViewManagerRef.current) {
+        splitViewManagerRef.current.dispose();
+      }
+      if (foldingManagerRef.current) {
+        foldingManagerRef.current.dispose();
+      }
     };
   }, []);
+
+  // Update split view manager when blocks change
+  useEffect(() => {
+    console.log('[MarkdownEditor] Blocks changed:', blocks.length, blocks);
+    if (splitViewManagerRef.current && blocks.length > 0) {
+      splitViewManagerRef.current.updateBlocks(blocks);
+    }
+  }, [blocks]);
 
 
   // Use WOD decorations (inlay hints & semantic tokens & highlighting)
@@ -254,12 +307,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   const handleEditorChange = (value: string | undefined) => {
     const newContent = value || '';
     setContent(newContent);
-    
+
     // Notify content change
     if (onContentChange) {
       onContentChange(newContent);
     }
-    
+
     // Extract and notify title change (first line)
     if (onTitleChange) {
       const firstLine = newContent.split('\n')[0];
@@ -291,22 +344,50 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     scrollBeyondLastLine: false,
     automaticLayout: true,
     inlayHints: { enabled: 'on' },
+    // Enable folding for heading sections and WOD blocks
+    folding: true,
+    foldingStrategy: 'auto',
+    showFoldingControls: 'always',
+    foldingHighlight: true,
     ...editorOptions
   };
+
+  // Toggle fold all/unfold all
+  const handleToggleFoldAll = useCallback(() => {
+    if (foldingManagerRef.current) {
+      foldingManagerRef.current.toggleFoldAll();
+    }
+  }, []);
 
   return (
     <div className={`markdown-editor-container ${className}`} style={{ height, width }}>
       {showToolbar && (
-        <div className="markdown-toolbar border-b border-border bg-muted/50 p-2">
-          {/* Toolbar will be implemented in later phase */}
-          <div className="text-sm text-muted-foreground">
-            Markdown Editor
+        <div className="markdown-toolbar border-b border-border bg-muted/50 p-2 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>Markdown Editor</span>
             {blocks.length > 0 && (
-              <span className="ml-2 text-blue-600">
+              <span className="text-blue-600">
                 ({blocks.length} WOD block{blocks.length !== 1 ? 's' : ''} detected)
               </span>
             )}
           </div>
+          <button
+            onClick={handleToggleFoldAll}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            title={isAllFolded ? 'Expand all sections' : 'Collapse all sections (Index View)'}
+          >
+            {isAllFolded ? (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                <span>Expand All</span>
+              </>
+            ) : (
+              <>
+                <List className="h-3.5 w-3.5" />
+                <span>Index View</span>
+              </>
+            )}
+          </button>
         </div>
       )}
       <Editor

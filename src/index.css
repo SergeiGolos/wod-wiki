@@ -53,6 +53,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -60,18 +61,19 @@
 
 /* Legacy table styles for compatibility */
 table {
-    border-collapse: collapse;
-    width: 100%;
+  border-collapse: collapse;
+  width: 100%;
 }
 
-th, td {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
+th,
+td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
 }
 
 th {
-    background-color: #f2f2f2;
+  background-color: #f2f2f2;
 }
 
 /* Monaco Editor - WOD Block Decorations */
@@ -166,4 +168,25 @@ th {
 .rich-md-blockquote {
   background-color: rgba(128, 128, 128, 0.1);
   border-left: 4px solid var(--primary);
+}
+
+/* Clickable Heading for Folding */
+.clickable-heading {
+  cursor: pointer !important;
+}
+
+.clickable-heading:hover {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+/* Add a subtle indicator */
+.clickable-heading::after {
+  content: ' ▾';
+  opacity: 0.3;
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+.clickable-heading:hover::after {
+  opacity: 0.8;
 }

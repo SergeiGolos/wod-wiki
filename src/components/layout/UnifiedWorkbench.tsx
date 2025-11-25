@@ -30,7 +30,6 @@ import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { SlidingViewport, ViewMode } from './SlidingViewport';
-import { EditorIndexPanel } from './EditorIndexPanel';
 import { TimerIndexPanel } from './TimerIndexPanel';
 import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
@@ -223,7 +222,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('plan');
   const [isDebugMode, setIsDebugMode] = useState(false);
-  const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   
   // Responsive state
@@ -236,7 +234,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Calculate document structure
+  // Calculate document structure (still used for Track/Analyze views)
   const documentItems = useMemo(() => {
     return parseDocumentStructure(content, blocks);
   }, [content, blocks]);
@@ -248,16 +246,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     );
     return item?.id;
   }, [documentItems, cursorLine]);
-
-  // Auto-expand WOD blocks when cursor enters them in plan mode
-  useEffect(() => {
-    if (viewMode === 'plan' && activeBlockId) {
-      const activeItem = documentItems.find(item => item.id === activeBlockId);
-      if (activeItem?.type === 'wod') {
-        setExpandedBlockId(activeBlockId);
-      }
-    }
-  }, [activeBlockId, viewMode, documentItems]);
 
   // Selected block object
   const selectedBlock = useMemo(() => {
@@ -387,8 +375,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // --- Panel Components ---
   
-  // Plan Primary: Monaco Editor
-  const planPrimaryPanel = (
+  // Plan view: Just the Monaco Editor (full width, no index panel)
+  // WOD blocks get inline visualization through Monaco view zones
+  const planPanel = (
     <div ref={editorContainerRef} className="h-full w-full">
       <MarkdownEditorBase
         initialContent={initialContent}
@@ -399,26 +388,12 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
         onCursorPositionChange={setCursorLine}
         highlightedLine={highlightedLine}
         onMount={handleEditorMount}
+        onStartWorkout={handleStartWorkout}
         height="100%"
         {...editorProps}
         theme={monacoTheme}
       />
     </div>
-  );
-
-  // Plan Index: EditorIndexPanel
-  const planIndexPanel = (
-    <EditorIndexPanel
-      items={documentItems}
-      activeBlockId={activeBlockId}
-      expandedBlockId={expandedBlockId}
-      onBlockClick={handleBlockClick}
-      onExpandChange={setExpandedBlockId}
-      onStartWorkout={handleStartWorkout}
-      onEditStatement={(_blockId, index, text) => editStatement?.(index, text)}
-      onDeleteStatement={(_blockId, index) => deleteStatement?.(index)}
-      mobile={isMobile}
-    />
   );
 
   // Track Index: TimerIndexPanel
@@ -579,8 +554,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
           <SlidingViewport
             currentView={viewMode}
             onViewChange={setViewMode}
-            planPrimaryPanel={planPrimaryPanel}
-            planIndexPanel={planIndexPanel}
+            planPanel={planPanel}
             trackIndexPanel={trackIndexPanel}
             trackPrimaryPanel={trackPrimaryPanel}
             trackDebugPanel={trackDebugPanel}
