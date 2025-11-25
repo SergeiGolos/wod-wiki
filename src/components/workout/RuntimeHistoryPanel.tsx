@@ -15,6 +15,7 @@ import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
 import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
+import { hashCode } from '../../lib/utils';
 
 export interface RuntimeHistoryPanelProps {
   /** Active runtime for live tracking */
@@ -31,19 +32,6 @@ export interface RuntimeHistoryPanelProps {
   
   /** Children to render (e.g., connector visuals) */
   children?: React.ReactNode;
-}
-
-/**
- * Hash function for generating stable IDs
- */
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
 }
 
 /**

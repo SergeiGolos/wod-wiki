@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, Bug } from 'lucide-react';
+import { X, Bug } from 'lucide-react';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
@@ -117,17 +117,6 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Toggle Button (when closed) */}
-      {!isOpen && runtime && (
-        <button
-          onClick={() => onClose()}
-          className="fixed right-0 top-1/2 -translate-y-1/2 bg-muted/90 hover:bg-muted border border-r-0 border-border rounded-l-md p-2 z-30 transition-colors"
-          title="Open Debug Panel"
-        >
-          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-        </button>
-      )}
     </>
   );
 };

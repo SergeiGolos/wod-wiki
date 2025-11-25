@@ -8,7 +8,8 @@ import { TimelineView } from '../../timeline/TimelineView';
 import { RuntimeHistoryPanel } from '../../components/workout/RuntimeHistoryPanel';
 import { AnalyticsHistoryPanel } from '../../components/workout/AnalyticsHistoryPanel';
 import { WorkoutContextPanel } from '../../components/workout/WorkoutContextPanel';
-import { RuntimeDebugPanel, DebugButton } from '../../components/workout/RuntimeDebugPanel';
+import { RuntimeDebugPanel } from '../../components/workout/RuntimeDebugPanel';
+import { hashCode } from '../../lib/utils';
 
 import { WodIndexPanel } from '../../components/layout/WodIndexPanel';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
@@ -196,16 +197,6 @@ export const RuntimeLayout: React.FC<RuntimeLayoutProps> = ({
   // Active segments for runtime tracking
   const activeSegmentIds = React.useMemo(() => {
     if (!runtime || viewMode !== 'run') return new Set<number>();
-    
-    const hashCode = (str: string): number => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash);
-    };
     
     return new Set(runtime.stack.blocks.map(block => hashCode(block.key.toString())));
   }, [runtime, execution.stepCount, viewMode]);
