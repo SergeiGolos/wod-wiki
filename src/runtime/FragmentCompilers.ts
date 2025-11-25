@@ -70,6 +70,9 @@ export class ResistanceFragmentCompiler implements IFragmentCompiler {
 export class RoundsFragmentCompiler implements IFragmentCompiler {
     readonly type = 'rounds';
     compile(fragment: RoundsFragment, _context: IScriptRuntime): MetricValue[] {
+        if (typeof fragment.value === 'string') {
+            return [{ type: 'rounds', value: undefined, unit: fragment.value }];
+        }
         return [{ type: 'rounds', value: fragment.value, unit: '' }];
     }
 }
