@@ -178,13 +178,15 @@ export class InlineWidgetCardManager {
   private renderAllCards(): void {
     const hiddenAreas: Range[] = [];
     const decorations: editor.IModelDeltaDecoration[] = [];
+    const cardsNeedingViewZones: InlineWidgetCard[] = [];
+    const cardsToRemoveViewZones: string[] = [];
     
     for (const card of this.cards.values()) {
       const config = CARD_TYPE_CONFIGS[card.cardType];
       
       if (card.displayMode === 'edit-only') {
         // Edit mode: remove view zone, show raw text
-        this.removeViewZone(card.id);
+        cardsToRemoveViewZones.push(card.id);
         
         // May still apply decorations (e.g., for headings in edit mode)
         const cardDecorations = this.renderer.getEditModeDecorations(card);
@@ -194,62 +196,40 @@ export class InlineWidgetCardManager {
         // Preview mode
         if (config.usesViewZone) {
           // Cards that use view zones: hide source, show zone
-          // IMPORTANT: Don't hide the first line - Monaco collapses view zones
-          // that are adjacent to hidden areas. By keeping the first line visible,
-          // the view zone has a place to render.
           if (config.hideSourceInPreview) {
-            const hideStartLine = card.sourceRange.startLineNumber + 1;
-            if (hideStartLine <= card.sourceRange.endLineNumber) {
-              const adjustedRange = new Range(
-                hideStartLine,
-                1,
-                card.sourceRange.endLineNumber,
-                card.sourceRange.endColumn
-              );
-              hiddenAreas.push(adjustedRange);
-            }
+            hiddenAreas.push(card.sourceRange);
           }
-          this.ensureViewZone(card);
+          cardsNeedingViewZones.push(card);
         } else {
           // Cards that only use decorations (headings, blockquotes)
-          this.removeViewZone(card.id);
+          cardsToRemoveViewZones.push(card.id);
           const cardDecorations = this.renderer.getPreviewModeDecorations(card);
           decorations.push(...cardDecorations);
         }
         
       } else if (card.displayMode === 'side-by-side') {
         // Side-by-side: hide source, show split view zone
-        // NOTE: For side-by-side editing, we actually want the source to be HIDDEN
-        // because the view zone contains its own editor.
-        // However, if the view zone editor is not fully synced or we want raw editing,
-        // we might NOT want to hide it.
-        // But typically side-by-side implies the view zone handles the display.
-        
         if (config.hideSourceInPreview) {
-           // If we are editing, we generally DON'T want to hide the source area
-           // if the user is supposed to type in the main editor.
-           // But if the card provides an embedded editor, we DO hide it.
-           // FrontMatter card provides embedded editor? Yes.
-           // So we hide it - but keep the first line visible for the view zone.
-           const hideStartLine = card.sourceRange.startLineNumber + 1;
-           if (hideStartLine <= card.sourceRange.endLineNumber) {
-             const adjustedRange = new Range(
-               hideStartLine,
-               1,
-               card.sourceRange.endLineNumber,
-               card.sourceRange.endColumn
-             );
-             hiddenAreas.push(adjustedRange);
-           }
+           hiddenAreas.push(card.sourceRange);
         }
-        this.ensureViewZone(card);
+        cardsNeedingViewZones.push(card);
       }
     }
     
-    // Apply hidden areas
+    // Step 1: Remove view zones that are no longer needed
+    for (const id of cardsToRemoveViewZones) {
+      this.removeViewZone(id);
+    }
+    
+    // Step 2: Apply hidden areas FIRST (before creating view zones)
     this.applyHiddenAreas(hiddenAreas);
     
-    // Apply decorations
+    // Step 3: Create/update view zones AFTER hidden areas are applied
+    for (const card of cardsNeedingViewZones) {
+      this.ensureViewZone(card);
+    }
+    
+    // Step 4: Apply decorations
     this.decorations = this.editor.deltaDecorations(this.decorations, decorations);
     
     if (CARD_SYSTEM_CONFIG.debug) {

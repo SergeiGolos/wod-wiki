@@ -382,10 +382,8 @@ export class WodBlockSplitViewManager {
    * Hide all parsed WOD blocks EXCEPT the active one (being edited)
    * Note: WodBlock uses 0-indexed lines, Monaco uses 1-indexed
    * 
-   * IMPORTANT: We hide starting from the SECOND line of the block (after ```wod)
-   * because Monaco collapses view zones that are adjacent to hidden areas.
-   * By keeping the first line visible (but empty/minimal), the view zone has
-   * a place to render.
+   * The view zone is placed BEFORE the block (afterLineNumber: startLine - 1)
+   * so we can hide the entire block without collapsing the view zone.
    */
   private updateHiddenAreas(): void {
     const hiddenRanges: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }[] = [];
@@ -406,18 +404,14 @@ export class WodBlockSplitViewManager {
         continue;
       }
       
-      // Hide WOD block content starting from line AFTER the opening fence
-      // This leaves the ```wod line visible so the view zone has somewhere to attach
-      // The view zone will visually cover this line
-      const hideStartLine = startLine + 1; // Line after ```wod
-      if (hideStartLine <= endLine) {
-        hiddenRanges.push({
-          startLineNumber: hideStartLine,
-          startColumn: 1,
-          endLineNumber: endLine,
-          endColumn: 1
-        });
-      }
+      // Hide the entire WOD block (```wod ... ```)
+      // The view zone is placed before this range, so it won't be collapsed
+      hiddenRanges.push({
+        startLineNumber: startLine,
+        startColumn: 1,
+        endLineNumber: endLine,
+        endColumn: 1
+      });
     }
     
     console.log('[WodBlockSplitViewManager] Hiding', hiddenRanges.length, 'ranges:', hiddenRanges);

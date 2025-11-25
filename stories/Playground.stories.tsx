@@ -40,6 +40,10 @@ export const Default: Story = {
   args: {
     initialContent: `# My Workout Log - ${new Date().toLocaleDateString()}
 
+---
+test:value1
+---
+
 Use this blank canvas to log your daily training.
 
 **Quick Tip:** Press **Ctrl+Space** to view available templates and start inserting exercises.
