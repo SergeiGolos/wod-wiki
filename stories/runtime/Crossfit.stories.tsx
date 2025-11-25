@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
+import { UnifiedWorkbench } from '../../src/components/layout/UnifiedWorkbench';
 import React from 'react';
 
 import annieMarkdown from '../../wod/annie.md?raw';
@@ -18,15 +18,14 @@ import lindaMarkdown from '../../wod/linda.md?raw';
 import maryMarkdown from '../../wod/mary.md?raw';
 import nancyMarkdown from '../../wod/nancy.md?raw';
 
-const meta: Meta<typeof WodWorkbench> = {
+const meta: Meta<typeof UnifiedWorkbench> = {
   title: 'Examples/Crossfit',
-  component: WodWorkbench,
+  component: UnifiedWorkbench,
   args: {
     showToolbar: false,
     showContextOverlay: false,
     readonly: true,
-    theme: 'vs',
-    height: '85vh'
+    theme: 'vs'
   },
   parameters: {
     layout: 'fullscreen',

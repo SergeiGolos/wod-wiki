@@ -1,14 +1,14 @@
-import { WodWorkbench } from '@/components/layout/WodWorkbench';
+import { UnifiedWorkbench } from '@/components/layout/UnifiedWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const meta: Meta<typeof WodWorkbench> = {
+const meta: Meta<typeof UnifiedWorkbench> = {
   title: 'Playground',
-  component: WodWorkbench,
+  component: UnifiedWorkbench,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'Interactive playground for the WOD Wiki editor.'
+        component: 'Interactive playground for the WOD Wiki editor with responsive layout.'
       }
     }
   },
@@ -44,6 +44,16 @@ Use this blank canvas to log your daily training.
 
 **Quick Tip:** Press **Ctrl+Space** to view available templates and start inserting exercises.
 
+\`\`\`wod
+Timer: 10:00
+  - 10 Pushups
+  - 10 Situps
+  - 10 Squats
+\`\`\`
+
+## Notes
+
+Add your workout notes here.
 `,
     showToolbar: false,
     readonly: false,

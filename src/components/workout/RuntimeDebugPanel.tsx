@@ -30,6 +30,9 @@ export interface RuntimeDebugPanelProps {
   /** Highlighted block key (optional) */
   highlightedBlockKey?: string;
   
+  /** Whether to render embedded (no slide-out, no backdrop) */
+  embedded?: boolean;
+  
   /** Additional CSS classes */
   className?: string;
 }
@@ -42,6 +45,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   isOpen,
   onClose,
   highlightedBlockKey,
+  embedded = false,
   className = ''
 }) => {
   const adapter = React.useRef(new RuntimeAdapter()).current;
@@ -51,6 +55,52 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
     if (!runtime) return null;
     return adapter.createSnapshot(runtime);
   }, [runtime, adapter]);
+
+  // Embedded mode - render inline without slide-out behavior
+  if (embedded) {
+    return (
+      <div className={`h-full flex flex-col bg-background ${className}`}>
+        {/* Header */}
+        <div className="p-3 border-b border-border flex items-center gap-2 bg-muted/30 shrink-0">
+          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <h3 className="font-semibold text-sm">Runtime Debugger</h3>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {!runtime ? (
+            <div className="p-6 text-center text-muted-foreground">
+              <p className="text-sm">No active runtime</p>
+              <p className="text-xs mt-2">Start a workout to enable debugging</p>
+            </div>
+          ) : (
+            <>
+              <RuntimeStackPanel 
+                blocks={snapshot?.stack.blocks || []} 
+                activeBlockIndex={snapshot?.stack.activeIndex}
+                highlightedBlockKey={highlightedBlockKey}
+                className="border-b border-border"
+              />
+              <MemoryPanel 
+                entries={snapshot?.memory.entries || []}
+                groupBy="owner"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0">
+          <div className="flex items-center justify-between">
+            <span>Stack: {snapshot?.stack.blocks.length || 0}</span>
+            <span>Memory: {snapshot?.memory.entries.length || 0}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Slide-out mode (original behavior)
 
   return (
     <>

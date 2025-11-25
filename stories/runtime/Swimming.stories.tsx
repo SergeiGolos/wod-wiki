@@ -1,17 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { WodWorkbench } from '../../src/components/layout/WodWorkbench';
+import { UnifiedWorkbench } from '../../src/components/layout/UnifiedWorkbench';
 
 import beginnerFriendlyMarkdown from '../../wod/beginner-friendly-swimming.md?raw';
 
-const meta: Meta<typeof WodWorkbench> = {
+const meta: Meta<typeof UnifiedWorkbench> = {
   title: 'Examples/Swimming',
-  component: WodWorkbench,
+  component: UnifiedWorkbench,
   args: {
     showToolbar: false,
     showContextOverlay: false,
     readonly: true,
-    theme: 'vs',
-    height: '85vh'
+    theme: 'vs'
   },
   parameters: {
     layout: 'fullscreen',
