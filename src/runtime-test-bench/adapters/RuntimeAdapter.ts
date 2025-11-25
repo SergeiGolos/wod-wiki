@@ -2,6 +2,7 @@ import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, Mem
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { IMemoryReference } from '../../runtime/IMemoryReference';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * Adapter that converts ScriptRuntime state to UI-friendly ExecutionSnapshot
@@ -65,19 +66,23 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       const isActive = index === blocks.length - 1; // Top of stack is active
       const status = this.determineBlockStatus(isActive);
 
+      // Extract fragments from source statements if available
+      const fragments = this.extractBlockFragments(runtime, block);
+
       return {
         key: block.key.toString(),
         blockType,
         parentKey: this.findParentKey(blocks, index),
         children: this.findChildrenKeys(blocks, block.key.toString()),
         depth: index,
-        label: this.generateBlockLabel(blockType),
+        label: block.label || this.generateBlockLabel(blockType),
         color: this.getBlockColor(blockType),
         icon: this.getBlockIcon(blockType),
         isActive,
         isComplete: status === 'complete',
         status,
         metrics: {}, // TODO: Extract actual metrics
+        fragments,
         sourceIds: block.sourceIds,
         lineNumber: block.sourceIds.length > 0 ? block.sourceIds[0] : undefined,
         metadata: {
@@ -87,6 +92,21 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         }
       };
     });
+  }
+  
+  /**
+   * Extracts fragments from block's source statements for unified visualization
+   */
+  private extractBlockFragments(runtime: ScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
+    // Try to get statements from runtime's compilation context
+    if (!block.sourceIds || block.sourceIds.length === 0) {
+      return undefined;
+    }
+    
+    // Access the statements through the runtime if available
+    // For now, return undefined - the panels will fall back to label display
+    // This can be enhanced later when statement lookup is available in runtime
+    return undefined;
   }
 
   /**

@@ -249,6 +249,16 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     return item?.id;
   }, [documentItems, cursorLine]);
 
+  // Auto-expand WOD blocks when cursor enters them in plan mode
+  useEffect(() => {
+    if (viewMode === 'plan' && activeBlockId) {
+      const activeItem = documentItems.find(item => item.id === activeBlockId);
+      if (activeItem?.type === 'wod') {
+        setExpandedBlockId(activeBlockId);
+      }
+    }
+  }, [activeBlockId, viewMode, documentItems]);
+
   // Selected block object
   const selectedBlock = useMemo(() => {
     return blocks.find(b => b.id === selectedBlockId) || null;

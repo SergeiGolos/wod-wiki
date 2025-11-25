@@ -45,14 +45,14 @@ Think of the WOD Wiki app as a **viewport sliding horizontally across a continuo
 
 The entire application is a **6-panel horizontal strip** that the viewport slides across:
 
-| Position | Panel | Width | View |
-|----------|-------|-------|------|
-| 1 | **Monaco Editor** | 2/3 | Plan |
-| 2 | **EditorIndexPanel** | 1/3 | Plan |
-| 3 | **TimerIndexPanel** | 1/3 | Track |
-| 4 | **TimerDisplay** | 2/3 | Track |
-| 5 | **AnalyticsIndexPanel** | 1/3 | Analyze |
-| 6 | **TimelineView** | 2/3 | Analyze |
+| Position | Panel                   | Width | View    |
+| -------- | ----------------------- | ----- | ------- |
+| 1        | **Monaco Editor**       | 2/3   | Plan    |
+| 2        | **EditorIndexPanel**    | 1/3   | Plan    |
+| 3        | **TimerIndexPanel**     | 1/3   | Track   |
+| 4        | **TimerDisplay**        | 2/3   | Track   |
+| 5        | **AnalyticsIndexPanel** | 1/3   | Analyze |
+| 6        | **TimelineView**        | 2/3   | Analyze |
 
 ### Panel Naming Convention
 

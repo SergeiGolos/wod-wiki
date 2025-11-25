@@ -1,10 +1,12 @@
 import React, { useCallback } from 'react';
 import { RuntimeStackPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
+import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 
 /**
  * RuntimeStackPanel component - displays hierarchical runtime block execution
  * Shows workout structure with active/complete status, metrics, and highlighting
+ * Uses FragmentVisualizer for consistent metric display across all panels
  */
 export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
   blocks,
@@ -35,6 +37,15 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
     const isHighlighted = highlightedBlockKey === block.key;
     const isActive = activeBlockIndex !== undefined && blocks[activeBlockIndex]?.key === block.key;
 
+    // Status color for the indicator dot
+    const statusColorClass = {
+      complete: 'bg-green-500',
+      active: 'bg-primary',
+      running: 'bg-primary animate-pulse',
+      pending: 'bg-gray-400',
+      error: 'bg-red-500'
+    }[block.status || 'pending'];
+
     return (
       <div
         key={block.key}
@@ -55,13 +66,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         />
 
         {/* Status indicator */}
-        <div
-          className={`w-2 h-2 rounded-full flex-shrink-0 ${
-            block.status === 'complete' ? 'bg-green-500' :
-            block.status === 'active' || block.status === 'running' ? 'bg-primary' :
-            'bg-gray-400'
-          }`}
-        />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColorClass}`} />
 
         {/* Icon */}
         {showIcons && block.icon && (
@@ -71,25 +76,31 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         )}
 
         {/* Label */}
-        <span className={`flex-1 truncate ${
+        <span className={`flex-shrink-0 truncate max-w-[120px] ${
           block.status === 'complete' ? 'line-through opacity-60' : ''
         }`}>
           {block.label}
         </span>
 
-        {/* Metrics */}
-        {showMetrics && block.metrics && Object.keys(block.metrics).length > 0 && (
-          <div className="flex gap-1 text-[10px] text-muted-foreground">
-            {Object.entries(block.metrics).slice(0, 2).map(([key, value]) => (
-              <span key={key} className="bg-muted px-1 rounded-sm">
-                {key}: {String(value)}
-              </span>
-            ))}
+        {/* Metrics - Use FragmentVisualizer if fragments available, else fall back to legacy */}
+        {showMetrics && (
+          <div className="flex-1 min-w-0">
+            {block.fragments && block.fragments.length > 0 ? (
+              <FragmentVisualizer fragments={block.fragments} className="gap-0.5" />
+            ) : block.metrics && Object.keys(block.metrics).length > 0 ? (
+              <div className="flex gap-1 text-[10px] text-muted-foreground">
+                {Object.entries(block.metrics).slice(0, 3).map(([key, value]) => (
+                  <span key={key} className="bg-muted px-1 rounded-sm">
+                    {key}: {String(value.formatted || value.value)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
 
         {/* Block type badge */}
-        <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground opacity-70">
+        <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground opacity-70 flex-shrink-0">
           {block.blockType}
         </span>
       </div>

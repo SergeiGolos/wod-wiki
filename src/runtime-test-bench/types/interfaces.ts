@@ -4,6 +4,7 @@
 
 import type { ScriptRuntime as RealScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 
 // ============================================================================
 // 1. UI STATE LAYER
@@ -179,8 +180,12 @@ export interface RuntimeStackBlock {
   isComplete: boolean;
   status: BlockStatus;
 
-  // Metrics
+  // Metrics (legacy format)
   metrics?: Record<string, MetricValue>;
+  
+  // Fragments for unified visualization (new format)
+  // These are the pre-defined metrics in fragment format for consistent display
+  fragments?: ICodeFragment[];
 
   // Source
   sourceIds: number[];

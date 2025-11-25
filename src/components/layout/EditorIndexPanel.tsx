@@ -10,6 +10,7 @@
  * - In-place expand/collapse for WOD blocks
  * - "Start Workout" button in expanded view
  * - Only one block can be expanded at a time
+ * - Uses unified FragmentVisualizer for consistent statement display
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -18,6 +19,7 @@ import { WodBlock } from '../../markdown-editor/types';
 import { Timer, Hash, ChevronDown, ChevronRight, Play, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { StatementDisplay } from '@/components/fragments/StatementDisplay';
 
 export interface EditorIndexPanelProps {
   /** Document structure items */
@@ -236,54 +238,49 @@ export const EditorIndexPanel: React.FC<EditorIndexPanelProps> = ({
                     <div className={cn('space-y-1', mobile ? 'p-4' : 'p-3')}>
                       {wodBlock.statements && wodBlock.statements.length > 0 ? (
                         wodBlock.statements.map((statement, index) => {
-                          // Extract text from fragments
+                          // Extract text from fragments for edit callback
                           const text = statement.fragments
                             ?.map((f: any) => f.image)
                             .join('') || `Statement ${index + 1}`;
 
+                          const editActions = (onEditStatement || onDeleteStatement) ? (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {onEditStatement && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditStatement(item.id, index, text);
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {onDeleteStatement && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteStatement(item.id, index);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ) : undefined;
+
                           return (
-                            <div
-                              key={index}
-                              className={cn(
-                                'flex items-center justify-between gap-2 p-2 rounded',
-                                'hover:bg-muted/50 group'
-                              )}
-                            >
-                              <span className={cn('truncate', mobile ? 'text-sm' : 'text-xs')}>
-                                • {text}
-                              </span>
-                              
-                              {/* Edit/Delete actions */}
-                              {(onEditStatement || onDeleteStatement) && (
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {onEditStatement && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEditStatement(item.id, index, text);
-                                      }}
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                  {onDeleteStatement && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteStatement(item.id, index);
-                                      }}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
+                            <div key={index} className="group">
+                              <StatementDisplay
+                                statement={statement}
+                                compact={!mobile}
+                                actions={editActions}
+                              />
                             </div>
                           );
                         })
