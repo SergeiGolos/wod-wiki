@@ -151,3 +151,4 @@ tests/e2e/screenshots/
 
 # lock files
 pnpm-lock.yaml
+.playwright-mcp/

@@ -25,7 +25,7 @@ const meta: Meta<typeof UnifiedWorkbench> = {
     showToolbar: false,
     showContextOverlay: false,
     readonly: true,
-    theme: 'vs'
+    theme: 'wod-light'
   },
   parameters: {
     layout: 'fullscreen',

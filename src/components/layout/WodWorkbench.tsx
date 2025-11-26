@@ -3,20 +3,19 @@ import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/M
 import { WodBlock } from '../../markdown-editor/types';
 import { CommandProvider } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
-import { WorkoutContextPanel } from '../workout/WorkoutContextPanel';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Timer, Edit, BarChart2, ArrowLeft, Plus, Github } from 'lucide-react';
+import { Timer, Edit, BarChart2, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { DebugButton } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
-import { WodIndexPanel } from './WodIndexPanel';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
+import { WorkoutOverlay } from '../workout/WorkoutOverlay';
 
 export interface WodWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
@@ -104,7 +103,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   }, [theme]);
 
   // Block editor hooks
-  const { addStatement, editStatement, deleteStatement } = useBlockEditor({
+  const { editStatement, deleteStatement } = useBlockEditor({
     editor: editorInstance,
     block: activeBlock
   });
@@ -113,6 +112,16 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
   };
+
+  // Mobile auto-fold on load
+  useEffect(() => {
+    if (editorInstance && window.innerWidth < 768) {
+      // Small delay to ensure content is loaded and layout is ready
+      setTimeout(() => {
+        editorInstance.getAction('editor.foldAll')?.run();
+      }, 100);
+    }
+  }, [editorInstance]);
 
   // Handle navigation from index panel
   const handleBlockClick = (item: DocumentItem) => {
@@ -141,10 +150,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
 
   const handleComplete = () => {
     setViewMode('analyze');
-  };
-
-  const handleBackToEdit = () => {
-    setViewMode('edit');
   };
 
   const handleClearSelection = () => {
@@ -247,14 +252,14 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
         {/* Main Content Area */}
         <div className="flex-1 relative overflow-hidden flex">
 
-          {/* Panel 1: Editor (Left 2/3 in Edit Mode) */}
+          {/* Panel 1: Editor (Full Width in Edit Mode) */}
           <div
             className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit'
-              ? 'w-2/3 opacity-100'
+              ? 'w-full opacity-100'
               : 'w-0 opacity-0 overflow-hidden border-none'
               }`}
           >
-            <div ref={editorContainerRef} className="h-full w-full">
+            <div ref={editorContainerRef} className="h-full w-full relative">
               <MarkdownEditorBase
                 initialContent={initialContent}
                 showContextOverlay={false}
@@ -268,42 +273,19 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
                 {...editorProps}
                 theme={monacoTheme}
               />
+              {viewMode === 'edit' && (
+                <WorkoutOverlay
+                  editor={editorInstance}
+                  activeBlock={activeBlock}
+                  onStart={handleTrack}
+                  onEditStatement={editStatement}
+                  onDeleteStatement={deleteStatement}
+                />
+              )}
             </div>
           </div>
 
-          {/* Panel 2: Right Panel (Index or Staging) (Right 1/3 in Edit Mode) */}
-          <div
-            className={`h-full border-r border-border transition-all duration-500 ease-in-out ${viewMode === 'edit' ? 'w-1/3 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'
-              }`}
-          >
-            {selectedBlock ? (
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="p-2 border-b border-border flex items-center">
-                  <Button variant="ghost" size="sm" onClick={handleClearSelection} className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Index
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  <WorkoutContextPanel
-                    block={selectedBlock}
-                    mode="edit"
-                    showStartButton={true}
-                    onStart={handleTrack}
-                    onEditStatement={editStatement}
-                    onDeleteStatement={deleteStatement}
-                  />
-                </div>
-              </div>
-            ) : (
-              <WodIndexPanel
-                items={documentItems}
-                activeBlockId={activeBlockId}
-                onBlockClick={handleBlockClick}
-                onBlockHover={() => { }}
-              />
-            )}
-          </div>
+          {/* Panel 2: Removed (Merged into Editor via Overlay) */}
 
           {/* Panel 3: Runtime (Visible in Run or Analyze Mode) */}
           <div

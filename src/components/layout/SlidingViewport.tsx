@@ -21,9 +21,8 @@ export interface SlidingViewportProps {
   /** Callback when view changes */
   onViewChange: (view: ViewMode) => void;
   
-  /** Plan view panels */
-  planPrimaryPanel: React.ReactNode;   // Monaco Editor (2/3)
-  planIndexPanel: React.ReactNode;     // EditorIndexPanel (1/3)
+  /** Plan view panel - Full width Monaco editor */
+  planPanel: React.ReactNode;
   
   /** Track view panels */
   trackIndexPanel: React.ReactNode;    // TimerIndexPanel (1/3)
@@ -56,8 +55,7 @@ const viewOffsets: Record<ViewMode, string> = {
 export const SlidingViewport: React.FC<SlidingViewportProps> = ({
   currentView,
   onViewChange,
-  planPrimaryPanel,
-  planIndexPanel,
+  planPanel,
   trackIndexPanel,
   trackPrimaryPanel,
   trackDebugPanel,
@@ -107,11 +105,6 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
   if (isMobile) {
     return (
       <div className={cn('h-full w-full overflow-hidden', className)}>
-        {/* Hidden Monaco Editor - Must be rendered for WOD block parsing to work */}
-        <div className="absolute w-0 h-0 overflow-hidden" aria-hidden="true">
-          {planPrimaryPanel}
-        </div>
-        
         <div
           className="flex h-full transition-transform duration-500 ease-in-out"
           style={{
@@ -119,9 +112,9 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             transform: `translateX(${viewOffsets[currentView]})`,
           }}
         >
-          {/* Plan View - Full Screen Editor Index */}
+          {/* Plan View - Full Screen Monaco Editor */}
           <div className="w-1/3 h-full flex-shrink-0">
-            {planIndexPanel}
+            {planPanel}
           </div>
 
           {/* Track View - 50/50 Vertical Split */}
@@ -154,14 +147,9 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             transform: `translateX(${viewOffsets[currentView]})`,
           }}
         >
-          {/* Plan View - Stacked */}
-          <div className="w-1/3 h-full flex-shrink-0 flex flex-col">
-            <div className="flex-1 overflow-hidden">
-              {planPrimaryPanel}
-            </div>
-            <div className="h-1/3 border-t border-border overflow-hidden">
-              {planIndexPanel}
-            </div>
+          {/* Plan View - Full width Monaco Editor */}
+          <div className="w-1/3 h-full flex-shrink-0">
+            {planPanel}
           </div>
 
           {/* Track View - 50/50 vertical */}
@@ -202,14 +190,9 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
           transform: `translateX(${viewOffsets[currentView]})`,
         }}
       >
-        {/* Plan View - Editor (2/3) + Index (1/3) */}
-        <div className="w-1/3 h-full flex-shrink-0 flex">
-          <div className="w-2/3 h-full border-r border-border overflow-hidden">
-            {planPrimaryPanel}
-          </div>
-          <div className="w-1/3 h-full overflow-hidden">
-            {planIndexPanel}
-          </div>
+        {/* Plan View - Full width Monaco Editor only */}
+        <div className="w-1/3 h-full flex-shrink-0">
+          {planPanel}
         </div>
 
         {/* Track View - Index (1/3) + Timer (1/3 or 2/3) + Debug (1/3 if enabled) */}

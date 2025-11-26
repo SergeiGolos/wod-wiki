@@ -53,6 +53,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -60,18 +61,19 @@
 
 /* Legacy table styles for compatibility */
 table {
-    border-collapse: collapse;
-    width: 100%;
+  border-collapse: collapse;
+  width: 100%;
 }
 
-th, td {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
+th,
+td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
 }
 
 th {
-    background-color: #f2f2f2;
+  background-color: #f2f2f2;
 }
 
 /* Monaco Editor - WOD Block Decorations */
@@ -166,4 +168,166 @@ th {
 .rich-md-blockquote {
   background-color: rgba(128, 128, 128, 0.1);
   border-left: 4px solid var(--primary);
+}
+
+/* Clickable Heading for Folding */
+.clickable-heading {
+  cursor: pointer !important;
+}
+
+.clickable-heading:hover {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+/* Add a subtle indicator */
+.clickable-heading::after {
+  content: ' ▾';
+  opacity: 0.3;
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+.clickable-heading:hover::after {
+  opacity: 0.8;
+}
+
+/* ============================================
+ * Inline Widget Card System Styles
+ * ============================================ */
+
+/* Hidden text (for heading prefixes, blockquote markers) */
+.inline-card-hidden {
+  color: transparent !important;
+  font-size: 0px !important;
+  line-height: 0px !important;
+  letter-spacing: -100px;
+  opacity: 0;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Heading styles */
+.inline-card-heading-1 {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  color: var(--foreground);
+}
+
+.inline-card-heading-2 {
+  font-size: 1.3em !important;
+  font-weight: bold !important;
+  color: var(--foreground);
+}
+
+.inline-card-heading-3 {
+  font-size: 1.15em !important;
+  font-weight: 600 !important;
+  color: var(--foreground);
+}
+
+.inline-card-heading-4 {
+  font-size: 1.05em !important;
+  font-weight: 600 !important;
+  color: var(--foreground);
+}
+
+.inline-card-heading-5,
+.inline-card-heading-6 {
+  font-size: 1em !important;
+  font-weight: 500 !important;
+  color: var(--foreground);
+}
+
+/* Blockquote line style */
+.inline-card-blockquote {
+  background-color: rgba(128, 128, 128, 0.1);
+  border-left: 4px solid var(--primary);
+}
+
+/* View zone containers */
+.inline-widget-card-zone {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+}
+
+/* Base card container */
+.inline-widget-card {
+  width: 100%;
+}
+
+/* Card type specific styles */
+.card-type-frontmatter .inline-widget-card,
+.card-type-wod-block .inline-widget-card {
+  /* Side-by-side capable cards */
+}
+
+.card-type-image .inline-widget-card,
+.card-type-youtube .inline-widget-card {
+  display: flex;
+  justify-content: center;
+}
+
+/* Split view grid layout */
+.frontmatter-card-split,
+.wod-card-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+}
+
+.frontmatter-card-source,
+.wod-card-source {
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+
+.frontmatter-card-preview,
+.wod-card-preview {
+  overflow: auto;
+}
+
+/* Preview widgets */
+.heading-preview {
+  padding: 4px 8px;
+}
+
+.blockquote-preview {
+  border-left: 4px solid var(--primary);
+  padding-left: 12px;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.youtube-preview {
+  width: 100%;
+  max-width: 640px;
+}
+
+.youtube-preview iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Responsive - single column on mobile */
+@media (max-width: 768px) {
+  .frontmatter-card-split,
+  .wod-card-split {
+    grid-template-columns: 1fr;
+  }
+  
+  .frontmatter-card-source,
+  .wod-card-source {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
 }

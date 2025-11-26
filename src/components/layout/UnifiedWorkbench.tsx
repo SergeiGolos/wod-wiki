@@ -30,17 +30,14 @@ import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { SlidingViewport, ViewMode } from './SlidingViewport';
-import { EditorIndexPanel } from './EditorIndexPanel';
 import { TimerIndexPanel } from './TimerIndexPanel';
 import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
 import { Segment } from '../../timeline/GitTreeSidebar';
 import { cn, hashCode } from '../../lib/utils';
+import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 
 // Runtime imports
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { WodScript } from '../../parser/WodScript';
-import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { NextEvent } from '../../runtime/NextEvent';
 
@@ -204,27 +201,37 @@ const TimerDisplay: React.FC<{
 
 // --- Main Workbench Content ---
 const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
-  initialContent = "# My Workout\n\n```wod\nTimer: 10:00\n  - 10 Pushups\n  - 10 Situps\n```\n",
+  initialContent,
   theme: propTheme,
   ...editorProps
 }) => {
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
   
-  // Editor state
-  const [, setActiveBlock] = useState<WodBlock | null>(null);
-  const [blocks, setBlocks] = useState<WodBlock[]>([]);
+  // Consume Workbench Context
+  const {
+    content,
+    blocks,
+    activeBlockId,
+    selectedBlockId,
+    viewMode,
+    runtime,
+    results,
+    setContent,
+    setBlocks,
+    setActiveBlockId,
+    selectBlock,
+    setViewMode,
+    startWorkout,
+    completeWorkout
+  } = useWorkbench();
+
+  // Local UI state
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [content, setContent] = useState(initialContent);
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
-
-  // View state
-  const [viewMode, setViewMode] = useState<ViewMode>('plan');
   const [isDebugMode, setIsDebugMode] = useState(false);
-  const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -236,28 +243,18 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Calculate document structure
+  // Calculate document structure (still used for Track/Analyze views)
   const documentItems = useMemo(() => {
     return parseDocumentStructure(content, blocks);
   }, [content, blocks]);
 
-  // Active block ID from cursor
-  const activeBlockId = useMemo(() => {
+  // Update active block ID based on cursor
+  useEffect(() => {
     const item = documentItems.find(item =>
       cursorLine >= item.startLine && cursorLine <= item.endLine
     );
-    return item?.id;
-  }, [documentItems, cursorLine]);
-
-  // Auto-expand WOD blocks when cursor enters them in plan mode
-  useEffect(() => {
-    if (viewMode === 'plan' && activeBlockId) {
-      const activeItem = documentItems.find(item => item.id === activeBlockId);
-      if (activeItem?.type === 'wod') {
-        setExpandedBlockId(activeBlockId);
-      }
-    }
-  }, [activeBlockId, viewMode, documentItems]);
+    setActiveBlockId(item?.id || null);
+  }, [documentItems, cursorLine, setActiveBlockId]);
 
   // Selected block object
   const selectedBlock = useMemo(() => {
@@ -267,30 +264,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   // Analytics data (mock)
   const { data: analyticsData, segments: analyticsSegments } = useMemo(() => generateSessionData(), []);
   const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set([5, 7, 9, 11]));
-
-  // Runtime state
-  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
-
-  // Initialize Runtime when selected block changes and we're in track mode
-  useEffect(() => {
-    if (selectedBlock && selectedBlock.statements && viewMode === 'track') {
-      const script = new WodScript(selectedBlock.content, selectedBlock.statements);
-      const newRuntime = new ScriptRuntime(script, globalCompiler);
-      
-      const rootBlock = globalCompiler.compile(selectedBlock.statements as any, newRuntime);
-      
-      if (rootBlock) {
-        console.log('🚀 Initializing runtime with root block:', rootBlock.key.toString());
-        newRuntime.stack.push(rootBlock);
-        const actions = rootBlock.mount(newRuntime);
-        actions.forEach(action => action.do(newRuntime));
-      }
-
-      setRuntime(newRuntime);
-    } else if (viewMode !== 'track') {
-      setRuntime(null);
-    }
-  }, [selectedBlockId, selectedBlock?.content, viewMode]);
 
   // Execution hook
   const execution = useRuntimeExecution(runtime);
@@ -325,9 +298,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const monacoTheme = useMemo(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     if (theme === 'system') {
-      return mediaQuery.matches ? 'vs-dark' : 'vs';
+      return mediaQuery.matches ? 'wod-dark' : 'wod-light';
     }
-    return theme === 'dark' ? 'vs-dark' : 'vs';
+    return theme === 'dark' ? 'wod-dark' : 'wod-light';
   }, [theme]);
 
   // Block editor hooks
@@ -343,7 +316,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   const handleBlockClick = (item: DocumentItem) => {
     if (item.type === 'wod') {
-      setSelectedBlockId(item.id);
+      selectBlock(item.id);
     }
 
     if (viewMode === 'plan' && editorInstance) {
@@ -356,13 +329,19 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     }
   };
 
-  const handleStartWorkout = (block: WodBlock) => {
-    setSelectedBlockId(block.id);
-    setViewMode('track');
+  const handleStartWorkoutAction = (block: WodBlock) => {
+    console.log('[UnifiedWorkbench] handleStartWorkoutAction called for block:', block.id);
+    startWorkout(block);
   };
 
   const handleComplete = () => {
-    setViewMode('analyze');
+    completeWorkout({
+        startTime: execution.startTime || Date.now(),
+        endTime: Date.now(),
+        duration: execution.elapsedTime,
+        metrics: [],
+        completed: true
+    });
   };
 
   const handleSelectAnalyticsSegment = (id: number) => {
@@ -387,38 +366,25 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // --- Panel Components ---
   
-  // Plan Primary: Monaco Editor
-  const planPrimaryPanel = (
+  // Plan view: Just the Monaco Editor (full width, no index panel)
+  // WOD blocks get inline visualization through Monaco view zones
+  const planPanel = (
     <div ref={editorContainerRef} className="h-full w-full">
       <MarkdownEditorBase
         initialContent={initialContent}
         showContextOverlay={false}
-        onActiveBlockChange={setActiveBlock}
+        onActiveBlockChange={(block) => setActiveBlockId(block?.id || null)}
         onBlocksChange={setBlocks}
         onContentChange={setContent}
         onCursorPositionChange={setCursorLine}
         highlightedLine={highlightedLine}
         onMount={handleEditorMount}
+        onStartWorkout={handleStartWorkoutAction}
         height="100%"
         {...editorProps}
         theme={monacoTheme}
       />
     </div>
-  );
-
-  // Plan Index: EditorIndexPanel
-  const planIndexPanel = (
-    <EditorIndexPanel
-      items={documentItems}
-      activeBlockId={activeBlockId}
-      expandedBlockId={expandedBlockId}
-      onBlockClick={handleBlockClick}
-      onExpandChange={setExpandedBlockId}
-      onStartWorkout={handleStartWorkout}
-      onEditStatement={(_blockId, index, text) => editStatement?.(index, text)}
-      onDeleteStatement={(_blockId, index) => deleteStatement?.(index)}
-      mobile={isMobile}
-    />
   );
 
   // Track Index: TimerIndexPanel
@@ -579,8 +545,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
           <SlidingViewport
             currentView={viewMode}
             onViewChange={setViewMode}
-            planPrimaryPanel={planPrimaryPanel}
-            planIndexPanel={planIndexPanel}
+            planPanel={planPanel}
             trackIndexPanel={trackIndexPanel}
             trackPrimaryPanel={trackPrimaryPanel}
             trackDebugPanel={trackDebugPanel}
@@ -607,7 +572,9 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <MetricsProvider>
         <CommandProvider>
-          <UnifiedWorkbenchContent {...props} />
+          <WorkbenchProvider initialContent={props.initialContent}>
+            <UnifiedWorkbenchContent {...props} />
+          </WorkbenchProvider>
         </CommandProvider>
       </MetricsProvider>
     </ThemeProvider>

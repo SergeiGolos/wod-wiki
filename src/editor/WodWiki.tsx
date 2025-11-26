@@ -13,6 +13,7 @@ import { CodeMetadata } from '../core/models/CodeMetadata';
 import { ExerciseDataProvider } from '../types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import { RichMarkdownManager } from './RichMarkdownManager';
+import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
 
 interface WodWikiProps {
   id: string;
@@ -62,6 +63,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
     const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
+    const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
     const [height, setHeight] = useState(50); // Initial height
     const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
     
@@ -78,8 +80,11 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       monacoRef.current = monaco;
       initializer.handleMount(editor, monaco);
 
+      // Initialize Hidden Areas Coordinator
+      hiddenAreasCoordinatorRef.current = new HiddenAreasCoordinator(editor, monaco);
+
       // Initialize Rich Markdown Manager
-      richMarkdownManagerRef.current = new RichMarkdownManager(editor);
+      richMarkdownManagerRef.current = new RichMarkdownManager(editor, undefined, hiddenAreasCoordinatorRef.current);
 
       if (onMount) {
         onMount(editor);

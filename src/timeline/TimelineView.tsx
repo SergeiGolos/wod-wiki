@@ -101,7 +101,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       <div className="flex-1 flex flex-col bg-background min-w-0 overflow-y-auto">
           
           {/* Chart Section */}
-          <div className="p-4 min-h-[450px] flex-shrink-0 border-b border-border">
+          <div className="p-4 min-h-[450px] h-[450px] flex-shrink-0 border-b border-border">
              <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                    <button 
@@ -122,49 +122,51 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 </div>
              </div>
 
-             <div className="h-[350px] w-full bg-muted/30 rounded-xl border border-border p-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  {viewMode === 'timeline' ? (
-                    <LineChart data={rawData}>
-                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                       <XAxis dataKey="time" tickFormatter={formatTime} stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} />
-                       <YAxis stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} domain={['auto', 'auto']}/>
-                       <Tooltip 
-                          contentStyle={{backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', fontSize: '12px', color: 'hsl(var(--popover-foreground))'}}
-                          labelFormatter={t => formatTime(t)}
-                       />
-                       {segments.filter(s => selectedSegmentIds.has(s.id)).map(s => (
-                          <ReferenceArea key={s.id} x1={s.startTime} x2={s.endTime} fill={activeColor} fillOpacity={0.05} />
-                       ))}
-                       <Line type="monotone" dataKey={activeMetric} stroke={activeColor} strokeWidth={2} dot={false} />
-                       <Brush dataKey="time" height={20} stroke="hsl(var(--border))" fill="hsl(var(--muted))" />
-                    </LineChart>
-                  ) : (
-                    <LineChart data={overlayData}>
-                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                       <XAxis 
-                          dataKey="time" 
-                          stroke="hsl(var(--muted-foreground))" 
-                          tick={{fontSize: 10}} 
-                          label={{ value: 'Seconds (T+0)', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                        />
-                       <YAxis stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} domain={['auto', 'auto']}/>
-                       <Tooltip contentStyle={{backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', fontSize: '12px', color: 'hsl(var(--popover-foreground))'}} />
-                       {segments.filter(s => selectedSegmentIds.has(s.id)).map((s, i) => (
-                          <Line 
-                             key={s.id} 
-                             dataKey={`seg_${s.id}`} 
-                             name={s.name}
-                             type="monotone" 
-                             stroke={selectedSegmentIds.has(s.id) ? `hsl(${i * 137.508}, 70%, 60%)` : 'hsl(var(--muted-foreground))'} 
-                             strokeWidth={2} 
-                             dot={false}
-                             connectNulls
+             <div className="h-[350px] w-full bg-muted/30 rounded-xl border border-border p-2" style={{ minHeight: '350px', minWidth: '300px' }}>
+                {rawData.length > 0 && (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+                    {viewMode === 'timeline' ? (
+                      <LineChart data={rawData}>
+                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                         <XAxis dataKey="time" tickFormatter={formatTime} stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} />
+                         <YAxis stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} domain={['auto', 'auto']}/>
+                         <Tooltip 
+                            contentStyle={{backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', fontSize: '12px', color: 'hsl(var(--popover-foreground))'}}
+                            labelFormatter={t => formatTime(t)}
+                         />
+                         {segments.filter(s => selectedSegmentIds.has(s.id)).map(s => (
+                            <ReferenceArea key={s.id} x1={s.startTime} x2={s.endTime} fill={activeColor} fillOpacity={0.05} />
+                         ))}
+                         <Line type="monotone" dataKey={activeMetric} stroke={activeColor} strokeWidth={2} dot={false} />
+                         <Brush dataKey="time" height={20} stroke="hsl(var(--border))" fill="hsl(var(--muted))" />
+                      </LineChart>
+                    ) : (
+                      <LineChart data={overlayData}>
+                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                         <XAxis 
+                            dataKey="time" 
+                            stroke="hsl(var(--muted-foreground))" 
+                            tick={{fontSize: 10}} 
+                            label={{ value: 'Seconds (T+0)', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                           />
-                       ))}
-                    </LineChart>
-                  )}
-                </ResponsiveContainer>
+                         <YAxis stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} domain={['auto', 'auto']}/>
+                         <Tooltip contentStyle={{backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', fontSize: '12px', color: 'hsl(var(--popover-foreground))'}} />
+                         {segments.filter(s => selectedSegmentIds.has(s.id)).map((s, i) => (
+                            <Line 
+                               key={s.id} 
+                               dataKey={`seg_${s.id}`} 
+                               name={s.name}
+                               type="monotone" 
+                               stroke={selectedSegmentIds.has(s.id) ? `hsl(${i * 137.508}, 70%, 60%)` : 'hsl(var(--muted-foreground))'} 
+                               strokeWidth={2} 
+                               dot={false}
+                               connectNulls
+                            />
+                         ))}
+                      </LineChart>
+                    )}
+                  </ResponsiveContainer>
+                )}
              </div>
           </div>
 

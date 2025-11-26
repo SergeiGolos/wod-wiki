@@ -27,8 +27,9 @@ const meta: Meta<typeof UnifiedWorkbench> = {
     },
     theme: {
       control: 'select',
-      options: ['vs', 'vs-dark', 'hc-black'],
-      description: 'Monaco editor theme'
+      options: ['wod-light', 'wod-dark'],
+      description: 'Editor theme',
+      table: { defaultValue: { summary: 'wod-light' } }
     }
   }
 };
@@ -40,12 +41,16 @@ export const Default: Story = {
   args: {
     initialContent: `# My Workout Log - ${new Date().toLocaleDateString()}
 
+---
+test:value1
+---
+
 Use this blank canvas to log your daily training.
 
 **Quick Tip:** Press **Ctrl+Space** to view available templates and start inserting exercises.
 
 \`\`\`wod
-Timer: 10:00
+Timer 10:00
   - 10 Pushups
   - 10 Situps
   - 10 Squats
@@ -57,6 +62,6 @@ Add your workout notes here.
 `,
     showToolbar: false,
     readonly: false,
-    theme: 'vs'
+    theme: 'wod-light'
   }
 };
