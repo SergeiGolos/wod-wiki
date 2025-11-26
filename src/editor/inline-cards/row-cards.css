@@ -90,45 +90,52 @@
   transition: opacity 0.15s ease;
 }
 
-/* Heading levels - Per spec sizing */
+/* Heading levels - Per spec sizing with proper line heights and bottom padding */
 .heading-level-1 {
   font-size: 1.75rem;
   font-weight: 700;
-  line-height: 2.25rem;
+  line-height: 2.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .heading-level-2 {
   font-size: 1.5rem;
   font-weight: 700;
-  line-height: 2rem;
+  line-height: 2.25rem;
+  padding-bottom: 0.4rem;
 }
 
 .heading-level-3 {
   font-size: 1.25rem;
   font-weight: 600;
-  line-height: 1.75rem;
+  line-height: 2rem;
+  padding-bottom: 0.35rem;
 }
 
 .heading-level-4 {
   font-size: 1.125rem;
   font-weight: 600;
-  line-height: 1.5rem;
+  line-height: 1.75rem;
+  padding-bottom: 0.3rem;
 }
 
 .heading-level-5 {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .heading-level-6 {
   font-size: 0.875rem;
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: 1.375rem;
+  padding-bottom: 0.2rem;
 }
 
 .heading-text {
   color: var(--foreground);
+  display: inline-block;
 }
 
 /* =============================================================================
@@ -305,12 +312,12 @@
   border-radius: 0 0 0.5rem 0.5rem;
 }
 
-/* Content lines - 50% width for split view */
+/* Content lines - 50% width for split view with left padding */
 .wod-block-content-line {
   max-width: 50% !important;
   background: hsl(210 100% 50% / 0.03);
   border-left: 3px solid hsl(210 100% 50% / 0.4);
-  padding-left: 0.5rem;
+  padding-left: 1rem;
 }
 
 /* Ensure Monaco view-lines respect width constraint */
@@ -324,16 +331,53 @@
   font-size: 0.875rem;
 }
 
-/* Visually de-emphasized fence lines (preview mode) */
-/* These lines are kept visible but styled to be minimal - Monaco controls line height */
+/* Fence line base styling - row looks empty when not editing */
+.wod-fence-line {
+  background-color: hsl(210 100% 50% / 0.02);
+  border-left: 3px solid hsl(210 100% 50% / 0.2);
+  max-width: 50% !important;
+  padding-left: 1rem;
+}
+
+.wod-fence-opening {
+  /* Opening fence has top border */
+  border-top: 1px solid hsl(210 100% 50% / 0.1);
+}
+
+.wod-fence-closing {
+  /* Closing fence has bottom border */
+  border-bottom: 1px solid hsl(210 100% 50% / 0.1);
+}
+
+/* Fence text completely hidden when not editing - line looks empty */
+.wod-fence-text-hidden {
+  opacity: 0 !important;
+  color: transparent !important;
+  user-select: none;
+}
+
+/* Fence text visible when editing */
+.wod-fence-text-visible {
+  opacity: 0.6;
+  font-size: 0.75rem;
+  color: hsl(210 50% 50%);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Fence line styling when editing */
+.wod-fence-editing {
+  background-color: hsl(210 100% 50% / 0.05);
+}
+
+/* Legacy styles - kept for backwards compatibility */
 .wod-fence-hidden {
   background-color: transparent !important;
 }
 
-.wod-fence-text-hidden {
-  opacity: 0.2 !important;
-  font-size: 0.6rem !important;
-  color: hsl(210 50% 50% / 0.5) !important;
+.wod-fence-text-minimal {
+  opacity: 0.3;
+  font-size: 0.75rem;
+  color: hsl(210 50% 50% / 0.6);
 }
 
 /* Legacy WOD block styling */
@@ -350,11 +394,14 @@
   font-family: var(--font-mono, monospace);
 }
 
-/* Preview panel */
+/* Preview panel - solid background to hide content behind */
 .wod-preview-panel {
-  background: var(--card);
+  background: hsl(var(--card));
   border-left: 1px solid var(--border);
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .wod-preview-error {
@@ -367,6 +414,16 @@
 
 .wod-statement-preview {
   padding: 0.25rem 0;
+}
+
+/* Statement item in preview */
+.wod-statement-item {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.wod-statement-item:hover {
+  background-color: hsl(var(--muted) / 0.2);
+  border-color: hsl(210 100% 50% / 0.4);
 }
 
 /* Preview overlay (right 50%) */
@@ -481,20 +538,75 @@
 }
 
 /* =============================================================================
-   Overlays
+   Overlays (Manually positioned DOM elements with scroll sync)
    ============================================================================= */
+
+/* Overlay container - positioned within Monaco editor */
+.row-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Individual overlay panels - solid background to hide content behind */
 .row-overlay {
   position: absolute;
-  background: var(--card);
+  background: hsl(var(--card));
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  pointer-events: auto; /* Re-enable for interaction */
 }
 
+/* Right-side overlay (50% split) - desktop */
 .right-overlay {
-  right: 0;
+  border-left-width: 2px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Overlay specific to WOD blocks - solid opaque background */
+.overlay-wod-block {
+  background: hsl(var(--background));
+  border-left: 3px solid hsl(210 100% 50% / 0.4);
+}
+
+/* Mobile responsive - full width overlay */
+@media (max-width: 768px) {
+  .right-overlay {
+    /* Override inline width style */
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    border-left-width: 0;
+    border-radius: 0.5rem;
+  }
+  
+  .overlay-wod-block {
+    border-left: none;
+    border-top: 3px solid hsl(210 100% 50% / 0.4);
+  }
+  
+  /* Hide the code side on mobile - show only preview */
+  .wod-block-content-line {
+    max-width: 100% !important;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+  }
+  
+  .wod-fence-line {
+    max-width: 100% !important;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+  }
 }
 
 .floating-overlay {

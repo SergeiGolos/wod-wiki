@@ -1,35 +1,45 @@
 import { editor } from 'monaco-editor';
-import { InlineWidgetCardManager, InlineWidgetCard } from './inline-cards';
+import { RowBasedCardManager, InlineCard } from './inline-cards';
 import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
+
+// Import CSS for row-based cards
+import './inline-cards/row-cards.css';
+
+// Re-export for backwards compatibility
+export type { InlineCard as InlineWidgetCard } from './inline-cards';
 
 export class RichMarkdownManager {
     private editor: editor.IStandaloneCodeEditor;
-    private cardManager: InlineWidgetCardManager;
+    private cardManager: RowBasedCardManager;
     
     // Callback for card actions (e.g., start workout)
-    private onCardAction?: (card: InlineWidgetCard, action: string, payload?: unknown) => void;
+    private onCardAction?: (card: InlineCard, action: string, payload?: unknown) => void;
 
     constructor(
         editorInstance: editor.IStandaloneCodeEditor,
-        onCardAction?: (card: InlineWidgetCard, action: string, payload?: unknown) => void,
+        onCardAction?: (card: InlineCard, action: string, payload?: unknown) => void,
         hiddenAreasCoordinator?: HiddenAreasCoordinator
     ) {
         this.editor = editorInstance;
         this.onCardAction = onCardAction;
 
-        // Initialize the inline widget card system
-        this.cardManager = new InlineWidgetCardManager(
+        // Initialize the row-based card system (new architecture)
+        this.cardManager = new RowBasedCardManager(
             this.editor,
-            (card, action, payload) => {
+            (cardId, action, payload) => {
                 if (this.onCardAction) {
-                    this.onCardAction(card, action, payload);
+                    // Get the card by ID to pass to the callback
+                    const cards = this.cardManager.getCards();
+                    const card = cards.find(c => c.id === cardId);
+                    if (card) {
+                        this.onCardAction(card, action, payload);
+                    }
                 }
                 // Default handling for common actions
                 if (action === 'start-workout') {
-                    console.log('[RichMarkdownManager] Start workout requested for:', card.id);
+                    console.log('[RichMarkdownManager] Start workout requested for:', cardId);
                 }
-            },
-            hiddenAreasCoordinator
+            }
         );
     }
 
@@ -47,7 +57,7 @@ export class RichMarkdownManager {
     /**
      * Get all current cards
      */
-    public getCards(): InlineWidgetCard[] {
+    public getCards(): InlineCard[] {
         return this.cardManager.getCards();
     }
 }

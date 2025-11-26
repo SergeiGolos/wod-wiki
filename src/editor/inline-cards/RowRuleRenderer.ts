@@ -37,10 +37,13 @@ interface ViewZoneInfo {
 }
 
 interface OverlayInfo {
-  widget: editor.IOverlayWidget;
+  widgetId: string;
   root: ReactDOM.Root;
   domNode: HTMLDivElement;
   overlayId: string;
+  spanLines: { startLine: number; endLine: number };
+  rule: OverlayRowRule;
+  scrollListener?: () => void;
 }
 
 export class RowRuleRenderer {
@@ -229,9 +232,12 @@ export class RowRuleRenderer {
 
           // Position: header appears after previous line, footer appears after this line
           // For line 1, afterLineNumber would be 0 which Monaco handles correctly
-          const afterLineNumber = rule.zonePosition === 'header' 
-            ? Math.max(0, rule.lineNumber - 1) 
-            : rule.lineNumber;
+          // Use explicit afterLineNumber if provided (for cases where auto-calculation would reference a hidden line)
+          const afterLineNumber = rule.afterLineNumber !== undefined
+            ? rule.afterLineNumber
+            : (rule.zonePosition === 'header' 
+              ? Math.max(0, rule.lineNumber - 1) 
+              : rule.lineNumber);
 
           console.log('[RowRuleRenderer] Creating view zone:', {
             key,
@@ -384,7 +390,13 @@ export class RowRuleRenderer {
   }
 
   /**
-   * Apply overlay rules using overlay widgets
+   * Apply overlay rules using manually positioned DOM elements
+   * 
+   * Monaco overlay widgets don't support line-relative positioning well.
+   * Content widgets move with text but can't handle horizontal splits.
+   * 
+   * Solution: Create DOM elements in a dedicated overlay container and
+   * manually position them based on line coordinates, updating on scroll.
    */
   private applyOverlayRules(
     rules: Array<{ rule: OverlayRowRule; card: InlineCard }>
@@ -392,6 +404,18 @@ export class RowRuleRenderer {
     const currentOverlayIds = new Set<string>();
     const model = this.editor.getModel();
     if (!model) return;
+
+    // Get or create overlay container
+    const editorDomNode = this.editor.getDomNode();
+    if (!editorDomNode) return;
+    
+    let overlayContainer = editorDomNode.querySelector('.row-overlay-container') as HTMLElement;
+    if (!overlayContainer) {
+      overlayContainer = document.createElement('div');
+      overlayContainer.className = 'row-overlay-container';
+      overlayContainer.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; z-index: 100;';
+      editorDomNode.appendChild(overlayContainer);
+    }
 
     for (const { rule, card } of rules) {
       const overlayId = rule.overlayId || `overlay-${rule.lineNumber}`;
@@ -403,7 +427,9 @@ export class RowRuleRenderer {
       const spanLines = rule.spanLines || { startLine: rule.lineNumber, endLine: rule.lineNumber };
       const sourceLines: string[] = [];
       for (let line = spanLines.startLine; line <= spanLines.endLine; line++) {
-        sourceLines.push(model.getLineContent(line));
+        if (line <= model.getLineCount()) {
+          sourceLines.push(model.getLineContent(line));
+        }
       }
 
       const renderProps: OverlayRenderProps = {
@@ -414,39 +440,64 @@ export class RowRuleRenderer {
         isEditing: card.isEditing,
         cursorLine: card.isEditing ? this.editor.getPosition()?.lineNumber : undefined,
         onEdit: (lineNum) => this.focusLine(lineNum || rule.lineNumber),
+        onAction: (action, payload) => this.onAction?.(card.id, action, payload),
       };
 
       if (!existing) {
-        // Create new overlay
+        // Create new overlay DOM element
         const domNode = document.createElement('div');
         domNode.className = `row-overlay ${rule.position}-overlay overlay-${card.cardType}`;
-        domNode.style.width = typeof rule.overlayWidth === 'number' 
-          ? `${rule.overlayWidth}px` 
-          : rule.overlayWidth || '300px';
+        domNode.style.cssText = 'position: absolute; pointer-events: auto;';
+        
+        // Set width
+        if (typeof rule.overlayWidth === 'number') {
+          domNode.style.width = `${rule.overlayWidth}px`;
+        } else {
+          domNode.style.width = rule.overlayWidth || '300px';
+        }
         
         const root = ReactDOM.createRoot(domNode);
         root.render(rule.renderOverlay(renderProps));
 
-        const widget: editor.IOverlayWidget = {
-          getId: () => overlayId,
-          getDomNode: () => domNode,
-          getPosition: () => {
-            return this.calculateOverlayPosition(rule, spanLines);
-          },
+        // Add to container
+        overlayContainer.appendChild(domNode);
+
+        // Create scroll listener for position updates
+        const updatePosition = () => {
+          this.positionOverlayElement(domNode, rule, spanLines);
         };
 
-        this.editor.addOverlayWidget(widget);
-        this.overlays.set(overlayId, { widget, root, domNode, overlayId });
+        // Initial position
+        updatePosition();
+
+        // Listen for scroll changes
+        const scrollDisposable = this.editor.onDidScrollChange(updatePosition);
+        const layoutDisposable = this.editor.onDidLayoutChange(updatePosition);
+
+        this.overlays.set(overlayId, { 
+          widgetId: overlayId,
+          root, 
+          domNode, 
+          overlayId,
+          spanLines,
+          rule,
+          scrollListener: () => {
+            scrollDisposable.dispose();
+            layoutDisposable.dispose();
+          },
+        });
       } else {
         // Update existing overlay
         existing.root.render(rule.renderOverlay(renderProps));
+        this.positionOverlayElement(existing.domNode, rule, spanLines);
       }
     }
 
     // Remove old overlays
     for (const [id, overlay] of this.overlays) {
       if (!currentOverlayIds.has(id)) {
-        this.editor.removeOverlayWidget(overlay.widget);
+        overlay.scrollListener?.();
+        overlay.domNode.remove();
         overlay.root.unmount();
         this.overlays.delete(id);
       }
@@ -454,24 +505,9 @@ export class RowRuleRenderer {
   }
 
   /**
-   * Calculate overlay position based on rule and line range
-   * Note: Monaco overlay widgets don't support line-relative positioning directly.
-   * We use content widgets for better positioning, or manually position overlays.
+   * Position an overlay element relative to its spanning lines
    */
-  private calculateOverlayPosition(
-    rule: OverlayRowRule, 
-    spanLines: { startLine: number; endLine: number }
-  ): editor.IOverlayWidgetPosition | null {
-    // Overlay widgets in Monaco use absolute positioning
-    // For line-relative overlays, we need to use a different approach
-    // or handle positioning manually in the DOM
-    return null; // Let the overlay position itself based on line coordinates
-  }
-
-  /**
-   * Position an overlay element relative to a line
-   */
-  private positionOverlayAtLine(
+  private positionOverlayElement(
     domNode: HTMLElement,
     rule: OverlayRowRule,
     spanLines: { startLine: number; endLine: number }
@@ -483,27 +519,49 @@ export class RowRuleRenderer {
     // Get the top position of the start line
     const startLineTop = this.editor.getTopForLineNumber(spanLines.startLine);
     const lineCount = spanLines.endLine - spanLines.startLine + 1;
-    const totalHeight = lineCount * lineHeight;
+    const lineBasedHeight = lineCount * lineHeight;
     
-    // Calculate position
-    const top = startLineTop - scrollTop;
-    const editorWidth = layout.width;
-    const contentLeft = layout.contentLeft;
+    // Calculate position relative to viewport, with optional offset
+    const topOffset = rule.topOffset || 0;
+    const top = startLineTop - scrollTop + topOffset;
     
     // Position the overlay
-    domNode.style.position = 'absolute';
     domNode.style.top = `${top}px`;
-    domNode.style.height = rule.heightMode === 'match-lines' ? `${totalHeight}px` : 'auto';
+    
+    // Determine height based on mode
+    if (rule.heightMode === 'fixed' && rule.fixedHeight) {
+      domNode.style.height = `${rule.fixedHeight}px`;
+    } else if (rule.heightMode === 'match-lines') {
+      domNode.style.height = `${lineBasedHeight}px`;
+    } else {
+      domNode.style.height = 'auto';
+    }
     
     if (rule.position === 'right') {
-      // Position on the right side
-      const overlayWidth = typeof rule.overlayWidth === 'number' 
-        ? rule.overlayWidth 
-        : parseInt(rule.overlayWidth || '300', 10);
+      // Position on the right 50% of the editor
+      domNode.style.left = '50%';
       domNode.style.right = '0';
-      domNode.style.left = 'auto';
     } else {
-      domNode.style.left = `${contentLeft}px`;
+      domNode.style.left = `${layout.contentLeft}px`;
+      domNode.style.right = 'auto';
+    }
+  }
+
+  /**
+   * Update overlay height to match spanning lines or fixed height
+   */
+  private updateOverlayHeight(
+    domNode: HTMLElement,
+    rule: OverlayRowRule,
+    spanLines: { startLine: number; endLine: number }
+  ): void {
+    if (rule.heightMode === 'fixed' && rule.fixedHeight) {
+      domNode.style.height = `${rule.fixedHeight}px`;
+    } else if (rule.heightMode === 'match-lines') {
+      const lineHeight = this.editor.getOption(editor.EditorOption.lineHeight);
+      const lineCount = spanLines.endLine - spanLines.startLine + 1;
+      const totalHeight = lineCount * lineHeight;
+      domNode.style.height = `${totalHeight}px`;
     }
   }
 
@@ -596,12 +654,22 @@ export class RowRuleRenderer {
     });
     this.viewZones.clear();
 
-    // Remove overlays
+    // Remove overlays (manually positioned DOM elements)
     for (const overlay of this.overlays.values()) {
-      this.editor.removeOverlayWidget(overlay.widget);
+      overlay.scrollListener?.();
+      overlay.domNode.remove();
       overlay.root.unmount();
     }
     this.overlays.clear();
+    
+    // Remove overlay container
+    const editorDomNode = this.editor.getDomNode();
+    if (editorDomNode) {
+      const overlayContainer = editorDomNode.querySelector('.row-overlay-container');
+      if (overlayContainer) {
+        overlayContainer.remove();
+      }
+    }
 
     // Clear decorations
     this.decorations = this.editor.deltaDecorations(this.decorations, []);

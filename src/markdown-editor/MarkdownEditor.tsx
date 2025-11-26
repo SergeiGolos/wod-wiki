@@ -120,6 +120,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     console.log('[MarkdownEditor] Theme prop received:', theme);
   }, [theme]);
 
+  // Keep a ref to onStartWorkout for callbacks
+  const onStartWorkoutRef = useRef(onStartWorkout);
+  useEffect(() => {
+    onStartWorkoutRef.current = onStartWorkout;
+  }, [onStartWorkout]);
+
   // Register default commands
   const saveCommand = useMemo(() => ({
     id: 'editor.save',
@@ -216,18 +222,32 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     richMarkdownManagerRef.current = new RichMarkdownManager(
       editor, 
       (card, action) => {
-        if (action === 'start-workout' && onStartWorkout) {
-          // Use the ref to get the latest blocks
-          const currentBlocks = blocksRef.current;
-          
-          if (card.cardType === 'wod-block') {
-             // We need to find the block in the blocks array that matches this card's range
-             const block = currentBlocks.find(b => b.startLine + 1 === card.sourceRange.startLineNumber);
-             if (block) {
-               onStartWorkout(block);
-             } else {
-               console.warn('Could not find WOD block for card', card.id);
-             }
+        console.log('[MarkdownEditor] Card action received:', action, card.id);
+        if (action === 'start-workout') {
+          if (onStartWorkoutRef.current) {
+            // Use the ref to get the latest blocks
+            const currentBlocks = blocksRef.current;
+            console.log('[MarkdownEditor] Finding block for card:', card.id, 'StartLine:', card.sourceRange.startLineNumber);
+            console.log('[MarkdownEditor] Current blocks:', currentBlocks.length);
+            
+            if (card.cardType === 'wod-block') {
+               // We need to find the block in the blocks array that matches this card's range
+               const block = currentBlocks.find(b => b.startLine + 1 === card.sourceRange.startLineNumber);
+               if (block) {
+                 console.log('[MarkdownEditor] Block found, starting workout:', block.id);
+                 onStartWorkoutRef.current(block);
+               } else {
+                 console.warn('[MarkdownEditor] Could not find WOD block for card', card.id);
+                 // Fallback: try to find by fuzzy line match
+                 const fuzzyBlock = currentBlocks.find(b => Math.abs((b.startLine + 1) - card.sourceRange.startLineNumber) <= 1);
+                 if (fuzzyBlock) {
+                    console.log('[MarkdownEditor] Fuzzy block found:', fuzzyBlock.id);
+                    onStartWorkoutRef.current(fuzzyBlock);
+                 }
+               }
+            }
+          } else {
+            console.warn('[MarkdownEditor] onStartWorkout callback is missing');
           }
         }
       }, 

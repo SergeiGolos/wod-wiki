@@ -104,6 +104,11 @@ export interface OverlayRowRule extends BaseRowRule {
   heightMode?: 'auto' | 'match-lines' | 'fixed';
   /** Fixed height in pixels (when heightMode is 'fixed') */
   fixedHeight?: number;
+  /** 
+   * Vertical offset in pixels to shift overlay position.
+   * Negative values move overlay up (useful to align with header ViewZones).
+   */
+  topOffset?: number;
 }
 
 /** Props passed to overlay render function */
@@ -120,6 +125,7 @@ export interface OverlayRenderProps {
   /** Current cursor line (if editing within span) */
   cursorLine?: number;
   onEdit: (lineNumber?: number) => void;
+  onAction: (action: string, payload?: unknown) => void;
 }
 
 /** 
@@ -179,6 +185,12 @@ export interface ViewZoneRule extends BaseRowRule {
   actions?: FooterAction[];
   /** Custom render function (optional, for advanced use) */
   renderContent?: (props: ViewZoneRenderProps) => ReactNode;
+  /** 
+   * Explicit afterLineNumber for ViewZone positioning.
+   * When set, overrides the auto-calculated position.
+   * Use this when the auto-calculation would reference a hidden line.
+   */
+  afterLineNumber?: number;
 }
 
 /** Props for ViewZone render function */

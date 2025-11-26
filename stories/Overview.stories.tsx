@@ -34,6 +34,7 @@ export const Default: Story = {
 Welcome to WOD Wiki! This tool lets you define, execute, and track your workouts using a powerful text-based interface.
 
 ## 1. Recording a Workout
+
 You define workouts using **WOD Blocks**. These blocks use a special syntax to describe exercises, rounds, and timers.
 
 Here is a simple recording example:
@@ -46,12 +47,14 @@ Here is a simple recording example:
 \`\`\`
 
 ## 2. Running the Workout
+
 Once a workout is defined, you can interact with it:
 - Click **Edit** to modify the script.
 - Click **Track** to enter execution mode. The runtime engine will guide you through the workout, tracking time and sets.
 - Click **Analyze** to see performance data.
 
 ## 3. Metrics Collection
+
 The system automatically parses and collects metrics from your workout:
 - **Reps**: Tracked from lines like \`10 Pullups\`.
 - **Load**: Extracted from weights like \`95lb\`.
