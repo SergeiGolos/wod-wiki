@@ -52,11 +52,11 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     // Calculate heights for preview panel
     // These values should match the actual rendered sizes of WodPreviewPanel
     const lineHeight = 22; // Monaco line height
-    const headerZoneHeight = 36; // ViewZone header
-    const previewHeaderHeight = 48; // Header with Run button (py-2 = 8px top/bottom + content)
-    const previewFooterHeight = 36; // Footer with hints (py-2 + text)
-    const statementItemHeight = 44; // Each statement row (p-2 = 8px, content ~28px, gap)
-    const bodyPadding = 24; // p-3 = 12px top + 12px bottom
+    const headerZoneHeight = 40; // ViewZone header (increased for visual balance)
+    const previewHeaderHeight = 52; // Header with Run button
+    const previewFooterHeight = 40; // Footer with hints
+    const statementItemHeight = 40; // Each statement row (reduced for tighter spacing)
+    const bodyPadding = 16; // Reduced padding
     const statementCount = statements?.length || 0;
     
     // Calculate total height needed for preview panel content
@@ -131,8 +131,13 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
 
     // 4. Add spanning overlay for right-side preview (50% width)
     // The overlay spans from header to footer
-    // Position starts at first content line, offset up to cover header zone
+    // Position starts at opening fence line, offset up to cover header zone
     // The overlay height = totalCardHeight (matches the full card area)
+    //
+    // Position calculation:
+    // - spanLines.startLine = opening fence line
+    // - getTopForLineNumber(opening fence) returns position AFTER the header ViewZone
+    // - To align with header ViewZone top, we need topOffset = -headerZoneHeight
     if (contentLineCount > 0) {
       const overlayRule: OverlayRowRule = {
         lineNumber: startLine + 1,
@@ -146,8 +151,9 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
         overlayWidth: '50%',
         heightMode: 'fixed',
         fixedHeight: totalCardHeight,
-        // Offset: from first content line, go up by opening fence + header zone
-        topOffset: -(openingFenceHeight + headerZoneHeight),
+        // Offset: from opening fence line, go up by header zone height
+        // (getTopForLineNumber returns position after ViewZone, so we just need -headerZoneHeight)
+        topOffset: -headerZoneHeight,
         renderOverlay: (props: OverlayRenderProps) => {
           return React.createElement(WodPreviewPanel, {
             statements: statements,
