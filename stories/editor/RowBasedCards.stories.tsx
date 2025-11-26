@@ -1,131 +1,157 @@
 /**
  * Row-Based Card System - Story
  * 
- * Demonstrates the new row override card architecture
+ * Demonstrates the WodWiki editor with the inline widget card system.
+ * The MarkdownEditor component includes rich markdown rendering with:
+ * - Inline widget cards for headings, blockquotes, and media
+ * - WOD block split view with parsed workout display
+ * - Heading section folding
+ * - Theme support (light/dark)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import Editor, { Monaco } from '@monaco-editor/react';
-import { editor } from 'monaco-editor';
-import { RowBasedCardManager } from '@/editor/inline-cards/RowBasedCardManager';
+import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
 
-// Simple sample without code blocks for initial testing
+// Sample with proper WOD syntax demonstrating various card types
 const SIMPLE_CONTENT = `---
 title: My Workout Log
 date: 2024-01-15
+tags: [crossfit, amrap, bodyweight]
 ---
 
 # Morning Workout
 
-> Remember: Consistency is more important than intensity.
+> Remember: Consistency is more important than intensity. Show up every day.
 
 ## Warm-up
 
-Some warm-up exercises go here.
+\`\`\`wod
+3:00
+  Arm Circles
+  Leg Swings
+  Inchworms
+\`\`\`
 
-## Main Workout
+## Main Workout - Cindy
 
-The main workout content.
+This is a classic CrossFit benchmark workout.
+
+\`\`\`wod
+20:00 AMRAP
+  5 Pullups
+  10 Pushups
+  15 Squats
+\`\`\`
+
+## Finisher
+
+\`\`\`wod
+3 Rounds
+  20 Situps
+  10 Burpees
+\`\`\`
 
 ## Cool Down
 
-Remember to stretch!
+> Take your time with the stretches. Focus on breathing.
+
+Remember to stretch your:
+- Hip flexors
+- Hamstrings
+- Shoulders
+`;
+
+// More complex workout example
+const COMPLEX_CONTENT = `---
+title: Advanced Training Session
+date: 2024-01-20
+author: Coach Mike
+difficulty: advanced
+---
+
+# Advanced Training Session
+
+> "The pain you feel today will be the strength you feel tomorrow." - Arnold Schwarzenegger
+
+## Part A: Strength
+
+\`\`\`wod
+5 Rounds
+  5 Back Squat @80%
+  :90 Rest
+\`\`\`
+
+## Part B: Skill Work
+
+\`\`\`wod
+10:00 EMOM
+  :30 Handstand Hold
+  :30 Rest
+\`\`\`
+
+## Part C: Conditioning
+
+\`\`\`wod
+21-15-9
+  Thrusters @95lb
+  Pullups
+\`\`\`
+
+## Part D: Accessory
+
+\`\`\`wod
+3 Rounds
+  15 GHD Situps
+  20 Hip Extensions
+  25 Banded Pull-Aparts
+\`\`\`
+
+## Notes
+
+> Scale as needed. Quality over quantity.
+
+Track your times and weights in your workout journal.
 `;
 
 interface RowBasedCardDemoProps {
   initialContent?: string;
-  theme?: 'vs' | 'vs-dark';
+  theme?: 'wod-light' | 'wod-dark';
+  showToolbar?: boolean;
+  readonly?: boolean;
 }
 
 const RowBasedCardDemo: React.FC<RowBasedCardDemoProps> = ({
   initialContent = SIMPLE_CONTENT,
-  theme = 'vs',
+  theme = 'wod-light',
+  showToolbar = true,
+  readonly = false,
 }) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const managerRef = useRef<RowBasedCardManager | null>(null);
-  const [cardCount, setCardCount] = useState(0);
-  const [ruleCount, setRuleCount] = useState(0);
-
-  const handleEditorMount = (
-    editorInstance: editor.IStandaloneCodeEditor,
-    monaco: Monaco
-  ) => {
-    editorRef.current = editorInstance;
-
-    // Create the row-based card manager
-    managerRef.current = new RowBasedCardManager(
-      editorInstance,
-      (cardId, action, payload) => {
-        console.log('Card action:', { cardId, action, payload });
-        
-        if (action === 'start-workout') {
-          alert('Starting workout from card: ' + cardId);
-        }
-      }
-    );
-
-    // Update stats
-    const updateStats = () => {
-      if (managerRef.current) {
-        const cards = managerRef.current.getCards();
-        setCardCount(cards.length);
-        setRuleCount(cards.reduce((sum, c) => sum + c.rules.length, 0));
-      }
-    };
-
-    // Initial stats
-    setTimeout(updateStats, 500);
-
-    // Update on content change
-    editorInstance.onDidChangeModelContent(() => {
-      setTimeout(updateStats, 200);
-    });
+  const handleContentChange = (content: string) => {
+    console.log('[RowBasedCards] Content changed, length:', content.length);
   };
 
-  useEffect(() => {
-    return () => {
-      managerRef.current?.dispose();
-    };
-  }, []);
+  const handleBlocksChange = (blocks: any[]) => {
+    console.log('[RowBasedCards] Blocks changed:', blocks.length, 'WOD blocks detected');
+  };
+
+  const handleStartWorkout = (block: any) => {
+    console.log('[RowBasedCards] Start workout requested:', block);
+    alert(`Starting workout: ${block.content?.substring(0, 50)}...`);
+  };
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="px-4 py-2 bg-muted border-b flex items-center gap-4 text-sm">
-        <span className="font-medium">Row-Based Card System Demo</span>
-        <span className="text-muted-foreground">
-          Cards: <span className="font-mono">{cardCount}</span>
-        </span>
-        <span className="text-muted-foreground">
-          Rules: <span className="font-mono">{ruleCount}</span>
-        </span>
-        <button
-          className="ml-auto px-3 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90"
-          onClick={() => managerRef.current?.refresh()}
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div className="flex-1">
-        <Editor
-          height="100%"
-          defaultLanguage="markdown"
-          defaultValue={initialContent}
-          theme={theme}
-          onMount={handleEditorMount}
-          options={{
-            fontSize: 14,
-            lineHeight: 22,
-            padding: { top: 16, bottom: 16 },
-            minimap: { enabled: false },
-            lineNumbers: 'on',
-            folding: false,
-            wordWrap: 'on',
-            scrollBeyondLastLine: false,
-          }}
-        />
-      </div>
+    <div className="h-screen flex flex-col bg-background">
+      <MarkdownEditor
+        initialContent={initialContent}
+        theme={theme}
+        showToolbar={showToolbar}
+        readonly={readonly}
+        onContentChange={handleContentChange}
+        onBlocksChange={handleBlocksChange}
+        onStartWorkout={handleStartWorkout}
+        height="100%"
+      />
     </div>
   );
 };
@@ -135,11 +161,42 @@ const meta: Meta<typeof RowBasedCardDemo> = {
   component: RowBasedCardDemo,
   parameters: {
     layout: 'fullscreen',
+    docs: {
+      description: {
+        component: `
+The Row-Based Card System demonstrates the WodWiki editor with inline widget cards.
+
+## Features
+
+- **Inline Widget Cards**: Headings, blockquotes, frontmatter, and media are rendered as interactive cards
+- **WOD Block Split View**: Workout blocks show parsed exercises with a "Start Workout" button
+- **Heading Section Folding**: Click headings or use the "Index View" button to collapse sections
+- **Theme Support**: Light and dark themes available
+- **Live Parsing**: Content is parsed in real-time as you type
+
+## Card Types
+
+1. **Frontmatter Cards**: YAML metadata at the top of the document
+2. **Heading Cards**: Section headers with fold/unfold support
+3. **Blockquote Cards**: Styled quote blocks
+4. **WOD Block Cards**: Workout definitions with parsed preview
+        `
+      }
+    }
   },
   argTypes: {
     theme: {
       control: 'select',
-      options: ['vs', 'vs-dark'],
+      options: ['wod-light', 'wod-dark'],
+      description: 'Editor theme',
+    },
+    showToolbar: {
+      control: 'boolean',
+      description: 'Show the toolbar with Index View toggle',
+    },
+    readonly: {
+      control: 'boolean',
+      description: 'Make the editor read-only',
     },
   },
 };
@@ -150,13 +207,65 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     initialContent: SIMPLE_CONTENT,
-    theme: 'vs',
+    theme: 'wod-light',
+    showToolbar: true,
+    readonly: false,
   },
 };
 
 export const DarkTheme: Story = {
   args: {
     initialContent: SIMPLE_CONTENT,
-    theme: 'vs-dark',
+    theme: 'wod-dark',
+    showToolbar: true,
+    readonly: false,
   },
+};
+
+export const ComplexWorkout: Story = {
+  args: {
+    initialContent: COMPLEX_CONTENT,
+    theme: 'wod-light',
+    showToolbar: true,
+    readonly: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'A more complex workout with multiple parts, demonstrating the card system with various WOD block types.'
+      }
+    }
+  }
+};
+
+export const ReadOnly: Story = {
+  args: {
+    initialContent: SIMPLE_CONTENT,
+    theme: 'wod-light',
+    showToolbar: true,
+    readonly: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Read-only mode for viewing workouts without editing capability.'
+      }
+    }
+  }
+};
+
+export const NoToolbar: Story = {
+  args: {
+    initialContent: SIMPLE_CONTENT,
+    theme: 'wod-light',
+    showToolbar: false,
+    readonly: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Editor without the toolbar, for a cleaner embedded experience.'
+      }
+    }
+  }
 };

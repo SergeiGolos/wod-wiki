@@ -257,8 +257,75 @@ export class CardParser {
    * Parse WOD code blocks (```wod ... ```)
    */
   private parseWodBlocks(lines: string[]): InlineWidgetCard<WodBlockContent>[] {
-    // WOD blocks are now handled by WodBlockSplitViewFeature
-    // We return empty array here to prevent InlineWidgetCardManager from creating duplicate view zones
-    return [];
+    const cards: InlineWidgetCard<WodBlockContent>[] = [];
+    const config = CARD_TYPE_CONFIGS['wod-block'] || CARD_TYPE_CONFIGS.frontmatter; // fallback
+    
+    let inBlock = false;
+    let blockStart = -1;
+    let blockContent: string[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim().toLowerCase();
+      const lineNum = i + 1;
+      
+      if (!inBlock && trimmedLine.startsWith('```wod')) {
+        // Start of WOD block
+        inBlock = true;
+        blockStart = lineNum;
+        blockContent = [];
+      } else if (inBlock && line.trim().startsWith('```')) {
+        // End of WOD block
+        const blockEnd = lineNum;
+        const rawContent = blockContent.join('\n');
+        
+        // Parse the WOD content
+        let statements: ICodeStatement[] = [];
+        let parseState: 'pending' | 'parsed' | 'error' = 'pending';
+        
+        try {
+          const script = wodParser.read(rawContent);
+          statements = script.statements;
+          
+          // Check for parser errors
+          if (script.errors && script.errors.length > 0) {
+            parseState = 'error';
+          } else {
+            parseState = 'parsed';
+          }
+        } catch (err) {
+          parseState = 'error';
+        }
+        
+        const previewPx = Math.max(100, (blockEnd - blockStart + 1) * 22);
+        
+        cards.push({
+          id: `wod-block-${blockStart}`,
+          cardType: 'wod-block',
+          sourceRange: new Range(blockStart, 1, blockEnd, lines[blockEnd - 1].length + 1),
+          content: {
+            type: 'wod-block',
+            rawCode: rawContent,
+            statements,
+            parseState,
+          },
+          displayMode: 'full-preview',
+          editBehavior: config?.editBehavior || 'click-to-edit',
+          heights: {
+            previewPx,
+            sourceLines: blockEnd - blockStart + 1,
+            cardPx: previewPx,
+          },
+        });
+        
+        inBlock = false;
+        blockStart = -1;
+        blockContent = [];
+      } else if (inBlock) {
+        blockContent.push(line);
+      }
+    }
+    
+    return cards;
   }
 }

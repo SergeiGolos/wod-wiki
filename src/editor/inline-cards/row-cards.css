@@ -85,12 +85,17 @@
   border-color: hsl(210 100% 50% / 0.3);
 }
 
-.wod-overlay-content {
-  min-height: 100%;
+.wod-block-line {
+  background-color: hsl(210 100% 50% / 0.05);
 }
 
-.wod-content-line {
-  padding-left: 0.25rem;
+.wod-block-fence {
+  color: hsl(210 70% 50%);
+  font-weight: 500;
+}
+
+.wod-block-content {
+  font-family: var(--font-mono, monospace);
 }
 
 /* Frontmatter specific */
@@ -103,8 +108,18 @@
   border-color: hsl(40 100% 50% / 0.3);
 }
 
-.frontmatter-property-overlay {
-  border-left: 2px solid hsl(40 100% 50% / 0.5);
+/* Frontmatter line styling */
+.frontmatter-line {
+  background-color: hsl(40 100% 50% / 0.05);
+}
+
+.frontmatter-delimiter {
+  color: hsl(40 70% 50%);
+  font-weight: 500;
+}
+
+.frontmatter-property {
+  color: var(--foreground);
 }
 
 /* Heading styles */

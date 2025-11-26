@@ -287,19 +287,56 @@ export class RowRuleRenderer {
 
   /**
    * Calculate overlay position based on rule and line range
+   * Note: Monaco overlay widgets don't support line-relative positioning directly.
+   * We use content widgets for better positioning, or manually position overlays.
    */
   private calculateOverlayPosition(
     rule: OverlayRowRule, 
     spanLines: { startLine: number; endLine: number }
   ): editor.IOverlayWidgetPosition | null {
-    // For right-positioned overlays, we need to calculate based on editor layout
-    if (rule.position === 'right') {
-      return {
-        preference: editor.OverlayWidgetPositionPreference.TOP_RIGHT_CORNER,
-      };
-    }
+    // Overlay widgets in Monaco use absolute positioning
+    // For line-relative overlays, we need to use a different approach
+    // or handle positioning manually in the DOM
+    return null; // Let the overlay position itself based on line coordinates
+  }
+
+  /**
+   * Position an overlay element relative to a line
+   */
+  private positionOverlayAtLine(
+    domNode: HTMLElement,
+    rule: OverlayRowRule,
+    spanLines: { startLine: number; endLine: number }
+  ): void {
+    const layout = this.editor.getLayoutInfo();
+    const scrollTop = this.editor.getScrollTop();
+    const lineHeight = this.editor.getOption(editor.EditorOption.lineHeight);
     
-    return null;
+    // Get the top position of the start line
+    const startLineTop = this.editor.getTopForLineNumber(spanLines.startLine);
+    const lineCount = spanLines.endLine - spanLines.startLine + 1;
+    const totalHeight = lineCount * lineHeight;
+    
+    // Calculate position
+    const top = startLineTop - scrollTop;
+    const editorWidth = layout.width;
+    const contentLeft = layout.contentLeft;
+    
+    // Position the overlay
+    domNode.style.position = 'absolute';
+    domNode.style.top = `${top}px`;
+    domNode.style.height = rule.heightMode === 'match-lines' ? `${totalHeight}px` : 'auto';
+    
+    if (rule.position === 'right') {
+      // Position on the right side
+      const overlayWidth = typeof rule.overlayWidth === 'number' 
+        ? rule.overlayWidth 
+        : parseInt(rule.overlayWidth || '300', 10);
+      domNode.style.right = '0';
+      domNode.style.left = 'auto';
+    } else {
+      domNode.style.left = `${contentLeft}px`;
+    }
   }
 
   /**
