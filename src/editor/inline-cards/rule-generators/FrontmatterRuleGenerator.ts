@@ -1,14 +1,20 @@
 /**
  * FrontmatterRuleGenerator - Generates rules for YAML front matter blocks
  * 
- * Structure:
- * - Line 1 (---): Header rule with styled row for frontmatter background
- * - Property lines: Styled rows (no overlays - they don't position well)
- * - Last line (---): Footer rule
+ * Behavior per Monaco Card Behavior Spec:
+ * - Preview mode (cursor outside): 
+ *   - "---" lines styled to be visually hidden (collapsed)
+ *   - ViewZone header shows "Document Properties"
+ *   - Property lines styled with card borders
+ *   - ViewZone footer at end
  * 
- * NOTE: We intentionally do NOT use overlay rules for frontmatter properties
- * because Monaco overlay widgets use absolute positioning relative to the
- * editor container, not relative to specific lines.
+ * - Edit mode (cursor inside):
+ *   - All lines visible including "---" delimiters
+ *   - Subtle card styling maintained
+ * 
+ * Note: We don't use setHiddenAreas because it breaks ViewZone positioning.
+ * Instead, we use CSS to visually collapse delimiter lines while keeping them
+ * in the DOM for proper ViewZone afterLineNumber references.
  */
 
 import { Range } from 'monaco-editor';
@@ -16,9 +22,8 @@ import {
   CardRuleGenerator, 
   FrontMatterContent, 
   RowRule, 
-  HeaderRowRule,
-  FooterRowRule,
   StyledRowRule,
+  ViewZoneRule,
 } from '../row-types';
 
 export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterContent> {
@@ -27,48 +32,125 @@ export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterCo
   generateRules(
     content: FrontMatterContent,
     sourceRange: Range,
-    _isEditing: boolean
+    isEditing: boolean
   ): RowRule[] {
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
+    const propertyLineCount = endLine - startLine - 1; // Lines between --- markers
 
-    // 1. Header rule for opening ---
-    const headerRule: HeaderRowRule = {
+    if (isEditing) {
+      // Edit mode: Show all lines including --- delimiters with subtle styling
+      
+      // Style opening ---
+      const openingStyledRule: StyledRowRule = {
+        lineNumber: startLine,
+        overrideType: 'styled',
+        className: 'frontmatter-delimiter-line frontmatter-editing',
+        decoration: {
+          isWholeLine: true,
+          inlineClassName: 'frontmatter-delimiter',
+        },
+      };
+      rules.push(openingStyledRule);
+
+      // Style property lines
+      for (let lineNum = startLine + 1; lineNum < endLine; lineNum++) {
+        const styledRule: StyledRowRule = {
+          lineNumber: lineNum,
+          overrideType: 'styled',
+          className: 'frontmatter-property-line frontmatter-editing',
+          decoration: {
+            isWholeLine: true,
+            inlineClassName: 'frontmatter-property',
+          },
+        };
+        rules.push(styledRule);
+      }
+
+      // Style closing ---
+      const closingStyledRule: StyledRowRule = {
+        lineNumber: endLine,
+        overrideType: 'styled',
+        className: 'frontmatter-delimiter-line frontmatter-editing',
+        decoration: {
+          isWholeLine: true,
+          inlineClassName: 'frontmatter-delimiter',
+        },
+      };
+      rules.push(closingStyledRule);
+
+      return rules;
+    }
+
+    // Preview mode: Style --- lines to be nearly invisible, show ViewZone header/footer
+    // NOTE: We don't use setHiddenAreas because it breaks ViewZone positioning.
+    // Instead, we style the delimiter lines to be visually hidden (collapsed height, opacity 0)
+
+    // 1. Style opening --- line to be visually hidden
+    const openingHiddenRule: StyledRowRule = {
       lineNumber: startLine,
-      overrideType: 'header',
+      overrideType: 'styled',
+      className: 'frontmatter-delimiter-hidden',
+      decoration: {
+        isWholeLine: true,
+        inlineClassName: 'frontmatter-delimiter-text-hidden',
+      },
+    };
+    rules.push(openingHiddenRule);
+
+    // 2. ViewZone header (appears before the delimiter line)
+    const headerZoneRule: ViewZoneRule = {
+      lineNumber: startLine,
+      overrideType: 'view-zone',
       cardType: 'frontmatter',
+      zonePosition: 'header',
+      heightInPx: 32,
       title: 'Document Properties',
       icon: 'file-text',
-      className: 'frontmatter-header',
+      className: 'frontmatter-card-header',
     };
-    rules.push(headerRule);
+    rules.push(headerZoneRule);
 
-    // 2. Style all frontmatter lines with a background
-    for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
+    // 3. Style property lines with borders
+    for (let lineNum = startLine + 1; lineNum < endLine; lineNum++) {
+      const isFirst = lineNum === startLine + 1;
+      const isLast = lineNum === endLine - 1;
+      
       const styledRule: StyledRowRule = {
         lineNumber: lineNum,
         overrideType: 'styled',
-        className: 'frontmatter-line',
+        className: `frontmatter-property-line ${isFirst ? 'frontmatter-property-first' : ''} ${isLast ? 'frontmatter-property-last' : ''}`,
         decoration: {
           isWholeLine: true,
-          inlineClassName: lineNum === startLine || lineNum === endLine 
-            ? 'frontmatter-delimiter' 
-            : 'frontmatter-property',
+          inlineClassName: 'frontmatter-property',
         },
       };
       rules.push(styledRule);
     }
 
-    // 3. Footer rule for closing ---
-    const footerRule: FooterRowRule = {
+    // 4. Style closing --- line to be visually hidden
+    const closingHiddenRule: StyledRowRule = {
       lineNumber: endLine,
-      overrideType: 'footer',
-      cardType: 'frontmatter',
-      actions: [],
-      className: 'frontmatter-footer',
+      overrideType: 'styled',
+      className: 'frontmatter-delimiter-hidden',
+      decoration: {
+        isWholeLine: true,
+        inlineClassName: 'frontmatter-delimiter-text-hidden',
+      },
     };
-    rules.push(footerRule);
+    rules.push(closingHiddenRule);
+
+    // 5. ViewZone footer (appears after the delimiter line)
+    const footerZoneRule: ViewZoneRule = {
+      lineNumber: endLine,
+      overrideType: 'view-zone',
+      cardType: 'frontmatter',
+      zonePosition: 'footer',
+      heightInPx: 8,
+      className: 'frontmatter-card-footer',
+    };
+    rules.push(footerZoneRule);
 
     return rules;
   }

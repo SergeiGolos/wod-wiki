@@ -90,7 +90,7 @@ export const CARD_TYPE_CONFIGS: Record<CardType, CardTypeConfig> = {
     hideSourceInPreview: true,
     minHeight: 100,
     defaultPreviewHeight: 200,
-    usesViewZone: false, // WOD blocks are handled by WodBlockSplitViewFeature, not InlineWidgetCardManager
+    usesViewZone: true,
   },
 };
 

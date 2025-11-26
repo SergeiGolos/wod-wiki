@@ -6,7 +6,7 @@
  * in the Monaco editor.
  */
 
-import { Range } from 'monaco-editor';
+import { Range, editor } from 'monaco-editor';
 import { ICodeStatement } from '../../core/types/core';
 
 /** Supported card types */
@@ -89,6 +89,29 @@ export interface CardHeights {
   cardPx: number;
 }
 
+/**
+ * Instructions for how to render a card in the editor
+ */
+export interface RenderInstruction {
+  /** Ranges to hide in the editor (folding) */
+  hiddenRanges: Range[];
+  
+  /** View zones to insert */
+  viewZones: {
+    /** Where to place the zone */
+    afterLineNumber: number;
+    /** Height in pixels */
+    heightInPx: number;
+    /** React component to render */
+    component: React.ReactNode;
+    /** ID for the zone */
+    id: string;
+  }[];
+  
+  /** Decorations to apply */
+  decorations: editor.IModelDeltaDecoration[];
+}
+
 /** The main card interface */
 export interface InlineWidgetCard<T extends CardContent = CardContent> {
   /** Unique identifier (e.g., "heading-5" for heading on line 5) */
@@ -119,12 +142,16 @@ export interface CardCallbacks {
   onEdit: () => void;
   /** Called for card-specific actions (e.g., "start-workout") */
   onAction: (action: string, payload?: unknown) => void;
+  /** Called when the card content changes (e.g. from internal editor) */
+  onContentChange?: (newContent: string) => void;
 }
 
 /** Props passed to all card preview components */
 export interface CardPreviewProps<T extends CardContent = CardContent> {
   card: InlineWidgetCard<T>;
   callbacks: CardCallbacks;
+  /** Optional Monaco instance for nested editors */
+  monaco?: any;
 }
 
 /** Type helper for specific card props */

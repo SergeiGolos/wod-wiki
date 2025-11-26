@@ -27,8 +27,9 @@ const meta: Meta<typeof UnifiedWorkbench> = {
     },
     theme: {
       control: 'select',
-      options: ['vs', 'vs-dark', 'hc-black'],
-      description: 'Monaco editor theme'
+      options: ['wod-light', 'wod-dark'],
+      description: 'Editor theme',
+      table: { defaultValue: { summary: 'wod-light' } }
     }
   }
 };
@@ -61,6 +62,6 @@ Add your workout notes here.
 `,
     showToolbar: false,
     readonly: false,
-    theme: 'vs'
+    theme: 'wod-light'
   }
 };

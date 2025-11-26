@@ -11,6 +11,16 @@ const meta: Meta<typeof UnifiedWorkbench> = {
         component: 'Overview of the WOD Wiki editor capabilities.'
       }
     }
+  },
+  argTypes: {
+    theme: {
+      control: 'select',
+      options: ['wod-light', 'wod-dark'],
+      description: 'Editor theme',
+      table: { defaultValue: { summary: 'wod-light' } }
+    },
+    showToolbar: { control: 'boolean' },
+    readonly: { control: 'boolean' }
   }
 };
 
@@ -52,6 +62,6 @@ Everything happens inline, giving you full control over your training data.
 `,
     showToolbar: true,
     readonly: false,
-    theme: 'vs'
+    theme: 'wod-light'
   }
 };

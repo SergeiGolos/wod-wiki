@@ -6,7 +6,7 @@
  */
 
 import { editor, Range } from 'monaco-editor';
-import ReactDOM from 'react-dom/client';
+import { createRoot, Root } from 'react-dom/client';
 import { InlineWidgetCard, CardContent, CardCallbacks } from './types';
 import { CARD_TYPE_CONFIGS, CARD_SYSTEM_CONFIG } from './config';
 import { CardParser } from './CardParser';
@@ -15,7 +15,7 @@ import { HiddenAreasCoordinator } from '../utils/HiddenAreasCoordinator';
 
 interface ViewZoneInfo {
   zoneId: string;
-  root: ReactDOM.Root;
+  root: Root;
   domNode: HTMLDivElement;
   card: InlineWidgetCard;
 }
@@ -26,6 +26,7 @@ export class InlineWidgetCardManager {
   private cards: Map<string, InlineWidgetCard> = new Map();
   private viewZones: Map<string, ViewZoneInfo> = new Map();
   private decorations: string[] = [];
+  private monaco: any;
   private parser: CardParser;
   private renderer: CardRenderer;
   private disposables: { dispose(): void }[] = [];
@@ -46,6 +47,7 @@ export class InlineWidgetCardManager {
   ) {
     this.editor = editorInstance;
     this.hiddenAreasCoordinator = hiddenAreasCoordinator;
+    this.monaco = (window as any).monaco;
     this.parser = new CardParser();
     this.renderer = new CardRenderer();
     this.onCardAction = onCardAction;
@@ -181,55 +183,38 @@ export class InlineWidgetCardManager {
     const cardsNeedingViewZones: InlineWidgetCard[] = [];
     const cardsToRemoveViewZones: string[] = [];
     
+    // Step 1: Collect instructions from all cards
     for (const card of this.cards.values()) {
-      const config = CARD_TYPE_CONFIGS[card.cardType];
+      const instructions = this.renderer.getRenderInstructions(card);
       
-      if (card.displayMode === 'edit-only') {
-        // Edit mode: remove view zone, show raw text
-        cardsToRemoveViewZones.push(card.id);
-        
-        // May still apply decorations (e.g., for headings in edit mode)
-        const cardDecorations = this.renderer.getEditModeDecorations(card);
-        decorations.push(...cardDecorations);
-        
-      } else if (card.displayMode === 'full-preview') {
-        // Preview mode
-        if (config.usesViewZone) {
-          // Cards that use view zones: hide source, show zone
-          if (config.hideSourceInPreview) {
-            hiddenAreas.push(card.sourceRange);
-          }
-          cardsNeedingViewZones.push(card);
-        } else {
-          // Cards that only use decorations (headings, blockquotes)
-          cardsToRemoveViewZones.push(card.id);
-          const cardDecorations = this.renderer.getPreviewModeDecorations(card);
-          decorations.push(...cardDecorations);
-        }
-        
-      } else if (card.displayMode === 'side-by-side') {
-        // Side-by-side: hide source, show split view zone
-        if (config.hideSourceInPreview) {
-           hiddenAreas.push(card.sourceRange);
-        }
+      // Accumulate hidden areas
+      hiddenAreas.push(...instructions.hiddenRanges);
+      
+      // Accumulate decorations
+      decorations.push(...instructions.decorations);
+      
+      // Accumulate view zones
+      if (instructions.viewZones.length > 0) {
         cardsNeedingViewZones.push(card);
+      } else {
+        cardsToRemoveViewZones.push(card.id);
       }
     }
     
-    // Step 1: Remove view zones that are no longer needed
+    // Step 2: Remove view zones that are no longer needed
     for (const id of cardsToRemoveViewZones) {
       this.removeViewZone(id);
     }
     
-    // Step 2: Apply hidden areas FIRST (before creating view zones)
+    // Step 3: Apply hidden areas FIRST (before creating view zones)
     this.applyHiddenAreas(hiddenAreas);
     
-    // Step 3: Create/update view zones AFTER hidden areas are applied
+    // Step 4: Create/update view zones AFTER hidden areas are applied
     for (const card of cardsNeedingViewZones) {
       this.ensureViewZone(card);
     }
     
-    // Step 4: Apply decorations
+    // Step 5: Apply decorations
     this.decorations = this.editor.deltaDecorations(this.decorations, decorations);
     
     if (CARD_SYSTEM_CONFIG.debug) {
@@ -275,21 +260,66 @@ export class InlineWidgetCardManager {
         if (this.onCardAction) {
           this.onCardAction(card, action, payload);
         }
-      }
+      },
+      onContentChange: (newContent) => this.updateCardContent(card, newContent)
     };
   }
   
+  private updateCardContent(card: InlineWidgetCard, newContent: string): void {
+    const model = this.editor.getModel();
+    if (!model) return;
+
+    // For WOD blocks, the content is between fences.
+    // We need to be careful about what range we are replacing.
+    // The card.sourceRange covers the whole block including fences for WOD blocks.
+    // But the WOD block parser might need to be smarter or we handle it here.
+    
+    // If it's a WOD block, we want to replace the content INSIDE the fences.
+    if (card.cardType === 'wod-block') {
+      // We need to find the content range.
+      // Assuming standard ```wod \n content \n ``` format
+      // The sourceRange includes the fences.
+      const startLine = card.sourceRange.startLineNumber + 1; // Skip ```wod
+      const endLine = card.sourceRange.endLineNumber - 1; // Skip ```
+      
+      if (startLine > endLine) {
+        // Empty block or single line block, handle gracefully?
+        // If it was empty, startLine might be > endLine.
+        // We should probably replace the whole block if structure changes, 
+        // but for simple content edits, we can try to replace the range.
+      }
+      
+      const range = new Range(
+        startLine,
+        1,
+        endLine,
+        model.getLineMaxColumn(endLine)
+      );
+      
+      // Use pushEditOperations to make it undoable
+      model.pushEditOperations(
+        [],
+        [{ range, text: newContent }],
+        () => null
+      );
+    } else {
+      // For other cards, we might be replacing the whole source range?
+      // Currently only WOD blocks support editing content via this callback.
+      console.warn('[InlineWidgetCardManager] Content update not implemented for card type:', card.cardType);
+    }
+  }
+
   private createViewZone(card: InlineWidgetCard): void {
     const domNode = document.createElement('div');
     domNode.className = `inline-widget-card-zone card-type-${card.cardType}`;
     domNode.dataset.mode = card.displayMode;
     domNode.dataset.cardId = card.id;
     
-    const root = ReactDOM.createRoot(domNode);
+    const root = createRoot(domNode);
     const callbacks = this.createCallbacks(card);
     
     // Render initial content
-    this.renderer.renderCard(root, card, callbacks);
+    this.renderer.renderCard(root, card, callbacks, this.monaco);
     
     // Calculate height
     const heightInPx = this.calculateCardHeight(card);

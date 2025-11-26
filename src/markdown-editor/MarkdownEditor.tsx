@@ -16,7 +16,6 @@ import { useSmartIncrement } from './hooks/useSmartIncrement';
 import './utils/monacoLoader';
 import { RichMarkdownManager } from '../editor/RichMarkdownManager';
 import { HeadingSectionFoldingManager } from '../editor/features/HeadingSectionFoldingFeature';
-import { WodBlockSplitViewManager } from '../editor/features/WodBlockSplitViewFeature';
 import { ChevronDown, List } from 'lucide-react';
 import { HiddenAreasCoordinator } from '../editor/utils/HiddenAreasCoordinator';
 
@@ -102,7 +101,6 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
-  const splitViewManagerRef = useRef<WodBlockSplitViewManager | null>(null);
   const foldingManagerRef = useRef<HeadingSectionFoldingManager | null>(null);
   const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
@@ -150,6 +148,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
   // Use the WOD blocks hook
   const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
+  
+  // Keep a ref to blocks for callbacks
+  const blocksRef = useRef(blocks);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
 
   // Parse ALL blocks for inlay hints (not just active block)
   useParseAllBlocks(blocks, updateBlock);
@@ -209,11 +213,26 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     hiddenAreasCoordinatorRef.current = new HiddenAreasCoordinator(editor, monaco);
 
     // Initialize Rich Markdown Manager
-    richMarkdownManagerRef.current = new RichMarkdownManager(editor, undefined, hiddenAreasCoordinatorRef.current);
-
-    // Initialize WOD Block Split View Manager with onStartWorkout callback
-    splitViewManagerRef.current = new WodBlockSplitViewManager(editor, monaco, onStartWorkout, hiddenAreasCoordinatorRef.current);
-    console.log('[MarkdownEditor] WOD Block Split View Manager initialized');
+    richMarkdownManagerRef.current = new RichMarkdownManager(
+      editor, 
+      (card, action) => {
+        if (action === 'start-workout' && onStartWorkout) {
+          // Use the ref to get the latest blocks
+          const currentBlocks = blocksRef.current;
+          
+          if (card.cardType === 'wod-block') {
+             // We need to find the block in the blocks array that matches this card's range
+             const block = currentBlocks.find(b => b.startLine + 1 === card.sourceRange.startLineNumber);
+             if (block) {
+               onStartWorkout(block);
+             } else {
+               console.warn('Could not find WOD block for card', card.id);
+             }
+          }
+        }
+      }, 
+      hiddenAreasCoordinatorRef.current
+    );
 
     // Initialize Heading Section Folding Manager (provides fold/unfold all)
     foldingManagerRef.current = new HeadingSectionFoldingManager(editor, monaco);
@@ -284,21 +303,18 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       if (richMarkdownManagerRef.current) {
         richMarkdownManagerRef.current.dispose();
       }
-      if (splitViewManagerRef.current) {
-        splitViewManagerRef.current.dispose();
-      }
       if (foldingManagerRef.current) {
         foldingManagerRef.current.dispose();
       }
     };
   }, []);
 
-  // Update split view manager when blocks change
+  // Force refresh rich markdown manager when blocks change to ensure callbacks have latest blocks
   useEffect(() => {
-    console.log('[MarkdownEditor] Blocks changed:', blocks.length, blocks);
-    if (splitViewManagerRef.current && blocks.length > 0) {
-      splitViewManagerRef.current.updateBlocks(blocks);
-    }
+    // This is a bit of a hack. The callback passed to RichMarkdownManager closes over 'blocks'.
+    // Since we only init RichMarkdownManager once, it sees the initial 'blocks' (empty).
+    // We need a way to access the latest blocks in the callback.
+    // Using a ref for blocks would solve this.
   }, [blocks]);
 
 

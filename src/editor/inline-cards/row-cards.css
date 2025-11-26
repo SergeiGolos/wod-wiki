@@ -1,10 +1,34 @@
 /**
  * Row-based Card System Styles
  * 
- * CSS for the new row override card architecture
+ * CSS for the Monaco Card Behavior Spec implementation.
+ * Follows the specification from Monaco_Card_Behavior_Spec.md
  */
 
-/* Card Header */
+/* =============================================================================
+   CSS Variables and Theming
+   ============================================================================= */
+:root {
+  /* Card colors */
+  --card-border: hsl(var(--border));
+  --card-background: hsl(var(--card));
+  --card-muted: hsl(var(--muted) / 0.3);
+  
+  /* Type-specific accent colors */
+  --wod-accent: hsl(210 100% 50%);
+  --frontmatter-accent: hsl(45 100% 50%);
+  --blockquote-accent: hsl(var(--primary));
+  --media-accent: hsl(280 80% 50%);
+  
+  /* Opacity variants */
+  --accent-subtle: 0.1;
+  --accent-medium: 0.3;
+  --accent-strong: 0.6;
+}
+
+/* =============================================================================
+   Card Header
+   ============================================================================= */
 .card-header {
   display: flex;
   align-items: center;
@@ -23,7 +47,9 @@
   color: var(--muted-foreground);
 }
 
-/* Card Footer */
+/* =============================================================================
+   Card Footer
+   ============================================================================= */
 .card-footer {
   display: flex;
   align-items: center;
@@ -37,7 +63,9 @@
   background-color: hsl(var(--muted) / 0.3);
 }
 
-/* View Zone Containers */
+/* =============================================================================
+   View Zone Containers
+   ============================================================================= */
 .row-rule-zone {
   width: 100%;
 }
@@ -50,13 +78,411 @@
   border-top: none;
 }
 
-/* Full Card Zone */
-.full-card-zone {
-  width: 100%;
-  padding: 0 0.5rem;
+/* =============================================================================
+   Heading Styles (Monaco Card Behavior Spec - Section 1)
+   ============================================================================= */
+
+/* Hidden prefix - fade out # characters */
+.hidden-prefix {
+  opacity: 0.3;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  transition: opacity 0.15s ease;
 }
 
-/* Overlays */
+/* Heading levels - Per spec sizing */
+.heading-level-1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 2.25rem;
+}
+
+.heading-level-2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2rem;
+}
+
+.heading-level-3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+.heading-level-4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.heading-level-5 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.heading-level-6 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+.heading-text {
+  color: var(--foreground);
+}
+
+/* =============================================================================
+   Blockquote Styles (Monaco Card Behavior Spec - Section 2)
+   ============================================================================= */
+
+/* Card header/footer for multi-line blockquotes */
+.blockquote-card-header {
+  height: 4px;
+  padding: 0;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: transparent;
+}
+
+.blockquote-card-footer {
+  height: 4px;
+  padding: 0;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  border: 1px solid var(--border);
+  border-top: none;
+  background: transparent;
+}
+
+/* Blockquote line styling */
+.blockquote-line,
+.blockquote-card-line {
+  background-color: hsl(var(--muted) / 0.3);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+.blockquote-single {
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+}
+
+.blockquote-first {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.blockquote-last {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Left border accent */
+.blockquote-left-border {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin-left: -1px;
+}
+
+.blockquote-border-left-subtle {
+  border-left: 2px solid hsl(var(--primary) / 0.4);
+  padding-left: 0.75rem;
+}
+
+/* Text styling */
+.blockquote-text {
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+/* Edit mode styling */
+.blockquote-line-editing {
+  background-color: hsl(var(--muted) / 0.15);
+}
+
+.blockquote-first-editing {
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+}
+
+.blockquote-last-editing {
+  border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+/* =============================================================================
+   Front Matter Styles (Monaco Card Behavior Spec - Section 3)
+   ============================================================================= */
+
+/* Card header */
+.frontmatter-card-header {
+  background: linear-gradient(to right, hsl(45 100% 60% / 0.2), transparent);
+  border: 1px solid hsl(45 100% 50% / 0.4);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Card footer */
+.frontmatter-card-footer {
+  height: 8px;
+  padding: 0;
+  background: hsl(45 100% 50% / 0.1);
+  border: 1px solid hsl(45 100% 50% / 0.4);
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Property lines */
+.frontmatter-property-line {
+  background: hsl(45 100% 50% / 0.05);
+  border-left: 1px solid hsl(45 100% 50% / 0.4);
+  border-right: 1px solid hsl(45 100% 50% / 0.4);
+}
+
+.frontmatter-property-first {
+  /* First property after header */
+}
+
+.frontmatter-property-last {
+  /* Last property before footer */
+}
+
+/* Delimiter styling */
+.frontmatter-delimiter {
+  color: hsl(45 70% 50%);
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.frontmatter-delimiter-line {
+  background: hsl(45 100% 50% / 0.05);
+}
+
+/* Property text */
+.frontmatter-property {
+  color: var(--foreground);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.875rem;
+}
+
+/* Edit mode */
+.frontmatter-editing {
+  opacity: 1;
+}
+
+/* Visually de-emphasized delimiter lines (preview mode) */
+/* These lines are kept visible but styled to be minimal - Monaco controls line height */
+.frontmatter-delimiter-hidden {
+  background-color: transparent !important;
+}
+
+.frontmatter-delimiter-text-hidden {
+  opacity: 0.2 !important;
+  font-size: 0.6rem !important;
+  color: hsl(45 50% 50% / 0.5) !important;
+}
+
+/* =============================================================================
+   WOD Block Styles (Monaco Card Behavior Spec - Section 4)
+   ============================================================================= */
+
+/* Card header */
+.wod-block-card-header {
+  background: linear-gradient(to right, hsl(210 100% 50% / 0.15), transparent);
+  border: 1px solid hsl(210 100% 50% / 0.3);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Card footer */
+.wod-block-card-footer {
+  background: hsl(210 100% 50% / 0.05);
+  border: 1px solid hsl(210 100% 50% / 0.3);
+  border-top: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Content lines - 50% width for split view */
+.wod-block-content-line {
+  max-width: 50% !important;
+  background: hsl(210 100% 50% / 0.03);
+  border-left: 3px solid hsl(210 100% 50% / 0.4);
+  padding-left: 0.5rem;
+}
+
+/* Ensure Monaco view-lines respect width constraint */
+.wod-block-editor-half .view-lines {
+  max-width: 50%;
+}
+
+/* Code text styling */
+.wod-code-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.875rem;
+}
+
+/* Visually de-emphasized fence lines (preview mode) */
+/* These lines are kept visible but styled to be minimal - Monaco controls line height */
+.wod-fence-hidden {
+  background-color: transparent !important;
+}
+
+.wod-fence-text-hidden {
+  opacity: 0.2 !important;
+  font-size: 0.6rem !important;
+  color: hsl(210 50% 50% / 0.5) !important;
+}
+
+/* Legacy WOD block styling */
+.wod-block-line {
+  background-color: hsl(210 100% 50% / 0.05);
+}
+
+.wod-block-fence {
+  color: hsl(210 70% 50%);
+  font-weight: 500;
+}
+
+.wod-block-content {
+  font-family: var(--font-mono, monospace);
+}
+
+/* Preview panel */
+.wod-preview-panel {
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  height: 100%;
+}
+
+.wod-preview-error {
+  color: var(--destructive);
+}
+
+.wod-preview-empty {
+  color: var(--muted-foreground);
+}
+
+.wod-statement-preview {
+  padding: 0.25rem 0;
+}
+
+/* Preview overlay (right 50%) */
+.wod-preview-overlay {
+  position: absolute;
+  right: 0;
+  width: 50%;
+  top: 0;
+  bottom: 0;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  padding: 1rem;
+  overflow: auto;
+}
+
+/* =============================================================================
+   Media Styles (Monaco Card Behavior Spec - Section 5)
+   ============================================================================= */
+
+/* Source line styling (visible but dimmed) */
+.media-source-line {
+  background: hsl(var(--muted) / 0.2);
+}
+
+.media-source-text {
+  opacity: 0.6;
+  font-size: 0.875rem;
+  font-family: var(--font-mono, monospace);
+}
+
+.media-source-line-editing {
+  background: transparent;
+}
+
+.media-source-text-editing {
+  opacity: 1;
+}
+
+/* Preview zone container */
+.media-preview-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted) / 0.1);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+  overflow: hidden;
+}
+
+.media-preview-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Image preview */
+.image-preview-zone {
+  min-height: 100px;
+}
+
+.media-preview-zone img {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.image-load-error {
+  background: hsl(var(--destructive) / 0.1);
+  color: var(--destructive);
+}
+
+.image-load-error::after {
+  content: "Failed to load image";
+  display: block;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* YouTube preview */
+.youtube-preview-zone {
+  aspect-ratio: 16/9;
+}
+
+.media-preview-zone iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Legacy image/youtube card styles */
+.image-card-split,
+.youtube-card-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+}
+
+.image-source,
+.youtube-source {
+  border-right: 1px solid var(--border);
+}
+
+.image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.youtube-preview {
+  background-color: black;
+}
+
+/* =============================================================================
+   Overlays
+   ============================================================================= */
 .row-overlay {
   position: absolute;
   background: var(--card);
@@ -75,157 +501,15 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* WOD Block specific */
-.wod-block-header {
-  background: linear-gradient(to right, hsl(210 100% 50% / 0.15), transparent);
-  border-color: hsl(210 100% 50% / 0.3);
+/* Full Card Zone */
+.full-card-zone {
+  width: 100%;
+  padding: 0 0.5rem;
 }
 
-.wod-block-footer {
-  border-color: hsl(210 100% 50% / 0.3);
-}
-
-.wod-block-line {
-  background-color: hsl(210 100% 50% / 0.05);
-}
-
-.wod-block-fence {
-  color: hsl(210 70% 50%);
-  font-weight: 500;
-}
-
-.wod-block-content {
-  font-family: var(--font-mono, monospace);
-}
-
-/* Frontmatter specific */
-.frontmatter-header {
-  background: linear-gradient(to right, hsl(40 100% 50% / 0.15), transparent);
-  border-color: hsl(40 100% 50% / 0.3);
-}
-
-.frontmatter-footer {
-  border-color: hsl(40 100% 50% / 0.3);
-}
-
-/* Frontmatter line styling */
-.frontmatter-line {
-  background-color: hsl(40 100% 50% / 0.05);
-}
-
-.frontmatter-delimiter {
-  color: hsl(40 70% 50%);
-  font-weight: 500;
-}
-
-.frontmatter-property {
-  color: var(--foreground);
-}
-
-/* Heading styles */
-.heading-level-1 {
-  font-size: 1.5rem;
-  line-height: 2rem;
-  font-weight: 700;
-}
-
-.heading-level-2 {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-  font-weight: 700;
-}
-
-.heading-level-3 {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  font-weight: 600;
-}
-
-.heading-level-4 {
-  font-size: 1rem;
-  line-height: 1.5rem;
-  font-weight: 600;
-}
-
-.heading-level-5 {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 600;
-}
-
-.heading-level-6 {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-}
-
-/* Hidden prefix styling */
-.hidden-prefix {
-  opacity: 0.3;
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-
-/* Blockquote styles */
-.blockquote-line {
-  background-color: hsl(var(--muted) / 0.3);
-}
-
-.blockquote-first {
-  border-top-left-radius: 0.25rem;
-  border-top-right-radius: 0.25rem;
-}
-
-.blockquote-last {
-  border-bottom-left-radius: 0.25rem;
-  border-bottom-right-radius: 0.25rem;
-}
-
-.blockquote-border-left,
-.blockquote-border-left-start {
-  border-left: 3px solid var(--primary);
-  padding-left: 0.75rem;
-}
-
-.blockquote-text {
-  color: var(--muted-foreground);
-  font-style: italic;
-}
-
-/* Image card */
-.image-card-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 100%;
-}
-
-.image-source {
-  border-right: 1px solid var(--border);
-}
-
-.image-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: hsl(var(--muted) / 0.2);
-}
-
-/* YouTube card */
-.youtube-card-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 100%;
-}
-
-.youtube-source {
-  border-right: 1px solid var(--border);
-}
-
-.youtube-preview {
-  background-color: black;
-}
-
-/* Transitions */
+/* =============================================================================
+   Transitions
+   ============================================================================= */
 .card-header,
 .card-footer,
 .row-overlay {
@@ -239,4 +523,17 @@
 
 .row-overlay:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth transitions for mode changes */
+.heading-text,
+.blockquote-text,
+.frontmatter-property,
+.wod-code-text,
+.media-source-text {
+  transition: opacity 0.15s ease, font-size 0.15s ease;
+}
+
+.hidden-prefix {
+  transition: opacity 0.15s ease, font-size 0.15s ease, width 0.15s ease;
 }

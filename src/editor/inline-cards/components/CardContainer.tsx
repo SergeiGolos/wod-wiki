@@ -25,9 +25,10 @@ import { WodBlockCard } from './WodBlockCard';
 interface CardContainerProps {
   card: InlineWidgetCard;
   callbacks: CardCallbacks;
+  monaco?: any;
 }
 
-export const CardContainer: React.FC<CardContainerProps> = ({ card, callbacks }) => {
+export const CardContainer: React.FC<CardContainerProps> = ({ card, callbacks, monaco }) => {
   const renderContent = () => {
     switch (card.cardType) {
       case 'heading':
@@ -46,7 +47,7 @@ export const CardContainer: React.FC<CardContainerProps> = ({ card, callbacks })
         return <FrontMatterCard card={card as InlineWidgetCard<FrontMatterContent>} callbacks={callbacks} />;
       
       case 'wod-block':
-        return <WodBlockCard card={card as InlineWidgetCard<WodBlockContent>} callbacks={callbacks} />;
+        return <WodBlockCard card={card as InlineWidgetCard<WodBlockContent>} callbacks={callbacks} monaco={monaco} />;
       
       default:
         return null;

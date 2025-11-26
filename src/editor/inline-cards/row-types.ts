@@ -20,7 +20,9 @@ export type RowOverrideType =
   | 'styled'          // Apply CSS styling to Monaco line (no replacement)
   | 'overlay'         // Add overlay next to line(s) - can span multiple rows
   | 'grouped-content' // Part of a spanning overlay (child rows)
-  | 'full-card';      // Complete card replacement (for media)
+  | 'full-card'       // Complete card replacement (for media)
+  | 'hidden-area'     // Hide specific line(s) using setHiddenAreas
+  | 'view-zone';      // Insert ViewZone DOM element (for headers/footers that replace hidden lines)
 
 /** Display mode for overlays */
 export type OverlayDisplayMode = 
@@ -145,6 +147,50 @@ export interface FullCardRowRule extends BaseRowRule {
   heightPx: number;
 }
 
+/** 
+ * Hidden area rule - hides specific line(s) using Monaco's setHiddenAreas 
+ * Used for delimiter lines (---, ```, # prefix) that should be folded
+ */
+export interface HiddenAreaRule extends BaseRowRule {
+  overrideType: 'hidden-area';
+  /** Optional: end line for multi-line hidden areas (defaults to lineNumber) */
+  endLineNumber?: number;
+}
+
+/**
+ * ViewZone rule - inserts a DOM element between lines
+ * Used to replace hidden delimiter lines with card headers/footers
+ */
+export interface ViewZoneRule extends BaseRowRule {
+  overrideType: 'view-zone';
+  /** Card type for styling */
+  cardType: CardType;
+  /** Zone position: 'header' (after line) or 'footer' (before line) */
+  zonePosition: 'header' | 'footer';
+  /** Height in pixels */
+  heightInPx: number;
+  /** Title for the zone (optional) */
+  title?: string;
+  /** Icon identifier (optional) */
+  icon?: string;
+  /** CSS class name */
+  className?: string;
+  /** Footer actions (only for footer zones) */
+  actions?: FooterAction[];
+  /** Custom render function (optional, for advanced use) */
+  renderContent?: (props: ViewZoneRenderProps) => ReactNode;
+}
+
+/** Props for ViewZone render function */
+export interface ViewZoneRenderProps {
+  cardType: CardType;
+  lineNumber: number;
+  title?: string;
+  icon?: string;
+  actions?: FooterAction[];
+  onAction?: (actionId: string) => void;
+}
+
 /** Props passed to card render function */
 export interface CardRenderProps {
   sourceRange: Range;
@@ -162,7 +208,9 @@ export type RowRule =
   | StyledRowRule 
   | OverlayRowRule 
   | GroupedContentRowRule 
-  | FullCardRowRule;
+  | FullCardRowRule
+  | HiddenAreaRule
+  | ViewZoneRule;
 
 // =============================================================================
 // Card Types

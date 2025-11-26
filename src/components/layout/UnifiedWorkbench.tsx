@@ -313,9 +313,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const monacoTheme = useMemo(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     if (theme === 'system') {
-      return mediaQuery.matches ? 'vs-dark' : 'vs';
+      return mediaQuery.matches ? 'wod-dark' : 'wod-light';
     }
-    return theme === 'dark' ? 'vs-dark' : 'vs';
+    return theme === 'dark' ? 'wod-dark' : 'wod-light';
   }, [theme]);
 
   // Block editor hooks

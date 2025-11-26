@@ -7,8 +7,9 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { editor, Range } from 'monaco-editor';
-import { InlineWidgetCard, CardCallbacks, HeadingContent, BlockquoteContent } from './types';
-import { CardContainer } from './components';
+import { InlineWidgetCard, CardCallbacks, HeadingContent, BlockquoteContent, RenderInstruction } from './types';
+import { CardContainer } from './components/CardContainer';
+import { CARD_TYPE_CONFIGS } from './config';
 
 export class CardRenderer {
   /**
@@ -17,10 +18,11 @@ export class CardRenderer {
   renderCard(
     root: Root, 
     card: InlineWidgetCard, 
-    callbacks: CardCallbacks
+    callbacks: CardCallbacks,
+    monaco?: any
   ): void {
     root.render(
-      React.createElement(CardContainer, { card, callbacks })
+      React.createElement(CardContainer, { card, callbacks, monaco })
     );
   }
 
@@ -29,6 +31,57 @@ export class CardRenderer {
    */
   createRoot(container: HTMLElement): Root {
     return createRoot(container);
+  }
+
+  /**
+   * Get instructions for how to render a card
+   */
+  getRenderInstructions(card: InlineWidgetCard): RenderInstruction {
+    const config = CARD_TYPE_CONFIGS[card.cardType];
+    const instructions: RenderInstruction = {
+      hiddenRanges: [],
+      viewZones: [],
+      decorations: []
+    };
+
+    // 1. Handle Edit Mode (usually just raw text, maybe some decorations)
+    if (card.displayMode === 'edit-only') {
+      instructions.decorations.push(...this.getEditModeDecorations(card));
+      return instructions;
+    }
+
+    // 2. Handle Preview/Side-by-Side Modes
+    
+    // A. Hidden Areas (Folding)
+    if (config.hideSourceInPreview) {
+      // For WOD blocks, we hide the content but NOT the fences if we want to be fancy,
+      // but the original logic hid the whole block.
+      // Let's stick to hiding the whole source range for now.
+      instructions.hiddenRanges.push(card.sourceRange);
+    }
+
+    // B. View Zones
+    if (config.usesViewZone) {
+      // Calculate height
+      let heightInPx = card.heights.cardPx;
+      
+      // Add padding for side-by-side mode
+      if (card.displayMode === 'side-by-side') {
+        heightInPx += 20; // Extra padding
+      }
+
+      instructions.viewZones.push({
+        id: card.id,
+        afterLineNumber: card.sourceRange.startLineNumber - 1,
+        heightInPx,
+        component: null // Component rendering is handled by the manager via renderCard
+      });
+    }
+
+    // C. Decorations (Inline styling)
+    instructions.decorations.push(...this.getPreviewModeDecorations(card));
+
+    return instructions;
   }
   
   /**

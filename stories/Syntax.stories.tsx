@@ -13,7 +13,15 @@ const meta: Meta<typeof UnifiedWorkbench> = {
     }
   },
   argTypes: {
-      initialContent: { control: 'text' }
+    initialContent: { control: 'text' },
+    theme: {
+      control: 'select',
+      options: ['wod-light', 'wod-dark'],
+      description: 'Editor theme',
+      table: { defaultValue: { summary: 'wod-light' } }
+    },
+    showToolbar: { control: 'boolean' },
+    readonly: { control: 'boolean' }
   }
 };
 

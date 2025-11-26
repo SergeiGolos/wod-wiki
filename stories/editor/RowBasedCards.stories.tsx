@@ -1,19 +1,77 @@
 /**
  * Row-Based Card System - Story
  * 
- * Demonstrates the WodWiki editor with the inline widget card system.
- * The MarkdownEditor component includes rich markdown rendering with:
- * - Inline widget cards for headings, blockquotes, and media
- * - WOD block split view with parsed workout display
- * - Heading section folding
- * - Theme support (light/dark)
+ * Demonstrates the Monaco Card Behavior Spec implementation.
+ * Uses the new RowBasedCardManager directly for testing the new card system.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { MarkdownEditor } from '../../src/markdown-editor/MarkdownEditor';
+import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
+import { editor as monacoEditor } from 'monaco-editor';
+import { RowBasedCardManager } from '../../src/editor/inline-cards/RowBasedCardManager';
+import '../../src/editor/inline-cards/row-cards.css';
 
-// Sample with proper WOD syntax demonstrating various card types
+// Sample demonstrating the Monaco Card Behavior Spec features
+const CARD_BEHAVIOR_DEMO = `---
+title: Monaco Card Behavior Demo
+date: 2024-01-15
+author: WOD Wiki Team
+---
+
+# Heading Card Demo
+
+Click on this heading to see the raw "# " prefix appear.
+When you click away, it shows the styled heading without the hash.
+
+## Preview vs Edit Mode
+
+> This is a blockquote. Notice the left border accent.
+> When you click inside, you'll see the "> " prefix.
+> When you click away, the prefix is hidden.
+
+### Multi-line Blockquote Card
+
+> First line of a multi-line quote
+> Second line continues the thought
+> Third line wraps it up nicely
+
+## WOD Block - 50/50 Split View
+
+The WOD block below shows source on the left and preview on the right.
+The fence lines (\`\`\`wod and \`\`\`) are hidden and replaced with a card header/footer.
+
+\`\`\`wod
+20:00 AMRAP
+  5 Pullups
+  10 Pushups
+  15 Squats
+\`\`\`
+
+## Another Workout
+
+\`\`\`wod
+3 Rounds
+  400m Run
+  21 Kettlebell Swings
+  12 Pullups
+\`\`\`
+
+# Frontmatter Card
+
+The YAML block at the top shows as a "Document Properties" card.
+The --- delimiters are hidden when not editing.
+Click inside the frontmatter area to see the raw --- markers.
+
+## Notes
+
+- Try clicking on different elements to see edit/preview modes
+- Notice how the card styling changes based on cursor position
+- The 50/50 split view keeps both source and preview visible
+`;
+
+// Simple content for basic testing
 const SIMPLE_CONTENT = `---
 title: My Workout Log
 date: 2024-01-15
@@ -116,42 +174,93 @@ Track your times and weights in your workout journal.
 
 interface RowBasedCardDemoProps {
   initialContent?: string;
-  theme?: 'wod-light' | 'wod-dark';
-  showToolbar?: boolean;
+  theme?: 'vs' | 'vs-dark';
   readonly?: boolean;
 }
 
+/**
+ * Demo component that directly uses RowBasedCardManager
+ * This bypasses MarkdownEditor to test the new card system in isolation
+ */
 const RowBasedCardDemo: React.FC<RowBasedCardDemoProps> = ({
   initialContent = SIMPLE_CONTENT,
-  theme = 'wod-light',
-  showToolbar = true,
+  theme = 'vs',
   readonly = false,
 }) => {
-  const handleContentChange = (content: string) => {
-    console.log('[RowBasedCards] Content changed, length:', content.length);
+  const cardManagerRef = useRef<RowBasedCardManager | null>(null);
+  const [cardCount, setCardCount] = useState(0);
+  const [ruleCount, setRuleCount] = useState(0);
+
+  const handleEditorDidMount = (
+    editor: monacoEditor.IStandaloneCodeEditor,
+    monaco: Monaco
+  ) => {
+    console.log('[RowBasedCardDemo] Editor mounted');
+    
+    // Initialize the RowBasedCardManager
+    cardManagerRef.current = new RowBasedCardManager(
+      editor,
+      (cardId, action, payload) => {
+        console.log('[RowBasedCardDemo] Card action:', cardId, action, payload);
+        if (action === 'start-workout') {
+          alert(`Starting workout from card: ${cardId}`);
+        }
+      }
+    );
+    
+    // Update stats
+    setTimeout(() => {
+      const cards = cardManagerRef.current?.getCards() || [];
+      setCardCount(cards.length);
+      setRuleCount(cards.reduce((sum, c) => sum + c.rules.length, 0));
+    }, 200);
+    
+    // Log parsed cards for debugging
+    setTimeout(() => {
+      const cards = cardManagerRef.current?.getCards() || [];
+      console.log('[RowBasedCardDemo] Parsed cards:', cards);
+      for (const card of cards) {
+        console.log(`  - ${card.cardType} @ line ${card.sourceRange.startLineNumber}:`, {
+          rules: card.rules.map(r => r.overrideType),
+          isEditing: card.isEditing,
+        });
+      }
+    }, 500);
   };
 
-  const handleBlocksChange = (blocks: any[]) => {
-    console.log('[RowBasedCards] Blocks changed:', blocks.length, 'WOD blocks detected');
-  };
-
-  const handleStartWorkout = (block: any) => {
-    console.log('[RowBasedCards] Start workout requested:', block);
-    alert(`Starting workout: ${block.content?.substring(0, 50)}...`);
-  };
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cardManagerRef.current?.dispose();
+    };
+  }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      <MarkdownEditor
-        initialContent={initialContent}
-        theme={theme}
-        showToolbar={showToolbar}
-        readonly={readonly}
-        onContentChange={handleContentChange}
-        onBlocksChange={handleBlocksChange}
-        onStartWorkout={handleStartWorkout}
-        height="100%"
-      />
+    <div className="h-screen flex flex-col">
+      {/* Stats bar */}
+      <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 text-sm border-b flex gap-4">
+        <span>Cards: <strong>{cardCount}</strong></span>
+        <span>Rules: <strong>{ruleCount}</strong></span>
+        <span className="text-gray-500">Click on headings, blockquotes, or WOD blocks to see edit mode</span>
+      </div>
+      
+      <div className="flex-1">
+        <Editor
+          defaultLanguage="markdown"
+          defaultValue={initialContent}
+          theme={theme}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: 'on',
+            wordWrap: 'on',
+            fontSize: 14,
+            readOnly: readonly,
+            scrollBeyondLastLine: false,
+            glyphMargin: true,
+          }}
+          onMount={handleEditorDidMount}
+        />
+      </div>
     </div>
   );
 };
@@ -164,22 +273,29 @@ const meta: Meta<typeof RowBasedCardDemo> = {
     docs: {
       description: {
         component: `
-The Row-Based Card System demonstrates the WodWiki editor with inline widget cards.
+The Row-Based Card System implements the Monaco Card Behavior Spec.
+This story directly uses RowBasedCardManager for testing the new card architecture.
 
-## Features
+## Card Behavior Matrix
 
-- **Inline Widget Cards**: Headings, blockquotes, frontmatter, and media are rendered as interactive cards
-- **WOD Block Split View**: Workout blocks show parsed exercises with a "Start Workout" button
-- **Heading Section Folding**: Click headings or use the "Index View" button to collapse sections
-- **Theme Support**: Light and dark themes available
-- **Live Parsing**: Content is parsed in real-time as you type
+| Card Type | Delimiter Lines | Content Lines | Overlay |
+|-----------|----------------|---------------|---------|
+| **Heading** | \`#\` styled small when not editing | Styled text | None |
+| **Blockquote** | \`>\` styled small when not editing | Styled + left border | None |
+| **Front Matter** | \`---\` styled minimal + ViewZone header/footer | Styled properties | None |
+| **WOD Block** | Fences styled minimal + ViewZone header/footer | 50% width + styled | 50% right preview |
 
-## Card Types
+## Preview vs Edit Mode
 
-1. **Frontmatter Cards**: YAML metadata at the top of the document
-2. **Heading Cards**: Section headers with fold/unfold support
-3. **Blockquote Cards**: Styled quote blocks
-4. **WOD Block Cards**: Workout definitions with parsed preview
+- **Preview Mode**: When cursor is OUTSIDE the card, decorations are applied
+- **Edit Mode**: When cursor is INSIDE the card, raw markdown is shown
+
+## Key Features
+
+1. **Heading Cards**: Click to see raw \`#\` prefix, click away for styled heading
+2. **Blockquote Cards**: Left border accent, multi-line support with card wrapper
+3. **Frontmatter Cards**: \`---\` delimiters styled minimal, "Document Properties" header shown
+4. **WOD Block Cards**: 50/50 split with source on left, parsed preview on right
         `
       }
     }
@@ -187,12 +303,8 @@ The Row-Based Card System demonstrates the WodWiki editor with inline widget car
   argTypes: {
     theme: {
       control: 'select',
-      options: ['wod-light', 'wod-dark'],
+      options: ['vs', 'vs-dark'],
       description: 'Editor theme',
-    },
-    showToolbar: {
-      control: 'boolean',
-      description: 'Show the toolbar with Index View toggle',
     },
     readonly: {
       control: 'boolean',
@@ -204,11 +316,31 @@ The Row-Based Card System demonstrates the WodWiki editor with inline widget car
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const CardBehaviorDemo: Story = {
+  args: {
+    initialContent: CARD_BEHAVIOR_DEMO,
+    theme: 'vs',
+    readonly: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+Demonstrates the Monaco Card Behavior Spec:
+- Click on headings to see edit mode (raw \`#\` visible)
+- Click on blockquotes to see edit mode (raw \`>\` visible)
+- Click inside frontmatter to see the \`---\` delimiters  
+- WOD blocks always show 50/50 split with preview
+        `
+      }
+    }
+  }
+};
+
 export const Default: Story = {
   args: {
     initialContent: SIMPLE_CONTENT,
-    theme: 'wod-light',
-    showToolbar: true,
+    theme: 'vs',
     readonly: false,
   },
 };
@@ -216,8 +348,7 @@ export const Default: Story = {
 export const DarkTheme: Story = {
   args: {
     initialContent: SIMPLE_CONTENT,
-    theme: 'wod-dark',
-    showToolbar: true,
+    theme: 'vs-dark',
     readonly: false,
   },
 };
@@ -225,8 +356,7 @@ export const DarkTheme: Story = {
 export const ComplexWorkout: Story = {
   args: {
     initialContent: COMPLEX_CONTENT,
-    theme: 'wod-light',
-    showToolbar: true,
+    theme: 'vs',
     readonly: false,
   },
   parameters: {
@@ -241,30 +371,13 @@ export const ComplexWorkout: Story = {
 export const ReadOnly: Story = {
   args: {
     initialContent: SIMPLE_CONTENT,
-    theme: 'wod-light',
-    showToolbar: true,
+    theme: 'vs',
     readonly: true,
   },
   parameters: {
     docs: {
       description: {
         story: 'Read-only mode for viewing workouts without editing capability.'
-      }
-    }
-  }
-};
-
-export const NoToolbar: Story = {
-  args: {
-    initialContent: SIMPLE_CONTENT,
-    theme: 'wod-light',
-    showToolbar: false,
-    readonly: false,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Editor without the toolbar, for a cleaner embedded experience.'
       }
     }
   }

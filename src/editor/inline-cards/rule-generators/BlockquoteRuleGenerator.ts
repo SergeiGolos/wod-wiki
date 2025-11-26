@@ -1,20 +1,21 @@
 /**
  * BlockquoteRuleGenerator - Generates rules for blockquote styling
  * 
- * Blockquotes get a styled card wrapper with left border accent.
- * Multi-line blockquotes use a spanning overlay.
+ * Behavior per Monaco Card Behavior Spec:
+ * - Preview mode (cursor outside): Card with left border, ">" hidden, styled text
+ * - Edit mode (cursor inside): Raw "> text" visible with subtle border styling
+ * 
+ * Multi-line blockquotes use header/footer decorations for card effect.
  */
 
 import { Range } from 'monaco-editor';
-import React from 'react';
 import { 
   CardRuleGenerator, 
   BlockquoteContent, 
   RowRule, 
   StyledRowRule,
-  OverlayRowRule,
-  GroupedContentRowRule,
-  OverlayRenderProps,
+  HeaderRowRule,
+  FooterRowRule,
 } from '../row-types';
 
 export class BlockquoteRuleGenerator implements CardRuleGenerator<BlockquoteContent> {
@@ -29,65 +30,86 @@ export class BlockquoteRuleGenerator implements CardRuleGenerator<BlockquoteCont
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
     const lineCount = endLine - startLine + 1;
+    const prefixLength = content.prefixLength || 2; // "> " default
 
+    if (isEditing) {
+      // Edit mode: Show raw text with subtle styling
+      for (let line = startLine; line <= endLine; line++) {
+        const isFirst = line === startLine;
+        const isLast = line === endLine;
+        
+        const styledRule: StyledRowRule = {
+          lineNumber: line,
+          overrideType: 'styled',
+          className: `blockquote-line-editing ${isFirst ? 'blockquote-first-editing' : ''} ${isLast ? 'blockquote-last-editing' : ''}`,
+          decoration: {
+            isWholeLine: true,
+            hidePrefix: false, // Show "> " in edit mode
+            beforeContentClassName: 'blockquote-border-left-subtle',
+          },
+        };
+        rules.push(styledRule);
+      }
+      return rules;
+    }
+
+    // Preview mode: Hide "> ", apply card styling
     if (lineCount === 1) {
-      // Single line blockquote - just style it
+      // Single line blockquote - just style with left border
       const styledRule: StyledRowRule = {
         lineNumber: startLine,
         overrideType: 'styled',
-        className: 'blockquote-line',
+        className: 'blockquote-line blockquote-single',
         decoration: {
           isWholeLine: true,
-          inlineClassName: 'blockquote-text italic text-muted-foreground',
-          beforeContentClassName: 'blockquote-border-left',
+          hidePrefix: true,
+          prefixLength: prefixLength,
+          inlineClassName: 'blockquote-text',
+          beforeContentClassName: 'blockquote-left-border',
         },
       };
       rules.push(styledRule);
     } else {
-      // Multi-line blockquote - use spanning overlay for card effect
-      const overlayId = `blockquote-${startLine}`;
+      // Multi-line blockquote - use card wrapper
       
-      // First line gets the overlay rule
-      const overlayRule: OverlayRowRule = {
+      // Header decoration (top border/rounding)
+      const headerRule: HeaderRowRule = {
         lineNumber: startLine,
-        overrideType: 'overlay',
-        position: 'right',
-        overlayId,
-        spanLines: { startLine, endLine },
-        heightMode: 'match-lines',
-        overlayWidth: '0px', // No actual overlay content, just styling
-        renderOverlay: () => null, // Blockquotes don't need overlay content
+        overrideType: 'header',
+        cardType: 'blockquote',
+        className: 'blockquote-card-header',
       };
-      rules.push(overlayRule);
+      rules.push(headerRule);
 
-      // Style each line
+      // Style each content line
       for (let line = startLine; line <= endLine; line++) {
+        const isFirst = line === startLine;
+        const isLast = line === endLine;
+        
         const styledRule: StyledRowRule = {
           lineNumber: line,
           overrideType: 'styled',
-          className: line === startLine 
-            ? 'blockquote-line blockquote-first' 
-            : line === endLine 
-              ? 'blockquote-line blockquote-last'
-              : 'blockquote-line',
+          className: `blockquote-card-line ${isFirst ? 'blockquote-first' : ''} ${isLast ? 'blockquote-last' : ''}`,
           decoration: {
             isWholeLine: true,
-            inlineClassName: 'blockquote-text italic text-muted-foreground',
-            beforeContentClassName: line === startLine ? 'blockquote-border-left-start' : 'blockquote-border-left',
+            hidePrefix: true,
+            prefixLength: prefixLength,
+            inlineClassName: 'blockquote-text',
+            beforeContentClassName: 'blockquote-left-border',
           },
         };
         rules.push(styledRule);
-
-        // Mark subsequent lines as grouped content
-        if (line > startLine) {
-          const groupedRule: GroupedContentRowRule = {
-            lineNumber: line,
-            overrideType: 'grouped-content',
-            parentOverlayId: overlayId,
-          };
-          rules.push(groupedRule);
-        }
       }
+
+      // Footer decoration (bottom border/rounding)
+      const footerRule: FooterRowRule = {
+        lineNumber: endLine,
+        overrideType: 'footer',
+        cardType: 'blockquote',
+        className: 'blockquote-card-footer',
+        actions: [],
+      };
+      rules.push(footerRule);
     }
 
     return rules;

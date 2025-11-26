@@ -2,9 +2,10 @@
  * RowRuleRenderer - Applies row rules to Monaco editor
  * 
  * This renderer takes row rules from cards and applies them to Monaco using:
+ * - Hidden Areas for folding delimiter lines (---, ```, etc.)
  * - View zones for headers/footers/full-cards
  * - Decorations for styled rows
- * - Overlay widgets for inline overlays
+ * - Overlay widgets for inline overlays (50/50 split previews)
  */
 
 import { editor, Range } from 'monaco-editor';
@@ -18,6 +19,8 @@ import {
   OverlayRowRule,
   GroupedContentRowRule,
   FullCardRowRule,
+  HiddenAreaRule,
+  ViewZoneRule,
   InlineCard,
   OverlayRenderProps,
   CardRenderProps,
@@ -45,6 +48,7 @@ export class RowRuleRenderer {
   private viewZones: Map<string, ViewZoneInfo> = new Map();
   private overlays: Map<string, OverlayInfo> = new Map();
   private decorations: string[] = [];
+  private hiddenAreas: Range[] = [];
   private onAction?: (cardId: string, action: string, payload?: unknown) => void;
   
   constructor(
@@ -67,11 +71,16 @@ export class RowRuleRenderer {
       }
     }
 
+    // Debug logging
+    console.log('[RowRuleRenderer] Rendering', cards.length, 'cards with', allRules.length, 'total rules');
+
     // Group rules by type for efficient processing
     const headerFooterRules: Array<{ rule: HeaderRowRule | FooterRowRule; card: InlineCard }> = [];
     const styledRules: Array<{ rule: StyledRowRule; card: InlineCard }> = [];
     const overlayRules: Array<{ rule: OverlayRowRule; card: InlineCard }> = [];
     const fullCardRules: Array<{ rule: FullCardRowRule; card: InlineCard }> = [];
+    const hiddenAreaRules: Array<{ rule: HiddenAreaRule; card: InlineCard }> = [];
+    const viewZoneRules: Array<{ rule: ViewZoneRule; card: InlineCard }> = [];
 
     for (const { rule, card } of allRules) {
       switch (rule.overrideType) {
@@ -88,17 +97,176 @@ export class RowRuleRenderer {
         case 'full-card':
           fullCardRules.push({ rule: rule as FullCardRowRule, card });
           break;
+        case 'hidden-area':
+          hiddenAreaRules.push({ rule: rule as HiddenAreaRule, card });
+          break;
+        case 'view-zone':
+          viewZoneRules.push({ rule: rule as ViewZoneRule, card });
+          break;
         case 'grouped-content':
           // Grouped content doesn't create UI directly - it's handled by parent overlay
           break;
       }
     }
 
-    // Apply each type
+    // Debug logging for grouped rules
+    console.log('[RowRuleRenderer] Rule breakdown:', {
+      hiddenAreas: hiddenAreaRules.length,
+      viewZones: viewZoneRules.length,
+      headerFooter: headerFooterRules.length,
+      styled: styledRules.length,
+      overlays: overlayRules.length,
+      fullCards: fullCardRules.length,
+    });
+
+    // Apply each type in correct order:
+    // 1. Hidden areas first (affects line numbers)
+    this.applyHiddenAreaRules(hiddenAreaRules);
+    // 2. View zones for headers/footers (replace hidden lines)
+    this.applyViewZoneRules(viewZoneRules);
+    // 3. Legacy header/footer rules
     this.applyHeaderFooterRules(headerFooterRules);
+    // 4. Decorations for styling
     this.applyStyledRules(styledRules);
+    // 5. Overlays for side-by-side views
     this.applyOverlayRules(overlayRules);
+    // 6. Full card replacements
     this.applyFullCardRules(fullCardRules);
+  }
+
+  /**
+   * Apply hidden area rules using Monaco's setHiddenAreas
+   */
+  private applyHiddenAreaRules(
+    rules: Array<{ rule: HiddenAreaRule; card: InlineCard }>
+  ): void {
+    const newHiddenAreas: Range[] = [];
+
+    for (const { rule } of rules) {
+      const startLine = rule.lineNumber;
+      const endLine = rule.endLineNumber || rule.lineNumber;
+      
+      // Create range for hidden area
+      newHiddenAreas.push(new Range(startLine, 1, endLine, 1));
+    }
+
+    // Only update if changed
+    const hasChanged = this.hiddenAreasChanged(newHiddenAreas);
+    if (hasChanged) {
+      this.hiddenAreas = newHiddenAreas;
+      (this.editor as any).setHiddenAreas(newHiddenAreas);
+    }
+  }
+
+  /**
+   * Check if hidden areas have changed
+   */
+  private hiddenAreasChanged(newAreas: Range[]): boolean {
+    if (newAreas.length !== this.hiddenAreas.length) return true;
+    
+    for (let i = 0; i < newAreas.length; i++) {
+      const oldRange = this.hiddenAreas[i];
+      const newRange = newAreas[i];
+      if (!oldRange.equalsRange(newRange)) return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Apply view zone rules for custom header/footer content
+   */
+  private applyViewZoneRules(
+    rules: Array<{ rule: ViewZoneRule; card: InlineCard }>
+  ): void {
+    const currentZoneKeys = new Set<string>();
+
+    console.log('[RowRuleRenderer] Applying', rules.length, 'view zone rules');
+
+    this.editor.changeViewZones((accessor) => {
+      for (const { rule, card } of rules) {
+        const key = `viewzone-${rule.zonePosition}-${rule.lineNumber}`;
+        currentZoneKeys.add(key);
+        
+        const existing = this.viewZones.get(key);
+        
+        if (!existing) {
+          // Create new view zone
+          const domNode = document.createElement('div');
+          domNode.className = `row-rule-zone ${rule.zonePosition}-zone ${rule.className || ''} card-type-${rule.cardType}`;
+          
+          const root = ReactDOM.createRoot(domNode);
+          
+          // Render header or footer component, or custom content
+          if (rule.renderContent) {
+            root.render(rule.renderContent({
+              cardType: rule.cardType,
+              lineNumber: rule.lineNumber,
+              title: rule.title,
+              icon: rule.icon,
+              actions: rule.actions,
+              onAction: (actionId) => this.onAction?.(card.id, actionId),
+            }));
+          } else if (rule.zonePosition === 'header') {
+            root.render(
+              React.createElement(CardHeader, {
+                cardType: rule.cardType,
+                title: rule.title,
+                icon: rule.icon,
+              })
+            );
+          } else {
+            root.render(
+              React.createElement(CardFooter, {
+                cardType: rule.cardType,
+                actions: rule.actions || [],
+                onAction: (action) => {
+                  this.onAction?.(card.id, action);
+                },
+              })
+            );
+          }
+
+          // Position: header appears after previous line, footer appears after this line
+          // For line 1, afterLineNumber would be 0 which Monaco handles correctly
+          const afterLineNumber = rule.zonePosition === 'header' 
+            ? Math.max(0, rule.lineNumber - 1) 
+            : rule.lineNumber;
+
+          console.log('[RowRuleRenderer] Creating view zone:', {
+            key,
+            position: rule.zonePosition,
+            afterLineNumber,
+            heightInPx: rule.heightInPx,
+            cardType: rule.cardType,
+          });
+
+          const zoneId = accessor.addZone({
+            afterLineNumber,
+            heightInPx: rule.heightInPx,
+            domNode,
+            suppressMouseDown: false,
+          });
+
+          this.viewZones.set(key, {
+            zoneId,
+            root,
+            domNode,
+            lineNumber: rule.lineNumber,
+            ruleType: `view-zone-${rule.zonePosition}`,
+          });
+        }
+      }
+
+      // Remove old view zones
+      for (const [key, zone] of this.viewZones) {
+        if (!currentZoneKeys.has(key) && key.startsWith('viewzone-')) {
+          accessor.removeZone(zone.zoneId);
+          zone.root.unmount();
+          this.viewZones.delete(key);
+        }
+      }
+    });
   }
 
   /**
@@ -415,6 +583,10 @@ export class RowRuleRenderer {
    * Clear all rendered elements
    */
   clear(): void {
+    // Clear hidden areas first
+    this.hiddenAreas = [];
+    (this.editor as any).setHiddenAreas([]);
+
     // Remove view zones
     this.editor.changeViewZones((accessor) => {
       for (const zone of this.viewZones.values()) {
