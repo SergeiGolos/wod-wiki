@@ -246,6 +246,10 @@ function getFragmentIcon(type: string): string {
 /**
  * WOD Preview Panel Component
  * Displays parsed workout statements with colored fragments and run button
+ * 
+ * Features:
+ * - Collapsible on mobile to show full code
+ * - Code and Run buttons in collapsed state
  */
 interface WodPreviewPanelProps {
   statements: WodBlockContent['statements'];
@@ -255,6 +259,23 @@ interface WodPreviewPanelProps {
   onStartWorkout: () => void;
 }
 
+/**
+ * Hook to detect mobile viewport
+ */
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = React.useState(() => 
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+};
+
 const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   statements,
   parseState,
@@ -262,6 +283,57 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   isEditing,
   onStartWorkout,
 }) => {
+  const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+  // Toggle collapse handler
+  const handleToggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCollapsed(!isCollapsed);
+  };
+
+  // Collapsed state - show compact bar with code icon to expand and run button
+  if (isCollapsed && isMobile) {
+    return React.createElement('div', {
+      className: 'wod-preview-panel wod-preview-collapsed flex flex-col h-full bg-card/80 border-l border-primary/20',
+    }, [
+      // Compact header bar with expand and run buttons
+      React.createElement('div', {
+        key: 'collapsed-header',
+        className: 'flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-border',
+      }, [
+        // Left: Code button to expand preview
+        React.createElement('button', {
+          key: 'code-button',
+          onMouseDown: handleToggleCollapse,
+          className: 'flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-md text-sm font-medium transition-colors cursor-pointer',
+          title: 'Show workout preview',
+        }, [
+          React.createElement('span', { key: 'icon' }, '👁️'),
+          React.createElement('span', { key: 'label' }, 'Preview'),
+        ]),
+        // Right: Run button
+        React.createElement('button', {
+          key: 'run-button',
+          onMouseDown: (e: React.MouseEvent) => {
+            e.stopPropagation();
+            console.log('[WodPreviewPanel] Run button clicked (collapsed)');
+            onStartWorkout();
+          },
+          className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
+        }, [
+          React.createElement('span', { key: 'play-icon' }, '▶'),
+          React.createElement('span', { key: 'label' }, 'Run'),
+        ]),
+      ]),
+      // Spacer to indicate collapsed state
+      React.createElement('div', {
+        key: 'collapsed-body',
+        className: 'flex-1 flex items-center justify-center text-muted-foreground text-sm',
+      }, `${statements?.length || 0} steps`),
+    ]);
+  }
+
   // Error state
   if (parseState === 'error') {
     return React.createElement('div', {
@@ -304,7 +376,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   return React.createElement('div', {
     className: 'wod-preview-panel flex flex-col h-full bg-card/80 border-l border-primary/20',
   }, [
-    // Header with Run button
+    // Header with collapse button (mobile) and Run button
     React.createElement('div', {
       key: 'header',
       className: 'flex items-center justify-between px-4 py-2 border-b border-border bg-primary/5',
@@ -320,18 +392,34 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
           className: 'text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full' 
         }, `${statements.length} step${statements.length !== 1 ? 's' : ''}`),
       ]),
-      // Run Button
-      React.createElement('button', {
-        key: 'run-button',
-        onMouseDown: (e: React.MouseEvent) => {
-          e.stopPropagation(); // Prevent Monaco from stealing focus/selection
-          console.log('[WodPreviewPanel] Run button clicked');
-          onStartWorkout();
-        },
-        className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
+      // Button group: Collapse button (mobile only) + Run Button
+      React.createElement('div', {
+        key: 'button-group',
+        className: 'flex items-center gap-2',
       }, [
-        React.createElement('span', { key: 'play-icon' }, '▶'),
-        React.createElement('span', { key: 'label' }, 'Run'),
+        // Collapse button - mobile only (hide preview to see code)
+        isMobile && React.createElement('button', {
+          key: 'collapse-button',
+          onMouseDown: handleToggleCollapse,
+          className: 'flex items-center gap-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md text-xs font-medium transition-colors cursor-pointer',
+          title: 'Hide preview to see code',
+        }, [
+          React.createElement('span', { key: 'icon' }, '📝'),
+          React.createElement('span', { key: 'label' }, 'Code'),
+        ]),
+        // Run Button
+        React.createElement('button', {
+          key: 'run-button',
+          onMouseDown: (e: React.MouseEvent) => {
+            e.stopPropagation();
+            console.log('[WodPreviewPanel] Run button clicked');
+            onStartWorkout();
+          },
+          className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
+        }, [
+          React.createElement('span', { key: 'play-icon' }, '▶'),
+          React.createElement('span', { key: 'label' }, 'Run'),
+        ]),
       ]),
     ]),
     
