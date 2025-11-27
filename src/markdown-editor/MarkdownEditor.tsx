@@ -377,7 +377,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   const defaultOptions: monacoEditor.IStandaloneEditorConstructionOptions = {
     readOnly: readonly,
     minimap: { enabled: false },
-    lineNumbers: 'on',
+    lineNumbers: 'off',
     wordWrap: 'on',
     fontSize: 14,
     lineHeight: 22,
@@ -386,10 +386,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     automaticLayout: true,
     inlayHints: { enabled: 'on' },
     // Enable folding for heading sections and WOD blocks
-    folding: true,
-    foldingStrategy: 'auto',
-    showFoldingControls: 'always',
-    foldingHighlight: true,
+    folding: false,
     ...editorOptions
   };
 
