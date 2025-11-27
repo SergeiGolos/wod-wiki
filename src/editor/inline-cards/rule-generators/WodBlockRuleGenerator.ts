@@ -260,7 +260,7 @@ interface WodPreviewPanelProps {
 }
 
 /**
- * Hook to detect mobile viewport
+ * Hook to detect mobile viewport with debounced resize handling
  */
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = React.useState(() => 
@@ -268,9 +268,18 @@ const useIsMobile = () => {
   );
   
   React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const checkMobile = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 100); // Debounce resize events
+    };
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      clearTimeout(timeoutId);
+    };
   }, []);
   
   return isMobile;
@@ -305,7 +314,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         // Left: Code button to expand preview
         React.createElement('button', {
           key: 'code-button',
-          onMouseDown: handleToggleCollapse,
+          onClick: handleToggleCollapse,
           className: 'flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-md text-sm font-medium transition-colors cursor-pointer',
           title: 'Show workout preview',
         }, [
@@ -315,7 +324,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         // Right: Run button
         React.createElement('button', {
           key: 'run-button',
-          onMouseDown: (e: React.MouseEvent) => {
+          onClick: (e: React.MouseEvent) => {
             e.stopPropagation();
             console.log('[WodPreviewPanel] Run button clicked (collapsed)');
             onStartWorkout();
@@ -400,7 +409,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         // Collapse button - mobile only (hide preview to see code)
         isMobile && React.createElement('button', {
           key: 'collapse-button',
-          onMouseDown: handleToggleCollapse,
+          onClick: handleToggleCollapse,
           className: 'flex items-center gap-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md text-xs font-medium transition-colors cursor-pointer',
           title: 'Hide preview to see code',
         }, [
@@ -410,7 +419,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         // Run Button
         React.createElement('button', {
           key: 'run-button',
-          onMouseDown: (e: React.MouseEvent) => {
+          onClick: (e: React.MouseEvent) => {
             e.stopPropagation();
             console.log('[WodPreviewPanel] Run button clicked');
             onStartWorkout();
