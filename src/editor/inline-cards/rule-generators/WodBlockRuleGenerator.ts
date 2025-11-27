@@ -53,10 +53,10 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     // These values should match the actual rendered sizes of WodPreviewPanel
     const lineHeight = 22; // Monaco line height
     const headerZoneHeight = 40; // ViewZone header (increased for visual balance)
-    const previewHeaderHeight = 52; // Header with Run button
-    const previewFooterHeight = 40; // Footer with hints
-    const statementItemHeight = 40; // Each statement row (reduced for tighter spacing)
-    const bodyPadding = 16; // Reduced padding
+    const previewHeaderHeight = 48; // Header with Run button (py-2 = 8px*2 + content ~32px)
+    const previewFooterHeight = 36; // Footer with hints (py-2 = 8px*2 + text ~20px)
+    const statementItemHeight = 48; // Each statement row (p-2 + border + content + space-y-2 gap)
+    const bodyPadding = 24; // p-3 = 12px * 2
     const statementCount = statements?.length || 0;
     
     // Calculate total height needed for preview panel content
@@ -338,7 +338,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     // Statements list with fragments
     React.createElement('div', {
       key: 'body',
-      className: 'flex-1 overflow-auto p-3 space-y-2',
+      className: 'flex-1 overflow-hidden p-3 space-y-2',
     }, statements.map((statement, index) => 
       React.createElement('div', {
         key: index,

@@ -28,14 +28,23 @@ const HEADING_STYLES: Record<number, string> = {
   6: 'heading-level-6',
 };
 
-/** Padding heights (in px) after each heading level */
+/** 
+ * Padding heights (in px) after each heading level.
+ * Proportional to font size increase to maintain visual balance.
+ * H1: 1.75rem (175% of base) → 18px padding
+ * H2: 1.5rem (150% of base) → 14px padding
+ * H3: 1.25rem (125% of base) → 10px padding
+ * H4: 1.125rem (112% of base) → 8px padding
+ * H5: 1rem (100% base) → 6px padding
+ * H6: 0.875rem (smaller) → 4px padding
+ */
 const HEADING_PADDING: Record<number, number> = {
-  1: 12, // H1 gets most padding
-  2: 10,
-  3: 8,
-  4: 6,
-  5: 4,
-  6: 4,
+  1: 18, // H1 gets most padding - proportional to 1.75rem text
+  2: 14, // H2 padding - proportional to 1.5rem text
+  3: 10, // H3 padding - proportional to 1.25rem text
+  4: 8,  // H4 padding - proportional to 1.125rem text
+  5: 6,  // H5 padding - base size
+  6: 4,  // H6 padding - smaller than base
 };
 
 export class HeadingRuleGenerator implements CardRuleGenerator<HeadingContent> {

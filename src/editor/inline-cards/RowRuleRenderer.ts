@@ -539,9 +539,12 @@ export class RowRuleRenderer {
     
     if (rule.position === 'right') {
       // Position on the right 50% of the editor, accounting for scrollbar and minimap
+      // Use calc() to properly compute width minus the scrollbar area
       const rightOffset = layout.verticalScrollbarWidth + layout.minimap.minimapWidth;
       domNode.style.left = '50%';
-      domNode.style.right = `${rightOffset}px`;
+      domNode.style.right = 'auto';
+      // Adjust width to account for the scrollbar/minimap, subtract half their width from the 50%
+      domNode.style.width = `calc(50% - ${rightOffset}px)`;
     } else {
       domNode.style.left = `${layout.contentLeft}px`;
       domNode.style.right = 'auto';

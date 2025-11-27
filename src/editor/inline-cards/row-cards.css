@@ -134,7 +134,7 @@
 
 /* Heading padding ViewZone - provides visual spacing below headings */
 .heading-padding {
-  background: transparent;
+  background: hsl(var(--background));
   pointer-events: none;
 }
 
@@ -301,20 +301,22 @@
    WOD Block Styles (Monaco Card Behavior Spec - Section 4)
    ============================================================================= */
 
-/* Card header */
+/* Card header - constrained to left half (code side) */
 .wod-block-card-header {
   background: linear-gradient(to right, hsl(210 100% 50% / 0.15), transparent);
   border: 1px solid hsl(210 100% 50% / 0.3);
   border-bottom: none;
   border-radius: 0.5rem 0.5rem 0 0;
+  max-width: 50%;
 }
 
-/* Card footer */
+/* Card footer - constrained to left half (code side) */
 .wod-block-card-footer {
   background: hsl(210 100% 50% / 0.05);
   border: 1px solid hsl(210 100% 50% / 0.3);
   border-top: none;
   border-radius: 0 0 0.5rem 0.5rem;
+  max-width: 50%;
 }
 
 /* Content lines - 50% width for split view with left padding */
