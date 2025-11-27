@@ -253,8 +253,11 @@ export class WodBlockOverlayManager {
     const editorWidth = layoutInfo.width;
     const overlayWidth = 300;
     
-    // Position on the right side of the editor
-    const rightPosition = editorWidth - overlayWidth - 20; // 20px margin
+    // Account for scrollbar and minimap width
+    const rightEdgeOffset = layoutInfo.verticalScrollbarWidth + layoutInfo.minimap.minimapWidth;
+    
+    // Position on the right side of the editor, avoiding scrollbar overlap
+    const rightPosition = editorWidth - overlayWidth - rightEdgeOffset - 20; // 20px margin
 
     // Get the top position based on the block's start line
     const startLine = block.startLine || 1;

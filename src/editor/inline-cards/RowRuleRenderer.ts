@@ -538,9 +538,10 @@ export class RowRuleRenderer {
     }
     
     if (rule.position === 'right') {
-      // Position on the right 50% of the editor
+      // Position on the right 50% of the editor, accounting for scrollbar and minimap
+      const rightOffset = layout.verticalScrollbarWidth + layout.minimap.minimapWidth;
       domNode.style.left = '50%';
-      domNode.style.right = '0';
+      domNode.style.right = `${rightOffset}px`;
     } else {
       domNode.style.left = `${layout.contentLeft}px`;
       domNode.style.right = 'auto';
