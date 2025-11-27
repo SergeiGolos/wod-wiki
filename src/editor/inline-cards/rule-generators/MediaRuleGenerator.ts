@@ -20,6 +20,7 @@ import {
   StyledRowRule,
   ViewZoneRule,
   CardType,
+  RuleGenerationContext,
 } from '../row-types';
 
 // Combined content type for media
@@ -31,8 +32,9 @@ export class MediaRuleGenerator implements CardRuleGenerator<MediaContent> {
   generateRules(
     content: MediaContent,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[] {
+    const { isEditing } = context;
     const rules: RowRule[] = [];
     const lineNumber = sourceRange.startLineNumber;
     

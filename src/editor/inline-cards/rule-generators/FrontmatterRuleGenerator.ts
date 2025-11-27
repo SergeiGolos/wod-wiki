@@ -24,6 +24,7 @@ import {
   StyledRowRule,
   HiddenAreaRule,
   ViewZoneRule,
+  RuleGenerationContext,
 } from '../row-types';
 
 export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterContent> {
@@ -32,8 +33,9 @@ export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterCo
   generateRules(
     content: FrontMatterContent,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[] {
+    const { isEditing } = context;
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;

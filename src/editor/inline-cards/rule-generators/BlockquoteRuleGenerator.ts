@@ -16,6 +16,7 @@ import {
   StyledRowRule,
   HeaderRowRule,
   FooterRowRule,
+  RuleGenerationContext,
 } from '../row-types';
 
 export class BlockquoteRuleGenerator implements CardRuleGenerator<BlockquoteContent> {
@@ -24,8 +25,9 @@ export class BlockquoteRuleGenerator implements CardRuleGenerator<BlockquoteCont
   generateRules(
     content: BlockquoteContent,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[] {
+    const { isEditing } = context;
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;

@@ -16,6 +16,7 @@ import {
   RowRule, 
   StyledRowRule,
   ViewZoneRule, 
+  RuleGenerationContext,
 } from '../row-types';
 
 /** CSS classes for each heading level */
@@ -53,8 +54,9 @@ export class HeadingRuleGenerator implements CardRuleGenerator<HeadingContent> {
   generateRules(
     content: HeadingContent,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[] {
+    const { isEditing } = context;
     const { level, prefixLength } = content;
     const rules: RowRule[] = [];
     
