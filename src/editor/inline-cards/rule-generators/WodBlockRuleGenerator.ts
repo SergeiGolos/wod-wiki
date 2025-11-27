@@ -11,7 +11,7 @@
  */
 
 import { Range } from 'monaco-editor';
-import React from 'react';
+import React, { useEffect, useRef, useLayoutEffect } from 'react';
 import { 
   CardRuleGenerator, 
   WodBlockContent, 
@@ -20,7 +20,9 @@ import {
   ViewZoneRule,
   OverlayRowRule,
   OverlayRenderProps,
+  RuleGenerationContext,
 } from '../row-types';
+import { ICodeStatement } from '../../../core/types/core';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
   cardType = 'wod-block' as const;
@@ -28,8 +30,9 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
   generateRules(
     content: WodBlockContent,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[] {
+    const { isEditing, cursorLine, measuredHeight } = context;
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
@@ -49,6 +52,20 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
       statusIcon = 'alert-circle';
     }
 
+    // Determine active statement index based on cursor line
+    let activeStatementIndex = -1;
+    if (isEditing && cursorLine >= startLine && cursorLine <= endLine && statements) {
+      // Find the statement that corresponds to the current line
+      // statements meta.line is 1-based relative to the block content
+      // cursorLine is absolute
+      // startLine is the opening fence (```wod)
+      // So content starts at startLine + 1
+      // If cursor is at startLine + 1, relative line is 1.
+      const relativeCursorLine = cursorLine - startLine;
+
+      activeStatementIndex = statements.findIndex(s => s.meta?.line === relativeCursorLine);
+    }
+
     // Calculate heights for preview panel
     // These values should match the actual rendered sizes of WodPreviewPanel
     const lineHeight = 22; // Monaco line height
@@ -60,8 +77,14 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     const statementCount = statements?.length || 0;
     
     // Calculate total height needed for preview panel content
-    const statementsHeight = Math.max(60, statementCount * statementItemHeight);
-    const previewContentHeight = previewHeaderHeight + statementsHeight + bodyPadding + previewFooterHeight;
+    // Use measured height if available, otherwise estimate
+    let previewContentHeight;
+    if (measuredHeight !== undefined && measuredHeight > 0) {
+      previewContentHeight = measuredHeight;
+    } else {
+       const statementsHeight = Math.max(60, statementCount * statementItemHeight);
+       previewContentHeight = previewHeaderHeight + statementsHeight + bodyPadding + previewFooterHeight;
+    }
     
     // Calculate available height from visible lines:
     // - Opening fence line (styled minimal)
@@ -160,7 +183,11 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
             parseState: parseState,
             sourceLines: props.sourceLines || [],
             isEditing: props.isEditing,
+            activeStatementIndex: activeStatementIndex,
             onStartWorkout: () => props.onAction?.('start-workout'),
+            // Convert relative line to absolute line for hover action
+            onHover: (line: number) => props.onAction?.('hover-statement', { line: startLine + line }),
+            onResize: (height: number) => props.onAction?.('resize', { height }),
           });
         },
       };
@@ -252,7 +279,10 @@ interface WodPreviewPanelProps {
   parseState: WodBlockContent['parseState'];
   sourceLines: string[];
   isEditing: boolean;
+  activeStatementIndex?: number;
   onStartWorkout: () => void;
+  onHover?: (line: number) => void;
+  onResize?: (height: number) => void;
 }
 
 const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
@@ -260,11 +290,39 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   parseState,
   sourceLines,
   isEditing,
+  activeStatementIndex = -1,
   onStartWorkout,
+  onHover,
+  onResize,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Monitor height changes and report back
+  useLayoutEffect(() => {
+    if (!containerRef.current || !onResize) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentBoxSize) {
+          // Use border box height if possible, but entry gives content/border box.
+          // Using offsetHeight from element is safer for including padding/border.
+          onResize(containerRef.current?.offsetHeight || entry.contentRect.height);
+        }
+      }
+    });
+
+    observer.observe(containerRef.current);
+
+    // Initial measurement
+    onResize(containerRef.current.offsetHeight);
+
+    return () => observer.disconnect();
+  }, [statements?.length, parseState]); // Re-observe doesn't matter much but dependencies help trigger updates
+
   // Error state
   if (parseState === 'error') {
     return React.createElement('div', {
+      ref: containerRef,
       className: 'wod-preview-panel wod-preview-error flex flex-col h-full bg-destructive/5 border-l border-destructive/30',
     }, [
       React.createElement('div', {
@@ -284,6 +342,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   // Empty state
   if (!statements || statements.length === 0) {
     return React.createElement('div', {
+      ref: containerRef,
       className: 'wod-preview-panel wod-preview-empty flex flex-col h-full bg-muted/10 border-l border-border',
     }, [
       React.createElement('div', {
@@ -302,6 +361,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
 
   // Main preview with statements
   return React.createElement('div', {
+    ref: containerRef,
     className: 'wod-preview-panel flex flex-col h-full bg-card/80 border-l border-primary/20',
   }, [
     // Header with Run button
@@ -339,10 +399,21 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     React.createElement('div', {
       key: 'body',
       className: 'flex-1 overflow-hidden p-3 space-y-2',
-    }, statements.map((statement, index) => 
-      React.createElement('div', {
+    }, statements.map((statement, index) => {
+        const isActive = index === activeStatementIndex;
+        return React.createElement('div', {
         key: index,
-        className: 'wod-statement-item bg-background/50 rounded-lg p-2 border border-border/50 hover:border-primary/30 transition-colors',
+        className: `wod-statement-item bg-background/50 rounded-lg p-2 border transition-colors cursor-default ${isActive
+          ? 'border-primary shadow-sm bg-primary/5 ring-1 ring-primary/20'
+          : 'border-border/50 hover:border-primary/30'}`,
+        onMouseEnter: () => {
+          if (statement.meta?.line && onHover) {
+            onHover(statement.meta.line);
+          }
+        },
+        onMouseLeave: () => {
+             // Optional: could trigger hover end
+        },
       }, [
         // Statement fragments as colored badges
         React.createElement('div', {
@@ -371,8 +442,8 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
               className: 'text-xs text-muted-foreground italic',
             }, statement.meta?.sourceRef || 'Empty statement')
         ),
-      ])
-    )),
+      ]);
+    })),
     
     // Footer with stats
     React.createElement('div', {

@@ -5,7 +5,7 @@
  * collections of rules for how to override individual rows.
  */
 
-import { editor, Range } from 'monaco-editor';
+import { editor, Range, IMarkdownString } from 'monaco-editor';
 import { 
   InlineCard, 
   CardContent, 
@@ -51,6 +51,12 @@ export class RowBasedCardManager {
   private parseDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private cursorDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   
+  // Measured heights for dynamic sizing
+  private cardHeights: Map<string, number> = new Map();
+
+  // Decorations for hover highlighting
+  private hoverDecorationsCollection: editor.IEditorDecorationsCollection;
+
   // External callbacks
   private onCardAction?: (cardId: string, action: string, payload?: unknown) => void;
 
@@ -61,10 +67,13 @@ export class RowBasedCardManager {
     this.editor = editorInstance;
     this.parser = new CardParser();
     this.renderer = new RowRuleRenderer(editorInstance, (cardId, action, payload) => {
+      this.handleInternalAction(cardId, action, payload);
       this.onCardAction?.(cardId, action, payload);
     });
     this.onCardAction = onCardAction;
     
+    this.hoverDecorationsCollection = this.editor.createDecorationsCollection();
+
     // Register rule generators
     this.registerRuleGenerators();
     
@@ -174,7 +183,11 @@ export class RowBasedCardManager {
       const rules = generator.generateRules(
         rawCard.content,
         rawCard.sourceRange,
-        isEditing
+        {
+            isEditing,
+            cursorLine: this.lastCursorLine,
+            measuredHeight: this.cardHeights.get(rawCard.id)
+        }
       );
 
       const card: InlineCard = {
@@ -210,16 +223,30 @@ export class RowBasedCardManager {
       const wasEditing = card.isEditing;
       const isEditing = this.isCursorInRange(this.lastCursorLine, card.sourceRange);
       
-      if (wasEditing !== isEditing) {
+      // Always regenerate rules if cursor moved inside an editing card (to update highlighting)
+      // or if editing state changed
+      if (wasEditing !== isEditing || (isEditing && changed === false)) { // Note: changed check is optimization but here we want to force update if cursor moves inside
+        // Actually, if we are inside, we need to update active statement highlighting even if isEditing didn't change
+        // So we check if isEditing is true OR changed
+      }
+
+      // Simplified logic: Check if we need to regenerate
+      // 1. isEditing changed
+      // 2. isEditing is true (cursor moved within card, update active line)
+      if (wasEditing !== isEditing || isEditing) {
         card.isEditing = isEditing;
         
-        // Regenerate rules with new editing state
+        // Regenerate rules with new editing state and cursor line
         const generator = this.ruleGenerators.get(card.cardType);
         if (generator) {
           card.rules = generator.generateRules(
             card.content,
             card.sourceRange,
-            isEditing
+            {
+                isEditing,
+                cursorLine: this.lastCursorLine,
+                measuredHeight: this.cardHeights.get(card.id)
+            }
           );
         }
         
@@ -237,6 +264,52 @@ export class RowBasedCardManager {
    */
   private isCursorInRange(cursorLine: number, range: Range): boolean {
     return cursorLine >= range.startLineNumber && cursorLine <= range.endLineNumber;
+  }
+
+  /**
+   * Handle internal actions (resize, hover)
+   */
+  private handleInternalAction(cardId: string, action: string, payload?: any): void {
+      if (action === 'resize' && typeof payload?.height === 'number') {
+          const currentHeight = this.cardHeights.get(cardId);
+          // Only update if height changed significantly to avoid loops
+          if (!currentHeight || Math.abs(currentHeight - payload.height) > 2) {
+              this.cardHeights.set(cardId, payload.height);
+
+              // Regenerate rules for this card immediately
+              const card = this.cards.get(cardId);
+              if (card) {
+                  const generator = this.ruleGenerators.get(card.cardType);
+                  if (generator) {
+                      card.rules = generator.generateRules(
+                          card.content,
+                          card.sourceRange,
+                          {
+                              isEditing: card.isEditing,
+                              cursorLine: this.lastCursorLine,
+                              measuredHeight: payload.height
+                          }
+                      );
+                      this.render();
+                  }
+              }
+          }
+      } else if (action === 'hover-statement' && typeof payload?.line === 'number') {
+          const line = payload.line;
+          this.hoverDecorationsCollection.set([
+              {
+                  range: new Range(line, 1, line, 1),
+                  options: {
+                      isWholeLine: true,
+                      className: 'wod-statement-hover-highlight',
+                      zIndex: 10
+                  }
+              }
+          ]);
+      } else if (action === 'hover-statement' && !payload) {
+            // clear if payload is null/undefined (optional, but good practice)
+           this.hoverDecorationsCollection.clear();
+      }
   }
 
   /**
@@ -277,6 +350,7 @@ export class RowBasedCardManager {
     this.disposables.forEach(d => d.dispose());
     this.disposables = [];
     this.cards.clear();
+    this.hoverDecorationsCollection.clear();
 
     if (CONFIG.debug) {
       console.log('[RowBasedCardManager] Disposed');

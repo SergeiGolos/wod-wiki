@@ -375,6 +375,16 @@ export interface CardCallbacks {
 // Rule Generator Interface
 // =============================================================================
 
+/** Context for rule generation */
+export interface RuleGenerationContext {
+  /** Whether the cursor is currently inside the card */
+  isEditing: boolean;
+  /** Current line number of the cursor (-1 if unknown) */
+  cursorLine: number;
+  /** Previously measured height of the card content (if available) */
+  measuredHeight?: number;
+}
+
 /** Interface for card-specific rule generators */
 export interface CardRuleGenerator<T extends CardContent = CardContent> {
   /** Card type this generator handles */
@@ -384,13 +394,13 @@ export interface CardRuleGenerator<T extends CardContent = CardContent> {
   generateRules(
     content: T, 
     sourceRange: Range, 
-    isEditing: boolean
+    context: RuleGenerationContext
   ): RowRule[];
   
   /** Generate grouped overlay config if applicable */
   generateGroupedOverlay?(
     content: T,
     sourceRange: Range,
-    isEditing: boolean
+    context: RuleGenerationContext
   ): GroupedOverlayConfig | null;
 }
