@@ -21,6 +21,7 @@ import {
   OverlayRenderProps,
   ViewZoneRenderProps,
 } from '../row-types';
+import { ICodeFragment } from '@/core/models/CodeFragment';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
   cardType = 'wod-block' as const;
@@ -300,7 +301,6 @@ const WodBlockHeader: React.FC<WodBlockHeaderProps> = ({
   
   const handleRunClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('[WodBlockHeader] Run button clicked');
     onAction?.('start-workout');
   };
 
@@ -496,7 +496,7 @@ const MobilePreviewModal: React.FC<MobilePreviewModalProps> = ({
           key: 'fragments',
           className: 'flex flex-wrap gap-2',
         }, statement.fragments && statement.fragments.length > 0 
-          ? statement.fragments.map((fragment: any, fragIndex: number) => {
+          ? statement.fragments.map((fragment: ICodeFragment, fragIndex: number) => {
               const type = fragment.type || fragment.fragmentType || 'text';
               const colorClasses = getFragmentColorClasses(type);
               const icon = getFragmentIcon(type);
@@ -629,7 +629,6 @@ const WodPreviewOverlay: React.FC<WodPreviewOverlayProps> = ({
         key: 'run-button',
         onClick: (e: React.MouseEvent) => {
           e.stopPropagation();
-          console.log('[WodPreviewOverlay] Run button clicked');
           onStartWorkout();
         },
         className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
@@ -653,7 +652,7 @@ const WodPreviewOverlay: React.FC<WodPreviewOverlayProps> = ({
           key: 'fragments',
           className: 'flex flex-wrap gap-1',
         }, statement.fragments && statement.fragments.length > 0 
-          ? statement.fragments.map((fragment: any, fragIndex: number) => {
+          ? statement.fragments.map((fragment: ICodeFragment, fragIndex: number) => {
               const type = fragment.type || fragment.fragmentType || 'text';
               const colorClasses = getFragmentColorClasses(type);
               const icon = getFragmentIcon(type);
