@@ -144,7 +144,7 @@ export const WodBlockCard: React.FC<WodBlockCardProps> = ({
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 flex flex-col justify-center">
           {hasStatements ? (
             content.statements?.map((statement, index) => (
               <StatementDisplay key={index} statement={statement} compact={false} />

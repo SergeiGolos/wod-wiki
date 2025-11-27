@@ -13,13 +13,13 @@
   --card-border: hsl(var(--border));
   --card-background: hsl(var(--card));
   --card-muted: hsl(var(--muted) / 0.3);
-  
+
   /* Type-specific accent colors */
   --wod-accent: hsl(210 100% 50%);
   --frontmatter-accent: hsl(45 100% 50%);
   --blockquote-accent: hsl(var(--primary));
   --media-accent: hsl(280 80% 50%);
-  
+
   /* Opacity variants */
   --accent-subtle: 0.1;
   --accent-medium: 0.3;
@@ -442,7 +442,6 @@
   bottom: 0;
   background: var(--card);
   border-left: 1px solid var(--border);
-  padding: 1rem;
   overflow: auto;
 }
 
@@ -568,7 +567,8 @@
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  pointer-events: auto; /* Re-enable for interaction */
+  pointer-events: auto;
+  /* Re-enable for interaction */
 }
 
 /* Right-side overlay (50% split) - desktop */
@@ -594,12 +594,12 @@
     border-left-width: 0;
     border-radius: 0.5rem;
   }
-  
+
   .overlay-wod-block {
     border-left: none;
     border-top: 3px solid hsl(210 100% 50% / 0.4);
   }
-  
+
   /* Hide the code side on mobile - show only preview */
   .wod-block-content-line {
     max-width: 100% !important;
@@ -607,7 +607,7 @@
     height: 0;
     overflow: hidden;
   }
-  
+
   .wod-fence-line {
     max-width: 100% !important;
     opacity: 0;

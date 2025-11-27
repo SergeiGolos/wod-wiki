@@ -23,6 +23,7 @@ import {
   RuleGenerationContext,
 } from '../row-types';
 import { ICodeStatement } from '../../../core/types/core';
+import { WodScriptVisualizer } from '../../../components/WodScriptVisualizer';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
   cardType = 'wod-block' as const;
@@ -223,54 +224,6 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
 }
 
 /**
- * Fragment color mapping for visualization
- * Matches the Tailwind CSS color scheme used in FragmentVisualizer
- */
-const fragmentColorMap: Record<string, string> = {
-  timer: 'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100',
-  rep: 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100',
-  effort: 'bg-yellow-100 border-yellow-200 text-yellow-800 dark:bg-yellow-900/50 dark:border-yellow-800 dark:text-yellow-100',
-  distance: 'bg-teal-100 border-teal-200 text-teal-800 dark:bg-teal-900/50 dark:border-teal-800 dark:text-teal-100',
-  rounds: 'bg-purple-100 border-purple-200 text-purple-800 dark:bg-purple-900/50 dark:border-purple-800 dark:text-purple-100',
-  action: 'bg-pink-100 border-pink-200 text-pink-800 dark:bg-pink-900/50 dark:border-pink-800 dark:text-pink-100',
-  increment: 'bg-indigo-100 border-indigo-200 text-indigo-800 dark:bg-indigo-900/50 dark:border-indigo-800 dark:text-indigo-100',
-  lap: 'bg-orange-100 border-orange-200 text-orange-800 dark:bg-orange-900/50 dark:border-orange-800 dark:text-orange-100',
-  text: 'bg-gray-100 border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100',
-  resistance: 'bg-red-100 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100',
-};
-
-/**
- * Get color classes for a fragment type
- */
-function getFragmentColorClasses(type: string): string {
-  const normalizedType = type.toLowerCase();
-  return fragmentColorMap[normalizedType] || 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
-}
-
-/**
- * Get icon for fragment type
- */
-function getFragmentIcon(type: string): string {
-  const iconMap: Record<string, string> = {
-    timer: '⏱️',
-    duration: '⏱️',
-    rounds: '🔄',
-    rep: '×',
-    reps: '×',
-    resistance: '💪',
-    weight: '💪',
-    distance: '📏',
-    action: '▶️',
-    rest: '⏸️',
-    effort: '🏃',
-    lap: '+',
-    increment: '↕️',
-    text: '📝',
-  };
-  return iconMap[type.toLowerCase()] || '•';
-}
-
-/**
  * WOD Preview Panel Component
  * Displays parsed workout statements with colored fragments and run button
  */
@@ -398,52 +351,21 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     // Statements list with fragments
     React.createElement('div', {
       key: 'body',
-      className: 'flex-1 overflow-hidden p-3 space-y-2',
-    }, statements.map((statement, index) => {
-        const isActive = index === activeStatementIndex;
-        return React.createElement('div', {
-        key: index,
-        className: `wod-statement-item bg-background/50 rounded-lg p-2 border transition-colors cursor-default ${isActive
-          ? 'border-primary shadow-sm bg-primary/5 ring-1 ring-primary/20'
-          : 'border-border/50 hover:border-primary/30'}`,
-        onMouseEnter: () => {
-          if (statement.meta?.line && onHover) {
-            onHover(statement.meta.line);
-          }
-        },
-        onMouseLeave: () => {
-             // Optional: could trigger hover end
-        },
-      }, [
-        // Statement fragments as colored badges
-        React.createElement('div', {
-          key: 'fragments',
-          className: 'flex flex-wrap gap-1',
-        }, statement.fragments && statement.fragments.length > 0 
-          ? statement.fragments.map((fragment: any, fragIndex: number) => {
-              const type = fragment.type || fragment.fragmentType || 'text';
-              const colorClasses = getFragmentColorClasses(type);
-              const icon = getFragmentIcon(type);
-              const value = fragment.image || (typeof fragment.value === 'object' 
-                ? JSON.stringify(fragment.value) 
-                : String(fragment.value || ''));
-              
-              return React.createElement('span', {
-                key: fragIndex,
-                className: `inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono border ${colorClasses} shadow-sm`,
-                title: `${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`,
-              }, [
-                React.createElement('span', { key: 'icon', className: 'text-sm leading-none' }, icon),
-                React.createElement('span', { key: 'value' }, value),
-              ]);
-            })
-          : React.createElement('span', {
-              key: 'no-fragments',
-              className: 'text-xs text-muted-foreground italic',
-            }, statement.meta?.sourceRef || 'Empty statement')
-        ),
-      ]);
-    })),
+      className: 'flex-1 overflow-hidden p-3 flex flex-col justify-center',
+    }, [
+        React.createElement(WodScriptVisualizer, {
+            statements: statements,
+            activeStatementIds: activeStatementIndex !== -1 && statements[activeStatementIndex] ? new Set([statements[activeStatementIndex].id]) : undefined,
+            onHover: (id: number | null) => {
+                if (id !== null && onHover) {
+                    const stmt = statements.find(s => s.id === id);
+                    if (stmt?.meta?.line !== undefined) {
+                        onHover(stmt.meta.line);
+                    }
+                }
+            }
+        })
+    ]),
     
     // Footer with stats
     React.createElement('div', {
