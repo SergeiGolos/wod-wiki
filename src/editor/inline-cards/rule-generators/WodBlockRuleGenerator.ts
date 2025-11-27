@@ -1,13 +1,12 @@
 /**
  * WodBlockRuleGenerator - Generates rules for WOD code blocks
  * 
- * Behavior per Monaco Card Behavior Spec:
- * - Both preview and edit mode use 50/50 split layout
+ * Behavior:
+ * - Desktop: 50/50 split layout with preview overlay on the right
+ * - Mobile: Preview hidden by default, buttons in header to show preview/run workout
  * - Opening fence (```wod) and closing fence (```) are styled minimal (text hidden when not editing)
- * - ViewZone header positioned after opening fence
+ * - ViewZone header positioned after opening fence with Preview/Run buttons on mobile
  * - ViewZone footer positioned after closing fence (provides padding)
- * - Content lines get 50% width styling
- * - Right-side overlay shows WOD preview panel with Run button
  */
 
 import { Range } from 'monaco-editor';
@@ -20,6 +19,7 @@ import {
   ViewZoneRule,
   OverlayRowRule,
   OverlayRenderProps,
+  ViewZoneRenderProps,
 } from '../row-types';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
@@ -81,15 +81,11 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
-
-    // Calculate content line range (excluding fences)
-    const firstContentLine = startLine + 1;
-    const lastContentLine = endLine - 1;
     
     // Line before opening fence (where header will be positioned)
     const lineBeforeOpeningFence = Math.max(0, startLine - 1);
 
-    // 1. ViewZone header (positioned BEFORE the opening fence line - above ```wod)
+    // 1. ViewZone header with Preview/Run buttons on mobile
     const headerZoneRule: ViewZoneRule = {
       lineNumber: startLine,
       overrideType: 'view-zone',
@@ -99,7 +95,17 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
       title,
       icon: statusIcon,
       className: 'wod-block-card-header',
-      afterLineNumber: lineBeforeOpeningFence, // Before the opening fence line
+      afterLineNumber: lineBeforeOpeningFence,
+      // Custom render to add Preview/Run buttons on mobile
+      renderContent: (props: ViewZoneRenderProps) => {
+        return React.createElement(WodBlockHeader, {
+          title,
+          statementCount: statements?.length || 0,
+          statements,
+          parseState,
+          onAction: props.onAction,
+        });
+      },
     };
     rules.push(headerZoneRule);
 
@@ -115,7 +121,7 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     };
     rules.push(openingFenceRule);
 
-    // 3. Style content lines with 50% width for split view and left padding
+    // 3. Style content lines - on mobile use full width, on desktop use 50% width
     for (let lineNum = startLine + 1; lineNum < endLine; lineNum++) {
       const styledRule: StyledRowRule = {
         lineNumber: lineNum,
@@ -129,33 +135,26 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
       rules.push(styledRule);
     }
 
-    // 4. Add spanning overlay for right-side preview (50% width)
-    // The overlay spans from header to footer
-    // Position starts at opening fence line, offset up to cover header zone
-    // The overlay height = totalCardHeight (matches the full card area)
-    //
-    // Position calculation:
-    // - spanLines.startLine = opening fence line
-    // - getTopForLineNumber(opening fence) returns position AFTER the header ViewZone
-    // - To align with header ViewZone top, we need topOffset = -headerZoneHeight
-    if (contentLineCount > 0) {
+    // 4. Add spanning overlay for right-side preview (desktop only)
+    // On mobile, we skip the overlay entirely - the header buttons provide access to preview
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    
+    if (contentLineCount > 0 && !isMobileViewport) {
       const overlayRule: OverlayRowRule = {
         lineNumber: startLine + 1,
         overrideType: 'overlay',
         position: 'right',
         overlayId: `wod-preview-${startLine}`,
         spanLines: { 
-          startLine: startLine, // Include opening fence
-          endLine: endLine // Include closing fence
+          startLine: startLine,
+          endLine: endLine
         },
         overlayWidth: '50%',
         heightMode: 'fixed',
         fixedHeight: totalCardHeight,
-        // Offset: from opening fence line, go up by header zone height
-        // (getTopForLineNumber returns position after ViewZone, so we just need -headerZoneHeight)
         topOffset: -headerZoneHeight,
         renderOverlay: (props: OverlayRenderProps) => {
-          return React.createElement(WodPreviewPanel, {
+          return React.createElement(WodPreviewOverlay, {
             statements: statements,
             parseState: parseState,
             sourceLines: props.sourceLines || [],
@@ -180,7 +179,6 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     rules.push(closingFenceRule);
 
     // 6. ViewZone footer - provides padding so the total card area fits the preview panel
-    // This is purely visual padding, no actions - the Run button is in the preview panel
     const footerZoneRule: ViewZoneRule = {
       lineNumber: endLine,
       overrideType: 'view-zone',
@@ -244,22 +242,6 @@ function getFragmentIcon(type: string): string {
 }
 
 /**
- * WOD Preview Panel Component
- * Displays parsed workout statements with colored fragments and run button
- * 
- * Features:
- * - Collapsible on mobile to show full code
- * - Code and Run buttons in collapsed state
- */
-interface WodPreviewPanelProps {
-  statements: WodBlockContent['statements'];
-  parseState: WodBlockContent['parseState'];
-  sourceLines: string[];
-  isEditing: boolean;
-  onStartWorkout: () => void;
-}
-
-/**
  * Hook to detect mobile viewport with debounced resize handling
  */
 const useIsMobile = () => {
@@ -285,7 +267,292 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
+/**
+ * WodBlockHeader - Header component for WOD blocks
+ * 
+ * On desktop: Shows title only
+ * On mobile: Shows title + Preview button + Run button
+ * 
+ * The Preview button opens a modal/overlay to show the preview
+ */
+interface WodBlockHeaderProps {
+  title: string;
+  statementCount: number;
+  statements: WodBlockContent['statements'];
+  parseState: WodBlockContent['parseState'];
+  onAction?: (actionId: string) => void;
+}
+
+const WodBlockHeader: React.FC<WodBlockHeaderProps> = ({
+  title,
+  statementCount,
+  statements,
+  parseState,
+  onAction,
+}) => {
+  const isMobile = useIsMobile();
+  const [showPreview, setShowPreview] = React.useState(false);
+  
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPreview(!showPreview);
+  };
+  
+  const handleRunClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('[WodBlockHeader] Run button clicked');
+    onAction?.('start-workout');
+  };
+
+  // Base header with title
+  const headerContent = [
+    React.createElement('div', {
+      key: 'title-section',
+      className: 'flex items-center gap-2',
+    }, [
+      React.createElement('span', { key: 'icon', className: 'text-lg' }, '⏱️'),
+      React.createElement('span', { key: 'title', className: 'text-sm font-medium text-foreground' }, title),
+    ]),
+  ];
+
+  // On mobile, add Preview and Run buttons
+  if (isMobile) {
+    headerContent.push(
+      React.createElement('div', {
+        key: 'buttons',
+        className: 'flex items-center gap-2',
+      }, [
+        // Preview button
+        React.createElement('button', {
+          key: 'preview-button',
+          onClick: handlePreviewClick,
+          className: 'flex items-center gap-1 px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded text-xs font-medium transition-colors cursor-pointer',
+          title: showPreview ? 'Hide preview' : 'Show preview',
+        }, [
+          React.createElement('span', { key: 'icon' }, '👁️'),
+          React.createElement('span', { key: 'label' }, 'Preview'),
+        ]),
+        // Run button
+        React.createElement('button', {
+          key: 'run-button',
+          onClick: handleRunClick,
+          className: 'flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-medium hover:bg-primary/90 transition-colors cursor-pointer',
+        }, [
+          React.createElement('span', { key: 'icon' }, '▶'),
+          React.createElement('span', { key: 'label' }, 'Run'),
+        ]),
+      ])
+    );
+  }
+
+  return React.createElement('div', {
+    className: 'wod-block-header-content flex items-center justify-between w-full h-full px-3 bg-gradient-to-r from-blue-500/20 to-transparent',
+  }, [
+    ...headerContent,
+    // Mobile preview overlay (shown when preview button is clicked)
+    showPreview && isMobile && React.createElement(MobilePreviewModal, {
+      key: 'preview-modal',
+      statements,
+      parseState,
+      onClose: () => setShowPreview(false),
+      onStartWorkout: () => {
+        onAction?.('start-workout');
+        setShowPreview(false);
+      },
+    }),
+  ]);
+};
+
+/**
+ * Mobile Preview Modal - Full-screen preview overlay for mobile
+ */
+interface MobilePreviewModalProps {
+  statements: WodBlockContent['statements'];
+  parseState: WodBlockContent['parseState'];
+  onClose: () => void;
+  onStartWorkout: () => void;
+}
+
+const MobilePreviewModal: React.FC<MobilePreviewModalProps> = ({
+  statements,
+  parseState,
+  onClose,
+  onStartWorkout,
+}) => {
+  // Error state
+  if (parseState === 'error') {
+    return React.createElement('div', {
+      className: 'fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col',
+    }, [
+      // Header
+      React.createElement('div', {
+        key: 'header',
+        className: 'flex items-center justify-between px-4 py-3 border-b border-destructive/30 bg-destructive/10',
+      }, [
+        React.createElement('div', { 
+          key: 'title', 
+          className: 'flex items-center gap-2' 
+        }, [
+          React.createElement('span', { key: 'icon', className: 'text-destructive text-lg' }, '⚠️'),
+          React.createElement('span', { key: 'text', className: 'font-semibold text-destructive' }, 'Parse Error'),
+        ]),
+        React.createElement('button', {
+          key: 'close',
+          onClick: onClose,
+          className: 'p-2 hover:bg-destructive/20 rounded-md transition-colors cursor-pointer',
+        }, '✕'),
+      ]),
+      // Body
+      React.createElement('div', {
+        key: 'body',
+        className: 'flex-1 p-4 text-sm text-muted-foreground',
+      }, 'Unable to parse workout. Check syntax.'),
+    ]);
+  }
+
+  // Empty state
+  if (!statements || statements.length === 0) {
+    return React.createElement('div', {
+      className: 'fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col',
+    }, [
+      // Header
+      React.createElement('div', {
+        key: 'header',
+        className: 'flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20',
+      }, [
+        React.createElement('div', { 
+          key: 'title', 
+          className: 'flex items-center gap-2' 
+        }, [
+          React.createElement('span', { key: 'icon', className: 'text-muted-foreground text-lg' }, '📝'),
+          React.createElement('span', { key: 'text', className: 'font-semibold text-muted-foreground' }, 'Workout Preview'),
+        ]),
+        React.createElement('button', {
+          key: 'close',
+          onClick: onClose,
+          className: 'p-2 hover:bg-muted rounded-md transition-colors cursor-pointer',
+        }, '✕'),
+      ]),
+      // Body
+      React.createElement('div', {
+        key: 'body',
+        className: 'flex-1 flex items-center justify-center p-4 text-muted-foreground',
+      }, 'Enter workout details...'),
+    ]);
+  }
+
+  // Main preview
+  return React.createElement('div', {
+    className: 'fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col',
+  }, [
+    // Header with close and run buttons
+    React.createElement('div', {
+      key: 'header',
+      className: 'flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5',
+    }, [
+      React.createElement('div', { 
+        key: 'title', 
+        className: 'flex items-center gap-2' 
+      }, [
+        React.createElement('span', { key: 'icon', className: 'text-primary text-lg' }, '⏱️'),
+        React.createElement('span', { key: 'text', className: 'font-semibold text-foreground' }, 'Workout Preview'),
+        React.createElement('span', { 
+          key: 'count', 
+          className: 'text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full' 
+        }, `${statements.length} step${statements.length !== 1 ? 's' : ''}`),
+      ]),
+      React.createElement('div', {
+        key: 'buttons',
+        className: 'flex items-center gap-2',
+      }, [
+        // Run button
+        React.createElement('button', {
+          key: 'run',
+          onClick: onStartWorkout,
+          className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer',
+        }, [
+          React.createElement('span', { key: 'icon' }, '▶'),
+          React.createElement('span', { key: 'label' }, 'Run'),
+        ]),
+        // Close button
+        React.createElement('button', {
+          key: 'close',
+          onClick: onClose,
+          className: 'p-2 hover:bg-muted rounded-md transition-colors cursor-pointer text-muted-foreground hover:text-foreground',
+        }, '✕'),
+      ]),
+    ]),
+    
+    // Statements list
+    React.createElement('div', {
+      key: 'body',
+      className: 'flex-1 overflow-auto p-4 space-y-3',
+    }, statements.map((statement, index) => 
+      React.createElement('div', {
+        key: index,
+        className: 'bg-card rounded-lg p-3 border border-border shadow-sm',
+      }, [
+        React.createElement('div', {
+          key: 'fragments',
+          className: 'flex flex-wrap gap-2',
+        }, statement.fragments && statement.fragments.length > 0 
+          ? statement.fragments.map((fragment: any, fragIndex: number) => {
+              const type = fragment.type || fragment.fragmentType || 'text';
+              const colorClasses = getFragmentColorClasses(type);
+              const icon = getFragmentIcon(type);
+              const value = fragment.image || (typeof fragment.value === 'object' 
+                ? JSON.stringify(fragment.value) 
+                : String(fragment.value || ''));
+              
+              return React.createElement('span', {
+                key: fragIndex,
+                className: `inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-mono border ${colorClasses}`,
+                title: `${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`,
+              }, [
+                React.createElement('span', { key: 'icon' }, icon),
+                React.createElement('span', { key: 'value' }, value),
+              ]);
+            })
+          : React.createElement('span', {
+              key: 'no-fragments',
+              className: 'text-sm text-muted-foreground italic',
+            }, statement.meta?.sourceRef || 'Empty statement')
+        ),
+      ])
+    )),
+    
+    // Footer
+    React.createElement('div', {
+      key: 'footer',
+      className: 'px-4 py-3 border-t border-border bg-muted/10 flex items-center justify-center gap-4',
+    }, [
+      React.createElement('button', {
+        key: 'run-large',
+        onClick: onStartWorkout,
+        className: 'flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer shadow-sm',
+      }, [
+        React.createElement('span', { key: 'icon' }, '▶'),
+        React.createElement('span', { key: 'label' }, 'Start Workout'),
+      ]),
+    ]),
+  ]);
+};
+
+/**
+ * WodPreviewOverlay - Desktop-only preview panel
+ * 
+ * On mobile: Returns null (hidden)
+ * On desktop: Shows the full preview panel at 50% width
+ */
+interface WodPreviewOverlayProps {
+  statements: WodBlockContent['statements'];
+  parseState: WodBlockContent['parseState'];
+  sourceLines: string[];
+  isEditing: boolean;
+  onStartWorkout: () => void;
+}
+
+const WodPreviewOverlay: React.FC<WodPreviewOverlayProps> = ({
   statements,
   parseState,
   sourceLines,
@@ -293,54 +560,10 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   onStartWorkout,
 }) => {
   const isMobile = useIsMobile();
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
-
-  // Toggle collapse handler
-  const handleToggleCollapse = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsCollapsed(!isCollapsed);
-  };
-
-  // Collapsed state - show compact bar with code icon to expand and run button
-  if (isCollapsed && isMobile) {
-    return React.createElement('div', {
-      className: 'wod-preview-panel wod-preview-collapsed flex flex-col h-full bg-card/80 border-l border-primary/20',
-    }, [
-      // Compact header bar with expand and run buttons
-      React.createElement('div', {
-        key: 'collapsed-header',
-        className: 'flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-border',
-      }, [
-        // Left: Code button to expand preview
-        React.createElement('button', {
-          key: 'code-button',
-          onClick: handleToggleCollapse,
-          className: 'flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-md text-sm font-medium transition-colors cursor-pointer',
-          title: 'Show workout preview',
-        }, [
-          React.createElement('span', { key: 'icon' }, '👁️'),
-          React.createElement('span', { key: 'label' }, 'Preview'),
-        ]),
-        // Right: Run button
-        React.createElement('button', {
-          key: 'run-button',
-          onClick: (e: React.MouseEvent) => {
-            e.stopPropagation();
-            console.log('[WodPreviewPanel] Run button clicked (collapsed)');
-            onStartWorkout();
-          },
-          className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
-        }, [
-          React.createElement('span', { key: 'play-icon' }, '▶'),
-          React.createElement('span', { key: 'label' }, 'Run'),
-        ]),
-      ]),
-      // Spacer to indicate collapsed state
-      React.createElement('div', {
-        key: 'collapsed-body',
-        className: 'flex-1 flex items-center justify-center text-muted-foreground text-sm',
-      }, `${statements?.length || 0} steps`),
-    ]);
+  
+  // On mobile, don't render the overlay - use the header buttons instead
+  if (isMobile) {
+    return null;
   }
 
   // Error state
@@ -381,11 +604,11 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     ]);
   }
 
-  // Main preview with statements
+  // Main preview with statements (desktop only)
   return React.createElement('div', {
     className: 'wod-preview-panel flex flex-col h-full bg-card/80 border-l border-primary/20',
   }, [
-    // Header with collapse button (mobile) and Run button
+    // Header with Run button
     React.createElement('div', {
       key: 'header',
       className: 'flex items-center justify-between px-4 py-2 border-b border-border bg-primary/5',
@@ -401,34 +624,18 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
           className: 'text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full' 
         }, `${statements.length} step${statements.length !== 1 ? 's' : ''}`),
       ]),
-      // Button group: Collapse button (mobile only) + Run Button
-      React.createElement('div', {
-        key: 'button-group',
-        className: 'flex items-center gap-2',
+      // Run Button
+      React.createElement('button', {
+        key: 'run-button',
+        onClick: (e: React.MouseEvent) => {
+          e.stopPropagation();
+          console.log('[WodPreviewOverlay] Run button clicked');
+          onStartWorkout();
+        },
+        className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
       }, [
-        // Collapse button - mobile only (hide preview to see code)
-        isMobile && React.createElement('button', {
-          key: 'collapse-button',
-          onClick: handleToggleCollapse,
-          className: 'flex items-center gap-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md text-xs font-medium transition-colors cursor-pointer',
-          title: 'Hide preview to see code',
-        }, [
-          React.createElement('span', { key: 'icon' }, '📝'),
-          React.createElement('span', { key: 'label' }, 'Code'),
-        ]),
-        // Run Button
-        React.createElement('button', {
-          key: 'run-button',
-          onClick: (e: React.MouseEvent) => {
-            e.stopPropagation();
-            console.log('[WodPreviewPanel] Run button clicked');
-            onStartWorkout();
-          },
-          className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',
-        }, [
-          React.createElement('span', { key: 'play-icon' }, '▶'),
-          React.createElement('span', { key: 'label' }, 'Run'),
-        ]),
+        React.createElement('span', { key: 'play-icon' }, '▶'),
+        React.createElement('span', { key: 'label' }, 'Run'),
       ]),
     ]),
     

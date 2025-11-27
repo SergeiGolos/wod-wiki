@@ -598,19 +598,29 @@
     border-top: 3px solid hsl(210 100% 50% / 0.4);
   }
   
-  /* Hide the code side on mobile - show only preview */
+  /* On mobile, show full-width code (no split view) */
   .wod-block-content-line {
     max-width: 100% !important;
-    opacity: 0;
-    height: 0;
-    overflow: hidden;
   }
   
   .wod-fence-line {
     max-width: 100% !important;
-    opacity: 0;
-    height: 0;
-    overflow: hidden;
+  }
+  
+  /* Ensure ViewZone header buttons are clickable above Monaco content */
+  .wod-block-card-header {
+    position: relative;
+    z-index: 10;
+  }
+  
+  .wod-block-header-content {
+    position: relative;
+    z-index: 10;
+  }
+  
+  .wod-block-header-content button {
+    position: relative;
+    z-index: 11;
   }
 }
 
