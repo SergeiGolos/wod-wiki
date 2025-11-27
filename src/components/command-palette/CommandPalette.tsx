@@ -43,11 +43,11 @@ export const CommandPalette: React.FC = () => {
       open={isOpen}
       onOpenChange={setIsOpen}
       label="Global Command Menu"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 md:pt-[20vh]"
     >
       <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
       
-      <div className="relative w-full max-w-lg overflow-hidden rounded-xl border border-border bg-popover shadow-2xl text-popover-foreground">
+      <div className="relative w-full max-w-lg mx-2 md:mx-0 overflow-hidden rounded-xl border border-border bg-popover shadow-2xl text-popover-foreground">
         <div className="flex items-center border-b border-border px-3" cmdk-input-wrapper="">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Command.Input

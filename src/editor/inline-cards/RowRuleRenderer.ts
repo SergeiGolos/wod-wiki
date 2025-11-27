@@ -416,6 +416,11 @@ export class RowRuleRenderer {
       overlayContainer.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; z-index: 100;';
       editorDomNode.appendChild(overlayContainer);
     }
+    
+    // Update CSS custom property for scrollbar/minimap offset (used by mobile CSS)
+    const layout = this.editor.getLayoutInfo();
+    const editorRightOffset = layout.verticalScrollbarWidth + layout.minimap.minimapWidth;
+    overlayContainer.style.setProperty('--editor-right-offset', `${editorRightOffset}px`);
 
     for (const { rule, card } of rules) {
       const overlayId = rule.overlayId || `overlay-${rule.lineNumber}`;

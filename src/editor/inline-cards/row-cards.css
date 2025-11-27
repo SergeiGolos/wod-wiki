@@ -587,10 +587,10 @@
 /* Mobile responsive - full width overlay */
 @media (max-width: 768px) {
   .right-overlay {
-    /* Override inline width style */
-    width: 100% !important;
+    /* Override inline width style, accounting for scrollbar via CSS custom property */
+    width: calc(100% - var(--editor-right-offset, 0px)) !important;
     left: 0 !important;
-    right: 0 !important;
+    right: var(--editor-right-offset, 0px) !important;
     border-left-width: 0;
     border-radius: 0.5rem;
   }
