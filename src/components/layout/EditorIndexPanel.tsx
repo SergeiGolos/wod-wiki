@@ -19,7 +19,7 @@ import { WodBlock } from '../../markdown-editor/types';
 import { Timer, Hash, ChevronDown, ChevronRight, Play, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { StatementDisplay } from '@/components/fragments/StatementDisplay';
+import { WodScriptVisualizer } from '@/components/WodScriptVisualizer';
 
 export interface EditorIndexPanelProps {
   /** Document structure items */
@@ -237,53 +237,52 @@ export const EditorIndexPanel: React.FC<EditorIndexPanelProps> = ({
                     {/* Statements List */}
                     <div className={cn('space-y-1', mobile ? 'p-4' : 'p-3')}>
                       {wodBlock.statements && wodBlock.statements.length > 0 ? (
-                        wodBlock.statements.map((statement, index) => {
-                          // Extract text from fragments for edit callback
-                          const text = statement.fragments
-                            ?.map((f: any) => f.image)
-                            .join('') || `Statement ${index + 1}`;
+                        <WodScriptVisualizer
+                          statements={wodBlock.statements}
+                          activeStatementIds={activeBlockId === item.id ? new Set() : undefined} // Pass active statements if available
+                          onRenderActions={(statement) => {
+                             if (!onEditStatement && !onDeleteStatement) return null;
+                             
+                             // Find index of statement in block
+                             const index = wodBlock.statements!.findIndex(s => s.id === statement.id);
+                             if (index === -1) return null;
 
-                          const editActions = (onEditStatement || onDeleteStatement) ? (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {onEditStatement && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEditStatement(item.id, index, text);
-                                  }}
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </Button>
-                              )}
-                              {onDeleteStatement && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteStatement(item.id, index);
-                                  }}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          ) : undefined;
+                             const text = statement.fragments
+                                ?.map((f: any) => f.image)
+                                .join('') || `Statement ${index + 1}`;
 
-                          return (
-                            <div key={index} className="group">
-                              <StatementDisplay
-                                statement={statement}
-                                compact={!mobile}
-                                actions={editActions}
-                              />
-                            </div>
-                          );
-                        })
+                             return (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {onEditStatement && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditStatement(item.id, index, text);
+                                      }}
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                  {onDeleteStatement && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteStatement(item.id, index);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                             );
+                          }}
+                        />
                       ) : (
                         <div className="text-xs text-muted-foreground italic p-2">
                           No statements parsed
