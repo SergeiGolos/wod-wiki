@@ -351,6 +351,106 @@ export class TestableRuntime implements IScriptRuntime {
     return this._stackOps.filter(op => op.operation === operation);
   }
   
+  // ========== Event Simulation API ==========
+  
+  /**
+   * Simulate a 'tick' event (periodic timer update)
+   * This is typically called by the runtime loop
+   */
+  simulateTick(): void {
+    this.handle({
+      name: 'tick',
+      timestamp: new Date(),
+      data: { source: 'test-simulation' }
+    });
+  }
+  
+  /**
+   * Simulate a 'next' event (user action to advance)
+   * This triggers completion for generic effort blocks
+   */
+  simulateNext(): void {
+    this.handle({
+      name: 'next',
+      timestamp: new Date(),
+      data: { source: 'test-simulation' }
+    });
+  }
+  
+  /**
+   * Simulate a rep completion event for EffortBlock
+   * @param blockId - The block receiving the rep update
+   * @param reps - Number of reps completed
+   */
+  simulateReps(blockId: string, reps: number): void {
+    this.handle({
+      name: 'reps:update',
+      timestamp: new Date(),
+      data: {
+        source: 'test-simulation',
+        blockId,
+        reps
+      }
+    });
+  }
+  
+  /**
+   * Simulate a timer event
+   * @param eventType - Type of timer event
+   * @param data - Additional event data
+   */
+  simulateTimerEvent(eventType: 'timer:start' | 'timer:stop' | 'timer:pause' | 'timer:resume' | 'timer:complete', data?: any): void {
+    this.handle({
+      name: eventType,
+      timestamp: new Date(),
+      data: { source: 'test-simulation', ...data }
+    });
+  }
+  
+  /**
+   * Simulate round completion
+   * @param blockId - The block completing a round
+   * @param roundNumber - Which round completed
+   */
+  simulateRoundComplete(blockId: string, roundNumber: number): void {
+    this.handle({
+      name: 'rounds:complete',
+      timestamp: new Date(),
+      data: {
+        source: 'test-simulation',
+        blockId,
+        round: roundNumber
+      }
+    });
+  }
+  
+  /**
+   * Simulate a custom event
+   * @param name - Event name
+   * @param data - Event data
+   */
+  simulateEvent(name: string, data?: any): void {
+    this.handle({
+      name,
+      timestamp: new Date(),
+      data: { source: 'test-simulation', ...data }
+    });
+  }
+  
+  /**
+   * Run multiple ticks (simulate time passage)
+   * @param count - Number of ticks to simulate
+   * @param intervalMs - Delay between ticks (for realistic testing)
+   */
+  async simulateTicks(count: number, intervalMs: number = 0): Promise<void> {
+    for (let i = 0; i < count; i++) {
+      this.simulateTick();
+      if (intervalMs > 0 && i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+  }
+  
   // ========== Private Helpers ==========
   
   private _createWrappedMemory(): IRuntimeMemory {
