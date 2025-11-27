@@ -63,11 +63,13 @@ export const WorkoutOverlay: React.FC<WorkoutOverlayProps> = ({
             const layoutInfo = editor.getLayoutInfo();
             // Account for scrollbar and minimap width
             const rightEdgeOffset = layoutInfo.verticalScrollbarWidth + layoutInfo.minimap.minimapWidth;
-            const width = (layoutInfo.width - rightEdgeOffset) / 2; // Half width, excluding scrollbar/minimap
+            // Calculate available content width (excluding scrollbar/minimap)
+            const availableWidth = layoutInfo.width - rightEdgeOffset;
+            const width = availableWidth / 2; // Half of available content width
 
             // Apply styles to the container
             domNode.style.width = `${width}px`;
-            domNode.style.marginLeft = `${layoutInfo.width / 2}px`; // Offset to the right half
+            domNode.style.marginLeft = `${availableWidth / 2}px`; // Offset to the right half of available content
             // Ensure z-index is high enough
             domNode.style.zIndex = '50';
         };
