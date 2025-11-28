@@ -1,9 +1,18 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { ViewMode } from './SlidingViewport';
-import { WodScript } from '../../parser/WodScript';
-import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
+
+/**
+ * WorkbenchContext - Manages document state and view navigation
+ * 
+ * DECOUPLED: Runtime management has been moved to RuntimeProvider.
+ * This context now focuses solely on:
+ * - Document state (content, blocks, active/selected block)
+ * - View mode navigation
+ * - Workout results collection
+ * 
+ * Components needing runtime should use useRuntime() from RuntimeProvider.
+ */
 
 interface WorkbenchContextState {
   // Document State
@@ -11,10 +20,9 @@ interface WorkbenchContextState {
   blocks: WodBlock[];
   activeBlockId: string | null; // Cursor location
   
-  // Execution State
+  // Execution State  
   selectedBlockId: string | null; // Target for execution
   viewMode: ViewMode;
-  runtime: ScriptRuntime | null;
   
   // Results State
   results: WorkoutResults[];
@@ -53,36 +61,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
-  // Execution State
+  // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('plan');
-  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
-
-  // Initialize Runtime when selected block changes
-  useEffect(() => {
-    const selectedBlock = blocks.find(b => b.id === selectedBlockId);
-    
-    if (selectedBlock && selectedBlock.statements && viewMode === 'track') {
-      console.log('[WorkbenchContext] Initializing runtime for block:', selectedBlock.id);
-      const script = new WodScript(selectedBlock.content, selectedBlock.statements);
-      const newRuntime = new ScriptRuntime(script, globalCompiler);
-      
-      const rootBlock = globalCompiler.compile(selectedBlock.statements as any, newRuntime);
-      
-      if (rootBlock) {
-        newRuntime.stack.push(rootBlock);
-        const actions = rootBlock.mount(newRuntime);
-        actions.forEach(action => action.do(newRuntime));
-      }
-
-      setRuntime(newRuntime);
-    } else if (viewMode !== 'track') {
-      setRuntime(null);
-    }
-  }, [selectedBlockId, viewMode, blocks]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -104,7 +88,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     activeBlockId,
     selectedBlockId,
     viewMode,
-    runtime,
     results,
     setContent,
     setBlocks,

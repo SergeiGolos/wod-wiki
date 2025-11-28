@@ -36,10 +36,16 @@ import { TimelineView } from '../../timeline/TimelineView';
 import { Segment } from '../../timeline/GitTreeSidebar';
 import { cn, hashCode } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
+import { RuntimeProvider, useRuntime } from './RuntimeProvider';
+import { RuntimeFactory } from '../../runtime/RuntimeFactory';
+import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 
 // Runtime imports
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { NextEvent } from '../../runtime/NextEvent';
+
+// Create singleton factory instance
+const runtimeFactory = new RuntimeFactory(globalCompiler);
 
 export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
@@ -208,14 +214,13 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
   
-  // Consume Workbench Context
+  // Consume Workbench Context (document state, view mode)
   const {
     content,
     blocks,
     activeBlockId,
     selectedBlockId,
     viewMode,
-    runtime,
     results,
     setContent,
     setBlocks,
@@ -225,6 +230,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     startWorkout,
     completeWorkout
   } = useWorkbench();
+
+  // Consume Runtime Context (decoupled runtime management)
+  const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
 
   // Local UI state
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
@@ -260,6 +268,18 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const selectedBlock = useMemo(() => {
     return blocks.find(b => b.id === selectedBlockId) || null;
   }, [blocks, selectedBlockId]);
+
+  // Initialize runtime when entering track view with selected block
+  // This replaces the old useEffect in WorkbenchContext
+  useEffect(() => {
+    if (selectedBlock && selectedBlock.statements && viewMode === 'track') {
+      console.log('[UnifiedWorkbench] Initializing runtime for block:', selectedBlock.id);
+      initializeRuntime(selectedBlock);
+    } else if (viewMode !== 'track') {
+      // Dispose runtime when leaving track view
+      disposeRuntime();
+    }
+  }, [selectedBlockId, viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
 
   // Analytics data (mock)
   const { data: analyticsData, segments: analyticsSegments } = useMemo(() => generateSessionData(), []);
@@ -573,7 +593,9 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
       <MetricsProvider>
         <CommandProvider>
           <WorkbenchProvider initialContent={props.initialContent}>
-            <UnifiedWorkbenchContent {...props} />
+            <RuntimeProvider factory={runtimeFactory}>
+              <UnifiedWorkbenchContent {...props} />
+            </RuntimeProvider>
           </WorkbenchProvider>
         </CommandProvider>
       </MetricsProvider>

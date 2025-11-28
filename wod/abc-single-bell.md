@@ -1,4 +1,4 @@
-# ABC Single Bell
+ 
 
 **Category**: Dan John  
 **Type**: Kettlebell Complex  

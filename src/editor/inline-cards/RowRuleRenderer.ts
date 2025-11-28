@@ -51,6 +51,19 @@ interface OverlayInfo {
 // Unique source ID for hidden areas from this renderer
 const HIDDEN_AREAS_SOURCE_ID = 'row-rule-renderer';
 
+/**
+ * Safely unmount React roots by deferring to the next microtask.
+ * This prevents "Attempted to synchronously unmount a root while React was already rendering" warnings.
+ */
+function safeUnmountRoots(roots: ReactDOM.Root[]): void {
+  if (roots.length === 0) return;
+  queueMicrotask(() => {
+    for (const root of roots) {
+      root.unmount();
+    }
+  });
+}
+
 export class RowRuleRenderer {
   private editor: editor.IStandaloneCodeEditor;
   private viewZones: Map<string, ViewZoneInfo> = new Map();
@@ -199,6 +212,8 @@ export class RowRuleRenderer {
     fullCardRules: Array<{ rule: FullCardRowRule; card: InlineCard }>
   ): void {
     const currentZoneKeys = new Set<string>();
+    // Collect roots to unmount after changeViewZones completes
+    const rootsToUnmount: ReactDOM.Root[] = [];
 
     console.log('[RowRuleRenderer] Applying view zones in single transaction:', {
       viewZoneRules: viewZoneRules.length,
@@ -283,7 +298,7 @@ export class RowRuleRenderer {
         // Remove this zone (either not needed or needs recreation)
         accessor.removeZone(zone.zoneId);
         if (!zonesToKeep.has(key)) {
-          zone.root.unmount();
+          rootsToUnmount.push(zone.root);
           this.viewZones.delete(key);
         }
       }
@@ -520,11 +535,14 @@ export class RowRuleRenderer {
       for (const [key, zone] of this.viewZones) {
         if (!currentZoneKeys.has(key)) {
           accessor.removeZone(zone.zoneId);
-          zone.root.unmount();
+          rootsToUnmount.push(zone.root);
           this.viewZones.delete(key);
         }
       }
     });
+
+    // Defer React root unmounts to avoid race condition during React rendering
+    safeUnmountRoots(rootsToUnmount);
   }
 
   /**
@@ -682,14 +700,17 @@ export class RowRuleRenderer {
     }
 
     // Remove old overlays
+    const overlayRootsToUnmount: ReactDOM.Root[] = [];
     for (const [id, overlay] of this.overlays) {
       if (!currentOverlayIds.has(id)) {
         overlay.scrollListener?.();
         overlay.domNode.remove();
-        overlay.root.unmount();
+        overlayRootsToUnmount.push(overlay.root);
         this.overlays.delete(id);
       }
     }
+    // Defer React root unmounts to avoid race condition during React rendering
+    safeUnmountRoots(overlayRootsToUnmount);
   }
 
   /**
@@ -770,11 +791,15 @@ export class RowRuleRenderer {
       (this.editor as any).setHiddenAreas([]);
     }
 
+    // Collect React roots to unmount after synchronous cleanup
+    // This prevents "Attempted to synchronously unmount a root while React was already rendering" warnings
+    const rootsToUnmount: ReactDOM.Root[] = [];
+
     // Remove view zones
     this.editor.changeViewZones((accessor) => {
       for (const zone of this.viewZones.values()) {
         accessor.removeZone(zone.zoneId);
-        zone.root.unmount();
+        rootsToUnmount.push(zone.root);
       }
     });
     this.viewZones.clear();
@@ -783,7 +808,7 @@ export class RowRuleRenderer {
     for (const overlay of this.overlays.values()) {
       overlay.scrollListener?.();
       overlay.domNode.remove();
-      overlay.root.unmount();
+      rootsToUnmount.push(overlay.root);
     }
     this.overlays.clear();
     
@@ -798,6 +823,9 @@ export class RowRuleRenderer {
 
     // Clear decorations
     this.decorationsCollection.clear();
+
+    // Defer React root unmounts to avoid race condition during React rendering
+    safeUnmountRoots(rootsToUnmount);
   }
 
   /**
