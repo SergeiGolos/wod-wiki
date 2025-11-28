@@ -2,19 +2,13 @@
  * Inline Widget Card System - Public Exports
  */
 
-// Types (legacy)
+// Types and config
 export * from './types';
 export * from './config';
-
-// New row-based types
 export * from './row-types';
 
-// Core classes (legacy)
+// Core classes
 export { CardParser } from './CardParser';
-export { CardRenderer } from './CardRenderer';
-export { InlineWidgetCardManager } from './InlineWidgetCardManager';
-
-// New row-based system
 export { RowBasedCardManager } from './RowBasedCardManager';
 export { RowRuleRenderer } from './RowRuleRenderer';
 export * from './rule-generators';

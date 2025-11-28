@@ -7,7 +7,6 @@
 ## Description
 Helen combines cardio with conditioning work, testing both endurance and strength.
 
-## WOD Wiki Syntax
 ```wod
 (3)
   400m Run

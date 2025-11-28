@@ -7,7 +7,6 @@
 ## Description
 The classic StrongFirst program focusing on kettlebell skill development and conditioning.
 
-## WOD Wiki Syntax
 ```wod
 5:00 100 KB Swings 70lb
 1:00 Rest

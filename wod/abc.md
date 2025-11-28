@@ -7,7 +7,6 @@
 ## Description
 Dan John's ABC program combines Olympic lifting, pressing, and squatting in an efficient complex.
 
-## WOD Wiki Syntax
 ```wod
 (20) 1:00
   + 2 Clean

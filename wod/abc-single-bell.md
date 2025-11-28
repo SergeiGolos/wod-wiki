@@ -7,8 +7,7 @@
 ## Description
 Dan John's kettlebell complex using asymmetrical loading for additional stability challenge.
 
-## WOD Wiki Syntax
-```
+```wod
 (20)
   + 1 Clean & Press Left
   + 1 Clean & Press Right 

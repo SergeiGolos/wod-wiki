@@ -82,9 +82,21 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     let previewContentHeight;
     if (measuredHeight !== undefined && measuredHeight > 0) {
       previewContentHeight = measuredHeight;
+      console.log('[WodBlockRuleGenerator] Using measured height:', {
+        measuredHeight,
+        startLine,
+        isEditing,
+      });
     } else {
        const statementsHeight = Math.max(60, statementCount * statementItemHeight);
        previewContentHeight = previewHeaderHeight + statementsHeight + bodyPadding + previewFooterHeight;
+       console.log('[WodBlockRuleGenerator] Using estimated height:', {
+         previewContentHeight,
+         statementsHeight,
+         statementCount,
+         startLine,
+         isEditing,
+       });
     }
     
     // Calculate available height from visible lines:
@@ -105,6 +117,16 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
+    
+    console.log('[WodBlockRuleGenerator] Calculated zone heights:', {
+      startLine,
+      headerZoneHeight,
+      footerZoneHeight,
+      totalCardHeight,
+      previewContentHeight,
+      visibleLinesHeight,
+      contentLineCount,
+    });
 
     // Calculate content line range (excluding fences)
     const firstContentLine = startLine + 1;
@@ -276,7 +298,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   if (parseState === 'error') {
     return React.createElement('div', {
       ref: containerRef,
-      className: 'wod-preview-panel wod-preview-error flex flex-col h-full bg-destructive/5 border-l border-destructive/30',
+      className: 'wod-preview-panel wod-preview-error flex flex-col bg-destructive/5 border-l border-destructive/30',
     }, [
       React.createElement('div', {
         key: 'header',
@@ -296,7 +318,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   if (!statements || statements.length === 0) {
     return React.createElement('div', {
       ref: containerRef,
-      className: 'wod-preview-panel wod-preview-empty flex flex-col h-full bg-muted/10 border-l border-border',
+      className: 'wod-preview-panel wod-preview-empty flex flex-col bg-muted/10 border-l border-border',
     }, [
       React.createElement('div', {
         key: 'header',
@@ -315,7 +337,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   // Main preview with statements
   return React.createElement('div', {
     ref: containerRef,
-    className: 'wod-preview-panel flex flex-col h-full bg-card/80 border-l border-primary/20',
+    className: 'wod-preview-panel flex flex-col bg-card/80 border-l border-primary/20',
   }, [
     // Header with Run button
     React.createElement('div', {

@@ -24,6 +24,7 @@ export class RichMarkdownManager {
         this.onCardAction = onCardAction;
 
         // Initialize the row-based card system (new architecture)
+        // Pass the hiddenAreasCoordinator through to prevent conflicts
         this.cardManager = new RowBasedCardManager(
             this.editor,
             (cardId, action, payload) => {
@@ -39,7 +40,8 @@ export class RichMarkdownManager {
                 if (action === 'start-workout') {
                     console.log('[RichMarkdownManager] Start workout requested for:', cardId);
                 }
-            }
+            },
+            hiddenAreasCoordinator
         );
     }
 

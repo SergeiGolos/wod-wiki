@@ -7,7 +7,6 @@
 ## Description
 Isabel is a pure Olympic lifting workout focused on snatch technique and power.
 
-## WOD Wiki Syntax
 ```wod
 30 Snatch 135lb
 ```

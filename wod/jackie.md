@@ -7,7 +7,6 @@
 ## Description
 Jackie combines cardio endurance with metabolic conditioning work.
 
-## WOD Wiki Syntax
 ```wod
 1000m Row
 50 Thrusters 45lb

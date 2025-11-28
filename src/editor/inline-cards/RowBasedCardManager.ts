@@ -5,7 +5,7 @@
  * collections of rules for how to override individual rows.
  */
 
-import { editor, Range, IMarkdownString } from 'monaco-editor';
+import { editor, Range } from 'monaco-editor';
 import { 
   InlineCard, 
   CardContent, 
@@ -27,6 +27,7 @@ import {
   FrontmatterRuleGenerator,
   MediaRuleGenerator,
 } from './rule-generators';
+import { HiddenAreasCoordinator } from '../utils/HiddenAreasCoordinator';
 
 // System configuration
 const CONFIG = {
@@ -62,14 +63,19 @@ export class RowBasedCardManager {
 
   constructor(
     editorInstance: editor.IStandaloneCodeEditor,
-    onCardAction?: (cardId: string, action: string, payload?: unknown) => void
+    onCardAction?: (cardId: string, action: string, payload?: unknown) => void,
+    hiddenAreasCoordinator?: HiddenAreasCoordinator
   ) {
     this.editor = editorInstance;
     this.parser = new CardParser();
-    this.renderer = new RowRuleRenderer(editorInstance, (cardId, action, payload) => {
-      this.handleInternalAction(cardId, action, payload);
-      this.onCardAction?.(cardId, action, payload);
-    });
+    this.renderer = new RowRuleRenderer(
+      editorInstance, 
+      (cardId, action, payload) => {
+        this.handleInternalAction(cardId, action, payload);
+        this.onCardAction?.(cardId, action, payload);
+      },
+      hiddenAreasCoordinator
+    );
     this.onCardAction = onCardAction;
     
     this.hoverDecorationsCollection = this.editor.createDecorationsCollection();
@@ -84,7 +90,7 @@ export class RowBasedCardManager {
     this.parseContent();
     
     if (CONFIG.debug) {
-      console.log('[RowBasedCardManager] Initialized');
+      console.log('[RowBasedCardManager] Initialized with HiddenAreasCoordinator:', !!hiddenAreasCoordinator);
     }
   }
 
@@ -218,6 +224,7 @@ export class RowBasedCardManager {
    */
   private updateEditingState(): void {
     let changed = false;
+    const cardsToRemeasure: string[] = [];
 
     for (const card of this.cards.values()) {
       const wasEditing = card.isEditing;
@@ -236,16 +243,35 @@ export class RowBasedCardManager {
       if (wasEditing !== isEditing || isEditing) {
         card.isEditing = isEditing;
         
+        // If cursor is LEAVING the card, we need to ensure height is re-measured
+        // The preview panel will resize and we need fresh measurements
+        if (wasEditing && !isEditing) {
+          console.log('[RowBasedCardManager] Cursor left card, will re-measure:', card.id);
+          cardsToRemeasure.push(card.id);
+          // Clear cached height to force re-measurement on next resize event
+          // This ensures we don't use stale values
+          // NOTE: Don't delete - keep current value, let resize event update it
+        }
+        
         // Regenerate rules with new editing state and cursor line
         const generator = this.ruleGenerators.get(card.cardType);
         if (generator) {
+          const measuredHeight = this.cardHeights.get(card.id);
+          console.log('[RowBasedCardManager] Regenerating rules for card:', {
+            cardId: card.id,
+            isEditing,
+            wasEditing,
+            measuredHeight,
+            cursorLine: this.lastCursorLine,
+          });
+          
           card.rules = generator.generateRules(
             card.content,
             card.sourceRange,
             {
                 isEditing,
                 cursorLine: this.lastCursorLine,
-                measuredHeight: this.cardHeights.get(card.id)
+                measuredHeight
             }
           );
         }
@@ -256,6 +282,33 @@ export class RowBasedCardManager {
 
     if (changed) {
       this.render();
+      
+      // Schedule a follow-up render after a short delay to catch any resize events
+      // that fire after the initial render when collapsing
+      if (cardsToRemeasure.length > 0) {
+        setTimeout(() => {
+          console.log('[RowBasedCardManager] Follow-up render for re-measured cards');
+          // Re-render to pick up any height changes from resize events
+          for (const cardId of cardsToRemeasure) {
+            const card = this.cards.get(cardId);
+            if (card) {
+              const generator = this.ruleGenerators.get(card.cardType);
+              if (generator) {
+                card.rules = generator.generateRules(
+                  card.content,
+                  card.sourceRange,
+                  {
+                    isEditing: card.isEditing,
+                    cursorLine: this.lastCursorLine,
+                    measuredHeight: this.cardHeights.get(cardId)
+                  }
+                );
+              }
+            }
+          }
+          this.render();
+        }, 100); // Small delay to let ResizeObserver fire
+      }
     }
   }
 
@@ -272,8 +325,18 @@ export class RowBasedCardManager {
   private handleInternalAction(cardId: string, action: string, payload?: any): void {
       if (action === 'resize' && typeof payload?.height === 'number') {
           const currentHeight = this.cardHeights.get(cardId);
+          const heightDiff = currentHeight ? Math.abs(currentHeight - payload.height) : Infinity;
+          
+          console.log('[RowBasedCardManager] Resize action received:', {
+              cardId,
+              newHeight: payload.height,
+              currentHeight,
+              heightDiff,
+              willUpdate: heightDiff > 2,
+          });
+          
           // Only update if height changed significantly to avoid loops
-          if (!currentHeight || Math.abs(currentHeight - payload.height) > 2) {
+          if (heightDiff > 2) {
               this.cardHeights.set(cardId, payload.height);
 
               // Regenerate rules for this card immediately
@@ -281,6 +344,12 @@ export class RowBasedCardManager {
               if (card) {
                   const generator = this.ruleGenerators.get(card.cardType);
                   if (generator) {
+                      console.log('[RowBasedCardManager] Regenerating rules after resize:', {
+                          cardId,
+                          newHeight: payload.height,
+                          isEditing: card.isEditing,
+                      });
+                      
                       card.rules = generator.generateRules(
                           card.content,
                           card.sourceRange,
@@ -302,7 +371,8 @@ export class RowBasedCardManager {
                   options: {
                       isWholeLine: true,
                       className: 'wod-statement-hover-highlight',
-                      zIndex: 10
+                      zIndex: 10,
+                      stickiness: editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
                   }
               }
           ]);

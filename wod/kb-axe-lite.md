@@ -7,7 +7,6 @@
 ## Description
 A kettlebell interval workout focusing on technique and conditioning with moderate weight.
 
-## WOD Wiki Syntax
 ```wod
 (20) 1:00 
   6 KB Swings 70lb

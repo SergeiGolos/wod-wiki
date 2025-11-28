@@ -9,49 +9,10 @@ const meta: Meta<typeof TestableBlockHarness> = {
     layout: 'padded',
     docs: {
       description: {
-        component: `
-# AMRAP (Time Bound Rounds) Block Testing
-
-The **Time Bound Rounds Block** implements "As Many Rounds As Possible" (AMRAP) workouts. 
-It combines a countdown timer with an infinite loop of exercises.
-
-## Strategy: TimeBoundRoundsStrategy
-
-Matches when:
-- Has a \`Timer\` fragment
-- Has either:
-  - A \`Rounds\` fragment
-  - An \`Action\` or \`Effort\` fragment containing "AMRAP"
-
-## Behaviors
-
-1. **TimerBehavior**
-   - Direction: 'down' (Countdown)
-   - Duration: Derived from timer fragment (e.g., "20:00" = 1200000ms)
-   - Memory: Manages \`TIME_SPANS\` and \`IS_RUNNING\`
-
-2. **LoopCoordinatorBehavior**
-   - Loop Type: \`TIME_BOUND\`
-   - Total Rounds: \`Infinity\` (Unlimited)
-   - Cycles through children repeatedly
-   - Stops only when timer expires
-
-3. **CompletionBehavior**
-   - Checks if Timer has expired (\`elapsed >= duration\`)
-   - Marks block complete when time runs out
-
-## Example
-
-\`\`\`
-20:00 AMRAP
+        component: `20:00 AMRAP
   5 Pullups
   10 Pushups
-  15 Squats
-\`\`\`
-
-- Timer starts at 20:00 and counts down
-- Children execute in loop until timer hits 0:00
-        `
+  15 Squats`
       }
     }
   }

@@ -7,7 +7,6 @@
 ## Description
 Elizabeth tests Olympic lifting technique combined with upper body gymnastics strength.
 
-## WOD Wiki Syntax
 ```wod
 (21-15-9)
   Clean 135lb

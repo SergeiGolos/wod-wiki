@@ -7,7 +7,6 @@
 ## Description
 A sprint-focused swimming workout developing speed and explosive power.
 
-## WOD Wiki Syntax
 ```
 (8) Warmup
   25m Swim

@@ -2,6 +2,8 @@
 
 This document analyzes the WOD Wiki codebase against the best practices outlined in [Monaco Editor Line Manipulation APIs.md](Monaco%20Editor%20Line%20Manipulation%20APIs.md) and [Monaco Editor Syntax Highlighting Integration.md](Monaco%20Editor%20Syntax%20Highlighting%20Integration.md).
 
+> **⚠️ UPDATE (December 2024):** Most issues identified in this document have been resolved. See [Refactoring Summary](#refactoring-summary) at the end.
+
 ---
 
 ## Table of Contents
@@ -435,10 +437,10 @@ renderCards(cards: InlineCard[]): void {
 
 ### Priority 1: High Impact, Low Effort
 
-| Fix | Effort | Impact | Files |
-|-----|--------|--------|-------|
-| Add `stickiness` to all decorations | Low | High | CardRenderer.ts, RowRuleRenderer.ts |
-| Migrate to `createDecorationsCollection` | Medium | High | InlineWidgetCardManager.ts, FeatureRegistry.ts |
+| Fix                                      | Effort | Impact | Files                                          |
+| ---------------------------------------- | ------ | ------ | ---------------------------------------------- |
+| Add `stickiness` to all decorations      | Low    | High   | CardRenderer.ts, RowRuleRenderer.ts            |
+| Migrate to `createDecorationsCollection` | Medium | High   | InlineWidgetCardManager.ts, FeatureRegistry.ts |
 
 ### Priority 2: Medium Impact, Medium Effort
 
@@ -547,3 +549,47 @@ Addressing these issues will improve:
 - **Performance** during content changes
 - **Maintainability** of the codebase
 - **Reliability** of visual features
+---
+
+## Refactoring Summary
+
+**Date:** December 2024
+
+### Issues Resolved
+
+| Issue | What Was Done |
+|-------|---------------|
+| **Mixed decoration APIs** | Removed legacy code, migrated `RowRuleRenderer` to `createDecorationsCollection()` |
+| **Missing stickiness** | Added `editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges` to all decorations |
+| **Multiple changeViewZones calls** | Consolidated 3 separate calls into single `applyAllViewZones()` transaction |
+| **HiddenAreasCoordinator not wired** | Now passed through entire chain: `MarkdownEditor` → `RichMarkdownManager` → `RowBasedCardManager` → `RowRuleRenderer` |
+| **Legacy feature code** | Deleted 11 unused files from `src/editor/features/` and `src/editor/inline-cards/` |
+
+### Files Modified
+
+- `src/editor/inline-cards/RowRuleRenderer.ts` - Major refactoring
+- `src/editor/inline-cards/RowBasedCardManager.ts` - Added coordinator pass-through
+- `src/editor/RichMarkdownManager.ts` - Added coordinator pass-through
+- `src/editor/inline-cards/index.ts` - Removed legacy exports
+
+### Files Deleted
+
+**Legacy feature files:**
+- `src/editor/features/FeatureRegistry.ts`
+- `src/editor/features/BlockquoteFeature.ts`
+- `src/editor/features/FoldedSectionWidgetFeature.tsx`
+- `src/editor/features/FrontMatterFeature.ts`
+- `src/editor/features/HeadingFeature.ts`
+- `src/editor/features/MediaFeature.ts`
+- `src/editor/features/RichFeature.ts`
+- `src/editor/features/WodBlockFeature.ts`
+- `src/editor/features/WodBlockOverlayFeature.tsx`
+
+**Legacy inline-cards files:**
+- `src/editor/inline-cards/InlineWidgetCardManager.ts`
+- `src/editor/inline-cards/CardRenderer.ts`
+
+### Remaining Low-Priority Items
+
+1. **`layoutZone()` for dynamic heights** - Not currently needed (fixed heights used)
+2. **Zone-Widget pattern** - Current implementation sufficient for current interactivity level

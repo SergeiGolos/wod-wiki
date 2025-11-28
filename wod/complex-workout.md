@@ -7,7 +7,6 @@
 ## Description
 A challenging 20-minute AMRAP combining gymnastics skills and bodyweight movements.
 
-## WOD Wiki Syntax
 ```wod
 20:00 AMRAP
   + 5 Handstand Pushups

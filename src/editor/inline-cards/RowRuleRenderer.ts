@@ -17,7 +17,6 @@ import {
   FooterRowRule, 
   StyledRowRule, 
   OverlayRowRule,
-  GroupedContentRowRule,
   FullCardRowRule,
   HiddenAreaRule,
   ViewZoneRule,
@@ -27,6 +26,7 @@ import {
 } from './row-types';
 import { CardHeader } from './components/CardHeader';
 import { CardFooter } from './components/CardFooter';
+import { HiddenAreasCoordinator } from '../utils/HiddenAreasCoordinator';
 
 interface ViewZoneInfo {
   zoneId: string;
@@ -34,6 +34,8 @@ interface ViewZoneInfo {
   domNode: HTMLDivElement;
   lineNumber: number;
   ruleType: string;
+  heightInPx: number; // Track height for dynamic updates
+  afterLineNumber: number; // Track position for recreation
 }
 
 interface OverlayInfo {
@@ -46,20 +48,27 @@ interface OverlayInfo {
   scrollListener?: () => void;
 }
 
+// Unique source ID for hidden areas from this renderer
+const HIDDEN_AREAS_SOURCE_ID = 'row-rule-renderer';
+
 export class RowRuleRenderer {
   private editor: editor.IStandaloneCodeEditor;
   private viewZones: Map<string, ViewZoneInfo> = new Map();
   private overlays: Map<string, OverlayInfo> = new Map();
-  private decorations: string[] = [];
+  private decorationsCollection: editor.IEditorDecorationsCollection;
   private hiddenAreas: Range[] = [];
+  private hiddenAreasCoordinator?: HiddenAreasCoordinator;
   private onAction?: (cardId: string, action: string, payload?: unknown) => void;
   
   constructor(
     editorInstance: editor.IStandaloneCodeEditor,
-    onAction?: (cardId: string, action: string, payload?: unknown) => void
+    onAction?: (cardId: string, action: string, payload?: unknown) => void,
+    hiddenAreasCoordinator?: HiddenAreasCoordinator
   ) {
     this.editor = editorInstance;
     this.onAction = onAction;
+    this.hiddenAreasCoordinator = hiddenAreasCoordinator;
+    this.decorationsCollection = editorInstance.createDecorationsCollection();
   }
 
   /**
@@ -125,20 +134,17 @@ export class RowRuleRenderer {
     // Apply each type in correct order:
     // 1. Hidden areas first (affects line numbers)
     this.applyHiddenAreaRules(hiddenAreaRules);
-    // 2. View zones for headers/footers (replace hidden lines)
-    this.applyViewZoneRules(viewZoneRules);
-    // 3. Legacy header/footer rules
-    this.applyHeaderFooterRules(headerFooterRules);
-    // 4. Decorations for styling
+    // 2. ALL view zones in a single transaction (Monaco best practice)
+    this.applyAllViewZones(viewZoneRules, headerFooterRules, fullCardRules);
+    // 3. Decorations for styling
     this.applyStyledRules(styledRules);
-    // 5. Overlays for side-by-side views
+    // 4. Overlays for side-by-side views
     this.applyOverlayRules(overlayRules);
-    // 6. Full card replacements
-    this.applyFullCardRules(fullCardRules);
   }
 
   /**
-   * Apply hidden area rules using Monaco's setHiddenAreas
+   * Apply hidden area rules using HiddenAreasCoordinator (if available) or direct setHiddenAreas
+   * Using the coordinator prevents conflicts with other features that may hide areas.
    */
   private applyHiddenAreaRules(
     rules: Array<{ rule: HiddenAreaRule; card: InlineCard }>
@@ -157,7 +163,14 @@ export class RowRuleRenderer {
     const hasChanged = this.hiddenAreasChanged(newHiddenAreas);
     if (hasChanged) {
       this.hiddenAreas = newHiddenAreas;
-      (this.editor as any).setHiddenAreas(newHiddenAreas);
+      
+      // Use coordinator if available (prevents conflicts with other features)
+      if (this.hiddenAreasCoordinator) {
+        this.hiddenAreasCoordinator.updateHiddenAreas(HIDDEN_AREAS_SOURCE_ID, newHiddenAreas);
+      } else {
+        // Fallback to direct call (not recommended but maintains backwards compatibility)
+        (this.editor as any).setHiddenAreas(newHiddenAreas);
+      }
     }
   }
 
@@ -178,23 +191,137 @@ export class RowRuleRenderer {
 
   /**
    * Apply view zone rules for custom header/footer content
+   * CONSOLIDATED: All view zone operations in a single transaction (Monaco best practice)
    */
-  private applyViewZoneRules(
-    rules: Array<{ rule: ViewZoneRule; card: InlineCard }>
+  private applyAllViewZones(
+    viewZoneRules: Array<{ rule: ViewZoneRule; card: InlineCard }>,
+    headerFooterRules: Array<{ rule: HeaderRowRule | FooterRowRule; card: InlineCard }>,
+    fullCardRules: Array<{ rule: FullCardRowRule; card: InlineCard }>
   ): void {
     const currentZoneKeys = new Set<string>();
 
-    console.log('[RowRuleRenderer] Applying', rules.length, 'view zone rules');
+    console.log('[RowRuleRenderer] Applying view zones in single transaction:', {
+      viewZoneRules: viewZoneRules.length,
+      headerFooterRules: headerFooterRules.length,
+      fullCardRules: fullCardRules.length,
+    });
+    
+    // Log all incoming rules for debugging
+    for (const { rule, card } of viewZoneRules) {
+      console.log('[RowRuleRenderer] ViewZone rule:', {
+        key: `viewzone-${rule.zonePosition}-${rule.lineNumber}`,
+        cardId: card.id,
+        heightInPx: rule.heightInPx,
+        zonePosition: rule.zonePosition,
+      });
+    }
+    
+    // Log current state of view zones
+    console.log('[RowRuleRenderer] Current zones before update:', 
+      Array.from(this.viewZones.entries()).map(([key, info]) => ({
+        key,
+        heightInPx: info.heightInPx,
+        afterLineNumber: info.afterLineNumber,
+      }))
+    );
+
+    // Sort view zone rules to ensure consistent ordering:
+    // 1. Sort by afterLineNumber (ascending)
+    // 2. For same afterLineNumber: footers before headers (footers of previous cards before headers of next cards)
+    const sortedViewZoneRules = [...viewZoneRules].sort((a, b) => {
+      const aAfterLine = a.rule.afterLineNumber !== undefined
+        ? a.rule.afterLineNumber
+        : (a.rule.zonePosition === 'header' ? Math.max(0, a.rule.lineNumber - 1) : a.rule.lineNumber);
+      const bAfterLine = b.rule.afterLineNumber !== undefined
+        ? b.rule.afterLineNumber
+        : (b.rule.zonePosition === 'header' ? Math.max(0, b.rule.lineNumber - 1) : b.rule.lineNumber);
+      
+      if (aAfterLine !== bAfterLine) {
+        return aAfterLine - bAfterLine;
+      }
+      // Same afterLineNumber: footers before headers
+      // This ensures heading padding (footer) comes before wod-block header
+      if (a.rule.zonePosition === 'footer' && b.rule.zonePosition === 'header') return -1;
+      if (a.rule.zonePosition === 'header' && b.rule.zonePosition === 'footer') return 1;
+      return 0;
+    });
 
     this.editor.changeViewZones((accessor) => {
-      for (const { rule, card } of rules) {
+      // IMPORTANT: First remove ALL old zones, then add new ones in sorted order
+      // This ensures consistent zone ordering regardless of when zones were originally created
+      const zonesToKeep = new Map<string, { rule: ViewZoneRule; card: InlineCard; afterLineNumber: number }>();
+      
+      // 1. Identify which zones we need
+      for (const { rule, card } of sortedViewZoneRules) {
         const key = `viewzone-${rule.zonePosition}-${rule.lineNumber}`;
         currentZoneKeys.add(key);
         
-        const existing = this.viewZones.get(key);
+        const afterLineNumber = rule.afterLineNumber !== undefined
+          ? rule.afterLineNumber
+          : (rule.zonePosition === 'header' 
+            ? Math.max(0, rule.lineNumber - 1) 
+            : rule.lineNumber);
         
-        if (!existing) {
-          // Create new view zone
+        zonesToKeep.set(key, { rule, card, afterLineNumber });
+      }
+      
+      // 2. Remove ALL existing view zones (we'll re-add them in correct order)
+      const existingZonesToReuse = new Map<string, ViewZoneInfo>();
+      for (const [key, zone] of this.viewZones) {
+        const keepInfo = zonesToKeep.get(key);
+        if (keepInfo) {
+          // Check if we can reuse this zone (same height and position)
+          const heightSame = Math.abs(zone.heightInPx - keepInfo.rule.heightInPx) <= 1;
+          const positionSame = zone.afterLineNumber === keepInfo.afterLineNumber;
+          
+          if (heightSame && positionSame) {
+            // Keep existing zone - don't remove
+            existingZonesToReuse.set(key, zone);
+            continue;
+          }
+        }
+        // Remove this zone (either not needed or needs recreation)
+        accessor.removeZone(zone.zoneId);
+        if (!zonesToKeep.has(key)) {
+          zone.root.unmount();
+          this.viewZones.delete(key);
+        }
+      }
+      
+      // 3. Add/update zones in sorted order
+      for (const { rule, card } of sortedViewZoneRules) {
+        const key = `viewzone-${rule.zonePosition}-${rule.lineNumber}`;
+        const keepInfo = zonesToKeep.get(key)!;
+        const existing = existingZonesToReuse.get(key);
+        
+        if (existing) {
+          // Zone already exists with correct height/position - skip
+          continue;
+        }
+        
+        // Need to create or recreate this zone
+        const oldZone = this.viewZones.get(key);
+        
+        if (oldZone) {
+          // Recreate with existing DOM node
+          console.log('[RowRuleRenderer] Recreating view zone:', {
+            key,
+            afterLineNumber: keepInfo.afterLineNumber,
+            heightInPx: rule.heightInPx,
+          });
+          
+          const zoneId = accessor.addZone({
+            afterLineNumber: keepInfo.afterLineNumber,
+            heightInPx: rule.heightInPx,
+            domNode: oldZone.domNode,
+            suppressMouseDown: false,
+          });
+          
+          oldZone.zoneId = zoneId;
+          oldZone.heightInPx = rule.heightInPx;
+          oldZone.afterLineNumber = keepInfo.afterLineNumber;
+        } else {
+          // Create brand new zone
           const domNode = document.createElement('div');
           domNode.className = `row-rule-zone ${rule.zonePosition}-zone ${rule.className || ''} card-type-${rule.cardType}`;
           
@@ -230,25 +357,17 @@ export class RowRuleRenderer {
             );
           }
 
-          // Position: header appears after previous line, footer appears after this line
-          // For line 1, afterLineNumber would be 0 which Monaco handles correctly
-          // Use explicit afterLineNumber if provided (for cases where auto-calculation would reference a hidden line)
-          const afterLineNumber = rule.afterLineNumber !== undefined
-            ? rule.afterLineNumber
-            : (rule.zonePosition === 'header' 
-              ? Math.max(0, rule.lineNumber - 1) 
-              : rule.lineNumber);
-
-          console.log('[RowRuleRenderer] Creating view zone:', {
+          console.log('[RowRuleRenderer] Creating new view zone:', {
             key,
             position: rule.zonePosition,
-            afterLineNumber,
+            afterLineNumber: keepInfo.afterLineNumber,
             heightInPx: rule.heightInPx,
             cardType: rule.cardType,
+            title: rule.title,
           });
 
           const zoneId = accessor.addZone({
-            afterLineNumber,
+            afterLineNumber: keepInfo.afterLineNumber,
             heightInPx: rule.heightInPx,
             domNode,
             suppressMouseDown: false,
@@ -260,35 +379,20 @@ export class RowRuleRenderer {
             domNode,
             lineNumber: rule.lineNumber,
             ruleType: `view-zone-${rule.zonePosition}`,
+            heightInPx: rule.heightInPx,
+            afterLineNumber: keepInfo.afterLineNumber,
           });
         }
       }
 
-      // Remove old view zones
-      for (const [key, zone] of this.viewZones) {
-        if (!currentZoneKeys.has(key) && key.startsWith('viewzone-')) {
-          accessor.removeZone(zone.zoneId);
-          zone.root.unmount();
-          this.viewZones.delete(key);
-        }
-      }
-    });
-  }
-
-  /**
-   * Apply header and footer rules using view zones
-   */
-  private applyHeaderFooterRules(
-    rules: Array<{ rule: HeaderRowRule | FooterRowRule; card: InlineCard }>
-  ): void {
-    const currentZoneKeys = new Set<string>();
-
-    this.editor.changeViewZones((accessor) => {
-      for (const { rule, card } of rules) {
+      // 2. Process HeaderRowRule/FooterRowRule types
+      for (const { rule, card } of headerFooterRules) {
         const key = `${rule.overrideType}-${rule.lineNumber}`;
         currentZoneKeys.add(key);
         
         const existing = this.viewZones.get(key);
+        const heightInPx = 32; // Compact header/footer height (fixed)
+        const afterLineNumber = rule.lineNumber - 1;
         
         if (!existing) {
           // Create new view zone
@@ -319,8 +423,8 @@ export class RowRuleRenderer {
           }
 
           const zoneId = accessor.addZone({
-            afterLineNumber: rule.lineNumber - 1,
-            heightInPx: 32, // Compact header/footer height
+            afterLineNumber,
+            heightInPx,
             domNode,
             suppressMouseDown: false,
           });
@@ -331,13 +435,90 @@ export class RowRuleRenderer {
             domNode,
             lineNumber: rule.lineNumber,
             ruleType: rule.overrideType,
+            heightInPx,
+            afterLineNumber,
           });
         }
       }
 
-      // Remove old zones
+      // 3. Process FullCardRowRule types
+      for (const { rule, card } of fullCardRules) {
+        const key = `full-card-${rule.lineNumber}`;
+        currentZoneKeys.add(key);
+        
+        const existing = this.viewZones.get(key);
+        const model = this.editor.getModel();
+        const afterLineNumber = rule.lineNumber - 1;
+        
+        const renderProps: CardRenderProps = {
+          sourceRange: card.sourceRange,
+          sourceText: model?.getLineContent(rule.lineNumber) || '',
+          displayMode: card.isEditing ? 'half-screen' : 'beside',
+          isEditing: card.isEditing,
+          onEdit: () => this.focusLine(rule.lineNumber),
+          onAction: (action, payload) => this.onAction?.(card.id, action, payload),
+        };
+
+        // Check if we need to update an existing zone (height changed)
+        if (existing && existing.heightInPx !== rule.heightPx) {
+          console.log('[RowRuleRenderer] Updating full-card view zone height:', {
+            key,
+            oldHeight: existing.heightInPx,
+            newHeight: rule.heightPx,
+          });
+          
+          // Remove old zone and create new one with updated height
+          accessor.removeZone(existing.zoneId);
+          
+          const zoneId = accessor.addZone({
+            afterLineNumber,
+            heightInPx: rule.heightPx,
+            domNode: existing.domNode,
+            suppressMouseDown: false,
+          });
+          
+          // Update the stored info with new zone ID and height
+          existing.zoneId = zoneId;
+          existing.heightInPx = rule.heightPx;
+          existing.afterLineNumber = afterLineNumber;
+          
+          // Also update content
+          existing.root.render(rule.renderCard(renderProps));
+          continue;
+        }
+
+        if (!existing) {
+          const domNode = document.createElement('div');
+          domNode.className = `full-card-zone card-type-${rule.cardType}`;
+          
+          const root = ReactDOM.createRoot(domNode);
+          root.render(rule.renderCard(renderProps));
+
+          const zoneId = accessor.addZone({
+            afterLineNumber,
+            heightInPx: rule.heightPx,
+            domNode,
+            suppressMouseDown: false,
+          });
+
+          this.viewZones.set(key, {
+            zoneId,
+            root,
+            domNode,
+            lineNumber: rule.lineNumber,
+            ruleType: 'full-card',
+            heightInPx: rule.heightPx,
+            afterLineNumber,
+          });
+        } else {
+          // Update existing content (height unchanged)
+          existing.root.render(rule.renderCard(renderProps));
+        }
+      }
+
+      // 4. Remove all old view zones in single pass
       for (const [key, zone] of this.viewZones) {
-        if (!currentZoneKeys.has(key) && (key.startsWith('header-') || key.startsWith('footer-'))) {
+        if (!currentZoneKeys.has(key)) {
           accessor.removeZone(zone.zoneId);
           zone.root.unmount();
           this.viewZones.delete(key);
@@ -370,6 +551,7 @@ export class RowRuleRenderer {
             inlineClassName: decoration.inlineClassName,
             beforeContentClassName: decoration.beforeContentClassName,
             afterContentClassName: decoration.afterContentClassName,
+            stickiness: editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
           },
         });
       }
@@ -380,13 +562,14 @@ export class RowRuleRenderer {
           range: new Range(rule.lineNumber, 1, rule.lineNumber, decoration.prefixLength + 1),
           options: {
             inlineClassName: 'hidden-prefix opacity-30 text-xs',
+            stickiness: editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
           },
         });
       }
     }
 
-    // Apply all decorations
-    this.decorations = this.editor.deltaDecorations(this.decorations, decorations);
+    // Apply all decorations using the collection
+    this.decorationsCollection.set(decorations);
   }
 
   /**
@@ -530,6 +713,16 @@ export class RowRuleRenderer {
     const topOffset = rule.topOffset || 0;
     const top = startLineTop - scrollTop + topOffset;
     
+    console.log('[RowRuleRenderer] Positioning overlay:', {
+      overlayId: rule.overlayId,
+      spanLines,
+      startLineTop,
+      scrollTop,
+      topOffset,
+      calculatedTop: top,
+      fixedHeight: rule.fixedHeight,
+    });
+    
     // Position the overlay
     domNode.style.top = `${top}px`;
     
@@ -557,87 +750,6 @@ export class RowRuleRenderer {
   }
 
   /**
-   * Update overlay height to match spanning lines or fixed height
-   */
-  private updateOverlayHeight(
-    domNode: HTMLElement,
-    rule: OverlayRowRule,
-    spanLines: { startLine: number; endLine: number }
-  ): void {
-    if (rule.heightMode === 'fixed' && rule.fixedHeight) {
-      domNode.style.height = `${rule.fixedHeight}px`;
-    } else if (rule.heightMode === 'match-lines') {
-      const lineHeight = this.editor.getOption(editor.EditorOption.lineHeight);
-      const lineCount = spanLines.endLine - spanLines.startLine + 1;
-      const totalHeight = lineCount * lineHeight;
-      domNode.style.height = `${totalHeight}px`;
-    }
-  }
-
-  /**
-   * Apply full-card rules using view zones
-   */
-  private applyFullCardRules(
-    rules: Array<{ rule: FullCardRowRule; card: InlineCard }>
-  ): void {
-    const currentKeys = new Set<string>();
-
-    this.editor.changeViewZones((accessor) => {
-      for (const { rule, card } of rules) {
-        const key = `full-card-${rule.lineNumber}`;
-        currentKeys.add(key);
-        
-        const existing = this.viewZones.get(key);
-        const model = this.editor.getModel();
-        
-        const renderProps: CardRenderProps = {
-          sourceRange: card.sourceRange,
-          sourceText: model?.getLineContent(rule.lineNumber) || '',
-          displayMode: card.isEditing ? 'half-screen' : 'beside',
-          isEditing: card.isEditing,
-          onEdit: () => this.focusLine(rule.lineNumber),
-          onAction: (action, payload) => this.onAction?.(card.id, action, payload),
-        };
-
-        if (!existing) {
-          const domNode = document.createElement('div');
-          domNode.className = `full-card-zone card-type-${rule.cardType}`;
-          
-          const root = ReactDOM.createRoot(domNode);
-          root.render(rule.renderCard(renderProps));
-
-          const zoneId = accessor.addZone({
-            afterLineNumber: rule.lineNumber - 1,
-            heightInPx: rule.heightPx,
-            domNode,
-            suppressMouseDown: false,
-          });
-
-          this.viewZones.set(key, {
-            zoneId,
-            root,
-            domNode,
-            lineNumber: rule.lineNumber,
-            ruleType: 'full-card',
-          });
-        } else {
-          // Update existing
-          existing.root.render(rule.renderCard(renderProps));
-        }
-      }
-
-      // Remove old full-card zones
-      for (const [key, zone] of this.viewZones) {
-        if (!currentKeys.has(key) && key.startsWith('full-card-')) {
-          accessor.removeZone(zone.zoneId);
-          zone.root.unmount();
-          this.viewZones.delete(key);
-        }
-      }
-    });
-  }
-
-  /**
    * Focus the editor on a specific line
    */
   private focusLine(lineNumber: number): void {
@@ -650,9 +762,13 @@ export class RowRuleRenderer {
    * Clear all rendered elements
    */
   clear(): void {
-    // Clear hidden areas first
+    // Clear hidden areas first (use coordinator if available)
     this.hiddenAreas = [];
-    (this.editor as any).setHiddenAreas([]);
+    if (this.hiddenAreasCoordinator) {
+      this.hiddenAreasCoordinator.clearHiddenAreas(HIDDEN_AREAS_SOURCE_ID);
+    } else {
+      (this.editor as any).setHiddenAreas([]);
+    }
 
     // Remove view zones
     this.editor.changeViewZones((accessor) => {
@@ -681,7 +797,7 @@ export class RowRuleRenderer {
     }
 
     // Clear decorations
-    this.decorations = this.editor.deltaDecorations(this.decorations, []);
+    this.decorationsCollection.clear();
   }
 
   /**

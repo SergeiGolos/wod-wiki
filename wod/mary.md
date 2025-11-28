@@ -7,7 +7,6 @@
 ## Description
 Mary is a challenging gymnastics-focused AMRAP that tests skill and endurance.
 
-## WOD Wiki Syntax
 ```wod
 20:00 AMRAP
   + 5 Handstand Pushups

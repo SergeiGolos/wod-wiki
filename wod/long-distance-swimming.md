@@ -7,7 +7,6 @@
 ## Description
 A distance-focused swimming workout building endurance for longer events.
 
-## WOD Wiki Syntax
 ```wod
 (3) Warmup
   200m Swim
