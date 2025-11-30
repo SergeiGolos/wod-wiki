@@ -226,22 +226,22 @@ async function main() {
     services.push({ name: 'metro', command: 'npm start', cwd: 'tv', color: 'magenta' });
   }
 
+  // Build service commands
+  const commands = services.map(service => {
+    return service.cwd 
+      ? `"cd ${service.cwd} && ${service.command}"`
+      : `"${service.command}"`;
+  });
+
   // Build concurrently arguments
   const concurrentlyArgs = [
     'concurrently',
     '--kill-others-on-fail',
     '--prefix', '[{name}]',
+    '--names', services.map(s => s.name).join(','),
     '--prefix-colors', services.map(s => s.color).join(','),
+    ...commands,
   ];
-
-  // Add named commands
-  services.forEach(service => {
-    const cmd = service.cwd 
-      ? `cd ${service.cwd} && ${service.command}`
-      : service.command;
-    concurrentlyArgs.push('--names', service.name);
-    concurrentlyArgs.push(cmd);
-  });
 
   // Use npx to run concurrently
   const concurrentlyProcess = spawn('npx', concurrentlyArgs, {
