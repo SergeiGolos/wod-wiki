@@ -46,7 +46,7 @@ export class BlockContext implements IBlockContext {
     allocate<T>(
         type: MemoryTypeEnum | string, 
         initialValue?: T, 
-        visibility: 'public' | 'private' = 'private'
+        visibility: 'public' | 'private' | 'inherited' = 'private'
     ): TypedMemoryReference<T> {
         if (this._released) {
             throw new Error(

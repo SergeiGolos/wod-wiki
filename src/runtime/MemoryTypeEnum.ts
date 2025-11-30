@@ -31,4 +31,10 @@ export enum MemoryTypeEnum {
    * Type: number
    */
   METRIC_REPS = 'metric:reps',
+  
+  /**
+   * Anchor for cross-block references
+   * Type: IAnchorValue
+   */
+  ANCHOR = 'anchor',
 }

@@ -10,7 +10,7 @@ export type MemorySearchCriteria = {
     id: string | null;
     ownerId: string | null;
     type: string | null;
-    visibility: 'public' | 'private' | null;
+    visibility: 'public' | 'private' | 'inherited' | null;
 };
 
 /**
@@ -22,7 +22,7 @@ export interface IRuntimeMemory {
      * Allocates a new memory location and returns a reference to it.
      * This memory will be automatically cleaned up when the associated stack item is removed.
      */
-    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility?: 'public' | 'private'): TypedMemoryReference<T>;
+    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility?: 'public' | 'private' | 'inherited'): TypedMemoryReference<T>;
         
     /**
      * Gets a memory reference by its ID.

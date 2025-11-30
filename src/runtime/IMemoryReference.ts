@@ -9,7 +9,7 @@ export interface IMemoryReference {
     readonly id: string;
     readonly ownerId: string;
     readonly type: string;
-    readonly visibility: 'public' | 'private';
+    readonly visibility: 'public' | 'private' | 'inherited';
     
     /**
      * Get the current value in an untyped manner.
@@ -45,7 +45,7 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
         private readonly _memory: IRuntimeMemory,
         public readonly ownerId: string,
         public readonly type: string,
-        public visibility: "public" | "private" = 'private',
+        public visibility: "public" | "private" | "inherited" = 'private',
 
     ) {
     }

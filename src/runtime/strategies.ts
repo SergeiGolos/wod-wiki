@@ -53,20 +53,19 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         
         // If no explicit reps, check for inherited reps from parent blocks
         if (reps === undefined) {
-          const publicRepsRefs = runtime.memory.search({
+          const inheritedRepsRefs = runtime.memory.search({
             type: MemoryTypeEnum.METRIC_REPS,
-            visibility: 'public',
+            visibility: 'inherited',
             id: null,
             ownerId: null
           });
           
-          if (publicRepsRefs.length > 0) {
-            // Use the most recent public reps metric (last in array)
-            const latestRepsRef = publicRepsRefs[publicRepsRefs.length - 1];
+          if (inheritedRepsRefs.length > 0) {
+            // Use the most recent inherited reps metric (last in array)
+            const latestRepsRef = inheritedRepsRefs[inheritedRepsRefs.length - 1];
             const inheritedReps = runtime.memory.get(latestRepsRef as any);
             if (inheritedReps !== undefined) {
               reps = inheritedReps as number;
-
             }
           }
         }
@@ -291,7 +290,21 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             childGroups: children,
             loopType,
             totalRounds,
-            repScheme
+            repScheme,
+            onRoundStart: (rt, roundIndex) => {
+                if (repScheme && repScheme.length > roundIndex) {
+                     const currentReps = repScheme[roundIndex];
+                     const refs = rt.memory.search({ 
+                         type: MemoryTypeEnum.METRIC_REPS, 
+                         ownerId: blockId,
+                         id: null,
+                         visibility: 'inherited'
+                     });
+                     if (refs.length > 0) {
+                         rt.memory.set(refs[0] as any, currentReps);
+                     }
+                }
+            }
         });
         behaviors.push(loopCoordinator);
         behaviors.push(new HistoryBehavior("Rounds"));
@@ -307,36 +320,10 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
              context.allocate(
                 MemoryTypeEnum.METRIC_REPS,
                 repScheme[0],
-                'public'
+                'inherited'
             );
             
-            // Note: RoundsBlock had logic to update this metric on next().
-            // LoopCoordinatorBehavior doesn't inherently update memory.
-            // We might need a MetricBehavior or handle it in LoopCoordinator.
-            // For now, let's assume LoopCoordinator handles context passing or we add a listener?
-            // Actually, RoundsBlock.next() did this.
-            // We can add a custom behavior or hook here if needed.
-            // But LoopCoordinatorBehavior has getRepsForCurrentRound().
-            // Let's add a simple behavior to update the metric on next.
-            behaviors.push({
-                onNext: (rt, _blk) => {
-                    const currentReps = loopCoordinator.getRepsForCurrentRound();
-                    if (currentReps !== undefined) {
-                         // Find the memory ref we just allocated?
-                         // Or just search for it.
-                         const refs = rt.memory.search({ 
-                             type: MemoryTypeEnum.METRIC_REPS, 
-                             ownerId: blockId,
-                             id: null,
-                             visibility: null
-                         });
-                         if (refs.length > 0) {
-                             rt.memory.set(refs[0] as any, currentReps);
-                         }
-                    }
-                    return [];
-                }
-            });
+
         }
 
         const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;

@@ -12,7 +12,7 @@ export class RuntimeMemory implements IRuntimeMemory {
     private _globalSubscribers: Set<(ref: IMemoryReference, value: any, oldValue: any) => void> = new Set();
 
     // Allocates a new memory location and returns a reference to it.
-    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' = 'private'): TypedMemoryReference<T> {
+    allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' | 'inherited' = 'private'): TypedMemoryReference<T> {
         const ref = new TypedMemoryReference<T>(this, ownerId, type, visibility);        
         this._references.push({ ref, data: initialValue });
         return ref;

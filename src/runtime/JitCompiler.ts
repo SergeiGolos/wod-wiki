@@ -9,8 +9,8 @@ import { CodeStatement } from "@/CodeStatement";
  * compilation engine coordinating fragment compilation, strategy management, 
  * and block creation in the Wod.Wiki runtime system.
  * 
- * Metric inheritance is handled via public memory references rather than
- * CompilationContext - parent blocks expose metrics with 'public' visibility,
+ * Metric inheritance is handled via inherited memory references rather than
+ * CompilationContext - parent blocks expose metrics with 'inherited' visibility,
  * and child strategies search memory for inherited values.
  */
 export class JitCompiler {

@@ -45,6 +45,9 @@ export interface LoopConfig {
   
   /** Interval duration in milliseconds (for interval type) */
   intervalDurationMs?: number;
+  
+  /** Callback executed when a new round starts (before child compilation) */
+  onRoundStart?: (runtime: IScriptRuntime, roundIndex: number) => void;
 }
 
 /**
@@ -178,6 +181,11 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Emit for every round start, including the first one (rounds=0)
     if (state.position === 0) {
       this.emitRoundChanged(runtime, state.rounds, _block);
+      
+      // Execute custom round start logic (e.g., updating inherited metrics)
+      if (this.config.onRoundStart) {
+          this.config.onRoundStart(runtime, state.rounds);
+      }
     }
 
     // Get the child group IDs at current position
