@@ -104,7 +104,7 @@ Based on code reuse potential and development efficiency, **React Native for And
 ### 2.1 Project Structure
 
 ```
-wod-wiki-tv/
+tv/
 ├── android/                    # Native Android code
 │   └── app/
 │       ├── src/main/
@@ -718,7 +718,7 @@ wod-wiki/
 ### 7.2 Option B: Git Submodule
 
 ```
-wod-wiki-tv/
+tv/
 ├── shared/                      # Git submodule -> wod-wiki/packages/core
 └── src/
 ```

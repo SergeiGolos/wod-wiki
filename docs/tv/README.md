@@ -126,6 +126,59 @@ Web App (Track View)                    Android TV
 
 ---
 
+### [05-local-development-testing.md](05-local-development-testing.md)
+
+**Purpose**: Local development environment setup and testing guide
+
+**Key Topics**:
+- Development environment prerequisites
+- Relay server local setup
+- Android TV emulator configuration
+- Unit testing strategies (Vitest)
+- Integration testing (WebSocket flows)
+- End-to-end testing (Detox for TV)
+- Manual testing checklists
+- Debugging tools (ADB, BLE, WebSocket)
+- Performance testing and profiling
+- CI/CD integration with GitHub Actions
+- Troubleshooting common issues
+
+**Test Categories**:
+- Connection flow tests
+- State synchronization tests
+- Remote control tests
+- Network resilience tests
+- Heart rate monitor tests
+- Workout completion tests
+
+---
+
+### [06-play-store-deployment.md](06-play-store-deployment.md)
+
+**Purpose**: Google Play Store submission and deployment guide
+
+**Key Topics**:
+- Google Play Developer Account setup
+- Android Manifest configuration for TV
+- App signing and build configuration
+- Store listing assets (banner, screenshots, graphics)
+- Store listing content (descriptions, category)
+- Privacy policy requirements
+- Data safety form completion
+- Testing tracks (Internal, Closed, Open)
+- Production release process
+- Post-launch monitoring
+- CI/CD for automated releases
+- Common rejection reasons and solutions
+
+**Deployment Stages**:
+- Internal testing (immediate)
+- Closed beta (1-3 days review)
+- Open testing (1-3 days review)
+- Production (3-7 days initial review)
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Infrastructure (Week 1-2)

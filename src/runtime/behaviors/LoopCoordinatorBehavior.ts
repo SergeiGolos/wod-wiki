@@ -1,31 +1,3 @@
-/**
- * LoopCoordinatorBehavior
- * 
- * Unified behavior for managing loop execution in workout blocks.
- * Replaces the fragmented RoundsBehavior + ChildAdvancementBehavior + LazyCompilationBehavior model.
- * 
- * Features:
- * - Tracks loop state: index (total advancements), position (child index), rounds (completed rounds)
- * - Supports multiple loop types: fixed rounds, rep schemes, time-bound (AMRAP), intervals (EMOM)
- * - Handles child group compilation with context passing
- * - Automatic initial push on mount
- * - Round boundary detection and event emission
- * 
- * Loop State Model:
- * - index: Increments on every next() call (0, 1, 2, 3...)
- * - position: index % childGroups.length (which child group to execute)
- * - rounds: Math.floor(index / childGroups.length) (completed rounds, 0-indexed)
- * 
- * Example (Fran: (21-15-9) Thrusters, Pullups):
- * - mount: index=-1 → push Thrusters (21 reps)
- * - next1: index=0, pos=0, round=0 → push Pullups (21 reps)
- * - next2: index=1, pos=1, round=0 → push Thrusters (15 reps) [round wrap]
- * - next3: index=2, pos=0, round=1 → push Pullups (15 reps)
- * - next4: index=3, pos=1, round=1 → push Thrusters (9 reps) [round wrap]
- * - next5: index=4, pos=0, round=2 → push Pullups (9 reps)
- * - next6: index=5, pos=1, round=2 → complete (rounds=2, totalRounds=3)
- */
-
 import { CodeStatement } from '../../core/models/CodeStatement';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -33,6 +5,7 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from './TimerBehavior';
+import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 
 /**
  * Loop type determines completion logic.
@@ -189,24 +162,36 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       return [];
     }
 
+    const actions: IRuntimeAction[] = [];
+
+    // Update round display info
+    // We update this on every step to ensure it's correct, but we could optimize to only update on change
+    // Current round is 1-indexed for display
+    const currentRound = state.rounds + 1;
+    const totalRounds = this.config.totalRounds;
+    
+    if (totalRounds) {
+      actions.push(new SetRoundsDisplayAction(currentRound, totalRounds));
+    }
+
     // Check if this is a round boundary (position wrapped to 0)
-    // Note: Don't emit on very first push (index=0, rounds=0)
-    if (state.position === 0 && state.rounds > 0) {
-      this.emitRoundChanged(runtime, state.rounds);
+    // Emit for every round start, including the first one (rounds=0)
+    if (state.position === 0) {
+      this.emitRoundChanged(runtime, state.rounds, _block);
     }
 
     // Get the child group IDs at current position
     const childGroupIds = this.config.childGroups[state.position];
     if (!childGroupIds || childGroupIds.length === 0) {
       console.warn(`LoopCoordinatorBehavior: No children at position ${state.position}`);
-      return [];
+      return actions;
     }
 
     // Resolve child IDs to statements (lazy JIT resolution)
     const childStatements = runtime.script.getIds(childGroupIds);
     if (childStatements.length === 0) {
       console.warn(`LoopCoordinatorBehavior: Failed to resolve child IDs at position ${state.position}`);
-      return [];
+      return actions;
     }
 
     // Compile the child group using JIT compiler
@@ -216,14 +201,15 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       
       if (!compiledBlock) {
         console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);
-        return [];
+        return actions;
       }
 
       // Return PushBlockAction to push the compiled child onto the stack
-      return [new PushBlockAction(compiledBlock)];
+      actions.push(new PushBlockAction(compiledBlock));
+      return actions;
     } catch (error) {
       console.error(`LoopCoordinatorBehavior: Compilation failed for position ${state.position}:`, error);
-      return [];
+      return actions;
     }
   }
 
@@ -283,13 +269,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   /**
    * Emits rounds:changed event.
    */
-  private emitRoundChanged(runtime: IScriptRuntime, rounds: number): void {
-    // TODO: Implement event emission
-    // runtime.emit('rounds:changed', {
-    //   round: rounds + 1, // 1-indexed for display
-    //   totalRounds: this.config.totalRounds || 0,
-    // });
-  }
+
 
   /**
    * Gets the number of completed rounds (for AMRAP tracking).
@@ -305,8 +285,31 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when the block is popped from the stack.
    * Cleanup any state if needed.
    */
-  onPop(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
-    // No cleanup needed for stateless behavior
+  onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    // Close the current round record if it exists
+    const state = this.getState();
+    const currentRound = state.rounds + 1;
+    const roundId = `${block.key.toString()}-round-${currentRound}`;
+    
+    const refs = runtime.memory.search({ 
+        type: 'execution-record', 
+        id: roundId,
+        ownerId: block.key.toString(), 
+        visibility: null 
+    });
+
+    if (refs.length > 0) {
+        const record = runtime.memory.get(refs[0] as any) as any;
+        if (record && record.status === 'active') {
+            const updatedRecord = {
+                ...record,
+                endTime: Date.now(),
+                status: 'completed'
+            };
+            runtime.memory.set(refs[0] as any, updatedRecord);
+        }
+    }
+
     return [];
   }
 
@@ -316,5 +319,59 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    */
   dispose(): void {
     // No resources to dispose (no timers, no event listeners)
+  }
+
+  /**
+   * Emits rounds:changed event and manages round execution records.
+   */
+  private emitRoundChanged(runtime: IScriptRuntime, rounds: number, block: IRuntimeBlock): void {
+    const blockId = block.key.toString();
+    const prevRound = rounds; // The round that just finished (0-indexed)
+    const nextRound = rounds + 1; // The new round (1-indexed)
+
+    // 1. Close previous round record
+    if (prevRound > 0) {
+        const prevRoundId = `${blockId}-round-${prevRound}`;
+        const refs = runtime.memory.search({ 
+            type: 'execution-record', 
+            id: prevRoundId,
+            ownerId: blockId, 
+            visibility: null 
+        });
+
+        if (refs.length > 0) {
+            const record = runtime.memory.get(refs[0] as any) as any;
+            if (record && record.status === 'active') {
+                const updatedRecord = {
+                    ...record,
+                    endTime: Date.now(),
+                    status: 'completed'
+                };
+                runtime.memory.set(refs[0] as any, updatedRecord);
+            }
+        }
+    }
+
+    // 2. Create new round record
+    // Only if we are not complete
+    if (rounds < (this.config.totalRounds || Infinity)) {
+        const newRoundId = `${blockId}-round-${nextRound}`;
+        const label = this.config.loopType === LoopType.INTERVAL 
+            ? `Interval ${nextRound}`
+            : `Round ${nextRound}`;
+            
+        const record = {
+            id: newRoundId,
+            blockId: blockId, // It belongs to this block
+            parentId: blockId, // It is a child of this block
+            type: this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round',
+            label: label,
+            startTime: Date.now(),
+            status: 'active',
+            metrics: []
+        };
+
+        runtime.memory.allocate('execution-record', blockId, record, 'public');
+    }
   }
 }

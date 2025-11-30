@@ -5,6 +5,8 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TimerState, TimerSpan } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/TimerDisplayActions';
+import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
 
 /**
  * Timer memory reference types for runtime memory system.
@@ -68,6 +70,8 @@ export class TimerBehavior implements IRuntimeBehavior {
     }
   }
 
+
+
   /**
    * Start the timer when block is pushed onto the stack.
    * Initializes memory references and emits timer:started event.
@@ -119,8 +123,37 @@ export class TimerBehavior implements IRuntimeBehavior {
       },
     });
 
+    // Create display actions
+    const timerAction = new PushTimerDisplayAction({
+      id: `timer-${block.key}`,
+      ownerId: block.key.toString(),
+      timerMemoryId: this.timerRef.id,
+      label: this.label,
+      format: this.direction === 'down' ? 'countdown' : 'countup',
+      durationMs: this.durationMs,
+      // Default buttons could be added here if needed
+    });
 
-    return [];
+    const cardAction = new PushCardDisplayAction({
+      id: `card-${block.key}`,
+      ownerId: block.key.toString(),
+      type: 'active-block',
+      title: this.direction === 'down' ? 'AMRAP' : 'For Time',
+      subtitle: this.label,
+      // Metrics could be populated if we had access to them here
+    });
+
+    return [timerAction, cardAction];
+  }
+
+  /**
+   * Called right before the owning block is popped from the stack.
+   */
+  onPop(_runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    return [
+      new PopTimerDisplayAction(`timer-${block.key}`),
+      new PopCardDisplayAction(`card-${block.key}`)
+    ];
   }
 
   /**

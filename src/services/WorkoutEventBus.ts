@@ -71,14 +71,14 @@ class WorkoutEventBus {
     this.subscribers.add(fn);
     
     if (this.debugMode) {
-      console.log('[WorkoutEventBus] Subscriber added, total:', this.subscribers.size);
+
     }
     
     // Return unsubscribe function
     return () => {
       this.subscribers.delete(fn);
       if (this.debugMode) {
-        console.log('[WorkoutEventBus] Subscriber removed, total:', this.subscribers.size);
+
       }
     };
   }
@@ -89,7 +89,7 @@ class WorkoutEventBus {
    */
   emit(event: WorkoutEvent): void {
     if (this.debugMode) {
-      console.log('[WorkoutEventBus] Emitting event:', event.type);
+
     }
     
     this.subscribers.forEach(fn => {
@@ -114,7 +114,7 @@ class WorkoutEventBus {
   clear(): void {
     this.subscribers.clear();
     if (this.debugMode) {
-      console.log('[WorkoutEventBus] All subscribers cleared');
+
     }
   }
 }

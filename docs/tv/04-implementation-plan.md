@@ -98,16 +98,15 @@ This document provides a detailed implementation roadmap for the WOD Wiki TV Cas
 Create a shared TypeScript package for protocol types:
 
 ```
-packages/
-└── wod-wiki-cast-types/
-    ├── package.json
-    ├── tsconfig.json
-    └── src/
-        ├── index.ts
-        ├── messages.ts        # All WebSocket message types
-        ├── display-state.ts   # IDisplayStackState adapters
-        ├── heart-rate.ts      # HeartRateDataPoint types
-        └── session.ts         # Session & device types
+cast-types/
+├── package.json
+├── tsconfig.json
+└── src/
+    ├── index.ts
+    ├── messages.ts        # All WebSocket message types
+    ├── display-state.ts   # IDisplayStackState adapters
+    ├── heart-rate.ts      # HeartRateDataPoint types
+    └── session.ts         # Session & device types
 ```
 
 **Tasks**:
@@ -123,16 +122,15 @@ packages/
 Build the relay server for NAT traversal:
 
 ```
-packages/
-└── wod-wiki-relay-server/
-    ├── package.json
-    ├── src/
-    │   ├── index.ts
-    │   ├── server.ts           # Express + WebSocket setup
-    │   ├── session-manager.ts  # Active sessions tracking
-    │   ├── connection-pool.ts  # Device connections
-    │   └── message-router.ts   # Message forwarding logic
-    └── Dockerfile
+server/
+├── package.json
+├── src/
+│   ├── index.ts
+│   ├── server.ts           # Express + WebSocket setup
+│   ├── session-manager.ts  # Active sessions tracking
+│   ├── connection-pool.ts  # Device connections
+│   └── message-router.ts   # Message forwarding logic
+└── Dockerfile
 ```
 
 **Implementation Details**:
@@ -190,11 +188,11 @@ Initialize the Android TV application:
 
 ```bash
 # Using react-native-tvos template
-npx @react-native-community/cli@latest init WodWikiTV \
+npx @react-native-community/cli@latest init tv \
   --template @react-native-tvos/template-tv
 
 # Project structure
-WodWikiTV/
+tv/
 ├── android/                    # Android TV native code
 ├── src/
 │   ├── App.tsx

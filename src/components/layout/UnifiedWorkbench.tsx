@@ -350,11 +350,16 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const activeStatementIds = useMemo(() => {
     if (!runtime || viewMode !== 'track') return new Set<number>();
     const ids = new Set<number>();
-    runtime.stack.blocks.forEach(block => {
-      if (block.sourceIds) {
-        block.sourceIds.forEach(id => ids.add(id));
+    
+    // Only highlight the LEAF block (the one currently executing)
+    // This avoids highlighting parent blocks (like "3 rounds") when a child is running
+    if (runtime.stack.blocks.length > 0) {
+      const leafBlock = runtime.stack.blocks[runtime.stack.blocks.length - 1];
+      if (leafBlock.sourceIds) {
+        leafBlock.sourceIds.forEach(id => ids.add(id));
       }
-    });
+    }
+    
     return ids;
   }, [runtime, execution.stepCount, viewMode]);
 
