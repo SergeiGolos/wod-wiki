@@ -228,6 +228,8 @@ async function main() {
   console.log('');
 
   // Build concurrently command
+  // Note: Service configurations are hardcoded and not user-controllable.
+  // The only user input (AVD name) is validated in parseArgs().
   const services = [
     { name: 'storybook', command: 'npm run storybook', color: 'green' },
     { name: 'relay', command: 'npm run dev', cwd: 'server', color: 'yellow' },
@@ -237,7 +239,7 @@ async function main() {
     services.push({ name: 'metro', command: 'npm start', cwd: 'tv', color: 'magenta' });
   }
 
-  // Build service commands
+  // Build service commands (safe: service.cwd and service.command are hardcoded above)
   const commands = services.map(service => {
     return service.cwd 
       ? `"cd ${service.cwd} && ${service.command}"`
@@ -255,6 +257,8 @@ async function main() {
   ];
 
   // Use npx to run concurrently
+  // Note: shell: true is required for command chaining (cd && npm run).
+  // All arguments are from hardcoded configurations, not user input.
   const concurrentlyProcess = spawn('npx', concurrentlyArgs, {
     cwd: rootDir,
     stdio: 'inherit',
