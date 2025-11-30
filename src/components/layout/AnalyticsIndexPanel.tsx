@@ -11,15 +11,15 @@
  */
 
 import React from 'react';
-import { Segment } from '../../timeline/GitTreeSidebar';
+import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
 import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { Activity } from 'lucide-react';
+import { Activity, Clock, Pause, Play, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
-  segments: Segment[];
+  segments: any[]; // Using any for now to avoid circular dependency, should be MetricItem or Segment interface defined here
   
   /** Currently selected segment IDs for filtering */
   selectedSegmentIds?: Set<number>;
@@ -116,53 +116,42 @@ function getFragmentTypeFromSegmentType(type: string): FragmentType {
 /**
  * Single analytics segment card component - Compact version
  */
-const AnalyticsSegmentCard: React.FC<{
-  segment: Segment;
-  isSelected: boolean;
-  mobile: boolean;
-  onClick: () => void;
-}> = ({ segment, isSelected, mobile, onClick }) => {
-  const typeColorClass = getTypeColorClass(segment.type);
-  const fragments = segmentToFragments(segment);
-  
-  const borderClass = isSelected 
-    ? 'border-primary bg-primary/5' 
-    : 'border-transparent hover:border-border hover:bg-muted/30';
+/**
+ * Helper to create the card content for MetricsTreeView
+ */
+const renderMetricCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
+  // We store the fragments in the item.tags for now, or we can reconstruct them
+  // But wait, MetricItem has specific fields. 
+  // Let's use the 'tags' field to store the FragmentVisualizer
   
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'rounded border transition-all cursor-pointer flex items-center gap-2',
-        borderClass,
-        mobile ? 'py-1.5 px-2' : 'py-1 px-1.5',
+    <div className={cn(
+      "rounded border transition-all flex items-center gap-2 w-full",
+      isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-border",
+      mobile ? "py-1.5 px-2" : "py-1 px-1.5"
+    )}>
+      {item.icon && (
+        <div className={cn("flex-shrink-0", mobile ? "h-3.5 w-3.5" : "h-3 w-3")}>
+          {item.icon}
+        </div>
       )}
-      style={{ marginLeft: `${segment.depth * 8}px` }}
-    >
-      {/* Type Icon */}
-      <Activity className={cn('flex-shrink-0', typeColorClass.split(' ')[0], mobile ? 'h-3.5 w-3.5' : 'h-3 w-3')} />
       
-      {/* Name */}
       <span className={cn(
-        'truncate flex-shrink-0 max-w-[100px]',
-        mobile ? 'text-xs' : 'text-[11px]',
+        "truncate flex-shrink-0 max-w-[100px] font-medium",
+        mobile ? "text-xs" : "text-[11px]"
       )}>
-        {segment.name}
+        {item.title}
       </span>
       
-      {/* Fragments - inline */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        <FragmentVisualizer 
-          fragments={fragments} 
-          className="gap-0.5"
-        />
+        {item.tags}
       </div>
       
-      {/* Compact metrics */}
-      <div className="flex-shrink-0 flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
-        {segment.avgPower > 0 && <span>{Math.round(segment.avgPower)}W</span>}
-        {segment.avgHr > 0 && <span>{Math.round(segment.avgHr)}♥</span>}
-      </div>
+      {item.footer && (
+        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground">
+          {item.footer}
+        </div>
+      )}
     </div>
   );
 };
@@ -177,9 +166,36 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   mobile = false,
   className = ''
 }) => {
-  // Sort segments OLDEST-FIRST (chronological order)
-  const sortedSegments = React.useMemo(() => {
-    return [...segments].sort((a, b) => a.startTime - b.startTime);
+  // Convert segments to MetricItems
+  const items = React.useMemo(() => {
+    const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
+    
+    return sorted.map(seg => {
+      const type = seg.type.toLowerCase();
+      const typeColorClass = getTypeColorClass(type);
+      const fragments = segmentToFragments(seg);
+      
+      return {
+        id: seg.id.toString(),
+        parentId: seg.parentId ? seg.parentId.toString() : null,
+        lane: seg.depth || 0, // Use depth as lane
+        title: seg.name,
+        startTime: seg.startTime,
+        icon: <Activity className={cn('flex-shrink-0', typeColorClass.split(' ')[0])} />,
+        tags: (
+          <FragmentVisualizer 
+            fragments={fragments} 
+            className="gap-0.5"
+          />
+        ),
+        footer: (
+          <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+            {seg.avgPower > 0 && <span>{Math.round(seg.avgPower)}W</span>}
+            {seg.avgHr > 0 && <span>{Math.round(seg.avgHr)}♥</span>}
+          </div>
+        )
+      } as MetricItem;
+    });
   }, [segments]);
 
   const handleSelect = React.useCallback((segmentId: number) => {
@@ -197,22 +213,17 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
       
       {/* Segment Cards */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {sortedSegments.length === 0 ? (
+        {items.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground italic">
             No historical data available
           </div>
         ) : (
-          <div className={cn('space-y-0.5', mobile ? 'p-2' : 'p-1')}>
-            {sortedSegments.map((segment) => (
-              <AnalyticsSegmentCard
-                key={segment.id}
-                segment={segment}
-                isSelected={selectedSegmentIds.has(segment.id)}
-                mobile={mobile}
-                onClick={() => handleSelect(segment.id)}
-              />
-            ))}
-          </div>
+          <MetricsTreeView 
+            items={items}
+            selectedIds={new Set(Array.from(selectedSegmentIds).map(String))}
+            onSelect={(id) => handleSelect(parseInt(id))}
+            renderItem={(item, isSelected) => renderMetricCard(item, isSelected, mobile)}
+          />
         )}
       </div>
 

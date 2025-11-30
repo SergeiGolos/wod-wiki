@@ -19,6 +19,12 @@ import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
 import type { WodBlock } from '../markdown-editor/types';
 import type { ICodeStatement } from '../core/models/CodeStatement';
+import { RuntimeBlock } from './RuntimeBlock';
+import { BlockContext } from './BlockContext';
+import { BlockKey } from '../core/models/BlockKey';
+import { LoopCoordinatorBehavior, LoopType } from './behaviors/LoopCoordinatorBehavior';
+import { CompletionBehavior } from './behaviors/CompletionBehavior';
+import { IRuntimeBehavior } from './IRuntimeBehavior';
 
 /**
  * Interface for runtime factory implementations
@@ -52,7 +58,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 1. Validates block has statements
    * 2. Creates WodScript from content + statements
    * 3. Instantiates ScriptRuntime with JIT compiler
-   * 4. Compiles root block from statements
+   * 4. Creates a Root RuntimeBlock that wraps all top-level statements
    * 5. Pushes root block to stack and mounts it
    * 
    * @param block - The WOD block to create runtime for
@@ -72,14 +78,45 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create runtime with JIT compiler
     const runtime = new ScriptRuntime(script, this.compiler);
     
-    // Compile root block from statements
-    const rootBlock = this.compiler.compile(
-      block.statements as ICodeStatement[], 
-      runtime
+    // Create Root Block manually
+    // This ensures we always have a root grouping node that walks all children once
+    
+    const statementIds = block.statements.map(s => s.id);
+    // Map each top-level statement to a group so they execute in sequence
+    const childGroups = statementIds.map(id => [id]); 
+    
+    const blockKey = new BlockKey('root');
+    // Use 'root' as blockId and exerciseId for the root context
+    const context = new BlockContext(runtime, blockKey.toString(), 'root');
+    
+    const behaviors: IRuntimeBehavior[] = [];
+    
+    // Root uses LoopCoordinator to walk through all top-level statements once
+    const loopCoordinator = new LoopCoordinatorBehavior({
+        childGroups: childGroups,
+        loopType: LoopType.FIXED,
+        totalRounds: 1
+    });
+    behaviors.push(loopCoordinator);
+    
+    // Root completes when the loop coordinator is complete
+    behaviors.push(new CompletionBehavior(
+        (_rt, blk) => loopCoordinator.isComplete(_rt, blk),
+        ['root:complete']
+    ));
+    
+    const rootBlock = new RuntimeBlock(
+        runtime,
+        statementIds,
+        behaviors,
+        context,
+        blockKey,
+        "Root",
+        "Workout"
     );
     
     if (!rootBlock) {
-      console.warn('[RuntimeFactory] Failed to compile root block for:', block.id);
+      console.warn('[RuntimeFactory] Failed to create root block for:', block.id);
       return runtime; // Return runtime even without root block for debugging
     }
 

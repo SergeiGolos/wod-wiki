@@ -3,7 +3,7 @@ import { RuntimeStack } from '../RuntimeStack';
 import { IRuntimeMemory, Nullable } from '../IRuntimeMemory';
 import { IMemoryReference, TypedMemoryReference } from '../IMemoryReference';
 import { JitCompiler } from '../JitCompiler';
-import { WodScript } from '../../parser/WodScript';
+import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
 import { IMetricCollector } from '../MetricCollector';
@@ -11,6 +11,8 @@ import { ExecutionRecord } from '../models/ExecutionRecord';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
+import { ITestSetupAction } from './actions/ITestSetupAction';
+import { CodeStatement } from '../../core/models/CodeStatement';
 
 /**
  * Snapshot of runtime state at a point in time
@@ -449,6 +451,163 @@ export class TestableRuntime implements IScriptRuntime {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
     }
+  }
+  
+  // ========== Test Setup API ==========
+  
+  /**
+   * Apply an array of test setup actions to configure runtime state.
+   * Use this to set up specific scenarios before testing lifecycle operations.
+   * 
+   * @param actions - Array of setup actions to apply
+   * @example
+   * ```typescript
+   * testRuntime.applyTestActions([
+   *   new SetLoopIndexAction({ blockKey: 'rounds-1', currentIndex: 2 }),
+   *   new SetEffortStateAction({ blockKey: 'effort-1', currentReps: 5 })
+   * ]);
+   * ```
+   */
+  applyTestActions(actions: ITestSetupAction[]): void {
+    for (const action of actions) {
+      action.apply(this);
+    }
+  }
+  
+  /**
+   * Compile and push a statement from a parsed script by statement ID.
+   * The statement ID is the unique identifier assigned during parsing.
+   * 
+   * @param script - The parsed WodScript containing statements
+   * @param statementId - The statement ID to compile and push
+   * @param options - Additional options
+   * @returns The compiled block, or undefined if statement not found
+   * 
+   * @example
+   * ```typescript
+   * const script = parseWodScript("3 Rounds\n  10 Pushups\n  15 Squats");
+   * // Push the "10 Pushups" statement (statement ID depends on parser)
+   * const block = testRuntime.pushStatementById(script, 2);
+   * ```
+   */
+  pushStatementById(
+    script: IScript,
+    statementId: number,
+    options: { includeChildren?: boolean; mountAfterPush?: boolean } = {}
+  ): IRuntimeBlock | undefined {
+    const { includeChildren = false, mountAfterPush = true } = options;
+    
+    const statement = script.getId(statementId);
+    if (!statement) {
+      console.warn(`pushStatementById: No statement found with ID ${statementId}`);
+      return undefined;
+    }
+    
+    // Gather statements to compile
+    let statementsToCompile = [statement];
+    
+    if (includeChildren && statement.children && statement.children.length > 0) {
+      const childIds = statement.children.flat();
+      const childStatements = script.getIds(childIds);
+      statementsToCompile = [...statementsToCompile, ...childStatements];
+    }
+    
+    // Compile using JIT
+    const block = this._wrapped.jit.compile(
+      statementsToCompile as CodeStatement[], 
+      this._wrapped
+    );
+    
+    if (!block) {
+      console.warn(`pushStatementById: Failed to compile statement ID ${statementId}`);
+      return undefined;
+    }
+    
+    // Push to stack
+    this.stack.push(block);
+    
+    // Optionally mount
+    if (mountAfterPush) {
+      const mountActions = block.mount(this);
+      // Execute mount actions
+      for (const action of mountActions) {
+        action.do(this);
+      }
+    }
+    
+    return block;
+  }
+  
+  /**
+   * Compile and push a statement from a parsed script by array index.
+   * The index is 0-based position in the statements array.
+   * 
+   * @param script - The parsed WodScript containing statements
+   * @param index - The 0-based array index of the statement
+   * @param options - Additional options
+   * @returns The compiled block, or undefined if index out of bounds
+   */
+  pushStatementByIndex(
+    script: IScript,
+    index: number,
+    options: { includeChildren?: boolean; mountAfterPush?: boolean } = {}
+  ): IRuntimeBlock | undefined {
+    const { includeChildren = false, mountAfterPush = true } = options;
+    
+    const statement = script.getAt(index);
+    if (!statement) {
+      console.warn(`pushStatementByIndex: No statement at index ${index}`);
+      return undefined;
+    }
+    
+    // Gather statements to compile
+    let statementsToCompile = [statement];
+    
+    if (includeChildren && statement.children && statement.children.length > 0) {
+      const childIds = statement.children.flat();
+      const childStatements = script.getIds(childIds);
+      statementsToCompile = [...statementsToCompile, ...childStatements];
+    }
+    
+    // Compile using JIT
+    const block = this._wrapped.jit.compile(
+      statementsToCompile as CodeStatement[], 
+      this._wrapped
+    );
+    
+    if (!block) {
+      console.warn(`pushStatementByIndex: Failed to compile statement at index ${index}`);
+      return undefined;
+    }
+    
+    // Push to stack
+    this.stack.push(block);
+    
+    // Optionally mount
+    if (mountAfterPush) {
+      const mountActions = block.mount(this);
+      // Execute mount actions
+      for (const action of mountActions) {
+        action.do(this);
+      }
+    }
+    
+    return block;
+  }
+  
+  /**
+   * Get all block keys currently on the stack.
+   * Useful for selecting targets for test setup actions.
+   */
+  getStackBlockKeys(): string[] {
+    return this._wrapped.stack.blocks.map(b => b.key.toString());
+  }
+  
+  /**
+   * Get the current block key (top of stack).
+   */
+  getCurrentBlockKey(): string | undefined {
+    return this._wrapped.stack.current?.key.toString();
   }
   
   // ========== Private Helpers ==========

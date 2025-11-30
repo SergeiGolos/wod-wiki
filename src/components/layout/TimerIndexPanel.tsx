@@ -12,6 +12,7 @@
  */
 
 import React, { useRef, useEffect } from 'react';
+import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
 import { cn } from '../../lib/utils';
@@ -162,70 +163,39 @@ function formatDuration(ms: number): string {
 /**
  * Single execution entry card component - Compact version
  */
-const ExecutionEntryCard: React.FC<{
-  entry: ExecutionEntry;
-  isActive: boolean;
-  mobile: boolean;
-}> = ({ entry, isActive, mobile }) => {
-  const StatusIcon = {
-    'start': Play,
-    'active': Clock,
-    'completed': CheckCircle2,
-    'failed': AlertCircle,
-  }[entry.status];
-  
-  const statusColorClass = {
-    'start': 'text-primary',
-    'active': 'text-blue-500 animate-pulse',
-    'completed': 'text-green-500',
-    'failed': 'text-red-500',
-  }[entry.status];
-  
-  const borderClass = isActive 
-    ? 'border-primary bg-primary/5' 
-    : 'border-transparent hover:border-border hover:bg-muted/30';
-  
-  const duration = entry.endTime 
-    ? formatDuration(entry.endTime - entry.startTime)
-    : formatDuration(Date.now() - entry.startTime);
-  
+/**
+ * Helper to create the card content for MetricsTreeView
+ */
+const renderTimerCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
   return (
-    <div
-      className={cn(
-        'rounded border transition-all flex items-center gap-2',
-        borderClass,
-        mobile ? 'py-1.5 px-2' : 'py-1 px-1.5',
-      )}
-      style={{ marginLeft: `${entry.depth * 8}px` }}
-    >
-      {/* Status Icon */}
-      <StatusIcon className={cn('flex-shrink-0', statusColorClass, mobile ? 'h-3.5 w-3.5' : 'h-3 w-3')} />
-      
-      {/* Label */}
-      <span className={cn(
-        'truncate flex-shrink-0 max-w-[100px]',
-        mobile ? 'text-xs' : 'text-[11px]',
-        entry.status === 'completed' && 'text-muted-foreground'
-      )}>
-        {entry.label}
-      </span>
-      
-      {/* Fragments - inline */}
-      {entry.fragments.length > 0 && (
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <FragmentVisualizer 
-            fragments={entry.fragments} 
-            className="gap-0.5"
-          />
+    <div className={cn(
+      "rounded border transition-all flex items-center gap-2 w-full",
+      isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-border",
+      mobile ? "py-1.5 px-2" : "py-1 px-1.5"
+    )}>
+      {item.icon && (
+        <div className={cn("flex-shrink-0", mobile ? "h-3.5 w-3.5" : "h-3 w-3")}>
+          {item.icon}
         </div>
       )}
       
-      {/* Duration badge */}
       <span className={cn(
-        'flex-shrink-0 text-[9px] font-mono text-muted-foreground',
+        "truncate flex-shrink-0 max-w-[100px] font-medium",
+        mobile ? "text-xs" : "text-[11px]",
+        item.status === 'completed' && "text-muted-foreground"
       )}>
-        {duration}
+        {item.title}
       </span>
+      
+      <div className="flex-1 min-w-0 overflow-hidden">
+        {item.tags}
+      </div>
+      
+      {item.footer && (
+        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground">
+          {item.footer}
+        </div>
+      )}
     </div>
   );
 };
@@ -355,8 +325,46 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       idToDepth.set(entry.id, entry.depth);
     }
 
-    return allEntries;
+    // Convert to MetricItems
+    return allEntries.map(entry => {
+      const StatusIcon = {
+        'start': Play,
+        'active': Clock,
+        'completed': CheckCircle2,
+        'failed': AlertCircle,
+      }[entry.status];
+      
+      const statusColorClass = {
+        'start': 'text-primary',
+        'active': 'text-blue-500 animate-pulse',
+        'completed': 'text-green-500',
+        'failed': 'text-red-500',
+      }[entry.status];
+
+      const duration = entry.endTime 
+        ? formatDuration(entry.endTime - entry.startTime)
+        : formatDuration(Date.now() - entry.startTime);
+
+      return {
+        id: entry.id,
+        parentId: entry.parentId,
+        lane: entry.depth,
+        title: entry.label,
+        startTime: entry.startTime,
+        status: entry.status,
+        icon: <StatusIcon className={cn('flex-shrink-0', statusColorClass)} />,
+        tags: (
+          <FragmentVisualizer 
+            fragments={entry.fragments} 
+            className="gap-0.5"
+          />
+        ),
+        footer: <span>{duration}</span>
+      } as MetricItem;
+    });
   }, [runtime, workoutStartTime]);
+
+  const items = entries; // Alias for consistency
 
   // Auto-scroll to bottom when new entries appear
   useEffect(() => {
@@ -397,22 +405,18 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
 
       {/* Execution History */}
       <div className="flex-1 overflow-y-auto custom-scrollbar" ref={scrollRef}>
-        {entries.length === 0 ? (
+        {items.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground italic">
             Waiting for workout to start...
           </div>
         ) : (
-          <div className={cn('space-y-0.5', mobile ? 'p-2' : 'p-1')}>
-            {entries.map((entry) => (
-              <ExecutionEntryCard
-                key={entry.id}
-                entry={entry}
-                isActive={activeIds.has(entry.id)}
-                mobile={mobile}
-              />
-            ))}
-            {children}
-          </div>
+          <MetricsTreeView 
+            items={items}
+            selectedIds={new Set(Array.from(activeIds))}
+            onSelect={() => {}} // Read-only
+            autoScroll={autoScroll}
+            renderItem={(item, isSelected) => renderTimerCard(item, isSelected, mobile)}
+          />
         )}
       </div>
     </div>

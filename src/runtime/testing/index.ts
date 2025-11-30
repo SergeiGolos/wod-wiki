@@ -61,5 +61,13 @@ export {
 export {
   SnapshotDiffViewer,
   SnapshotDiffSummary,
-  ModifiedValuesViewer
-} from './components/SnapshotDiffViewer';
+  ModifiedValuesViewer,
+  BlockTestScenarioBuilder,
+  type BlockTestScenarioBuilderProps,
+  type ScenarioDefinition,
+  type ScenarioExecutionResult
+} from './components';
+
+// Test setup actions
+export * from './actions';
+

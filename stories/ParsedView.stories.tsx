@@ -20,9 +20,9 @@ export default meta;
 type Story = StoryObj<typeof ParsedView>;
 
 const sampleScript = `10:00 Timer
-  + x 10 Pushups
-  + x 10 Situps
-  + x 10 Squats`;
+  + 10 Pushups
+  + 10 Situps
+  + 10 Squats`;
 
 export const Default: Story = {
   args: {

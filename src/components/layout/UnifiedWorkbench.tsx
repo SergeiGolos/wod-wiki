@@ -33,8 +33,22 @@ import { SlidingViewport, ViewMode } from './SlidingViewport';
 import { TimerIndexPanel } from './TimerIndexPanel';
 import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
-import { Segment } from '../../timeline/GitTreeSidebar';
 import { cn, hashCode } from '../../lib/utils';
+
+// Define Segment interface locally since GitTreeSidebar is deleted
+interface Segment {
+  id: number;
+  name: string;
+  type: string;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  parentId: number | null;
+  depth: number;
+  avgPower: number;
+  avgHr: number;
+  lane: number;
+}
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeProvider, useRuntime } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
