@@ -508,6 +508,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   }, [editorInstance, runtime, blocks]);
 
   // Track Index: TimerIndexPanel
+  // Hide context panel when debugger is open (it's shown there instead)
   const trackIndexPanel = (
     <TimerIndexPanel
       runtime={runtime}
@@ -518,6 +519,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       autoScroll={execution.status === 'running'}
       mobile={isMobile}
       workoutStartTime={execution.startTime}
+      hideContextPanel={isDebugMode}
     />
   );
 
@@ -583,6 +585,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       isOpen={true}
       onClose={() => setIsDebugMode(false)}
       embedded={true}
+      activeBlock={selectedBlock}
+      activeStatementIds={activeStatementIds}
     />
   );
 

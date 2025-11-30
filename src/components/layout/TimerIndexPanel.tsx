@@ -39,6 +39,9 @@ export interface TimerIndexPanelProps {
   
   /** Workout start time (timestamp when execution began) */
   workoutStartTime?: number | null;
+  
+  /** Hide the parsed workout view (shown in debugger instead) */
+  hideContextPanel?: boolean;
 }
 
 /**
@@ -52,7 +55,8 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   autoScroll = true,
   mobile = false,
   className = '',
-  workoutStartTime
+  workoutStartTime,
+  hideContextPanel = false
 }) => {
   return (
     <RuntimeEventLog
@@ -64,6 +68,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       mobile={mobile}
       className={className}
       workoutStartTime={workoutStartTime}
+      hideContextPanel={hideContextPanel}
     />
   );
 };

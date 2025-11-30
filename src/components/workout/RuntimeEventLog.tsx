@@ -17,6 +17,8 @@ export interface RuntimeEventLogProps {
   mobile?: boolean;
   className?: string;
   workoutStartTime?: number | null;
+  /** Hide the WorkoutContextPanel (when it's displayed elsewhere like the debugger) */
+  hideContextPanel?: boolean;
 }
 
 interface LogEntry {
@@ -124,7 +126,8 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
   autoScroll = true,
   mobile = false,
   className = '',
-  workoutStartTime
+  workoutStartTime,
+  hideContextPanel = false
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [updateVersion, setUpdateVersion] = React.useState(0);
@@ -386,7 +389,7 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         {sections.length === 0 ? (
            <div className="p-4 text-sm text-muted-foreground italic mt-8">
              Waiting for workout to start...
-             {activeBlock && (
+             {!hideContextPanel && activeBlock && (
                <div className="mt-4 border-t border-border pt-4">
                  <WorkoutContextPanel
                    block={activeBlock}
@@ -454,7 +457,7 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
             ))}
 
             {/* Active Context at bottom */}
-            {activeBlock && (
+            {!hideContextPanel && activeBlock && (
               <div className="mt-8 border-t border-border pt-4">
                  <WorkoutContextPanel
                    block={activeBlock}

@@ -16,6 +16,8 @@ import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeSt
 import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { WorkoutContextPanel } from './WorkoutContextPanel';
+import { WodBlock } from '../../markdown-editor/types';
 
 export interface RuntimeDebugPanelProps {
   /** Active runtime to inspect */
@@ -35,6 +37,12 @@ export interface RuntimeDebugPanelProps {
   
   /** Additional CSS classes */
   className?: string;
+  
+  /** Active workout block for context panel */
+  activeBlock?: WodBlock | null;
+  
+  /** Active statement IDs for highlighting in context panel */
+  activeStatementIds?: Set<number>;
 }
 
 /**
@@ -46,7 +54,9 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   onClose,
   highlightedBlockKey,
   embedded = false,
-  className = ''
+  className = '',
+  activeBlock,
+  activeStatementIds = new Set()
 }) => {
   const adapter = React.useRef(new RuntimeAdapter()).current;
   
@@ -99,6 +109,20 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
             </div>
           ) : (
             <>
+              {/* Workout Context Panel - shows parsed workout structure */}
+              {activeBlock && (
+                <div className="border-b border-border">
+                  <div className="p-2 bg-muted/20 text-xs font-medium text-muted-foreground">
+                    Parsed Workout
+                  </div>
+                  <WorkoutContextPanel
+                    block={activeBlock}
+                    mode="run"
+                    activeStatementIds={activeStatementIds}
+                    className="p-2"
+                  />
+                </div>
+              )}
               <RuntimeStackPanel 
                 blocks={snapshot?.stack.blocks || []} 
                 activeBlockIndex={snapshot?.stack.activeIndex}
@@ -166,6 +190,21 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
             </div>
           ) : (
             <>
+              {/* Workout Context Panel - shows parsed workout structure */}
+              {activeBlock && (
+                <div className="border-b border-border">
+                  <div className="p-2 bg-muted/20 text-xs font-medium text-muted-foreground">
+                    Parsed Workout
+                  </div>
+                  <WorkoutContextPanel
+                    block={activeBlock}
+                    mode="run"
+                    activeStatementIds={activeStatementIds}
+                    className="p-2"
+                  />
+                </div>
+              )}
+              
               {/* Runtime Stack */}
               <RuntimeStackPanel 
                 blocks={snapshot?.stack.blocks || []} 
