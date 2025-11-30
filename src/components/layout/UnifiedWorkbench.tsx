@@ -14,7 +14,7 @@
  * - Mobile (<768px): Full-screen slides, 50/50 split for Track
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { WodBlock } from '../../markdown-editor/types';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
@@ -39,6 +39,8 @@ import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeProvider, useRuntime } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
+import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
+import { WorkoutEvent } from '../../services/WorkoutEventBus';
 
 // Runtime imports
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
@@ -349,10 +351,40 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     }
   };
 
-  const handleStartWorkoutAction = (block: WodBlock) => {
+  // Handle start workout - now can be triggered via event bus OR callback
+  const handleStartWorkoutAction = useCallback((block: WodBlock) => {
     console.log('[UnifiedWorkbench] handleStartWorkoutAction called for block:', block.id);
     startWorkout(block);
-  };
+  }, [startWorkout]);
+
+  // Subscribe to workout events via event bus
+  // This is the primary mechanism - the callback prop is for backward compatibility
+  const handleWorkoutEvent = useCallback((event: WorkoutEvent) => {
+    console.log('[UnifiedWorkbench] Received workout event:', event.type);
+    switch (event.type) {
+      case 'start-workout':
+        handleStartWorkoutAction(event.block);
+        break;
+      case 'stop-workout':
+        completeWorkout(event.results);
+        break;
+      case 'pause-workout':
+        execution.pause();
+        break;
+      case 'resume-workout':
+        execution.start();
+        break;
+      case 'next-segment':
+        if (runtime) {
+          runtime.handle(new NextEvent());
+          execution.step();
+        }
+        break;
+    }
+  }, [handleStartWorkoutAction, completeWorkout, execution, runtime]);
+
+  // Subscribe to workout events
+  useWorkoutEvents(handleWorkoutEvent, [handleWorkoutEvent]);
 
   const handleComplete = () => {
     completeWorkout({

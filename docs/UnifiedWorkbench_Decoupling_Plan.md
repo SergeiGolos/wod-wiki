@@ -352,8 +352,7 @@ export const AnalyticsDataProvider: React.FC<{
 
 ## Phase 5: Consolidate Metrics Collection (Priority: Low)
 
-### Problem
-Both `MetricsContext` and `ScriptRuntime.metrics` (MetricCollector) exist. `MetricsContext` appears unused.
+ 
 
 ### Solution
 Decide on single source of truth:
