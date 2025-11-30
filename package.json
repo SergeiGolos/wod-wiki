@@ -27,7 +27,10 @@
     "clean-storybook": "node -e \"require('fs').rmSync('storybook-static', { recursive: true, force: true })\"",
     "prebuild-storybook": "npm run clean-storybook && npx dotenv-cli -e .env -- node scripts/inject-ga-id.cjs",
     "build-storybook": "npm run prestorybook && storybook build",
-    "docs:check": "node scripts/check-docs-links.cjs"
+    "docs:check": "node scripts/check-docs-links.cjs",
+    "dev:all": "node scripts/dev-start.cjs",
+    "dev:web": "node scripts/dev-start.cjs --web-only",
+    "dev:no-emulator": "node scripts/dev-start.cjs --no-emulator"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
