@@ -68,10 +68,10 @@
     "@rollup/rollup-win32-x64-msvc": "^4.43.0"
   },
   "devDependencies": {
-    "@storybook/addon-a11y": "^10.0.8",
-    "@storybook/addon-docs": "^10.0.8",
-    "@storybook/addon-vitest": "^10.0.8",
-    "@storybook/react-vite": "^10.0.8",
+    "@storybook/addon-a11y": "^10.1.2",
+    "@storybook/addon-docs": "^10.1.2",
+    "@storybook/addon-vitest": "^10.1.2",
+    "@storybook/react-vite": "^10.1.2",
     "@testing-library/react": "^16.3.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
@@ -93,7 +93,7 @@
     "react-dom": "^18.0.0",
     "rollup": "^4.41.0",
     "rxjs": "^7.8.2",
-    "storybook": "^10.0.8",
+    "storybook": "^10.1.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",

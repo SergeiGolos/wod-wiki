@@ -1,0 +1,173 @@
+import { IRuntimeAction } from '../IRuntimeAction';
+import { IScriptRuntime } from '../IScriptRuntime';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { TypedMemoryReference } from '../IMemoryReference';
+import { 
+  IDisplayStackState, 
+  createDefaultDisplayState 
+} from '../../clock/types/DisplayTypes';
+
+/**
+ * Action that updates the global workout state.
+ * 
+ * This controls the overall workout status shown in the UI
+ * and affects which idle cards are displayed.
+ * 
+ * Usage:
+ * ```typescript
+ * // When starting a workout:
+ * return [new SetWorkoutStateAction('running')];
+ * 
+ * // When completing a workout:
+ * return [new SetWorkoutStateAction('complete')];
+ * ```
+ */
+export class SetWorkoutStateAction implements IRuntimeAction {
+  private _type = 'set-workout-state';
+
+  constructor(
+    private readonly workoutState: 'idle' | 'running' | 'paused' | 'complete'
+  ) {}
+
+  get type(): string {
+    return this._type;
+  }
+
+  set type(_value: string) {
+    throw new Error('Cannot modify readonly property type');
+  }
+
+  do(runtime: IScriptRuntime): void {
+    // Find or create the display stack state
+    const stateRefs = runtime.memory.search({
+      id: null,
+      ownerId: 'runtime',
+      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+      visibility: null
+    });
+
+    let stateRef: TypedMemoryReference<IDisplayStackState>;
+    let state: IDisplayStackState;
+
+    if (stateRefs.length > 0) {
+      stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
+      state = stateRef.get() || createDefaultDisplayState();
+    } else {
+      // Allocate the display stack state if it doesn't exist
+      state = createDefaultDisplayState();
+      stateRef = runtime.memory.allocate<IDisplayStackState>(
+        MemoryTypeEnum.DISPLAY_STACK_STATE,
+        'runtime',
+        state,
+        'public'
+      );
+    }
+
+    const previousState = state.workoutState;
+    state.workoutState = this.workoutState;
+
+    // Update memory
+    stateRef.set({ ...state });
+
+    console.log(`🖥️ SetWorkoutStateAction: ${previousState} → ${this.workoutState}`);
+  }
+}
+
+/**
+ * Action that updates round information in the display state.
+ * 
+ * Usage:
+ * ```typescript
+ * // At the start of round 2 of 5:
+ * return [new SetRoundsDisplayAction(2, 5)];
+ * ```
+ */
+export class SetRoundsDisplayAction implements IRuntimeAction {
+  private _type = 'set-rounds-display';
+
+  constructor(
+    private readonly currentRound?: number,
+    private readonly totalRounds?: number
+  ) {}
+
+  get type(): string {
+    return this._type;
+  }
+
+  set type(_value: string) {
+    throw new Error('Cannot modify readonly property type');
+  }
+
+  do(runtime: IScriptRuntime): void {
+    const stateRefs = runtime.memory.search({
+      id: null,
+      ownerId: 'runtime',
+      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+      visibility: null
+    });
+
+    if (stateRefs.length === 0) {
+      console.warn('⚠️ SetRoundsDisplayAction: No display stack state found');
+      return;
+    }
+
+    const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
+    const state = stateRef.get();
+
+    if (!state) {
+      console.warn('⚠️ SetRoundsDisplayAction: Display state is null');
+      return;
+    }
+
+    if (this.currentRound !== undefined) {
+      state.currentRound = this.currentRound;
+    }
+    if (this.totalRounds !== undefined) {
+      state.totalRounds = this.totalRounds;
+    }
+
+    // Update memory
+    stateRef.set({ ...state });
+
+    console.log(`🖥️ SetRoundsDisplayAction: Round ${state.currentRound}/${state.totalRounds}`);
+  }
+}
+
+/**
+ * Action that resets the display stack to its initial state.
+ * 
+ * Useful for cleanup when a workout ends or is cancelled.
+ */
+export class ResetDisplayStackAction implements IRuntimeAction {
+  private _type = 'reset-display-stack';
+
+  get type(): string {
+    return this._type;
+  }
+
+  set type(_value: string) {
+    throw new Error('Cannot modify readonly property type');
+  }
+
+  do(runtime: IScriptRuntime): void {
+    const stateRefs = runtime.memory.search({
+      id: null,
+      ownerId: 'runtime',
+      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+      visibility: null
+    });
+
+    if (stateRefs.length === 0) {
+      console.warn('⚠️ ResetDisplayStackAction: No display stack state found');
+      return;
+    }
+
+    const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
+    const freshState = createDefaultDisplayState();
+
+    // Update memory
+    stateRef.set(freshState);
+
+    console.log('🖥️ ResetDisplayStackAction: Display stack reset to initial state');
+  }
+}

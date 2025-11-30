@@ -85,4 +85,31 @@ export enum MemoryTypeEnum {
    * Used for UI data binding without tight coupling to specific data sources
    */
   ANCHOR = 'anchor',
+
+  // ========================================
+  // Display Stack Memory Types
+  // ========================================
+
+  /**
+   * Display stack state - the complete UI display state including timer and card stacks
+   * Stored as IDisplayStackState from clock/types/DisplayTypes
+   */
+  DISPLAY_STACK_STATE = 'display:stack-state',
+
+  /**
+   * Timer display entry - individual timer display configuration
+   * Used when blocks push/pop timer displays onto the visual stack
+   */
+  DISPLAY_TIMER_ENTRY = 'display:timer-entry',
+
+  /**
+   * Card display entry - individual card display configuration
+   * Used when blocks push/pop content cards onto the visual stack
+   */
+  DISPLAY_CARD_ENTRY = 'display:card-entry',
+
+  /**
+   * Global timer - tracks total workout time independent of block timers
+   */
+  DISPLAY_GLOBAL_TIMER = 'display:global-timer',
 }

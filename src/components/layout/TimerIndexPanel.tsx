@@ -36,6 +36,9 @@ export interface TimerIndexPanelProps {
   /** Currently active statement IDs */
   activeStatementIds?: Set<number>;
   
+  /** Block key that is currently being hovered (from timer display) */
+  highlightedBlockKey?: string | null;
+  
   /** Whether to auto-scroll to newest entries */
   autoScroll?: boolean;
   
@@ -195,7 +198,7 @@ const renderTimerCard = (item: MetricItem, isSelected: boolean, mobile: boolean)
       {/* Icon removed as per request */}
       
       <span className={cn(
-        "truncate flex-shrink-0 max-w-[100px] font-medium",
+        "truncate flex-shrink-0 max-w-[120px] font-medium",
         mobile ? "text-xs" : "text-[11px]",
         item.status === 'completed' && "text-muted-foreground"
       )}>
@@ -222,6 +225,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   runtime,
   activeBlock,
   activeStatementIds = new Set(),
+  highlightedBlockKey = null,
   autoScroll = true,
   mobile = false,
   className = '',
@@ -396,6 +400,15 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
     return ids;
   }, [runtime]);
 
+  // Add highlightedBlockKey to the selected set for visual emphasis
+  const selectedIds = React.useMemo(() => {
+    const ids = new Set<string>(Array.from(activeIds));
+    if (highlightedBlockKey) {
+      ids.add(highlightedBlockKey);
+    }
+    return ids;
+  }, [activeIds, highlightedBlockKey]);
+
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header - Mobile style includes title */}
@@ -425,8 +438,8 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
         ) : (
           <MetricsTreeView 
             items={items}
-            selectedIds={new Set(Array.from(activeIds))}
-            onSelect={() => {}} // Read-only
+            selectedIds={selectedIds}
+            // onSelect removed for read-only mode
             autoScroll={autoScroll}
             renderItem={(item, isSelected) => renderTimerCard(item, isSelected, mobile)}
           >

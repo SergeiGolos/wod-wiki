@@ -21,36 +21,27 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Timer, Edit, BarChart2, Plus, Github, Play, Pause, Square, SkipForward } from 'lucide-react';
+import { Timer, Edit, BarChart2, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
-import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
+import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
-import { SlidingViewport, ViewMode } from './SlidingViewport';
+import { SlidingViewport } from './SlidingViewport';
 import { TimerIndexPanel } from './TimerIndexPanel';
 import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
 import { cn, hashCode } from '../../lib/utils';
+import { TimerDisplay } from '../workout/TimerDisplay';
+import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../../core/models/AnalyticsModels';
 
-// Define Segment interface locally since GitTreeSidebar is deleted
-interface Segment {
-  id: number;
-  name: string;
-  type: string;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  parentId: number | null;
-  depth: number;
-  avgPower: number;
-  avgHr: number;
-  lane: number;
-}
+
+
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeProvider, useRuntime } from './RuntimeProvider';
+import { RuntimeProvider as ClockRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
@@ -70,8 +61,8 @@ export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMoun
 }
 
 // --- Analytics Data Transformation ---
-const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null) => {
-  if (!runtime) return { data: [], segments: [] };
+const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: any[], segments: Segment[], groups: AnalyticsGroup[] } => {
+  if (!runtime) return { data: [], segments: [], groups: [] };
 
   const segments: Segment[] = [];
   const data: any[] = [];
@@ -80,7 +71,7 @@ const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null) => {
   // We need to establish a timeline. 
   // If the workout hasn't started, return empty.
   if (runtime.executionLog.length === 0 && runtime.stack.blocks.length === 0) {
-    return { data: [], segments: [] };
+    return { data: [], segments: [], groups: [] };
   }
 
   // Combine completed log and active stack
@@ -125,18 +116,19 @@ const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null) => {
     const endTime = record.endTime || Date.now();
     const duration = (endTime - record.startTime) / 1000;
     
-    // Extract power/hr from metrics if available (mocking for now if not)
-    // Real metrics would come from record.metrics
-    let avgPower = 0;
-    let avgHr = 0;
+    // Extract metrics dynamically
+    const metrics: Record<string, number> = {};
     
-    // Try to find resistance/effort metrics
     if (record.metrics) {
-      const resistance = record.metrics.find(m => m.values.some(v => v.type === 'resistance'));
-      if (resistance) {
-        const val = resistance.values.find(v => v.type === 'resistance');
-        if (val && val.value) avgPower = val.value;
-      }
+      record.metrics.forEach(m => {
+        m.values.forEach(v => {
+          if (v.value !== undefined) {
+            // Use the metric type as the key (e.g., 'power', 'heart_rate', 'cadence')
+            // If multiple values of same type exist, we currently overwrite (could average instead)
+            metrics[v.type] = v.value;
+          }
+        });
+      });
     }
 
     segments.push({
@@ -148,131 +140,106 @@ const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null) => {
       duration: duration,
       parentId: record.parentId ? hashCode(record.parentId) : null,
       depth: depth,
-      avgPower: avgPower,
-      avgHr: avgHr,
+      metrics: metrics,
       lane: depth
     });
   });
 
-  // 2. Generate Time Series Data (Synthetic for now, based on segments)
-  // In a real app, this would come from a continuous telemetry log
+  // 2. Generate Time Series Data
+  // In a real app, this would come from a continuous telemetry log.
+  // Here we synthesize it based on the active segments at each second.
   const totalDuration = segments.length > 0 
     ? Math.max(...segments.map(s => s.endTime)) 
     : 0;
+
+  // Identify all unique metric keys present in the segments to generate data for
+  const availableMetricKeys = new Set<string>();
+  segments.forEach(s => Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k)));
+  
+  // Ensure we always have at least basic metrics for the graph if nothing else
+  if (availableMetricKeys.size === 0) {
+    availableMetricKeys.add('power');
+    availableMetricKeys.add('heart_rate');
+  }
 
   for (let t = 0; t <= totalDuration; t++) {
     // Find active segments at this second
     const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
     
-    // Base values
-    let power = 0;
-    let hr = 60;
+    const dataPoint: any = { time: t };
     
-    // If inside a "work" or "interval" segment, boost values
-    const workSeg = activeSegs.find(s => ['work', 'interval', 'ramp'].includes(s.type.toLowerCase()));
-    if (workSeg) {
-      power = workSeg.avgPower || 200; // Default to 200 if no metric
-      hr = 140;
-    } else if (activeSegs.some(s => ['warmup', 'cooldown', 'rest'].includes(s.type.toLowerCase()))) {
-      power = 100;
-      hr = 100;
+    // For each available metric, calculate a value for this time point
+    availableMetricKeys.forEach(key => {
+      // Look for a segment that has this metric
+      const segWithMetric = activeSegs.find(s => s.metrics[key] !== undefined);
+      
+      if (segWithMetric) {
+        // Use the segment's average value + some noise
+        const baseVal = segWithMetric.metrics[key];
+        // Add 5% noise
+        dataPoint[key] = Math.max(0, Math.round(baseVal + (Math.random() - 0.5) * (baseVal * 0.1)));
+      } else {
+        // Fallback/Default behavior if metric is missing in current segment but exists globally
+        // e.g. Rest periods might drop power to 0 but keep HR high
+        if (key === 'power' || key === 'resistance') {
+          dataPoint[key] = 0;
+        } else if (key === 'heart_rate') {
+          // Decay HR if not specified
+          const prevHr = data.length > 0 ? data[data.length - 1].heart_rate : 100;
+          dataPoint[key] = Math.max(60, Math.round(prevHr * 0.99));
+        } else {
+          dataPoint[key] = 0;
+        }
+      }
+    });
+
+    // Ensure standard keys exist for TimelineView if they were added to availableMetricKeys
+    // (TimelineView likely expects specific keys, or we need to update it too. 
+    // Assuming TimelineView is generic or we map 'power'/'hr' correctly)
+    
+    data.push(dataPoint);
+  }
+
+  // 3. Generate Analytics Configuration
+  // Scan segments for available metrics and create groups
+  const groups: AnalyticsGroup[] = [];
+  
+  // Define standard metric configs
+  const standardMetrics: Record<string, AnalyticsGraphConfig> = {
+    'power': { id: 'power', label: 'Power', unit: 'W', color: '#8b5cf6', dataKey: 'power', icon: 'Zap' },
+    'heart_rate': { id: 'heart_rate', label: 'Heart Rate', unit: 'bpm', color: '#ef4444', dataKey: 'heart_rate', icon: 'Activity' },
+    'cadence': { id: 'cadence', label: 'Cadence', unit: 'rpm', color: '#3b82f6', dataKey: 'cadence', icon: 'Wind' },
+    'speed': { id: 'speed', label: 'Speed', unit: 'km/h', color: '#10b981', dataKey: 'speed', icon: 'Gauge' },
+    'resistance': { id: 'resistance', label: 'Resistance', unit: 'kg', color: '#f59e0b', dataKey: 'resistance', icon: 'Dumbbell' },
+  };
+
+  // Create a "Performance" group for found metrics
+  const performanceGraphs: AnalyticsGraphConfig[] = [];
+  
+  availableMetricKeys.forEach(key => {
+    if (standardMetrics[key]) {
+      performanceGraphs.push(standardMetrics[key]);
+    } else {
+      // Generic fallback for unknown metrics
+      performanceGraphs.push({
+        id: key,
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        unit: '',
+        color: '#888888',
+        dataKey: key
+      });
     }
+  });
 
-    // Add some noise
-    power += (Math.random() - 0.5) * 20;
-    hr += (Math.random() - 0.5) * 5;
-
-    data.push({
-      time: t,
-      power: Math.max(0, Math.round(power)),
-      hr: Math.round(hr),
-      cadence: power > 0 ? 80 + (Math.random() * 10) : 0
+  if (performanceGraphs.length > 0) {
+    groups.push({
+      id: 'performance',
+      name: 'Performance',
+      graphs: performanceGraphs
     });
   }
 
-  return { data, segments };
-};
-
-// --- Timer Display Component ---
-const TimerDisplay: React.FC<{ 
-  elapsedMs: number; 
-  hasActiveBlock: boolean;
-  onStart: () => void;
-  onPause: () => void;
-  onStop: () => void;
-  onNext: () => void;
-  isRunning: boolean;
-  compact?: boolean;
-}> = ({ elapsedMs, hasActiveBlock, onStart, onPause, onStop, onNext, isRunning, compact = false }) => {
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = Math.floor((ms % 1000) / 10);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className={cn(
-      'flex flex-col items-center justify-center h-full',
-      compact ? 'gap-4' : 'gap-8'
-    )}>
-      {!compact && (
-        <h2 className="text-2xl font-bold text-muted-foreground">Workout Timer</h2>
-      )}
-      
-      <div className={cn(
-        'font-mono font-bold tabular-nums tracking-wider',
-        compact ? 'text-4xl' : 'text-8xl',
-        hasActiveBlock ? 'text-primary' : 'text-muted-foreground/20'
-      )}>
-        {hasActiveBlock ? formatTime(elapsedMs) : '--:--.--'}
-      </div>
-      
-      {hasActiveBlock ? (
-        <div className={cn('flex', compact ? 'gap-3' : 'gap-6')}>
-          {!isRunning ? (
-            <Button onClick={onStart} size={compact ? 'default' : 'lg'} className={cn(
-              'rounded-full bg-green-600 hover:bg-green-700',
-              compact ? 'h-12 w-12 p-0' : 'h-16 w-16 p-0'
-            )}>
-              <Play className={cn('fill-current', compact ? 'h-5 w-5' : 'h-8 w-8')} />
-            </Button>
-          ) : (
-            <Button onClick={onPause} size={compact ? 'default' : 'lg'} className={cn(
-              'rounded-full bg-yellow-600 hover:bg-yellow-700',
-              compact ? 'h-12 w-12 p-0' : 'h-16 w-16 p-0'
-            )}>
-              <Pause className={cn('fill-current', compact ? 'h-5 w-5' : 'h-8 w-8')} />
-            </Button>
-          )}
-          
-          <Button onClick={onNext} size={compact ? 'default' : 'lg'} className={cn(
-            'rounded-full bg-blue-600 hover:bg-blue-700',
-            compact ? 'h-12 w-12 p-0' : 'h-16 w-16 p-0'
-          )}>
-            <SkipForward className={cn('fill-current', compact ? 'h-5 w-5' : 'h-8 w-8')} />
-          </Button>
-
-          <Button onClick={onStop} size={compact ? 'default' : 'lg'} variant="destructive" className={cn(
-            'rounded-full',
-            compact ? 'h-12 w-12 p-0' : 'h-16 w-16 p-0'
-          )}>
-            <Square className={cn('fill-current', compact ? 'h-4 w-4' : 'h-6 w-6')} />
-          </Button>
-        </div>
-      ) : (
-        <div className={cn(
-          'p-4 rounded-lg border border-border bg-card text-center',
-          compact ? 'max-w-[200px]' : 'max-w-md'
-        )}>
-          <p className={cn('text-muted-foreground', compact ? 'text-xs' : 'text-sm')}>
-            {compact ? 'Select a workout to begin' : 'Select a WOD block from the index to begin tracking.'}
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  return { data, segments, groups };
 };
 
 // --- Main Workbench Content ---
@@ -288,14 +255,14 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const {
     content,
     blocks,
-    activeBlockId,
+    activeBlockId: _activeBlockId,
     selectedBlockId,
     viewMode,
-    results,
+    results: _results,
     setContent,
     setBlocks,
     setActiveBlockId,
-    selectBlock,
+    selectBlock: _selectBlock,
     setViewMode,
     startWorkout,
     completeWorkout
@@ -310,6 +277,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
+  
+  // Block hover state (for highlighting in editor when hovering timer badges)
+  const [hoveredBlockKey, setHoveredBlockKey] = useState<string | null>(null);
   
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -356,7 +326,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // Real Analytics Data from Runtime
   // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
-  const [analyticsState, setAnalyticsState] = useState<{data: any[], segments: Segment[]}>({ data: [], segments: [] });
+  const [analyticsState, setAnalyticsState] = useState<{data: any[], segments: Segment[], groups: AnalyticsGroup[]}>({ data: [], segments: [], groups: [] });
 
   useEffect(() => {
     if (runtime) {
@@ -367,7 +337,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     }
   }, [runtime, execution.stepCount, execution.status]);
 
-  const { data: analyticsData, segments: analyticsSegments } = analyticsState;
+  const { data: analyticsData, segments: analyticsSegments, groups: analyticsGroups } = analyticsState;
 
   const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set<number>());
 
@@ -406,8 +376,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     return theme === 'dark' ? 'wod-dark' : 'wod-light';
   }, [theme]);
 
-  // Block editor hooks
-  const { editStatement, deleteStatement } = useBlockEditor({
+  // Block editor hooks (may be needed for future editing capabilities)
+  const { editStatement: _editStatement, deleteStatement: _deleteStatement } = useBlockEditor({
     editor: editorInstance,
     block: selectedBlock
   });
@@ -415,21 +385,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   // Handlers
   const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
-  };
-
-  const handleBlockClick = (item: DocumentItem) => {
-    if (item.type === 'wod') {
-      selectBlock(item.id);
-    }
-
-    if (viewMode === 'plan' && editorInstance) {
-      const line = item.startLine + 1;
-      editorInstance.revealLineInCenter(line);
-      editorInstance.setPosition({ lineNumber: line, column: 1 });
-      editorInstance.focus();
-      setHighlightedLine(line);
-      setTimeout(() => setHighlightedLine(null), 2000);
-    }
   };
 
   // Handle start workout - now can be triggered via event bus OR callback
@@ -520,6 +475,35 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     </div>
   );
 
+  // Handle block hover from timer display (for highlighting in editor/index)
+  const handleBlockHover = useCallback((blockKey: string | null) => {
+    setHoveredBlockKey(blockKey);
+  }, []);
+
+  // Handle block click from timer display (navigate to block in editor)
+  const handleBlockClick = useCallback((blockKey: string) => {
+    // Find the block and navigate to it
+    if (editorInstance && runtime) {
+      const block = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
+      if (block?.sourceIds && block.sourceIds.length > 0) {
+        // The sourceIds are statement IDs - try to find the line
+        const statementId = block.sourceIds[0];
+        // Look for the statement in the blocks
+        for (const wodBlock of blocks) {
+          const stmt = wodBlock.statements?.find(s => s.id === statementId);
+          if (stmt && stmt.meta?.line) {
+            const line = wodBlock.startLine + stmt.meta.line;
+            editorInstance.revealLineInCenter(line);
+            editorInstance.setPosition({ lineNumber: line, column: 1 });
+            setHighlightedLine(line);
+            setTimeout(() => setHighlightedLine(null), 2000);
+            break;
+          }
+        }
+      }
+    }
+  }, [editorInstance, runtime, blocks]);
+
   // Track Index: TimerIndexPanel
   const trackIndexPanel = (
     <TimerIndexPanel
@@ -527,6 +511,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       activeBlock={selectedBlock}
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
+      highlightedBlockKey={hoveredBlockKey}
       autoScroll={execution.status === 'running'}
       mobile={isMobile}
       workoutStartTime={execution.startTime}
@@ -534,7 +519,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   );
 
   // Track Primary: Timer Display
-  const trackPrimaryPanel = (
+  // Wrap with ClockRuntimeProvider when runtime is available to enable display stack features
+  const timerDisplay = (
     <TimerDisplay
       elapsedMs={execution.elapsedTime}
       hasActiveBlock={!!selectedBlock}
@@ -544,8 +530,17 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       onNext={handleNext}
       isRunning={execution.status === 'running'}
       compact={isMobile}
+      onBlockHover={handleBlockHover}
+      onBlockClick={handleBlockClick}
+      enableDisplayStack={!!runtime}
     />
   );
+  
+  const trackPrimaryPanel = runtime ? (
+    <ClockRuntimeProvider runtime={runtime}>
+      {timerDisplay}
+    </ClockRuntimeProvider>
+  ) : timerDisplay;
 
   // Track Debug: RuntimeDebugPanel (embedded, not slide-out)
   const trackDebugPanel = (
@@ -564,6 +559,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={handleSelectAnalyticsSegment}
       mobile={isMobile}
+      groups={analyticsGroups}
     />
   );
 
@@ -574,6 +570,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={handleSelectAnalyticsSegment}
+      groups={analyticsGroups}
     />
   );
 

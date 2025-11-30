@@ -2,6 +2,7 @@ import AnalyticsIndexPanel from '@/components/layout/AnalyticsIndexPanel';
 import type { Meta, StoryObj } from '@storybook/react';
 
 // Define Segment interface locally for stories
+// Define Segment interface locally for stories
 interface Segment {
   id: number;
   name: string;
@@ -11,8 +12,7 @@ interface Segment {
   duration: number;
   parentId: number | null;
   depth: number;
-  avgPower: number;
-  avgHr: number;
+  metrics: Record<string, number>;
   lane: number;
 }
 
@@ -47,8 +47,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
     duration: count * 60,
     parentId: null,
     depth: 0,
-    avgPower: 150,
-    avgHr: 130,
+    metrics: { power: 150, heart_rate: 130 },
     lane: 0
   });
 
@@ -63,8 +62,10 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         duration: 60,
         parentId: 1,
         depth: 1,
-        avgPower: i % 2 === 0 ? 200 : 50,
-        avgHr: i % 2 === 0 ? 160 : 110,
+        metrics: { 
+          power: i % 2 === 0 ? 200 : 50,
+          heart_rate: i % 2 === 0 ? 160 : 110
+        },
         lane: 1
       });
       currentTime += 60;
@@ -83,8 +84,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
       duration: 300,
       parentId: 1,
       depth: 1,
-      avgPower: 100,
-      avgHr: 110,
+      metrics: { power: 100, heart_rate: 110 },
       lane: 1
     });
     
@@ -99,8 +99,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
       duration: 600,
       parentId: 1,
       depth: 1,
-      avgPower: 180,
-      avgHr: 150,
+      metrics: { power: 180, heart_rate: 150 },
       lane: 1
     });
 
@@ -117,8 +116,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         duration: 200,
         parentId: mainSetId,
         depth: 2,
-        avgPower: 180,
-        avgHr: 150,
+        metrics: { power: 180, heart_rate: 150 },
         lane: 2
       });
 
@@ -132,8 +130,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         duration: 120,
         parentId: roundId,
         depth: 3,
-        avgPower: 200,
-        avgHr: 160,
+        metrics: { power: 200, heart_rate: 160, cadence: 180 },
         lane: 3
       });
       
@@ -146,8 +143,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         duration: 80,
         parentId: roundId,
         depth: 3,
-        avgPower: 0, // No power for burpees usually
-        avgHr: 170,
+        metrics: { heart_rate: 170 }, // No power for burpees
         lane: 3
       });
     }
@@ -162,8 +158,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
       duration: 300,
       parentId: 1,
       depth: 1,
-      avgPower: 80,
-      avgHr: 100,
+      metrics: { power: 80, heart_rate: 100 },
       lane: 1
     });
   }
@@ -189,8 +184,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
       duration: duration,
       parentId: null,
       depth: 0,
-      avgPower: 140,
-      avgHr: 155,
+      metrics: { power: 140, heart_rate: 155 },
       lane: 0
     });
 
@@ -221,8 +215,10 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
          duration: roundEnd - currentTime,
          parentId: rootId,
          depth: 1,
-         avgPower: 150 - (round * 0.5), // Power drops slightly
-         avgHr: 140 + (round * 0.5), // HR drifts up
+         metrics: { 
+           power: 150 - (round * 0.5),
+           heart_rate: 140 + (round * 0.5)
+         },
          lane: 1
        });
 
@@ -239,8 +235,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
          duration: pullupTime,
          parentId: roundId,
          depth: 2,
-         avgPower: 160,
-         avgHr: 145,
+         metrics: { power: 160, heart_rate: 145 },
          lane: 2
        });
        moveStart += pullupTime;
@@ -255,8 +250,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
          duration: pushupTime,
          parentId: roundId,
          depth: 2,
-         avgPower: 140,
-         avgHr: 150,
+         metrics: { power: 140, heart_rate: 150 },
          lane: 2
        });
        moveStart += pushupTime;
@@ -271,8 +265,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
          duration: squatTime,
          parentId: roundId,
          depth: 2,
-         avgPower: 130,
-         avgHr: 155,
+         metrics: { power: 130, heart_rate: 155 },
          lane: 2
        });
 
@@ -294,8 +287,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
       duration: duration,
       parentId: null,
       depth: 0,
-      avgPower: 160,
-      avgHr: 150,
+      metrics: { power: 160, heart_rate: 150 },
       lane: 0
     });
 
@@ -312,8 +304,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: 60,
         parentId: rootId,
         depth: 1,
-        avgPower: 160,
-        avgHr: 150,
+        metrics: { power: 160, heart_rate: 150 },
         lane: 1
       });
 
@@ -330,8 +321,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: workDuration,
         parentId: intervalId,
         depth: 2,
-        avgPower: 200,
-        avgHr: 165,
+        metrics: { power: 200, heart_rate: 165 },
         lane: 2
       });
 
@@ -344,8 +334,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: restDuration,
         parentId: intervalId,
         depth: 2,
-        avgPower: 0,
-        avgHr: 140, // HR recovering
+        metrics: { power: 0, heart_rate: 140 },
         lane: 2
       });
     }
@@ -364,8 +353,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
       duration: 0,
       parentId: null,
       depth: 0,
-      avgPower: 180,
-      avgHr: 170,
+      metrics: { power: 180, heart_rate: 170 },
       lane: 0
     });
 
@@ -391,8 +379,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: roundDuration,
         parentId: rootId,
         depth: 1,
-        avgPower: 180,
-        avgHr: 170,
+        metrics: { power: 180, heart_rate: 170 },
         lane: 1
       });
 
@@ -407,8 +394,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: runTime,
         parentId: roundId,
         depth: 2,
-        avgPower: 190,
-        avgHr: 175,
+        metrics: { power: 190, heart_rate: 175, cadence: 180 },
         lane: 2
       });
       moveStart += runTime;
@@ -422,8 +408,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: kbsTime,
         parentId: roundId,
         depth: 2,
-        avgPower: 170,
-        avgHr: 170,
+        metrics: { power: 170, heart_rate: 170 },
         lane: 2
       });
       moveStart += kbsTime;
@@ -437,8 +422,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         duration: pullupTime,
         parentId: roundId,
         depth: 2,
-        avgPower: 160,
-        avgHr: 165,
+        metrics: { power: 160, heart_rate: 165 },
         lane: 2
       });
       
@@ -513,5 +497,13 @@ export const MobileView: Story = {
     viewport: {
       defaultViewport: 'mobile1',
     },
+  },
+};
+
+export const ReadOnly: Story = {
+  args: {
+    segments: generateSegments(5, 'simple'),
+    className: 'w-[350px] border-r h-[600px]',
+    onSelectSegment: undefined, // Explicitly undefined to trigger read-only mode
   },
 };

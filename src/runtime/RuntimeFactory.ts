@@ -18,13 +18,12 @@ import { ScriptRuntime } from './ScriptRuntime';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
 import type { WodBlock } from '../markdown-editor/types';
-import type { ICodeStatement } from '../core/models/CodeStatement';
 import { RuntimeBlock } from './RuntimeBlock';
 import { BlockContext } from './BlockContext';
 import { BlockKey } from '../core/models/BlockKey';
-import { LoopCoordinatorBehavior, LoopType } from './behaviors/LoopCoordinatorBehavior';
-import { CompletionBehavior } from './behaviors/CompletionBehavior';
+import { LoopType } from './behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
+import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 
 /**
  * Interface for runtime factory implementations
@@ -91,19 +90,16 @@ export class RuntimeFactory implements IRuntimeFactory {
     
     const behaviors: IRuntimeBehavior[] = [];
     
-    // Root uses LoopCoordinator to walk through all top-level statements once
-    const loopCoordinator = new LoopCoordinatorBehavior({
+    // Root uses RootLifecycleBehavior to manage the full workout lifecycle
+    // (Initial Idle -> Execution -> Final Idle)
+    const rootBehavior = new RootLifecycleBehavior({
         childGroups: childGroups,
         loopType: LoopType.FIXED,
         totalRounds: 1
     });
-    behaviors.push(loopCoordinator);
+    behaviors.push(rootBehavior);
     
-    // Root completes when the loop coordinator is complete
-    behaviors.push(new CompletionBehavior(
-        (_rt, blk) => loopCoordinator.isComplete(_rt, blk),
-        ['root:complete']
-    ));
+    // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
     
     const rootBlock = new RuntimeBlock(
         runtime,

@@ -16,24 +16,14 @@ import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
-// Define Segment interface locally as it's not exported from a central model yet
-interface Segment {
-  id: number;
-  name: string;
-  type: string;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  parentId: number | null;
-  depth: number;
-  avgPower: number;
-  avgHr: number;
-  lane: number;
-}
+import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
-  segments: any[]; // Using any for now to avoid circular dependency, should be MetricItem or Segment interface defined here
+  segments: Segment[];
+  
+  /** Available metric groups for display configuration */
+  groups?: AnalyticsGroup[];
   
   /** Currently selected segment IDs for filtering */
   selectedSegmentIds?: Set<number>;
@@ -82,15 +72,39 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
     image: formatDuration(segment.duration),
   });
   
-  // Add power fragment if significant
-  if (segment.avgPower > 0) {
-    fragments.push({
-      type: 'resistance',
-      fragmentType: FragmentType.Resistance,
-      value: segment.avgPower,
-      image: `${Math.round(segment.avgPower)}W`,
-    });
-  }
+  // Add dynamic metrics based on groups or fallback to all available
+  // We want to show primary metrics in the fragment view
+  
+  // If we have specific groups, use the first group's graphs as priority
+  // Otherwise just show what we have
+
+  // Priority display from groups
+  // TODO: Pass groups to this function or make it a component
+  // For now, we'll just iterate all metrics in the segment
+  
+  Object.entries(segment.metrics).forEach(([key, value]) => {
+      if (value > 0) {
+        let unit = '';
+        let type = FragmentType.Text;
+        
+        switch(key) {
+          case 'power': unit = 'W'; type = FragmentType.Resistance; break;
+          case 'resistance': unit = 'kg'; type = FragmentType.Resistance; break;
+          case 'distance': unit = 'm'; type = FragmentType.Distance; break;
+          case 'repetitions': unit = 'reps'; type = FragmentType.Rep; break;
+          case 'heart_rate': unit = 'bpm'; type = FragmentType.Text; break;
+          case 'cadence': unit = 'rpm'; type = FragmentType.Text; break;
+          case 'speed': unit = 'km/h'; type = FragmentType.Text; break;
+        }
+        
+        fragments.push({
+          type: key,
+          fragmentType: type,
+          value: value,
+          image: `${Math.round(value)}${unit}`,
+        });
+      }
+  });
   
   return fragments;
 }
@@ -174,6 +188,7 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   selectedSegmentIds = new Set(),
   onSelectSegment,
   mobile = false,
+  groups = [],
   className = ''
 }) => {
   // Convert segments to MetricItems
@@ -187,6 +202,36 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
       // Determine if this is a separator/grouping node
       const isSeparator = ['root', 'round', 'interval', 'warmup', 'cooldown'].includes(type);
       
+      // Build footer from secondary metrics
+      const footerMetrics: React.ReactNode[] = [];
+      
+      // Use groups to determine what to show in footer if needed, 
+      // but for now we'll just show everything that wasn't primary?
+      // Actually, let's just show specific ones in footer if they exist
+      const secondaryMetrics = ['heart_rate', 'cadence'];
+      
+      secondaryMetrics.forEach(key => {
+        if (seg.metrics[key] > 0) {
+          let symbol = '';
+          // Try to find config in groups
+          let config = null;
+          for (const g of groups) {
+            config = g.graphs.find(gr => gr.id === key);
+            if (config) break;
+          }
+
+          if (config) {
+             symbol = config.unit;
+          } else {
+            switch(key) {
+              case 'heart_rate': symbol = '♥'; break;
+              case 'cadence': symbol = 'rpm'; break;
+            }
+          }
+          footerMetrics.push(<span key={key}>{Math.round(seg.metrics[key])}{symbol}</span>);
+        }
+      });
+
       return {
         id: seg.id.toString(),
         parentId: seg.parentId ? seg.parentId.toString() : null,
@@ -200,10 +245,9 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
             compact={true}
           />
         ),
-        footer: !isSeparator && (
+        footer: !isSeparator && footerMetrics.length > 0 && (
           <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
-            {seg.avgPower > 0 && <span>{Math.round(seg.avgPower)}W</span>}
-            {seg.avgHr > 0 && <span>{Math.round(seg.avgHr)}♥</span>}
+            {footerMetrics}
           </div>
         ),
         data: {

@@ -136,8 +136,9 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
                 key={item.id}
                 onClick={() => onSelect?.(item.id)}
                 className={cn(
-                  "group relative flex items-center cursor-pointer transition-all border-b border-border/50",
-                  isSelected ? "bg-muted/80" : "hover:bg-muted/30"
+                  "group relative flex items-center transition-all border-b border-border/50",
+                  onSelect ? "cursor-pointer hover:bg-muted/30" : "cursor-default",
+                  isSelected ? "bg-muted/80" : ""
                 )}
                 style={{ minHeight: ROW_HEIGHT }}
               >

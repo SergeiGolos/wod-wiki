@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, Brush } from 'recharts';
-import { Activity, Zap, Layers, Wind, CheckSquare } from 'lucide-react';
-import { Segment } from './GitTreeSidebar';
+import { Zap, Activity, Wind, Gauge, Dumbbell, CheckSquare, Layers } from 'lucide-react';
+import { AnalyticsGroup, Segment, AnalyticsGraphConfig } from '../core/models/AnalyticsModels';
 
 interface TimelineViewProps {
   rawData: any[];
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number) => void;
+  groups?: AnalyticsGroup[];
 }
 
 // --- Helper Components ---
@@ -30,20 +31,49 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   rawData, 
   segments, 
   selectedSegmentIds,
-  onSelectSegment 
+  onSelectSegment,
+  groups = []
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'overlay'>('timeline');
-  const [activeMetric, setActiveMetric] = useState<'power' | 'hr' | 'cadence'>('power');
+  
+  // Flatten groups to get all available graphs
+  const allGraphs = useMemo(() => {
+    const graphs: Record<string, AnalyticsGraphConfig> = {};
+    groups.forEach(g => {
+      g.graphs.forEach(graph => {
+        graphs[graph.id] = graph;
+      });
+    });
+    
+    // If no groups provided (legacy/fallback), use defaults
+    if (Object.keys(graphs).length === 0) {
+      return {
+        power: { id: 'power', label: 'Power', unit: 'W', color: '#8b5cf6', dataKey: 'power', icon: 'Zap' },
+        hr: { id: 'hr', label: 'Heart Rate', unit: 'bpm', color: '#ef4444', dataKey: 'heart_rate', icon: 'Activity' },
+        cadence: { id: 'cadence', label: 'Cadence', unit: 'rpm', color: '#3b82f6', dataKey: 'cadence', icon: 'Wind' },
+      };
+    }
+    
+    return graphs;
+  }, [groups]);
 
-  // Config
-  const METRICS = {
-    power: { label: 'Power', unit: 'W', color: '#8b5cf6', icon: Zap },
-    hr: { label: 'Heart Rate', unit: 'bpm', color: '#ef4444', icon: Activity },
-    cadence: { label: 'Cadence', unit: 'rpm', color: '#3b82f6', icon: Wind },
-  };
+  // Determine active metric - default to first available or power
+  const [activeMetricId, setActiveMetricId] = useState<string>(() => {
+     const keys = Object.keys(allGraphs);
+     return keys.length > 0 ? keys[0] : 'power';
+  });
+
+  // Ensure active metric is valid when groups change
+  useMemo(() => {
+    if (!allGraphs[activeMetricId] && Object.keys(allGraphs).length > 0) {
+      setActiveMetricId(Object.keys(allGraphs)[0]);
+    }
+  }, [allGraphs, activeMetricId]);
+
+  const activeGraphConfig = allGraphs[activeMetricId] || allGraphs['power'] || { label: 'Unknown', unit: '', color: '#888', dataKey: activeMetricId };
 
   // Data Prep for Charts
-  const activeColor = METRICS[activeMetric].color;
+  const activeColor = activeGraphConfig.color;
 
   const overlayData = useMemo(() => {
     if (viewMode !== 'overlay') return [];
@@ -57,13 +87,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       activeSegments.forEach(seg => {
         if (t < seg.duration) {
           const absTime = seg.startTime + t;
-          point[`seg_${seg.id}`] = rawData[absTime] ? rawData[absTime][activeMetric] : null;
+          point[`seg_${seg.id}`] = rawData[absTime] ? rawData[absTime][activeGraphConfig.dataKey] : null;
         }
       });
       points.push(point);
     }
     return points;
-  }, [viewMode, selectedSegmentIds, activeMetric, segments, rawData]);
+  }, [viewMode, selectedSegmentIds, activeMetricId, activeGraphConfig, segments, rawData]);
 
   // Data Prep for Details Table
   const selectedSegmentsData = segments.filter(s => selectedSegmentIds.has(s.id));
@@ -82,17 +112,26 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         
         <div className="flex items-center gap-4">
            {/* Metric Toggles */}
-           <div className="flex bg-muted rounded-lg p-1 border border-border">
-              {Object.entries(METRICS).map(([key, cfg]) => (
-                 <button
-                    key={key}
-                    onClick={() => setActiveMetric(key as any)}
-                    className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-2 transition-all ${activeMetric === key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                 >
-                    <cfg.icon className="w-3 h-3" style={{ color: activeMetric === key ? cfg.color : 'currentColor' }} />
-                    {cfg.label}
-                 </button>
-              ))}
+           <div className="flex bg-muted rounded-lg p-1 border border-border overflow-x-auto max-w-[400px] custom-scrollbar">
+              {Object.values(allGraphs).map((cfg) => {
+                 // Resolve icon component
+                 let IconComp = Activity;
+                 if (cfg.icon === 'Zap') IconComp = Zap;
+                 else if (cfg.icon === 'Wind') IconComp = Wind;
+                 else if (cfg.icon === 'Gauge') IconComp = Gauge;
+                 else if (cfg.icon === 'Dumbbell') IconComp = Dumbbell;
+                 
+                 return (
+                   <button
+                      key={cfg.id}
+                      onClick={() => setActiveMetricId(cfg.id)}
+                      className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-2 transition-all whitespace-nowrap ${activeMetricId === cfg.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                   >
+                      <IconComp className="w-3 h-3" style={{ color: activeMetricId === cfg.id ? cfg.color : 'currentColor' }} />
+                      {cfg.label}
+                   </button>
+                 );
+              })}
            </div>
         </div>
       </header>
@@ -118,7 +157,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                    </button>
                 </div>
                 <div className="text-xl font-mono font-bold text-muted-foreground">
-                  {METRICS[activeMetric].unit}
+                  {activeGraphConfig.unit}
                 </div>
              </div>
 
@@ -128,7 +167,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     {viewMode === 'timeline' ? (
                       <LineChart data={rawData}>
                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                         <XAxis dataKey="time" tickFormatter={formatTime} stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} />
+                         <XAxis 
+                            dataKey="time" 
+                            tickFormatter={formatTime} 
+                            stroke="hsl(var(--muted-foreground))" 
+                            tick={{fontSize: 10}} 
+                         />
                          <YAxis stroke="hsl(var(--muted-foreground))" tick={{fontSize: 10}} domain={['auto', 'auto']}/>
                          <Tooltip 
                             contentStyle={{backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', fontSize: '12px', color: 'hsl(var(--popover-foreground))'}}
@@ -137,7 +181,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                          {segments.filter(s => selectedSegmentIds.has(s.id)).map(s => (
                             <ReferenceArea key={s.id} x1={s.startTime} x2={s.endTime} fill={activeColor} fillOpacity={0.05} />
                          ))}
-                         <Line type="monotone" dataKey={activeMetric} stroke={activeColor} strokeWidth={2} dot={false} />
+                         <Line type="monotone" dataKey={activeGraphConfig.dataKey} stroke={activeColor} strokeWidth={2} dot={false} />
                          <Brush dataKey="time" height={20} stroke="hsl(var(--border))" fill="hsl(var(--muted))" />
                       </LineChart>
                     ) : (
@@ -183,8 +227,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                          <th className="p-3">Segment Name</th>
                          <th className="p-3">Start</th>
                          <th className="p-3">Duration</th>
-                         <th className="p-3 text-right">Avg Power</th>
-                         <th className="p-3 text-right">Avg HR</th>
+                         {Object.values(allGraphs).map(g => (
+                           <th key={g.id} className="p-3 text-right">{g.label}</th>
+                         ))}
                          <th className="p-3 text-right">Intensity</th>
                       </tr>
                    </thead>
@@ -204,8 +249,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                               </td>
                               <td className="p-3 text-muted-foreground font-mono">{formatTime(seg.startTime)}</td>
                               <td className="p-3 text-muted-foreground font-mono">{formatDuration(seg.duration)}</td>
-                              <td className="p-3 text-right font-mono text-primary">{seg.avgPower}w</td>
-                              <td className="p-3 text-right font-mono text-red-500">{seg.avgHr}bpm</td>
+                              {Object.values(allGraphs).map(g => (
+                                <td key={g.id} className="p-3 text-right font-mono" style={{ color: g.color }}>
+                                  {seg.metrics[g.dataKey] ? Math.round(seg.metrics[g.dataKey]) : '-'}{g.unit}
+                                </td>
+                              ))}
                               <td className="p-3 text-right">
                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                                     seg.type === 'work' ? 'bg-red-500/10 text-red-500' : 

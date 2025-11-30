@@ -4,7 +4,7 @@
  * numeric value, and unit information.
  */
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort";
+  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort" | "heart_rate" | "cadence" | "power";
   value: number | undefined;
   unit: string;
 };
