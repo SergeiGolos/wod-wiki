@@ -1,5 +1,56 @@
 # WOD Wiki TV Casting - Local Development & Testing Guide
 
+## Quick Start
+
+Start the entire development environment with a single command:
+
+```bash
+# Full stack: Storybook + Relay Server + Metro Bundler + Android TV Emulator
+npm run dev:all
+
+# Web only: Storybook + Relay Server (no TV app)
+npm run dev:web
+
+# Full stack without emulator (if emulator is already running)
+npm run dev:no-emulator
+```
+
+### Available Options
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev:all` | Starts all services including Android TV emulator |
+| `npm run dev:web` | Starts only Storybook and Relay Server |
+| `npm run dev:no-emulator` | Starts all services but skips emulator startup |
+
+You can also run the script directly with additional options:
+
+```bash
+# Specify a custom AVD name
+node scripts/dev-start.cjs --avd my_custom_avd
+
+# Combine options
+node scripts/dev-start.cjs --no-emulator
+```
+
+### Services Started
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Storybook | http://localhost:6006 | Web application |
+| Relay Server | ws://localhost:8080/ws | WebSocket relay for TV casting |
+| Metro Bundler | http://localhost:8081 | React Native bundler for TV app |
+
+### Debug Ports
+
+| Service | Debug Method |
+|---------|--------------|
+| Storybook | Use `npm run storybook:debug` for `--inspect=9229` |
+| Relay Server | Add `NODE_OPTIONS=--inspect=9230` environment variable |
+| TV App | Use React Native Debugger or Flipper via Metro bundler |
+
+---
+
 ## Overview
 
 This document provides a comprehensive guide for setting up a local development environment and testing the WOD Wiki TV Casting feature across all components: web application, relay server, and Android TV application.
