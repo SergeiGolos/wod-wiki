@@ -1,5 +1,3 @@
-import { BlockKey } from '../../core/models/BlockKey';
-import { CodeStatement } from '../../core/models/CodeStatement';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -9,6 +7,8 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
+import { PushCardDisplayAction, PopCardDisplayAction, UpdateCardDisplayAction } from '../actions/CardDisplayActions';
+import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 
 /**
  * RoundsBlock Configuration
@@ -160,7 +160,57 @@ export class RoundsBlock extends RuntimeBlock {
   }
 
   /**
-   * Override next() to update public reps metric after round advances.
+   * Mount the rounds block and push display entries.
+   */
+  mount(runtime: IScriptRuntime): IRuntimeAction[] {
+    // Call parent mount (includes behaviors)
+    const actions = super.mount(runtime);
+
+    // Update rounds display state
+    actions.push(new SetRoundsDisplayAction(
+      this.getCurrentRound(),
+      this.getTotalRounds()
+    ));
+
+    // Push activity card for rounds context
+    actions.push(new PushCardDisplayAction({
+      id: `card-${this.key.toString()}`,
+      ownerId: this.key.toString(),
+      type: 'active-block',
+      title: this.label,
+      subtitle: `Round ${this.getCurrentRound()} of ${this.getTotalRounds()}`,
+      metrics: this.config.repScheme ? [{
+        type: 'reps',
+        value: `${this.getRepsForCurrentRound() || '?'} reps`,
+        isActive: true,
+      }] : [{
+        type: 'rounds',
+        value: `${this.getCurrentRound()}/${this.getTotalRounds()}`,
+        isActive: true,
+      }],
+      priority: 25, // Between timer and effort
+    }));
+
+    return actions;
+  }
+
+  /**
+   * Unmount the rounds block and pop display entries.
+   */
+  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
+    const actions = super.unmount(runtime);
+
+    // Pop the activity card
+    actions.push(new PopCardDisplayAction(`card-${this.key.toString()}`));
+
+    // Clear rounds display state
+    actions.push(new SetRoundsDisplayAction(undefined, undefined));
+
+    return actions;
+  }
+
+  /**
+   * Override next() to update public reps metric and display after round advances.
    */
   next(runtime: IScriptRuntime): IRuntimeAction[] {
     // Call parent implementation (invokes behaviors)
@@ -175,6 +225,29 @@ export class RoundsBlock extends RuntimeBlock {
         console.log(`📊 RoundsBlock updated public reps metric: ${currentReps} (round ${currentRound + 1}/${this.config.totalRounds})`);
       }
     }
+
+    // Update rounds display state
+    actions.push(new SetRoundsDisplayAction(
+      this.getCurrentRound(),
+      this.getTotalRounds()
+    ));
+
+    // Update activity card with new round info
+    actions.push(new UpdateCardDisplayAction(
+      `card-${this.key.toString()}`,
+      {
+        subtitle: `Round ${this.getCurrentRound()} of ${this.getTotalRounds()}`,
+        metrics: this.config.repScheme ? [{
+          type: 'reps',
+          value: `${this.getRepsForCurrentRound() || '?'} reps`,
+          isActive: true,
+        }] : [{
+          type: 'rounds',
+          value: `${this.getCurrentRound()}/${this.getTotalRounds()}`,
+          isActive: true,
+        }],
+      }
+    ));
 
     return actions;
   }

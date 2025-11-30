@@ -2,6 +2,7 @@
  * Represents a single measured value in the workout system.
  * Provides a standardized format for all metric data with type classification,
  * numeric value, and unit information.
+ * 
  */
 export type MetricValue = {
   type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort" | "heart_rate" | "cadence" | "power";

@@ -1,14 +1,24 @@
-import { BlockKey } from '../../core/models/BlockKey';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
+import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { TypedMemoryReference } from '../IMemoryReference';
 
 /**
  * EffortBlock Configuration
  */
 export interface EffortBlockConfig {
   exerciseName: string;
+  targetReps: number;
+}
+
+/**
+ * Effort state stored in runtime memory
+ */
+interface EffortState {
+  exerciseName: string;
+  currentReps: number;
   targetReps: number;
 }
 
@@ -28,7 +38,7 @@ export interface EffortBlockConfig {
 export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
-  private memoryRef?: string;
+  private memoryRef?: TypedMemoryReference<EffortState>;
 
   constructor(
     runtime: IScriptRuntime,
@@ -70,17 +80,36 @@ export class EffortBlock extends RuntimeBlock {
    */
   mount(runtime: IScriptRuntime): IRuntimeAction[] {
     // Allocate memory for rep tracking
-    this.memoryRef = runtime.memory.allocate(
-      `effort:${this.key.toString()}`,
+    this.memoryRef = runtime.memory.allocate<EffortState>(
+      `effort`,
+      this.key.toString(),
       {
         exerciseName: this.config.exerciseName,
         currentReps: this.currentReps,
         targetReps: this.config.targetReps,
-      }
+      },
+      'public'
     );
 
     // Call parent mount (includes behaviors)
-    return super.mount(runtime);
+    const actions = super.mount(runtime);
+
+    // Push activity card for this effort
+    actions.push(new PushCardDisplayAction({
+      id: `card-${this.key.toString()}`,
+      ownerId: this.key.toString(),
+      type: 'active-block',
+      title: this.config.exerciseName,
+      subtitle: `${this.config.targetReps} reps`,
+      metrics: [{
+        type: 'reps',
+        value: `${this.currentReps}/${this.config.targetReps}`,
+        isActive: true,
+      }],
+      priority: 30, // Higher number = lower priority, shows below timers
+    }));
+
+    return actions;
   }
 
   /**
@@ -88,20 +117,23 @@ export class EffortBlock extends RuntimeBlock {
    */
   unmount(runtime: IScriptRuntime): IRuntimeAction[] {
     // Call parent unmount (includes behaviors)
-    return super.unmount(runtime);
+    const actions = super.unmount(runtime);
+
+    // Pop the activity card
+    actions.push(new PopCardDisplayAction(`card-${this.key.toString()}`));
+
+    return actions;
   }
 
   /**
    * Cleanup: release memory reference.
    */
-  dispose(runtime: IScriptRuntime): void {
-    if (this.memoryRef) {
-      runtime.memory.release(this.memoryRef);
-      this.memoryRef = undefined;
-    }
+  dispose(_runtime: IScriptRuntime): void {
+    // Memory is automatically cleaned up when block is disposed
+    this.memoryRef = undefined;
 
     // Call parent dispose (includes behaviors)
-    super.dispose(runtime);
+    super.dispose(_runtime);
   }
 
   /**
@@ -171,10 +203,10 @@ export class EffortBlock extends RuntimeBlock {
 
     // Update memory
     if (this.memoryRef) {
-      const state = this._runtime.memory.get(this.memoryRef);
+      const state = this.memoryRef.get();
       if (state) {
         state.currentReps = this.currentReps;
-        this._runtime.memory.set(this.memoryRef, state);
+        this.memoryRef.set(state);
       }
     }
 
@@ -197,10 +229,10 @@ export class EffortBlock extends RuntimeBlock {
   private updateMemoryAndEmit(): void {
     // Update memory
     if (this.memoryRef) {
-      const state = this._runtime.memory.get(this.memoryRef);
+      const state = this.memoryRef.get();
       if (state) {
         state.currentReps = this.currentReps;
-        this._runtime.memory.set(this.memoryRef, state);
+        this.memoryRef.set(state);
       }
     }
 
