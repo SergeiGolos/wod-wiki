@@ -87,22 +87,11 @@ export class RuntimeStack {
      * @returns New array with top-first ordering
      */
     public graph(): IRuntimeBlock[] {
-        console.log(`📊 RuntimeStack.graph() - Creating stack visualization`);
-        console.log(`  📏 Current stack depth: ${this._blocks.length}`);
         
         // Return new array (not reference to internal storage)
         // Top block first (index 0), bottom block last
         const graph = [...this._blocks].reverse();
         
-        if (graph.length > 0) {
-            console.log(`  🎯 Top block: ${graph[0].key.toString()}`);
-            console.log(`  🏗️  Bottom block: ${graph[graph.length - 1].key.toString()}`);
-            console.log(`  📋 Stack order (top→bottom): [${graph.map(b => b.key.toString()).join(' → ')}]`);
-        } else {
-            console.log(`  📭 Stack is empty`);
-        }
-        
-        console.log(`  ✅ Graph generation completed`);
         return graph;
     }
 }

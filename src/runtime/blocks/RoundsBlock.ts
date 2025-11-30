@@ -5,10 +5,10 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { TypedMemoryReference } from '../IMemoryReference';
+
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
-import { PushCardDisplayAction, PopCardDisplayAction, UpdateCardDisplayAction } from '../actions/CardDisplayActions';
-import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { CurrentMetrics } from '../models/MemoryModels';
 
 /**
  * RoundsBlock Configuration
@@ -36,7 +36,7 @@ export interface RoundsBlockConfig {
  */
 export class RoundsBlock extends RuntimeBlock {
   private loopCoordinator: LoopCoordinatorBehavior;
-  private repsMetricRef?: TypedMemoryReference<number>;
+
 
   constructor(
     runtime: IScriptRuntime,
@@ -110,12 +110,8 @@ export class RoundsBlock extends RuntimeBlock {
     // Initialize with first round's reps (from rep scheme if available)
     if (config.repScheme && config.repScheme.length > 0) {
       const initialReps = config.repScheme[0];
-      this.repsMetricRef = this.allocate<number>({
-        type: MemoryTypeEnum.METRIC_REPS,
-        visibility: 'public',
-        initialValue: initialReps
-      });
-      console.log(`📊 RoundsBlock allocated public reps metric: ${initialReps} (round 1/${config.totalRounds})`);
+      // We'll update the global metrics object instead of a specific ref
+
     }
   }
 
@@ -166,30 +162,11 @@ export class RoundsBlock extends RuntimeBlock {
     // Call parent mount (includes behaviors)
     const actions = super.mount(runtime);
 
-    // Update rounds display state
-    actions.push(new SetRoundsDisplayAction(
-      this.getCurrentRound(),
-      this.getTotalRounds()
-    ));
+    // Push to display stack
+    actions.push(new PushStackItemAction(this.key.toString()));
 
-    // Push activity card for rounds context
-    actions.push(new PushCardDisplayAction({
-      id: `card-${this.key.toString()}`,
-      ownerId: this.key.toString(),
-      type: 'active-block',
-      title: this.label,
-      subtitle: `Round ${this.getCurrentRound()} of ${this.getTotalRounds()}`,
-      metrics: this.config.repScheme ? [{
-        type: 'reps',
-        value: `${this.getRepsForCurrentRound() || '?'} reps`,
-        isActive: true,
-      }] : [{
-        type: 'rounds',
-        value: `${this.getCurrentRound()}/${this.getTotalRounds()}`,
-        isActive: true,
-      }],
-      priority: 25, // Between timer and effort
-    }));
+    // Initialize metrics if needed
+    this.updateMetrics(runtime);
 
     return actions;
   }
@@ -200,11 +177,8 @@ export class RoundsBlock extends RuntimeBlock {
   unmount(runtime: IScriptRuntime): IRuntimeAction[] {
     const actions = super.unmount(runtime);
 
-    // Pop the activity card
-    actions.push(new PopCardDisplayAction(`card-${this.key.toString()}`));
-
-    // Clear rounds display state
-    actions.push(new SetRoundsDisplayAction(undefined, undefined));
+    // Pop from display stack
+    actions.push(new PopStackItemAction(this.key.toString()));
 
     return actions;
   }
@@ -216,39 +190,32 @@ export class RoundsBlock extends RuntimeBlock {
     // Call parent implementation (invokes behaviors)
     const actions = super.next(runtime);
 
-    // Update public reps metric if rep scheme is configured
-    if (this.repsMetricRef && this.config.repScheme) {
-      const currentRound = this.getCurrentRound() - 1; // Convert to 0-indexed
-      if (currentRound >= 0 && currentRound < this.config.repScheme.length) {
-        const currentReps = this.config.repScheme[currentRound];
-        runtime.memory.set(this.repsMetricRef, currentReps);
-        console.log(`📊 RoundsBlock updated public reps metric: ${currentReps} (round ${currentRound + 1}/${this.config.totalRounds})`);
-      }
-    }
-
-    // Update rounds display state
-    actions.push(new SetRoundsDisplayAction(
-      this.getCurrentRound(),
-      this.getTotalRounds()
-    ));
-
-    // Update activity card with new round info
-    actions.push(new UpdateCardDisplayAction(
-      `card-${this.key.toString()}`,
-      {
-        subtitle: `Round ${this.getCurrentRound()} of ${this.getTotalRounds()}`,
-        metrics: this.config.repScheme ? [{
-          type: 'reps',
-          value: `${this.getRepsForCurrentRound() || '?'} reps`,
-          isActive: true,
-        }] : [{
-          type: 'rounds',
-          value: `${this.getCurrentRound()}/${this.getTotalRounds()}`,
-          isActive: true,
-        }],
-      }
-    ));
+    // Update metrics for new round
+    this.updateMetrics(runtime);
 
     return actions;
+  }
+
+  private updateMetrics(runtime: IScriptRuntime): void {
+      if (this.config.repScheme) {
+          const currentReps = this.getRepsForCurrentRound();
+          if (currentReps !== undefined) {
+              const metricsRef = runtime.memory.allocate<CurrentMetrics>(
+                  MemoryTypeEnum.METRICS_CURRENT,
+                  'runtime',
+                  {},
+                  'public'
+              );
+              const metrics = metricsRef.get() || {};
+              metrics['reps'] = {
+                  value: currentReps,
+                  unit: 'reps',
+                  sourceId: this.key.toString()
+              };
+              metricsRef.set({ ...metrics });
+          }
+      }
+
+
   }
 }

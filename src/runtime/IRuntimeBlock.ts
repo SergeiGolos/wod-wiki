@@ -2,6 +2,7 @@ import { BlockKey } from "../core/models/BlockKey";
 import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
+import { IBlockContext } from "./IBlockContext";
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -64,7 +65,13 @@ export interface IRuntimeBlock {
      * Used for logging, UI display, and execution history.
      * e.g., "Round 1 of 3", "21 Reps", "For Time"
      */
-    readonly label: string;  
+    readonly label: string;
+
+    /**
+     * The execution context for this block.
+     * Manages memory allocation and cleanup.
+     */
+    readonly context: IBlockContext;
 
     /**
      * Called when this block is pushed onto the runtime stack.

@@ -53,7 +53,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // Initial idle just finished (popped)
                 // Transition to execution
                 this.state = RootState.EXECUTING;
-                console.log('[RootLifecycle] Initial idle complete, starting execution');
+
                 return this.loopCoordinator.onNext(runtime, block);
 
             case RootState.EXECUTING:
@@ -62,7 +62,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 
                 // Check if loop is complete
                 if (this.loopCoordinator.isComplete(runtime, block)) {
-                    console.log('[RootLifecycle] Execution complete, starting final idle');
+
                     this.state = RootState.FINAL_IDLE;
                     
                     const finalIdleBlock = this.createIdleBlock(
@@ -85,7 +85,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             case RootState.FINAL_IDLE:
                 // Final idle just finished
                 this.state = RootState.COMPLETE;
-                console.log('[RootLifecycle] Final idle complete, root block finishing');
+
                 return [new PopBlockAction()];
 
             case RootState.COMPLETE:

@@ -2,23 +2,15 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
-import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { CurrentMetrics } from '../models/MemoryModels';
 
 /**
  * EffortBlock Configuration
  */
 export interface EffortBlockConfig {
   exerciseName: string;
-  targetReps: number;
-}
-
-/**
- * Effort state stored in runtime memory
- */
-interface EffortState {
-  exerciseName: string;
-  currentReps: number;
   targetReps: number;
 }
 
@@ -38,7 +30,6 @@ interface EffortState {
 export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
-  private memoryRef?: TypedMemoryReference<EffortState>;
 
   constructor(
     runtime: IScriptRuntime,
@@ -79,35 +70,14 @@ export class EffortBlock extends RuntimeBlock {
    * Initialize effort tracking when block is mounted onto the stack.
    */
   mount(runtime: IScriptRuntime): IRuntimeAction[] {
-    // Allocate memory for rep tracking
-    this.memoryRef = runtime.memory.allocate<EffortState>(
-      `effort`,
-      this.key.toString(),
-      {
-        exerciseName: this.config.exerciseName,
-        currentReps: this.currentReps,
-        targetReps: this.config.targetReps,
-      },
-      'public'
-    );
+    // Update metrics
+    this.updateMetrics(runtime);
 
     // Call parent mount (includes behaviors)
     const actions = super.mount(runtime);
 
-    // Push activity card for this effort
-    actions.push(new PushCardDisplayAction({
-      id: `card-${this.key.toString()}`,
-      ownerId: this.key.toString(),
-      type: 'active-block',
-      title: this.config.exerciseName,
-      subtitle: `${this.config.targetReps} reps`,
-      metrics: [{
-        type: 'reps',
-        value: `${this.currentReps}/${this.config.targetReps}`,
-        isActive: true,
-      }],
-      priority: 30, // Higher number = lower priority, shows below timers
-    }));
+    // Push to display stack
+    actions.push(new PushStackItemAction(this.key.toString()));
 
     return actions;
   }
@@ -119,8 +89,8 @@ export class EffortBlock extends RuntimeBlock {
     // Call parent unmount (includes behaviors)
     const actions = super.unmount(runtime);
 
-    // Pop the activity card
-    actions.push(new PopCardDisplayAction(`card-${this.key.toString()}`));
+    // Pop from display stack
+    actions.push(new PopStackItemAction(this.key.toString()));
 
     return actions;
   }
@@ -130,7 +100,6 @@ export class EffortBlock extends RuntimeBlock {
    */
   dispose(_runtime: IScriptRuntime): void {
     // Memory is automatically cleaned up when block is disposed
-    this.memoryRef = undefined;
 
     // Call parent dispose (includes behaviors)
     super.dispose(_runtime);
@@ -172,7 +141,7 @@ export class EffortBlock extends RuntimeBlock {
     if (this.currentReps < this.config.targetReps) {
       this.currentReps++;
       this.lastCompletionMode = 'incremental';
-      this.updateMemoryAndEmit();
+      this.updateMetrics(this._runtime);
     }
   }
 
@@ -190,7 +159,7 @@ export class EffortBlock extends RuntimeBlock {
 
     this.currentReps = count;
     this.lastCompletionMode = 'bulk';
-    this.updateMemoryAndEmit();
+    this.updateMetrics(this._runtime);
   }
 
   /**
@@ -201,14 +170,8 @@ export class EffortBlock extends RuntimeBlock {
     this.currentReps = this.config.targetReps;
     this.lastCompletionMode = 'bulk';
 
-    // Update memory
-    if (this.memoryRef) {
-      const state = this.memoryRef.get();
-      if (state) {
-        state.currentReps = this.currentReps;
-        this.memoryRef.set(state);
-      }
-    }
+    // Update metrics
+    this.updateMetrics(this._runtime);
 
     // Emit reps:complete event
     this._runtime.handle({
@@ -226,15 +189,20 @@ export class EffortBlock extends RuntimeBlock {
    * Update memory and emit reps:updated event.
    * Helper method for incrementRep() and setReps().
    */
-  private updateMemoryAndEmit(): void {
-    // Update memory
-    if (this.memoryRef) {
-      const state = this.memoryRef.get();
-      if (state) {
-        state.currentReps = this.currentReps;
-        this.memoryRef.set(state);
-      }
-    }
+  private updateMetrics(runtime: IScriptRuntime): void {
+    const metricsRef = runtime.memory.allocate<CurrentMetrics>(
+        MemoryTypeEnum.METRICS_CURRENT,
+        'runtime',
+        {},
+        'public'
+    );
+    const metrics = metricsRef.get() || {};
+    metrics['reps'] = {
+        value: this.currentReps,
+        unit: 'reps',
+        sourceId: this.key.toString()
+    };
+    metricsRef.set({ ...metrics });
 
     // Emit reps:updated event
     this._runtime.handle({

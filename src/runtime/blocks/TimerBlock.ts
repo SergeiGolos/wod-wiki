@@ -2,12 +2,11 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { TimerBehavior, TIMER_MEMORY_TYPES } from '../behaviors/TimerBehavior';
+import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
-import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/TimerDisplayActions';
-import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 
 /**
  * TimerBlock Configuration
@@ -55,7 +54,7 @@ export class TimerBlock extends RuntimeBlock {
     }
 
     // Create timer behavior
-    const timerBehavior = new TimerBehavior(config.direction, config.durationMs);
+    const timerBehavior = new TimerBehavior(config.direction, config.durationMs, config.direction === 'down' ? 'AMRAP' : 'For Time');
 
     // Create behaviors array
     const behaviors: IRuntimeBehavior[] = [
@@ -190,35 +189,8 @@ export class TimerBlock extends RuntimeBlock {
     // Get base actions from parent
     const actions = super.mount(runtime);
 
-    // Find the timer memory reference (allocated by TimerBehavior.onPush)
-    // We search by type and ownerId since the ref is created after super.mount
-    const timerMemoryId = this.findTimerMemoryId(runtime);
-
-    // Push timer display entry
-    actions.push(new PushTimerDisplayAction({
-      id: `timer-display-${this.key.toString()}`,
-      ownerId: this.key.toString(),
-      timerMemoryId: timerMemoryId || `timer-${this.key.toString()}`, // fallback ID
-      label: this.label,
-      format: this.config.direction === 'down' ? 'countdown' : 'countup',
-      durationMs: this.config.durationMs,
-      priority: 10, // Lower = more important, timers show above cards
-    }));
-
-    // Push activity card for timer context
-    actions.push(new PushCardDisplayAction({
-      id: `card-${this.key.toString()}`,
-      ownerId: this.key.toString(),
-      type: 'active-block',
-      title: this.config.direction === 'down' ? 'AMRAP' : 'For Time',
-      subtitle: this.label,
-      metrics: this.config.durationMs ? [{
-        type: 'timer',
-        value: `${Math.floor(this.config.durationMs / 60000)}:${String(Math.floor((this.config.durationMs % 60000) / 1000)).padStart(2, '0')}`,
-        isActive: true,
-      }] : [],
-      priority: 20,
-    }));
+    // Push block to display stack
+    actions.push(new PushStackItemAction(this.key.toString()));
 
     return actions;
   }
@@ -229,24 +201,11 @@ export class TimerBlock extends RuntimeBlock {
   unmount(runtime: IScriptRuntime): IRuntimeAction[] {
     const actions = super.unmount(runtime);
 
-    // Pop timer and card displays
-    actions.push(new PopTimerDisplayAction(`timer-display-${this.key.toString()}`));
-    actions.push(new PopCardDisplayAction(`card-${this.key.toString()}`));
+    // Pop from display stack
+    actions.push(new PopStackItemAction(this.key.toString()));
 
     return actions;
   }
 
-  /**
-   * Find the timer memory reference ID by searching runtime memory.
-   * The TimerBehavior allocates memory with type TIMER_TIME_SPANS and ownerId = block key.
-   */
-  private findTimerMemoryId(runtime: IScriptRuntime): string | undefined {
-    const refs = runtime.memory.search({
-      id: null,
-      ownerId: this.key.toString(),
-      type: TIMER_MEMORY_TYPES.TIME_SPANS,
-      visibility: null,
-    });
-    return refs.length > 0 ? refs[0].id : undefined;
-  }
+
 }

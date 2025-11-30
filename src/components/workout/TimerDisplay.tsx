@@ -96,12 +96,6 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
   const runtime = useRuntimeContext();
   const [now, setNow] = React.useState(Date.now());
 
-  // Update time periodically
-  React.useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(interval);
-  }, []);
-
   // Get timer data from memory
   const timerRef = useMemo(() => {
     if (!entry?.timerMemoryId) return undefined;
@@ -117,6 +111,19 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
   }, [runtime, entry?.timerMemoryId]);
 
   const timeSpans = useMemorySubscription(timerRef) || [];
+
+  // Check if timer is actually running (has an open span without stop time)
+  const isTimerRunning = useMemo(() => {
+    return timeSpans.some(span => span.start && !span.stop);
+  }, [timeSpans]);
+
+  // Only update time periodically when timer is running
+  React.useEffect(() => {
+    if (!isTimerRunning) return;
+    
+    const interval = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
 
   // Calculate elapsed time
   const elapsed = useMemo(() => {

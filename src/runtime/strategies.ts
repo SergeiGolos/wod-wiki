@@ -6,16 +6,13 @@ import { BlockKey } from "../core/models/BlockKey";
 import { ICodeStatement, CodeStatement } from "../core/models/CodeStatement";
 import { RuntimeBlock } from "./RuntimeBlock";
 import { FragmentType } from "../core/models/CodeFragment";
-import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from "./behaviors/TimerBehavior";
+import { TimerBehavior } from "./behaviors/TimerBehavior";
 import { BlockContext } from "./BlockContext";
 import { CompletionBehavior } from "./behaviors/CompletionBehavior";
-import { TimerBlock } from "./blocks/TimerBlock";
-import { RoundsBlock } from "./blocks/RoundsBlock";
 import { MemoryTypeEnum } from "./MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "./behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "./behaviors/HistoryBehavior";
 import { EffortBlock } from "./blocks/EffortBlock";
-import { PopBlockAction } from "./PopBlockAction";
 
 
 export class EffortStrategy implements IRuntimeBlockStrategy {
@@ -31,7 +28,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds;
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 EffortStrategy compiling ${code.length} statement(s)`);
+
 
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
@@ -51,7 +48,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
         if (repsFragment && typeof repsFragment.value === 'number') {
           reps = repsFragment.value;
-          console.log(`  📊 EffortStrategy: Using explicit reps from fragment: ${reps}`);
+
         }
         
         // If no explicit reps, check for inherited reps from parent blocks
@@ -69,7 +66,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             const inheritedReps = runtime.memory.get(latestRepsRef as any);
             if (inheritedReps !== undefined) {
               reps = inheritedReps as number;
-              console.log(`  📊 EffortStrategy: Inherited reps from parent: ${reps} (from ${latestRepsRef.ownerId})`);
+
             }
           }
         }
@@ -95,7 +92,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Use EffortBlock if reps are specified, otherwise fallback to generic RuntimeBlock
         // This ensures proper rep tracking and completion logic
         if (reps !== undefined) {
-            console.log(`  🧠 EffortStrategy: Creating specialized EffortBlock`);
+
             return new EffortBlock(
                 runtime,
                 code[0]?.id ? [code[0].id] : [],
@@ -112,17 +109,10 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             behaviors,
             context,
             blockKey,
+            "Effort",
             "Effort"
         );
-
-        // 7. Store reps in block for inspection/debugging
-        if (reps !== undefined) {
-          (block as any).reps = reps;
-          console.log(`  ✅ EffortStrategy: Created EffortBlock with ${reps} reps`);
-        } else {
-          console.log(`  ⚠️  EffortStrategy: Created EffortBlock with no reps specified`);
-        }
-
+        
         return block;
     }
 }
@@ -148,7 +138,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 TimerStrategy compiling ${code.length} statement(s)`);
+
 
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
@@ -160,23 +150,11 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
         
-        // 4. Allocate timer memory
-        const timeSpansRef = context.allocate<TimeSpan[]>(
-            TIMER_MEMORY_TYPES.TIME_SPANS,
-            [{ start: new Date(), stop: undefined }],
-            'public'
-        );
-        const isRunningRef = context.allocate<boolean>(
-            TIMER_MEMORY_TYPES.IS_RUNNING,
-            true,
-            'public'
-        );
-        
-        // 5. Create behaviors
+        // 4. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
         
         // Add timer behavior (Count Up)
-        const timerBehavior = new TimerBehavior('up', undefined, timeSpansRef, isRunningRef);
+        const timerBehavior = new TimerBehavior('up', undefined, 'For Time');
         behaviors.push(timerBehavior);
         behaviors.push(new HistoryBehavior("Timer"));
 
@@ -267,7 +245,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 RoundsStrategy compiling ${code.length} statement(s)`);
+
 
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
@@ -346,9 +324,14 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                     if (currentReps !== undefined) {
                          // Find the memory ref we just allocated?
                          // Or just search for it.
-                         const refs = rt.memory.search({ type: MemoryTypeEnum.METRIC_REPS, ownerId: blockId });
+                         const refs = rt.memory.search({ 
+                             type: MemoryTypeEnum.METRIC_REPS, 
+                             ownerId: blockId,
+                             id: null,
+                             visibility: null
+                         });
                          if (refs.length > 0) {
-                             rt.memory.set(refs[0], currentReps);
+                             rt.memory.set(refs[0] as any, currentReps);
                          }
                     }
                     return [];
@@ -435,7 +418,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 IntervalStrategy compiling ${code.length} statement(s)`);
+
 
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
@@ -529,7 +512,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 TimeBoundRoundsStrategy compiling ${code.length} statement(s)`);
+
 
         const stmt = code[0];
         const fragments = stmt.fragments || [];;
@@ -560,23 +543,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const exerciseId = (stmt as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
-        // Allocate timer memory
-        const timeSpansRef = context.allocate<TimeSpan[]>(
-            TIMER_MEMORY_TYPES.TIME_SPANS,
-            [{ start: new Date(), stop: undefined }],
-            'public'
-        );
-        const isRunningRef = context.allocate<boolean>(
-            TIMER_MEMORY_TYPES.IS_RUNNING,
-            true,
-            'public'
-        );
-
         // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
         // 1. Timer Behavior (Countdown)
-        const timerBehavior = new TimerBehavior('down', durationMs, timeSpansRef, isRunningRef);
+        const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP');
         behaviors.push(timerBehavior);
         behaviors.push(new HistoryBehavior("AMRAP"));
 
@@ -651,7 +622,7 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        console.log(`  🧠 GroupStrategy compiling ${code.length} statement(s) with ${code[0].children?.length || 0} children`);
+
         console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
 
         // Placeholder implementation - creates a simple block

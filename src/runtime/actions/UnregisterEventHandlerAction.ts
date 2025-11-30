@@ -32,7 +32,7 @@ export class UnregisterEventHandlerAction implements IRuntimeAction {
     
     if (handlerRefs.length > 0) {
       runtime.memory.release(handlerRefs[0] as any);
-      console.log(`🔧 Unregistered event handler: ${this.handlerId}`);
+
     } else {
       console.warn(`⚠️ Handler not found for unregistration: ${this.handlerId}`);
     }

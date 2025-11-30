@@ -69,7 +69,7 @@ export class RuntimeFactory implements IRuntimeFactory {
       return null;
     }
 
-    console.log('[RuntimeFactory] Creating runtime for block:', block.id);
+
     
     // Create WodScript from block content and statements
     const script = new WodScript(block.content, block.statements);
@@ -121,7 +121,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     const actions = rootBlock.mount(runtime);
     actions.forEach(action => action.do(runtime));
     
-    console.log('[RuntimeFactory] Runtime created successfully for block:', block.id);
+
     return runtime;
   }
 
@@ -131,7 +131,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * @param runtime - The runtime to dispose
    */
   disposeRuntime(runtime: ScriptRuntime): void {
-    console.log('[RuntimeFactory] Disposing runtime');
+
     runtime.disposeAllBlocks();
   }
 }

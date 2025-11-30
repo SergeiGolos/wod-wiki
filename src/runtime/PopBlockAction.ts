@@ -44,7 +44,7 @@ export class PopBlockAction implements IRuntimeAction {
             // Log pop start
             NextBlockLogger.logError('pop-block-action', new Error('Pop starting'), {
                 blockKey,
-                depthBefore
+                stackDepth: depthBefore
             });
 
             // 1. Call block's unmount() method to get any final actions
@@ -65,7 +65,7 @@ export class PopBlockAction implements IRuntimeAction {
                 const depthAfter = runtime.stack.blocks.length;
 
                 // Log pop completion
-                console.log(`✅ PopBlockAction: Popped ${blockKey}, depth ${depthBefore} → ${depthAfter}`);
+
 
                 // 5. Execute any unmount actions returned
                 for (const action of unmountActions) {

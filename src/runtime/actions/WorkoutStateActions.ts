@@ -69,7 +69,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ SetWorkoutStateAction: ${previousState} → ${this.workoutState}`);
+
   }
 }
 
@@ -129,7 +129,7 @@ export class SetRoundsDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ SetRoundsDisplayAction: Round ${state.currentRound}/${state.totalRounds}`);
+
   }
 }
 
@@ -168,6 +168,6 @@ export class ResetDisplayStackAction implements IRuntimeAction {
     // Update memory
     stateRef.set(freshState);
 
-    console.log('🖥️ ResetDisplayStackAction: Display stack reset to initial state');
+
   }
 }

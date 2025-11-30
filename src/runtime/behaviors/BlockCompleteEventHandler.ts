@@ -59,7 +59,7 @@ export class BlockCompleteEventHandler implements IEventHandler {
 
         if (completedBlockId === currentBlockId) {
             // The current child block has completed, pop it
-            console.log(`🔔 BlockCompleteEventHandler: Detected completion of ${completedBlockId}, triggering pop`);
+
             return [new PopBlockAction()];
         }
 

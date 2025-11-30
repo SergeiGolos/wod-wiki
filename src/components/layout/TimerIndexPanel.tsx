@@ -11,7 +11,7 @@
  * - Uses FragmentVisualizer for consistent card display matching EditorIndexPanel
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
@@ -232,9 +232,35 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   workoutStartTime
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Version counter to force recalculation on memory/stack changes
+  const [updateVersion, setUpdateVersion] = useState(0);
+  
+  // Subscribe to memory changes for live updates
+  useEffect(() => {
+    if (!runtime) return;
+    
+    // Subscribe to memory changes
+    const unsubscribe = runtime.memory.subscribe(() => {
+      setUpdateVersion(v => v + 1);
+    });
+    
+    // Also set up a periodic refresh for stack changes and execution log updates
+    const intervalId = setInterval(() => {
+      setUpdateVersion(v => v + 1);
+    }, 100); // 10 FPS refresh
+    
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
+  }, [runtime]);
 
   // Build execution entries from runtime state
   const items = React.useMemo((): MetricItem[] => {
+    // Include updateVersion in dependency to force recalculation
+    void updateVersion;
+    
     if (!runtime) {
       return [];
     }
@@ -298,18 +324,34 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       const block = runtime.stack.blocks[i];
       let startTime = Date.now();
       
-      // Try to get start time from memory
-      const startTimeRefs = runtime.memory.search({ 
-        type: MemoryTypeEnum.METRIC_START_TIME, 
+      // Try to get start time from timer state first
+      const timerKey = `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`;
+      const timerRefs = runtime.memory.search({ 
+        type: timerKey,
         ownerId: block.key.toString(),
         id: null,
         visibility: null
       });
       
-      if (startTimeRefs.length > 0) {
-        const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
-        if (storedStartTime) {
-          startTime = storedStartTime;
+      if (timerRefs.length > 0) {
+        const timerState = runtime.memory.get(timerRefs[0] as any) as any;
+        if (timerState && timerState.spans && timerState.spans.length > 0) {
+          startTime = timerState.spans[0].start;
+        }
+      } else {
+        // Fallback to execution record
+        const execRefs = runtime.memory.search({ 
+          type: 'execution-record', 
+          ownerId: block.key.toString(),
+          id: null,
+          visibility: null
+        });
+        
+        if (execRefs.length > 0) {
+          const execRecord = runtime.memory.get(execRefs[0] as any) as any;
+          if (execRecord && execRecord.startTime) {
+            startTime = execRecord.startTime;
+          }
         }
       }
 
@@ -380,7 +422,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
         }
       } as MetricItem;
     });
-  }, [runtime, workoutStartTime]);
+  }, [runtime, workoutStartTime, updateVersion]);
 
   // Auto-scroll to bottom when new entries appear
   useEffect(() => {
@@ -391,6 +433,9 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
 
   // Determine which entries are "active" based on activeSegmentIds
   const activeIds = React.useMemo(() => {
+    // Include updateVersion to refresh when stack changes
+    void updateVersion;
+    
     const ids = new Set<string>();
     if (runtime) {
       for (const block of runtime.stack.blocks) {
@@ -398,7 +443,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       }
     }
     return ids;
-  }, [runtime]);
+  }, [runtime, updateVersion]);
 
   // Add highlightedBlockKey to the selected set for visual emphasis
   const selectedIds = React.useMemo(() => {

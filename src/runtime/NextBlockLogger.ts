@@ -19,7 +19,7 @@ export interface NextBlockLogData {
 }
 
 export class NextBlockLogger {
-    private static enabled = true;
+    private static enabled = false;
     private static logHistory: NextBlockLogData[] = [];
     private static maxHistorySize = 50;
 
@@ -62,6 +62,7 @@ export class NextBlockLogger {
             depth: stackDepth,
         });
     }
+
 
     /**
      * Logs the NextAction completion.
@@ -298,6 +299,7 @@ export class NextBlockLogger {
      * Generic log method for compatibility
      */
     log(message: string, data?: any) {
+        if (!NextBlockLogger.enabled) return;
         console.log(`[NextBlock] ${message}`, data || '');
     }
 }

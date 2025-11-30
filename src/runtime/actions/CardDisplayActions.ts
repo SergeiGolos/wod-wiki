@@ -86,7 +86,7 @@ export class PushCardDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ PushCardDisplayAction: Pushed card "${this.entry.title || this.entry.id}" (stack size: ${state.cardStack.length})`);
+
   }
 }
 
@@ -155,7 +155,7 @@ export class PopCardDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ PopCardDisplayAction: Popped card "${removedEntry?.title || removedEntry?.id}" (stack size: ${state.cardStack.length})`);
+
   }
 }
 
@@ -222,6 +222,6 @@ export class UpdateCardDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ UpdateCardDisplayAction: Updated card "${this.entryId}"`);
+
   }
 }

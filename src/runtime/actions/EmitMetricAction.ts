@@ -50,7 +50,7 @@ export class EmitMetricAction implements IRuntimeAction {
           
           // Update memory to trigger subscribers
           runtime.memory.set(ref, updatedRecord);
-          console.log(`  📊 Attached metric to span: ${record.label}`);
+
         }
       }
     }

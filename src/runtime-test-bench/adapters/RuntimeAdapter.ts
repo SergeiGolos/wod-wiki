@@ -257,6 +257,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   }
 
   private mapMemoryType(type: string): MemoryType {
+    if (!type) return 'unknown';
     const lowerType = type.toLowerCase();
 
     if (lowerType.includes('metric')) return 'metric';

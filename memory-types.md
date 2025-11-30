@@ -1,113 +1,89 @@
 # Runtime Memory Types
 
 This document outlines the items that write to the runtime memory, their schemas, and when they are written.
+The memory model has been simplified into four core categories: `displaystack`, `timers`, `handlers`, and `metrics`.
 
-## Core Runtime
+## 1. Display Stack
 
-### `execution-record`
-- **Key**: `execution-record`
-- **Schema**: `ExecutionRecord`
+### `displaystack`
+- **Key**: `displaystack` (Enum: `DISPLAY_STACK`)
+- **Schema**: `string[]` (List of Block IDs)
+- **Written By**:
+  - `TimerBlock` (via `PushStackItemAction` / `PopStackItemAction`)
+  - `RoundsBlock`
+  - `EffortBlock`
+- **When**:
+  - **Allocated**: When the first block pushes itself onto the display stack.
+  - **Updated**: When blocks are mounted (push) or unmounted (pop). The last item in the list is considered the "active" context for display purposes.
+
+## 2. Timers
+
+### `timer:<blockId>`
+- **Key**: `timer:<blockId>` (Enum: `TIMER_PREFIX` + blockId)
+- **Schema**: `TimerState`
   ```typescript
-  interface ExecutionRecord {
-      id: string;
+  interface TimerState {
       blockId: string;
-      parentId: string | null;
-      type: string;
       label: string;
-      startTime: number;
-      endTime?: number;
-      status: 'active' | 'completed';
-      metrics: any[];
+      format: 'up' | 'down' | 'time'; // 'time' for AMRAP/For Time
+      durationMs?: number;
+      card?: {
+          title: string;
+          subtitle: string;
+      };
+      spans: {
+          start: number;
+          stop?: number;
+          state: 'new' | 'reported';
+      }[];
+      isRunning: boolean;
   }
   ```
-- **Written By**: `ScriptRuntime`
-- **When**:
-  - **Allocated**: When a block is pushed onto the stack (`stack.push`).
-  - **Updated**: When a block is popped from the stack (`stack.pop`), setting `endTime` and `status`.
-
-### `handler`
-- **Key**: `handler`
-- **Schema**: `IEventHandler`
-- **Written By**: `RegisterEventHandlerAction`
-- **When**:
-  - **Allocated**: When a block registers an event handler (e.g., `CompletionBehavior`).
-
-## Timer System
-
-### `timer-time-spans`
-- **Key**: `timer-time-spans` (Enum: `TIMER_TIME_SPANS`)
-- **Schema**: `TimeSpan[]`
-  ```typescript
-  interface TimeSpan {
-      start?: Date;
-      stop?: Date;
-  }
-  ```
-- **Written By**: `TimerBehavior`
-- **When**:
-  - **Allocated**: When `TimerBlock` is pushed (via `TimerBehavior.onPush`).
-  - **Updated**: When timer starts, stops, pauses, or resumes.
-
-### `timer-is-running`
-- **Key**: `timer-is-running` (Enum: `TIMER_IS_RUNNING`)
-- **Schema**: `boolean`
 - **Written By**: `TimerBehavior`
 - **When**:
   - **Allocated**: When `TimerBlock` is pushed.
   - **Updated**: When timer starts, stops, pauses, or resumes.
 
-## Display System
+## 3. Handlers
 
-### `display:stack-state`
-- **Key**: `display:stack-state` (Enum: `DISPLAY_STACK_STATE`)
-- **Schema**: `IDisplayStackState`
+### `handler:<id>`
+- **Key**: `handler:<id>` (Enum: `HANDLER_PREFIX` + id)
+- **Schema**: `IEventHandler`
+- **Written By**: `RegisterEventHandlerAction`
+- **When**:
+  - **Allocated**: When a block registers an event handler (e.g., `CompletionBehavior`).
+
+## 4. Metrics
+
+### `metrics:current`
+- **Key**: `metrics:current` (Enum: `METRICS_CURRENT`)
+- **Schema**: `CurrentMetrics`
   ```typescript
-  interface IDisplayStackState {
-      timerStack: ITimerDisplayEntry[];
-      cardStack: IDisplayCardEntry[];
-      workoutState: 'idle' | 'running' | 'paused' | 'complete';
-      currentRound?: number;
-      totalRounds?: number;
+  interface CurrentMetrics {
+      [key: string]: {
+          value: number;
+          unit: string;
+          sourceId: string;
+      };
   }
   ```
 - **Written By**:
-  - `PushCardDisplayAction` / `PopCardDisplayAction` / `UpdateCardDisplayAction`
-  - `PushTimerDisplayAction` / `PopTimerDisplayAction` / `UpdateTimerDisplayAction`
-  - `SetWorkoutStateAction`
-  - `SetRoundsDisplayAction`
-  - `ResetDisplayStackAction`
+  - `RoundsBlock` (reps)
+  - `EffortBlock` (reps)
+  - `HistoryBehavior` (startTime)
 - **When**:
-  - **Allocated**: On first write (usually by `SetWorkoutStateAction` or first display action).
-  - **Updated**: Whenever the display stack changes (cards/timers added/removed) or workout state changes.
+  - **Allocated**: On first metric write.
+  - **Updated**:
+    - `reps`: Updated by `RoundsBlock` on round change or `EffortBlock` on rep increment.
+    - `startTime`: Updated by `HistoryBehavior` on block push.
+    - Other metrics can be added dynamically.
 
-## Metrics & State
+## Legacy / Internal
 
-### `metric:reps`
-- **Key**: `metric:reps` (Enum: `METRIC_REPS`)
-- **Schema**: `number`
-- **Written By**: `RoundsBlock`
+### `execution-record`
+- **Key**: `execution-record`
+- **Schema**: `ExecutionRecord`
+- **Written By**: `ScriptRuntime`
 - **When**:
-  - **Allocated**: When `RoundsBlock` is initialized (constructor).
-  - **Updated**: When advancing to the next round (`next()`).
-
-### `effort`
-- **Key**: `effort`
-- **Schema**: `EffortState`
-  ```typescript
-  interface EffortState {
-      exerciseName: string;
-      currentReps: number;
-      targetReps: number;
-  }
-  ```
-- **Written By**: `EffortBlock`
-- **When**:
-  - **Allocated**: When `EffortBlock` is mounted.
-  - **Updated**: When reps are incremented or set.
-
-### `metric:start-time`
-- **Key**: `metric:start-time` (Enum: `METRIC_START_TIME`)
-- **Schema**: `number` (Timestamp)
-- **Written By**: `HistoryBehavior`
-- **When**:
-  - **Allocated**: When any block with `HistoryBehavior` is pushed.
+  - **Allocated**: When a block is pushed onto the stack.
+  - **Updated**: When a block is popped.

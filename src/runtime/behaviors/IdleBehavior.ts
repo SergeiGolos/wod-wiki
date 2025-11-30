@@ -64,7 +64,7 @@ export class IdleBehavior implements IRuntimeBehavior {
         if (runtime.metrics) {
             runtime.metrics.collect(metric);
         }
-        console.log(`[IdleBehavior] Recorded idle duration: ${duration}ms`);
+
 
         return [];
     }

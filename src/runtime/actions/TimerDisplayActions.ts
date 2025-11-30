@@ -88,7 +88,7 @@ export class PushTimerDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ PushTimerDisplayAction: Pushed timer "${this.entry.label || this.entry.id}" (stack size: ${state.timerStack.length})`);
+
   }
 }
 
@@ -157,7 +157,7 @@ export class PopTimerDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ PopTimerDisplayAction: Popped timer "${removedEntry?.label || removedEntry?.id}" (stack size: ${state.timerStack.length})`);
+
   }
 }
 
@@ -224,6 +224,6 @@ export class UpdateTimerDisplayAction implements IRuntimeAction {
     // Update memory
     stateRef.set({ ...state });
 
-    console.log(`🖥️ UpdateTimerDisplayAction: Updated timer "${this.entryId}"`);
+
   }
 }

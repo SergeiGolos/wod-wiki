@@ -36,6 +36,6 @@ export class RegisterEventHandlerAction implements IRuntimeAction {
       this.visibility
     );
     
-    console.log(`🔧 Registered event handler: ${this.handler.name} (${this.handler.id}) for block ${this.ownerId}`);
+
   }
 }

@@ -9,7 +9,7 @@
  * - Can be toggled on/off independently of view mode
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Bug } from 'lucide-react';
 import { RuntimeStackPanel } from '../../runtime-test-bench/components/RuntimeStackPanel';
@@ -49,12 +49,36 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   className = ''
 }) => {
   const adapter = React.useRef(new RuntimeAdapter()).current;
+  
+  // Version counter to force snapshot recalculation on memory changes
+  const [snapshotVersion, setSnapshotVersion] = useState(0);
+  
+  // Subscribe to memory changes for live updates
+  useEffect(() => {
+    if (!runtime) return;
+    
+    // Subscribe to memory changes
+    const unsubscribe = runtime.memory.subscribe(() => {
+      // Increment version to trigger snapshot recalculation
+      setSnapshotVersion(v => v + 1);
+    });
+    
+    // Also set up a periodic refresh for stack changes (stack doesn't emit events)
+    const intervalId = setInterval(() => {
+      setSnapshotVersion(v => v + 1);
+    }, 100); // 10 FPS refresh for stack state
+    
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
+  }, [runtime]);
 
-  // Create snapshot for UI rendering
+  // Create snapshot for UI rendering - recalculates when snapshotVersion changes
   const snapshot = React.useMemo(() => {
     if (!runtime) return null;
     return adapter.createSnapshot(runtime);
-  }, [runtime, adapter]);
+  }, [runtime, adapter, snapshotVersion]);
 
   // Embedded mode - render inline without slide-out behavior
   if (embedded) {

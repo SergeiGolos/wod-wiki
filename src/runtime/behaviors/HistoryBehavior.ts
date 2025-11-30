@@ -2,7 +2,6 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
-import { ExecutionRecord } from "../models/ExecutionRecord";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 
 /**
@@ -21,16 +20,20 @@ export class HistoryBehavior implements IRuntimeBehavior {
     onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         this.startTime = Date.now();
         
-        // Allocate start time in memory for UI visibility
-        // Cast to any to access context (RuntimeBlock has it, but IRuntimeBlock interface might not expose it yet)
-        const blockWithContext = block as any;
-        if (blockWithContext.context) {
-            blockWithContext.context.allocate(
-                MemoryTypeEnum.METRIC_START_TIME,
-                this.startTime,
-                'public'
-            );
-        }
+        // Allocate start time in metrics
+        const metricsRef = runtime.memory.allocate<any>(
+            MemoryTypeEnum.METRICS_CURRENT,
+            'runtime',
+            {},
+            'public'
+        );
+        const metrics = metricsRef.get() || {};
+        metrics['startTime'] = {
+            value: this.startTime,
+            unit: 'ms',
+            sourceId: block.key.toString()
+        };
+        metricsRef.set({ ...metrics });
         
         // Determine parent ID from stack
         // The block is already on the stack, so parent is at index length - 2
@@ -53,6 +56,6 @@ export class HistoryBehavior implements IRuntimeBehavior {
         // ScriptRuntime now handles execution logging automatically via stack hooks.
         // We no longer need to manually push to executionLog here.
         // Keeping this method for potential future cleanup or specific metric handling.
-        console.log(`📜 HistoryBehavior: Block disposed ${block.key.toString()} (${this.label})`);
+
     }
 }

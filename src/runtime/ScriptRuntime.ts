@@ -28,7 +28,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.metrics = new MetricCollector();
         this.jit = compiler;
         this._setupMemoryAwareStack();
-        console.log(`🧠 ScriptRuntime created with memory system and metrics collector`);
+
     }
 
     /**
@@ -73,8 +73,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
             if (poppedBlock) {
                 const blockId = poppedBlock.key.toString();
-                console.log(`🧠 ScriptRuntime - Popped block: ${blockId}`);
-                console.log(`  ⚠️  Consumer must call dispose() on this block when finished`);
+
 
                 // Finalize execution span in memory
                 const refs = this.memory.search({ type: 'execution-record', ownerId: blockId, id: null, visibility: null });
@@ -92,7 +91,6 @@ export class ScriptRuntime implements IScriptRuntime {
                         
                         // Update memory (triggers subscribers)
                         this.memory.set(ref, updatedRecord);
-                        console.log(`  📊 Finalized execution record: ${updatedRecord.label} (${updatedRecord.endTime! - updatedRecord.startTime}ms)`);
                     }
                 }
             }
@@ -102,7 +100,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.stack.push = (block) => {
             const blockId = block.key.toString();
-            console.log(`🧠 ScriptRuntime - Pushing block: ${blockId}`);
+
             
             // Identify parent span
             const parentBlock = this.stack.current;
@@ -132,7 +130,6 @@ export class ScriptRuntime implements IScriptRuntime {
 
             // Store in memory
             this.memory.allocate<ExecutionRecord>('execution-record', blockId, record, 'public');
-            console.log(`  📊 Created execution record: ${record.label} (parent: ${record.parentId || 'none'})`);
             
             // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)
             if (typeof (block as any).setRuntime === 'function') {
@@ -142,15 +139,10 @@ export class ScriptRuntime implements IScriptRuntime {
             // Push block (no lifecycle method calls - constructor-based initialization)
             originalPush(block);
             
-            console.log(`  ✅ Block pushed with constructor-based initialization`);
         };
     }
 
     handle(event: IEvent): void {
-        console.log(`🎯 ScriptRuntime.handle() - Processing event: ${event.name}`);
-        console.log(`  📚 Stack depth: ${this.stack.blocks.length}`);
-        console.log(`  🎯 Current block: ${this.stack.current?.key?.toString() || 'None'}`);
-
         const allActions: IRuntimeAction[] = [];
         const updatedBlocks = new Set<string>();
 
@@ -160,41 +152,25 @@ export class ScriptRuntime implements IScriptRuntime {
             .map(ref => this.memory.get(ref as any))
             .filter(Boolean) as IEventHandler[];
 
-        console.log(`  🔍 Found ${allHandlers.length} handlers across ALL blocks in memory`);
-
         // Process ALL handlers in memory
         for (let i = 0; i < allHandlers.length; i++) {
             const handler = allHandlers[i];
-            
-            console.log(`    🔧 Handler ${i + 1}/${allHandlers.length}: ${handler.name} (${handler.id})`);
-
             const actions = handler.handler(event, this);
-            console.log(`      ✅ Returned ${actions.length} action(s)`);
 
             if (actions.length > 0) {
                 allActions.push(...actions);
-                console.log(`      📦 Added ${actions.length} action(s) to queue`);
             }
             
             // Check for errors - if runtime has errors, abort further processing
             if (this.errors && this.errors.length > 0) {
-                console.log(`      🛑 Runtime has errors - aborting handler chain`);
                 break;
             }
         }
 
-        console.log(`  🎬 Executing ${allActions.length} actions:`);
         for (let i = 0; i < allActions.length; i++) {
             const action = allActions[i];
-            console.log(`    ⚡ Action ${i + 1}/${allActions.length}: ${action.type}`);
             action.do(this);
-            console.log(`    ✨ Action ${action.type} completed`);
         }
-        
-        console.log(`🏁 ScriptRuntime.handle() completed for event: ${event.name}`);
-        console.log(`  📊 Final stack depth: ${this.stack.blocks.length}`);
-        console.log(`  🎯 Final current block: ${this.stack.current?.key?.toString() || 'None'}`);
-        console.log(`  🔄 Updated blocks: [${Array.from(updatedBlocks).join(', ')}]`);
         
         // Store updated blocks for consumers to query
         this._lastUpdatedBlocks = updatedBlocks;
@@ -227,18 +203,13 @@ export class ScriptRuntime implements IScriptRuntime {
         const poppedBlock = this.stack.pop();
         
         if (poppedBlock) {
-            console.log(`🧠 ScriptRuntime.popAndDispose() - Disposing block: ${poppedBlock.key.toString()}`);
-            
             // Consumer responsibility: call dispose() on the popped block
             try {
                 poppedBlock.dispose(this);
-                console.log(`  ✅ Block disposed successfully`);
             } catch (error) {
                 console.error(`  ❌ Error disposing block: ${error}`);
                 // Continue execution despite dispose error
             }
-        } else {
-            console.log(`🧠 ScriptRuntime.popAndDispose() - No block to pop`);
         }
     }
 
@@ -247,8 +218,6 @@ export class ScriptRuntime implements IScriptRuntime {
      * Useful for shutdown or error recovery scenarios.
      */
     public disposeAllBlocks(): void {
-        console.log(`🧠 ScriptRuntime.disposeAllBlocks() - Cleaning up ${this.stack.blocks.length} blocks`);
-        
         const disposeErrors: Error[] = [];
         
         while (this.stack.blocks.length > 0) {
@@ -256,7 +225,6 @@ export class ScriptRuntime implements IScriptRuntime {
             if (block) {
                 try {
                     block.dispose(this);
-                    console.log(`  ✅ Disposed: ${block.key.toString()}`);
                 } catch (error) {
                     disposeErrors.push(error as Error);
                     console.error(`  ❌ Error disposing ${block.key.toString()}: ${error}`);
@@ -266,21 +234,14 @@ export class ScriptRuntime implements IScriptRuntime {
         
         if (disposeErrors.length > 0) {
             console.warn(`🧠 ScriptRuntime.disposeAllBlocks() - ${disposeErrors.length} dispose errors occurred`);
-        } else {
-            console.log(`🧠 ScriptRuntime.disposeAllBlocks() - All blocks disposed successfully`);
         }
     }
     
     tick(): IEvent[] {
-        console.log(`⏰ ScriptRuntime.tick() - Processing current block lifecycle`);
-
         const currentBlock = this.stack.current;
         if (!currentBlock) {
-            console.log(`  ❌ No current block to process`);
             return [];
         }
-
-        console.log(`  🎯 Current block: ${currentBlock.key.toString()}`);
 
         // In the new Push/Next/Pop pattern, we might emit timer events or check for completion
         // For now, we'll emit a generic tick event that blocks can handle
@@ -290,10 +251,8 @@ export class ScriptRuntime implements IScriptRuntime {
             data: { source: 'runtime' }
         };
 
-        console.log(`  📤 Emitting tick event`);
         this.handle(tickEvent);
 
-        console.log(`⏰ ScriptRuntime.tick() completed`);
         return [];
     }
 }
