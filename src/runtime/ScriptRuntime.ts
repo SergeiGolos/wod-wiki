@@ -11,6 +11,7 @@ import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import { RuntimeMetric, MetricValue } from './RuntimeMetric';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -116,6 +117,36 @@ export class ScriptRuntime implements IScriptRuntime {
                 }
             }
 
+            // Create initial metrics from block information
+            const initialMetrics: RuntimeMetric[] = [];
+            
+            // For effort blocks, extract exercise name from label (e.g., "10 Pushups" -> exerciseId: "Pushups", reps: 10)
+            if (block.blockType === 'Effort' && block.label) {
+                const label = block.label;
+                // Parse label like "10 Pushups" or just "Pushups"
+                const match = label.match(/^(\d+)\s+(.+)$/);
+                if (match) {
+                    const reps = parseInt(match[1], 10);
+                    const exerciseName = match[2].trim();
+                    const values: MetricValue[] = [];
+                    if (!isNaN(reps)) {
+                        values.push({ type: 'repetitions', value: reps, unit: 'reps' });
+                    }
+                    initialMetrics.push({
+                        exerciseId: exerciseName,
+                        values,
+                        timeSpans: []
+                    });
+                } else {
+                    // No reps, just exercise name
+                    initialMetrics.push({
+                        exerciseId: label,
+                        values: [],
+                        timeSpans: []
+                    });
+                }
+            }
+
             // Create execution record
             const record: ExecutionRecord = {
                 id: `${Date.now()}-${blockId}`, // Simple unique ID
@@ -125,7 +156,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 label: block.label || blockId,
                 startTime: Date.now(),
                 status: 'active',
-                metrics: []
+                metrics: initialMetrics
             };
 
             // Store in memory

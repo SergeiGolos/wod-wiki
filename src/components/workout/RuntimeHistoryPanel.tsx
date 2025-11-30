@@ -8,15 +8,18 @@
  * - Read-only with active context highlighting
  * - Cards written AFTER blocks report themselves (lazy rendering)
  * - Shows which blocks are currently on the stack
+ * - Displays metrics as fragments (effort name, reps, etc.)
  */
 
 import React, { useRef, useEffect } from 'react';
 import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
-import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
 import { hashCode } from '../../lib/utils';
 import { Clock, Play, Activity, Pause } from 'lucide-react';
+import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { MetricValue, RuntimeMetric } from '../../runtime/RuntimeMetric';
 
 export interface RuntimeHistoryPanelProps {
   /** Active runtime for live tracking */
@@ -32,21 +35,86 @@ export interface RuntimeHistoryPanelProps {
   className?: string;
 }
 
+// --- Helper Functions for Metrics to Fragments Conversion ---
+
 /**
- * Helper to create tags for the card
+ * Convert a single MetricValue to an ICodeFragment for display
  */
-const createTags = (type: string, label: string, duration?: number) => {
+function metricToFragment(metric: MetricValue): ICodeFragment {
+  const typeMapping: Record<string, FragmentType> = {
+    'repetitions': FragmentType.Rep,
+    'resistance': FragmentType.Resistance,
+    'distance': FragmentType.Distance,
+    'timestamp': FragmentType.Timer,
+    'rounds': FragmentType.Rounds,
+    'time': FragmentType.Timer,
+    'calories': FragmentType.Distance,
+    'action': FragmentType.Action,
+    'effort': FragmentType.Effort,
+  };
+  
+  const fragmentType = typeMapping[metric.type] || FragmentType.Text;
+  const displayValue = metric.value !== undefined 
+    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
+    : metric.unit;
+  
+  return {
+    type: metric.type,
+    fragmentType,
+    value: metric.value,
+    image: displayValue,
+  };
+}
+
+/**
+ * Convert RuntimeMetric array to ICodeFragment array for FragmentVisualizer
+ */
+function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
+  const fragments: ICodeFragment[] = [];
+  for (const metric of metrics) {
+    // Add exercise name as effort fragment
+    if (metric.exerciseId) {
+      fragments.push({
+        type: 'effort',
+        fragmentType: FragmentType.Effort,
+        value: metric.exerciseId,
+        image: metric.exerciseId,
+      });
+    }
+    // Add each metric value as a fragment
+    for (const value of metric.values) {
+      fragments.push(metricToFragment(value));
+    }
+  }
+  return fragments;
+}
+
+/**
+ * Create a label fragment when no metrics are available
+ */
+function createLabelFragment(label: string, type: string): ICodeFragment {
+  const typeMapping: Record<string, FragmentType> = {
+    'timer': FragmentType.Timer,
+    'rounds': FragmentType.Rounds,
+    'effort': FragmentType.Effort,
+    'group': FragmentType.Action,
+  };
+  
+  return {
+    type: type.toLowerCase(),
+    fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
+    value: label,
+    image: label,
+  };
+}
+
+/**
+ * Helper to create tags for the card using FragmentVisualizer
+ */
+const createTags = (fragments: ICodeFragment[], duration?: number) => {
   return (
-    <div className="flex flex-wrap gap-1 gap-0.5">
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80 
-        ${type === 'work' ? 'bg-red-100 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100' : 
-          type === 'rest' ? 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100' :
-          'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100'}`}>
-        <span className="text-base leading-none">
-          {type === 'work' ? '💪' : type === 'rest' ? '⏸️' : '⏱️'}
-        </span>
-        <span>{label}</span>
-      </span>
+    <div className="flex flex-wrap items-center gap-1">
+      <FragmentVisualizer fragments={fragments} className="gap-1" compact />
       {duration !== undefined && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border bg-gray-100 border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 bg-opacity-60 shadow-sm">
           <span>{Math.floor(duration)}s</span>
@@ -63,6 +131,11 @@ function recordToItem(record: ExecutionRecord): MetricItem {
   const duration = ((record.endTime ?? Date.now()) - record.startTime) / 1000;
   const type = record.type.toLowerCase();
   
+  // Convert metrics to fragments, fallback to label fragment if no metrics
+  const fragments = record.metrics && record.metrics.length > 0 
+    ? metricsToFragments(record.metrics)
+    : [createLabelFragment(record.label, record.type)];
+  
   return {
     id: hashCode(record.blockId).toString(),
     parentId: record.parentId ? hashCode(record.parentId).toString() : null,
@@ -72,7 +145,7 @@ function recordToItem(record: ExecutionRecord): MetricItem {
     icon: type === 'work' ? <Activity className="h-3 w-3 text-red-500" /> :
           type === 'rest' ? <Pause className="h-3 w-3 text-green-500" /> :
           <Clock className="h-3 w-3 text-blue-500" />,
-    tags: createTags(type, record.label, duration),
+    tags: createTags(fragments, duration),
     footer: <span className="font-mono text-muted-foreground">{Math.floor(duration)}s</span>,
     status: 'completed'
   };
@@ -98,43 +171,27 @@ export const RuntimeHistoryPanel: React.FC<RuntimeHistoryPanelProps> = ({
     // 1. Get completed items from execution log
     const historyItems: MetricItem[] = runtime.executionLog.map(recordToItem);
 
-    // 2. Get active items from stack
-    const activeItems: MetricItem[] = runtime.stack.blocks.map((block, stackIndex) => {
-      let startTime = Date.now();
+    // 2. Get active items from activeSpans (contains metrics)
+    const activeItems: MetricItem[] = [];
+    runtime.activeSpans.forEach((record) => {
+      const duration = (Date.now() - record.startTime) / 1000;
       
-      // Try to get start time from memory
-      const startTimeRefs = runtime.memory.search({ 
-        type: MemoryTypeEnum.METRIC_START_TIME, 
-        ownerId: block.key.toString(),
-        id: null,
-        visibility: null
-      });
+      // Convert metrics to fragments, fallback to label fragment if no metrics
+      const fragments = record.metrics && record.metrics.length > 0 
+        ? metricsToFragments(record.metrics)
+        : [createLabelFragment(record.label, record.type)];
       
-      if (startTimeRefs.length > 0) {
-        const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
-        if (storedStartTime) {
-          startTime = storedStartTime;
-        }
-      }
-
-      const parentId = stackIndex > 0 
-        ? runtime.stack.blocks[stackIndex - 1].key.toString() 
-        : null;
-
-      const duration = (Date.now() - startTime) / 1000;
-      const type = (block.blockType || 'unknown').toLowerCase();
-
-      return {
-        id: hashCode(block.key.toString()).toString(),
-        parentId: parentId ? hashCode(parentId).toString() : null,
-        lane: stackIndex, // Initial lane guess
-        title: block.label || block.blockType || 'Block',
-        startTime: startTime,
+      activeItems.push({
+        id: hashCode(record.blockId).toString(),
+        parentId: record.parentId ? hashCode(record.parentId).toString() : null,
+        lane: 0, // Will be calculated later
+        title: record.label,
+        startTime: record.startTime,
         icon: <Play className="h-3 w-3 text-primary animate-pulse" />,
-        tags: createTags(type, block.label || 'Active'),
+        tags: createTags(fragments),
         footer: <span className="font-mono text-muted-foreground">{Math.floor(duration)}s</span>,
         status: 'active'
-      };
+      });
     });
 
     // Combine and sort NEWEST-FIRST

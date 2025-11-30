@@ -24,6 +24,7 @@ import { BlockKey } from '../core/models/BlockKey';
 import { LoopType } from './behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
+import { TimerBehavior } from './behaviors/TimerBehavior';
 
 /**
  * Interface for runtime factory implementations
@@ -98,6 +99,10 @@ export class RuntimeFactory implements IRuntimeFactory {
         totalRounds: 1
     });
     behaviors.push(rootBehavior);
+    
+    // Add TimerBehavior to root block (starts on load)
+    // Use 'up' direction (count up) for the main workout timer
+    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer'));
     
     // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
     

@@ -4,6 +4,7 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { IdleBehavior } from './IdleBehavior';
+import { TimerBehavior } from './TimerBehavior';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { BlockContext } from '../BlockContext';
 import { BlockKey } from '../../core/models/BlockKey';
@@ -44,6 +45,9 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         // By skipping it, index remains -1, and the first onNext call during EXECUTING phase
         // will advance it to 0 and push the first child.
 
+        // Create "Initialized" section record
+        this.createSectionRecord(runtime, block, 'root-init', 'Initialized');
+
         return [new PushBlockAction(idleBlock)];
     }
 
@@ -53,6 +57,9 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // Initial idle just finished (popped)
                 // Transition to execution
                 this.state = RootState.EXECUTING;
+
+                // Create "Workout Started" section record
+                this.createSectionRecord(runtime, block, 'root-start', 'Workout Started');
 
                 return this.loopCoordinator.onNext(runtime, block);
 
@@ -64,6 +71,15 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 if (this.loopCoordinator.isComplete(runtime, block)) {
 
                     this.state = RootState.FINAL_IDLE;
+                    
+                    // Create "Completed" section record
+                    this.createSectionRecord(runtime, block, 'root-complete', 'Completed');
+                    
+                    // Stop the timer
+                    const timer = block.getBehavior(TimerBehavior);
+                    if (timer) {
+                        timer.stop();
+                    }
                     
                     const finalIdleBlock = this.createIdleBlock(
                         runtime,
@@ -131,5 +147,20 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             'Idle',
             label
         );
+    }
+
+    private createSectionRecord(runtime: IScriptRuntime, block: IRuntimeBlock, idSuffix: string, label: string): void {
+        const record = {
+            id: `${block.key.toString()}-${idSuffix}`,
+            blockId: block.key.toString(),
+            parentId: block.key.toString(),
+            type: 'section',
+            label: label,
+            startTime: Date.now(),
+            status: 'completed', // Event/Marker is instantaneous/completed
+            metrics: []
+        };
+        
+        runtime.memory.allocate('execution-record', block.key.toString(), record, 'public');
     }
 }
