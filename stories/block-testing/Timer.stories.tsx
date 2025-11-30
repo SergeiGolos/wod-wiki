@@ -1,10 +1,16 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TestableBlockHarness, TestScenario } from '@/runtime/testing';
-import { BlockFactories, createBlockFactory } from './blockFactories';
+/**
+ * Timer Block Test Scenarios
+ * 
+ * Tests for time-bound workout blocks that manage countdown timers.
+ * Using the new ScenarioBuilder format for interactive testing.
+ */
 
-const meta: Meta<typeof TestableBlockHarness> = {
+import type { Meta, StoryObj } from '@storybook/react';
+import { BlockTestScenarioBuilder, ScenarioDefinition } from '@/runtime/testing';
+
+const meta: Meta<typeof BlockTestScenarioBuilder> = {
   title: 'Block Testing/Timer Block',
-  component: TestableBlockHarness,
+  component: BlockTestScenarioBuilder,
   parameters: {
     layout: 'padded',
     docs: {
@@ -12,33 +18,35 @@ const meta: Meta<typeof TestableBlockHarness> = {
         component: `
 # Timer Block Testing
 
-The **Timer Block** handles time-based execution. In its simplest form, 
-it acts as a "For Time" stopwatch, measuring how long it takes to complete the child work.
+The **Timer Block** manages time-bound workouts with countdown functionality.
+It uses \`TimerBehavior\` to track elapsed time and trigger completion.
 
-## Behaviors
+## Timer Types
 
-1. **TimerBehavior**
-   - Direction: 'up' (Count Up)
-   - Memory: Manages \`TIME_SPANS\` (start/stop times) and \`IS_RUNNING\` state
+### 1. Simple Timer (For Time)
+- Tracks elapsed time without a cap (e.g., "For Time:")
+- \`TimerMode.ForTime\` - stops when work completes
 
-2. **LoopCoordinatorBehavior** (if children exist)
-   - Loop Type: \`FIXED\`
-   - Total Rounds: 1
-   - Executes the child list exactly once
+### 2. Capped Timer (Time Cap)
+- Has a maximum duration (e.g., "20:00 For Time:")
+- \`TimerMode.Countdown\` - completes when timer expires
 
-3. **CompletionBehavior**
-   - Completes when the children finish execution
+### 3. Timer with Children
+- Manages child block execution within time limit
+- Children auto-advance based on TimerBehavior ticks
 
 ## Strategy Matching
 
 The \`TimerStrategy\` matches when:
-- Has a \`Timer\` fragment (e.g., "10:00", "For Time")
-- Does NOT match \`IntervalStrategy\` (EMOM) or \`TimeBoundRoundsStrategy\` (AMRAP)
+- \`Timer\` fragment IS present
+- NO \`Rounds\` fragments (otherwise TimeBoundRoundsStrategy matches)
+- NO \`EMOM\` action (otherwise IntervalStrategy matches)
 
-## Memory Layout
+## Memory Allocations
 
-- \`timer:time-spans\`: Array of \`{start, stop}\` objects to track elapsed time
-- \`timer:is-running\`: Boolean state
+TimerBlocks allocate:
+- \`metric:timer\` - Current timer state (elapsed, duration, mode)
+- \`metric:timer-state\` - Running/paused/stopped state
         `
       }
     }
@@ -50,190 +58,181 @@ type Story = StoryObj<typeof meta>;
 
 // ==================== PUSH PHASE SCENARIOS ====================
 
-const pushScenarios: TestScenario[] = [
-  {
-    id: 'timer-simple-push',
-    name: 'Simple Timer - Push',
-    description: 'Tests a simple timer block (e.g., "10:00"). Should allocate timer memory (TIME_SPANS, IS_RUNNING).',
-    phase: 'push',
-    testBlockId: 'timer-simple-1',
-    blockFactory: BlockFactories.timer.simple('10:00'),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 2 // TIME_SPANS + IS_RUNNING
-    }
-  },
-  {
-    id: 'timer-for-time-push',
-    name: 'For Time Timer - Push',
-    description: 'Tests a "For Time" timer with children. Should allocate timer memory and prepare for child execution.',
-    phase: 'push',
-    testBlockId: 'for-time-1',
-    blockFactory: BlockFactories.timer.forTime('20:00', ['100 Burpees']),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 2 // Timer memory
-    }
-  },
-  {
-    id: 'timer-with-children-push',
-    name: 'Timer with Multiple Children - Push',
-    description: 'Tests timer block with multiple child efforts. Should set up LoopCoordinatorBehavior for sequential execution.',
-    phase: 'push',
-    testBlockId: 'timer-children-1',
-    blockFactory: createBlockFactory(
-      `For Time
-  50 Pullups
-  100 Pushups
-  150 Squats`,
-      { includeChildren: true }
-    ),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 2
-    }
-  }
-];
+const simpleTimerPush: ScenarioDefinition = {
+  id: 'timer-simple-push',
+  name: 'Simple Timer - Push',
+  description: 'Tests "For Time:" timer block initialization. Should allocate timer memory with ForTime mode.',
+  wodScript: `For Time:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
 
-export const PushPhase: Story = {
-  args: {
-    scenarios: pushScenarios,
-    showDetailedDiff: true
-  }
+const cappedTimerPush: ScenarioDefinition = {
+  id: 'timer-capped-push',
+  name: 'Capped Timer - Push',
+  description: 'Tests timer with time cap (e.g., "20:00 For Time:"). Should initialize with countdown mode.',
+  wodScript: `20:00 For Time:
+  Run 400m
+  21-15-9
+    Thrusters
+    Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const standaloneTimerPush: ScenarioDefinition = {
+  id: 'timer-standalone-push',
+  name: 'Standalone Timer - Push',
+  description: 'Tests a simple duration timer without children (e.g., "3:00"). Should initialize with countdown.',
+  wodScript: '3:00',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+export const SimpleTimerPush: Story = {
+  args: { initialScenario: simpleTimerPush }
+};
+
+export const CappedTimerPush: Story = {
+  args: { initialScenario: cappedTimerPush }
+};
+
+export const StandaloneTimerPush: Story = {
+  args: { initialScenario: standaloneTimerPush }
 };
 
 // ==================== NEXT PHASE SCENARIOS ====================
 
-const nextScenarios: TestScenario[] = [
-  {
-    id: 'timer-next-no-children',
-    name: 'Simple Timer - Next (No Children)',
-    description: 'Tests next() on a timer without children. Timer continues running, should not complete.',
-    phase: 'next',
-    testBlockId: 'timer-next-1',
-    blockFactory: BlockFactories.timer.simple('10:00'),
-    expectations: {
-      actionsReturned: 0 // Timer keeps running
-    }
-  },
-  {
-    id: 'timer-next-push-child',
-    name: 'Timer with Children - Next (Push First Child)',
-    description: 'Tests next() on timer with children. Should push first child block via LoopCoordinatorBehavior.',
-    phase: 'next',
-    testBlockId: 'timer-child-next-1',
-    blockFactory: BlockFactories.timer.forTime('20:00', ['100 Burpees']),
-    expectations: {
-      // Should push child block
-      stackPushes: 1
-    }
-  },
-  {
-    id: 'timer-next-child-complete',
-    name: 'Timer - Child Completed',
-    description: 'Tests timer when all children have completed. Timer should complete (For Time).',
-    phase: 'next',
-    testBlockId: 'timer-complete-1',
-    blockFactory: BlockFactories.timer.forTime('20:00', ['5 Pullups']),
-    // Pre-configure to simulate child completion
-    runtimeConfig: {
-      // Would need to simulate child block already completed
-    },
-    expectations: {
-      // Depends on state - may return PopBlockAction if children done
-    }
-  }
-];
+const timerMidProgress: ScenarioDefinition = {
+  id: 'timer-mid-progress',
+  name: 'Timer - Mid Progress',
+  description: 'Tests timer at 50% elapsed. Timer should still be running.',
+  wodScript: `20:00 For Time:
+  Run 400m`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 600000, durationMs: 1200000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
 
-export const NextPhase: Story = {
-  args: {
-    scenarios: nextScenarios,
-    showDetailedDiff: true
-  }
+const timerNearComplete: ScenarioDefinition = {
+  id: 'timer-near-complete',
+  name: 'Timer - Near Complete',
+  description: 'Tests timer at 95% elapsed. Timer should still be running but close to completion.',
+  wodScript: `5:00 For Time:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 285000, durationMs: 300000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const timerExpired: ScenarioDefinition = {
+  id: 'timer-expired',
+  name: 'Timer - Expired',
+  description: 'Tests timer that has reached its duration. Should signal completion.',
+  wodScript: `5:00 For Time:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 300000, durationMs: 300000, isRunning: false, isComplete: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const timerPaused: ScenarioDefinition = {
+  id: 'timer-paused',
+  name: 'Timer - Paused',
+  description: 'Tests timer in paused state. Timer should not advance when paused.',
+  wodScript: `10:00 For Time:
+  Run 400m`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 180000, durationMs: 600000, isRunning: false, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+export const TimerMidProgress: Story = {
+  args: { initialScenario: timerMidProgress }
+};
+
+export const TimerNearComplete: Story = {
+  args: { initialScenario: timerNearComplete }
+};
+
+export const TimerExpired: Story = {
+  args: { initialScenario: timerExpired }
+};
+
+export const TimerPaused: Story = {
+  args: { initialScenario: timerPaused }
 };
 
 // ==================== POP PHASE SCENARIOS ====================
 
-const popScenarios: TestScenario[] = [
-  {
-    id: 'timer-simple-pop',
-    name: 'Simple Timer - Pop',
-    description: 'Tests unmount and dispose of a timer block. Should stop timer and release memory.',
-    phase: 'pop',
-    testBlockId: 'timer-pop-1',
-    blockFactory: BlockFactories.timer.simple('10:00'),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 2 // TIME_SPANS + IS_RUNNING
-    }
-  },
-  {
-    id: 'timer-for-time-pop',
-    name: 'For Time Timer - Pop',
-    description: 'Tests unmount of "For Time" timer. Should record final time and release resources.',
-    phase: 'pop',
-    testBlockId: 'for-time-pop-1',
-    blockFactory: BlockFactories.timer.forTime('20:00', ['100 Burpees']),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 2
-    }
-  }
-];
-
-export const PopPhase: Story = {
-  args: {
-    scenarios: popScenarios,
-    showDetailedDiff: true
-  }
+const timerPop: ScenarioDefinition = {
+  id: 'timer-pop',
+  name: 'Timer - Pop',
+  description: 'Tests unmount and dispose of timer block. Should release timer memory.',
+  wodScript: `5:00 For Time:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== TIMER BEHAVIOR SCENARIOS ====================
-
-const timerBehaviorScenarios: TestScenario[] = [
-  {
-    id: 'timer-memory-inspection',
-    name: 'Timer Memory Inspection',
-    description: 'Inspect the timer memory layout after mount. Verify TIME_SPANS and IS_RUNNING are allocated correctly.',
-    phase: 'push',
-    testBlockId: 'timer-memory-1',
-    blockFactory: BlockFactories.timer.simple('5:00'),
-    expectations: {
-      memoryAllocations: 2
-    }
-  },
-  {
-    id: 'timer-count-up',
-    name: 'Timer Count Up (For Time)',
-    description: 'Verify timer starts at 0 and counts up. TIME_SPANS should have a start entry with no stop.',
-    phase: 'push',
-    testBlockId: 'timer-up-1',
-    blockFactory: createBlockFactory('For Time'),
-    expectations: {
-      memoryAllocations: 2
-    }
-  }
-];
-
-export const TimerBehavior: Story = {
-  args: {
-    scenarios: timerBehaviorScenarios,
-    showDetailedDiff: true
-  }
+const timerWithStatePop: ScenarioDefinition = {
+  id: 'timer-state-pop',
+  name: 'Timer with State - Pop',
+  description: 'Tests unmount after timer ran for some time. Should clean up all timer state.',
+  wodScript: `10:00 For Time:
+  Run 400m`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 300000, durationMs: 600000, isRunning: false, mode: 'countdown' } }
+  ],
+  testPhase: 'unmount'
 };
 
-// ==================== ALL PHASES COMBINED ====================
+export const TimerPop: Story = {
+  args: { initialScenario: timerPop }
+};
 
-const allScenarios: TestScenario[] = [
-  ...pushScenarios,
-  ...nextScenarios,
-  ...popScenarios,
-  ...timerBehaviorScenarios
-];
+export const TimerWithStatePop: Story = {
+  args: { initialScenario: timerWithStatePop }
+};
 
-export const AllPhases: Story = {
+// ==================== INTERACTIVE BUILDER ====================
+
+export const InteractiveBuilder: Story = {
   args: {
-    scenarios: allScenarios,
-    showDetailedDiff: true
+    initialScript: `10:00 For Time:
+  Run 400m
+  5 Pullups
+  10 Pushups`
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive scenario builder for creating custom timer block tests.'
+      }
+    }
   }
 };

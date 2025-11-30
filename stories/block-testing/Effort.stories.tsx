@@ -1,10 +1,16 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TestableBlockHarness, TestScenario } from '@/runtime/testing';
-import { BlockFactories, createBlockFactory } from './blockFactories';
+/**
+ * Effort Block Test Scenarios
+ * 
+ * Tests for the fundamental unit of work in the WOD Wiki runtime.
+ * Using the new ScenarioBuilder format for interactive testing.
+ */
 
-const meta: Meta<typeof TestableBlockHarness> = {
+import type { Meta, StoryObj } from '@storybook/react';
+import { BlockTestScenarioBuilder, ScenarioDefinition } from '@/runtime/testing';
+
+const meta: Meta<typeof BlockTestScenarioBuilder> = {
   title: 'Block Testing/Effort Block',
-  component: TestableBlockHarness,
+  component: BlockTestScenarioBuilder,
   parameters: {
     layout: 'padded',
     docs: {
@@ -46,163 +52,164 @@ type Story = StoryObj<typeof meta>;
 
 // ==================== PUSH PHASE SCENARIOS ====================
 
-const pushScenarios: TestScenario[] = [
-  {
-    id: 'effort-generic-push',
-    name: 'Generic Effort - Push',
-    description: 'Tests a generic effort block (no reps) like "Run 400m". Should allocate standard block memory but no effort-specific memory.',
-    phase: 'push',
-    testBlockId: 'generic-effort-1',
-    blockFactory: BlockFactories.effort.generic('Run 400m'),
-    expectations: {
-      stackPushes: 1
-    }
-  },
-  {
-    id: 'effort-with-reps-push',
-    name: 'Effort with Reps - Push',
-    description: 'Tests an effort block with explicit reps (e.g., "5 Pullups"). Should create specialized EffortBlock with rep tracking memory.',
-    phase: 'push',
-    testBlockId: 'effort-reps-1',
-    blockFactory: BlockFactories.effort.withReps(5, 'Pullups'),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 1 // effort state
-    }
-  },
-  {
-    id: 'effort-rest-push',
-    name: 'Rest Effort - Push',
-    description: 'Tests a "Rest" effort block. Should be a generic effort that completes on next event.',
-    phase: 'push',
-    testBlockId: 'rest-effort-1',
-    blockFactory: BlockFactories.effort.rest(),
-    expectations: {
-      stackPushes: 1
-    }
-  },
-  {
-    id: 'effort-inherited-reps-push',
-    name: 'Effort with Inherited Reps - Push',
-    description: 'Tests an effort block that inherits reps from parent context (e.g., child of "21-15-9"). Pre-seeds public METRIC_REPS memory.',
-    phase: 'push',
-    testBlockId: 'inherited-effort-1',
-    blockFactory: createBlockFactory('Thrusters'),
-    runtimeConfig: {
-      initialMemory: [
-        { type: 'metric:reps', ownerId: 'parent-rounds', value: 21, visibility: 'public' }
-      ]
-    },
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 1 // Should create EffortBlock with inherited reps
-    }
-  }
-];
+const genericEffortPush: ScenarioDefinition = {
+  id: 'effort-generic-push',
+  name: 'Generic Effort - Push',
+  description: 'Tests a generic effort block (no reps) like "Run 400m". Should allocate standard block memory but no effort-specific memory.',
+  wodScript: 'Run 400m',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'mount'
+};
 
-export const PushPhase: Story = {
-  args: {
-    scenarios: pushScenarios,
-    showDetailedDiff: true
-  }
+const effortWithRepsPush: ScenarioDefinition = {
+  id: 'effort-with-reps-push',
+  name: 'Effort with Reps - Push',
+  description: 'Tests an effort block with explicit reps (e.g., "5 Pullups"). Should create specialized EffortBlock with rep tracking memory.',
+  wodScript: '5 Pullups',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const restEffortPush: ScenarioDefinition = {
+  id: 'effort-rest-push',
+  name: 'Rest Effort - Push',
+  description: 'Tests a "Rest" effort block. Should be a generic effort that completes on next event.',
+  wodScript: 'Rest',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const inheritedRepsPush: ScenarioDefinition = {
+  id: 'effort-inherited-reps-push',
+  name: 'Effort with Inherited Reps - Push',
+  description: 'Tests an effort block that inherits reps from parent context (e.g., child of "21-15-9"). Pre-seeds public METRIC_REPS memory.',
+  wodScript: 'Thrusters',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [
+    { type: 'allocateTestMemory', params: { type: 'metric:reps', ownerId: 'parent-rounds', value: 21, visibility: 'public' } }
+  ],
+  testPhase: 'mount'
+};
+
+export const GenericEffortPush: Story = {
+  args: { initialScenario: genericEffortPush }
+};
+
+export const EffortWithRepsPush: Story = {
+  args: { initialScenario: effortWithRepsPush }
+};
+
+export const RestEffortPush: Story = {
+  args: { initialScenario: restEffortPush }
+};
+
+export const InheritedRepsPush: Story = {
+  args: { initialScenario: inheritedRepsPush }
 };
 
 // ==================== NEXT PHASE SCENARIOS ====================
 
-const nextScenarios: TestScenario[] = [
-  {
-    id: 'effort-generic-next-no-event',
-    name: 'Generic Effort - Next (No Event)',
-    description: 'Tests next() on generic effort WITHOUT "next" event. Should NOT complete because CompletionBehavior only triggers on explicit "next" event, not on tick.',
-    phase: 'next',
-    testBlockId: 'generic-next-1',
-    blockFactory: BlockFactories.effort.generic('Run 400m'),
-    expectations: {
-      actionsReturned: 0 // Should not complete on tick-driven next()
-    }
-  },
-  {
-    id: 'effort-reps-partial',
-    name: 'Effort with Reps - Partial Progress',
-    description: 'Tests EffortBlock with partial rep completion. Block should NOT complete because currentReps < targetReps.',
-    phase: 'next',
-    testBlockId: 'effort-partial-1',
-    blockFactory: BlockFactories.effort.withReps(10, 'Pushups'),
-    expectations: {
-      actionsReturned: 0 // Not complete yet
-    }
-  },
-  {
-    id: 'effort-reps-complete',
-    name: 'Effort with Reps - Complete',
-    description: 'Tests EffortBlock where reps are already at target. Block should be complete and return PopBlockAction.',
-    phase: 'next',
-    testBlockId: 'effort-complete-1',
-    blockFactory: BlockFactories.effort.withReps(5, 'Pullups'),
-    // Pre-configure the effort state to show completion
-    runtimeConfig: {
-      // Note: In real usage, we'd need to set effort state after mount
-      // This tests the completion detection logic
-    },
-    expectations: {
-      // Depends on implementation - may need event simulation
-    }
-  }
-];
+const effortPartialProgress: ScenarioDefinition = {
+  id: 'effort-reps-partial',
+  name: 'Effort with Reps - Partial Progress',
+  description: 'Tests EffortBlock with partial rep completion. Block should NOT complete because currentReps < targetReps.',
+  wodScript: '10 Pushups',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [
+    { type: 'setEffortState', params: { blockKey: '{{currentBlock}}', currentReps: 5, targetReps: 10 } }
+  ],
+  testPhase: 'next'
+};
 
-export const NextPhase: Story = {
-  args: {
-    scenarios: nextScenarios,
-    showDetailedDiff: true
-  }
+const effortAlmostComplete: ScenarioDefinition = {
+  id: 'effort-reps-almost',
+  name: 'Effort with Reps - Almost Complete',
+  description: 'Tests EffortBlock where reps are one away from target. Block should NOT complete yet.',
+  wodScript: '10 Pushups',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [
+    { type: 'setEffortState', params: { blockKey: '{{currentBlock}}', currentReps: 9, targetReps: 10 } }
+  ],
+  testPhase: 'next'
+};
+
+const effortComplete: ScenarioDefinition = {
+  id: 'effort-reps-complete',
+  name: 'Effort with Reps - Complete',
+  description: 'Tests EffortBlock where reps have reached target. Block should be complete and return PopBlockAction.',
+  wodScript: '5 Pullups',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [
+    { type: 'setEffortState', params: { blockKey: '{{currentBlock}}', currentReps: 5, targetReps: 5, isComplete: true } }
+  ],
+  testPhase: 'next'
+};
+
+export const EffortPartialProgress: Story = {
+  args: { initialScenario: effortPartialProgress }
+};
+
+export const EffortAlmostComplete: Story = {
+  args: { initialScenario: effortAlmostComplete }
+};
+
+export const EffortComplete: Story = {
+  args: { initialScenario: effortComplete }
 };
 
 // ==================== POP PHASE SCENARIOS ====================
 
-const popScenarios: TestScenario[] = [
-  {
-    id: 'effort-generic-pop',
-    name: 'Generic Effort - Pop',
-    description: 'Tests unmount and dispose of a generic effort block. Should release all allocated memory.',
-    phase: 'pop',
-    testBlockId: 'generic-pop-1',
-    blockFactory: BlockFactories.effort.generic('Run 400m'),
-    expectations: {
-      stackPops: 1
-    }
-  },
-  {
-    id: 'effort-reps-pop',
-    name: 'Effort with Reps - Pop',
-    description: 'Tests unmount and dispose of specialized EffortBlock. Should release effort state memory.',
-    phase: 'pop',
-    testBlockId: 'effort-reps-pop-1',
-    blockFactory: BlockFactories.effort.withReps(5, 'Pullups'),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 1 // effort state
-    }
-  }
-];
-
-export const PopPhase: Story = {
-  args: {
-    scenarios: popScenarios,
-    showDetailedDiff: true
-  }
+const genericEffortPop: ScenarioDefinition = {
+  id: 'effort-generic-pop',
+  name: 'Generic Effort - Pop',
+  description: 'Tests unmount and dispose of a generic effort block. Should release all allocated memory.',
+  wodScript: 'Run 400m',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== ALL PHASES COMBINED ====================
+const effortRepsPop: ScenarioDefinition = {
+  id: 'effort-reps-pop',
+  name: 'Effort with Reps - Pop',
+  description: 'Tests unmount and dispose of specialized EffortBlock. Should release effort state memory.',
+  wodScript: '5 Pullups',
+  targetStatementId: 1,
+  includeChildren: false,
+  setupActions: [],
+  testPhase: 'unmount'
+};
 
-const allScenarios: TestScenario[] = [
-  ...pushScenarios,
-  ...nextScenarios,
-  ...popScenarios
-];
+export const GenericEffortPop: Story = {
+  args: { initialScenario: genericEffortPop }
+};
 
-export const AllPhases: Story = {
+export const EffortRepsPop: Story = {
+  args: { initialScenario: effortRepsPop }
+};
+
+// ==================== INTERACTIVE BUILDER ====================
+
+export const InteractiveBuilder: Story = {
   args: {
-    scenarios: allScenarios,
-    showDetailedDiff: true
+    initialScript: '5 Pullups'
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive scenario builder for creating custom effort block tests.'
+      }
+    }
   }
 };

@@ -3,6 +3,14 @@
  * 
  * Interactive testing workbench for building and executing
  * block lifecycle test scenarios.
+ * 
+ * For block-type specific tests, see the dedicated story files:
+ * - AMRAP.stories.tsx
+ * - EMOM.stories.tsx
+ * - Timer.stories.tsx
+ * - Rounds.stories.tsx
+ * - Group.stories.tsx
+ * - Effort.stories.tsx
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
@@ -44,11 +52,15 @@ Interactive workbench for creating, configuring, and executing block lifecycle t
 6. Review the before/after state diff
 7. Export the scenario for future use
 
-## Use Cases
+## Block-Type Specific Tests
 
-- **Mount Phase**: Test block initialization, memory allocation, child pushing
-- **Next Phase**: Test iteration logic, completion detection, state transitions
-- **Unmount Phase**: Test cleanup, memory release, metric emission
+For pre-configured test scenarios, see the dedicated story files:
+- **AMRAP Block**: Time-bound rounds tests
+- **EMOM Block**: Interval workout tests
+- **Timer Block**: Time-capped workout tests
+- **Rounds Block**: Multi-round and rep scheme tests
+- **Group Block**: Container/structural tests
+- **Effort Block**: Basic movement tests
         `
       }
     }
@@ -62,103 +74,22 @@ Interactive workbench for creating, configuring, and executing block lifecycle t
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// ==================== DEFAULT STORY ====================
+// ==================== DEFAULT INTERACTIVE BUILDER ====================
 
 export const Default: Story = {
   args: {
     initialScript: '5 Pullups'
-  }
-};
-
-// ==================== ROUNDS SCENARIO ====================
-
-export const RoundsScenario: Story = {
-  args: {
-    initialScript: `3 Rounds
-  10 Pushups
-  15 Squats
-  20 Situps`
   },
   parameters: {
     docs: {
       description: {
-        story: 'Test a rounds block with multiple children. Select the "3 Rounds" statement and test next() to see iteration behavior.'
+        story: 'Basic interactive scenario builder. Enter any WOD script and test block lifecycle phases.'
       }
     }
   }
 };
 
-// ==================== TIMER SCENARIO ====================
-
-export const TimerScenario: Story = {
-  args: {
-    initialScript: `10:00 Timer
-  5 Pullups
-  10 Pushups
-  15 Squats`
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Test a timer block. Use setup actions to set elapsed time and test completion behavior.'
-      }
-    }
-  }
-};
-
-// ==================== AMRAP SCENARIO ====================
-
-export const AmrapScenario: Story = {
-  args: {
-    initialScript: `20:00 AMRAP
-  5 Pullups
-  10 Pushups
-  15 Squats`
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Test an AMRAP (time-bound rounds) block. This combines timer and rounds behavior.'
-      }
-    }
-  }
-};
-
-// ==================== EMOM SCENARIO ====================
-
-export const EmomScenario: Story = {
-  args: {
-    initialScript: `EMOM 10
-  3 Cleans
-  6 Front Squats`
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Test an EMOM (every minute on the minute) block with interval behavior.'
-      }
-    }
-  }
-};
-
-// ==================== REP SCHEME SCENARIO ====================
-
-export const RepSchemeScenario: Story = {
-  args: {
-    initialScript: `21-15-9
-  Thrusters
-  Pullups`
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Test a rep scheme block (like Fran). Test how rep counts are inherited by child efforts.'
-      }
-    }
-  }
-};
-
-// ==================== INTERACTIVE WITH SAVE ====================
+// ==================== FULL INTERACTIVE MODE WITH SAVE ====================
 
 const InteractiveWithSaveRender: React.FC = () => {
   const [savedScenarios, setSavedScenarios] = useState<ScenarioDefinition[]>([]);
@@ -245,114 +176,6 @@ export const InteractiveWithSave: Story = {
     docs: {
       description: {
         story: 'Full interactive mode with scenario saving and execution history tracking.'
-      }
-    }
-  }
-};
-
-// ==================== PRE-LOADED SCENARIO ====================
-
-const preloadedScenario: ScenarioDefinition = {
-  id: 'rounds-mid-iteration',
-  name: 'Rounds Mid-Iteration Test',
-  description: 'Tests next() behavior when rounds block is in the middle of iteration 2 of 3',
-  wodScript: `3 Rounds
-  10 Pushups
-  15 Squats`,
-  targetStatementId: 1, // The "3 Rounds" statement
-  includeChildren: true,
-  setupActions: [
-    { 
-      type: 'setLoopIndex', 
-      params: { 
-        blockKey: '{{currentBlock}}', 
-        currentIndex: 1, 
-        totalIterations: 3 
-      } 
-    }
-  ],
-  testPhase: 'next'
-};
-
-export const PreloadedScenario: Story = {
-  args: {
-    initialScenario: preloadedScenario
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Pre-loaded scenario demonstrating how to test rounds block mid-iteration.'
-      }
-    }
-  }
-};
-
-// ==================== EFFORT COMPLETION TEST ====================
-
-const effortCompletionScenario: ScenarioDefinition = {
-  id: 'effort-completion',
-  name: 'Effort Completion Test',
-  description: 'Tests that effort block completes when currentReps reaches targetReps',
-  wodScript: '10 Pushups',
-  targetStatementId: 1,
-  includeChildren: false,
-  setupActions: [
-    {
-      type: 'setEffortState',
-      params: {
-        blockKey: '{{currentBlock}}',
-        currentReps: 9,
-        targetReps: 10
-      }
-    }
-  ],
-  testPhase: 'next'
-};
-
-export const EffortCompletionTest: Story = {
-  args: {
-    initialScenario: effortCompletionScenario
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Pre-configured scenario testing effort block completion detection.'
-      }
-    }
-  }
-};
-
-// ==================== TIMER EXPIRATION TEST ====================
-
-const timerExpirationScenario: ScenarioDefinition = {
-  id: 'timer-expiration',
-  name: 'Timer Expiration Test',
-  description: 'Tests timer block behavior when elapsed time exceeds duration',
-  wodScript: `1:00 Timer
-  10 Pushups`,
-  targetStatementId: 1,
-  includeChildren: true,
-  setupActions: [
-    {
-      type: 'setTimerState',
-      params: {
-        blockKey: '{{currentBlock}}',
-        elapsedMs: 61000,
-        totalMs: 60000
-      }
-    }
-  ],
-  testPhase: 'next'
-};
-
-export const TimerExpirationTest: Story = {
-  args: {
-    initialScenario: timerExpirationScenario
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Pre-configured scenario testing timer block expiration behavior.'
       }
     }
   }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { getFragmentColorClasses } from './fragmentColorMap';
+import { cn } from '../../lib/utils';
 import type { ParseError } from './types';
 
 export interface FragmentVisualizerProps {
@@ -12,6 +13,9 @@ export interface FragmentVisualizerProps {
   
   /** Optional className for container styling */
   className?: string;
+
+  /** Optional compact mode for tighter display */
+  compact?: boolean;
 }
 
 /**
@@ -45,7 +49,8 @@ function getFragmentIcon(type: string): string | null {
 export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({ 
   fragments, 
   error, 
-  className = '' 
+  className = '',
+  compact = false
 }) => {
   // Error state takes precedence
   if (error) {
@@ -94,10 +99,13 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
         return (
           <span
             key={index}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border ${colorClasses} bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`}
+            className={cn(
+              `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`,
+              compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+            )}
             title={`${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`}
           >
-            {icon && <span className="text-base leading-none">{icon}</span>}
+            {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
             <span>{tokenValue}</span>
           </span>
         );

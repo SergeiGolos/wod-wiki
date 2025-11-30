@@ -1,55 +1,61 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TestableBlockHarness, TestScenario } from '@/runtime/testing';
-import { BlockFactories, createBlockFactory } from './blockFactories';
+/**
+ * EMOM Block Test Scenarios
+ * 
+ * Tests for "Every Minute On the Minute" interval workout blocks.
+ * Using the new ScenarioBuilder format for interactive testing.
+ */
 
-const meta: Meta<typeof TestableBlockHarness> = {
+import type { Meta, StoryObj } from '@storybook/react';
+import { BlockTestScenarioBuilder, ScenarioDefinition } from '@/runtime/testing';
+
+const meta: Meta<typeof BlockTestScenarioBuilder> = {
   title: 'Block Testing/EMOM Block',
-  component: TestableBlockHarness,
+  component: BlockTestScenarioBuilder,
   parameters: {
     layout: 'padded',
     docs: {
       description: {
         component: `
-# EMOM (Interval) Block Testing
+# EMOM Block Testing
 
-The **Interval Block** manages "Every Minute On the Minute" (EMOM) style workouts. 
-It repeats work at fixed time intervals.
+The **EMOM Block** (Every Minute On the Minute) manages interval-based workouts
+where work starts at regular intervals regardless of completion time.
 
-## Strategy: IntervalStrategy
+## Key Characteristics
 
-Matches when:
-- Has a \`Timer\` fragment
-- Has an \`Action\` or \`Effort\` fragment containing "EMOM"
+- **Timer + Action="EMOM"**: Timer with special interval action
+- **Fixed intervals**: Work starts every X seconds/minutes
+- **Rest built-in**: Faster completion = more rest before next interval
+- **Combines behaviors**: \`TimerBehavior\` + \`IntervalBehavior\`
 
-## Behaviors
+## EMOM Variations
 
-1. **LoopCoordinatorBehavior**
-   - Loop Type: \`INTERVAL\`
-   - Interval Duration: Derived from timer (e.g., "1:00" = 60000ms per minute)
-   - Total Rounds: Derived from syntax (e.g., "10" minutes = 10 rounds)
-   - Execution:
-     - Starts the children
-     - When children complete, waits for remainder of interval
-     - Restarts children at next interval boundary
+### 1. Standard EMOM
+- Same work each minute (e.g., "10:00 EMOM: 5 Pullups")
+- 1-minute intervals, single movement
 
-2. **HistoryBehavior** 
-   - Records "EMOM" history
+### 2. Alternating EMOM
+- Different work on alternate minutes
+- Multiple child statements cycle through
 
-3. **CompletionBehavior** 
-   - Completes when all intervals finished
+### 3. Custom Interval EMOM
+- Non-standard intervals (e.g., every 90 seconds, every 2 minutes)
+- Uses \`:XX\` notation for interval duration
 
-## Example
+## Strategy Matching
 
-\`\`\`
-EMOM 10
-  3 Cleans
-\`\`\`
+The \`IntervalStrategy\` matches when:
+- \`Timer\` fragment IS present
+- \`Action\` fragment with "EMOM" IS present
 
-- Minute 0: "3 Cleans" executes
-- User completes at 0:20
-- System waits until 1:00
-- Minute 1: "3 Cleans" restarts
-- Repeats until Minute 10
+This takes precedence over \`TimerStrategy\`.
+
+## Memory Allocations
+
+EMOM blocks allocate:
+- \`metric:timer\` - Overall timer state
+- \`metric:interval\` - Current interval number and time within interval
+- \`metric:interval-duration\` - Duration of each interval
         `
       }
     }
@@ -61,215 +67,258 @@ type Story = StoryObj<typeof meta>;
 
 // ==================== PUSH PHASE SCENARIOS ====================
 
-const pushScenarios: TestScenario[] = [
-  {
-    id: 'emom-standard-push',
-    name: 'Standard EMOM (10 min) - Push',
-    description: 'Tests "EMOM 10" block push. Should allocate interval tracking state.',
-    phase: 'push',
-    testBlockId: 'emom-standard-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 2 // Timer + interval state
-    }
-  },
-  {
-    id: 'emom-short-push',
-    name: 'Short EMOM (5 min) - Push',
-    description: 'Tests shorter "EMOM 5" - verifies minute count parsing.',
-    phase: 'push',
-    testBlockId: 'emom-short-1',
-    blockFactory: createBlockFactory(
-      `EMOM 5
-  10 Pushups`,
-      { includeChildren: true }
-    ),
-    expectations: {
-      stackPushes: 1
-    }
-  },
-  {
-    id: 'emom-multiple-exercises-push',
-    name: 'EMOM Multiple Exercises - Push',
-    description: 'Tests EMOM with multiple exercises per interval.',
-    phase: 'push',
-    testBlockId: 'emom-multi-1',
-    blockFactory: createBlockFactory(
-      `EMOM 12
+const emomBasicPush: ScenarioDefinition = {
+  id: 'emom-basic-push',
+  name: 'Basic EMOM - Push',
+  description: 'Tests "10:00 EMOM:" block initialization. Should allocate timer and interval memory.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const emomAlternatingPush: ScenarioDefinition = {
+  id: 'emom-alternating-push',
+  name: 'Alternating EMOM - Push',
+  description: 'Tests alternating EMOM with multiple movements cycling.',
+  wodScript: `12:00 EMOM:
+  10 Pushups
+  10 Air Squats
+  10 Situps`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const emomLongPush: ScenarioDefinition = {
+  id: 'emom-long-push',
+  name: 'Long EMOM - Push',
+  description: 'Tests a 30-minute EMOM for endurance testing.',
+  wodScript: `30:00 EMOM:
   3 Power Cleans
   6 Pushups
-  9 Squats`,
-      { includeChildren: true }
-    ),
-    expectations: {
-      stackPushes: 1
-    }
-  }
-];
+  9 Air Squats`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
 
-export const PushPhase: Story = {
-  args: {
-    scenarios: pushScenarios,
-    showDetailedDiff: true
-  }
+export const EmomBasicPush: Story = {
+  args: { initialScenario: emomBasicPush }
+};
+
+export const EmomAlternatingPush: Story = {
+  args: { initialScenario: emomAlternatingPush }
+};
+
+export const EmomLongPush: Story = {
+  args: { initialScenario: emomLongPush }
 };
 
 // ==================== NEXT PHASE SCENARIOS ====================
 
-const nextScenarios: TestScenario[] = [
-  {
-    id: 'emom-first-next',
-    name: 'EMOM - First Next (Start Interval)',
-    description: 'Tests first next() on EMOM. Should push first child and start interval timer.',
-    phase: 'next',
-    testBlockId: 'emom-next-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    expectations: {
-      stackPushes: 1 // First child pushed
-    }
-  },
-  {
-    id: 'emom-child-complete-wait',
-    name: 'EMOM - Child Complete (Wait for Interval)',
-    description: 'Tests next() after child completes mid-interval. Should wait for interval end.',
-    phase: 'next',
-    testBlockId: 'emom-wait-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    runtimeConfig: {
-      // Pre-configure: child done, interval not expired
-    },
-    expectations: {
-      actionsReturned: 0 // Waiting for interval
-    }
-  },
-  {
-    id: 'emom-interval-boundary',
-    name: 'EMOM - Interval Boundary',
-    description: 'Tests next() at interval boundary. Should push child for next interval.',
-    phase: 'next',
-    testBlockId: 'emom-boundary-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    runtimeConfig: {
-      // Pre-configure: at interval boundary
-    },
-    expectations: {
-      stackPushes: 1 // Next interval starts
-    }
-  },
-  {
-    id: 'emom-final-interval-complete',
-    name: 'EMOM - Final Interval Complete',
-    description: 'Tests next() when all intervals done. Should return PopBlockAction.',
-    phase: 'next',
-    testBlockId: 'emom-complete-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    runtimeConfig: {
-      // Pre-configure: all 10 intervals done
-      initialMemory: [
-        { type: 'interval:current', ownerId: 'emom-complete-1', value: 10, visibility: 'private' }
-      ]
-    },
-    expectations: {
-      actionsReturned: 1 // PopBlockAction
-    }
-  }
-];
+const emomFirstInterval: ScenarioDefinition = {
+  id: 'emom-first-interval',
+  name: 'EMOM - First Interval (0:00)',
+  description: 'Tests EMOM at the start of first interval. Timer just started.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 0, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
 
-export const NextPhase: Story = {
-  args: {
-    scenarios: nextScenarios,
-    showDetailedDiff: true
-  }
+const emomMidInterval: ScenarioDefinition = {
+  id: 'emom-mid-interval',
+  name: 'EMOM - Mid Interval (0:30)',
+  description: 'Tests EMOM 30 seconds into first interval. Work may be complete, waiting for next interval.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 30000, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const emomIntervalTransition: ScenarioDefinition = {
+  id: 'emom-interval-transition',
+  name: 'EMOM - Interval Transition (1:00)',
+  description: 'Tests EMOM at exactly 1:00 - should trigger next interval and restart work.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 60000, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const emomMidWorkout: ScenarioDefinition = {
+  id: 'emom-mid-workout',
+  name: 'EMOM - Mid Workout (5:00)',
+  description: 'Tests EMOM at 5 minutes in (interval 6 of 10). Half complete.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 300000, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const emomFinalInterval: ScenarioDefinition = {
+  id: 'emom-final-interval',
+  name: 'EMOM - Final Interval (9:00)',
+  description: 'Tests EMOM at start of last interval (minute 10 of 10).',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 540000, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const emomTimerComplete: ScenarioDefinition = {
+  id: 'emom-timer-complete',
+  name: 'EMOM - Timer Complete',
+  description: 'Tests EMOM after all intervals complete. Should signal completion.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 600000, durationMs: 600000, isRunning: false, isComplete: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+export const EmomFirstInterval: Story = {
+  args: { initialScenario: emomFirstInterval }
+};
+
+export const EmomMidInterval: Story = {
+  args: { initialScenario: emomMidInterval }
+};
+
+export const EmomIntervalTransition: Story = {
+  args: { initialScenario: emomIntervalTransition }
+};
+
+export const EmomMidWorkout: Story = {
+  args: { initialScenario: emomMidWorkout }
+};
+
+export const EmomFinalInterval: Story = {
+  args: { initialScenario: emomFinalInterval }
+};
+
+export const EmomTimerComplete: Story = {
+  args: { initialScenario: emomTimerComplete }
+};
+
+// ==================== ALTERNATING EMOM SCENARIOS ====================
+
+const alternatingMinute1: ScenarioDefinition = {
+  id: 'emom-alternating-min1',
+  name: 'Alternating EMOM - Minute 1 (Movement A)',
+  description: 'Tests alternating EMOM on odd minute. Should execute first movement.',
+  wodScript: `10:00 EMOM:
+  10 Pushups
+  10 Situps`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 0, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+const alternatingMinute2: ScenarioDefinition = {
+  id: 'emom-alternating-min2',
+  name: 'Alternating EMOM - Minute 2 (Movement B)',
+  description: 'Tests alternating EMOM on even minute. Should execute second movement.',
+  wodScript: `10:00 EMOM:
+  10 Pushups
+  10 Situps`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 60000, durationMs: 600000, isRunning: true, mode: 'countdown' } }
+  ],
+  testPhase: 'next'
+};
+
+export const AlternatingMinute1: Story = {
+  args: { initialScenario: alternatingMinute1 }
+};
+
+export const AlternatingMinute2: Story = {
+  args: { initialScenario: alternatingMinute2 }
 };
 
 // ==================== POP PHASE SCENARIOS ====================
 
-const popScenarios: TestScenario[] = [
-  {
-    id: 'emom-standard-pop',
-    name: 'Standard EMOM - Pop',
-    description: 'Tests unmount and dispose of EMOM block. Should release interval tracking.',
-    phase: 'pop',
-    testBlockId: 'emom-pop-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 2
-    }
-  },
-  {
-    id: 'emom-early-stop-pop',
-    name: 'EMOM - Early Stop Pop',
-    description: 'Tests unmount when user stops EMOM before all intervals complete.',
-    phase: 'pop',
-    testBlockId: 'emom-early-pop-1',
-    blockFactory: BlockFactories.emom.standard(10, ['3 Cleans']),
-    runtimeConfig: {
-      // Pre-configure: only 5 intervals done
-      initialMemory: [
-        { type: 'interval:current', ownerId: 'emom-early-pop-1', value: 5, visibility: 'private' }
-      ]
-    },
-    expectations: {
-      stackPops: 1
-    }
-  }
-];
-
-export const PopPhase: Story = {
-  args: {
-    scenarios: popScenarios,
-    showDetailedDiff: true
-  }
+const emomPop: ScenarioDefinition = {
+  id: 'emom-pop',
+  name: 'EMOM - Pop',
+  description: 'Tests unmount and dispose of EMOM block. Should release timer and interval memory.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== INTERVAL BEHAVIOR SCENARIOS ====================
-
-const intervalScenarios: TestScenario[] = [
-  {
-    id: 'emom-interval-duration',
-    name: 'EMOM - Interval Duration',
-    description: 'Verify that EMOM correctly calculates 1-minute interval duration (60000ms).',
-    phase: 'push',
-    testBlockId: 'emom-duration-1',
-    blockFactory: BlockFactories.emom.standard(10, ['5 Burpees']),
-    expectations: {
-      // Check interval duration in memory
-    }
-  },
-  {
-    id: 'emom-round-tracking',
-    name: 'EMOM - Round/Interval Tracking',
-    description: 'Tests that EMOM tracks which interval is current (1/10, 2/10, etc.).',
-    phase: 'push',
-    testBlockId: 'emom-tracking-1',
-    blockFactory: BlockFactories.emom.standard(10, ['5 Pullups']),
-    expectations: {
-      // Should have interval counter in memory
-    }
-  }
-];
-
-export const IntervalBehavior: Story = {
-  args: {
-    scenarios: intervalScenarios,
-    showDetailedDiff: true
-  }
+const emomWithStatePop: ScenarioDefinition = {
+  id: 'emom-state-pop',
+  name: 'EMOM with State - Pop',
+  description: 'Tests unmount after completing all intervals. Should clean up properly.',
+  wodScript: `10:00 EMOM:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 600000, durationMs: 600000, isRunning: false, isComplete: true, mode: 'countdown' } }
+  ],
+  testPhase: 'unmount'
 };
 
-// ==================== ALL PHASES COMBINED ====================
+export const EmomPop: Story = {
+  args: { initialScenario: emomPop }
+};
 
-const allScenarios: TestScenario[] = [
-  ...pushScenarios,
-  ...nextScenarios,
-  ...popScenarios,
-  ...intervalScenarios
-];
+export const EmomWithStatePop: Story = {
+  args: { initialScenario: emomWithStatePop }
+};
 
-export const AllPhases: Story = {
+// ==================== INTERACTIVE BUILDER ====================
+
+export const InteractiveBuilder: Story = {
   args: {
-    scenarios: allScenarios,
-    showDetailedDiff: true
+    initialScript: `12:00 EMOM:
+  10 Pushups
+  10 Air Squats
+  10 Situps`
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive scenario builder for creating custom EMOM block tests.'
+      }
+    }
   }
 };

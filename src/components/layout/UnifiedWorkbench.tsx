@@ -57,7 +57,9 @@ import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
 
 // Runtime imports
+// Runtime imports
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
+import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { NextEvent } from '../../runtime/NextEvent';
 
 // Create singleton factory instance
@@ -67,74 +69,126 @@ export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMoun
   initialContent?: string;
 }
 
-// --- Mock Analytics Data Generation ---
-const generateSessionData = () => {
-  const data: any[] = [];
+// --- Analytics Data Transformation ---
+const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null) => {
+  if (!runtime) return { data: [], segments: [] };
+
   const segments: Segment[] = [];
-  const totalDuration = 1200;
+  const data: any[] = [];
+  
+  // 1. Convert ExecutionRecords to Segments
+  // We need to establish a timeline. 
+  // If the workout hasn't started, return empty.
+  if (runtime.executionLog.length === 0 && runtime.stack.blocks.length === 0) {
+    return { data: [], segments: [] };
+  }
 
-  const noise = (amp: number) => (Math.random() - 0.5) * amp;
+  // Combine completed log and active stack
+  const allRecords = [
+    ...runtime.executionLog,
+    ...runtime.stack.blocks.map((b, i) => ({
+      id: b.key.toString(),
+      label: b.label || b.blockType || 'Block',
+      type: b.blockType || 'unknown',
+      startTime: Date.now(), // This is tricky for active blocks without stored start time
+      endTime: undefined,
+      parentId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
+      depth: i,
+      metrics: []
+    }))
+  ];
 
-  for (let t = 0; t <= totalDuration; t++) {
-    let targetPower = 100;
+  // We need a consistent start time for the timeline
+  // Find the earliest start time
+  let workoutStartTime = Date.now();
+  if (runtime.executionLog.length > 0) {
+    workoutStartTime = Math.min(...runtime.executionLog.map(r => r.startTime));
+  }
+
+  // Sort by start time
+  allRecords.sort((a, b) => a.startTime - b.startTime);
+
+  // Map IDs to depth for hierarchy
+  const idToDepth = new Map<string, number>();
+  
+  allRecords.forEach(record => {
+    // Calculate depth
+    let depth = 0;
+    // For active blocks, we might have parentId from stack structure
+    // For log records, we have parentId
+    if (record.parentId && idToDepth.has(record.parentId)) {
+      depth = (idToDepth.get(record.parentId) || 0) + 1;
+    }
+    idToDepth.set(record.id, depth);
+
+    // Calculate duration
+    const endTime = record.endTime || Date.now();
+    const duration = (endTime - record.startTime) / 1000;
     
-    if (t > 300 && t < 900) {
-      targetPower = 200;
-      if ((t - 300) % 180 < 120) targetPower = 280;
-      else targetPower = 120;
-    } else if (t >= 900) {
-      targetPower = 110;
+    // Extract power/hr from metrics if available (mocking for now if not)
+    // Real metrics would come from record.metrics
+    let avgPower = 0;
+    let avgHr = 0;
+    
+    // Try to find resistance/effort metrics
+    if (record.metrics) {
+      const resistance = record.metrics.find(m => m.values.some(v => v.type === 'resistance'));
+      if (resistance) {
+        const val = resistance.values.find(v => v.type === 'resistance');
+        if (val && val.value) avgPower = val.value;
+      }
     }
 
-    const power = Math.max(0, targetPower + noise(20));
-    const hrLag = (t > 0 ? data[t-1].hr : 60) * 0.95 + (60 + power * 0.5) * 0.05;
-    const hr = hrLag + noise(2);
-    const cadence = power > 150 ? 90 + noise(5) : 70 + noise(5);
+    segments.push({
+      id: hashCode(record.id), // Use hash for numeric ID required by Segment interface
+      name: record.label,
+      type: record.type,
+      startTime: (record.startTime - workoutStartTime) / 1000,
+      endTime: (endTime - workoutStartTime) / 1000,
+      duration: duration,
+      parentId: record.parentId ? hashCode(record.parentId) : null,
+      depth: depth,
+      avgPower: avgPower,
+      avgHr: avgHr,
+      lane: depth
+    });
+  });
+
+  // 2. Generate Time Series Data (Synthetic for now, based on segments)
+  // In a real app, this would come from a continuous telemetry log
+  const totalDuration = segments.length > 0 
+    ? Math.max(...segments.map(s => s.endTime)) 
+    : 0;
+
+  for (let t = 0; t <= totalDuration; t++) {
+    // Find active segments at this second
+    const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
+    
+    // Base values
+    let power = 0;
+    let hr = 60;
+    
+    // If inside a "work" or "interval" segment, boost values
+    const workSeg = activeSegs.find(s => ['work', 'interval', 'ramp'].includes(s.type.toLowerCase()));
+    if (workSeg) {
+      power = workSeg.avgPower || 200; // Default to 200 if no metric
+      hr = 140;
+    } else if (activeSegs.some(s => ['warmup', 'cooldown', 'rest'].includes(s.type.toLowerCase()))) {
+      power = 100;
+      hr = 100;
+    }
+
+    // Add some noise
+    power += (Math.random() - 0.5) * 20;
+    hr += (Math.random() - 0.5) * 5;
 
     data.push({
       time: t,
-      power: Math.round(power),
+      power: Math.max(0, Math.round(power)),
       hr: Math.round(hr),
-      cadence: Math.round(cadence),
+      cadence: power > 0 ? 80 + (Math.random() * 10) : 0
     });
   }
-
-  let segIdCounter = 0;
-  const addSeg = (name: string, start: number, end: number, type: string, parentId: number | null = null, depth: number = 0) => {
-    segIdCounter++;
-    const segPoints = data.slice(start, end);
-    const avgPwr = Math.round(segPoints.reduce((a,b) => a + b.power, 0) / segPoints.length);
-    const avgHr = Math.round(segPoints.reduce((a,b) => a + b.hr, 0) / segPoints.length);
-    
-    const segment: Segment = {
-      id: segIdCounter,
-      name,
-      type,
-      startTime: start,
-      endTime: end,
-      duration: end - start,
-      parentId,
-      depth,
-      avgPower: avgPwr || 0,
-      avgHr: avgHr || 0,
-      lane: depth
-    };
-    segments.push(segment);
-    return segment.id;
-  };
-
-  const rootId = addSeg("Full Session", 0, totalDuration, "root", null, 0);
-  const wuId = addSeg("Warmup", 0, 300, "warmup", rootId, 1);
-  addSeg("Spin Up", 200, 280, "ramp", wuId, 2);
-
-  const mainId = addSeg("Main Set", 300, 900, "work", rootId, 1);
-  for (let i = 0; i < 3; i++) {
-    const start = 300 + (i * 180);
-    addSeg(`Interval ${i+1}`, start, start + 120, "interval", mainId, 2);
-    addSeg(`Recovery ${i+1}`, start + 120, start + 180, "rest", mainId, 2);
-  }
-  addSeg(`Interval 4`, 840, 900, "interval", mainId, 2);
-  addSeg("Cooldown", 900, totalDuration, "cooldown", rootId, 1);
 
   return { data, segments };
 };
@@ -297,12 +351,25 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     }
   }, [selectedBlockId, viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
 
-  // Analytics data (mock)
-  const { data: analyticsData, segments: analyticsSegments } = useMemo(() => generateSessionData(), []);
-  const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set([5, 7, 9, 11]));
-
   // Execution hook
   const execution = useRuntimeExecution(runtime);
+
+  // Real Analytics Data from Runtime
+  // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
+  const [analyticsState, setAnalyticsState] = useState<{data: any[], segments: Segment[]}>({ data: [], segments: [] });
+
+  useEffect(() => {
+    if (runtime) {
+      // Only update when execution state changes significantly (e.g. paused, stopped, or periodically)
+      // For live updates, we might want to throttle this or rely on execution.stepCount
+      const newState = transformRuntimeToAnalytics(runtime);
+      setAnalyticsState(newState);
+    }
+  }, [runtime, execution.stepCount, execution.status]);
+
+  const { data: analyticsData, segments: analyticsSegments } = analyticsState;
+
+  const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set<number>());
 
   // Active segment/statement IDs for highlighting
   const activeSegmentIds = useMemo(() => {

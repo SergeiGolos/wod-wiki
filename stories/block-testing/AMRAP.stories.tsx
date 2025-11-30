@@ -1,18 +1,49 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TestableBlockHarness, TestScenario } from '@/runtime/testing';
-import { BlockFactories, createBlockFactory } from './blockFactories';
+/**
+ * AMRAP Block Test Scenarios
+ * 
+ * Tests for "As Many Rounds As Possible" time-bound round blocks.
+ * Using the new ScenarioBuilder format for interactive testing.
+ */
 
-const meta: Meta<typeof TestableBlockHarness> = {
+import type { Meta, StoryObj } from '@storybook/react';
+import { BlockTestScenarioBuilder, ScenarioDefinition } from '@/runtime/testing';
+
+const meta: Meta<typeof BlockTestScenarioBuilder> = {
   title: 'Block Testing/AMRAP Block',
-  component: TestableBlockHarness,
+  component: BlockTestScenarioBuilder,
   parameters: {
     layout: 'padded',
     docs: {
       description: {
-        component: `20:00 AMRAP
-  5 Pullups
-  10 Pushups
-  15 Squats`
+        component: `
+# AMRAP Block Testing
+
+The **AMRAP Block** (As Many Rounds As Possible) combines time-bound execution 
+with unlimited round iteration. Athletes complete as many rounds as possible
+within the time cap.
+
+## Key Characteristics
+
+- **Timer + Rounds**: Both fragments present
+- **No fixed round count**: Rounds continue until timer expires
+- **Combines behaviors**: \`TimerBehavior\` + \`LoopBehavior\`
+- **Completion trigger**: Timer expiration (not round count)
+
+## Strategy Matching
+
+The \`TimeBoundRoundsStrategy\` matches when:
+- \`Timer\` fragment IS present
+- \`Rounds\` fragment IS present
+
+This takes precedence over both \`TimerStrategy\` and \`RoundsStrategy\`.
+
+## Memory Allocations
+
+AMRAP blocks allocate:
+- \`metric:timer\` - Timer state (elapsed, duration, running)
+- \`metric:loop\` - Current round number (no max)
+- \`metric:rounds-completed\` - Total rounds completed (for scoring)
+        `
       }
     }
   }
@@ -23,220 +54,212 @@ type Story = StoryObj<typeof meta>;
 
 // ==================== PUSH PHASE SCENARIOS ====================
 
-const pushScenarios: TestScenario[] = [
-  {
-    id: 'amrap-standard-push',
-    name: 'Standard AMRAP - Push',
-    description: 'Tests "20:00 AMRAP" block push. Should allocate timer memory (countdown) and loop coordinator state.',
-    phase: 'push',
-    testBlockId: 'amrap-standard-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups', '10 Pushups', '15 Squats']),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 3 // TIME_SPANS, IS_RUNNING, loop state
-    }
-  },
-  {
-    id: 'amrap-short-push',
-    name: 'Short AMRAP (7 min) - Push',
-    description: 'Tests a shorter "7:00 AMRAP" - verifies timer duration parsing.',
-    phase: 'push',
-    testBlockId: 'amrap-short-1',
-    blockFactory: createBlockFactory(
-      `7:00 AMRAP
-  7 Burpees`,
-      { includeChildren: true }
-    ),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 3
-    }
-  },
-  {
-    id: 'amrap-single-exercise-push',
-    name: 'AMRAP Single Exercise - Push',
-    description: 'Tests AMRAP with single exercise. Verifies minimal child setup.',
-    phase: 'push',
-    testBlockId: 'amrap-single-1',
-    blockFactory: BlockFactories.amrap.standard('10:00', ['Max Pullups']),
-    expectations: {
-      stackPushes: 1
-    }
-  }
-];
+const amrapBasicPush: ScenarioDefinition = {
+  id: 'amrap-basic-push',
+  name: 'Basic AMRAP - Push',
+  description: 'Tests "20:00 AMRAP:" block initialization. Should allocate both timer and loop memory.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups
+  15 Air Squats`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
 
-export const PushPhase: Story = {
-  args: {
-    scenarios: pushScenarios,
-    showDetailedDiff: true
-  }
+const amrapShortPush: ScenarioDefinition = {
+  id: 'amrap-short-push',
+  name: 'Short AMRAP - Push',
+  description: 'Tests a short "7:00 AMRAP:" workout initialization.',
+  wodScript: `7:00 AMRAP:
+  7 Thrusters
+  7 Burpees`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const amrapSingleMovementPush: ScenarioDefinition = {
+  id: 'amrap-single-movement-push',
+  name: 'Single Movement AMRAP - Push',
+  description: 'Tests AMRAP with single movement (e.g., max calories).',
+  wodScript: `10:00 AMRAP:
+  Row for Calories`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+export const AmrapBasicPush: Story = {
+  args: { initialScenario: amrapBasicPush }
+};
+
+export const AmrapShortPush: Story = {
+  args: { initialScenario: amrapShortPush }
+};
+
+export const AmrapSingleMovementPush: Story = {
+  args: { initialScenario: amrapSingleMovementPush }
 };
 
 // ==================== NEXT PHASE SCENARIOS ====================
 
-const nextScenarios: TestScenario[] = [
-  {
-    id: 'amrap-first-next',
-    name: 'AMRAP - First Next',
-    description: 'Tests first next() on AMRAP. Should push first child block and start timer.',
-    phase: 'next',
-    testBlockId: 'amrap-next-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups', '10 Pushups']),
-    expectations: {
-      stackPushes: 1 // First child pushed
-    }
-  },
-  {
-    id: 'amrap-child-complete-loop',
-    name: 'AMRAP - Child Complete (Loop)',
-    description: 'Tests next() after child completes while timer still running. Should push next child or restart loop.',
-    phase: 'next',
-    testBlockId: 'amrap-loop-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups']),
-    runtimeConfig: {
-      // Pre-configure: timer running, child completed
-    },
-    expectations: {
-      stackPushes: 1 // Loop continues
-    }
-  },
-  {
-    id: 'amrap-timer-expired',
-    name: 'AMRAP - Timer Expired',
-    description: 'Tests next() when timer has expired. Should return PopBlockAction (workout complete).',
-    phase: 'next',
-    testBlockId: 'amrap-expired-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups']),
-    runtimeConfig: {
-      // Pre-configure: timer expired
-      initialMemory: [
-        { 
-          type: 'timer:time-spans', 
-          ownerId: 'amrap-expired-1', 
-          value: [{ start: Date.now() - 1200001, stop: Date.now() }], // 20+ min elapsed
-          visibility: 'public' 
-        },
-        { type: 'timer:is-running', ownerId: 'amrap-expired-1', value: false, visibility: 'public' }
-      ]
-    },
-    expectations: {
-      actionsReturned: 1 // PopBlockAction
-    }
-  },
-  {
-    id: 'amrap-round-count',
-    name: 'AMRAP - Round Count',
-    description: 'Tests that AMRAP tracks completed rounds even though loop is infinite.',
-    phase: 'next',
-    testBlockId: 'amrap-rounds-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups', '10 Pushups']),
-    expectations: {
-      // Should have round counter in memory
-    }
-  }
-];
+const amrapFirstRound: ScenarioDefinition = {
+  id: 'amrap-first-round',
+  name: 'AMRAP - First Round (Timer Running)',
+  description: 'Tests AMRAP in first round with timer at 2 minutes. Both timer and loop active.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 120000, durationMs: 1200000, isRunning: true, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 0, totalIterations: -1 } }
+  ],
+  testPhase: 'next'
+};
 
-export const NextPhase: Story = {
-  args: {
-    scenarios: nextScenarios,
-    showDetailedDiff: true
-  }
+const amrapMidWorkout: ScenarioDefinition = {
+  id: 'amrap-mid-workout',
+  name: 'AMRAP - Mid Workout (Round 3)',
+  description: 'Tests AMRAP at round 3 with 10 minutes elapsed. Should continue until timer expires.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 600000, durationMs: 1200000, isRunning: true, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 2, totalIterations: -1 } }
+  ],
+  testPhase: 'next'
+};
+
+const amrapTimerExpiring: ScenarioDefinition = {
+  id: 'amrap-timer-expiring',
+  name: 'AMRAP - Timer Expiring',
+  description: 'Tests AMRAP with timer at 19:30 of 20:00. Last 30 seconds - should still allow work.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 1170000, durationMs: 1200000, isRunning: true, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 5, totalIterations: -1 } }
+  ],
+  testPhase: 'next'
+};
+
+const amrapTimerComplete: ScenarioDefinition = {
+  id: 'amrap-timer-complete',
+  name: 'AMRAP - Timer Complete',
+  description: 'Tests AMRAP after timer has expired. Should signal completion regardless of round state.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 1200000, durationMs: 1200000, isRunning: false, isComplete: true, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 6, totalIterations: -1 } }
+  ],
+  testPhase: 'next'
+};
+
+const amrapPaused: ScenarioDefinition = {
+  id: 'amrap-paused',
+  name: 'AMRAP - Paused',
+  description: 'Tests AMRAP in paused state. Timer should not advance, rounds frozen.',
+  wodScript: `15:00 AMRAP:
+  Run 200m
+  10 Burpees`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 450000, durationMs: 900000, isRunning: false, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 2, totalIterations: -1 } }
+  ],
+  testPhase: 'next'
+};
+
+export const AmrapFirstRound: Story = {
+  args: { initialScenario: amrapFirstRound }
+};
+
+export const AmrapMidWorkout: Story = {
+  args: { initialScenario: amrapMidWorkout }
+};
+
+export const AmrapTimerExpiring: Story = {
+  args: { initialScenario: amrapTimerExpiring }
+};
+
+export const AmrapTimerComplete: Story = {
+  args: { initialScenario: amrapTimerComplete }
+};
+
+export const AmrapPaused: Story = {
+  args: { initialScenario: amrapPaused }
 };
 
 // ==================== POP PHASE SCENARIOS ====================
 
-const popScenarios: TestScenario[] = [
-  {
-    id: 'amrap-standard-pop',
-    name: 'Standard AMRAP - Pop',
-    description: 'Tests unmount and dispose of AMRAP block. Should stop timer and release all memory.',
-    phase: 'pop',
-    testBlockId: 'amrap-pop-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups']),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 3 // Timer + loop state
-    }
-  },
-  {
-    id: 'amrap-early-stop-pop',
-    name: 'AMRAP - Early Stop Pop',
-    description: 'Tests unmount when user stops AMRAP early. Timer should record partial time.',
-    phase: 'pop',
-    testBlockId: 'amrap-early-pop-1',
-    blockFactory: BlockFactories.amrap.standard('20:00', ['5 Pullups']),
-    runtimeConfig: {
-      // Pre-configure: timer only partially elapsed
-      initialMemory: [
-        { 
-          type: 'timer:time-spans', 
-          ownerId: 'amrap-early-pop-1', 
-          value: [{ start: Date.now() - 300000 }], // 5 min elapsed, no stop
-          visibility: 'public' 
-        },
-        { type: 'timer:is-running', ownerId: 'amrap-early-pop-1', value: true, visibility: 'public' }
-      ]
-    },
-    expectations: {
-      stackPops: 1
-      // Timer should record stop time on unmount
-    }
-  }
-];
-
-export const PopPhase: Story = {
-  args: {
-    scenarios: popScenarios,
-    showDetailedDiff: true
-  }
+const amrapPop: ScenarioDefinition = {
+  id: 'amrap-pop',
+  name: 'AMRAP - Pop',
+  description: 'Tests unmount and dispose of AMRAP block. Should release both timer and loop memory.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== COMPOUND BEHAVIOR SCENARIOS ====================
-
-const compoundScenarios: TestScenario[] = [
-  {
-    id: 'amrap-timer-loop-interaction',
-    name: 'Timer + Loop Interaction',
-    description: 'Verify that TimerBehavior and LoopCoordinatorBehavior work together correctly.',
-    phase: 'push',
-    testBlockId: 'amrap-compound-1',
-    blockFactory: BlockFactories.amrap.standard('10:00', ['5 Pullups', '10 Pushups']),
-    expectations: {
-      // Both behaviors should initialize
-    }
-  },
-  {
-    id: 'amrap-completion-check',
-    name: 'AMRAP Completion Detection',
-    description: 'Tests CompletionBehavior checking timer expiration.',
-    phase: 'next',
-    testBlockId: 'amrap-completion-1',
-    blockFactory: BlockFactories.amrap.standard('1:00', ['5 Burpees']),
-    expectations: {
-      // Completion should check timer state
-    }
-  }
-];
-
-export const CompoundBehaviors: Story = {
-  args: {
-    scenarios: compoundScenarios,
-    showDetailedDiff: true
-  }
+const amrapWithStatePop: ScenarioDefinition = {
+  id: 'amrap-state-pop',
+  name: 'AMRAP with State - Pop',
+  description: 'Tests unmount after completing 6 rounds in 20 minutes. Should preserve final score.',
+  wodScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setTimerState', params: { blockKey: '{{currentBlock}}', elapsedMs: 1200000, durationMs: 1200000, isRunning: false, isComplete: true, mode: 'countdown' } },
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 6, totalIterations: -1 } }
+  ],
+  testPhase: 'unmount'
 };
 
-// ==================== ALL PHASES COMBINED ====================
+export const AmrapPop: Story = {
+  args: { initialScenario: amrapPop }
+};
 
-const allScenarios: TestScenario[] = [
-  ...pushScenarios,
-  ...nextScenarios,
-  ...popScenarios,
-  ...compoundScenarios
-];
+export const AmrapWithStatePop: Story = {
+  args: { initialScenario: amrapWithStatePop }
+};
 
-export const AllPhases: Story = {
+// ==================== INTERACTIVE BUILDER ====================
+
+export const InteractiveBuilder: Story = {
   args: {
-    scenarios: allScenarios,
-    showDetailedDiff: true
+    initialScript: `20:00 AMRAP:
+  5 Pullups
+  10 Pushups
+  15 Air Squats`
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive scenario builder for creating custom AMRAP block tests.'
+      }
+    }
   }
 };

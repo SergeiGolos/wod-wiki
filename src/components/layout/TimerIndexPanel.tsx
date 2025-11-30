@@ -21,7 +21,7 @@ import { WorkoutContextPanel } from '../workout/WorkoutContextPanel';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../../runtime/RuntimeMetric';
-import { Play, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+
 
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
@@ -167,17 +167,32 @@ function formatDuration(ms: number): string {
  * Helper to create the card content for MetricsTreeView
  */
 const renderTimerCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
+  const isSeparator = item.data?.isSeparator;
+
+  if (isSeparator) {
+    return (
+      <div className={cn(
+        "flex items-center w-full py-1.5 px-2 mt-2 mb-1",
+        "border-b border-border/50"
+      )}>
+        <div className="flex-1 font-semibold text-sm text-foreground/90">
+          {item.title}
+        </div>
+        <div className="flex-shrink-0 font-mono text-xs text-muted-foreground">
+          {item.data?.durationText}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
       "rounded border transition-all flex items-center gap-2 w-full",
       isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-border",
-      mobile ? "py-1.5 px-2" : "py-1 px-1.5"
+      mobile ? "py-1 px-2" : "py-0.5 px-1.5",
+      "h-8" // Fixed height for compact row
     )}>
-      {item.icon && (
-        <div className={cn("flex-shrink-0", mobile ? "h-3.5 w-3.5" : "h-3 w-3")}>
-          {item.icon}
-        </div>
-      )}
+      {/* Icon removed as per request */}
       
       <span className={cn(
         "truncate flex-shrink-0 max-w-[100px] font-medium",
@@ -187,12 +202,12 @@ const renderTimerCard = (item: MetricItem, isSelected: boolean, mobile: boolean)
         {item.title}
       </span>
       
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden flex items-center">
         {item.tags}
       </div>
       
       {item.footer && (
-        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground">
+        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground ml-2">
           {item.footer}
         </div>
       )}
@@ -210,13 +225,12 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   autoScroll = true,
   mobile = false,
   className = '',
-  children,
   workoutStartTime
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Build execution entries from runtime state
-  const entries = React.useMemo((): ExecutionEntry[] => {
+  const items = React.useMemo((): MetricItem[] => {
     if (!runtime) {
       return [];
     }
@@ -327,23 +341,18 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
 
     // Convert to MetricItems
     return allEntries.map(entry => {
-      const StatusIcon = {
-        'start': Play,
-        'active': Clock,
-        'completed': CheckCircle2,
-        'failed': AlertCircle,
-      }[entry.status];
-      
-      const statusColorClass = {
-        'start': 'text-primary',
-        'active': 'text-blue-500 animate-pulse',
-        'completed': 'text-green-500',
-        'failed': 'text-red-500',
-      }[entry.status];
-
       const duration = entry.endTime 
         ? formatDuration(entry.endTime - entry.startTime)
         : formatDuration(Date.now() - entry.startTime);
+
+      // Determine if this is a separator/grouping node
+      // For runtime entries, we check the type
+      const isSeparator = ['root', 'round', 'interval', 'warmup', 'cooldown'].includes(entry.type.toLowerCase());
+
+      // Map status to MetricItem status
+      let itemStatus: 'active' | 'completed' | 'pending' | undefined;
+      if (entry.status === 'active') itemStatus = 'active';
+      else if (entry.status === 'completed' || entry.status === 'failed' || entry.status === 'start') itemStatus = 'completed';
 
       return {
         id: entry.id,
@@ -351,27 +360,30 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
         lane: entry.depth,
         title: entry.label,
         startTime: entry.startTime,
-        status: entry.status,
-        icon: <StatusIcon className={cn('flex-shrink-0', statusColorClass)} />,
-        tags: (
+        status: itemStatus,
+        // Icon removed from data structure as it's not rendered
+        tags: !isSeparator && (
           <FragmentVisualizer 
             fragments={entry.fragments} 
-            className="gap-0.5"
+            className="gap-1"
+            compact={true}
           />
         ),
-        footer: <span>{duration}</span>
+        footer: !isSeparator && <span>{duration}</span>,
+        data: {
+          isSeparator,
+          durationText: duration
+        }
       } as MetricItem;
     });
   }, [runtime, workoutStartTime]);
-
-  const items = entries; // Alias for consistency
 
   // Auto-scroll to bottom when new entries appear
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [entries.length, autoScroll]);
+  }, [items.length, autoScroll]);
 
   // Determine which entries are "active" based on activeSegmentIds
   const activeIds = React.useMemo(() => {
@@ -393,21 +405,22 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
         </div>
       )}
       
-      {/* Active Context (if block provided) */}
-      {activeBlock && (
-        <WorkoutContextPanel
-          block={activeBlock}
-          mode="run"
-          activeStatementIds={activeStatementIds}
-          className="shrink-0 border-b border-border"
-        />
-      )}
-
       {/* Execution History */}
       <div className="flex-1 overflow-y-auto custom-scrollbar" ref={scrollRef}>
         {items.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground italic">
             Waiting for workout to start...
+            {/* Still show context panel if active block exists */}
+            {activeBlock && (
+              <div className="mt-4 border-t border-border pt-4">
+                <WorkoutContextPanel
+                  block={activeBlock}
+                  mode="run"
+                  activeStatementIds={activeStatementIds}
+                  className="shrink-0"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <MetricsTreeView 
@@ -416,7 +429,19 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
             onSelect={() => {}} // Read-only
             autoScroll={autoScroll}
             renderItem={(item, isSelected) => renderTimerCard(item, isSelected, mobile)}
-          />
+          >
+            {/* Active Context (if block provided) - Now at the bottom */}
+            {activeBlock && (
+              <div className="mt-2 border-t border-border pt-2 pb-4">
+                <WorkoutContextPanel
+                  block={activeBlock}
+                  mode="run"
+                  activeStatementIds={activeStatementIds}
+                  className="shrink-0"
+                />
+              </div>
+            )}
+          </MetricsTreeView>
         )}
       </div>
     </div>

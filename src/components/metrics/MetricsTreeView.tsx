@@ -13,6 +13,8 @@ export interface MetricItem {
   status?: 'active' | 'completed' | 'pending';
   // For sorting/layout
   startTime?: number;
+  // Custom data payload
+  data?: any;
 }
 
 export interface MetricsTreeViewProps {
@@ -22,6 +24,7 @@ export interface MetricsTreeViewProps {
   className?: string;
   autoScroll?: boolean;
   renderItem?: (item: MetricItem, isSelected: boolean) => React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const ROW_HEIGHT = 64; // Height of each list item (approx, can be dynamic if we want, but fixed is easier for lines)
@@ -34,7 +37,8 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
   onSelect,
   className,
   autoScroll = false,
-  renderItem
+  renderItem,
+  children
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -158,8 +162,16 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
                 </div>
               </div>
             );
+
           })}
         </div>
+        
+        {/* Children (e.g. Preview Panel) */}
+        {children && (
+          <div className="relative z-10">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

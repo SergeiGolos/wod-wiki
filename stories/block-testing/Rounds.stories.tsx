@@ -1,10 +1,16 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TestableBlockHarness, TestScenario } from '@/runtime/testing';
-import { BlockFactories, createBlockFactory } from './blockFactories';
+/**
+ * Rounds Block Test Scenarios
+ * 
+ * Tests for multi-round workout blocks (3 Rounds, 21-15-9, etc.).
+ * Using the new ScenarioBuilder format for interactive testing.
+ */
 
-const meta: Meta<typeof TestableBlockHarness> = {
+import type { Meta, StoryObj } from '@storybook/react';
+import { BlockTestScenarioBuilder, ScenarioDefinition } from '@/runtime/testing';
+
+const meta: Meta<typeof BlockTestScenarioBuilder> = {
   title: 'Block Testing/Rounds Block',
-  component: TestableBlockHarness,
+  component: BlockTestScenarioBuilder,
   parameters: {
     layout: 'padded',
     docs: {
@@ -12,54 +18,35 @@ const meta: Meta<typeof TestableBlockHarness> = {
         component: `
 # Rounds Block Testing
 
-The **Rounds Block** is a structural container that executes its child blocks multiple times. 
-It handles standard multi-round workouts and variable repetition schemes.
+The **Rounds Block** manages multi-round workout execution with loop tracking.
+It uses \`LoopBehavior\` to iterate through rounds and \`RepsPublisher\` for rep schemes.
 
-## Variations
+## Rounds Variations
 
 ### 1. Fixed Rounds
-Standard looping behavior where the block repeats its children a set number of times.
-
-\`\`\`
-3 Rounds
-  5 Pullups
-  10 Pushups
-\`\`\`
-
-- **Loop Type**: \`FIXED\`
-- Cycles through child groups N times
+- Same work each round (e.g., "3 Rounds:")
+- \`currentRound\` increments, \`targetRounds\` is constant
 
 ### 2. Rep Schemes
-Variable looping where the "reps" count changes for each round.
+- Variable reps per round (e.g., "21-15-9:")
+- \`RepsPublisher\` manages the rep sequence
+- Publishes current rep count to public memory for child efforts
 
-\`\`\`
-21-15-9
-  Thrusters
-  Pullups
-\`\`\`
-
-- **Loop Type**: \`REP_SCHEME\`
-- Allocates \`METRIC_REPS\` in public memory
-- Updates value each round (21 → 15 → 9)
-- Child EffortBlocks inherit this value
+### 3. Descending/Ascending
+- Patterns like "10-9-8-7-6-5-4-3-2-1"
+- Each round publishes different rep count
 
 ## Strategy Matching
 
 The \`RoundsStrategy\` matches when:
-- Has a \`Rounds\` fragment (e.g., "3 rounds", "21-15-9")
-- Has NO \`Timer\` fragment (Timer takes precedence)
+- \`Rounds\` fragment IS present
+- NO \`Timer\` fragment (otherwise TimeBoundRoundsStrategy matches)
 
-## Behaviors
+## Memory Allocations
 
-1. **LoopCoordinatorBehavior**
-   - Manages iteration, round tracking
-   - JIT compiles children on demand
-
-2. **HistoryBehavior** 
-   - Records execution history
-
-3. **CompletionBehavior**
-   - Completes when all rounds finished
+RoundsBlocks allocate:
+- \`metric:loop\` - Current loop index and iteration state
+- \`metric:reps\` - Published reps for current round (public visibility)
         `
       }
     }
@@ -71,234 +58,211 @@ type Story = StoryObj<typeof meta>;
 
 // ==================== PUSH PHASE SCENARIOS ====================
 
-const pushScenarios: TestScenario[] = [
-  {
-    id: 'rounds-fixed-push',
-    name: 'Fixed Rounds - Push',
-    description: 'Tests "3 Rounds" block push. Should allocate round tracking memory and set up LoopCoordinatorBehavior.',
-    phase: 'push',
-    testBlockId: 'rounds-fixed-1',
-    blockFactory: BlockFactories.rounds.fixed(3, ['10 Pushups']),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 1 // Round state
-    }
-  },
-  {
-    id: 'rounds-rep-scheme-push',
-    name: 'Rep Scheme (21-15-9) - Push',
-    description: 'Tests "21-15-9" rep scheme block push. Should allocate METRIC_REPS in public memory for child inheritance.',
-    phase: 'push',
-    testBlockId: 'rep-scheme-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters', 'Pullups']),
-    expectations: {
-      stackPushes: 1,
-      memoryAllocations: 2 // Round state + METRIC_REPS (public)
-    }
-  },
-  {
-    id: 'rounds-single-round-push',
-    name: 'Single Round - Push',
-    description: 'Tests "1 Round" block - effectively a group with round tracking.',
-    phase: 'push',
-    testBlockId: 'single-round-1',
-    blockFactory: BlockFactories.rounds.fixed(1, ['50 Pullups']),
-    expectations: {
-      stackPushes: 1
-    }
-  },
-  {
-    id: 'rounds-many-children-push',
-    name: 'Rounds with Many Children - Push',
-    description: 'Tests rounds block with multiple child efforts.',
-    phase: 'push',
-    testBlockId: 'rounds-many-1',
-    blockFactory: createBlockFactory(
-      `5 Rounds
-  10 Pullups
-  20 Pushups
-  30 Squats
-  40 Situps`,
-      { includeChildren: true }
-    ),
-    expectations: {
-      stackPushes: 1
-    }
-  }
-];
+const fixedRoundsPush: ScenarioDefinition = {
+  id: 'rounds-fixed-push',
+  name: 'Fixed Rounds - Push',
+  description: 'Tests "3 Rounds:" block initialization. Should allocate loop memory with 3 iterations.',
+  wodScript: `3 Rounds:
+  5 Pullups
+  10 Pushups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
 
-export const PushPhase: Story = {
-  args: {
-    scenarios: pushScenarios,
-    showDetailedDiff: true
-  }
+const repSchemePush: ScenarioDefinition = {
+  id: 'rounds-rep-scheme-push',
+  name: 'Rep Scheme (21-15-9) - Push',
+  description: 'Tests "21-15-9:" rep scheme initialization. Should allocate loop for 3 rounds and publish 21 to public memory.',
+  wodScript: `21-15-9:
+  Thrusters
+  Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const descendingRoundsPush: ScenarioDefinition = {
+  id: 'rounds-descending-push',
+  name: 'Descending Rounds - Push',
+  description: 'Tests "10-9-8-7-6-5-4-3-2-1:" ladder initialization.',
+  wodScript: `10-9-8-7-6-5-4-3-2-1:
+  Kettlebell Swings`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+const singleRoundPush: ScenarioDefinition = {
+  id: 'rounds-single-push',
+  name: 'Single Round - Push',
+  description: 'Tests "1 Round:" block (essentially a group). Should work but degenerate case.',
+  wodScript: `1 Round:
+  Run 400m`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'mount'
+};
+
+export const FixedRoundsPush: Story = {
+  args: { initialScenario: fixedRoundsPush }
+};
+
+export const RepSchemePush: Story = {
+  args: { initialScenario: repSchemePush }
+};
+
+export const DescendingRoundsPush: Story = {
+  args: { initialScenario: descendingRoundsPush }
+};
+
+export const SingleRoundPush: Story = {
+  args: { initialScenario: singleRoundPush }
 };
 
 // ==================== NEXT PHASE SCENARIOS ====================
 
-const nextScenarios: TestScenario[] = [
-  {
-    id: 'rounds-first-next',
-    name: 'Fixed Rounds - First Next',
-    description: 'Tests first next() call on rounds block. Should push first child block.',
-    phase: 'next',
-    testBlockId: 'rounds-next-1',
-    blockFactory: BlockFactories.rounds.fixed(3, ['10 Pushups']),
-    expectations: {
-      stackPushes: 1 // First child pushed
-    }
-  },
-  {
-    id: 'rounds-rep-scheme-next',
-    name: 'Rep Scheme - First Next',
-    description: 'Tests first next() on "21-15-9". Should push first child AND have METRIC_REPS=21 in memory.',
-    phase: 'next',
-    testBlockId: 'rep-scheme-next-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters']),
-    expectations: {
-      stackPushes: 1
-      // Should also verify METRIC_REPS value is 21
-    }
-  },
-  {
-    id: 'rounds-round-transition',
-    name: 'Rounds - Round Transition',
-    description: 'Tests next() after completing first round. Should increment round counter and restart children.',
-    phase: 'next',
-    testBlockId: 'rounds-transition-1',
-    blockFactory: BlockFactories.rounds.fixed(3, ['5 Pullups']),
-    runtimeConfig: {
-      // Pre-configure to simulate round 1 completed
-      initialMemory: [
-        { type: 'rounds:current', ownerId: 'rounds-transition-1', value: 1, visibility: 'private' }
-      ]
-    },
-    expectations: {
-      // Should advance to round 2
-    }
-  },
-  {
-    id: 'rounds-rep-scheme-transition',
-    name: 'Rep Scheme - Round Transition (21→15)',
-    description: 'Tests rep scheme transitioning from round 1 to 2. METRIC_REPS should update from 21 to 15.',
-    phase: 'next',
-    testBlockId: 'scheme-transition-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters']),
-    runtimeConfig: {
-      // Pre-configure round 1 complete
-    },
-    expectations: {
-      // Verify METRIC_REPS changes
-    }
-  },
-  {
-    id: 'rounds-final-round-complete',
-    name: 'Rounds - Final Round Complete',
-    description: 'Tests next() when all rounds are done. Should return PopBlockAction.',
-    phase: 'next',
-    testBlockId: 'rounds-complete-1',
-    blockFactory: BlockFactories.rounds.fixed(3, ['5 Pullups']),
-    runtimeConfig: {
-      // Pre-configure at final round
-      initialMemory: [
-        { type: 'rounds:current', ownerId: 'rounds-complete-1', value: 3, visibility: 'private' }
-      ]
-    },
-    expectations: {
-      actionsReturned: 1 // PopBlockAction
-    }
-  }
-];
+const roundsFirstRound: ScenarioDefinition = {
+  id: 'rounds-first-round',
+  name: 'Rounds - First Round',
+  description: 'Tests rounds block at loop index 0 (first round). Should continue iterating.',
+  wodScript: `3 Rounds:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 0, totalIterations: 3 } }
+  ],
+  testPhase: 'next'
+};
 
-export const NextPhase: Story = {
-  args: {
-    scenarios: nextScenarios,
-    showDetailedDiff: true
-  }
+const roundsMidProgress: ScenarioDefinition = {
+  id: 'rounds-mid-progress',
+  name: 'Rounds - Mid Progress',
+  description: 'Tests rounds block at loop index 1 (second of 3 rounds). Should continue.',
+  wodScript: `3 Rounds:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 1, totalIterations: 3 } }
+  ],
+  testPhase: 'next'
+};
+
+const roundsFinalRound: ScenarioDefinition = {
+  id: 'rounds-final-round',
+  name: 'Rounds - Final Round',
+  description: 'Tests rounds block at last iteration (index 2 of 3). After children complete, should pop.',
+  wodScript: `3 Rounds:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 2, totalIterations: 3 } }
+  ],
+  testPhase: 'next'
+};
+
+const repSchemeSecondRound: ScenarioDefinition = {
+  id: 'rep-scheme-second-round',
+  name: 'Rep Scheme - Second Round (15)',
+  description: 'Tests 21-15-9 at index 1. Should publish 15 reps to public memory.',
+  wodScript: `21-15-9:
+  Thrusters`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 1, totalIterations: 3 } }
+  ],
+  testPhase: 'next'
+};
+
+const repSchemeLastRound: ScenarioDefinition = {
+  id: 'rep-scheme-last-round',
+  name: 'Rep Scheme - Last Round (9)',
+  description: 'Tests 21-15-9 at index 2 (last round). Should publish 9 reps.',
+  wodScript: `21-15-9:
+  Thrusters`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [
+    { type: 'setLoopIndex', params: { blockKey: '{{currentBlock}}', currentIndex: 2, totalIterations: 3 } }
+  ],
+  testPhase: 'next'
+};
+
+export const RoundsFirstRound: Story = {
+  args: { initialScenario: roundsFirstRound }
+};
+
+export const RoundsMidProgress: Story = {
+  args: { initialScenario: roundsMidProgress }
+};
+
+export const RoundsFinalRound: Story = {
+  args: { initialScenario: roundsFinalRound }
+};
+
+export const RepSchemeSecondRound: Story = {
+  args: { initialScenario: repSchemeSecondRound }
+};
+
+export const RepSchemeLastRound: Story = {
+  args: { initialScenario: repSchemeLastRound }
 };
 
 // ==================== POP PHASE SCENARIOS ====================
 
-const popScenarios: TestScenario[] = [
-  {
-    id: 'rounds-fixed-pop',
-    name: 'Fixed Rounds - Pop',
-    description: 'Tests unmount and dispose of rounds block. Should release round tracking memory.',
-    phase: 'pop',
-    testBlockId: 'rounds-pop-1',
-    blockFactory: BlockFactories.rounds.fixed(3, ['10 Pushups']),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 1
-    }
-  },
-  {
-    id: 'rounds-rep-scheme-pop',
-    name: 'Rep Scheme - Pop',
-    description: 'Tests unmount of rep scheme block. Should release round state AND public METRIC_REPS.',
-    phase: 'pop',
-    testBlockId: 'rep-scheme-pop-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters']),
-    expectations: {
-      stackPops: 1,
-      memoryReleases: 2 // Round state + METRIC_REPS
-    }
-  }
-];
-
-export const PopPhase: Story = {
-  args: {
-    scenarios: popScenarios,
-    showDetailedDiff: true
-  }
+const roundsPop: ScenarioDefinition = {
+  id: 'rounds-pop',
+  name: 'Rounds - Pop',
+  description: 'Tests unmount and dispose of rounds block. Should release loop memory.',
+  wodScript: `3 Rounds:
+  5 Pullups`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== METRIC INHERITANCE SCENARIOS ====================
-
-const inheritanceScenarios: TestScenario[] = [
-  {
-    id: 'rounds-metric-visibility',
-    name: 'Rep Scheme - METRIC_REPS Visibility',
-    description: 'Verify that rep scheme allocates METRIC_REPS with PUBLIC visibility for child inheritance.',
-    phase: 'push',
-    testBlockId: 'metric-visibility-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters']),
-    expectations: {
-      // Check memory has public visibility
-    }
-  },
-  {
-    id: 'rounds-child-inherits-reps',
-    name: 'Child Effort Inherits Reps',
-    description: 'Tests that child effort blocks can find and inherit METRIC_REPS from parent rounds block.',
-    phase: 'next',
-    testBlockId: 'child-inherit-1',
-    blockFactory: BlockFactories.rounds.repScheme([21, 15, 9], ['Thrusters']),
-    expectations: {
-      // Child should become EffortBlock with 21 reps
-    }
-  }
-];
-
-export const MetricInheritance: Story = {
-  args: {
-    scenarios: inheritanceScenarios,
-    showDetailedDiff: true
-  }
+const repSchemePop: ScenarioDefinition = {
+  id: 'rep-scheme-pop',
+  name: 'Rep Scheme - Pop',
+  description: 'Tests unmount of rep scheme block. Should release both loop and public reps memory.',
+  wodScript: `21-15-9:
+  Thrusters`,
+  targetStatementId: 1,
+  includeChildren: true,
+  setupActions: [],
+  testPhase: 'unmount'
 };
 
-// ==================== ALL PHASES COMBINED ====================
+export const RoundsPop: Story = {
+  args: { initialScenario: roundsPop }
+};
 
-const allScenarios: TestScenario[] = [
-  ...pushScenarios,
-  ...nextScenarios,
-  ...popScenarios,
-  ...inheritanceScenarios
-];
+export const RepSchemePop: Story = {
+  args: { initialScenario: repSchemePop }
+};
 
-export const AllPhases: Story = {
+// ==================== INTERACTIVE BUILDER ====================
+
+export const InteractiveBuilder: Story = {
   args: {
-    scenarios: allScenarios,
-    showDetailedDiff: true
+    initialScript: `21-15-9:
+  Thrusters
+  Pullups`
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Interactive scenario builder for creating custom rounds block tests.'
+      }
+    }
   }
 };

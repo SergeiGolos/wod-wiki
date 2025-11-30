@@ -15,7 +15,21 @@ import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
 import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { Activity, Clock, Pause, Play, CheckCircle2, AlertCircle } from 'lucide-react';
+
+// Define Segment interface locally as it's not exported from a central model yet
+interface Segment {
+  id: number;
+  name: string;
+  type: string;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  parentId: number | null;
+  depth: number;
+  avgPower: number;
+  avgHr: number;
+  lane: number;
+}
 
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
@@ -44,22 +58,7 @@ function formatDuration(seconds: number): string {
   return `${secs}s`;
 }
 
-/**
- * Get status color class based on segment type
- */
-function getTypeColorClass(type: string): string {
-  const typeColors: Record<string, string> = {
-    'work': 'text-red-500 bg-red-500/10',
-    'interval': 'text-orange-500 bg-orange-500/10',
-    'rest': 'text-green-500 bg-green-500/10',
-    'recovery': 'text-green-500 bg-green-500/10',
-    'warmup': 'text-yellow-500 bg-yellow-500/10',
-    'cooldown': 'text-blue-500 bg-blue-500/10',
-    'root': 'text-primary bg-primary/10',
-    'ramp': 'text-purple-500 bg-purple-500/10',
-  };
-  return typeColors[type.toLowerCase()] || 'text-muted-foreground bg-muted';
-}
+
 
 /**
  * Convert segment to fragment array for visualization
@@ -117,38 +116,49 @@ function getFragmentTypeFromSegmentType(type: string): FragmentType {
  * Single analytics segment card component - Compact version
  */
 /**
- * Helper to create the card content for MetricsTreeView
+ * Single analytics segment card component - Compact version
  */
 const renderMetricCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
-  // We store the fragments in the item.tags for now, or we can reconstruct them
-  // But wait, MetricItem has specific fields. 
-  // Let's use the 'tags' field to store the FragmentVisualizer
-  
+  const isSeparator = item.data?.isSeparator;
+
+  if (isSeparator) {
+    return (
+      <div className={cn(
+        "flex items-center w-full py-1.5 px-2 mt-2 mb-1",
+        "border-b border-border/50"
+      )}>
+        <div className="flex-1 font-semibold text-sm text-foreground/90">
+          {item.title}
+        </div>
+        <div className="flex-shrink-0 font-mono text-xs text-muted-foreground">
+          {item.data?.durationText}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
       "rounded border transition-all flex items-center gap-2 w-full",
       isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-border",
-      mobile ? "py-1.5 px-2" : "py-1 px-1.5"
+      mobile ? "py-1 px-2" : "py-0.5 px-1.5",
+      "h-8" // Fixed height for compact row
     )}>
-      {item.icon && (
-        <div className={cn("flex-shrink-0", mobile ? "h-3.5 w-3.5" : "h-3 w-3")}>
-          {item.icon}
-        </div>
-      )}
+
       
       <span className={cn(
-        "truncate flex-shrink-0 max-w-[100px] font-medium",
+        "truncate flex-shrink-0 max-w-[120px] font-medium",
         mobile ? "text-xs" : "text-[11px]"
       )}>
         {item.title}
       </span>
       
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden flex items-center">
         {item.tags}
       </div>
       
       {item.footer && (
-        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground">
+        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground ml-2">
           {item.footer}
         </div>
       )}
@@ -172,8 +182,10 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
     
     return sorted.map(seg => {
       const type = seg.type.toLowerCase();
-      const typeColorClass = getTypeColorClass(type);
       const fragments = segmentToFragments(seg);
+      
+      // Determine if this is a separator/grouping node
+      const isSeparator = ['root', 'round', 'interval', 'warmup', 'cooldown'].includes(type);
       
       return {
         id: seg.id.toString(),
@@ -181,19 +193,24 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
         lane: seg.depth || 0, // Use depth as lane
         title: seg.name,
         startTime: seg.startTime,
-        icon: <Activity className={cn('flex-shrink-0', typeColorClass.split(' ')[0])} />,
-        tags: (
+        tags: !isSeparator && (
           <FragmentVisualizer 
             fragments={fragments} 
-            className="gap-0.5"
+            className="gap-1"
+            compact={true}
           />
         ),
-        footer: (
-          <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+        footer: !isSeparator && (
+          <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
             {seg.avgPower > 0 && <span>{Math.round(seg.avgPower)}W</span>}
             {seg.avgHr > 0 && <span>{Math.round(seg.avgHr)}♥</span>}
           </div>
-        )
+        ),
+        data: {
+          isSeparator,
+          type: type,
+          durationText: formatDuration(seg.duration)
+        }
       } as MetricItem;
     });
   }, [segments]);
