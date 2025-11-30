@@ -49,6 +49,20 @@ export class HistoryBehavior implements IRuntimeBehavior {
             this.label = block.blockType;
         }
 
+        // Create execution record
+        const record = {
+            id: block.key.toString(), // The block itself is the record
+            blockId: block.key.toString(),
+            parentId: this.parentId,
+            type: block.blockType?.toLowerCase() || 'block',
+            label: this.label,
+            startTime: this.startTime,
+            status: 'active',
+            metrics: []
+        };
+        
+        runtime.memory.allocate('execution-record', block.key.toString(), record, 'public');
+
         return [];
     }
 
@@ -57,5 +71,34 @@ export class HistoryBehavior implements IRuntimeBehavior {
         // We no longer need to manually push to executionLog here.
         // Keeping this method for potential future cleanup or specific metric handling.
 
+    }
+
+    onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+        const endTime = Date.now();
+        
+        // Update execution record to completed
+        const refs = runtime.memory.search({
+            type: 'execution-record',
+            id: block.key.toString(),
+            ownerId: block.key.toString(),
+            visibility: null
+        });
+        
+        if (refs.length > 0) {
+            const record = runtime.memory.get(refs[0] as any) as any;
+            if (record) {
+                // Collect any metrics associated with this block
+                // For now, we just close the record. 
+                // Metrics might be collected by other behaviors or passed in.
+                
+                const updatedRecord = {
+                    ...record,
+                    endTime: endTime,
+                    status: 'completed'
+                };
+                runtime.memory.set(refs[0] as any, updatedRecord);
+            }
+        }
+        return [];
     }
 }

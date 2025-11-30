@@ -147,12 +147,20 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
 
     const allEntries: LogEntry[] = [];
     
-    // 1. Start Entry
-    const hasStarted = runtime.executionLog.length > 0 || runtime.stack.blocks.length > 0;
+    // 1. Start Entry - only add if there's actual workout content (not just idle blocks)
+    // Filter out idle blocks from the check - we want to show "Workout Started" only when
+    // actual workout content has begun, not when we're in the initial "Ready" idle state
+    const nonIdleExecutionLog = runtime.executionLog.filter(r => r.type.toLowerCase() !== 'idle');
+    const nonIdleActiveSpans = Array.from(runtime.activeSpans.values()).filter(r => r.type.toLowerCase() !== 'idle');
+    const hasStarted = nonIdleExecutionLog.length > 0 || nonIdleActiveSpans.length > 0;
+    
     if (hasStarted) {
       let startTimestamp = workoutStartTime || Date.now();
-      if (runtime.executionLog.length > 0) {
-        const earliest = runtime.executionLog.reduce((a, b) => a.startTime < b.startTime ? a : b);
+      if (nonIdleExecutionLog.length > 0) {
+        const earliest = nonIdleExecutionLog.reduce((a, b) => a.startTime < b.startTime ? a : b);
+        startTimestamp = Math.min(startTimestamp, earliest.startTime);
+      } else if (nonIdleActiveSpans.length > 0) {
+        const earliest = nonIdleActiveSpans.reduce((a, b) => a.startTime < b.startTime ? a : b);
         startTimestamp = Math.min(startTimestamp, earliest.startTime);
       }
       allEntries.push({
@@ -173,8 +181,10 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
       });
     }
 
-    // 2. Completed Entries
-    runtime.executionLog.forEach(record => {
+    // 2. Completed Entries (filter out idle blocks - they're internal state, not user-facing)
+    runtime.executionLog
+      .filter(record => record.type.toLowerCase() !== 'idle')
+      .forEach(record => {
       const fragments = record.metrics.length > 0 
         ? metricsToFragments(record.metrics)
         : [createLabelFragment(record.label, record.type)];
@@ -194,9 +204,13 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
 
     // 3. Active Entries (from activeSpans)
     // This includes both stack blocks AND auxiliary records (like Rounds/Intervals)
+    // Filter out idle blocks - they're internal state, not user-facing
     const activeSpans = runtime.activeSpans; // Map<string, ExecutionRecord>
     
     activeSpans.forEach(record => {
+       // Skip idle blocks in the display
+       if (record.type.toLowerCase() === 'idle') return;
+       
        const fragments = record.metrics.length > 0 
         ? metricsToFragments(record.metrics)
         : [createLabelFragment(record.label, record.type)];

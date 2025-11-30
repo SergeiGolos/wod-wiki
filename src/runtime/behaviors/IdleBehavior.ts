@@ -27,6 +27,11 @@ export class IdleBehavior implements IRuntimeBehavior {
 
     onPush(_runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
         this.startTime = Date.now();
+        
+        // NOTE: Do NOT create execution-record here.
+        // ScriptRuntime.stack.push() already creates an execution-record for every block.
+        // Creating one here causes duplicate entries in the execution log.
+        
         return [];
     }
 
@@ -65,6 +70,9 @@ export class IdleBehavior implements IRuntimeBehavior {
             runtime.metrics.collect(metric);
         }
 
+        // NOTE: Do NOT update execution-record here.
+        // ScriptRuntime.stack.pop() already handles marking records as completed.
+        // Updating here could cause inconsistencies or errors if the record was already updated.
 
         return [];
     }

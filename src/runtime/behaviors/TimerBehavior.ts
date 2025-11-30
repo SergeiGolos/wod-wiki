@@ -395,7 +395,12 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Cleanup: clear interval and remove event listeners.
    * Must complete in <50ms per performance contract.
    */
-  dispose(): void {
+  /**
+   * Cleanup: clear interval and remove event listeners.
+   * Must complete in <50ms per performance contract.
+   */
+  onDispose(runtime: IScriptRuntime, block: IRuntimeBlock): void {
+    this.stop();
     if (this.intervalId !== undefined) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;

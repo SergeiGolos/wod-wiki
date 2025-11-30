@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
-import { TimeSpan } from '../../runtime/behaviors/TimerBehavior';
+import { TimerState, RuntimeControls } from '../../runtime/models/MemoryModels';
 import { 
   useDisplayStack, 
   useTimerStack,
@@ -107,10 +107,11 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
       visibility: null,
     });
     
-    return refs[0] as TypedMemoryReference<TimeSpan[]> | undefined;
+    return refs[0] as TypedMemoryReference<TimerState> | undefined;
   }, [runtime, entry?.timerMemoryId]);
 
-  const timeSpans = useMemorySubscription(timerRef) || [];
+  const timerState = useMemorySubscription(timerRef);
+  const timeSpans = timerState?.spans || [];
 
   // Check if timer is actually running (has an open span without stop time)
   const isTimerRunning = useMemo(() => {
@@ -131,8 +132,10 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
     
     return timeSpans.reduce((total, span) => {
       if (!span.start) return total;
-      const stop = span.stop?.getTime() || now;
-      return total + (stop - span.start.getTime());
+      // Timestamps are numbers in MemoryModels
+      const start = span.start;
+      const stop = span.stop || now;
+      return total + (stop - start);
     }, 0);
   }, [timeSpans, now]);
 
@@ -313,6 +316,8 @@ interface EnhancedTimerCoreProps extends TimerDisplayProps {
   currentCard?: IDisplayCardEntry;
   /** Display state for rounds */
   displayState?: { currentRound?: number; totalRounds?: number } | null;
+  /** Runtime controls configuration */
+  controls?: RuntimeControls;
 }
 
 const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({ 
@@ -330,7 +335,26 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
   secondaryTimers = [],
   currentCard,
   displayState,
+  controls,
 }) => {
+  // Clock state for 'clock' mode
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  React.useEffect(() => {
+    if (controls?.displayMode === 'clock') {
+      const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [controls?.displayMode]);
+
+  const formatClock = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Determine what to display
+  const showClock = controls?.displayMode === 'clock';
+  const displayValue = showClock ? formatClock(currentTime) : (hasActiveBlock ? formatTime(elapsedMs) : '--:--.--');
+
   return (
     <div className={cn(
       'flex flex-col items-center justify-center h-full',
@@ -357,7 +381,7 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
       {/* Title */}
       {!compact && (
         <h2 className="text-2xl font-bold text-muted-foreground">
-          {primaryTimer?.label || 'Workout Timer'}
+          {showClock ? 'Current Time' : (primaryTimer?.label || 'Workout Timer')}
         </h2>
       )}
       
@@ -365,13 +389,13 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
       <div className={cn(
         'font-mono font-bold tabular-nums tracking-wider',
         compact ? 'text-4xl' : 'text-8xl',
-        hasActiveBlock ? 'text-primary' : 'text-muted-foreground/20'
+        (hasActiveBlock || showClock) ? 'text-primary' : 'text-muted-foreground/20'
       )}>
-        {hasActiveBlock ? formatTime(elapsedMs) : '--:--.--'}
+        {displayValue}
       </div>
 
       {/* Countdown Progress (if primary timer is countdown) */}
-      {primaryTimer?.format === 'countdown' && primaryTimer.durationMs && hasActiveBlock && (
+      {!showClock && primaryTimer?.format === 'countdown' && primaryTimer.durationMs && hasActiveBlock && (
         <div className={cn('w-full max-w-md', compact ? 'px-4' : 'px-8')}>
           <Progress 
             value={Math.min((elapsedMs / primaryTimer.durationMs) * 100, 100)} 
@@ -385,7 +409,7 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
       )}
 
       {/* Round info */}
-      {displayState && (displayState.currentRound || displayState.totalRounds) && (
+      {!showClock && displayState && (displayState.currentRound || displayState.totalRounds) && (
         <Badge variant="outline" className={cn(compact ? 'text-xs' : 'text-sm')}>
           Round {displayState.currentRound || 1}
           {displayState.totalRounds && ` / ${displayState.totalRounds}`}
@@ -393,7 +417,60 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
       )}
       
       {/* Control Buttons */}
-      {hasActiveBlock ? (
+      {controls?.buttons && controls.buttons.length > 0 ? (
+        <div className={cn('flex', compact ? 'gap-3' : 'gap-6')}>
+          {controls.buttons.map(btn => {
+            const Icon = btn.icon === 'play' ? Play : 
+                         btn.icon === 'pause' ? Pause : 
+                         btn.icon === 'stop' ? Square : 
+                         btn.icon === 'next' ? SkipForward : 
+                         btn.icon === 'check' ? ChevronRight :
+                         btn.icon === 'analytics' ? TimerIcon : // Use TimerIcon as placeholder for Analytics if needed
+                         Play; // Default
+
+            // Map action to handler (or emit event)
+            // Since we don't have direct event emission here, we rely on the parent to handle it?
+            // Wait, TimerDisplayProps has onStart, onPause, etc.
+            // But dynamic buttons have arbitrary actions.
+            // We need a generic onAction prop or use runtime context to emit.
+            // But EnhancedTimerCore doesn't have runtime context.
+            // We should pass a handler.
+            // For now, map known actions to props, or add onAction prop.
+            
+            const handleClick = () => {
+                // Map known actions to existing props for backward compatibility/ease
+                if (btn.action === 'timer:start') onStart();
+                else if (btn.action === 'timer:pause') onPause();
+                else if (btn.action === 'timer:resume') onStart(); // Resume is same as Start/Play
+                else if (btn.action === 'timer:stop') onStop();
+                else if (btn.action === 'timer:next') onNext();
+                else if (btn.action === 'timer:complete') onStop(); // Complete maps to Stop for now
+                else if (btn.action === 'view:analytics') {
+                    // TODO: Handle analytics view
+                    console.log('View Analytics clicked');
+                }
+            };
+
+            return (
+                <Button 
+                    key={btn.id}
+                    onClick={handleClick}
+                    variant={btn.variant || 'default'}
+                    size={compact ? 'default' : 'lg'}
+                    className={cn(
+                        'rounded-full',
+                        compact ? 'h-12 w-12 p-0' : 'h-16 w-16 p-0',
+                        btn.color // Apply custom color class if provided
+                    )}
+                    title={btn.label}
+                >
+                    <Icon className={cn('fill-current', compact ? 'h-5 w-5' : 'h-8 w-8')} />
+                </Button>
+            );
+          })}
+        </div>
+      ) : hasActiveBlock ? (
+        // Fallback to hardcoded buttons if no controls (should not happen with new logic)
         <div className={cn('flex', compact ? 'gap-3' : 'gap-6')}>
           {!isRunning ? (
             <Button onClick={onStart} size={compact ? 'default' : 'lg'} className={cn(
@@ -460,6 +537,20 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   const displayState = useDisplayStack();
   const timerStack = useTimerStack();
   const cardStack = useCardStack();
+  const runtime = useRuntimeContext();
+
+  // Subscribe to runtime controls
+  const controlsRef = useMemo(() => {
+    const refs = runtime.memory.search({
+      type: 'runtime-controls',
+      id: null,
+      ownerId: null,
+      visibility: null
+    });
+    return refs[0] as TypedMemoryReference<RuntimeControls> | undefined;
+  }, [runtime]);
+
+  const controls = useMemorySubscription(controlsRef);
   
   // Primary timer is the last in stack (if display stack enabled)
   const primaryTimer = timerStack.length > 0 ? timerStack[timerStack.length - 1] : undefined;
@@ -478,6 +569,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       secondaryTimers={secondaryTimers}
       currentCard={currentCard}
       displayState={displayState}
+      controls={controls}
     />
   );
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from './TimerBehavior';
+import { TimerBehavior, TIMER_MEMORY_TYPES } from './TimerBehavior';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
@@ -22,40 +22,32 @@ describe('TimerBehavior', () => {
         block.mount(runtime);
 
         // Search for timer memory references
-        const timeSpansRefs = runtime.memory.search({
+        const timerRefs = runtime.memory.search({
             id: null,
             ownerId: block.key.toString(),
-            type: TIMER_MEMORY_TYPES.TIME_SPANS,
+            type: `${TIMER_MEMORY_TYPES.PREFIX}${block.key.toString()}`,
             visibility: 'public'
         });
 
-        const isRunningRefs = runtime.memory.search({
-            id: null,
-            ownerId: block.key.toString(),
-            type: TIMER_MEMORY_TYPES.IS_RUNNING,
-            visibility: 'public'
-        });
-
-        expect(timeSpansRefs.length).toBe(1);
-        expect(isRunningRefs.length).toBe(1);
+        expect(timerRefs.length).toBe(1);
     });
 
     it('should initialize with one time span and running state', () => {
         block.mount(runtime);
 
-        const timeSpansRefs = runtime.memory.search({
+        const timerRefs = runtime.memory.search({
             id: null,
             ownerId: block.key.toString(),
-            type: TIMER_MEMORY_TYPES.TIME_SPANS,
+            type: `${TIMER_MEMORY_TYPES.PREFIX}${block.key.toString()}`,
             visibility: null
         });
 
-        const timeSpansRef = timeSpansRefs[0] as any;
-        const timeSpans = runtime.memory.get(timeSpansRef) as TimeSpan[];
+        const timerRef = timerRefs[0] as any;
+        const timerState = runtime.memory.get(timerRef) as any;
 
-        expect(timeSpans.length).toBe(1);
-        expect(timeSpans[0].start).toBeInstanceOf(Date);
-        expect(timeSpans[0].stop).toBeUndefined();
+        expect(timerState.spans.length).toBe(1);
+        expect(timerState.spans[0].start).toBeTypeOf('number'); // Date.now() returns number
+        expect(timerState.spans[0].stop).toBeUndefined();
 
         const isRunning = behavior.isRunning();
         expect(isRunning).toBe(true);
@@ -67,11 +59,11 @@ describe('TimerBehavior', () => {
         // Wait a bit to ensure time passes
         const startTime = Date.now();
         
-        block.unmount(runtime);
+        behavior.onDispose(runtime, block);
 
         const timeSpans = behavior.getTimeSpans();
-        expect(timeSpans[0].stop).toBeInstanceOf(Date);
-        expect(timeSpans[0].stop!.getTime()).toBeGreaterThanOrEqual(startTime);
+        expect(timeSpans[0].stop).toBeTypeOf('number');
+        expect(timeSpans[0].stop).toBeGreaterThanOrEqual(startTime);
 
         const isRunning = behavior.isRunning();
         expect(isRunning).toBe(false);
@@ -83,7 +75,7 @@ describe('TimerBehavior', () => {
         behavior.pause();
 
         const timeSpans = behavior.getTimeSpans();
-        expect(timeSpans[0].stop).toBeInstanceOf(Date);
+        expect(timeSpans[0].stop).toBeTypeOf('number');
         expect(behavior.isRunning()).toBe(false);
     });
 
@@ -95,8 +87,8 @@ describe('TimerBehavior', () => {
 
         const timeSpans = behavior.getTimeSpans();
         expect(timeSpans.length).toBe(2);
-        expect(timeSpans[0].stop).toBeInstanceOf(Date); // First span stopped
-        expect(timeSpans[1].start).toBeInstanceOf(Date); // Second span started
+        expect(timeSpans[0].stop).toBeTypeOf('number'); // First span stopped
+        expect(timeSpans[1].start).toBeTypeOf('number'); // Second span started
         expect(timeSpans[1].stop).toBeUndefined(); // Second span running
         expect(behavior.isRunning()).toBe(true);
     });
@@ -109,18 +101,23 @@ describe('TimerBehavior', () => {
         const span1Stop = new Date(Date.now() - 1000);
         const span2Start = new Date(Date.now() - 500);
 
-        const timeSpansRefs = runtime.memory.search({
+        const timerRefs = runtime.memory.search({
             id: null,
             ownerId: block.key.toString(),
-            type: TIMER_MEMORY_TYPES.TIME_SPANS,
+            type: `${TIMER_MEMORY_TYPES.PREFIX}${block.key.toString()}`,
             visibility: null
         });
 
-        const timeSpansRef = timeSpansRefs[0] as any;
-        runtime.memory.set(timeSpansRef, [
-            { start: span1Start, stop: span1Stop },
-            { start: span2Start, stop: undefined }
-        ]);
+        const timerRef = timerRefs[0] as any;
+        const currentState = runtime.memory.get(timerRef) as any;
+        
+        runtime.memory.set(timerRef, {
+            ...currentState,
+            spans: [
+                { start: span1Start.getTime(), stop: span1Stop.getTime() },
+                { start: span2Start.getTime(), stop: undefined }
+            ]
+        });
 
         const elapsed = behavior.getTotalElapsed();
 
@@ -149,16 +146,16 @@ describe('TimerBehavior', () => {
     it('should notify subscribers when timer state changes', () => {
         block.mount(runtime);
 
-        const timeSpansRefs = runtime.memory.search({
+        const timerRefs = runtime.memory.search({
             id: null,
             ownerId: block.key.toString(),
-            type: TIMER_MEMORY_TYPES.TIME_SPANS,
+            type: `${TIMER_MEMORY_TYPES.PREFIX}${block.key.toString()}`,
             visibility: null
         });
 
-        const timeSpansRef = timeSpansRefs[0] as any;
+        const timerRef = timerRefs[0] as any;
         const callback = vi.fn();
-        timeSpansRef.subscribe(callback);
+        timerRef.subscribe(callback);
 
         behavior.pause();
 
@@ -189,7 +186,7 @@ describe('TimerBehavior', () => {
             visibility: 'public'
         });
 
-        expect(publicRefs.length).toBe(2); // timeSpans and isRunning
+        expect(publicRefs.length).toBe(1); // TimerState
     });
 
     it('should return empty array for getTotalElapsed when not initialized', () => {

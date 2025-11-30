@@ -5,6 +5,8 @@ import { WodBlock } from '../../markdown-editor/types';
 import { CodeStatement } from '../../core/models/CodeStatement';
 import { JitCompiler } from '../JitCompiler';
 import { IScriptRuntime } from '../IScriptRuntime';
+import { RuntimeControls } from '../models/MemoryModels';
+import { TypedMemoryReference } from '../IMemoryReference';
 
 describe('RootLifecycle Integration', () => {
     it('should inject idle blocks at start and end of execution', () => {
@@ -101,5 +103,81 @@ describe('RootLifecycle Integration', () => {
         
         expect(testRuntime.stack.blocks.length).toBe(0);
         expect(testRuntime.isComplete()).toBe(true);
+    });
+
+    it('should register and update runtime controls', () => {
+        // 1. Setup
+        const block: WodBlock = {
+            id: 'test-block',
+            content: '10 Pushups',
+            statements: [{ id: 1, type: 'movement', content: '10 Pushups', children: [] } as any]
+        } as any;
+
+        const mockCompiler = {
+            compile: () => ({
+                key: { toString: () => 'mock-child' },
+                mount: () => [],
+                next: () => [],
+                unmount: () => [],
+                dispose: () => {},
+                getBehavior: () => undefined
+            })
+        } as any as JitCompiler;
+
+        const factory = new RuntimeFactory(mockCompiler);
+        const runtime = factory.createRuntime(block);
+        
+        if (!runtime) throw new Error('Failed to create runtime');
+
+        // Helper to get controls
+        const getControls = () => {
+            const refs = runtime.memory.search({
+                type: 'runtime-controls',
+                id: null,
+                ownerId: null,
+                visibility: null
+            });
+            if (refs.length === 0) return null;
+            return runtime.memory.get(refs[0] as TypedMemoryReference<RuntimeControls>);
+        };
+
+        // 2. Verify Initial State (Idle)
+        const initialControls = getControls();
+        expect(initialControls).toBeDefined();
+        expect(initialControls?.displayMode).toBe('clock');
+        expect(initialControls?.buttons.length).toBe(1);
+        expect(initialControls?.buttons[0].id).toBe('btn-start');
+
+        // 3. Simulate Start (Transition to Executing)
+        // We can simulate the timer:start event
+        runtime.handle({ name: 'timer:start', timestamp: new Date(), data: {} });
+        
+        // This should pop the idle block and trigger onNext on Root
+        // But runtime.handle processes events. RootLifecycleBehavior handles timer:start by returning PopBlockAction.
+        // The runtime executes the action.
+        
+        // Verify controls updated
+        const execControls = getControls();
+        expect(execControls?.displayMode).toBe('timer');
+        expect(execControls?.buttons.find(b => b.id === 'btn-pause')).toBeDefined();
+        expect(execControls?.buttons.find(b => b.id === 'btn-next')).toBeDefined();
+        expect(execControls?.buttons.find(b => b.id === 'btn-complete')).toBeDefined();
+
+        // 4. Simulate Pause
+        runtime.handle({ name: 'timer:pause', timestamp: new Date(), data: {} });
+        const pausedControls = getControls();
+        expect(pausedControls?.buttons.find(b => b.id === 'btn-resume')).toBeDefined();
+        expect(pausedControls?.buttons.find(b => b.id === 'btn-pause')).toBeUndefined();
+
+        // 5. Simulate Resume
+        runtime.handle({ name: 'timer:resume', timestamp: new Date(), data: {} });
+        const resumedControls = getControls();
+        expect(resumedControls?.buttons.find(b => b.id === 'btn-pause')).toBeDefined();
+
+        // 6. Simulate Complete
+        runtime.handle({ name: 'timer:complete', timestamp: new Date(), data: {} });
+        const completeControls = getControls();
+        expect(completeControls?.buttons.length).toBe(1);
+        expect(completeControls?.buttons[0].id).toBe('btn-analytics');
     });
 });
