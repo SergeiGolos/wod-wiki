@@ -38,6 +38,12 @@ const colors = {
   cyan: '\x1b[36m',
 };
 
+// Validate AVD name to prevent command injection
+function isValidAvdName(name) {
+  // AVD names should only contain alphanumeric characters, underscores, and hyphens
+  return /^[a-zA-Z0-9_-]+$/.test(name);
+}
+
 // Parse command line arguments
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -52,7 +58,12 @@ function parseArgs() {
     if (arg === '--no-emulator') {
       options.noEmulator = true;
     } else if (arg === '--avd' && args[i + 1]) {
-      options.avdName = args[++i];
+      const avdName = args[++i];
+      if (!isValidAvdName(avdName)) {
+        console.error(`Error: Invalid AVD name "${avdName}". AVD names should only contain alphanumeric characters, underscores, and hyphens.`);
+        process.exit(1);
+      }
+      options.avdName = avdName;
     } else if (arg === '--web-only') {
       options.webOnly = true;
     }
