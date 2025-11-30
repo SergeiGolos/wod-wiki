@@ -48,7 +48,13 @@ function formatDuration(seconds: number): string {
   return `${secs}s`;
 }
 
-
+/**
+ * Format timestamp to HH:MM:SS
+ */
+function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
 
 /**
  * Convert segment to fragment array for visualization
@@ -64,24 +70,15 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
     image: segment.type,
   });
   
-  // Add duration as timer fragment
+  // Add Start Time as timer fragment (instead of duration)
   fragments.push({
     type: 'timer',
     fragmentType: FragmentType.Timer,
-    value: segment.duration,
-    image: formatDuration(segment.duration),
+    value: segment.startTime,
+    image: formatTimestamp(segment.startTime),
   });
   
   // Add dynamic metrics based on groups or fallback to all available
-  // We want to show primary metrics in the fragment view
-  
-  // If we have specific groups, use the first group's graphs as priority
-  // Otherwise just show what we have
-
-  // Priority display from groups
-  // TODO: Pass groups to this function or make it a component
-  // For now, we'll just iterate all metrics in the segment
-  
   Object.entries(segment.metrics).forEach(([key, value]) => {
       if (value > 0) {
         let unit = '';
@@ -129,11 +126,9 @@ function getFragmentTypeFromSegmentType(type: string): FragmentType {
 /**
  * Single analytics segment card component - Compact version
  */
-/**
- * Single analytics segment card component - Compact version
- */
 const renderMetricCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
   const isSeparator = item.data?.isSeparator;
+  const isHeading = item.isHeading;
 
   if (isSeparator) {
     return (
@@ -149,6 +144,22 @@ const renderMetricCard = (item: MetricItem, isSelected: boolean, mobile: boolean
         </div>
       </div>
     );
+  }
+
+  if (isHeading) {
+      return (
+        <div className={cn(
+            "flex items-center w-full py-2 px-2",
+            "border-b-2 border-border"
+        )}>
+             <div className="flex-1 font-bold text-base text-foreground">
+                {item.title}
+             </div>
+             <div className="flex-shrink-0 font-mono text-xs text-muted-foreground">
+                {formatTimestamp(item.startTime || 0)}
+             </div>
+        </div>
+      );
   }
 
   return (
@@ -195,19 +206,24 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   const items = React.useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
     
-    return sorted.map(seg => {
+    const result: MetricItem[] = [];
+    let lastEndTime = 0;
+
+    sorted.forEach(seg => {
       const type = seg.type.toLowerCase();
+      console.log(`[AnalyticsIndexPanel] Segment: ${seg.name}, Type: ${seg.type}, LowerType: ${type}, isRoot: ${type === 'root'}`);
       const fragments = segmentToFragments(seg);
       
       // Determine if this is a separator/grouping node
-      const isSeparator = ['root', 'round', 'interval', 'warmup', 'cooldown'].includes(type);
+      const isSeparator = ['round', 'interval', 'warmup', 'cooldown'].includes(type);
+      const isRoot = type === 'root';
+      
+      if (seg.endTime > lastEndTime) {
+          lastEndTime = seg.endTime;
+      }
       
       // Build footer from secondary metrics
       const footerMetrics: React.ReactNode[] = [];
-      
-      // Use groups to determine what to show in footer if needed, 
-      // but for now we'll just show everything that wasn't primary?
-      // Actually, let's just show specific ones in footer if they exist
       const secondaryMetrics = ['heart_rate', 'cadence'];
       
       secondaryMetrics.forEach(key => {
@@ -232,20 +248,21 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
         }
       });
 
-      return {
+      result.push({
         id: seg.id.toString(),
         parentId: seg.parentId ? seg.parentId.toString() : null,
         lane: seg.depth || 0, // Use depth as lane
         title: seg.name,
         startTime: seg.startTime,
-        tags: !isSeparator && (
+        isHeading: isRoot,
+        tags: !isSeparator && !isRoot && (
           <FragmentVisualizer 
             fragments={fragments} 
             className="gap-1"
             compact={true}
           />
         ),
-        footer: !isSeparator && footerMetrics.length > 0 && (
+        footer: !isSeparator && !isRoot && footerMetrics.length > 0 && (
           <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
             {footerMetrics}
           </div>
@@ -255,8 +272,26 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
           type: type,
           durationText: formatDuration(seg.duration)
         }
-      } as MetricItem;
+      } as MetricItem);
     });
+    
+    // Add End Separator
+    if (lastEndTime > 0) {
+        result.push({
+            id: 'workout-end',
+            parentId: null,
+            lane: 0,
+            title: 'End',
+            startTime: lastEndTime,
+            isHeading: false,
+            data: {
+                isSeparator: true,
+                durationText: formatTimestamp(lastEndTime)
+            }
+        });
+    }
+
+    return result;
   }, [segments]);
 
   const handleSelect = React.useCallback((segmentId: number) => {

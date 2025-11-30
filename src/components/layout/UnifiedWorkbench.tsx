@@ -31,14 +31,12 @@ import { parseDocumentStructure } from '../../markdown-editor/utils/documentStru
 import { MetricsProvider } from '../../services/MetricsContext';
 import { SlidingViewport } from './SlidingViewport';
 import { TimerIndexPanel } from './TimerIndexPanel';
+import { WodIndexPanel } from './WodIndexPanel';
 import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
 import { cn, hashCode } from '../../lib/utils';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../../core/models/AnalyticsModels';
-
-
-
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeProvider, useRuntime } from './RuntimeProvider';
 import { RuntimeProvider as ClockRuntimeProvider } from '../../runtime/context/RuntimeContext';
@@ -353,11 +351,11 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     
     // Only highlight the LEAF block (the one currently executing)
     // This avoids highlighting parent blocks (like "3 rounds") when a child is running
-    if (runtime.stack.blocks.length > 0) {
-      const leafBlock = runtime.stack.blocks[runtime.stack.blocks.length - 1];
-      if (leafBlock.sourceIds) {
-        leafBlock.sourceIds.forEach(id => ids.add(id));
-      }
+    // Only highlight the LEAF block (the one currently executing)
+    // This avoids highlighting parent blocks (like "3 rounds") when a child is running
+    const leafBlock = runtime.stack.current;
+    if (leafBlock && leafBlock.sourceIds) {
+      leafBlock.sourceIds.forEach(id => ids.add(id));
     }
     
     return ids;
@@ -545,7 +543,38 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     <ClockRuntimeProvider runtime={runtime}>
       {timerDisplay}
     </ClockRuntimeProvider>
-  ) : timerDisplay;
+  ) : (
+    selectedBlock ? timerDisplay : (
+      <div className="h-full w-full bg-background p-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full border border-border rounded-lg shadow-sm bg-card overflow-hidden">
+            <div className="p-4 border-b border-border bg-muted/30">
+                <h3 className="font-semibold text-lg">Select a Workout</h3>
+                <p className="text-sm text-muted-foreground">Choose a workout to start tracking</p>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+                <WodIndexPanel
+                    items={documentItems}
+                    activeBlockId={_activeBlockId || undefined}
+                    onBlockClick={(item) => {
+                        if (item.type === 'wod') {
+                            // Select the block - this will trigger runtime initialization via useEffect
+                            // We use the exposed selectBlock from context (renamed to _selectBlock here)
+                            // But wait, _selectBlock takes an ID?
+                            // useWorkbench returns selectBlock: (blockId: string | null) => void
+                            _selectBlock(item.id);
+                        } else {
+                            // Just highlight headers
+                            setActiveBlockId(item.id);
+                        }
+                    }}
+                    onBlockHover={handleBlockHover}
+                    mobile={isMobile}
+                />
+            </div>
+        </div>
+      </div>
+    )
+  );
 
   // Track Debug: RuntimeDebugPanel (embedded, not slide-out)
   const trackDebugPanel = (

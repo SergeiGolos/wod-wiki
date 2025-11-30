@@ -15,6 +15,8 @@ export interface MetricItem {
   startTime?: number;
   // Custom data payload
   data?: any;
+  // Visual styling
+  isHeading?: boolean;
 }
 
 export interface MetricsTreeViewProps {
@@ -52,6 +54,7 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
   const connections = useMemo(() => {
     return items.map((item, index) => {
       if (!item.parentId) return null;
+      if (item.isHeading) return null; // Headings don't connect to parents visually in this tree style
       
       const parentIndex = items.findIndex(i => i.id === item.parentId);
       if (parentIndex === -1) return null; // Parent not found in current view
@@ -70,6 +73,11 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
       // If "Oldest First" (Analyze view), parent is ABOVE (lower index).
       
       const parentItem = items[parentIndex];
+      
+      // If parent is a heading, it doesn't have a dot. We should connect to where the dot WOULD be, 
+      // or maybe just to the left margin?
+      // Let's assume headings are at lane 0 and we connect to the text area?
+      // Or simply: if parent is heading, start line from slightly lower/higher
       
       const startX = LEFT_MARGIN + (parentItem.lane * LANE_WIDTH) + 5; // +5 for dot center (approx)
       const startY = (parentIndex * ROW_HEIGHT) + 24; // +24 for vertical center of dot
@@ -129,7 +137,8 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
         <div className="relative">
           {items.map((item) => {
             const isSelected = selectedIds.has(item.id);
-            const xOffset = LEFT_MARGIN + (item.lane * LANE_WIDTH);
+            // For headings, we ignore lane for xOffset to keep it flush left (or minimal margin)
+            const xOffset = item.isHeading ? LEFT_MARGIN : LEFT_MARGIN + (item.lane * LANE_WIDTH);
             
             return (
               <div
@@ -142,18 +151,25 @@ export const MetricsTreeView: React.FC<MetricsTreeViewProps> = ({
                 )}
                 style={{ minHeight: ROW_HEIGHT }}
               >
-                {/* Dot Area */}
-                <div className="relative shrink-0" style={{ width: xOffset + 20, height: ROW_HEIGHT }}>
-                  <div 
-                    className={cn(
-                      "absolute top-6 w-2.5 h-2.5 rounded-full border-2 z-10 transition-all",
-                      isSelected 
-                        ? "bg-background border-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] scale-125" 
-                        : "bg-background border-muted-foreground group-hover:border-foreground"
-                    )}
-                    style={{ left: xOffset }}
-                  />
-                </div>
+                {/* Dot Area - Only if NOT a heading */}
+                {!item.isHeading && (
+                    <div className="relative shrink-0" style={{ width: xOffset + 20, height: ROW_HEIGHT }}>
+                    <div 
+                        className={cn(
+                        "absolute top-6 w-2.5 h-2.5 rounded-full border-2 z-10 transition-all",
+                        isSelected 
+                            ? "bg-background border-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] scale-125" 
+                            : "bg-background border-muted-foreground group-hover:border-foreground"
+                        )}
+                        style={{ left: xOffset }}
+                    />
+                    </div>
+                )}
+                
+                {/* Spacing for Heading (if needed) */}
+                {item.isHeading && (
+                    <div className="w-4 shrink-0" /> 
+                )}
 
                 {/* Content Area */}
                 <div className="flex-1 pr-2 py-1 min-w-0">
