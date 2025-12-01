@@ -23,14 +23,16 @@ const mockRuntime = {
 describe('IntervalStrategy', () => {
   const strategy = new IntervalStrategy();
 
-  it('should match statements with Timer and EMOM action', () => {
+  it('should match statements with Timer and behavior.repeating_interval hint', () => {
     const validStatement: ICodeStatement = {
       id: 1,
       type: 'statement',
       fragments: [
         { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
         { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
-      ]
+      ],
+      // Hints are set by DialectRegistry before strategy matching
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
     expect(strategy.match([validStatement], mockRuntime)).toBe(true);
@@ -42,10 +44,25 @@ describe('IntervalStrategy', () => {
       type: 'statement',
       fragments: [
         { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' }
-      ]
+      ],
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
     expect(strategy.match([invalidStatement], mockRuntime)).toBe(false);
+  });
+
+  it('should not match statements without repeating_interval hint', () => {
+    const noHintStatement: ICodeStatement = {
+      id: 1,
+      type: 'statement',
+      fragments: [
+        { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
+        { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
+      ]
+      // No hints set
+    } as any;
+
+    expect(strategy.match([noHintStatement], mockRuntime)).toBe(false);
   });
 
   it('should compile into a RuntimeBlock with correct behaviors', () => {
@@ -57,7 +74,8 @@ describe('IntervalStrategy', () => {
         { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' },
         { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
       ],
-      children: [[2]] // Mock child group
+      children: [[2]], // Mock child group
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
     const block = strategy.compile([statement], mockRuntime);
@@ -83,7 +101,8 @@ describe('IntervalStrategy', () => {
         { fragmentType: FragmentType.Action, value: 'EMOM', type: 'action' },
         { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
       ],
-      children: [[2]] // Mock child group
+      children: [[2]], // Mock child group
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
     const block = strategy.compile([statement], mockRuntime);

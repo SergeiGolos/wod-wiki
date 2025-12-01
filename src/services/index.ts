@@ -6,3 +6,4 @@
 
 export { ExerciseDefinitionService } from './ExerciseDefinitionService';
 export { workoutEventBus, type WorkoutEvent, type WorkoutEventSubscriber } from './WorkoutEventBus';
+export { DialectRegistry } from './DialectRegistry';

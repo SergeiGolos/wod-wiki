@@ -17,6 +17,9 @@
  * import { DigitalClock } from 'wod-wiki/clock';
  * import type { IScriptRuntime } from 'wod-wiki/types';
  * ```
+ * 
+ * @module wod-wiki
+ * @version 0.5.0
  */
 
 // Re-export all modules for convenience

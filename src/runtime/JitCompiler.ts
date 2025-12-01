@@ -2,6 +2,7 @@ import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
 import { CodeStatement } from "@/CodeStatement";
+import { DialectRegistry } from "../services/DialectRegistry";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks that compiles JitStatement nodes 
@@ -12,9 +13,19 @@ import { CodeStatement } from "@/CodeStatement";
  * Metric inheritance is handled via inherited memory references rather than
  * CompilationContext - parent blocks expose metrics with 'inherited' visibility,
  * and child strategies search memory for inherited values.
+ * 
+ * The JitCompiler integrates with a DialectRegistry to process semantic hints
+ * before strategy matching. Dialects analyze statements and emit behavioral hints
+ * that strategies can query for matching decisions.
  */
 export class JitCompiler {
-  constructor(private strategies: IRuntimeBlockStrategy[] = []) {
+  private dialectRegistry: DialectRegistry;
+
+  constructor(
+    private strategies: IRuntimeBlockStrategy[] = [],
+    dialectRegistry?: DialectRegistry
+  ) {
+    this.dialectRegistry = dialectRegistry || new DialectRegistry();
   }
 
   /**
@@ -25,11 +36,18 @@ export class JitCompiler {
   }
 
   /**
+   * Get the dialect registry for registering dialects
+   */
+  getDialectRegistry(): DialectRegistry {
+    return this.dialectRegistry;
+  }
+
+  /**
    * Compiles an array of JitStatement nodes into an executable runtime block.
    * 
-   * Strategies use runtime.memory.search() to find public metrics from parent blocks
-   * (e.g., METRIC_REPS, METRIC_DURATION, METRIC_RESISTANCE) rather than receiving
-   * them via a context parameter.
+   * Before strategy matching, all statements are processed through the dialect
+   * registry to populate semantic hints. Strategies then use runtime.memory.search() 
+   * to find public metrics from parent blocks and check hints for matching.
    * 
    * @param nodes Array of JitStatement nodes to compile
    * @param runtime Timer runtime instance for context
@@ -40,6 +58,9 @@ export class JitCompiler {
       console.warn('JitCompiler: No nodes to compile.');
       return undefined;
     }
+
+    // Process all nodes through dialect registry before strategy matching
+    this.dialectRegistry.processAll(nodes);
 
     for (const strategy of this.strategies) {
       if (strategy.match(nodes, runtime)) {

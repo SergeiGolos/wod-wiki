@@ -7,6 +7,9 @@ export interface ICodeStatement {
   fragments: ICodeFragment[];
   isLeaf?: boolean;
   meta: CodeMetadata;
+  
+  // Semantic hints from dialect processing
+  hints?: Set<string>;
 }
 
 export abstract class CodeStatement implements ICodeStatement {
