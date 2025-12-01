@@ -42,6 +42,10 @@ export class DialectRegistry {
    * Dialects are processed in registration order.
    * Results are accumulated onto the statement's hints set.
    * 
+   * Note: Child statements (referenced by IDs in statement.children) are processed
+   * separately when they are compiled through the JIT compiler, which calls
+   * processAll() on each batch of statements being compiled.
+   * 
    * @param statement The statement to process
    */
   process(statement: ICodeStatement): void {
@@ -58,15 +62,9 @@ export class DialectRegistry {
         statement.hints.add(hint);
       }
 
-      // TODO: Handle inheritance rules when needed
-    }
-
-    // Recursively process children
-    if (statement.children) {
-      // children is number[][] - we need to handle this appropriately
-      // For now, hints are added to statements, not child IDs
-      // The actual child statements would be processed separately
-      // when they are compiled
+      // Note: Inheritance rules (analysis.inheritance) are designed for future use
+      // to allow parent blocks to influence child behavior (see Dialect.ts for details).
+      // Current implementation focuses on hint generation only.
     }
   }
 
