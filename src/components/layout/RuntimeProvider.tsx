@@ -21,6 +21,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/RuntimeFactory';
+import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
 
 /**
@@ -130,11 +131,22 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
 
     try {
       const newRuntime = factoryRef.current.createRuntime(block);
-      setRuntime(newRuntime);
       
-      if (!newRuntime) {
+      if (newRuntime) {
+        // Initialize logging and persistence
+        // 1. Hydrate memory with past logs (persistence check)
+        executionLogService.hydrate(newRuntime).catch(e => {
+            console.warn('[RuntimeProvider] Failed to hydrate history', e);
+        });
+
+        // 2. Start logging session for new execution
+        // TODO: Pass actual document ID/Title if available in block
+        executionLogService.startSession(newRuntime);
+      } else {
         console.warn('[RuntimeProvider] Factory returned null runtime for block:', block.id);
       }
+
+      setRuntime(newRuntime);
     } catch (err) {
       console.error('[RuntimeProvider] Error creating runtime:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -149,6 +161,7 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
       console.log('[RuntimeProvider] Unmounting, disposing runtime');
       if (runtime) {
         try {
+          executionLogService.cleanup();
           factoryRef.current.disposeRuntime(runtime);
         } catch (err) {
           console.error('[RuntimeProvider] Error disposing runtime on unmount:', err);
