@@ -44,6 +44,18 @@ export function createCountdownSoundCues(durationMs: number): SoundCue[] {
 }
 
 /**
+ * Creates default count-up sound cues for a timer.
+ * Includes: Start beep.
+ *
+ * @returns Array of SoundCue configurations
+ */
+export function createCountUpSoundCues(): SoundCue[] {
+    return [
+        { id: 'start', threshold: 0, sound: PREDEFINED_SOUNDS.START, volume: 1.0 }
+    ];
+}
+
+/**
  * Strategy that creates timer-based parent blocks for time-bound workouts.
  * Matches statements with Timer fragments (e.g., "20:00 AMRAP").
  *
@@ -102,12 +114,21 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         behaviors.push(timerBehavior);
         behaviors.push(new HistoryBehavior("Timer"));
 
-        // Add SoundBehavior for countdown timers (tick-tick-buzz)
+        // Add SoundBehavior
         if (direction === 'down' && durationMs && durationMs > 0) {
+            // Countdown: tick-tick-buzz
             const soundCues = createCountdownSoundCues(durationMs);
             const soundBehavior = new SoundBehavior({
                 direction: 'down',
                 durationMs,
+                cues: soundCues
+            });
+            behaviors.push(soundBehavior);
+        } else if (direction === 'up') {
+            // Count-up: start beep
+            const soundCues = createCountUpSoundCues();
+            const soundBehavior = new SoundBehavior({
+                direction: 'up',
                 cues: soundCues
             });
             behaviors.push(soundBehavior);
