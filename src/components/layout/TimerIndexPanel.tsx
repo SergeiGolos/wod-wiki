@@ -1,12 +1,12 @@
 /**
  * TimerIndexPanel - Live execution history for Track view
  * 
- * Uses RuntimeEventLog for a linear, sectioned view of the workout.
+ * Uses RuntimeHistoryLog for a structured, indented view of the workout history.
  */
 
 import React from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { RuntimeEventLog } from '../workout/RuntimeEventLog';
+import { RuntimeHistoryLog } from '../history/RuntimeHistoryLog';
 
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
@@ -50,7 +50,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   workoutStartTime
 }) => {
   return (
-    <RuntimeEventLog
+    <RuntimeHistoryLog
       runtime={runtime}
       activeStatementIds={activeStatementIds}
       highlightedBlockKey={highlightedBlockKey}
