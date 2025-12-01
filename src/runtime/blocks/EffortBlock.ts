@@ -5,6 +5,8 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
+import { RuntimeMetric } from '../RuntimeMetric';
+import { ExecutionRecord } from '../models/ExecutionRecord';
 
 /**
  * EffortBlock Configuration
@@ -30,11 +32,13 @@ export interface EffortBlockConfig {
 export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
+  private readonly _compiledMetrics?: RuntimeMetric;
 
   constructor(
     runtime: IScriptRuntime,
     sourceIds: number[],
-    private readonly config: EffortBlockConfig
+    private readonly config: EffortBlockConfig,
+    compiledMetrics?: RuntimeMetric
   ) {
     // Validate configuration
     if (!config.exerciseName || config.exerciseName.trim() === '') {
@@ -62,8 +66,18 @@ export class EffortBlock extends RuntimeBlock {
       "Effort",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam
-      label      // label
+      label,     // label
+      compiledMetrics  // pass through compiled metrics
     );
+    
+    this._compiledMetrics = compiledMetrics;
+  }
+  
+  /**
+   * Override compiledMetrics getter to return pre-compiled metrics
+   */
+  get compiledMetrics(): RuntimeMetric | undefined {
+    return this._compiledMetrics;
   }
 
   /**
@@ -188,8 +202,16 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Update memory and emit reps:updated event.
    * Helper method for incrementRep() and setReps().
+   * 
+   * This method implements the unified metrics architecture:
+   * 1. Updates METRICS_CURRENT for live UI display
+   * 2. Syncs to ExecutionRecord for history/analytics
+   * 3. Emits events for reactive updates
    */
   private updateMetrics(runtime: IScriptRuntime): void {
+    const blockId = this.key.toString();
+    
+    // 1. Update METRICS_CURRENT for live UI
     const metricsRef = runtime.memory.allocate<CurrentMetrics>(
         MemoryTypeEnum.METRICS_CURRENT,
         'runtime',
@@ -200,16 +222,48 @@ export class EffortBlock extends RuntimeBlock {
     metrics['reps'] = {
         value: this.currentReps,
         unit: 'reps',
-        sourceId: this.key.toString()
+        sourceId: blockId
     };
     metricsRef.set({ ...metrics });
 
-    // Emit reps:updated event
+    // 2. Sync to ExecutionRecord for history/analytics
+    // This ensures live updates are reflected in the execution log
+    const recordRefs = runtime.memory.search({ 
+        type: 'execution-record', 
+        ownerId: blockId, 
+        id: null, 
+        visibility: null 
+    });
+    
+    if (recordRefs.length > 0) {
+        const recordRef = recordRefs[0] as any;
+        const record = runtime.memory.get(recordRef) as ExecutionRecord;
+        
+        if (record && record.metrics && record.metrics.length > 0) {
+            // Update the reps value in the existing metric
+            const updatedMetrics = record.metrics.map(m => {
+                const updatedValues = m.values.map(v => {
+                    if (v.type === 'repetitions') {
+                        return { ...v, value: this.currentReps };
+                    }
+                    return v;
+                });
+                return { ...m, values: updatedValues };
+            });
+            
+            runtime.memory.set(recordRef, {
+                ...record,
+                metrics: updatedMetrics
+            });
+        }
+    }
+
+    // 3. Emit reps:updated event
     this._runtime.handle({
       name: 'reps:updated',
       timestamp: new Date(),
       data: {
-        blockId: this.key.toString(),
+        blockId,
         exerciseName: this.config.exerciseName,
         currentReps: this.currentReps,
         targetReps: this.config.targetReps,
@@ -223,7 +277,7 @@ export class EffortBlock extends RuntimeBlock {
         name: 'reps:complete',
         timestamp: new Date(),
         data: {
-          blockId: this.key.toString(),
+          blockId,
           exerciseName: this.config.exerciseName,
           finalReps: this.currentReps,
         },

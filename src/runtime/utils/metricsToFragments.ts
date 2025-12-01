@@ -1,0 +1,130 @@
+/**
+ * Shared utility for converting RuntimeMetric arrays to ICodeFragment arrays.
+ * 
+ * This utility is used by multiple UI components:
+ * - RuntimeEventLog (sectioned log view)
+ * - RuntimeHistoryPanel (tree view)
+ * - AnalyticsLayout (timeline/graphs)
+ * 
+ * By centralizing this logic, we ensure consistent fragment display across all views.
+ */
+
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { MetricValue, RuntimeMetric } from '../RuntimeMetric';
+
+/**
+ * Mapping from MetricValue type to FragmentType for display
+ */
+const METRIC_TO_FRAGMENT_TYPE: Record<string, FragmentType> = {
+  'repetitions': FragmentType.Rep,
+  'resistance': FragmentType.Resistance,
+  'distance': FragmentType.Distance,
+  'timestamp': FragmentType.Timer,
+  'rounds': FragmentType.Rounds,
+  'time': FragmentType.Timer,
+  'calories': FragmentType.Distance,
+  'action': FragmentType.Action,
+  'effort': FragmentType.Effort,
+  'heart_rate': FragmentType.Text,
+  'cadence': FragmentType.Text,
+  'power': FragmentType.Text,
+};
+
+/**
+ * Convert a single MetricValue to an ICodeFragment for display.
+ * 
+ * @param metric The metric value to convert
+ * @returns ICodeFragment for visualization
+ */
+export function metricToFragment(metric: MetricValue): ICodeFragment {
+  const fragmentType = METRIC_TO_FRAGMENT_TYPE[metric.type] || FragmentType.Text;
+  const displayValue = metric.value !== undefined 
+    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
+    : metric.unit;
+  
+  return {
+    type: metric.type,
+    fragmentType,
+    value: metric.value,
+    image: displayValue,
+  };
+}
+
+/**
+ * Convert RuntimeMetric array to ICodeFragment array for FragmentVisualizer.
+ * 
+ * This handles:
+ * - Exercise name as effort fragment
+ * - Each metric value as its corresponding fragment type
+ * 
+ * @param metrics Array of RuntimeMetric from ExecutionRecord
+ * @returns Array of ICodeFragment for display
+ */
+export function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
+  const fragments: ICodeFragment[] = [];
+  
+  for (const metric of metrics) {
+    // Add exercise name as effort fragment
+    if (metric.exerciseId) {
+      fragments.push({
+        type: 'effort',
+        fragmentType: FragmentType.Effort,
+        value: metric.exerciseId,
+        image: metric.exerciseId,
+      });
+    }
+    
+    // Add each metric value as a fragment
+    for (const value of metric.values) {
+      fragments.push(metricToFragment(value));
+    }
+  }
+  
+  return fragments;
+}
+
+/**
+ * Create a label fragment when no metrics are available.
+ * Used as fallback when ExecutionRecord has no compiled metrics.
+ * 
+ * @param label The display label text
+ * @param type The block type (timer, rounds, effort, etc.)
+ * @returns ICodeFragment for visualization
+ */
+export function createLabelFragment(label: string, type: string): ICodeFragment {
+  const typeMapping: Record<string, FragmentType> = {
+    'timer': FragmentType.Timer,
+    'rounds': FragmentType.Rounds,
+    'effort': FragmentType.Effort,
+    'group': FragmentType.Action,
+    'interval': FragmentType.Timer,
+    'amrap': FragmentType.Timer,
+    'emom': FragmentType.Timer,
+  };
+  
+  return {
+    type: type.toLowerCase(),
+    fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
+    value: label,
+    image: label,
+  };
+}
+
+/**
+ * Get fragments from ExecutionRecord, with fallback to label fragment.
+ * 
+ * @param metrics The metrics array from ExecutionRecord
+ * @param label Fallback label if no metrics
+ * @param type Block type for fallback fragment
+ * @returns Array of ICodeFragment for display
+ */
+export function getFragmentsFromRecord(
+  metrics: RuntimeMetric[] | undefined,
+  label: string,
+  type: string
+): ICodeFragment[] {
+  if (metrics && metrics.length > 0) {
+    return metricsToFragments(metrics);
+  }
+  return [createLabelFragment(label, type)];
+}

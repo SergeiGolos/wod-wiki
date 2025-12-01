@@ -6,6 +6,7 @@ import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
+import { FragmentCompilationManager } from './FragmentCompilationManager';
 
 import { RuntimeClock } from './RuntimeClock';
 
@@ -15,6 +16,9 @@ export interface IScriptRuntime {
     readonly stack: RuntimeStack;
     readonly jit: JitCompiler;
     readonly clock: RuntimeClock;
+    
+    /** Fragment compilation manager for converting fragments to metrics */
+    readonly fragmentCompiler: FragmentCompilationManager;
     
     /** Errors collected during runtime execution */
     readonly errors?: RuntimeError[];

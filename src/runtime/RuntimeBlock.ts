@@ -9,6 +9,7 @@ import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
 import { IEvent } from './IEvent';
+import { RuntimeMetric } from './RuntimeMetric';
 
 
 export type AllocateRequest<T> = { 
@@ -22,6 +23,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     public readonly key: BlockKey;
     public readonly blockType?: string;
     public readonly label: string;
+    public readonly compiledMetrics?: RuntimeMetric;
     public readonly context: IBlockContext;
     // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
@@ -33,7 +35,8 @@ export class RuntimeBlock implements IRuntimeBlock{
         contextOrBlockType?: IBlockContext | string,
         blockKey?: BlockKey,
         blockTypeParam?: string,
-        label?: string
+        label?: string,
+        compiledMetrics?: RuntimeMetric
     ) {
         // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
         if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
@@ -41,14 +44,16 @@ export class RuntimeBlock implements IRuntimeBlock{
             this.key = new BlockKey();
             this.blockType = contextOrBlockType as string | undefined;
             this.label = label || (contextOrBlockType as string) || 'Block';
+            this.compiledMetrics = compiledMetrics;
             // Create a default context for backward compatibility
             this.context = new BlockContext(_runtime, this.key.toString());
         } else {
-            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?)
+            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?, compiledMetrics?)
             this.key = blockKey ?? new BlockKey();
             this.context = contextOrBlockType;
             this.blockType = blockTypeParam;
             this.label = label || blockTypeParam || 'Block';
+            this.compiledMetrics = compiledMetrics;
         }
         
         this.behaviors = behaviors;

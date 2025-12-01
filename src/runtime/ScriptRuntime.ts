@@ -12,6 +12,19 @@ import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
 import { TypedMemoryReference } from './IMemoryReference';
 import { RuntimeMetric, MetricValue } from './RuntimeMetric';
+import { FragmentCompilationManager } from './FragmentCompilationManager';
+import {
+    ActionFragmentCompiler,
+    DistanceFragmentCompiler,
+    EffortFragmentCompiler,
+    IncrementFragmentCompiler,
+    LapFragmentCompiler,
+    RepFragmentCompiler,
+    ResistanceFragmentCompiler,
+    RoundsFragmentCompiler,
+    TextFragmentCompiler,
+    TimerFragmentCompiler
+} from './FragmentCompilers';
 
 import { RuntimeClock } from './RuntimeClock';
 
@@ -23,6 +36,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly memory: IRuntimeMemory;
     public readonly metrics: IMetricCollector;
     public readonly clock: RuntimeClock;
+    public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
     private _lastUpdatedBlocks: Set<string> = new Set();
     
@@ -32,6 +46,21 @@ export class ScriptRuntime implements IScriptRuntime {
         this.metrics = new MetricCollector();
         this.clock = new RuntimeClock();
         this.jit = compiler;
+        
+        // Initialize fragment compilation manager with all compilers
+        this.fragmentCompiler = new FragmentCompilationManager([
+            new ActionFragmentCompiler(),
+            new DistanceFragmentCompiler(),
+            new EffortFragmentCompiler(),
+            new IncrementFragmentCompiler(),
+            new LapFragmentCompiler(),
+            new RepFragmentCompiler(),
+            new ResistanceFragmentCompiler(),
+            new RoundsFragmentCompiler(),
+            new TextFragmentCompiler(),
+            new TimerFragmentCompiler()
+        ]);
+        
         this._setupMemoryAwareStack();
 
         // Start the clock
@@ -123,13 +152,18 @@ export class ScriptRuntime implements IScriptRuntime {
                 }
             }
 
-            // Create initial metrics from block information
+            // Use pre-compiled metrics from block if available (unified metrics path)
+            // This is the preferred path - metrics are compiled during strategy execution
+            // and passed through block.compiledMetrics
             const initialMetrics: RuntimeMetric[] = [];
             
-            // For effort blocks, extract exercise name from label (e.g., "10 Pushups" -> exerciseId: "Pushups", reps: 10)
-            if (block.blockType === 'Effort' && block.label) {
+            if (block.compiledMetrics) {
+                // Use pre-compiled metrics from FragmentCompilationManager
+                initialMetrics.push(block.compiledMetrics);
+            } else if (block.blockType === 'Effort' && block.label) {
+                // Fallback: Parse label for legacy blocks without compiledMetrics
+                // This maintains backward compatibility during migration
                 const label = block.label;
-                // Parse label like "10 Pushups" or just "Pushups"
                 const match = label.match(/^(\d+)\s+(.+)$/);
                 if (match) {
                     const reps = parseInt(match[1], 10);

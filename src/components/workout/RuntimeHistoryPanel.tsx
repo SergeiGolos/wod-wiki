@@ -18,8 +18,12 @@ import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
 import { hashCode } from '../../lib/utils';
 import { Clock, Play, Activity, Pause } from 'lucide-react';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { MetricValue, RuntimeMetric } from '../../runtime/RuntimeMetric';
+import { ICodeFragment } from '../../core/models/CodeFragment';
+import { 
+  metricsToFragments, 
+  createLabelFragment,
+  getFragmentsFromRecord 
+} from '../../runtime/utils/metricsToFragments';
 
 export interface RuntimeHistoryPanelProps {
   /** Active runtime for live tracking */
@@ -35,78 +39,7 @@ export interface RuntimeHistoryPanelProps {
   className?: string;
 }
 
-// --- Helper Functions for Metrics to Fragments Conversion ---
-
-/**
- * Convert a single MetricValue to an ICodeFragment for display
- */
-function metricToFragment(metric: MetricValue): ICodeFragment {
-  const typeMapping: Record<string, FragmentType> = {
-    'repetitions': FragmentType.Rep,
-    'resistance': FragmentType.Resistance,
-    'distance': FragmentType.Distance,
-    'timestamp': FragmentType.Timer,
-    'rounds': FragmentType.Rounds,
-    'time': FragmentType.Timer,
-    'calories': FragmentType.Distance,
-    'action': FragmentType.Action,
-    'effort': FragmentType.Effort,
-  };
-  
-  const fragmentType = typeMapping[metric.type] || FragmentType.Text;
-  const displayValue = metric.value !== undefined 
-    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
-    : metric.unit;
-  
-  return {
-    type: metric.type,
-    fragmentType,
-    value: metric.value,
-    image: displayValue,
-  };
-}
-
-/**
- * Convert RuntimeMetric array to ICodeFragment array for FragmentVisualizer
- */
-function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
-  const fragments: ICodeFragment[] = [];
-  for (const metric of metrics) {
-    // Add exercise name as effort fragment
-    if (metric.exerciseId) {
-      fragments.push({
-        type: 'effort',
-        fragmentType: FragmentType.Effort,
-        value: metric.exerciseId,
-        image: metric.exerciseId,
-      });
-    }
-    // Add each metric value as a fragment
-    for (const value of metric.values) {
-      fragments.push(metricToFragment(value));
-    }
-  }
-  return fragments;
-}
-
-/**
- * Create a label fragment when no metrics are available
- */
-function createLabelFragment(label: string, type: string): ICodeFragment {
-  const typeMapping: Record<string, FragmentType> = {
-    'timer': FragmentType.Timer,
-    'rounds': FragmentType.Rounds,
-    'effort': FragmentType.Effort,
-    'group': FragmentType.Action,
-  };
-  
-  return {
-    type: type.toLowerCase(),
-    fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
-    value: label,
-    image: label,
-  };
-}
+// --- Helper Functions for Card Creation ---
 
 /**
  * Helper to create tags for the card using FragmentVisualizer
@@ -131,10 +64,8 @@ function recordToItem(record: ExecutionRecord): MetricItem {
   const duration = ((record.endTime ?? Date.now()) - record.startTime) / 1000;
   const type = record.type.toLowerCase();
   
-  // Convert metrics to fragments, fallback to label fragment if no metrics
-  const fragments = record.metrics && record.metrics.length > 0 
-    ? metricsToFragments(record.metrics)
-    : [createLabelFragment(record.label, record.type)];
+  // Convert metrics to fragments using shared utility
+  const fragments = getFragmentsFromRecord(record.metrics, record.label, record.type);
   
   return {
     id: hashCode(record.blockId).toString(),
@@ -176,10 +107,8 @@ export const RuntimeHistoryPanel: React.FC<RuntimeHistoryPanelProps> = ({
     runtime.activeSpans.forEach((record) => {
       const duration = (Date.now() - record.startTime) / 1000;
       
-      // Convert metrics to fragments, fallback to label fragment if no metrics
-      const fragments = record.metrics && record.metrics.length > 0 
-        ? metricsToFragments(record.metrics)
-        : [createLabelFragment(record.label, record.type)];
+      // Convert metrics to fragments using shared utility
+      const fragments = getFragmentsFromRecord(record.metrics, record.label, record.type);
       
       activeItems.push({
         id: hashCode(record.blockId).toString(),

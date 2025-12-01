@@ -13,6 +13,7 @@ import { MemoryTypeEnum } from "./MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "./behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "./behaviors/HistoryBehavior";
 import { EffortBlock } from "./blocks/EffortBlock";
+import { RuntimeMetric } from "./RuntimeMetric";
 
 
 export class EffortStrategy implements IRuntimeBlockStrategy {
@@ -28,27 +29,38 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds;
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        // 1. Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
-
-        // 1. Generate BlockKey
+        // 2. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         
-        // 2. Extract exerciseId from statement (if available)
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        // 3. Extract exerciseId from compiled metric or statement
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         
-        // 3. Create BlockContext (may not need memory allocation for simple effort blocks)
+        // 4. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
         
-        // 4. Extract reps from fragment OR inherit from parent's public metric
+        // 5. Extract reps from compiled metrics OR inherit from parent's public metric
         let reps: number | undefined = undefined;
         
-        // First, check if fragment explicitly specifies reps
-        const fragments = code[0]?.fragments || [];
-        const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
-        if (repsFragment && typeof repsFragment.value === 'number') {
-          reps = repsFragment.value;
-
+        // First, check if compiled metrics contain reps
+        const repsValue = compiledMetric.values.find(v => v.type === 'repetitions');
+        if (repsValue && typeof repsValue.value === 'number') {
+            reps = repsValue.value;
+        }
+        
+        // Also check fragment for explicit reps (fallback)
+        if (reps === undefined) {
+            const fragments = code[0]?.fragments || [];
+            const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
+            if (repsFragment && typeof repsFragment.value === 'number') {
+                reps = repsFragment.value;
+            }
         }
         
         // If no explicit reps, check for inherited reps from parent blocks
@@ -70,7 +82,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
           }
         }
         
-        // 5. Create behaviors
+        // 6. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
         // Effort blocks are leaf nodes that complete on first next() call (not on push)
@@ -87,18 +99,21 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             false  // Don't check on next() (Tick)
         ));
 
-        // 6. Create RuntimeBlock with context
+        // 7. Create RuntimeBlock with context and compiled metrics
         // Use EffortBlock if reps are specified, otherwise fallback to generic RuntimeBlock
         // This ensures proper rep tracking and completion logic
         if (reps !== undefined) {
+            // Extract exercise name from compiled metric
+            const exerciseName = compiledMetric.exerciseId || (code[0] as any)?.exerciseName || "Exercise";
 
             return new EffortBlock(
                 runtime,
                 code[0]?.id ? [code[0].id] : [],
                 {
-                    exerciseName: (code[0] as any)?.exerciseName || "Exercise",
+                    exerciseName,
                     targetReps: reps
-                }
+                },
+                compiledMetric
             );
         }
 
@@ -109,7 +124,8 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Effort",
-            "Effort"
+            "Effort",
+            compiledMetric
         );
         
         return block;
@@ -137,14 +153,18 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         
-        // 2. Extract exerciseId from statement (if available)
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        // 2. Extract exerciseId from compiled metric or statement
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
@@ -183,7 +203,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             ['timer:complete', 'children:complete']
         ));
 
-        // 6. Create RuntimeBlock
+        // 6. Create RuntimeBlock with compiled metrics
         return new RuntimeBlock(
             runtime,
             code[0]?.id ? [code[0].id] : [],
@@ -191,7 +211,8 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Timer",
-            "For Time"
+            "For Time",
+            compiledMetric
         );
     }
 }
@@ -244,7 +265,11 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
@@ -279,7 +304,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         // Create Behaviors
@@ -335,7 +360,8 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Rounds",
-            label
+            label,
+            compiledMetric
         );
     }
 }
@@ -405,11 +431,15 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
         
         // Extract interval duration and rounds
@@ -443,7 +473,8 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Interval",
-            "EMOM"
+            "EMOM",
+            compiledMetric
         );
     }
 }
@@ -499,7 +530,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
         const stmt = code[0];
         const fragments = stmt.fragments || [];;
@@ -527,7 +562,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (stmt as any)?.exerciseId || '';
+        const exerciseId = compiledMetric.exerciseId || (stmt as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         // Create Behaviors
@@ -561,7 +596,8 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Timer", // It's technically a Timer block structure
-            label
+            label,
+            compiledMetric
         );
     }
 }
@@ -609,6 +645,11 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
 
         console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
 
@@ -617,7 +658,7 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
         
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         
         const context = new BlockContext(runtime, blockId, exerciseId);
         
@@ -633,7 +674,9 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
             behaviors,
             context,
             blockKey,
-            "Group"
+            "Group",
+            "Group",
+            compiledMetric
         );
     }
 }

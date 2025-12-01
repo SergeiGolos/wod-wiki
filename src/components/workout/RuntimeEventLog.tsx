@@ -4,7 +4,10 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { MetricValue, RuntimeMetric } from '../../runtime/RuntimeMetric';
+import { 
+  metricsToFragments, 
+  createLabelFragment 
+} from '../../runtime/utils/metricsToFragments';
 export interface RuntimeEventLogProps {
   runtime: ScriptRuntime | null;
   activeStatementIds?: Set<number>;
@@ -50,66 +53,6 @@ function formatDuration(ms: number): string {
   const secs = seconds % 60;
   if (mins > 0) return `${mins}m ${secs}s`;
   return `${secs}s`;
-}
-
-function metricToFragment(metric: MetricValue): ICodeFragment {
-  const typeMapping: Record<string, FragmentType> = {
-    'repetitions': FragmentType.Rep,
-    'resistance': FragmentType.Resistance,
-    'distance': FragmentType.Distance,
-    'timestamp': FragmentType.Timer,
-    'rounds': FragmentType.Rounds,
-    'time': FragmentType.Timer,
-    'calories': FragmentType.Distance,
-    'action': FragmentType.Action,
-    'effort': FragmentType.Effort,
-  };
-  
-  const fragmentType = typeMapping[metric.type] || FragmentType.Text;
-  const displayValue = metric.value !== undefined 
-    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
-    : metric.unit;
-  
-  return {
-    type: metric.type,
-    fragmentType,
-    value: metric.value,
-    image: displayValue,
-  };
-}
-
-function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
-  const fragments: ICodeFragment[] = [];
-  for (const metric of metrics) {
-    if (metric.exerciseId) {
-      fragments.push({
-        type: 'effort',
-        fragmentType: FragmentType.Effort,
-        value: metric.exerciseId,
-        image: metric.exerciseId,
-      });
-    }
-    for (const value of metric.values) {
-      fragments.push(metricToFragment(value));
-    }
-  }
-  return fragments;
-}
-
-function createLabelFragment(label: string, type: string): ICodeFragment {
-  const typeMapping: Record<string, FragmentType> = {
-    'timer': FragmentType.Timer,
-    'rounds': FragmentType.Rounds,
-    'effort': FragmentType.Effort,
-    'group': FragmentType.Action,
-  };
-  
-  return {
-    type: type.toLowerCase(),
-    fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
-    value: label,
-    image: label,
-  };
 }
 
 export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({

@@ -3,6 +3,7 @@ import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IBlockContext } from "./IBlockContext";
+import { RuntimeMetric } from "./RuntimeMetric";
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -66,6 +67,15 @@ export interface IRuntimeBlock {
      * e.g., "Round 1 of 3", "21 Reps", "For Time"
      */
     readonly label: string;
+
+    /**
+     * Pre-compiled metrics from FragmentCompilationManager.
+     * Set during strategy compilation phase, used by ExecutionRecord.
+     * 
+     * This eliminates the need for regex parsing of block.label during stack push.
+     * Metrics flow: Parser → Fragments → FragmentCompilationManager → compiledMetrics → ExecutionRecord
+     */
+    readonly compiledMetrics?: RuntimeMetric;
 
     /**
      * The execution context for this block.
