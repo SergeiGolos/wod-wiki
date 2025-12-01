@@ -1,5 +1,11 @@
 # Plan: JIT Strategy Refactoring
 
+> **Status: ✅ IMPLEMENTED**
+> 
+> All six JIT strategies have been refactored to use the Dialect-based hint system.
+> This plan document has been updated to reflect the completed implementation.
+> See [Migration Path](#migration-path) for implementation details.
+
 ## Overview
 
 This plan provides detailed before/after code examples for refactoring all six JIT strategies to use the Dialect-based hint system instead of hardcoded regex matching.
@@ -417,22 +423,26 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
 ## Migration Path
 
-### Phase 1: Add Hints Field
-1. Add `hints?: Set<string>` to `ICodeStatement`
-2. Ensure backward compatibility (hints may be undefined)
+### Phase 1: Add Hints Field ✅ COMPLETE
+1. ✅ Add `hints?: Set<string>` to `ICodeStatement`
+2. ✅ Ensure backward compatibility (hints may be undefined)
 
-### Phase 2: Implement CrossFit Dialect
-1. Create `CrossFitDialect` that emits hints for AMRAP, EMOM, etc.
-2. Register dialect with `DialectRegistry`
+### Phase 2: Implement CrossFit Dialect ✅ COMPLETE
+1. ✅ Create `CrossFitDialect` that emits hints for AMRAP, EMOM, etc.
+2. ✅ Register dialect with `DialectRegistry`
+3. ✅ Integrate `DialectRegistry` with `JitCompiler`
 
-### Phase 3: Gradual Strategy Migration
-1. Update each strategy to check hints first, fall back to structural
-2. Test each strategy in isolation
-3. Run integration tests to verify precedence
+### Phase 3: Gradual Strategy Migration ✅ COMPLETE
+1. ✅ Update each strategy to check hints first, fall back to structural
+2. ✅ Test each strategy in isolation (unit tests added)
+3. ✅ Run integration tests to verify precedence
 
-### Phase 4: Remove Hardcoded Regex
+### Phase 4: Remove Hardcoded Regex (FUTURE)
 1. Once dialect coverage is confirmed, remove structural fallbacks from strategies that require hints
 2. Update tests to mock hints instead of fragment text
+
+**Note**: Phase 4 is optional and can be done when confidence in dialect coverage is high.
+The current implementation maintains backward compatibility by preserving structural fallbacks.
 
 ## Testing Strategy
 
@@ -498,14 +508,27 @@ describe('JitCompiler precedence', () => {
 });
 ```
 
-## Files to Modify
+## Files Modified ✅
 
-- `src/runtime/strategies/TimeBoundRoundsStrategy.ts`
-- `src/runtime/strategies/IntervalStrategy.ts`
-- `src/runtime/strategies/TimerStrategy.ts`
-- `src/runtime/strategies/RoundsStrategy.ts`
-- `src/runtime/strategies/GroupStrategy.ts`
-- `src/runtime/strategies/EffortStrategy.ts`
+All strategy files have been updated to use hint-based matching with structural fallback:
+
+- ✅ `src/runtime/strategies/TimeBoundRoundsStrategy.ts` - Uses `behavior.time_bound` hint
+- ✅ `src/runtime/strategies/IntervalStrategy.ts` - Uses `behavior.repeating_interval` hint
+- ✅ `src/runtime/strategies/TimerStrategy.ts` - Uses `behavior.timer` hint (optional)
+- ✅ `src/runtime/strategies/RoundsStrategy.ts` - Uses `behavior.fixed_rounds` hint (optional)
+- ✅ `src/runtime/strategies/GroupStrategy.ts` - Uses `behavior.group` hint (optional)
+- ✅ `src/runtime/strategies/EffortStrategy.ts` - Uses `behavior.effort` hint (optional)
+
+### Test Files Created
+
+Unit tests for all strategies with hint-based matching:
+
+- ✅ `src/runtime/strategies/__tests__/TimeBoundRoundsStrategy.test.ts`
+- ✅ `src/runtime/strategies/__tests__/IntervalStrategy.test.ts`
+- ✅ `src/runtime/strategies/__tests__/TimerStrategy.test.ts`
+- ✅ `src/runtime/strategies/__tests__/RoundsStrategy.test.ts`
+- ✅ `src/runtime/strategies/__tests__/GroupStrategy.test.ts`
+- ✅ `src/runtime/strategies/__tests__/EffortStrategy.test.ts`
 
 ## Related Documents
 

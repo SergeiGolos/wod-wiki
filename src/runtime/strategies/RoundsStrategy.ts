@@ -18,6 +18,11 @@ import { createDebugMetadata } from "../models/ExecutionSpan";
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
  * Matches statements with Rounds fragments but NOT Timer fragments.
  * Timer takes precedence over Rounds.
+ *
+ * This strategy now supports optional `behavior.fixed_rounds` hint from dialects.
+ * The structural fallback is preserved for backward compatibility.
+ *
+ * Implementation Status: COMPLETE - Match logic uses hints with structural fallback
  */
 export class RoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -31,12 +36,20 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             return false;
         }
 
-        const fragments = statements[0].fragments;
+        const statement = statements[0];
+        const fragments = statement.fragments;
+        
+        // Check for behavior.fixed_rounds hint from dialect
+        const isFixedRounds = statement.hints?.has('behavior.fixed_rounds') ?? false;
+        
+        // Structural fallback: Has rounds fragment
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        
+        // Exclusion: Timer presence means higher-precedence strategy should handle
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
 
-        // Match rounds BUT NOT timer (timer takes precedence)
-        return hasRounds && !hasTimer;
+        // Match if (fixed_rounds hint OR rounds fragment) AND no timer
+        return (isFixedRounds || hasRounds) && !hasTimer;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
