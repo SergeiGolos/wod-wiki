@@ -1,13 +1,14 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-
 import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 import { 
   metricsToFragments, 
   createLabelFragment 
 } from '../../runtime/utils/metricsToFragments';
+import { RuntimeMetric } from '../../runtime/RuntimeMetric';
+
 export interface RuntimeEventLogProps {
   runtime: ScriptRuntime | null;
   activeStatementIds?: Set<number>;
@@ -28,6 +29,7 @@ interface LogEntry {
   fragments: ICodeFragment[];
   parentId: string | null;
   depth: number;
+  metrics: RuntimeMetric[]; // Keep raw metrics for inheritance
 }
 
 interface LogSection {
@@ -57,7 +59,7 @@ function formatDuration(ms: number): string {
 
 export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
   runtime,
-  activeStatementIds = new Set(),
+
   highlightedBlockKey,
   autoScroll = true,
   mobile = false,
@@ -85,48 +87,20 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
 
     const allEntries: LogEntry[] = [];
     
-    // 1. Start Entry - only add if there's actual workout content (not just idle blocks)
-    // Filter out idle blocks from the check - we want to show "Workout Started" only when
-    // actual workout content has begun, not when we're in the initial "Ready" idle state
-    const nonIdleExecutionLog = runtime.executionLog.filter(r => r.type.toLowerCase() !== 'idle');
-    const nonIdleActiveSpans = Array.from(runtime.activeSpans.values()).filter(r => r.type.toLowerCase() !== 'idle');
-    const hasStarted = nonIdleExecutionLog.length > 0 || nonIdleActiveSpans.length > 0;
-    
-    if (hasStarted) {
-      let startTimestamp = workoutStartTime || Date.now();
-      if (nonIdleExecutionLog.length > 0) {
-        const earliest = nonIdleExecutionLog.reduce((a, b) => a.startTime < b.startTime ? a : b);
-        startTimestamp = Math.min(startTimestamp, earliest.startTime);
-      } else if (nonIdleActiveSpans.length > 0) {
-        const earliest = nonIdleActiveSpans.reduce((a, b) => a.startTime < b.startTime ? a : b);
-        startTimestamp = Math.min(startTimestamp, earliest.startTime);
-      }
-      allEntries.push({
-        id: 'workout-start',
-        label: 'Workout Started',
-        type: 'start',
-        status: 'start',
-        startTime: startTimestamp,
-        endTime: startTimestamp,
-        fragments: [{
-          type: 'timer',
-          fragmentType: FragmentType.Timer,
-          value: startTimestamp,
-          image: formatTimestamp(startTimestamp),
-        }],
-        parentId: null,
-        depth: 0
-      });
-    }
+    // 1. Start Entry - only add if there's actual workout content
+    // We now INCLUDE idle blocks, so "Workout Started" might be redundant if we have "Ready"
+    // But let's keep it if there are non-idle blocks to signify the "real" work starting.
+    // Or we can just rely on the log.
+    // Let's keep the logic but remove the filter, so "Workout Started" appears at the very beginning.
+    // Actually, if we show "Ready", we might not want "Workout Started" to appear *before* Ready.
+    // "Ready" IS the start of the runtime.
+    // Let's remove the synthetic "Workout Started" entry and rely on the actual blocks (Root/Idle).
+    // If the user wants a "Workout Started" banner, it should probably be the Root block.
 
-    // 2. Completed Entries (filter out idle blocks - they're internal state, not user-facing)
+    // 2. Completed Entries (INCLUDE idle blocks now)
     runtime.executionLog
-      .filter(record => record.type.toLowerCase() !== 'idle')
       .forEach(record => {
-      const fragments = record.metrics.length > 0 
-        ? metricsToFragments(record.metrics)
-        : [createLabelFragment(record.label, record.type)];
-      
+      // We'll process metrics later to handle inheritance
       allEntries.push({
         id: record.id,
         label: record.label,
@@ -134,25 +108,17 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         status: record.status === 'failed' ? 'failed' : 'completed',
         startTime: record.startTime,
         endTime: record.endTime,
-        fragments,
+        fragments: [], // Will populate
         parentId: record.parentId,
-        depth: 0
+        depth: 0,
+        metrics: record.metrics
       });
     });
 
     // 3. Active Entries (from activeSpans)
-    // This includes both stack blocks AND auxiliary records (like Rounds/Intervals)
-    // Filter out idle blocks - they're internal state, not user-facing
     const activeSpans = runtime.activeSpans; // Map<string, ExecutionRecord>
     
     activeSpans.forEach(record => {
-       // Skip idle blocks in the display
-       if (record.type.toLowerCase() === 'idle') return;
-       
-       const fragments = record.metrics.length > 0 
-        ? metricsToFragments(record.metrics)
-        : [createLabelFragment(record.label, record.type)];
-
        allEntries.push({
         id: record.id,
         label: record.label,
@@ -160,111 +126,145 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         status: 'active',
         startTime: record.startTime,
         endTime: undefined,
-        fragments,
+        fragments: [], // Will populate
         parentId: record.parentId,
-        depth: 0
+        depth: 0,
+        metrics: record.metrics
       });
     });
 
     allEntries.sort((a, b) => a.startTime - b.startTime);
 
-    // Identify the "Active Leaf" (the one that should be highlighted)
-    // It's usually the last active entry that is NOT a container
-    // Or simply the last active entry in time
+    // --- Post-process for Inherited Metrics ---
+    // Create a map for quick lookup
+    const entryMap = new Map<string, LogEntry>();
+    allEntries.forEach(e => entryMap.set(e.id, e));
+
+    allEntries.forEach(entry => {
+        // Collect metrics from self and ancestors
+        const combinedMetrics: RuntimeMetric[] = [...entry.metrics];
+        
+        // Walk up the chain
+        let currentParentId = entry.parentId;
+        const visited = new Set<string>();
+        visited.add(entry.id);
+
+        while (currentParentId) {
+            if (visited.has(currentParentId)) {
+                console.warn(`Circular dependency detected in log entry parents for entry ${entry.id}`);
+                break;
+            }
+            visited.add(currentParentId);
+
+            const parent = entryMap.get(currentParentId);
+            if (parent) {
+                // Add parent metrics if they are "inheritable" (e.g. reps)
+                // For now, just add all, metricsToFragments handles deduplication/prioritization if needed?
+                // Actually, metricsToFragments just converts what it sees.
+                // We typically want RepSchemes (from rounds) to show up on exercises.
+                // Parent metrics should probably come *before* or *after*?
+                // Usually "21 x Thrusters". "21" comes from parent.
+                // So we want parent metrics to be available.
+                // Let's prepend parent metrics so they appear first (e.g. Reps then Weight)
+                // But be careful of duplicates.
+                
+                // Simple check: if we don't have a metric of this type, take it from parent.
+                // Or just merge all.
+                parent.metrics.forEach(pm => {
+                    // Filter out timer/duration metrics from inheritance to avoid clutter
+                    // We only want to inherit things like Reps, Weight, Rounds, etc.
+                    const isTimerMetric = pm.values.some(v => v.type === 'time' || v.type === 'timestamp');
+                    if (isTimerMetric) return;
+
+                    // Avoid adding if we already have this exact metric instance? No, instances are different.
+                    // Avoid adding if we have a metric of same type?
+                    // E.g. if child has 'weight', ignore parent 'weight'.
+                    // If child has no 'reps', take parent 'reps'.
+                    const hasType = combinedMetrics.some(cm => cm.values.some(v => v.type === pm.values[0].type));
+                    if (!hasType) {
+                        combinedMetrics.push(pm);
+                    }
+                });
+                
+                currentParentId = parent.parentId;
+            } else {
+                break;
+            }
+        }
+
+        // Generate fragments
+        entry.fragments = combinedMetrics.length > 0 
+            ? metricsToFragments(combinedMetrics)
+            : [createLabelFragment(entry.label, entry.type)];
+    });
+
+
+    // Identify the "Active Leaf"
     let activeLeafId: string | null = null;
-    
-    // Find last active entry
     const activeEntries = allEntries.filter(e => e.status === 'active');
     if (activeEntries.length > 0) {
-        // The one with the latest start time is likely the leaf
-        // But we should exclude containers if possible? 
-        // Actually, if we are in a container (e.g. "Rest"), it is the leaf.
-        // If we are in "Round 1", it is a container, but if it's the only thing active...
-        // Usually the stack has [Rounds, Round1, Effort]. All active.
-        // Effort is the latest.
         activeLeafId = activeEntries[activeEntries.length - 1].id;
     }
 
     // Group into sections
-    // A section is defined by a parent node (Round, Interval, etc.)
-    // Root level nodes also form sections if they are containers
-    // Leaf nodes go into the current section
-    
     const resultSections: LogSection[] = [];
-    
-    // Map of BlockID -> List of Sections created for that block (ordered by time)
     const sectionsByBlockId = new Map<string, LogSection[]>();
 
-    // Helper to add section
     const addSection = (section: LogSection) => {
-        resultSections.push(section);
+        // Check if the last section has the same title and type
+        // If so, merge them to avoid duplicate headers (e.g. "Round 1" -> "Round 1")
+        const lastSection = resultSections.length > 0 ? resultSections[resultSections.length - 1] : null;
         
-        // Track sections by their original ID (if it matches a block ID)
-        // But wait, the section ID for a round is "blockId-round-N"
-        // The parentId of children is "blockId"
-        // So we need to map "blockId" -> [Section(Round1), Section(Round2)]
-        
-        // If this section IS a round/interval record, it has a parentId pointing to the block
-        if (section.type === 'round' || section.type === 'interval') {
-             // It's a sub-section of the block defined by section.entries[0]?.parentId? 
-             // No, the section itself corresponds to an entry.
-             // The entry for "Round 1" has parentId = "LoopBlockId".
-             // So we should map LoopBlockId -> [Round1Section, Round2Section]
-             
-             // We need to find the entry that created this section to know its parentId
-             // But we don't have easy access here.
-             // However, we know the entry ID is section.id.
-             const entry = allEntries.find(e => e.id === section.id);
-             if (entry && entry.parentId) {
-                 if (!sectionsByBlockId.has(entry.parentId)) {
-                     sectionsByBlockId.set(entry.parentId, []);
-                 }
-                 sectionsByBlockId.get(entry.parentId)!.push(section);
+        if (lastSection && lastSection.title === section.title && lastSection.type === section.type) {
+             // Merge logic: just update the end time and keep the ID of the first one?
+             // Or maybe we should treat them as one continuous section.
+             // We won't push the new section, but we need to map the NEW section ID to the OLD section
+             // so that children of the new block find the old section.
+             if (section.endTime && (!lastSection.endTime || section.endTime > lastSection.endTime)) {
+                 lastSection.endTime = section.endTime;
              }
-        } else {
-            // It's a main block section (e.g. "3 Rounds")
-            // Map its OWN id to itself, so children can find it if there are no sub-sections
-            if (!sectionsByBlockId.has(section.id)) {
+             
+             // Map the NEW block ID to the EXISTING section
+             if (!sectionsByBlockId.has(section.id)) {
                 sectionsByBlockId.set(section.id, []);
-            }
-            sectionsByBlockId.get(section.id)!.push(section);
+             }
+             sectionsByBlockId.get(section.id)!.push(lastSection);
+             return;
         }
+
+        resultSections.push(section);
+        // Map section ID (its own ID)
+        if (!sectionsByBlockId.has(section.id)) {
+            sectionsByBlockId.set(section.id, []);
+        }
+        sectionsByBlockId.get(section.id)!.push(section);
     };
     
-    // We need to process chronologically
     allEntries.forEach(entry => {
-      const isContainer = ['root', 'round', 'interval', 'warmup', 'cooldown', 'amrap', 'emom', 'tabata'].includes(entry.type.toLowerCase());
+      // Treat Idle as a container/section so it shows up distinct
+      const isContainer = ['root', 'round', 'interval', 'warmup', 'cooldown', 'amrap', 'emom', 'tabata', 'idle'].includes(entry.type.toLowerCase());
       
       if (isContainer || entry.type === 'start') {
-        // This is a section header
         const section: LogSection = {
           id: entry.id,
-          title: entry.label,
+          title: entry.type.toLowerCase() === 'idle' ? 'Ready' : entry.label, // Rename Idle to Ready for display
           startTime: entry.startTime,
           endTime: entry.endTime,
-          entries: [], // Will hold children
+          entries: [],
           isActive: entry.status === 'active',
           type: entry.type
         };
         addSection(section);
       } else {
-        // This is a leaf item
-        // Find the best section for it
+        // Leaf item
         let targetSection: LogSection | undefined;
 
         if (entry.parentId) {
-            // Check if we have sections for this parent
             const candidates = sectionsByBlockId.get(entry.parentId);
             if (candidates && candidates.length > 0) {
-                // Find the candidate that started most recently before this entry
-                // (and ideally hasn't ended before this entry started, though that might be strict)
-                
-                // Sort candidates by start time (should be already sorted but let's be safe)
-                // Actually they are pushed in order.
-                
-                // We want the last candidate where candidate.startTime <= entry.startTime
+                // Find best candidate
                 for (let i = candidates.length - 1; i >= 0; i--) {
-                    if (candidates[i].startTime <= entry.startTime + 100) { // +100ms tolerance
+                    if (candidates[i].startTime <= entry.startTime + 100) {
                         targetSection = candidates[i];
                         break;
                     }
@@ -272,12 +272,10 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
             }
         }
         
-        // Fallback: Just look for any section with matching ID (if entry.parentId is null or not found)
         if (!targetSection) {
              if (resultSections.length > 0) {
                  targetSection = resultSections[resultSections.length - 1];
              } else {
-                 // Create default
                  targetSection = {
                      id: 'default-root',
                      title: 'Workout',
@@ -318,12 +316,10 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         </div>
       )}
 
-
-
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-4 pt-2" ref={scrollRef}>
         {sections.length === 0 ? (
            <div className="p-4 text-sm text-muted-foreground italic mt-8">
-             Waiting for workout to start...
+             Initializing...
            </div>
         ) : (
           <div className="space-y-6 mt-4">
@@ -340,11 +336,7 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
                 <div className="space-y-1 ml-4 border-l-2 border-border/50 pl-4 py-1">
                     {section.entries.map(entry => {
                         const isHighlighted = highlightedBlockKey === entry.id;
-                        // Only the active leaf is "active" (highlighted with background)
                         const isActive = entry.id === activeLeafId;
-                        // But we might want to show text color for all active items?
-                        // Let's keep it simple: Highlight only the leaf.
-                        // Parents will be text-muted-foreground unless they are the leaf.
                         
                         return (
                             <div 
@@ -372,16 +364,14 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
                             </div>
                         );
                     })}
-                    {section.entries.length === 0 && (
+                    {section.entries.length === 0 && section.type.toLowerCase() !== 'idle' && (
                         <div className="text-xs text-muted-foreground italic pl-2">
-                            Starting...
+                            ...
                         </div>
                     )}
                 </div>
               </div>
             ))}
-
-            {/* Active Context at bottom */}
           </div>
         )}
       </div>

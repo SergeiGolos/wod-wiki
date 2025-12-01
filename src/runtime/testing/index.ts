@@ -89,24 +89,12 @@ export {
   type SnapshotDiff
 } from './TestableRuntime';
 
-// Harness component for Storybook
-export {
-  TestableBlockHarness,
-  type TestableBlockHarnessProps,
-  type TestScenario,
-  type ScenarioResult
-} from './TestableBlockHarness';
-
 // Visualization components
 export {
   SnapshotDiffViewer,
   SnapshotDiffSummary,
   ModifiedValuesViewer,
-  BlockTestScenarioBuilder,
   QueueTestHarness,
-  type BlockTestScenarioBuilderProps,
-  type ScenarioDefinition,
-  type ScenarioExecutionResult,
   type QueueTestHarnessProps,
   type QueueAction,
   type TestTemplate

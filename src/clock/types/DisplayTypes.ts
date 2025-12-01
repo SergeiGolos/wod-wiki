@@ -111,6 +111,12 @@ export interface IDisplayCardEntry {
   
   /** Priority for display ordering */
   priority?: number;
+
+  /** 
+   * Optional memory ID for a timer associated with this card.
+   * Allows the card to display a running timer (e.g. for the active block).
+   */
+  timerMemoryId?: string;
 }
 
 /**

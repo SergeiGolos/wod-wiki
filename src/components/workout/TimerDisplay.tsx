@@ -82,14 +82,12 @@ const formatTime = (ms: number): string => {
 /**
  * Secondary Timer Badge - Compact display for non-primary timers
  */
-/**
- * Secondary Timer Badge - Compact display for non-primary timers
- */
 interface SecondaryTimerBadgeProps {
-  entry: ITimerDisplayEntry;
+  entry: ITimerDisplayEntry | { timerMemoryId?: string; label?: string; format?: string; durationMs?: number; ownerId?: string };
   onHover?: (blockKey: string | null) => void;
   onClick?: (blockKey: string) => void;
   compact?: boolean;
+  className?: string;
 }
 
 const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
@@ -97,6 +95,7 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
   onHover,
   onClick,
   compact = false,
+  className
 }) => {
   const runtime = useRuntimeContext();
   const [now, setNow] = React.useState(Date.now());
@@ -146,7 +145,7 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
 
   // Calculate display time
   const displayTime = useMemo(() => {
-    if (entry.format === 'countdown' && entry.durationMs) {
+    if ('format' in entry && entry.format === 'countdown' && entry.durationMs) {
       return Math.max(0, entry.durationMs - elapsed);
     }
     return elapsed;
@@ -154,31 +153,37 @@ const SecondaryTimerBadge: React.FC<SecondaryTimerBadgeProps> = ({
 
   // Progress for countdown
   const progress = useMemo(() => {
-    if (entry.format === 'countdown' && entry.durationMs) {
+    if ('format' in entry && entry.format === 'countdown' && entry.durationMs) {
       return Math.min((elapsed / entry.durationMs) * 100, 100);
     }
     return 0;
   }, [entry, elapsed]);
+
+  const label = 'label' in entry ? entry.label : 'Timer';
+  const ownerId = 'ownerId' in entry ? entry.ownerId : undefined;
+  const format = 'format' in entry ? entry.format : 'countup';
+  const durationMs = 'durationMs' in entry ? entry.durationMs : undefined;
 
   return (
     <div
       className={cn(
         'group flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-all',
         'bg-muted/50 hover:bg-muted border border-border/50 hover:border-primary/50',
-        compact ? 'text-xs' : 'text-sm'
+        compact ? 'text-xs' : 'text-sm',
+        className
       )}
-      onMouseEnter={() => onHover?.(entry.ownerId)}
+      onMouseEnter={() => ownerId && onHover?.(ownerId)}
       onMouseLeave={() => onHover?.(null)}
-      onClick={() => onClick?.(entry.ownerId)}
+      onClick={() => ownerId && onClick?.(ownerId)}
     >
       <TimerIcon className={cn('text-muted-foreground group-hover:text-primary', compact ? 'h-3 w-3' : 'h-4 w-4')} />
       <span className="font-medium text-muted-foreground group-hover:text-foreground truncate max-w-[100px]">
-        {entry.label || 'Timer'}
+        {label}
       </span>
       <span className={cn('font-mono tabular-nums', compact ? 'text-xs' : 'text-sm')}>
         {formatTime(displayTime)}
       </span>
-      {entry.format === 'countdown' && entry.durationMs && (
+      {format === 'countdown' && durationMs && (
         <div className="w-8 h-1 bg-muted rounded-full overflow-hidden">
           <div 
             className={cn(
@@ -203,6 +208,8 @@ interface ActivityCardProps {
   compact?: boolean;
   controls?: RuntimeControls;
   onControlAction?: (action: string) => void;
+  onBlockHover?: (blockKey: string | null) => void;
+  onBlockClick?: (blockKey: string) => void;
 }
 
 const ActivityCard: React.FC<ActivityCardProps> = ({
@@ -212,6 +219,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   compact = false,
   controls,
   onControlAction,
+  onBlockHover,
+  onBlockClick
 }) => {
   // Try to get a registered component for this card type
   const Component = CardComponentRegistry.resolve(entry);
@@ -300,45 +309,65 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         </div>
 
         {/* Info - Rendered as Fragment Pills */}
-        <div className="flex-1 min-w-0 flex flex-wrap gap-2 items-center justify-center">
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-2">
           
-          {/* Metrics display */}
-          {entry.metrics && entry.metrics.length > 0 && entry.metrics.map((metric, idx) => {
-             const type = metric.type || 'unknown';
-             const colorClasses = getFragmentColorClasses(type);
-             const icon = getFragmentIcon(type);
-             
-             return (
-                <span
-                  key={idx}
-                  className={cn(
-                    `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
-                    compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
-                  )}
-                >
-                  {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
-                  <span>{metric.value} {metric.unit}</span>
-                </span>
-             );
-          })}
+          <div className="flex flex-wrap gap-2 items-center justify-center">
+            {/* Metrics display */}
+            {entry.metrics && entry.metrics.length > 0 && entry.metrics.map((metric, idx) => {
+               const type = metric.type || 'unknown';
+               const colorClasses = getFragmentColorClasses(type);
+               const icon = getFragmentIcon(type);
+               
+               return (
+                  <span
+                    key={idx}
+                    className={cn(
+                      `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
+                      compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                    )}
+                  >
+                    {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
+                    <span>{metric.value} {metric.unit}</span>
+                  </span>
+               );
+            })}
 
-          {/* Title as Action/Text Fragment */}
-          {entry.title && (
-            <span
-              className={cn(
-                `inline-flex items-center gap-1 rounded font-mono border ${getFragmentColorClasses('action')} bg-opacity-60 shadow-sm transition-colors`,
-                compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
-              )}
-            >
-              <span className={compact ? "text-xs" : "text-base leading-none"}>{getFragmentIcon('action')}</span>
-              <span className="font-semibold">{entry.title}</span>
-            </span>
-          )}
+            {/* Title as Action/Text Fragment */}
+            {entry.title && (
+              <span
+                className={cn(
+                  `inline-flex items-center gap-1 rounded font-mono border ${getFragmentColorClasses('action')} bg-opacity-60 shadow-sm transition-colors`,
+                  compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                )}
+              >
+                <span className={compact ? "text-xs" : "text-base leading-none"}>{getFragmentIcon('action')}</span>
+                <span className="font-semibold">{entry.title}</span>
+              </span>
+            )}
 
-          {entry.subtitle && (
-             <span className={cn('text-muted-foreground ml-2', compact ? 'text-xs' : 'text-sm')}>
-               {entry.subtitle}
-             </span>
+            {entry.subtitle && (
+               <span className={cn('text-muted-foreground ml-2', compact ? 'text-xs' : 'text-sm')}>
+                 {entry.subtitle}
+               </span>
+            )}
+          </div>
+
+          {/* Card Timer - If timerMemoryId is present */}
+          {entry.timerMemoryId && (
+            <div className="mt-1">
+                <SecondaryTimerBadge 
+                    entry={{ 
+                        timerMemoryId: entry.timerMemoryId, 
+                        label: 'Block Time',
+                        format: 'countup',
+                        ownerId: entry.ownerId
+                    }}
+                    onHover={onBlockHover}
+                    onClick={onBlockClick}
+                    compact={true}
+                    className="bg-background/80 border-primary/20"
+                />
+            </div>
           )}
         </div>
         
@@ -372,29 +401,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       </CardContent>
     </Card>
   );
-};
-
-/**
- * TimerDisplay - Enhanced timer display component
- * 
- * Always shows the enhanced layout with:
- * - Secondary timer badges (when display stack data available)
- * - Activity cards (when display stack data available)
- * - Full control buttons
- * 
- * When enableDisplayStack is true and RuntimeProvider is available,
- * it will show data from the display stack. Otherwise shows the
- * enhanced UI without the stack data.
- */
-export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
-  // If display stack is enabled (runtime available), render with runtime hooks
-  // Otherwise render without runtime dependencies but same enhanced layout
-  if (props.enableDisplayStack) {
-    return <DisplayStackTimerDisplay {...props} />;
-  }
-  
-  // Render same enhanced layout but pass empty display stack data
-  return <EnhancedTimerCore {...props} />;
 };
 
 /**
@@ -627,6 +633,8 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
                 else if (action === 'timer:next') onNext();
                 else if (action === 'timer:complete') onStop();
             }}
+            onBlockHover={onBlockHover}
+            onBlockClick={onBlockClick}
           />
         </div>
       )}
@@ -654,7 +662,8 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       ownerId: null,
       visibility: null
     });
-    return refs[0] as TypedMemoryReference<RuntimeControls> | undefined;
+    // Use the last one (most recently created/pushed) as it likely corresponds to the active block
+    return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<RuntimeControls>) : undefined;
   }, [runtime]);
 
   const controls = useMemorySubscription(controlsRef);
@@ -679,6 +688,29 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       controls={controls}
     />
   );
+};
+
+/**
+ * TimerDisplay - Enhanced timer display component
+ * 
+ * Always shows the enhanced layout with:
+ * - Secondary timer badges (when display stack data available)
+ * - Activity cards (when display stack data available)
+ * - Full control buttons
+ * 
+ * When enableDisplayStack is true and RuntimeProvider is available,
+ * it will show data from the display stack. Otherwise shows the
+ * enhanced UI without the stack data.
+ */
+export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
+  // If display stack is enabled (runtime available), render with runtime hooks
+  // Otherwise render without runtime dependencies but same enhanced layout
+  if (props.enableDisplayStack) {
+    return <DisplayStackTimerDisplay {...props} />;
+  }
+  
+  // Render same enhanced layout but pass empty display stack data
+  return <EnhancedTimerCore {...props} />;
 };
 
 export default TimerDisplay;

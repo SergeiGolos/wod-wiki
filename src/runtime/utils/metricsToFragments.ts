@@ -47,7 +47,11 @@ export function metricToFragment(metric: MetricValue): ICodeFragment {
     unit = unit.substring(7); // Remove 'action:' prefix
   }
   
-  const displayValue = metric.value !== undefined 
+  // For repetitions, if value is 0, just show the unit (e.g. "Pushups" instead of "0 Pushups")
+  // This is cleaner for initial states where the count starts at 0.
+  const shouldHideValue = metric.value === 0 && metric.type === 'repetitions';
+  
+  const displayValue = (metric.value !== undefined && !shouldHideValue)
     ? `${metric.value}${unit ? ' ' + unit : ''}`
     : unit;
   

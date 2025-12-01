@@ -8,13 +8,6 @@ export {
   ModifiedValuesViewer 
 } from './SnapshotDiffViewer';
 
-export { 
-  BlockTestScenarioBuilder,
-  type BlockTestScenarioBuilderProps,
-  type ScenarioDefinition,
-  type ScenarioExecutionResult
-} from './BlockTestScenarioBuilder';
-
 export {
   QueueTestHarness,
   type QueueTestHarnessProps,

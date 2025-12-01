@@ -12,7 +12,6 @@ import { PushBlockAction } from '../PushBlockAction';
 import { PopBlockAction } from '../PopBlockAction';
 import { IEvent } from '../IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
-import { RuntimeButton } from '../models/MemoryModels';
 import { IEventHandler } from '../IEventHandler';
 
 enum RootState {
@@ -41,7 +40,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             runtime, 
             'idle-start', 
             'Ready', 
-            { popOnNext: false, popOnEvents: ['next'] }
+            { 
+                popOnNext: false, 
+                popOnEvents: ['next'],
+                buttonLabel: 'Start Workout',
+                buttonAction: 'timer:start'
+            }
         );
         
         // We do NOT call loopCoordinator.onPush here because we want to delay execution
@@ -54,19 +58,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         // ScriptRuntime.stack.push() already creates execution-records for each block pushed.
         // Creating additional section markers causes duplicate entries in the execution log.
 
-        // Initialize controls
+        // Initialize controls (for Root level)
         this.controls.onPush(runtime, block);
         this.controls.setDisplayMode('clock');
         
-        // Register "Start" button
-        this.controls.registerButton({
-            id: 'btn-start',
-            label: 'Start Workout',
-            icon: 'next',
-            action: 'timer:next',
-            variant: 'default',
-            size: 'lg'
-        });
+        // NOTE: We no longer register "Start" button here.
+        // The IdleBehavior of the initial idle block will register it.
 
         // Register global event handler for controls
         this.registerControlHandler(runtime, block);
@@ -115,21 +112,20 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         'Finished',
                         { 
                             popOnNext: false,
-                            popOnEvents: ['stop', 'view-results'] // Wait for explicit stop/view
+                            popOnEvents: ['stop', 'view-results'], // Wait for explicit stop/view
+                            buttonLabel: 'View Analytics',
+                            buttonAction: 'view:analytics'
                         }
                     );
                     
                     // Add the final idle block push to the actions
                     // Note: We append it to any actions returned by loopCoordinator (though usually it returns empty when complete)
-                    // Update controls for completion
+                    
+                    // Clear execution controls
                     this.controls.clearButtons();
-                    this.controls.registerButton({
-                        id: 'btn-analytics',
-                        label: 'View Analytics',
-                        icon: 'analytics',
-                        action: 'view:analytics',
-                        variant: 'default'
-                    });
+                    
+                    // NOTE: We no longer register "View Analytics" button here.
+                    // The IdleBehavior of the final idle block will register it.
 
                     return [...actions, new PushBlockAction(finalIdleBlock)];
                 }
@@ -233,18 +229,19 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     runtime,
                     'idle-end',
                     'Finished',
-                    { popOnNext: false, popOnEvents: ['stop', 'view-results'] }
+                    { 
+                        popOnNext: false, 
+                        popOnEvents: ['stop', 'view-results'],
+                        buttonLabel: 'View Analytics',
+                        buttonAction: 'view:analytics'
+                    }
                 );
 
                 // Update controls
                 this.controls.clearButtons();
-                this.controls.registerButton({
-                    id: 'btn-analytics',
-                    label: 'View Analytics',
-                    icon: 'analytics',
-                    action: 'view:analytics',
-                    variant: 'default'
-                });
+                
+                // NOTE: We no longer register "View Analytics" button here.
+                // The IdleBehavior of the final idle block will register it.
 
                 return [new PushBlockAction(finalIdleBlock)];
         }
@@ -290,7 +287,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         runtime: IScriptRuntime, 
         id: string, 
         label: string, 
-        config: { popOnNext?: boolean, popOnEvents?: string[] }
+        config: { 
+            popOnNext?: boolean, 
+            popOnEvents?: string[],
+            buttonLabel?: string,
+            buttonAction?: string
+        }
     ): RuntimeBlock {
         const blockKey = new BlockKey(id);
         const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
@@ -299,7 +301,9 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             new IdleBehavior({
                 label: label,
                 popOnNext: config.popOnNext,
-                popOnEvents: config.popOnEvents
+                popOnEvents: config.popOnEvents,
+                buttonLabel: config.buttonLabel,
+                buttonAction: config.buttonAction
             })
         ];
 
