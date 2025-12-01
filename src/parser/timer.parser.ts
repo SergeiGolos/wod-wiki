@@ -19,6 +19,7 @@ import {
   Plus,
   Up,
   Collon,
+  QuestionSymbol,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -76,7 +77,10 @@ export class MdTimerParse extends CstParser {
     });
 
     $.RULE("reps", () => {
-      $.CONSUME(Number);
+      $.OR([
+        { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder for collectible reps
+        { ALT: () => $.CONSUME(Number) }
+      ]);
     });
     
     $.RULE("duration", () => {
@@ -104,15 +108,23 @@ export class MdTimerParse extends CstParser {
       });
     });
 
-    $.RULE("distance", () => {                  
-      $.OPTION(() => $.CONSUME(Number));      
+    $.RULE("distance", () => {
+      $.OPTION(() => {
+        $.OR([
+          { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder for collectible distance
+          { ALT: () => $.CONSUME(Number) }
+        ]);
+      });
       $.CONSUME(Distance);        
     });
 
 
     $.RULE("resistance", () => {            
       $.OPTION1(() => $.CONSUME(AtSign));
-      $.OPTION(() => $.CONSUME(Number));      
+      $.OR([
+        { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder for collectible resistance
+        { ALT: () => $.CONSUME(Number) }
+      ]);
       $.CONSUME(Weight);
     });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { FragmentType } from '../../src/core/models/CodeFragment';
+import { FragmentType, FragmentCollectionState } from '../../src/core/models/CodeFragment';
 import { RoundsFragment } from '../../src/fragments/RoundsFragment';
 
 describe('Syntax Features Regression Tests', () => {
@@ -96,7 +96,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Resistance);
-      expect(fragment.value).toEqual({ amount: "135", units: "lb" });
+      expect(fragment.value).toEqual({ amount: 135, units: "lb" });
     });
 
     it('parses weight with at-sign @135lb', () => {
@@ -111,7 +111,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Distance);
-      expect(fragment.value).toEqual({ amount: "400", units: "m" });
+      expect(fragment.value).toEqual({ amount: 400, units: "m" });
     });
 
     it('parses trend ^', () => {
@@ -119,6 +119,67 @@ describe('Syntax Features Regression Tests', () => {
         expect(result.errors).toHaveLength(0);
         const fragment = result.statements[0].fragments[0];
         expect(fragment.fragmentType).toBe(FragmentType.Increment);
+    });
+  });
+
+  describe('Collectible Fragments (? placeholder)', () => {
+    it('parses collectible reps ?', () => {
+      const result = parse('? Pushups');
+      expect(result.errors).toHaveLength(0);
+      const fragments = result.statements[0].fragments;
+      const repFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
+      expect(repFragment).toBeDefined();
+      expect(repFragment?.value).toBeUndefined();
+      expect(repFragment?.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(repFragment?.image).toBe('?');
+    });
+
+    it('parses collectible weight ? lb', () => {
+      const result = parse('? lb');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Resistance);
+      expect(fragment.value).toEqual({ amount: undefined, units: 'lb' });
+      expect(fragment.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(fragment.image).toBe('? lb');
+    });
+
+    it('parses collectible distance ? m', () => {
+      const result = parse('? m');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Distance);
+      expect(fragment.value).toEqual({ amount: undefined, units: 'm' });
+      expect(fragment.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(fragment.image).toBe('? m');
+    });
+
+    it('parses defined reps with Defined collection state', () => {
+      const result = parse('10 Pushups');
+      expect(result.errors).toHaveLength(0);
+      const fragments = result.statements[0].fragments;
+      const repFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
+      expect(repFragment).toBeDefined();
+      expect(repFragment?.value).toBe(10);
+      expect(repFragment?.collectionState).toBe(FragmentCollectionState.Defined);
+    });
+
+    it('parses defined weight with Defined collection state', () => {
+      const result = parse('135 lb');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Resistance);
+      expect(fragment.value).toEqual({ amount: 135, units: 'lb' });
+      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
+    });
+
+    it('parses defined distance with Defined collection state', () => {
+      const result = parse('400 m');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Distance);
+      expect(fragment.value).toEqual({ amount: 400, units: 'm' });
+      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
     });
   });
 });
