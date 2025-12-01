@@ -1,10 +1,15 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRuntime } from '../layout/RuntimeProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
 import { WodBlock } from '../../markdown-editor/types';
 import { NextEvent } from '../../runtime/NextEvent';
+import { audioService } from '../../services/AudioService';
+import { IEventHandler } from '../../runtime/IEventHandler';
+import { IEvent } from '../../runtime/IEvent';
+import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { RegisterEventHandlerAction } from '../../runtime/actions/RegisterEventHandlerAction';
 
 /**
  * Hook to encapsulate UnifiedWorkbench runtime logic.
@@ -17,6 +22,29 @@ export const useWorkbenchRuntime = (
 ) => {
   const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
   const execution = useRuntimeExecution(runtime);
+
+  // Register Global Audio Handler when runtime is available
+  useEffect(() => {
+    if (runtime) {
+      const audioHandler: IEventHandler = {
+        id: 'global-audio-handler',
+        name: 'GlobalAudioHandler',
+        handler: (event: IEvent, _runtime: IScriptRuntime) => {
+          if (event.name === 'sound:play' && event.data) {
+            const { sound, volume } = event.data as { sound: string, volume?: number };
+            if (sound) {
+              audioService.playSound(sound, volume);
+            }
+          }
+          return [];
+        }
+      };
+
+      // Register the handler
+      const action = new RegisterEventHandlerAction(audioHandler, 'global');
+      action.do(runtime);
+    }
+  }, [runtime]);
 
   // Initialize runtime when entering track view with selected block
   // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock

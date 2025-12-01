@@ -25,6 +25,8 @@ import { Timer, Edit, BarChart2, Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { AudioProvider } from '../audio/AudioContext';
+import { AudioToggle } from '../audio/AudioToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
@@ -431,6 +433,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
             <div className="h-6 w-px bg-border mx-2" />
 
+            <AudioToggle />
             <ThemeToggle />
             {!isMobile && (
               <a
@@ -479,9 +482,11 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
       <MetricsProvider>
         <CommandProvider>
           <WorkbenchProvider initialContent={props.initialContent}>
-            <RuntimeProvider factory={runtimeFactory}>
-              <UnifiedWorkbenchContent {...props} />
-            </RuntimeProvider>
+            <AudioProvider>
+              <RuntimeProvider factory={runtimeFactory}>
+                <UnifiedWorkbenchContent {...props} />
+              </RuntimeProvider>
+            </AudioProvider>
           </WorkbenchProvider>
         </CommandProvider>
       </MetricsProvider>
