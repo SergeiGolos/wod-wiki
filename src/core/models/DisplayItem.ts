@@ -1,0 +1,119 @@
+/**
+ * DisplayItem.ts - Unified display model for workout visualization
+ * 
+ * This interface represents any workout data (parsed statements, runtime blocks,
+ * execution history) in a format optimized for consistent UI rendering.
+ * 
+ * Key principle: All visual data is represented as ICodeFragment[] arrays,
+ * ensuring consistent color-coding and styling across all views.
+ * 
+ * @see docs/deep-dives/unified-visualization-system.md
+ * @see docs/deep-dives/unified-visualization-implementation-guide.md
+ */
+
+import { ICodeFragment } from './CodeFragment';
+
+/**
+ * Status of a display item in the execution lifecycle
+ */
+export type DisplayStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
+
+/**
+ * Source type indicator for debugging and tooltips
+ */
+export type DisplaySourceType = 'statement' | 'block' | 'span' | 'record';
+
+/**
+ * Unified display item interface
+ * 
+ * Can represent:
+ * - Parsed code statements (from parser)
+ * - Active runtime blocks (from stack)
+ * - Execution spans (from history)
+ */
+export interface IDisplayItem {
+  // === Identity ===
+  /** Unique identifier */
+  id: string;
+  /** Parent item ID for hierarchy (null for root items) */
+  parentId: string | null;
+  
+  // === Visual Content ===
+  /** 
+   * Fragments to display - THE KEY FIELD
+   * 
+   * All workout data ultimately becomes fragment arrays:
+   * - Statements: already have fragments[]
+   * - Blocks: compiledMetrics → metricsToFragments()
+   * - Spans: SpanMetrics → spanMetricsToFragments()
+   */
+  fragments: ICodeFragment[];
+  
+  // === Layout ===
+  /** Nesting depth for indentation (0 = root level) */
+  depth: number;
+  /** Whether this item should render as a section header */
+  isHeader: boolean;
+  /** Whether this item is part of a linked group (+ statements) */
+  isLinked?: boolean;
+  
+  // === State ===
+  /** Current execution status */
+  status: DisplayStatus;
+  
+  // === Metadata ===
+  /** Original data source type */
+  sourceType: DisplaySourceType;
+  /** Original source ID for linking back to source data */
+  sourceId: string | number;
+  
+  // === Optional Timing ===
+  /** Start timestamp (ms) */
+  startTime?: number;
+  /** End timestamp (ms) */
+  endTime?: number;
+  /** Calculated duration (ms) */
+  duration?: number;
+  
+  // === Optional Label ===
+  /** Display label (fallback if fragments empty) */
+  label?: string;
+}
+
+/**
+ * Type guard to check if an item is active
+ */
+export function isActiveItem(item: IDisplayItem): boolean {
+  return item.status === 'active';
+}
+
+/**
+ * Type guard to check if an item is completed
+ */
+export function isCompletedItem(item: IDisplayItem): boolean {
+  return item.status === 'completed' || item.status === 'failed' || item.status === 'skipped';
+}
+
+/**
+ * Type guard to check if an item is pending
+ */
+export function isPendingItem(item: IDisplayItem): boolean {
+  return item.status === 'pending';
+}
+
+/**
+ * Type guard to check if an item is a header
+ */
+export function isHeaderItem(item: IDisplayItem): boolean {
+  return item.isHeader;
+}
+
+/**
+ * Calculate duration from start and end times
+ */
+export function calculateDuration(item: IDisplayItem): number | undefined {
+  if (item.startTime !== undefined && item.endTime !== undefined) {
+    return item.endTime - item.startTime;
+  }
+  return item.duration;
+}

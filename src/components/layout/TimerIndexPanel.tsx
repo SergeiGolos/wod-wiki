@@ -11,28 +11,28 @@ import { RuntimeHistoryLog } from '../history/RuntimeHistoryLog';
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
   runtime: ScriptRuntime | null;
-  
+
   /** Currently active segment IDs (blocks on stack) */
   activeSegmentIds?: Set<number>;
-  
+
   /** Currently active statement IDs */
   activeStatementIds?: Set<number>;
-  
+
   /** Block key that is currently being hovered (from timer display) */
   highlightedBlockKey?: string | null;
-  
+
   /** Whether to auto-scroll to newest entries */
   autoScroll?: boolean;
-  
+
   /** Whether to render in mobile mode */
   mobile?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Children to render (e.g., connector visuals) */
   children?: React.ReactNode;
-  
+
   /** Workout start time (timestamp when execution began) */
   workoutStartTime?: number | null;
 }
@@ -58,6 +58,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       mobile={mobile}
       className={className}
       workoutStartTime={workoutStartTime}
+      showActive={false}
     />
   );
 };

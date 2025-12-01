@@ -6,16 +6,14 @@
  * Key Features:
  * - Oldest-first, newest-last ordering (chronological)
  * - Clickable segments for filtering analytics
- * - Fragment-based card visualization (consistent with EditorIndexPanel and TimerIndexPanel)
+ * - Uses unified visualization system with FragmentVisualizer
  * - Read-only historical data with power/HR metrics
  */
 
-import React from 'react';
-import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
+import React, { useMemo, useCallback } from 'react';
+import { UnifiedItemList, IDisplayItem } from '../unified';
 import { cn } from '../../lib/utils';
-import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 
 export interface AnalyticsIndexPanelProps {
@@ -39,71 +37,11 @@ export interface AnalyticsIndexPanelProps {
 }
 
 /**
- * Format duration in seconds to human readable
- */
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
-}
-
-/**
  * Format timestamp to HH:MM:SS
  */
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-/**
- * Convert segment to fragment array for visualization
- */
-function segmentToFragments(segment: Segment): ICodeFragment[] {
-  const fragments: ICodeFragment[] = [];
-  
-  // Add type fragment
-  fragments.push({
-    type: segment.type,
-    fragmentType: getFragmentTypeFromSegmentType(segment.type),
-    value: segment.type,
-    image: segment.type,
-  });
-  
-  // Add Start Time as timer fragment (instead of duration)
-  fragments.push({
-    type: 'timer',
-    fragmentType: FragmentType.Timer,
-    value: segment.startTime,
-    image: formatTimestamp(segment.startTime),
-  });
-  
-  // Add dynamic metrics based on groups or fallback to all available
-  Object.entries(segment.metrics).forEach(([key, value]) => {
-      if (value > 0) {
-        let unit = '';
-        let type = FragmentType.Text;
-        
-        switch(key) {
-          case 'power': unit = 'W'; type = FragmentType.Resistance; break;
-          case 'resistance': unit = 'kg'; type = FragmentType.Resistance; break;
-          case 'distance': unit = 'm'; type = FragmentType.Distance; break;
-          case 'repetitions': unit = 'reps'; type = FragmentType.Rep; break;
-          case 'heart_rate': unit = 'bpm'; type = FragmentType.Text; break;
-          case 'cadence': unit = 'rpm'; type = FragmentType.Text; break;
-          case 'speed': unit = 'km/h'; type = FragmentType.Text; break;
-        }
-        
-        fragments.push({
-          type: key,
-          fragmentType: type,
-          value: value,
-          image: `${Math.round(value)}${unit}`,
-        });
-      }
-  });
-  
-  return fragments;
 }
 
 /**
@@ -124,75 +62,123 @@ function getFragmentTypeFromSegmentType(type: string): FragmentType {
 }
 
 /**
- * Single analytics segment card component - Compact version
+ * Convert segment to fragment array for visualization
  */
-const renderMetricCard = (item: MetricItem, isSelected: boolean, mobile: boolean) => {
-  const isSeparator = item.data?.isSeparator;
-  const isHeading = item.isHeading;
-
-  if (isSeparator) {
-    return (
-      <div className={cn(
-        "flex items-center w-full py-1.5 px-2 mt-2 mb-1",
-        "border-b border-border/50"
-      )}>
-        <div className="flex-1 font-semibold text-sm text-foreground/90">
-          {item.title}
-        </div>
-        <div className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-          {item.data?.durationText}
-        </div>
-      </div>
-    );
-  }
-
-  if (isHeading) {
-      return (
-        <div className={cn(
-            "flex items-center w-full py-2 px-2",
-            "border-b-2 border-border"
-        )}>
-             <div className="flex-1 font-bold text-base text-foreground">
-                {item.title}
-             </div>
-             <div className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-                {formatTimestamp(item.startTime || 0)}
-             </div>
-        </div>
-      );
-  }
-
-  return (
-    <div className={cn(
-      "rounded border transition-all flex items-center gap-2 w-full",
-      isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-border",
-      mobile ? "py-1 px-2" : "py-0.5 px-1.5",
-      "h-8" // Fixed height for compact row
-    )}>
-
+function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFragment[] {
+  const fragments: ICodeFragment[] = [];
+  
+  // Add type fragment
+  fragments.push({
+    type: segment.type,
+    fragmentType: getFragmentTypeFromSegmentType(segment.type),
+    value: segment.type,
+    image: segment.type,
+  });
+  
+  // Add Start Time as timer fragment
+  fragments.push({
+    type: 'timer',
+    fragmentType: FragmentType.Timer,
+    value: segment.startTime,
+    image: formatTimestamp(segment.startTime),
+  });
+  
+  // Add dynamic metrics based on groups or fallback to all available
+  Object.entries(segment.metrics).forEach(([key, value]) => {
+    if (value > 0) {
+      let unit = '';
+      let type = FragmentType.Text;
       
-      <span className={cn(
-        "truncate flex-shrink-0 max-w-[120px] font-medium",
-        mobile ? "text-xs" : "text-[11px]"
-      )}>
-        {item.title}
-      </span>
+      // Try to find config in groups first
+      let config = null;
+      for (const g of groups) {
+        config = g.graphs.find(gr => gr.id === key);
+        if (config) {
+          unit = config.unit;
+          break;
+        }
+      }
       
-      <div className="flex-1 min-w-0 overflow-hidden flex items-center">
-        {item.tags}
-      </div>
+      if (!config) {
+        switch(key) {
+          case 'power': unit = 'W'; type = FragmentType.Resistance; break;
+          case 'resistance': unit = 'kg'; type = FragmentType.Resistance; break;
+          case 'distance': unit = 'm'; type = FragmentType.Distance; break;
+          case 'repetitions': unit = 'reps'; type = FragmentType.Rep; break;
+          case 'heart_rate': unit = 'bpm'; type = FragmentType.Text; break;
+          case 'cadence': unit = 'rpm'; type = FragmentType.Text; break;
+          case 'speed': unit = 'km/h'; type = FragmentType.Text; break;
+        }
+      }
       
-      {item.footer && (
-        <div className="flex-shrink-0 text-[9px] font-mono text-muted-foreground ml-2">
-          {item.footer}
-        </div>
-      )}
-    </div>
-  );
-};
+      fragments.push({
+        type: key,
+        fragmentType: type,
+        value: value,
+        image: `${Math.round(value)}${unit}`,
+      });
+    }
+  });
+  
+  return fragments;
+}
 
 /**
- * AnalyticsIndexPanel Component
+ * Convert segment to IDisplayItem for unified visualization
+ */
+function segmentToDisplayItem(
+  segment: Segment, 
+  allSegments: Map<number, Segment>,
+  groups: AnalyticsGroup[]
+): IDisplayItem {
+  const type = segment.type.toLowerCase();
+  
+  // Use depth directly if available, otherwise calculate
+  let depth = segment.depth || 0;
+  if (depth === 0 && segment.parentId !== null) {
+    let currentParentId = segment.parentId;
+    const visited = new Set<number>();
+    visited.add(segment.id);
+    
+    while (currentParentId !== null && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
+      const parent = allSegments.get(currentParentId);
+      if (parent) {
+        depth++;
+        currentParentId = parent.parentId;
+      } else {
+        break;
+      }
+      if (depth > 20) break;
+    }
+  }
+  
+  // Determine if this is a header/separator
+  const isSeparator = ['round', 'interval', 'warmup', 'cooldown'].includes(type);
+  const isRoot = type === 'root';
+  const isHeader = isRoot || (isSeparator && depth < 2);
+  
+  // Convert to fragments (skip for separators except root)
+  const fragments = (isSeparator && !isRoot) ? [] : segmentToFragments(segment, groups);
+  
+  return {
+    id: segment.id.toString(),
+    parentId: segment.parentId?.toString() ?? null,
+    fragments,
+    depth,
+    isHeader,
+    status: 'completed',
+    sourceType: 'record',
+    sourceId: segment.id,
+    startTime: segment.startTime,
+    endTime: segment.endTime,
+    duration: segment.duration,
+    label: segment.name
+  };
+}
+
+/**
+ * AnalyticsIndexPanel Component - Uses unified visualization system
  */
 export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   segments,
@@ -202,99 +188,55 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   groups = [],
   className = ''
 }) => {
-  // Convert segments to MetricItems
-  const items = React.useMemo(() => {
+  // Convert segments to display items (sorted oldest-first)
+  const items = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
+    const segmentMap = new Map(segments.map(s => [s.id, s]));
     
-    const result: MetricItem[] = [];
-    let lastEndTime = 0;
-
-    sorted.forEach(seg => {
-      const type = seg.type.toLowerCase();      
-      const fragments = segmentToFragments(seg);
-      
-      // Determine if this is a separator/grouping node
-      const isSeparator = ['round', 'interval', 'warmup', 'cooldown'].includes(type);
-      const isRoot = type === 'root';
-      
-      if (seg.endTime > lastEndTime) {
-          lastEndTime = seg.endTime;
-      }
-      
-      // Build footer from secondary metrics
-      const footerMetrics: React.ReactNode[] = [];
-      const secondaryMetrics = ['heart_rate', 'cadence'];
-      
-      secondaryMetrics.forEach(key => {
-        if (seg.metrics[key] > 0) {
-          let symbol = '';
-          // Try to find config in groups
-          let config = null;
-          for (const g of groups) {
-            config = g.graphs.find(gr => gr.id === key);
-            if (config) break;
-          }
-
-          if (config) {
-             symbol = config.unit;
-          } else {
-            switch(key) {
-              case 'heart_rate': symbol = '♥'; break;
-              case 'cadence': symbol = 'rpm'; break;
-            }
-          }
-          footerMetrics.push(<span key={key}>{Math.round(seg.metrics[key])}{symbol}</span>);
-        }
+    const displayItems = sorted.map(segment => 
+      segmentToDisplayItem(segment, segmentMap, groups)
+    );
+    
+    // Add end marker if we have data
+    if (sorted.length > 0) {
+      const lastSegment = sorted[sorted.length - 1];
+      displayItems.push({
+        id: 'workout-end',
+        parentId: null,
+        fragments: [{
+          type: 'end',
+          fragmentType: FragmentType.Action,
+          value: 'end',
+          image: 'End'
+        }, {
+          type: 'timer',
+          fragmentType: FragmentType.Timer,
+          value: lastSegment.endTime,
+          image: formatTimestamp(lastSegment.endTime)
+        }],
+        depth: 0,
+        isHeader: true,
+        status: 'completed',
+        sourceType: 'record',
+        sourceId: 'end',
+        startTime: lastSegment.endTime
       });
-
-      result.push({
-        id: seg.id.toString(),
-        parentId: seg.parentId ? seg.parentId.toString() : null,
-        lane: seg.depth || 0, // Use depth as lane
-        title: seg.name,
-        startTime: seg.startTime,
-        isHeading: isRoot,
-        tags: !isSeparator && !isRoot && (
-          <FragmentVisualizer 
-            fragments={fragments} 
-            className="gap-1"
-            compact={true}
-          />
-        ),
-        footer: !isSeparator && !isRoot && footerMetrics.length > 0 && (
-          <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
-            {footerMetrics}
-          </div>
-        ),
-        data: {
-          isSeparator,
-          type: type,
-          durationText: formatDuration(seg.duration)
-        }
-      } as MetricItem);
-    });
-    
-    // Add End Separator
-    if (lastEndTime > 0) {
-        result.push({
-            id: 'workout-end',
-            parentId: null,
-            lane: 0,
-            title: 'End',
-            startTime: lastEndTime,
-            isHeading: false,
-            data: {
-                isSeparator: true,
-                durationText: formatTimestamp(lastEndTime)
-            }
-        });
     }
+    
+    return displayItems;
+  }, [segments, groups]);
 
-    return result;
-  }, [segments]);
+  // Convert selected IDs to string set
+  const selectedIds = useMemo(() => 
+    new Set(Array.from(selectedSegmentIds).map(String)),
+    [selectedSegmentIds]
+  );
 
-  const handleSelect = React.useCallback((segmentId: number) => {
-    onSelectSegment?.(segmentId);
+  // Handle selection
+  const handleSelectionChange = useCallback((id: string | null) => {
+    if (id && id !== 'workout-end') {
+      onSelectSegment?.(parseInt(id, 10));
+    }
   }, [onSelectSegment]);
 
   return (
@@ -306,21 +248,18 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
         </div>
       )}
       
-      {/* Segment Cards */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {items.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground italic">
-            No historical data available
-          </div>
-        ) : (
-          <MetricsTreeView 
-            items={items}
-            selectedIds={new Set(Array.from(selectedSegmentIds).map(String))}
-            onSelect={(id) => handleSelect(parseInt(id))}
-            renderItem={(item, isSelected) => renderMetricCard(item, isSelected, mobile)}
-          />
-        )}
-      </div>
+      {/* Unified Item List */}
+      <UnifiedItemList
+        items={items}
+        selectedIds={selectedIds}
+        compact={!mobile}
+        showDurations
+        autoScroll={false}
+        groupLinked={false}
+        onSelectionChange={onSelectSegment ? handleSelectionChange : undefined}
+        className="flex-1"
+        emptyMessage="No historical data available"
+      />
 
       {/* Selection Info */}
       {selectedSegmentIds.size > 0 && (

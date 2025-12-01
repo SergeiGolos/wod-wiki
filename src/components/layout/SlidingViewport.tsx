@@ -17,25 +17,25 @@ export type ViewMode = 'plan' | 'track' | 'analyze';
 export interface SlidingViewportProps {
   /** Current view mode */
   currentView: ViewMode;
-  
+
   /** Callback when view changes */
   onViewChange: (view: ViewMode) => void;
-  
+
   /** Plan view panel - Full width Monaco editor */
   planPanel: React.ReactNode;
-  
+
   /** Track view panels */
   trackIndexPanel: React.ReactNode;    // TimerIndexPanel (1/3)
   trackPrimaryPanel: React.ReactNode;  // TimerDisplay (2/3)
   trackDebugPanel?: React.ReactNode;   // RuntimeDebugPanel (optional 1/3)
-  
+
   /** Analyze view panels */
   analyzeIndexPanel: React.ReactNode;  // AnalyticsIndexPanel (1/3)
   analyzePrimaryPanel: React.ReactNode; // TimelineView (2/3)
-  
+
   /** Whether debug mode is enabled */
   isDebugMode?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -117,14 +117,9 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             {planPanel}
           </div>
 
-          {/* Track View - 50/50 Vertical Split */}
-          <div className="w-1/3 h-full flex-shrink-0 flex flex-col">
-            <div className="h-1/2 flex-shrink-0 border-b border-border overflow-hidden">
-              {trackPrimaryPanel}
-            </div>
-            <div className="h-1/2 flex-shrink-0 overflow-hidden">
-              {trackIndexPanel}
-            </div>
+          {/* Track View - Full Height Primary (Primary handles internal layout) */}
+          <div className="w-1/3 h-full flex-shrink-0 overflow-hidden">
+            {trackPrimaryPanel}
           </div>
 
           {/* Analyze View - Full Screen Timeline */}

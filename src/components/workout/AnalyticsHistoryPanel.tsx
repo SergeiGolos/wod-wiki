@@ -5,14 +5,14 @@
  * - Oldest-first, newest-last ordering (chronological)
  * - No "Active Context" section (all completed)
  * - Clickable segments for filtering analytics
- * - Git-tree-like visualization with selection support
+ * - Uses unified visualization system
  * - Read-only historical data
  */
 
-import React from 'react';
-import { MetricsTreeView, MetricItem } from '../metrics/MetricsTreeView';
+import React, { useMemo, useCallback } from 'react';
+import { UnifiedItemList, IDisplayItem } from '../unified';
 import { Segment } from '../../timeline/GitTreeSidebar';
-import { Activity, Clock, Pause } from 'lucide-react';
+import { FragmentType, ICodeFragment } from '../../core/models/CodeFragment';
 
 export interface AnalyticsHistoryPanelProps {
   /** Historical segments to display */
@@ -24,86 +24,159 @@ export interface AnalyticsHistoryPanelProps {
   /** Callback when segment is clicked */
   onSelectSegment?: (segmentId: number) => void;
   
+  /** Compact display mode */
+  compact?: boolean;
+  
   /** Additional CSS classes */
   className?: string;
 }
 
 /**
- * AnalyticsHistoryPanel Component
+ * Convert a Segment to IDisplayItem for unified visualization
+ */
+function segmentToDisplayItem(segment: Segment, allSegments: Map<number, Segment>): IDisplayItem {
+  // Calculate depth by traversing parent chain
+  let depth = 0;
+  let currentParentId = segment.parentId;
+  const visited = new Set<number>();
+  visited.add(segment.id);
+  
+  while (currentParentId !== null && !visited.has(currentParentId)) {
+    visited.add(currentParentId);
+    const parent = allSegments.get(currentParentId);
+    if (parent) {
+      depth++;
+      currentParentId = parent.parentId;
+    } else {
+      break;
+    }
+    if (depth > 20) break; // Safety limit
+  }
+  
+  // Convert segment to fragments
+  const fragments = segmentToFragments(segment);
+  
+  // Determine if this is a header (container types)
+  const type = segment.type.toLowerCase();
+  const isHeader = ['root', 'warmup', 'cooldown', 'main', 'work', 'rest'].includes(type) && depth < 2;
+  
+  return {
+    id: segment.id.toString(),
+    parentId: segment.parentId?.toString() ?? null,
+    fragments,
+    depth,
+    isHeader,
+    status: 'completed', // Analytics data is always completed
+    sourceType: 'record',
+    sourceId: segment.id,
+    startTime: segment.startTime * 1000, // Convert to ms if needed
+    endTime: segment.endTime * 1000,
+    duration: segment.duration * 1000,
+    label: segment.name
+  };
+}
+
+/**
+ * Convert segment data to ICodeFragment array
+ */
+function segmentToFragments(segment: Segment): ICodeFragment[] {
+  const fragments: ICodeFragment[] = [];
+  const type = segment.type.toLowerCase();
+  
+  // Segment name as action/effort fragment
+  const fragmentType = type === 'work' ? FragmentType.Effort :
+                       type === 'rest' ? FragmentType.Action :
+                       FragmentType.Action;
+  
+  fragments.push({
+    type: type,
+    fragmentType,
+    value: segment.name,
+    image: segment.name
+  });
+  
+  // Duration
+  if (segment.duration > 0) {
+    const mins = Math.floor(segment.duration / 60);
+    const secs = Math.floor(segment.duration % 60);
+    const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+    
+    fragments.push({
+      type: 'time',
+      fragmentType: FragmentType.Timer,
+      value: segment.duration,
+      image: timeStr
+    });
+  }
+  
+  // Power metric
+  if (segment.avgPower > 0) {
+    fragments.push({
+      type: 'power',
+      fragmentType: FragmentType.Resistance,
+      value: segment.avgPower,
+      image: `${Math.round(segment.avgPower)}W`
+    });
+  }
+  
+  // Heart rate metric
+  if (segment.avgHr > 0) {
+    fragments.push({
+      type: 'heart_rate',
+      fragmentType: FragmentType.Text,
+      value: segment.avgHr,
+      image: `${Math.round(segment.avgHr)}♥`
+    });
+  }
+  
+  return fragments;
+}
+
+/**
+ * AnalyticsHistoryPanel Component - Uses unified visualization system
  */
 export const AnalyticsHistoryPanel: React.FC<AnalyticsHistoryPanelProps> = ({
   segments,
   selectedSegmentIds = new Set(),
   onSelectSegment,
+  compact = false,
   className = ''
 }) => {
-  // Convert segments to MetricItems and sort OLDEST-FIRST
-  const items = React.useMemo(() => {
+  // Convert segments to display items (sorted oldest-first)
+  const items = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
+    const segmentMap = new Map(segments.map(s => [s.id, s]));
     
-    return sorted.map(seg => {
-      const type = seg.type.toLowerCase();
-      return {
-        id: seg.id.toString(),
-        parentId: seg.parentId ? seg.parentId.toString() : null,
-        lane: seg.lane || 0, // Use existing lane or calculate? GitTreeSidebar calculated it? No, it was passed in or 0.
-        // We might need to recalculate lanes if they aren't correct in the segment data
-        title: seg.name,
-        startTime: seg.startTime,
-        icon: type === 'work' ? <Activity className="h-3 w-3 text-red-500" /> :
-              type === 'rest' ? <Pause className="h-3 w-3 text-green-500" /> :
-              <Clock className="h-3 w-3 text-blue-500" />,
-        tags: (
-          <div className="flex flex-wrap gap-1 gap-0.5">
-             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border bg-opacity-60 shadow-sm 
-               ${type === 'work' ? 'bg-red-100 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100' : 
-                 type === 'rest' ? 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100' :
-                 'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100'}`}>
-               <span>{seg.name}</span>
-             </span>
-             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100 bg-opacity-60 shadow-sm">
-               <span className="text-base leading-none">⏱️</span>
-               <span>{Math.floor(seg.duration)}s</span>
-             </span>
-             {seg.avgPower > 0 && (
-               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-mono border bg-red-100 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100 bg-opacity-60 shadow-sm">
-                 <span className="text-base leading-none">💪</span>
-                 <span>{Math.round(seg.avgPower)}W</span>
-               </span>
-             )}
-          </div>
-        ),
-        footer: (
-          <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
-            {seg.avgPower > 0 && <span>{Math.round(seg.avgPower)}W</span>}
-            {seg.avgHr > 0 && <span>{Math.round(seg.avgHr)}♥</span>}
-          </div>
-        )
-      } as MetricItem;
-    });
+    return sorted.map(segment => segmentToDisplayItem(segment, segmentMap));
   }, [segments]);
 
-  const handleSelect = React.useCallback((itemId: string) => {
-    onSelectSegment?.(parseInt(itemId));
+  // Convert selected IDs to string set for UnifiedItemList
+  const selectedIds = useMemo(() => 
+    new Set(Array.from(selectedSegmentIds).map(String)),
+    [selectedSegmentIds]
+  );
+
+  // Handle selection - convert string ID back to number
+  const handleSelectionChange = useCallback((id: string | null) => {
+    if (id) {
+      onSelectSegment?.(parseInt(id, 10));
+    }
   }, [onSelectSegment]);
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      {/* Tree View */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {items.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground italic">
-            No historical data available
-          </div>
-        ) : (
-          <MetricsTreeView 
-            items={items}
-            selectedIds={new Set(Array.from(selectedSegmentIds).map(String))}
-            onSelect={handleSelect}
-          />
-        )}
-      </div>
-
+      <UnifiedItemList
+        items={items}
+        selectedIds={selectedIds}
+        compact={compact}
+        showDurations
+        autoScroll={false}
+        groupLinked={false}
+        onSelectionChange={onSelectSegment ? handleSelectionChange : undefined}
+        className="flex-1"
+        emptyMessage="No historical data available"
+      />
+      
       {/* Selection Info */}
       {selectedSegmentIds.size > 0 && (
         <div className="p-2 border-t border-border text-xs text-muted-foreground bg-muted/10">

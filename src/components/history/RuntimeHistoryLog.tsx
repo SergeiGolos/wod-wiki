@@ -1,8 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { HistoryList, HistoryItem } from './HistoryList';
-import { SpanMetrics, createEmptyMetrics } from '@/runtime/models/ExecutionSpan';
-import { spanMetricsToFragments } from '@/runtime/utils/metricsToFragments';
+import { UnifiedItemList, spansToDisplayItems } from '@/components/unified';
+import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/ExecutionSpan';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -12,17 +11,19 @@ export interface RuntimeHistoryLogProps {
   mobile?: boolean;
   className?: string;
   workoutStartTime?: number | null;
+  /** Whether to show active items (default: true) */
+  showActive?: boolean;
+  /** Compact display mode */
+  compact?: boolean;
 }
-
-// Container types that should be treated as Headers
-const HEADER_TYPES = new Set(['root', 'round', 'interval', 'warmup', 'cooldown', 'amrap', 'emom', 'tabata', 'group']);
 
 export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   runtime,
   highlightedBlockKey,
   autoScroll = true,
   className,
-  workoutStartTime
+  showActive = true,
+  compact = false
 }) => {
   const [updateVersion, setUpdateVersion] = useState(0);
 
@@ -41,91 +42,77 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     if (!runtime) return { items: [], activeItemId: null };
     void updateVersion; // Dependency
 
-    // 1. Gather all records (completed + active)
-    const rawItems: any[] = [
-        ...runtime.executionLog,
-        ...Array.from(runtime.activeSpans.values())
+    // 1. Gather all spans (completed + active)
+    const allSpans = [
+      ...runtime.executionLog,
+      ...Array.from(runtime.activeSpans.values())
     ];
 
     // Sort by startTime
-    rawItems.sort((a, b) => a.startTime - b.startTime);
+    allSpans.sort((a, b) => a.startTime - b.startTime);
 
-    // Map for quick lookup
-    const itemMap = new Map<string, any>();
-    rawItems.forEach(item => itemMap.set(item.id, item));
+    // Create span map for metric inheritance
+    const spanMap = new Map(allSpans.map(s => [s.id, s]));
 
-    // Calculate depths and inherit metrics
-    const historyItems: HistoryItem[] = rawItems.map(record => {
-        // Calculate Depth
-        let depth = 0;
-        let parent = record.parentSpanId ? itemMap.get(record.parentSpanId) : null;
+    // Inherit metrics from parent spans
+    const enrichedSpans = allSpans.map(span => {
+      const combinedMetrics: SpanMetrics = { ...(span.metrics || createEmptyMetrics()) };
 
-        // Safety check for depth to prevent infinite loops (though unlikely with proper IDs)
-        let depthCheck = 0;
-        while (parent && depthCheck < 20) {
-            depth++;
-            parent = parent.parentSpanId ? itemMap.get(parent.parentSpanId) : null;
-            depthCheck++;
+      // Simple metric inheritance from parents
+      let currentParentId = span.parentSpanId;
+      const visited = new Set<string>();
+      visited.add(span.id);
+
+      while (currentParentId) {
+        if (visited.has(currentParentId)) break;
+        visited.add(currentParentId);
+
+        const parent = spanMap.get(currentParentId);
+        if (parent?.metrics) {
+          const pm = parent.metrics;
+          if (pm.reps && !combinedMetrics.reps) combinedMetrics.reps = pm.reps;
+          if (pm.weight && !combinedMetrics.weight) combinedMetrics.weight = pm.weight;
+          if (pm.distance && !combinedMetrics.distance) combinedMetrics.distance = pm.distance;
+          currentParentId = parent.parentSpanId;
+        } else {
+          break;
         }
+      }
 
-        // Inherit Metrics (similar to RuntimeEventLog logic)
-        const combinedMetrics: SpanMetrics = { ...(record.metrics || createEmptyMetrics()) };
-
-        // Simple metric inheritance
-        let currentParentId = record.parentSpanId;
-        const visited = new Set<string>();
-        visited.add(record.id);
-
-        while (currentParentId) {
-             if (visited.has(currentParentId)) break;
-             visited.add(currentParentId);
-
-             const p = itemMap.get(currentParentId);
-             if (p && p.metrics) {
-                 const pm = p.metrics;
-                 if (pm.reps && !combinedMetrics.reps) combinedMetrics.reps = pm.reps;
-                 if (pm.weight && !combinedMetrics.weight) combinedMetrics.weight = pm.weight;
-                 if (pm.distance && !combinedMetrics.distance) combinedMetrics.distance = pm.distance;
-                 currentParentId = p.parentSpanId;
-             } else {
-                 break;
-             }
-        }
-
-        const isHeader = HEADER_TYPES.has(record.type.toLowerCase()) || record.type === 'start';
-
-        // Generate Fragments
-        const fragments = spanMetricsToFragments(combinedMetrics, record.label, record.type);
-
-        return {
-            id: record.id,
-            label: record.label,
-            startTime: record.startTime,
-            endTime: record.endTime,
-            type: record.type,
-            depth: depth,
-            fragments: fragments,
-            isHeader: isHeader,
-            status: record.status
-        };
+      return { ...span, metrics: combinedMetrics };
     });
 
-    // Determine active item (last active one)
-    let activeItemId: string | null = null;
-    const activeItems = historyItems.filter(i => i.status === 'active');
-    if (activeItems.length > 0) {
-        activeItemId = activeItems[activeItems.length - 1].id;
+    // Convert to IDisplayItem array using adapter
+    let displayItems = spansToDisplayItems(enrichedSpans);
+
+    // Filter out active items if showActive is false
+    if (!showActive) {
+      displayItems = displayItems.filter(item => item.status !== 'active');
     }
 
-    return { items: historyItems, activeItemId };
-  }, [runtime, updateVersion, workoutStartTime]);
+    // Determine active item (last active one) OR last item if none active (for auto-scroll in history mode)
+    let activeItemId: string | null = null;
+    const activeItems = displayItems.filter(item => item.status === 'active');
+    if (activeItems.length > 0) {
+      activeItemId = activeItems[activeItems.length - 1].id;
+    } else if (displayItems.length > 0) {
+      // If no active items (e.g. history only), target the last item for scrolling
+      activeItemId = displayItems[displayItems.length - 1].id;
+    }
+
+    return { items: displayItems, activeItemId };
+  }, [runtime, updateVersion, showActive]);
 
   return (
-    <HistoryList
-        items={items}
-        activeItemId={activeItemId || highlightedBlockKey}
-        autoScroll={autoScroll}
-        className={className}
+    <UnifiedItemList
+      items={items}
+      activeItemId={activeItemId || highlightedBlockKey || undefined}
+      autoScroll={autoScroll}
+      compact={compact}
+      showDurations
+      groupLinked={false}
+      className={className}
+      emptyMessage="No events recorded"
     />
   );
 };

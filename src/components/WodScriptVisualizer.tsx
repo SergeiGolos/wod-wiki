@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
-import { FragmentVisualizer } from '../views/runtime/FragmentVisualizer';
+import { UnifiedItemList, statementsToDisplayItems, IDisplayItem } from './unified';
 
 export interface WodScriptVisualizerProps {
   statements: ICodeStatement[];
@@ -10,35 +10,8 @@ export interface WodScriptVisualizerProps {
   onHover?: (id: number | null) => void;
   onRenderActions?: (statement: ICodeStatement) => React.ReactNode;
   className?: string;
-}
-
-interface LinkedGroup {
-  id: string;
-  statements: ICodeStatement[];
-}
-
-/**
- * Helper to check if a statement is a link (starts with +)
- */
-function isLinkStatement(statement: ICodeStatement): boolean {
-  return statement.fragments.some(f => f.fragmentType === 'lap' && f.image === '+');
-}
-
-/**
- * Calculate nesting depth of a statement
- */
-function getDepth(stmt: ICodeStatement, allStatements: Map<number, ICodeStatement>): number {
-  let depth = 0;
-  let current = stmt;
-  while (current.parent) {
-    const parent = allStatements.get(current.parent);
-    if (!parent) break;
-    depth++;
-    current = parent;
-    // Safety break to prevent infinite loops
-    if (depth > 10) break;
-  }
-  return depth;
+  /** Compact display mode */
+  compact?: boolean;
 }
 
 export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
@@ -48,121 +21,57 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   onSelectionChange,
   onHover,
   onRenderActions,
-  className = ''
+  className = '',
+  compact = false
 }) => {
+  // Create a map for looking up statements by id (used for renderActions)
+  const statementMap = useMemo(() => 
+    new Map<number, ICodeStatement>(statements.map(s => [s.id, s])), 
+    [statements]
+  );
 
-  // Group statements logic (reused from EditableStatementList)
-  const groups = useMemo(() => {
-    const result: (ICodeStatement | LinkedGroup)[] = [];
-    let currentGroup: ICodeStatement[] = [];
+  // Convert statements to unified display items
+  const displayItems = useMemo(() => 
+    statementsToDisplayItems(statements, activeStatementIds),
+    [statements, activeStatementIds]
+  );
 
-    for (const stmt of statements) {
-      const isLink = isLinkStatement(stmt);
+  // Selected IDs set for highlighting
+  const selectedIds = useMemo(() => 
+    selectedStatementId ? new Set([selectedStatementId.toString()]) : undefined,
+    [selectedStatementId]
+  );
 
-      if (currentGroup.length === 0) {
-        currentGroup.push(stmt);
-        continue;
-      }
+  // Handle selection changes - convert string ID back to number
+  const handleSelectionChange = useCallback((id: string | null) => {
+    onSelectionChange?.(id ? parseInt(id, 10) : null);
+  }, [onSelectionChange]);
 
-      const previousStmt = currentGroup[currentGroup.length - 1];
-      const previousIsLink = isLinkStatement(previousStmt);
+  // Handle hover changes - convert string ID back to number
+  const handleHover = useCallback((id: string | null) => {
+    onHover?.(id ? parseInt(id, 10) : null);
+  }, [onHover]);
 
-      // Only group if BOTH are links
-      if (isLink && previousIsLink) {
-        currentGroup.push(stmt);
-      } else {
-        // Close previous group
-        if (currentGroup.length === 1) {
-          result.push(currentGroup[0]);
-        } else {
-          result.push({ 
-            id: `group-${currentGroup[0].id}`, 
-            statements: [...currentGroup] 
-          });
-        }
-        // Start new group with this statement
-        currentGroup = [stmt];
-      }
-    }
-
-    // Push remaining
-    if (currentGroup.length > 0) {
-      if (currentGroup.length === 1) {
-        result.push(currentGroup[0]);
-      } else {
-        result.push({ 
-          id: `group-${currentGroup[0].id}`, 
-          statements: [...currentGroup] 
-        });
-      }
-    }
-    
-    return result;
-  }, [statements]);
-
-  const statementMap = useMemo(() => new Map<number, ICodeStatement>(statements.map(s => [s.id, s])), [statements]);
-
-  const renderStatement = (stmt: ICodeStatement, isGrouped = false, isLastInGroup = false) => {
-    const isActive = activeStatementIds.has(stmt.id);
-    const isSelected = selectedStatementId === stmt.id;
-    
-    let containerClass = "flex items-center gap-2 p-2 transition-colors cursor-pointer ";
-    
-    if (isGrouped) {
-        containerClass += isActive ? 'bg-primary/10 ' : 'hover:bg-accent/5 ';
-        if (!isLastInGroup) containerClass += "border-b border-border ";
-    } else {
-        containerClass += "bg-card rounded border border-border hover:border-primary/50 ";
-        containerClass += isActive ? 'bg-primary/10 border-primary ' : '';
-        containerClass += isSelected ? 'ring-2 ring-blue-500 ' : '';
-    }
-
-    return (
-      <div 
-        key={stmt.id} 
-        className={containerClass}
-        onClick={(e) => {
-            e.stopPropagation();
-            onSelectionChange?.(stmt.id);
-        }}
-        onMouseEnter={() => onHover?.(stmt.id)}
-        onMouseLeave={() => onHover?.(null)}
-      >
-        <div className="flex-1 min-w-0">
-          <FragmentVisualizer fragments={stmt.fragments || []} />
-        </div>
-        {onRenderActions && (
-            <div className="flex gap-1 shrink-0">
-                {onRenderActions(stmt)}
-            </div>
-        )}
-      </div>
-    );
-  };
+  // Render actions for an item
+  const renderActions = useCallback((item: IDisplayItem) => {
+    if (!onRenderActions) return null;
+    const statement = statementMap.get(typeof item.sourceId === 'number' ? item.sourceId : parseInt(item.sourceId as string, 10));
+    if (!statement) return null;
+    return onRenderActions(statement);
+  }, [onRenderActions, statementMap]);
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      {groups.map((item) => {
-        const firstStmt = 'statements' in item ? item.statements[0] : item;
-        const depth = getDepth(firstStmt, statementMap);
-        const indentStyle = { marginLeft: `${depth * 1.5}rem` };
-
-        if ('statements' in item) {
-          const group = item as LinkedGroup;
-          return (
-            <div key={group.id} style={indentStyle} className="bg-card rounded border border-border overflow-hidden hover:border-primary/50 transition-colors">
-              {group.statements.map((stmt, i) => renderStatement(stmt, true, i === group.statements.length - 1))}
-            </div>
-          );
-        } else {
-          const stmt = item as ICodeStatement;
-          return (
-            <div key={stmt.id} style={indentStyle}>
-              {renderStatement(stmt)}
-            </div>
-          );
-        }
-      })}
-    </div>
+    <UnifiedItemList
+      items={displayItems}
+      selectedIds={selectedIds}
+      compact={compact}
+      groupLinked
+      autoScroll={false}
+      renderActions={onRenderActions ? renderActions : undefined}
+      onSelectionChange={handleSelectionChange}
+      onHover={handleHover}
+      className={className}
+      emptyMessage="No statements to display"
+    />
   );
 };
