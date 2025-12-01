@@ -6,15 +6,13 @@
 
 import React from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { WodBlock } from '../../markdown-editor/types';
 import { RuntimeEventLog } from '../workout/RuntimeEventLog';
+
+import { WodBlock } from '../../markdown-editor/types';
 
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
   runtime: ScriptRuntime | null;
-  
-  /** Active workout block (for context display) */
-  activeBlock?: WodBlock | null;
   
   /** Currently active segment IDs (blocks on stack) */
   activeSegmentIds?: Set<number>;
@@ -39,8 +37,11 @@ export interface TimerIndexPanelProps {
   
   /** Workout start time (timestamp when execution began) */
   workoutStartTime?: number | null;
-  
-  /** Hide the parsed workout view (shown in debugger instead) */
+
+  /** Active block for context panel */
+  activeBlock?: WodBlock | null;
+
+  /** Hide the WorkoutContextPanel */
   hideContextPanel?: boolean;
 }
 
@@ -49,25 +50,25 @@ export interface TimerIndexPanelProps {
  */
 export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   runtime,
-  activeBlock,
   activeStatementIds,
   highlightedBlockKey,
   autoScroll = true,
   mobile = false,
   className = '',
   workoutStartTime,
-  hideContextPanel = false
+  activeBlock,
+  hideContextPanel
 }) => {
   return (
     <RuntimeEventLog
       runtime={runtime}
-      activeBlock={activeBlock}
       activeStatementIds={activeStatementIds}
       highlightedBlockKey={highlightedBlockKey}
       autoScroll={autoScroll}
       mobile={mobile}
       className={className}
       workoutStartTime={workoutStartTime}
+      activeBlock={activeBlock}
       hideContextPanel={hideContextPanel}
     />
   );

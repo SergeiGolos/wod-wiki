@@ -196,6 +196,8 @@ interface ActivityCardProps {
   onNext?: () => void;
   onButtonClick?: (eventName: string, payload?: Record<string, unknown>) => void;
   compact?: boolean;
+  controls?: RuntimeControls;
+  onControlAction?: (action: string) => void;
 }
 
 const ActivityCard: React.FC<ActivityCardProps> = ({
@@ -203,6 +205,8 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   onNext,
   onButtonClick,
   compact = false,
+  controls,
+  onControlAction,
 }) => {
   // Try to get a registered component for this card type
   const Component = CardComponentRegistry.resolve(entry);
@@ -231,18 +235,71 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     );
   }
 
+  // Helper to render a runtime button
+  const renderButton = (btn: any) => {
+    const Icon = btn.icon === 'play' ? Play : 
+                 btn.icon === 'pause' ? Pause : 
+                 btn.icon === 'stop' ? Square : 
+                 btn.icon === 'next' ? SkipForward : 
+                 btn.icon === 'check' ? ChevronRight :
+                 btn.icon === 'analytics' ? TimerIcon :
+                 Play;
+
+    return (
+      <Button 
+        key={btn.id}
+        onClick={() => onControlAction?.(btn.action)}
+        variant={btn.variant || 'default'}
+        size={btn.size || (compact ? 'sm' : 'default')}
+        className={cn(
+          'rounded-full',
+          compact ? 'h-8 w-8 p-0' : 'h-10 w-10 p-0',
+          btn.color
+        )}
+        title={btn.label}
+      >
+        <Icon className={cn('fill-current', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+      </Button>
+    );
+  };
+
+  // Split buttons into groups - play/pause and stop go on left, next goes on right
+  const playPauseButton = controls?.buttons.find(b => ['play', 'pause'].includes(b.icon || ''));
+  const stopButton = controls?.buttons.find(b => b.icon === 'stop');
+  const nextButton = controls?.buttons.find(b => ['next', 'check'].includes(b.icon || ''));
+  const otherButtons = controls?.buttons.filter(b => !['play', 'pause', 'stop', 'next', 'check'].includes(b.icon || '')) || [];
+
   // Default activity card layout
   return (
     <Card className={cn('w-full', compact ? 'p-2' : 'p-4')}>
-      <CardContent className={cn('flex items-center justify-between', compact ? 'p-2' : 'p-4')}>
-        <div className="flex-1">
+      <CardContent className={cn('flex items-center justify-between gap-4', compact ? 'p-2' : 'p-4')}>
+        
+        {/* Left Controls (Play/Pause + End Workout) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {playPauseButton && renderButton(playPauseButton)}
+          {stopButton && (
+            <Button
+              onClick={() => onControlAction?.(stopButton.action)}
+              variant="destructive"
+              size={compact ? 'sm' : 'default'}
+              className="flex items-center gap-1"
+            >
+              <Square className={cn('fill-current', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+              {compact ? 'End' : 'End Workout'}
+            </Button>
+          )}
+          {otherButtons.map(renderButton)}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
           {entry.title && (
-            <h4 className={cn('font-semibold', compact ? 'text-sm' : 'text-base')}>
+            <h4 className={cn('font-semibold truncate', compact ? 'text-sm' : 'text-base')}>
               {entry.title}
             </h4>
           )}
           {entry.subtitle && (
-            <p className={cn('text-muted-foreground', compact ? 'text-xs' : 'text-sm')}>
+            <p className={cn('text-muted-foreground truncate', compact ? 'text-xs' : 'text-sm')}>
               {entry.subtitle}
             </p>
           )}
@@ -263,18 +320,33 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           )}
         </div>
         
-        {/* Next button */}
-        {onNext && (
-          <Button
-            onClick={onNext}
-            size={compact ? 'sm' : 'default'}
-            variant="outline"
-            className="flex items-center gap-1 ml-2"
-          >
-            Next
-            <ChevronRight className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
-          </Button>
-        )}
+        {/* Right Controls (Next as button with text) */}
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {nextButton ? (
+            <Button
+              onClick={() => onControlAction?.(nextButton.action)}
+              variant="default"
+              size={compact ? 'sm' : 'default'}
+              className={cn(
+                'flex items-center gap-1',
+                nextButton.color || 'bg-blue-600 hover:bg-blue-700'
+              )}
+            >
+              {compact ? 'Next' : nextButton.label || 'Next'}
+              <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+            </Button>
+          ) : onNext ? (
+            // Fallback if no controls but onNext exists (legacy/custom)
+            <Button
+              onClick={onNext}
+              size={compact ? 'sm' : 'default'}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+            >
+              Next
+              <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+            </Button>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
@@ -416,8 +488,8 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
         </Badge>
       )}
       
-      {/* Control Buttons */}
-      {controls?.buttons && controls.buttons.length > 0 ? (
+      {/* Control Buttons - Only shown if NO active card */}
+      {!currentCard && (controls?.buttons && controls.buttons.length > 0 ? (
         <div className={cn('flex', compact ? 'gap-3' : 'gap-6')}>
           {controls.buttons.map(btn => {
             const Icon = btn.icon === 'play' ? Play : 
@@ -428,25 +500,14 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
                          btn.icon === 'analytics' ? TimerIcon : // Use TimerIcon as placeholder for Analytics if needed
                          Play; // Default
 
-            // Map action to handler (or emit event)
-            // Since we don't have direct event emission here, we rely on the parent to handle it?
-            // Wait, TimerDisplayProps has onStart, onPause, etc.
-            // But dynamic buttons have arbitrary actions.
-            // We need a generic onAction prop or use runtime context to emit.
-            // But EnhancedTimerCore doesn't have runtime context.
-            // We should pass a handler.
-            // For now, map known actions to props, or add onAction prop.
-            
             const handleClick = () => {
-                // Map known actions to existing props for backward compatibility/ease
                 if (btn.action === 'timer:start') onStart();
                 else if (btn.action === 'timer:pause') onPause();
-                else if (btn.action === 'timer:resume') onStart(); // Resume is same as Start/Play
+                else if (btn.action === 'timer:resume') onStart();
                 else if (btn.action === 'timer:stop') onStop();
                 else if (btn.action === 'timer:next') onNext();
-                else if (btn.action === 'timer:complete') onStop(); // Complete maps to Stop for now
+                else if (btn.action === 'timer:complete') onStop();
                 else if (btn.action === 'view:analytics') {
-                    // TODO: Handle analytics view
                     console.log('View Analytics clicked');
                 }
             };
@@ -511,7 +572,7 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
             {compact ? 'Select a workout to begin' : 'Select a WOD block from the index to begin tracking.'}
           </p>
         </div>
-      )}
+      ))}
 
       {/* Activity Card - only shown when data exists */}
       {currentCard && hasActiveBlock && (
@@ -520,6 +581,30 @@ const EnhancedTimerCore: React.FC<EnhancedTimerCoreProps> = ({
             entry={currentCard}
             onNext={onNext}
             compact={compact}
+            controls={controls || (hasActiveBlock ? {
+                // Generate synthetic controls if missing but we have active block
+                buttons: [
+                    !isRunning ? {
+                        id: 'start', label: 'Start', action: 'timer:start', icon: 'play', variant: 'default', color: 'bg-green-600 hover:bg-green-700'
+                    } : {
+                        id: 'pause', label: 'Pause', action: 'timer:pause', icon: 'pause', variant: 'default', color: 'bg-yellow-600 hover:bg-yellow-700'
+                    },
+                    {
+                        id: 'next', label: 'Next', action: 'timer:next', icon: 'next', variant: 'default', color: 'bg-blue-600 hover:bg-blue-700'
+                    },
+                    {
+                        id: 'stop', label: 'Stop', action: 'timer:stop', icon: 'stop', variant: 'destructive'
+                    }
+                ]
+            } : undefined)}
+            onControlAction={(action) => {
+                if (action === 'timer:start') onStart();
+                else if (action === 'timer:pause') onPause();
+                else if (action === 'timer:resume') onStart();
+                else if (action === 'timer:stop') onStop();
+                else if (action === 'timer:next') onNext();
+                else if (action === 'timer:complete') onStop();
+            }}
           />
         </div>
       )}

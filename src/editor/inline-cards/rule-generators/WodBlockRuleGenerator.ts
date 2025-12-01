@@ -376,6 +376,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
       className: 'flex-1 overflow-hidden p-3 flex flex-col justify-center',
     }, [
         React.createElement(WodScriptVisualizer, {
+            key: 'visualizer',
             statements: statements,
             activeStatementIds: activeStatementIndex !== -1 && statements[activeStatementIndex] ? new Set([statements[activeStatementIndex].id]) : undefined,
             onHover: (id: number | null) => {

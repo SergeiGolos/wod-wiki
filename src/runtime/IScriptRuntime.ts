@@ -7,11 +7,14 @@ import { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
 
+import { RuntimeClock } from './RuntimeClock';
+
 export interface IScriptRuntime {
     readonly script: WodScript;
     readonly memory: IRuntimeMemory;
     readonly stack: RuntimeStack;
     readonly jit: JitCompiler;
+    readonly clock: RuntimeClock;
     
     /** Errors collected during runtime execution */
     readonly errors?: RuntimeError[];

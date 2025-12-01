@@ -10,8 +10,10 @@ import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import { TypedMemoryReference } from './IMemoryReference';
 import { RuntimeMetric, MetricValue } from './RuntimeMetric';
+
+import { RuntimeClock } from './RuntimeClock';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -20,6 +22,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly jit: JitCompiler;
     public readonly memory: IRuntimeMemory;
     public readonly metrics: IMetricCollector;
+    public readonly clock: RuntimeClock;
     public readonly errors: RuntimeError[] = [];
     private _lastUpdatedBlocks: Set<string> = new Set();
     
@@ -27,9 +30,12 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = new RuntimeStack();
         this.memory = new RuntimeMemory();
         this.metrics = new MetricCollector();
+        this.clock = new RuntimeClock();
         this.jit = compiler;
         this._setupMemoryAwareStack();
 
+        // Start the clock
+        this.clock.start();
     }
 
     /**
@@ -249,6 +255,9 @@ export class ScriptRuntime implements IScriptRuntime {
      * Useful for shutdown or error recovery scenarios.
      */
     public disposeAllBlocks(): void {
+        // Stop the clock
+        this.clock.stop();
+
         const disposeErrors: Error[] = [];
         
         while (this.stack.blocks.length > 0) {

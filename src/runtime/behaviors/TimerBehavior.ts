@@ -7,6 +7,7 @@ import { TypedMemoryReference } from '../IMemoryReference';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/TimerDisplayActions';
 import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { ITickable } from '../ITickable';
 
 /**
  * Timer memory reference types for runtime memory system.
@@ -38,18 +39,18 @@ export interface TimeSpan {
  * - Emits timer:tick events every ~100ms for UI updates
  * - Emits timer:complete when countdown reaches zero
  * - Supports pause/resume via behavior methods
- * - Uses performance.now() for sub-millisecond precision
- * - Automatically cleans up intervals on disposal
+ * - Uses Unified Clock (RuntimeClock) for time management
+ * - Automatically cleans up on disposal
  * 
  * API Contract: contracts/runtime-blocks-api.md
  */
-export class TimerBehavior implements IRuntimeBehavior {
-  private intervalId?: ReturnType<typeof setInterval>;
+export class TimerBehavior implements IRuntimeBehavior, ITickable {
   private startTime = 0;
   private elapsedMs = 0;
   private _isPaused = false;
   private pauseTime = 0;
   private readonly tickIntervalMs = 100; // ~10 ticks per second
+  private lastTickTime = 0;
   private _runtime?: IScriptRuntime;
   private timerRef?: TypedMemoryReference<TimerState>;
 
@@ -69,8 +70,6 @@ export class TimerBehavior implements IRuntimeBehavior {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
     }
   }
-
-
 
   /**
    * Start the timer when block is pushed onto the stack.
@@ -101,16 +100,13 @@ export class TimerBehavior implements IRuntimeBehavior {
         'public'
     );
     
-    this.startTime = performance.now();
+    this.startTime = runtime.clock.now;
     this.elapsedMs = 0;
     this._isPaused = false;
+    this.lastTickTime = 0;
 
-    // Start the tick interval
-    this.intervalId = setInterval(() => {
-      if (!this._isPaused) {
-        this.tick(runtime, block);
-      }
-    }, this.tickIntervalMs);
+    // Register with unified clock
+    runtime.clock.register(this);
 
     // Emit timer:started event
     runtime.handle({
@@ -149,7 +145,10 @@ export class TimerBehavior implements IRuntimeBehavior {
   /**
    * Called right before the owning block is popped from the stack.
    */
-  onPop(_runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    // Unregister from clock
+    runtime.clock.unregister(this);
+
     return [
       new PopTimerDisplayAction(`timer-${block.key}`),
       new PopCardDisplayAction(`card-${block.key}`)
@@ -157,12 +156,27 @@ export class TimerBehavior implements IRuntimeBehavior {
   }
 
   /**
-   * Execute timer tick: update elapsed time and emit event.
-   * For countdown timers, also checks for completion.
+   * Called by RuntimeClock on every tick.
    */
-  private tick(runtime: IScriptRuntime, block: IRuntimeBlock): void {
-    const now = performance.now();
-    this.elapsedMs = now - this.startTime;
+  onTick(timestamp: number, _elapsed: number): void {
+    if (this._isPaused || !this._runtime) return;
+
+    // Throttle updates to ~100ms
+    if (timestamp - this.lastTickTime < this.tickIntervalMs) {
+        return;
+    }
+    this.lastTickTime = timestamp;
+
+    // We need the block to emit events with the block ID.
+    // Since onTick doesn't provide the block, we rely on the memory reference or stored ID.
+    // However, IRuntimeBehavior doesn't store the block by default.
+    // We can get the block ID from the timerRef if initialized.
+    if (!this.timerRef) return;
+    
+    const blockId = this.timerRef.ownerId;
+    
+    // Calculate elapsed time
+    this.elapsedMs = timestamp - this.startTime;
 
     // Check for countdown completion
     if (this.direction === 'down' && this.durationMs !== undefined) {
@@ -171,16 +185,15 @@ export class TimerBehavior implements IRuntimeBehavior {
       if (remainingMs <= 0) {
         // Timer complete!
         this.elapsedMs = this.durationMs;
-        if (this.intervalId !== undefined) {
-          clearInterval(this.intervalId);
-          this.intervalId = undefined;
-        }
         
-        runtime.handle({
+        // Stop receiving ticks
+        this._runtime.clock.unregister(this);
+        
+        this._runtime.handle({
           name: 'timer:complete',
           timestamp: new Date(),
           data: {
-            blockId: block.key.toString(),
+            blockId: blockId,
             finalTime: this.durationMs,
           },
         });
@@ -190,7 +203,7 @@ export class TimerBehavior implements IRuntimeBehavior {
 
     // Emit tick event
     const tickData: any = {
-      blockId: block.key.toString(),
+      blockId: blockId,
       elapsedMs: this.elapsedMs,
       displayTime: this.getDisplayTime(),
       direction: this.direction,
@@ -201,7 +214,7 @@ export class TimerBehavior implements IRuntimeBehavior {
       tickData.remainingMs = this.durationMs - this.elapsedMs;
     }
     
-    runtime.handle({
+    this._runtime.handle({
       name: 'timer:tick',
       timestamp: new Date(),
       data: tickData,
@@ -216,9 +229,8 @@ export class TimerBehavior implements IRuntimeBehavior {
       return this.elapsedMs;
     }
 
-    if (this.intervalId !== undefined) {
-      const now = performance.now();
-      return now - this.startTime;
+    if (this._runtime) {
+      return this._runtime.clock.now - this.startTime;
     }
 
     return this.elapsedMs;
@@ -240,7 +252,7 @@ export class TimerBehavior implements IRuntimeBehavior {
     if (this.timerRef) {
       return this.timerRef.get()?.isRunning || false;
     }
-    return this.intervalId !== undefined && !this._isPaused;
+    return !this._isPaused;
   }
 
   /**
@@ -329,9 +341,9 @@ export class TimerBehavior implements IRuntimeBehavior {
   pause(): void {
     if (!this.timerRef) {
       // Fallback to old behavior if memory not initialized
-      if (!this._isPaused && this.intervalId !== undefined) {
+      if (!this._isPaused && this._runtime) {
         this._isPaused = true;
-        this.pauseTime = performance.now();
+        this.pauseTime = this._runtime.clock.now;
         this.elapsedMs = this.pauseTime - this.startTime;
       }
       return;
@@ -363,9 +375,9 @@ export class TimerBehavior implements IRuntimeBehavior {
   resume(): void {
     if (!this.timerRef) {
       // Fallback to old behavior if memory not initialized
-      if (this._isPaused && this.intervalId !== undefined) {
+      if (this._isPaused && this._runtime) {
         this._isPaused = false;
-        const now = performance.now();
+        const now = this._runtime.clock.now;
         this.startTime = now - this.elapsedMs;
       }
       return;
@@ -395,16 +407,9 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Cleanup: clear interval and remove event listeners.
    * Must complete in <50ms per performance contract.
    */
-  /**
-   * Cleanup: clear interval and remove event listeners.
-   * Must complete in <50ms per performance contract.
-   */
-  onDispose(runtime: IScriptRuntime, block: IRuntimeBlock): void {
+  onDispose(runtime: IScriptRuntime, _block: IRuntimeBlock): void {
     this.stop();
-    if (this.intervalId !== undefined) {
-      clearInterval(this.intervalId);
-      this.intervalId = undefined;
-    }
+    runtime.clock.unregister(this);
   }
 
   /**
@@ -449,10 +454,10 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Reset the timer. Clears all time spans and stops the timer.
    */
   reset(): void {
-    if (this.intervalId !== undefined) {
-      clearInterval(this.intervalId);
-      this.intervalId = undefined;
+    if (this._runtime) {
+        this._runtime.clock.unregister(this);
     }
+    
     this._isPaused = false;
     this.elapsedMs = 0;
     this.startTime = 0;

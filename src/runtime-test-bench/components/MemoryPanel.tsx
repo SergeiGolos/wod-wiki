@@ -85,15 +85,16 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
 
   // Render a single memory entry as a table row
   const renderEntryRow = (entry: typeof entries[0]) => {
-    const isHighlighted = highlightedMemoryId === entry.id ||
-                         highlightedOwnerKey === entry.ownerId;
+    const isHighlightedById = highlightedMemoryId === entry.id;
+    const isHighlightedByOwner = highlightedOwnerKey === entry.ownerId;
+    const isHighlighted = isHighlightedById || isHighlightedByOwner;
 
     return (
       <tr
         key={entry.id}
         className={`
           cursor-pointer transition-colors border-b border-border/40 last:border-0
-          ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
+          ${isHighlightedByOwner ? 'bg-yellow-200 dark:bg-yellow-900/40' : isHighlightedById ? 'bg-primary/10' : 'hover:bg-muted/30'}
           ${!entry.isValid ? 'opacity-60' : ''}
         `}
         onMouseEnter={() => onEntryHover?.(entry.id, entry.ownerId)}

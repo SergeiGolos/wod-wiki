@@ -325,13 +325,22 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   // Real Analytics Data from Runtime
   // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
   const [analyticsState, setAnalyticsState] = useState<{data: any[], segments: Segment[], groups: AnalyticsGroup[]}>({ data: [], segments: [], groups: [] });
+  
+  const lastAnalyticsUpdateRef = useRef(0);
+  const lastStatusRef = useRef(execution.status);
 
   useEffect(() => {
     if (runtime) {
-      // Only update when execution state changes significantly (e.g. paused, stopped, or periodically)
-      // For live updates, we might want to throttle this or rely on execution.stepCount
-      const newState = transformRuntimeToAnalytics(runtime);
-      setAnalyticsState(newState);
+      const now = Date.now();
+      const statusChanged = execution.status !== lastStatusRef.current;
+      const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
+
+      if (shouldUpdate) {
+        const newState = transformRuntimeToAnalytics(runtime);
+        setAnalyticsState(newState);
+        lastAnalyticsUpdateRef.current = now;
+        lastStatusRef.current = execution.status;
+      }
     }
   }, [runtime, execution.stepCount, execution.status]);
 
@@ -512,14 +521,12 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const trackIndexPanel = (
     <TimerIndexPanel
       runtime={runtime}
-      activeBlock={selectedBlock}
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
       highlightedBlockKey={hoveredBlockKey}
       autoScroll={execution.status === 'running'}
       mobile={isMobile}
       workoutStartTime={execution.startTime}
-      hideContextPanel={isDebugMode}
     />
   );
 
