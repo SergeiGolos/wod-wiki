@@ -11,6 +11,7 @@ import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 import { ExecutionSpan, createEmptyMetrics } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
+import { IEvent } from '../IEvent';
 
 /**
  * Loop type determines completion logic.
@@ -74,6 +75,7 @@ export interface LoopState {
  */
 export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   private index: number = -1; // Pre-first-advance state (onPush will increment to 0)
+  private isWaitingForInterval: boolean = false;
   private readonly config: LoopConfig;
   private lapTimerRefs: TypedMemoryReference<TimeSpan[]>[] = []; // Track lap timer refs for cleanup
 
@@ -157,15 +159,43 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when advancing to the next execution step.
    * Returns PushBlockAction for next child or empty array if complete.
    */
-  onNext(runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
-    // Increment index first
+  onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    // Handle INTERVAL waiting logic
+    if (this.config.loopType === LoopType.INTERVAL) {
+        // If we are waiting, do nothing (waiting for timer:complete)
+        if (this.isWaitingForInterval) {
+            return [];
+        }
+
+        // If we have started at least one round (index >= 0) and the timer is running,
+        // it means we finished the work early and need to wait.
+        // EXCEPTION: If index is -1, we are just starting, so proceed immediately.
+        if (this.index >= 0) {
+            const timerBehavior = block.getBehavior(TimerBehavior);
+            if (timerBehavior && timerBehavior.isRunning() && !timerBehavior.isComplete()) {
+                console.log(`LoopCoordinator: Work complete, waiting for interval timer...`);
+                this.isWaitingForInterval = true;
+                return [];
+            }
+        }
+    }
+
+    // Proceed to advance
+    return this.advance(runtime, block);
+  }
+
+  /**
+   * Advances the loop state and returns actions to execute next step.
+   */
+  private advance(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    // Increment index
     this.index++;
 
     // Get current state after increment
     const state = this.getState();
 
     // Check completion AFTER incrementing
-    if (this.isComplete(runtime, _block)) {
+    if (this.isComplete(runtime, block)) {
       return [];
     }
 
@@ -184,7 +214,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Check if this is a round boundary (position wrapped to 0)
     // Emit for every round start, including the first one (rounds=0)
     if (state.position === 0) {
-      this.emitRoundChanged(runtime, state.rounds, _block);
+      this.emitRoundChanged(runtime, state.rounds, block);
       
       // Execute custom round start logic (e.g., updating inherited metrics)
       if (this.config.onRoundStart) {
@@ -223,6 +253,52 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       console.error(`LoopCoordinatorBehavior: Compilation failed for position ${state.position}:`, error);
       return actions;
     }
+  }
+
+  /**
+   * Handles events dispatched to the block.
+   */
+  onEvent(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+      // Handle interval completion
+      if (event.name === 'timer:complete' && this.config.loopType === LoopType.INTERVAL) {
+          // Verify the event comes from OUR block
+          if (event.data?.blockId === block.key.toString()) {
+              if (this.isWaitingForInterval) {
+                  console.log(`LoopCoordinator: Interval timer complete, advancing to next round.`);
+                  this.isWaitingForInterval = false;
+                  return this.advance(runtime, block);
+              } else {
+                  // If we receive timer:complete but we weren't waiting, it usually means
+                  // we are still working (AMRAP within Interval? Or just slow).
+                  // In classic EMOM: "Every Minute On the Minute".
+                  // If work takes > 1 min, you fail the interval or start next one immediately.
+                  // We should probably just advance immediately if we are not complete.
+                  // But currently, if child is running, we can't just "advance" because the child is on top of stack.
+                  // This event handler runs on the PARENT block.
+                  // If stack.current is child, parent gets event?
+                  // RuntimeBlock.registerEventDispatcher only dispatches if `runtime.stack.current === this`.
+                  // So we only get this event if we are the current block (meaning children are done/popped).
+
+                  // Wait, if children are running, `runtime.stack.current` is the child.
+                  // So `onEvent` will NOT be called on parent.
+                  // So we only catch `timer:complete` if we are waiting (children popped).
+
+                  // But what if the timer completes WHILE child is running?
+                  // `TimerBehavior` emits `timer:complete`.
+                  // `RuntimeBlock` (parent) registers dispatcher.
+                  // Dispatcher checks `runtime.stack.current === this`.
+                  // If child is running, parent is NOT current. So parent ignores event.
+
+                  // This means if you are slow (work > interval), the parent never sees `timer:complete`.
+                  // When child finally finishes, `onNext` is called.
+                  // `onNext` sees timer is complete (or stopped).
+                  // If stopped, `isRunning()` is false.
+                  // Then we proceed to `advance()`.
+                  // This seems correct for "Catch up" behavior (start next round immediately).
+              }
+          }
+      }
+      return [];
   }
 
   /**
