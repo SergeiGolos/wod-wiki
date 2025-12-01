@@ -17,7 +17,7 @@ import { TimerBehavior } from "../behaviors/TimerBehavior";
 
 /**
  * Strategy that creates time-bound rounds blocks for AMRAP workouts.
- * Matches statements with Timer + (Rounds OR Action="AMRAP").
+ * Matches statements with Timer + (Rounds OR behavior.time_bound hint from dialect).
  *
  * AMRAP = As Many Rounds As Possible
  * Example: "20:00 AMRAP\n  5 Pullups\n  10 Pushups"
@@ -27,19 +27,11 @@ import { TimerBehavior } from "../behaviors/TimerBehavior";
  * This strategy has higher precedence than TimerStrategy and RoundsStrategy
  * because it combines both concepts.
  *
- * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * The strategy now uses semantic hints from the dialect registry instead of
+ * hardcoded regex matching. The 'behavior.time_bound' hint is set by dialects
+ * like CrossFitDialect when detecting AMRAP or similar patterns.
  *
- * TODO: Full compile() implementation requires:
- * 1. Extract timer duration from Timer fragment (e.g., 1200000ms from "20:00")
- * 2. Extract child statements from code[0].children
- * 3. Create TimerBlock with direction='down' and durationMs
- * 4. Create nested RoundsBlock with:
- *    - loopType: LoopType.TIME_BOUND (infinite until timer expires)
- *    - childGroups: [childStatements]
- *    - totalRounds: Infinity or large number
- * 5. TimerBlock wraps the RoundsBlock as its child
- * 6. Completion: when timer expires
- * 7. Block should track completed rounds for display
+ * Implementation Status: COMPLETE - Match logic uses hints, compile logic implemented
  */
 export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -53,16 +45,16 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             return false;
         }
 
-        const fragments = statements[0].fragments;
+        const statement = statements[0];
+        const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
-        const hasAmrapAction = fragments.some(f =>
-            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
-            (f.value as string)?.toUpperCase().includes('AMRAP')
-        );
+        
+        // Check for behavior.time_bound hint from dialect (e.g., AMRAP detected)
+        const isTimeBound = statement.hints?.has('behavior.time_bound') ?? false;
 
-        // Match if has Timer AND (Rounds OR AMRAP action/effort)
-        return hasTimer && (hasRounds || hasAmrapAction);
+        // Match if has Timer AND (Rounds OR time_bound hint)
+        return hasTimer && (hasRounds || isTimeBound);
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
