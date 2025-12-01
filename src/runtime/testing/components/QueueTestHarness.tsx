@@ -10,6 +10,7 @@
  * - Execute queue step-by-step or all at once
  * - Visualize stack/memory state after each step
  * - 3 default templates for testing common behaviors
+ * - UNIFIED VIEW: Integrates with StackedClockDisplay for live workout visualization
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
@@ -28,6 +29,8 @@ import {
   IntervalStrategy
 } from '../../strategies';
 import { SnapshotDiffViewer, SnapshotDiffSummary } from './SnapshotDiffViewer';
+import { RuntimeProvider } from '../../context/RuntimeContext';
+import { StackedClockDisplay } from '../../../clock/components/StackedClockDisplay';
 
 // ==================== Types ====================
 
@@ -77,6 +80,10 @@ export interface QueueTestHarnessProps {
   onExecutionComplete?: (snapshots: RuntimeSnapshot[], diffs: SnapshotDiff[]) => void;
   /** Additional CSS classes */
   className?: string;
+  /** Show the unified runtime view (StackedClockDisplay) */
+  showRuntimeView?: boolean;
+  /** Layout mode: 'horizontal' splits left/right, 'vertical' stacks top/bottom */
+  layout?: 'horizontal' | 'vertical';
 }
 
 // ==================== Default Templates ====================
@@ -166,7 +173,9 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
   initialTemplate,
   customTemplates = [],
   onExecutionComplete,
-  className = ''
+  className = '',
+  showRuntimeView = false,
+  layout = 'horizontal'
 }) => {
   // Script state
   const [wodScript, setWodScript] = useState(initialTemplate?.wodScript ?? initialScript);
@@ -494,11 +503,28 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
     }
     return testRuntime.diff(snapshots[snapshots.length - 2], snapshots[snapshots.length - 1]);
   }, [testRuntime, snapshots, selectedDiffIndices]);
+
+  // Get the underlying runtime for the runtime view
+  const underlyingRuntime = useMemo(() => {
+    return testRuntime?.wrapped ?? null;
+  }, [testRuntime]);
+
+  // Handle runtime events from StackedClockDisplay
+  const handleRuntimeButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {
+    if (!testRuntime) return;
+    console.log(`🎮 QueueTestHarness: Runtime button click - ${eventName}`, payload);
+    testRuntime.handle({
+      name: eventName,
+      timestamp: new Date(),
+      data: payload || {},
+    });
+  }, [testRuntime]);
   
-  return (
-    <div className={`queue-test-harness ${className}`}>
+  // Build the test controls panel (left side or top)
+  const TestControlsPanel = () => (
+    <div className="space-y-4">
       {/* Template Selection */}
-      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+      <div className="p-3 bg-gray-50 rounded-lg">
         <label className="block text-sm font-medium mb-2">Templates</label>
         <div className="flex flex-wrap gap-2">
           {allTemplates.map(template => (
@@ -514,7 +540,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
         </div>
       </div>
       
-      {/* Main Layout */}
+      {/* Main Controls Grid */}
       <div className="grid grid-cols-2 gap-4">
         {/* Left: Script & Statement Selection */}
         <div className="space-y-4">
@@ -728,6 +754,75 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           </div>
         </div>
       )}
+    </div>
+  );
+
+  // Build the runtime view panel (right side or bottom)
+  const RuntimeViewPanel = () => (
+    <div className="p-4 bg-slate-900 rounded-lg min-h-[400px]">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white">🏋️ Workout Output</h3>
+        <div className="flex items-center gap-2">
+          {testRuntime && (
+            <span className="text-xs text-slate-400">
+              Runtime: {underlyingRuntime ? 'Connected' : 'Not connected'}
+            </span>
+          )}
+          <div className={`w-2 h-2 rounded-full ${testRuntime ? 'bg-green-500' : 'bg-gray-500'}`} />
+        </div>
+      </div>
+      
+      {underlyingRuntime ? (
+        <RuntimeProvider runtime={underlyingRuntime}>
+          <StackedClockDisplay
+            className="w-full"
+            showStackDebug={true}
+            onButtonClick={handleRuntimeButtonClick}
+          />
+        </RuntimeProvider>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+          <div className="text-6xl mb-4">🏃</div>
+          <p className="text-center">
+            No active runtime.<br />
+            <span className="text-sm">Click &quot;Step&quot; or &quot;Run All&quot; to start executing the test queue.</span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+  
+  // Render based on layout and showRuntimeView
+  if (!showRuntimeView) {
+    // Original behavior - just test controls
+    return (
+      <div className={`queue-test-harness ${className}`}>
+        <TestControlsPanel />
+      </div>
+    );
+  }
+
+  // Unified view with runtime visualization
+  if (layout === 'vertical') {
+    return (
+      <div className={`queue-test-harness ${className}`}>
+        <TestControlsPanel />
+        <div className="mt-6">
+          <RuntimeViewPanel />
+        </div>
+      </div>
+    );
+  }
+
+  // Default: horizontal layout
+  return (
+    <div className={`queue-test-harness flex gap-6 ${className}`}>
+      <div className="flex-1 min-w-0">
+        <TestControlsPanel />
+      </div>
+      <div className="w-[450px] flex-shrink-0">
+        <RuntimeViewPanel />
+      </div>
     </div>
   );
 };

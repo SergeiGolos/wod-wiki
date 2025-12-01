@@ -3,6 +3,7 @@
  * 
  * Interactive testing workbench using TestableRuntime with queue-based execution.
  * Supports step-by-step or all-at-once execution with 3 default templates.
+ * Now includes UNIFIED VIEW with StackedClockDisplay for live workout visualization!
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
@@ -28,40 +29,42 @@ test scenarios step-by-step or all at once.
 - **Execute**: Run step-by-step or all at once
 - **Visualize**: See stack/memory state changes after each action
 - **Templates**: 3 default templates for common behavior testing
+- **🆕 Unified View**: Live workout output visualization via StackedClockDisplay
+
+## Unified Runtime View
+
+Enable \`showRuntimeView\` to see the actual workout output as tests execute:
+- Timer display with countdown/elapsed time
+- Card stack showing current activity
+- Real-time updates as actions execute
+- Useful for verifying visual output matches expected behavior
 
 ## Default Templates
 
 ### 1. Effort Completion
 Tests EffortBlock completion behavior when reps reach target.
-- Push effort block
-- Mount and simulate rep events
-- Verify completion when target reached
 
 ### 2. Timer Expiration  
 Tests TimerBlock completion when time expires.
-- Push timer block with children
-- Mount and simulate ticks
-- Verify completion on timer expiration
 
 ### 3. Rounds Iteration
 Tests RoundsBlock iteration through multiple rounds.
-- Push rounds block with children
-- Mount and advance through rounds
-- Verify completion after all rounds
 
 ## Usage
 
 1. Select a template or enter custom WOD script
 2. Build execution queue by clicking statements or adding actions
 3. Click "Step" for step-by-step or "Run All" for batch execution
-4. Review snapshot diffs to verify behavior
+4. Review snapshot diffs AND workout output to verify behavior
         `
       }
     }
   },
   argTypes: {
     initialScript: { control: 'text' },
-    className: { control: 'text' }
+    className: { control: 'text' },
+    showRuntimeView: { control: 'boolean' },
+    layout: { control: 'select', options: ['horizontal', 'vertical'] }
   }
 };
 
@@ -246,6 +249,153 @@ export const ComplexWorkout: Story = {
     docs: {
       description: {
         story: 'A complex workout with nested rounds to test hierarchical block management.'
+      }
+    }
+  }
+};
+
+// ==================== UNIFIED VIEW STORIES ====================
+
+export const UnifiedViewHorizontal: Story = {
+  args: {
+    initialScript: '5 Pullups',
+    showRuntimeView: true,
+    layout: 'horizontal'
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story: `
+## 🆕 Unified View (Horizontal)
+
+Test harness with live workout visualization side by side!
+
+- **Left panel**: Test controls, queue, and snapshot diffs  
+- **Right panel**: StackedClockDisplay showing actual workout output
+
+Perfect for seeing how runtime state changes affect the visual display.
+        `
+      }
+    }
+  }
+};
+
+export const UnifiedViewVertical: Story = {
+  args: {
+    initialScript: '5 Pullups',
+    showRuntimeView: true,
+    layout: 'vertical'
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+## 🆕 Unified View (Vertical)
+
+Same as horizontal but stacked top-to-bottom layout.
+Better for narrower viewports or when you want more horizontal space.
+        `
+      }
+    }
+  }
+};
+
+export const UnifiedTimerTest: Story = {
+  args: {
+    showRuntimeView: true,
+    layout: 'horizontal',
+    initialTemplate: {
+      id: 'timer-expiration',
+      name: 'Timer Expiration',
+      description: 'Test TimerBlock with live visualization',
+      wodScript: `5:00 For Time:
+  Run 400m`,
+      queue: [
+        { type: 'push', label: 'Push Timer Block', statementIndex: 0, includeChildren: true },
+        { type: 'mount', label: 'Mount Block' },
+        { type: 'tick', label: 'Tick (simulate time)' },
+        { type: 'next', label: 'Call next()' },
+        { type: 'tick', label: 'Tick (more time)' },
+      ]
+    }
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story: `
+## Timer Test with Unified View
+
+Watch the timer countdown in real-time as you step through test actions.
+- Push timer block to see clock appear
+- Mount to start the workout display
+- Tick to advance time and see countdown update
+        `
+      }
+    }
+  }
+};
+
+export const UnifiedRoundsTest: Story = {
+  args: {
+    showRuntimeView: true,
+    layout: 'horizontal',
+    initialTemplate: {
+      id: 'rounds-iteration',
+      name: 'Rounds Iteration',
+      description: 'Test RoundsBlock with live visualization',
+      wodScript: `3 Rounds
+  10 Pushups
+  15 Squats`,
+      queue: [
+        { type: 'push', label: 'Push Rounds Block', statementIndex: 0, includeChildren: true },
+        { type: 'mount', label: 'Mount (Start Round 1)' },
+        { type: 'next', label: 'Complete Round 1' },
+        { type: 'next', label: 'Advance to Round 2' },
+        { type: 'next', label: 'Complete Round 2' },
+        { type: 'next', label: 'Advance to Round 3' },
+        { type: 'next', label: 'Complete Round 3' },
+        { type: 'next', label: 'Should Complete' },
+      ]
+    }
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story: `
+## Rounds Test with Unified View
+
+Watch round progression in the workout display as you step through:
+- See round badge update (1/3 → 2/3 → 3/3)
+- Watch activity cards change as you advance
+- Verify completion state in the workout view
+        `
+      }
+    }
+  }
+};
+
+export const UnifiedAMRAPTest: Story = {
+  args: {
+    showRuntimeView: true,
+    layout: 'horizontal',
+    customTemplates: [amrapTemplate, emomTemplate],
+    initialTemplate: amrapTemplate
+  },
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story: `
+## AMRAP Test with Unified View
+
+Test time-bounded rounds (AMRAP) with live visualization:
+- Timer counts down from 20:00
+- Rounds increment as you complete each round
+- Activity cards show current movement
+        `
       }
     }
   }

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
-import { TimeSpan } from '../../runtime/behaviors/TimerBehavior';
+import { TimerState } from '../../runtime/models/MemoryModels';
 import { 
   useDisplayStack, 
   useCurrentTimer, 
@@ -261,10 +261,11 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
       visibility: null,
     });
     
-    return refs[0] as TypedMemoryReference<TimeSpan[]> | undefined;
+    return refs[0] as TypedMemoryReference<TimerState> | undefined;
   }, [runtime, timerEntry?.timerMemoryId]);
 
-  const timeSpans = useMemorySubscription(timerRef) || [];
+  const timerState = useMemorySubscription(timerRef);
+  const timeSpans = timerState?.spans || [];
 
   // Calculate elapsed time
   const elapsed = useMemo(() => {
@@ -272,8 +273,8 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
     
     return timeSpans.reduce((total, span) => {
       if (!span.start) return total;
-      const stop = span.stop?.getTime() || now;
-      return total + (stop - span.start.getTime());
+      const stop = span.stop || now;
+      return total + (stop - span.start);
     }, 0);
   }, [timeSpans, now]);
 
@@ -406,10 +407,11 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
       visibility: null,
     });
     
-    return refs[0] as TypedMemoryReference<TimeSpan[]> | undefined;
+    return refs[0] as TypedMemoryReference<TimerState> | undefined;
   }, [runtime, timerEntry?.timerMemoryId]);
 
-  const timeSpans = useMemorySubscription(timerRef) || [];
+  const timerState = useMemorySubscription(timerRef);
+  const timeSpans = timerState?.spans || [];
 
   // Calculate elapsed time
   const elapsed = useMemo(() => {
@@ -417,8 +419,8 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
     
     return timeSpans.reduce((total, span) => {
       if (!span.start) return total;
-      const stop = span.stop?.getTime() || now;
-      return total + (stop - span.start.getTime());
+      const stop = span.stop || now;
+      return total + (stop - span.start);
     }, 0);
   }, [timeSpans, now]);
 

@@ -209,6 +209,8 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
     // Group into sections
     const resultSections: LogSection[] = [];
     const sectionsByBlockId = new Map<string, LogSection[]>();
+    // New map to find sibling sections (e.g. Round 1, Round 2) that share the same parent (EMOM)
+    const sectionsByParentId = new Map<string, LogSection[]>();
 
     const addSection = (section: LogSection) => {
         // Check if the last section has the same title and type
@@ -233,11 +235,22 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         }
 
         resultSections.push(section);
+        
         // Map section ID (its own ID)
         if (!sectionsByBlockId.has(section.id)) {
             sectionsByBlockId.set(section.id, []);
         }
         sectionsByBlockId.get(section.id)!.push(section);
+
+        // Map parent ID (to find siblings)
+        // We need to look up the entry that created this section to get its parentId
+        const entry = allEntries.find(e => e.id === section.id);
+        if (entry && entry.parentId) {
+            if (!sectionsByParentId.has(entry.parentId)) {
+                sectionsByParentId.set(entry.parentId, []);
+            }
+            sectionsByParentId.get(entry.parentId)!.push(section);
+        }
     };
     
     allEntries.forEach(entry => {
@@ -259,6 +272,7 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         // Leaf item
         let targetSection: LogSection | undefined;
 
+        // 1. Try to find a direct parent section (e.g. if this is a child of a Round block)
         if (entry.parentId) {
             const candidates = sectionsByBlockId.get(entry.parentId);
             if (candidates && candidates.length > 0) {
@@ -266,6 +280,32 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
                 for (let i = candidates.length - 1; i >= 0; i--) {
                     if (candidates[i].startTime <= entry.startTime + 100) {
                         targetSection = candidates[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. If no direct parent section found, check for SIBLING sections (e.g. Round 1, Round 2)
+        // This happens when the exercise is a direct child of the Loop (EMOM), but we want it grouped under the current Round.
+        if (!targetSection && entry.parentId) {
+            const siblingSections = sectionsByParentId.get(entry.parentId);
+            if (siblingSections) {
+                // Filter for container types that act as groups (rounds, intervals)
+                const candidates = siblingSections.filter(s => 
+                    ['round', 'interval', 'warmup', 'cooldown'].includes(s.type.toLowerCase())
+                );
+                
+                // Find the one that covers this entry's time
+                // We want the LATEST one that started BEFORE this entry
+                for (let i = candidates.length - 1; i >= 0; i--) {
+                    const s = candidates[i];
+                    // Entry must start after section start (with small buffer)
+                    if (s.startTime <= entry.startTime + 100) {
+                        // And if section has ended, entry must be within it (or close to end)
+                        // But usually rounds are sequential.
+                        // If we have "Round 1" (active) and "Round 2" (not started), we pick Round 1.
+                        targetSection = s;
                         break;
                     }
                 }
