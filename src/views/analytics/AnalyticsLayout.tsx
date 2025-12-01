@@ -7,8 +7,7 @@ import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, BarChart3 } from 'lucide-react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { useExecutionLog } from '../../clock/hooks/useExecutionLog';
-import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
+import { useExecutionLog, ExecutionRecord } from '../../clock/hooks/useExecutionLog';
 
 interface AnalyticsLayoutProps {
   activeBlock: WodBlock | null;
@@ -127,7 +126,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
       duration: record.endTime 
         ? (record.endTime - record.startTime) / 1000
         : (Date.now() - record.startTime) / 1000,
-      parentId: record.parentId ? hashCode(record.parentId) : null,
+      parentId: record.parentSpanId ? hashCode(record.parentSpanId) : null,
       depth: 0,
       avgPower: 0,
       avgHr: 0,

@@ -37,7 +37,7 @@ export interface ITimerDisplayEntry {
   priority?: number;
 
   /** Semantic role of the timer */
-  role?: 'root' | 'segment' | 'leaf';
+  role?: 'primary' | 'secondary' | 'auto';
 }
 
 /**
@@ -99,6 +99,12 @@ export interface IDisplayCardEntry {
    * These should match the format used by FragmentVisualizer
    */
   metrics?: IDisplayMetric[];
+
+  /**
+   * Optional grouped metrics for multi-row display.
+   * If present, this takes precedence over 'metrics'.
+   */
+  metricGroups?: IDisplayMetric[][];
   
   /** For 'custom' type: the component ID to render */
   componentId?: string;

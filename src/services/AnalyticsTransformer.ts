@@ -1,6 +1,58 @@
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
+import { SpanMetrics } from '../runtime/models/ExecutionSpan';
+
+/**
+ * Extract numeric metrics from SpanMetrics object into a Record<string, number>
+ */
+function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Record<string, number> {
+  const metrics: Record<string, number> = {};
+  
+  if (!spanMetrics) return metrics;
+  
+  // Extract typed metrics
+  if (spanMetrics.reps?.value !== undefined) {
+    metrics['repetitions'] = spanMetrics.reps.value;
+  }
+  if (spanMetrics.weight?.value !== undefined) {
+    metrics['resistance'] = spanMetrics.weight.value;
+  }
+  if (spanMetrics.distance?.value !== undefined) {
+    metrics['distance'] = spanMetrics.distance.value;
+  }
+  if (spanMetrics.duration?.value !== undefined) {
+    metrics['time'] = spanMetrics.duration.value;
+  }
+  if (spanMetrics.calories?.value !== undefined) {
+    metrics['calories'] = spanMetrics.calories.value;
+  }
+  if (spanMetrics.heartRate?.value !== undefined) {
+    metrics['heart_rate'] = spanMetrics.heartRate.value;
+  }
+  if (spanMetrics.power?.value !== undefined) {
+    metrics['power'] = spanMetrics.power.value;
+  }
+  if (spanMetrics.cadence?.value !== undefined) {
+    metrics['cadence'] = spanMetrics.cadence.value;
+  }
+  if (spanMetrics.currentRound !== undefined) {
+    metrics['rounds'] = spanMetrics.currentRound;
+  }
+  
+  // Extract legacy metrics if present
+  if (spanMetrics.legacyMetrics) {
+    spanMetrics.legacyMetrics.forEach(m => {
+      m.values.forEach(v => {
+        if (v.value !== undefined) {
+          metrics[v.type] = v.value;
+        }
+      });
+    });
+  }
+  
+  return metrics;
+}
 
 // --- Analytics Data Transformation ---
 export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: any[], segments: Segment[], groups: AnalyticsGroup[] } => {
@@ -24,10 +76,10 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       label: b.label || b.blockType || 'Block',
       type: b.blockType || 'unknown',
       startTime: Date.now(), // This is tricky for active blocks without stored start time
-      endTime: undefined,
-      parentId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
+      endTime: undefined as number | undefined,
+      parentSpanId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
       depth: i,
-      metrics: []
+      metrics: {} as SpanMetrics
     }))
   ];
 
@@ -47,10 +99,11 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
   allRecords.forEach(record => {
     // Calculate depth
     let depth = 0;
-    // For active blocks, we might have parentId from stack structure
-    // For log records, we have parentId
-    if (record.parentId && idToDepth.has(record.parentId)) {
-      depth = (idToDepth.get(record.parentId) || 0) + 1;
+    // For active blocks, we might have parentSpanId from stack structure
+    // For log records, we have parentSpanId
+    const parentId = 'parentSpanId' in record ? record.parentSpanId : null;
+    if (parentId && idToDepth.has(parentId)) {
+      depth = (idToDepth.get(parentId) || 0) + 1;
     }
     idToDepth.set(record.id, depth);
 
@@ -58,20 +111,8 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
     const endTime = record.endTime || Date.now();
     const duration = (endTime - record.startTime) / 1000;
 
-    // Extract metrics dynamically
-    const metrics: Record<string, number> = {};
-
-    if (record.metrics) {
-      record.metrics.forEach(m => {
-        m.values.forEach(v => {
-          if (v.value !== undefined) {
-            // Use the metric type as the key (e.g., 'power', 'heart_rate', 'cadence')
-            // If multiple values of same type exist, we currently overwrite (could average instead)
-            metrics[v.type] = v.value;
-          }
-        });
-      });
-    }
+    // Extract metrics from SpanMetrics object
+    const metrics = extractMetricsFromSpanMetrics(record.metrics);
 
     segments.push({
       id: hashCode(record.id), // Use hash for numeric ID required by Segment interface
@@ -80,7 +121,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       startTime: (record.startTime - workoutStartTime) / 1000,
       endTime: (endTime - workoutStartTime) / 1000,
       duration: duration,
-      parentId: record.parentId ? hashCode(record.parentId) : null,
+      parentId: parentId ? hashCode(parentId) : null,
       depth: depth,
       metrics: metrics,
       lane: depth

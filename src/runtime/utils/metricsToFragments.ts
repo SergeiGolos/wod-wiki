@@ -7,10 +7,15 @@
  * - AnalyticsLayout (timeline/graphs)
  * 
  * By centralizing this logic, we ensure consistent fragment display across all views.
+ * 
+ * Supports both:
+ * - Legacy RuntimeMetric[] arrays
+ * - New unified SpanMetrics objects
  */
 
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../RuntimeMetric';
+import { SpanMetrics } from '../models/ExecutionSpan';
 
 /**
  * Mapping from MetricValue type to FragmentType for display
@@ -140,4 +145,161 @@ export function getFragmentsFromRecord(
     return metricsToFragments(metrics);
   }
   return [createLabelFragment(label, type)];
+}
+
+/**
+ * Convert SpanMetrics to ICodeFragment array.
+ * 
+ * This handles the unified SpanMetrics format from ExecutionSpan,
+ * supporting both typed metric properties and legacy RuntimeMetric arrays.
+ * 
+ * @param metrics SpanMetrics object from ExecutionSpan
+ * @param label Fallback label if no metrics
+ * @param type Block type for fallback fragment
+ * @returns Array of ICodeFragment for display
+ */
+export function spanMetricsToFragments(
+  metrics: SpanMetrics,
+  label: string,
+  type: string
+): ICodeFragment[] {
+  const fragments: ICodeFragment[] = [];
+  
+  // Target Reps - show FIRST (before exercise name) for formats like "21x Pushup"
+  // Only show if this is an effort-type entry with targetReps
+  if (metrics.targetReps !== undefined && metrics.exerciseId) {
+    // Show as "21x" format when there's an exercise
+    fragments.push({
+      type: 'repetitions',
+      fragmentType: FragmentType.Rep,
+      value: metrics.targetReps,
+      image: `${metrics.targetReps}x`
+    });
+  }
+  
+  // Exercise name - primary identifier for effort blocks
+  if (metrics.exerciseId) {
+    fragments.push({
+      type: 'effort',
+      fragmentType: FragmentType.Effort,
+      value: metrics.exerciseId,
+      image: metrics.exerciseId
+    });
+  }
+  
+  // Type indicator (Timer, Rounds, etc.) - only if no exercise
+  if (!metrics.exerciseId && type) {
+    const typeStr = type.charAt(0).toUpperCase() + type.slice(1);
+    fragments.push({
+      type: type.toLowerCase(),
+      fragmentType: FragmentType.Action,
+      value: typeStr,
+      image: typeStr
+    });
+    
+    // Show targetReps for non-exercise types (rounds container showing rep scheme)
+    if (metrics.targetReps !== undefined) {
+      fragments.push({
+        type: 'repetitions',
+        fragmentType: FragmentType.Rep,
+        value: metrics.targetReps,
+        image: `${metrics.targetReps} reps`
+      });
+    }
+  }
+  
+  // Current Reps - show current/target format if tracking progress
+  if (metrics.reps && metrics.reps.value !== undefined) {
+    let repsImage = `${metrics.reps.value}${metrics.reps.unit || ' reps'}`;
+    if (metrics.targetReps !== undefined && metrics.reps.value !== metrics.targetReps) {
+      repsImage = `${metrics.reps.value}/${metrics.targetReps}`;
+    }
+    fragments.push({
+      type: 'repetitions',
+      fragmentType: FragmentType.Rep,
+      value: metrics.reps.value,
+      image: repsImage
+    });
+  }
+  
+  // Weight
+  if (metrics.weight && metrics.weight.value !== undefined) {
+    fragments.push({
+      type: 'resistance',
+      fragmentType: FragmentType.Resistance,
+      value: metrics.weight.value,
+      image: `${metrics.weight.value} ${metrics.weight.unit || 'lb'}`
+    });
+  }
+  
+  // Distance
+  if (metrics.distance && metrics.distance.value !== undefined) {
+    fragments.push({
+      type: 'distance',
+      fragmentType: FragmentType.Distance,
+      value: metrics.distance.value,
+      image: `${metrics.distance.value} ${metrics.distance.unit || 'm'}`
+    });
+  }
+  
+  // Duration (for completed spans)
+  if (metrics.duration && metrics.duration.value !== undefined) {
+    const seconds = Math.floor(metrics.duration.value / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    const timeStr = minutes > 0 
+      ? `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+      : `${seconds}s`;
+    fragments.push({
+      type: 'time',
+      fragmentType: FragmentType.Timer,
+      value: metrics.duration.value,
+      image: timeStr
+    });
+  }
+  
+  // Rounds info
+  if (metrics.currentRound !== undefined) {
+    const roundText = metrics.totalRounds 
+      ? `${metrics.currentRound}/${metrics.totalRounds}`
+      : `Round ${metrics.currentRound}`;
+    fragments.push({
+      type: 'rounds',
+      fragmentType: FragmentType.Rounds,
+      value: metrics.currentRound,
+      image: roundText
+    });
+  }
+  
+  // Rep scheme
+  if (metrics.repScheme && metrics.repScheme.length > 0) {
+    fragments.push({
+      type: 'repScheme',
+      fragmentType: FragmentType.Rounds,
+      value: metrics.repScheme.join('-'),
+      image: metrics.repScheme.join('-')
+    });
+  }
+  
+  // Calories
+  if (metrics.calories && metrics.calories.value !== undefined) {
+    fragments.push({
+      type: 'calories',
+      fragmentType: FragmentType.Distance,
+      value: metrics.calories.value,
+      image: `${metrics.calories.value} cal`
+    });
+  }
+  
+  // Fall back to legacy metrics if present
+  if (fragments.length === 0 && metrics.legacyMetrics && metrics.legacyMetrics.length > 0) {
+    return metricsToFragments(metrics.legacyMetrics);
+  }
+  
+  // Fall back to label if no fragments
+  if (fragments.length === 0) {
+    return [createLabelFragment(label, type)];
+  }
+  
+  return fragments;
 }

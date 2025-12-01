@@ -4,10 +4,9 @@ import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { 
-  metricsToFragments, 
-  createLabelFragment 
+  spanMetricsToFragments
 } from '../../runtime/utils/metricsToFragments';
-import { RuntimeMetric } from '../../runtime/RuntimeMetric';
+import { SpanMetrics, createEmptyMetrics } from '../../runtime/models/ExecutionSpan';
 
 export interface RuntimeEventLogProps {
   runtime: ScriptRuntime | null;
@@ -29,7 +28,7 @@ interface LogEntry {
   fragments: ICodeFragment[];
   parentId: string | null;
   depth: number;
-  metrics: RuntimeMetric[]; // Keep raw metrics for inheritance
+  metrics: SpanMetrics; // Keep raw metrics for inheritance
 }
 
 interface LogSection {
@@ -109,14 +108,14 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         startTime: record.startTime,
         endTime: record.endTime,
         fragments: [], // Will populate
-        parentId: record.parentId,
+        parentId: record.parentSpanId,
         depth: 0,
-        metrics: record.metrics
+        metrics: record.metrics || createEmptyMetrics()
       });
     });
 
     // 3. Active Entries (from activeSpans)
-    const activeSpans = runtime.activeSpans; // Map<string, ExecutionRecord>
+    const activeSpans = runtime.activeSpans; // Map<string, ExecutionSpan>
     
     activeSpans.forEach(record => {
        allEntries.push({
@@ -127,9 +126,9 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         startTime: record.startTime,
         endTime: undefined,
         fragments: [], // Will populate
-        parentId: record.parentId,
+        parentId: record.parentSpanId,
         depth: 0,
-        metrics: record.metrics
+        metrics: record.metrics || createEmptyMetrics()
       });
     });
 
@@ -141,8 +140,10 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
     allEntries.forEach(e => entryMap.set(e.id, e));
 
     allEntries.forEach(entry => {
-        // Collect metrics from self and ancestors
-        const combinedMetrics: RuntimeMetric[] = [...entry.metrics];
+        // Collect inheritable metrics from ancestors
+        // We merge metrics from parent into a combined SpanMetrics object
+        // Only inheriting non-timer metrics (reps, weight, rounds, etc.)
+        const combinedMetrics: SpanMetrics = { ...entry.metrics };
         
         // Walk up the chain
         let currentParentId = entry.parentId;
@@ -157,34 +158,50 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
             visited.add(currentParentId);
 
             const parent = entryMap.get(currentParentId);
-            if (parent) {
-                // Add parent metrics if they are "inheritable" (e.g. reps)
-                // For now, just add all, metricsToFragments handles deduplication/prioritization if needed?
-                // Actually, metricsToFragments just converts what it sees.
-                // We typically want RepSchemes (from rounds) to show up on exercises.
-                // Parent metrics should probably come *before* or *after*?
-                // Usually "21 x Thrusters". "21" comes from parent.
-                // So we want parent metrics to be available.
-                // Let's prepend parent metrics so they appear first (e.g. Reps then Weight)
-                // But be careful of duplicates.
+            if (parent && parent.metrics) {
+                const pm = parent.metrics;
                 
-                // Simple check: if we don't have a metric of this type, take it from parent.
-                // Or just merge all.
-                parent.metrics.forEach(pm => {
-                    // Filter out timer/duration metrics from inheritance to avoid clutter
-                    // We only want to inherit things like Reps, Weight, Rounds, etc.
-                    const isTimerMetric = pm.values.some(v => v.type === 'time' || v.type === 'timestamp');
-                    if (isTimerMetric) return;
-
-                    // Avoid adding if we already have this exact metric instance? No, instances are different.
-                    // Avoid adding if we have a metric of same type?
-                    // E.g. if child has 'weight', ignore parent 'weight'.
-                    // If child has no 'reps', take parent 'reps'.
-                    const hasType = combinedMetrics.some(cm => cm.values.some(v => v.type === pm.values[0].type));
-                    if (!hasType) {
-                        combinedMetrics.push(pm);
+                // Inherit reps if child doesn't have them
+                if (pm.reps && !combinedMetrics.reps) {
+                    combinedMetrics.reps = pm.reps;
+                }
+                // Inherit targetReps if child doesn't have it
+                if (pm.targetReps !== undefined && combinedMetrics.targetReps === undefined) {
+                    combinedMetrics.targetReps = pm.targetReps;
+                }
+                // Inherit weight if child doesn't have it
+                if (pm.weight && !combinedMetrics.weight) {
+                    combinedMetrics.weight = pm.weight;
+                }
+                // Inherit round info
+                if (pm.currentRound !== undefined && combinedMetrics.currentRound === undefined) {
+                    combinedMetrics.currentRound = pm.currentRound;
+                }
+                if (pm.totalRounds !== undefined && combinedMetrics.totalRounds === undefined) {
+                    combinedMetrics.totalRounds = pm.totalRounds;
+                }
+                // Inherit rep scheme
+                if (pm.repScheme && !combinedMetrics.repScheme) {
+                    combinedMetrics.repScheme = pm.repScheme;
+                }
+                // Inherit distance if child doesn't have it
+                if (pm.distance && !combinedMetrics.distance) {
+                    combinedMetrics.distance = pm.distance;
+                }
+                // Inherit legacy metrics if needed
+                if (pm.legacyMetrics && pm.legacyMetrics.length > 0 && 
+                    (!combinedMetrics.legacyMetrics || combinedMetrics.legacyMetrics.length === 0)) {
+                    // Only inherit non-timer legacy metrics
+                    const inheritableMetrics = pm.legacyMetrics.filter(
+                        m => !m.values.some(v => v.type === 'time' || v.type === 'timestamp')
+                    );
+                    if (inheritableMetrics.length > 0) {
+                        combinedMetrics.legacyMetrics = [
+                            ...(combinedMetrics.legacyMetrics || []),
+                            ...inheritableMetrics
+                        ];
                     }
-                });
+                }
                 
                 currentParentId = parent.parentId;
             } else {
@@ -192,10 +209,8 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
             }
         }
 
-        // Generate fragments
-        entry.fragments = combinedMetrics.length > 0 
-            ? metricsToFragments(combinedMetrics)
-            : [createLabelFragment(entry.label, entry.type)];
+        // Generate fragments using spanMetricsToFragments
+        entry.fragments = spanMetricsToFragments(combinedMetrics, entry.label, entry.type);
     });
 
 
@@ -254,6 +269,13 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
     };
     
     allEntries.forEach(entry => {
+      // Skip the active leaf - it should appear in the "Next" area, not in history
+      // Only show completed entries and active CONTAINER entries (like active rounds)
+      if (entry.id === activeLeafId && entry.status === 'active') {
+        // Don't add active leaf to history - it's shown in the Next button area
+        return;
+      }
+      
       // Treat Idle as a container/section so it shows up distinct
       const isContainer = ['root', 'round', 'interval', 'warmup', 'cooldown', 'amrap', 'emom', 'tabata', 'idle'].includes(entry.type.toLowerCase());
       
@@ -331,6 +353,34 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         targetSection.entries.push(entry);
       }
     });
+    
+    // Add "Workout Completed" section if:
+    // 1. There are entries (workout was started)
+    // 2. No active entries (everything is completed)
+    // 3. Runtime stack is empty or has only idle block
+    const hasEntries = allEntries.length > 0;
+    const hasNoActiveEntries = activeEntries.length === 0;
+    const isWorkoutComplete = hasEntries && hasNoActiveEntries && runtime.stack.depth <= 1;
+    
+    if (isWorkoutComplete && resultSections.length > 0) {
+        // Find the last completion timestamp
+        const lastCompletedEntry = allEntries
+            .filter(e => e.endTime)
+            .sort((a, b) => (b.endTime || 0) - (a.endTime || 0))[0];
+        
+        if (lastCompletedEntry) {
+            const completedSection: LogSection = {
+                id: 'workout-completed',
+                title: 'Workout Completed',
+                startTime: lastCompletedEntry.endTime!,
+                endTime: lastCompletedEntry.endTime,
+                entries: [],
+                isActive: false,
+                type: 'completed'
+            };
+            resultSections.push(completedSection);
+        }
+    }
     
     return { sections: resultSections, activeLeafId };
 

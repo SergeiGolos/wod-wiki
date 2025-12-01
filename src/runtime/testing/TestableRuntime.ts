@@ -7,7 +7,7 @@ import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
 import { IMetricCollector } from '../MetricCollector';
-import { ExecutionRecord } from '../models/ExecutionRecord';
+import { ExecutionSpan } from '../models/ExecutionSpan';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
@@ -17,6 +17,9 @@ import { FragmentCompilationManager } from '../FragmentCompilationManager';
 import { RuntimeClock } from '../RuntimeClock';
 import { IBlockContext } from '../IBlockContext';
 import { RuntimeMetric } from '../RuntimeMetric';
+
+// Re-export for backward compatibility
+export type ExecutionRecord = ExecutionSpan;
 
 /**
  * Snapshot of runtime state at a point in time

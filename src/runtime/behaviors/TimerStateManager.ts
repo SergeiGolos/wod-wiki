@@ -27,7 +27,7 @@ export class TimerStateManager {
      * @param role Optional semantic role for the timer ('root', 'segment', or 'leaf')
      * @returns Array of runtime actions to push timer and card display entries
      */
-    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role?: 'root' | 'segment' | 'leaf'): IRuntimeAction[] {
+    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto'): IRuntimeAction[] {
         const initialState: TimerState = {
             blockId: block.key.toString(),
             label: this.label,
@@ -48,6 +48,13 @@ export class TimerStateManager {
             'public'
         );
 
+        // Determine default role if 'auto'
+        let finalRole = role;
+        if (role === 'auto') {
+            // Default: Countdown = Primary (lock view), Countup = Auto (stack based)
+            finalRole = this.direction === 'down' ? 'primary' : 'auto';
+        }
+
         const timerAction = new PushTimerDisplayAction({
             id: `timer-${block.key}`,
             ownerId: block.key.toString(),
@@ -55,7 +62,7 @@ export class TimerStateManager {
             label: this.label,
             format: this.direction === 'down' ? 'countdown' : 'countup',
             durationMs: this.durationMs,
-            role: role
+            role: finalRole
         });
 
         const cardAction = new PushCardDisplayAction({
@@ -64,12 +71,27 @@ export class TimerStateManager {
             type: 'active-block',
             title: this.direction === 'down' ? 'AMRAP' : 'For Time',
             subtitle: this.label,
-            metrics: block.compiledMetrics?.values.map(m => ({
-                type: m.type,
-                value: m.value ?? 0,
-                unit: m.unit,
-                isActive: true
-            }))
+            metrics: block.compiledMetrics?.values.map(m => {
+                // Special handling for effort type to avoid "0 effort:Pullups"
+                if (m.type === 'effort') {
+                    // Strip 'effort:' prefix if present
+                    const cleanUnit = m.unit.startsWith('effort:') ? m.unit.substring(7) : m.unit;
+                    return {
+                        type: m.type,
+                        value: '', // Don't show numeric value for effort
+                        unit: cleanUnit,
+                        image: cleanUnit, // Use clean unit as image
+                        isActive: true
+                    };
+                }
+                
+                return {
+                    type: m.type,
+                    value: m.value ?? 0,
+                    unit: m.unit,
+                    isActive: true
+                };
+            })
         });
 
         return [timerAction, cardAction];

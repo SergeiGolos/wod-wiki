@@ -8,6 +8,10 @@ import { RuntimeMetric } from '../RuntimeMetric';
  * This action allows behaviors to emit metrics through the action system
  * instead of directly manipulating a collector, maintaining declarative patterns.
  * 
+ * Metrics are recorded to:
+ * 1. The active ExecutionSpan via ExecutionTracker (primary)
+ * 2. The global MetricCollector for aggregate stats (secondary)
+ * 
  * @example
  * ```typescript
  * // Emit a metric at the end of a round
@@ -28,39 +32,19 @@ export class EmitMetricAction implements IRuntimeAction {
   ) {}
 
   do(runtime: IScriptRuntime): void {
-    // Attach metric to the active execution span
     const currentBlock = runtime.stack.current;
-    if (currentBlock) {
-      const blockId = currentBlock.key.toString();
-      
-      // Find record in memory
-      const refs = runtime.memory.search({ type: 'execution-record', ownerId: blockId });
-      if (refs.length > 0) {
-        // We need to cast to TypedMemoryReference to use it with set()
-        // In a real implementation, we might want a safer way to get the typed reference
-        const ref = refs[0] as any; 
-        const record = runtime.memory.get(ref);
-        
-        if (record) {
-          // Create updated record (immutability pattern)
-          const updatedRecord = {
-            ...record,
-            metrics: [...(record.metrics || []), this.metric]
-          };
-          
-          // Update memory to trigger subscribers
-          runtime.memory.set(ref, updatedRecord);
-
-        }
-      }
+    if (!currentBlock) return;
+    
+    const blockId = currentBlock.key.toString();
+    
+    // Primary: Record to ExecutionTracker (unified tracking)
+    if (runtime.tracker) {
+      runtime.tracker.recordLegacyMetric(blockId, this.metric);
     }
 
-    // Also collect in the global metrics system for aggregate stats
-    if ('metrics' in runtime && runtime.metrics && typeof runtime.metrics.collect === 'function') {
+    // Secondary: Also collect in the global metrics system for aggregate stats
+    if (runtime.metrics && typeof runtime.metrics.collect === 'function') {
       runtime.metrics.collect(this.metric);
-    } else {
-      // Gracefully handle if metrics subsystem is not yet implemented
-      console.warn('Runtime does not have a metrics collection subsystem');
     }
   }
 }

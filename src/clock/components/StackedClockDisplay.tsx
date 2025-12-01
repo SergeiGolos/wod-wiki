@@ -15,7 +15,7 @@ import {
   useCurrentCard, 
   useWorkoutState 
 } from '../hooks/useDisplayStack';
-import { useTimerHierarchy } from '../hooks/useTimerHierarchy';
+
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../types/DisplayTypes';
 import { CardComponentRegistry } from '../registry/CardComponentRegistry';
 import { FallbackCard } from '../cards/DefaultCards';
@@ -74,34 +74,47 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
   const currentTimer = useCurrentTimer();
   const currentCard = useCurrentCard();
   const workoutState = useWorkoutState();
-  const timerHierarchy = useTimerHierarchy();
 
-  // Primary timer is the segment timer if available, otherwise root
-  // If we have hierarchy roles, use them. Otherwise fallback to stack logic.
-  const hasRoles = displayState.timerStack.some(t => !!t.role);
-  
-  const primaryTimer = hasRoles
-    ? (timerHierarchy.segment || timerHierarchy.root || currentTimer)
-    : currentTimer;
 
-  // Secondary timers
-  const secondaryTimers = useMemo(() => {
-    if (hasRoles) {
-      // Show root (if not primary) and leaf
-      const secondary: ITimerDisplayEntry[] = [];
-      if (timerHierarchy.root && timerHierarchy.root.id !== primaryTimer?.id) {
-        secondary.push(timerHierarchy.root);
+  // Primary timer:
+  // 1. First entry with role='primary' (search from top/end of stack down)
+  // 2. Fallback: Top of stack (currentTimer)
+  const primaryTimer = useMemo(() => {
+    // Search from end (top) to start (bottom)
+    for (let i = displayState.timerStack.length - 1; i >= 0; i--) {
+      if (displayState.timerStack[i].role === 'primary') {
+        return displayState.timerStack[i];
       }
-      if (timerHierarchy.leaf && timerHierarchy.leaf.id !== primaryTimer?.id) {
-        secondary.push(timerHierarchy.leaf);
-      }
-      return secondary;
-    } else {
-      // Fallback: all timers except top one
-      if (displayState.timerStack.length <= 1) return [];
-      return displayState.timerStack.slice(0, -1);
     }
-  }, [displayState.timerStack, hasRoles, timerHierarchy, primaryTimer]);
+    return currentTimer;
+  }, [displayState.timerStack, currentTimer]);
+
+  // Secondary timers:
+  // 1. All entries with role='secondary'
+  // 2. If no roles used anywhere, fallback to all except top
+  const secondaryTimers = useMemo(() => {
+    const explicitSecondaries = displayState.timerStack.filter(t => t.role === 'secondary');
+    
+    if (explicitSecondaries.length > 0) {
+      // If we have explicit secondaries, use them. 
+      // Also include any 'auto' roles that are NOT the primary timer.
+      const autos = displayState.timerStack.filter(t => 
+        t.role === 'auto' && t.id !== primaryTimer?.id
+      );
+      return [...explicitSecondaries, ...autos];
+    }
+    
+    // Fallback if no explicit roles found at all
+    const hasAnyRoles = displayState.timerStack.some(t => t.role === 'primary');
+    if (hasAnyRoles) {
+       // If we have a primary but no secondaries, show everything else
+       return displayState.timerStack.filter(t => t.id !== primaryTimer?.id);
+    }
+
+    // Legacy fallback: all timers except top one
+    if (displayState.timerStack.length <= 1) return [];
+    return displayState.timerStack.slice(0, -1);
+  }, [displayState.timerStack, primaryTimer]);
 
   // Handle button clicks - emit to runtime if handler provided
   const handleButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {

@@ -3,6 +3,9 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { ExecutionSpan, SpanMetrics, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
+import { EXECUTION_SPAN_TYPE } from "../ExecutionTracker";
+import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
  * Behavior that tracks the execution history of a block.
@@ -10,7 +13,7 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
  */
 export class HistoryBehavior implements IRuntimeBehavior {
     private startTime: number = 0;
-    private parentId: string | null = null;
+    private parentSpanId: string | null = null;
     private label: string;
 
     constructor(label?: string) {
@@ -35,13 +38,13 @@ export class HistoryBehavior implements IRuntimeBehavior {
         };
         metricsRef.set({ ...metrics });
         
-        // Determine parent ID from stack
+        // Determine parent span ID from stack
         // The block is already on the stack, so parent is at index length - 2
         const stack = runtime.stack.blocks;
         if (stack.length >= 2) {
-            this.parentId = stack[stack.length - 2].key.toString();
+            this.parentSpanId = stack[stack.length - 2].key.toString();
         } else {
-            this.parentId = null;
+            this.parentSpanId = null;
         }
 
         // If label wasn't provided, try to derive it from block type or context
@@ -49,19 +52,23 @@ export class HistoryBehavior implements IRuntimeBehavior {
             this.label = block.blockType;
         }
 
-        // Create execution record
-        const record = {
-            id: block.key.toString(), // The block itself is the record
+        // Create initial metrics from block's compiled metrics
+        const initialMetrics = this.extractMetricsFromBlock(block);
+        
+        // Create execution span
+        const span: ExecutionSpan = {
+            id: `${this.startTime}-${block.key.toString()}`,
             blockId: block.key.toString(),
-            parentId: this.parentId,
-            type: block.blockType?.toLowerCase() || 'block',
+            parentSpanId: this.parentSpanId,
+            type: legacyTypeToSpanType(block.blockType || 'group'),
             label: this.label,
             startTime: this.startTime,
             status: 'active',
-            metrics: []
+            metrics: initialMetrics,
+            segments: []
         };
         
-        runtime.memory.allocate('execution-record', block.key.toString(), record, 'public');
+        runtime.memory.allocate(EXECUTION_SPAN_TYPE, block.key.toString(), span, 'public');
 
         return [];
     }
@@ -76,29 +83,102 @@ export class HistoryBehavior implements IRuntimeBehavior {
     onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         const endTime = Date.now();
         
-        // Update execution record to completed
+        // Update execution span to completed
         const refs = runtime.memory.search({
-            type: 'execution-record',
-            id: block.key.toString(),
+            type: EXECUTION_SPAN_TYPE,
+            id: null,
             ownerId: block.key.toString(),
             visibility: null
         });
         
         if (refs.length > 0) {
-            const record = runtime.memory.get(refs[0] as any) as any;
-            if (record) {
+            const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+            if (span) {
                 // Collect any metrics associated with this block
-                // For now, we just close the record. 
+                // For now, we just close the span. 
                 // Metrics might be collected by other behaviors or passed in.
                 
-                const updatedRecord = {
-                    ...record,
+                const updatedSpan: ExecutionSpan = {
+                    ...span,
                     endTime: endTime,
                     status: 'completed'
                 };
-                runtime.memory.set(refs[0] as any, updatedRecord);
+                runtime.memory.set(refs[0] as any, updatedSpan);
             }
         }
         return [];
+    }
+    
+    /**
+     * Extract initial metrics from block's compiled metrics.
+     * This ensures exercise name, target reps, etc. are captured in the span.
+     */
+    private extractMetricsFromBlock(block: IRuntimeBlock): SpanMetrics {
+        const metrics = createEmptyMetrics();
+        
+        // Try to get compiled metrics from the block
+        const compiledMetrics = block.compiledMetrics as RuntimeMetric | undefined;
+        
+        if (compiledMetrics) {
+            // Extract exercise ID
+            if (compiledMetrics.exerciseId) {
+                metrics.exerciseId = compiledMetrics.exerciseId;
+            }
+            
+            // Extract metric values
+            for (const value of compiledMetrics.values) {
+                const recorded = Date.now();
+                
+                switch (value.type) {
+                    case 'repetitions':
+                        if (value.value !== undefined) {
+                            // targetReps is just a number in SpanMetrics
+                            metrics.targetReps = value.value;
+                        }
+                        break;
+                    case 'resistance':
+                        if (value.value !== undefined) {
+                            metrics.weight = {
+                                value: value.value,
+                                unit: value.unit || 'lb',
+                                recorded
+                            };
+                        }
+                        break;
+                    case 'distance':
+                        if (value.value !== undefined) {
+                            metrics.distance = {
+                                value: value.value,
+                                unit: value.unit || 'm',
+                                recorded
+                            };
+                        }
+                        break;
+                    case 'time':
+                        if (value.value !== undefined) {
+                            metrics.duration = {
+                                value: value.value,
+                                unit: value.unit || 'ms',
+                                recorded
+                            };
+                        }
+                        break;
+                    case 'calories':
+                        if (value.value !== undefined) {
+                            metrics.calories = {
+                                value: value.value,
+                                unit: value.unit || 'cal',
+                                recorded
+                            };
+                        }
+                        break;
+                }
+            }
+            
+            // Store legacy metrics for backward compatibility
+            metrics.legacyMetrics = [compiledMetrics];
+        }
+        
+        return metrics;
     }
 }

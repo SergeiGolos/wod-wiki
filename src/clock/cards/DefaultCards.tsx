@@ -1,7 +1,6 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Play, ChartLine, Bed } from '@phosphor-icons/react';
 import { CardComponentProps } from '../registry/CardComponentRegistry';
 import { cn } from '@/lib/utils';
@@ -132,6 +131,10 @@ export const ActiveBlockCard: React.FC<CardComponentProps> = ({
   onButtonClick
 }) => {
   const metrics = entry.metrics || [];
+  
+  // Separate buttons: "Next" goes with metrics, others go below
+  const nextButton = entry.buttons?.find(b => b.id === 'btn-next' || b.label === 'Next');
+  const otherButtons = entry.buttons?.filter(b => b.id !== 'btn-next' && b.label !== 'Next') || [];
 
   // Get color classes for metric types
   const getMetricColor = (type: string): string => {
@@ -168,68 +171,74 @@ export const ActiveBlockCard: React.FC<CardComponentProps> = ({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
-            {entry.title || 'Current Exercise'}
-          </CardTitle>
-          {entry.subtitle && (
-            <Badge variant="outline">{entry.subtitle}</Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="w-full space-y-4">
+      {/* Top Row: Metrics + Next Button */}
+      <div className="flex items-center justify-between gap-4">
         {/* Metrics Display */}
-        {metrics.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {metrics.map((metric, index) => (
-              <span
-                key={index}
-                className={cn(
-                  'inline-flex items-center gap-1 px-3 py-1.5 rounded-md border font-mono text-sm',
-                  getMetricColor(metric.type),
-                  metric.isActive && 'ring-2 ring-primary ring-offset-1'
-                )}
-                title={`${metric.type}: ${metric.value}`}
-              >
-                {getMetricIcon(metric.type) && (
-                  <span className="text-base leading-none">
-                    {getMetricIcon(metric.type)}
-                  </span>
-                )}
-                <span className="font-medium">
-                  {metric.image || String(metric.value)}
+        <div className="flex-1">
+            {metrics.length > 0 ? (
+            <div className="flex flex-wrap gap-2 justify-center">
+                {metrics.map((metric, index) => (
+                <span
+                    key={index}
+                    className={cn(
+                    'inline-flex items-center gap-1 px-3 py-1.5 rounded-md border font-mono text-sm bg-background',
+                    getMetricColor(metric.type),
+                    metric.isActive && 'ring-2 ring-primary ring-offset-1'
+                    )}
+                    title={`${metric.type}: ${metric.value}`}
+                >
+                    {getMetricIcon(metric.type) && (
+                    <span className="text-base leading-none">
+                        {getMetricIcon(metric.type)}
+                    </span>
+                    )}
+                    <span className="font-medium">
+                    {metric.image || String(metric.value)}
+                    </span>
+                    {metric.unit && (
+                    <span className="text-xs opacity-70">{metric.unit}</span>
+                    )}
                 </span>
-                {metric.unit && (
-                  <span className="text-xs opacity-70">{metric.unit}</span>
-                )}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="text-muted-foreground text-center py-4">
-            No metrics to display
-          </div>
-        )}
+                ))}
+            </div>
+            ) : (
+            <div className="text-muted-foreground text-center py-2">
+                {entry.title || 'Current Exercise'}
+            </div>
+            )}
+        </div>
 
-        {/* Buttons */}
-        {entry.buttons && entry.buttons.length > 0 && (
-          <div className="flex gap-2 pt-2 border-t">
-            {entry.buttons.map((button) => (
-              <Button
-                key={button.id}
-                variant={button.variant === 'primary' ? 'default' : button.variant as any || 'outline'}
-                size="sm"
-                onClick={() => onButtonClick?.(button.eventName, button.payload)}
-              >
-                {button.label}
-              </Button>
-            ))}
-          </div>
+        {/* Next Button */}
+        {nextButton && (
+            <Button
+                key={nextButton.id}
+                variant={nextButton.variant === 'primary' ? 'default' : nextButton.variant as any || 'outline'}
+                size="lg"
+                className="shrink-0"
+                onClick={() => onButtonClick?.(nextButton.eventName, nextButton.payload)}
+            >
+                {nextButton.label}
+            </Button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Bottom Row: Other Buttons (Play, End, etc.) */}
+      {otherButtons.length > 0 && (
+        <div className="flex justify-center gap-3">
+          {otherButtons.map((button) => (
+            <Button
+              key={button.id}
+              variant={button.variant === 'primary' ? 'default' : button.variant as any || 'outline'}
+              size="lg"
+              onClick={() => onButtonClick?.(button.eventName, button.payload)}
+            >
+              {button.label}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

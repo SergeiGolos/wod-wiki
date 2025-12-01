@@ -54,15 +54,28 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
           throw new Error('RoundsStrategy requires Rounds fragment');
         }
 
-        // Extract rep scheme
+        // Extract rep scheme from fragments
+        // Two patterns:
+        // 1. RoundsFragment with array value (legacy): value = [21, 15, 9]
+        // 2. RoundsFragment with count + separate RepFragments: value = 3, plus RepFragment(21), RepFragment(15), RepFragment(9)
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
         if (Array.isArray(roundsFragment.value)) {
+          // Legacy pattern: RoundsFragment contains full rep scheme
           repScheme = roundsFragment.value as number[];
           totalRounds = repScheme.length;
         } else if (typeof roundsFragment.value === 'number') {
           totalRounds = roundsFragment.value;
+          
+          // Check for separate RepFragments (modern parser pattern)
+          const repFragments = fragments.filter(f => f.fragmentType === FragmentType.Reps);
+          if (repFragments.length > 0) {
+            // Build rep scheme from RepFragments
+            repScheme = repFragments.map(f => f.value as number);
+            // totalRounds stays as specified in RoundsFragment
+            // Rep scheme cycles via modulo if totalRounds > repScheme.length
+          }
         }
 
         // Get children IDs
@@ -91,8 +104,11 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             totalRounds,
             repScheme,
             onRoundStart: (rt, roundIndex) => {
-                if (repScheme && repScheme.length > roundIndex) {
-                     const currentReps = repScheme[roundIndex];
+                if (repScheme && repScheme.length > 0) {
+                     // Use modulo to cycle through rep scheme
+                     // E.g., 21-15-9 with 5 rounds: round 0→21, round 1→15, round 2→9, round 3→21, round 4→15
+                     const schemeIndex = roundIndex % repScheme.length;
+                     const currentReps = repScheme[schemeIndex];
                      const refs = rt.memory.search({
                          type: MemoryTypeEnum.METRIC_REPS,
                          ownerId: blockId,

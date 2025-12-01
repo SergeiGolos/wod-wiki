@@ -9,6 +9,8 @@ import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
+import { ExecutionSpan, createEmptyMetrics } from '../models/ExecutionSpan';
+import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 
 /**
  * Loop type determines completion logic.
@@ -107,11 +109,8 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         throw new RangeError('repScheme must be provided for repScheme loop type');
       }
 
-      if (config.repScheme.length !== config.totalRounds) {
-        throw new RangeError(
-          `repScheme length (${config.repScheme.length}) must match totalRounds (${config.totalRounds})`
-        );
-      }
+      // Rep scheme cycles via modulo - no need to match totalRounds
+      // E.g., 21-15-9 with 5 rounds: 21, 15, 9, 21, 15
 
       // Validate each rep value
       for (let i = 0; i < config.repScheme.length; i++) {
@@ -253,6 +252,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
   /**
    * Gets reps for the current round (for rep scheme loop type).
+   * Uses modulo to cycle through rep scheme values.
    * @returns Reps for current round or undefined if not applicable
    */
   getRepsForCurrentRound(): number | undefined {
@@ -261,7 +261,9 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     }
 
     const state = this.getState();
-    return this.config.repScheme[state.rounds];
+    // Use modulo to cycle: round 0 → [0], round 1 → [1], round 2 → [2], round 3 → [0], etc.
+    const schemeIndex = state.rounds % this.config.repScheme.length;
+    return this.config.repScheme[schemeIndex];
   }
 
   /**
@@ -299,27 +301,27 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Cleanup any state if needed.
    */
   onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-    // Close the current round record if it exists
+    // Close the current round span if it exists
     const state = this.getState();
     const currentRound = state.rounds + 1;
-    const roundId = `${block.key.toString()}-round-${currentRound}`;
+    const roundOwnerId = `${block.key.toString()}-round-${currentRound}`;
     
     const refs = runtime.memory.search({ 
-        type: 'execution-record', 
-        id: roundId,
-        ownerId: block.key.toString(), 
+        type: EXECUTION_SPAN_TYPE, 
+        id: null,
+        ownerId: roundOwnerId, 
         visibility: null 
     });
 
     if (refs.length > 0) {
-        const record = runtime.memory.get(refs[0] as any) as any;
-        if (record && record.status === 'active') {
-            const updatedRecord = {
-                ...record,
+        const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+        if (span && span.status === 'active') {
+            const updatedSpan: ExecutionSpan = {
+                ...span,
                 endTime: Date.now(),
                 status: 'completed'
             };
-            runtime.memory.set(refs[0] as any, updatedRecord);
+            runtime.memory.set(refs[0] as any, updatedSpan);
         }
     }
 
@@ -343,55 +345,73 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     const prevRound = rounds; // The round that just finished (0-indexed)
     const nextRound = rounds + 1; // The new round (1-indexed)
 
-    // 1. Close previous round record
+    // 1. Close previous round span
     if (prevRound > 0) {
-        const prevRoundId = `${blockId}-round-${prevRound}`;
+        const prevRoundOwnerId = `${blockId}-round-${prevRound}`;
         const refs = runtime.memory.search({ 
-            type: 'execution-record', 
-            id: prevRoundId,
-            ownerId: blockId, 
+            type: EXECUTION_SPAN_TYPE, 
+            id: null,
+            ownerId: prevRoundOwnerId, 
             visibility: null 
         });
 
         if (refs.length > 0) {
-            const record = runtime.memory.get(refs[0] as any) as any;
-            if (record && record.status === 'active') {
-                const updatedRecord = {
-                    ...record,
+            const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+            if (span && span.status === 'active') {
+                const updatedSpan: ExecutionSpan = {
+                    ...span,
                     endTime: Date.now(),
                     status: 'completed'
                 };
-                runtime.memory.set(refs[0] as any, updatedRecord);
+                runtime.memory.set(refs[0] as any, updatedSpan);
             }
         }
     }
 
-    // 2. Create new round record
+    // 2. Create new round span
     // Only if we are not complete
     if (rounds < (this.config.totalRounds || Infinity)) {
-        const newRoundId = `${blockId}-round-${nextRound}`;
+        const newRoundOwnerId = `${blockId}-round-${nextRound}`;
+        const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round';
         const label = this.config.loopType === LoopType.INTERVAL 
             ? `Interval ${nextRound}`
             : `Round ${nextRound}`;
-            
-        const record = {
-            id: newRoundId,
-            blockId: blockId, // It belongs to this block
-            parentId: blockId, // It is a child of this block
-            type: this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round',
+        
+        const startTime = Date.now();
+        
+        // Create metrics with round info
+        const metrics = createEmptyMetrics();
+        metrics.currentRound = nextRound;
+        if (this.config.totalRounds) {
+            metrics.totalRounds = this.config.totalRounds;
+        }
+        if (this.config.repScheme) {
+            metrics.repScheme = this.config.repScheme;
+            // Set target reps for this specific round using modulo to cycle
+            // E.g., 21-15-9: round 0 → 21, round 1 → 15, round 2 → 9, round 3 → 21, etc.
+            const schemeIndex = rounds % this.config.repScheme.length;
+            metrics.targetReps = this.config.repScheme[schemeIndex];
+        }
+        
+        const span: ExecutionSpan = {
+            id: `${startTime}-${newRoundOwnerId}`,
+            blockId: newRoundOwnerId,
+            parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock
+            type: spanType as any,
             label: label,
-            startTime: Date.now(),
+            startTime: startTime,
             status: 'active',
-            metrics: []
+            metrics: metrics,
+            segments: []
         };
 
-        runtime.memory.allocate('execution-record', blockId, record, 'public');
+        runtime.memory.allocate(EXECUTION_SPAN_TYPE, newRoundOwnerId, span, 'public');
 
         // Create lap timer for this round
         const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
           `timer:lap:${block.key}:${rounds}`,
           block.key.toString(),
-          [{ start: Date.now() }],
+          [{ start: new Date() }],
           'public'
         );
 

@@ -2,71 +2,64 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntime } from './IScriptRuntime';
 import { RuntimeStack } from './RuntimeStack';
-import { ExecutionLogger } from './ExecutionLogger';
+import { ExecutionTracker } from './ExecutionTracker';
 
 /**
  * MemoryAwareRuntimeStack
  *
  * Extends the basic RuntimeStack to add:
- * 1. Automatic execution logging via ExecutionLogger
+ * 1. Automatic execution tracking via ExecutionTracker
  * 2. Proper lifecycle management for popped blocks
- * 3. Parent/Child relationship tracking for execution records
+ * 3. Parent/Child relationship tracking for execution spans
  */
 export class MemoryAwareRuntimeStack extends RuntimeStack {
   constructor(
     private readonly runtime: IScriptRuntime,
-    private readonly logger: ExecutionLogger
+    private readonly tracker: ExecutionTracker
   ) {
     super();
   }
 
   /**
-   * Pushes a block onto the stack and logs its execution start.
+   * Pushes a block onto the stack and starts execution tracking.
    */
   override push(block: IRuntimeBlock): void {
     const parentBlock = this.current;
-    let parentId: string | null = null;
+    let parentSpanId: string | null = null;
 
     if (parentBlock) {
-      // Find parent execution record ID
-      parentId = this.logger.getActiveRecordId(parentBlock.key.toString());
+      // Find parent execution span ID
+      parentSpanId = this.tracker.getActiveSpanId(parentBlock.key.toString());
     }
 
-    // Determine initial metrics
-    // Use pre-compiled metrics if available, or legacy fallback
-    const initialMetrics = block.compiledMetrics ? [block.compiledMetrics] : [];
+    // Start tracking execution span
+    const span = this.tracker.startSpan(block, parentSpanId);
 
-    // Fallback for legacy blocks without compiledMetrics
-    if (initialMetrics.length === 0 && block.blockType === 'Effort' && block.label) {
-        const label = block.label;
-        const match = label.match(/^(\d+)\s+(.+)$/);
-        if (match) {
-            const reps = parseInt(match[1], 10);
-            const exerciseName = match[2].trim();
-            if (!isNaN(reps)) {
-                 initialMetrics.push({
-                    exerciseId: exerciseName,
-                    values: [{ type: 'repetitions', value: reps, unit: 'reps' }],
-                    timeSpans: []
-                });
-            }
-        } else {
-             initialMetrics.push({
-                exerciseId: label,
-                values: [],
-                timeSpans: []
-            });
+    // Record initial metrics from block if available
+    if (block.compiledMetrics) {
+      this.tracker.recordLegacyMetric(block.key.toString(), block.compiledMetrics);
+    } else if (block.blockType === 'Effort' && block.label) {
+      // Fallback for legacy blocks without compiledMetrics
+      const label = block.label;
+      const match = label.match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        const reps = parseInt(match[1], 10);
+        const exerciseName = match[2].trim();
+        if (!isNaN(reps)) {
+          this.tracker.recordLegacyMetric(block.key.toString(), {
+            exerciseId: exerciseName,
+            values: [{ type: 'repetitions', value: reps, unit: 'reps' }],
+            timeSpans: []
+          });
         }
+      } else {
+        this.tracker.recordLegacyMetric(block.key.toString(), {
+          exerciseId: label,
+          values: [],
+          timeSpans: []
+        });
+      }
     }
-
-    // Start logging execution
-    this.logger.startExecution(
-      block.key.toString(),
-      block.blockType || 'unknown',
-      block.label || block.key.toString(),
-      parentId,
-      initialMetrics
-    );
 
     // Provide runtime context if the block expects it (duck-typing)
     if (typeof (block as any).setRuntime === 'function') {
@@ -78,15 +71,15 @@ export class MemoryAwareRuntimeStack extends RuntimeStack {
   }
 
   /**
-   * Pops a block from the stack and logs its completion.
+   * Pops a block from the stack and completes its execution tracking.
    * Note: Does NOT dispose the block - consumer must call dispose().
    */
   override pop(): IRuntimeBlock | undefined {
     const poppedBlock = super.pop();
 
     if (poppedBlock) {
-      // Complete execution log
-      this.logger.completeExecution(poppedBlock.key.toString());
+      // Complete execution span
+      this.tracker.endSpan(poppedBlock.key.toString());
     }
 
     return poppedBlock;

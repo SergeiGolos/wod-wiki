@@ -9,11 +9,11 @@ import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
-import { ExecutionRecord } from './models/ExecutionRecord';
+import { ExecutionSpan } from './models/ExecutionSpan';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { MemoryAwareRuntimeStack } from './MemoryAwareRuntimeStack';
 import { DebugRuntimeStack } from './DebugRuntimeStack';
-import { ExecutionLogger } from './ExecutionLogger';
+import { ExecutionTracker } from './ExecutionTracker';
 import {
     ActionFragmentCompiler,
     DistanceFragmentCompiler,
@@ -43,7 +43,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
     public readonly options: IRuntimeOptions;
-    private readonly executionLogger: ExecutionLogger;
+    private readonly executionTracker: ExecutionTracker;
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(
@@ -55,17 +55,17 @@ export class ScriptRuntime implements IScriptRuntime {
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
         
         this.memory = new RuntimeMemory();
-        this.executionLogger = new ExecutionLogger(this.memory);
+        this.executionTracker = new ExecutionTracker(this.memory);
         
         // Use DebugRuntimeStack if debugMode is enabled, otherwise use MemoryAwareRuntimeStack
         if (this.options.debugMode) {
-            this.stack = new DebugRuntimeStack(this, this.executionLogger, this.options);
+            this.stack = new DebugRuntimeStack(this, this.executionTracker, this.options);
             
             // Enable NextBlockLogger automatically in debug mode
             NextBlockLogger.setEnabled(true);
             console.log('🔍 ScriptRuntime: Debug mode enabled - blocks will be wrapped with TestableBlock');
         } else {
-            this.stack = new MemoryAwareRuntimeStack(this, this.executionLogger);
+            this.stack = new MemoryAwareRuntimeStack(this, this.executionTracker);
         }
         
         // Enable logging if explicitly requested (even without full debug mode)
@@ -99,16 +99,24 @@ export class ScriptRuntime implements IScriptRuntime {
      * Gets the currently active execution spans from memory.
      * Used by UI to display ongoing execution state.
      */
-    public get activeSpans(): ReadonlyMap<string, ExecutionRecord> {
-        return this.executionLogger.getActiveSpans();
+    public get activeSpans(): ReadonlyMap<string, ExecutionSpan> {
+        return this.executionTracker.getActiveSpansMap();
     }
 
     /**
      * Gets the execution history from memory.
      * Note: This returns a copy of the records.
      */
-    public get executionLog(): ExecutionRecord[] {
-        return this.executionLogger.getLog();
+    public get executionLog(): ExecutionSpan[] {
+        return this.executionTracker.getCompletedSpans();
+    }
+
+    /**
+     * Gets the ExecutionTracker for direct metric recording.
+     * Used by actions and behaviors to record metrics to active spans.
+     */
+    public get tracker(): ExecutionTracker {
+        return this.executionTracker;
     }
 
     handle(event: IEvent): void {

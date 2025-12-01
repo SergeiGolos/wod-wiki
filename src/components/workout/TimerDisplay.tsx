@@ -13,7 +13,7 @@
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+
 import { Progress } from '@/components/ui/progress';
 import { Play, Pause, Square, SkipForward, Timer as TimerIcon, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -287,11 +287,133 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
   // Default activity card layout
   return (
-    <Card className={cn('w-full', compact ? 'p-2' : 'p-4')}>
-      <CardContent className={cn('flex items-center justify-between gap-4', compact ? 'p-2' : 'p-4')}>
+    <div className={cn('w-full flex flex-col gap-4', compact ? 'p-2' : 'p-0')}>
         
-        {/* Left Controls (Play/Pause + End Workout + Complete) */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Top Row: Info + Next Button */}
+        <div className="flex items-center justify-between gap-4">
+            {/* Info - Rendered as Fragment Pills */}
+            <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-2">
+            
+            {entry.metricGroups && entry.metricGroups.length > 0 ? (
+                // Multi-row display for grouped metrics
+                <div className="flex flex-col gap-2 w-full items-center">
+                    {entry.metricGroups.map((group, groupIdx) => (
+                        <div key={groupIdx} className="flex flex-wrap gap-2 items-center justify-center">
+                            {group.map((metric, idx) => {
+                                const type = metric.type || 'unknown';
+                                const colorClasses = getFragmentColorClasses(type);
+                                const icon = getFragmentIcon(type);
+                                
+                                return (
+                                    <span
+                                        key={idx}
+                                        className={cn(
+                                        `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
+                                        compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                                        )}
+                                    >
+                                        {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
+                                        <span>{metric.image || `${metric.value} ${metric.unit}`}</span>
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                // Single row display (Legacy)
+                <div className="flex flex-wrap gap-2 items-center justify-center">
+                    {/* Metrics display */}
+                    {entry.metrics && entry.metrics.length > 0 && entry.metrics.map((metric, idx) => {
+                    const type = metric.type || 'unknown';
+                    const colorClasses = getFragmentColorClasses(type);
+                    const icon = getFragmentIcon(type);
+                    
+                    return (
+                        <span
+                            key={idx}
+                            className={cn(
+                            `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
+                            compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                            )}
+                        >
+                            {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
+                            <span>{metric.image || `${metric.value} ${metric.unit}`}</span>
+                        </span>
+                    );
+                    })}
+
+                    {/* Title as Action/Text Fragment */}
+                    {entry.title && (
+                    <span
+                        className={cn(
+                        `inline-flex items-center gap-1 rounded font-mono border ${getFragmentColorClasses('action')} bg-opacity-60 shadow-sm transition-colors`,
+                        compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                        )}
+                    >
+                        <span className={compact ? "text-xs" : "text-base leading-none"}>{getFragmentIcon('action')}</span>
+                        <span className="font-semibold">{entry.title}</span>
+                    </span>
+                    )}
+
+                    {entry.subtitle && (
+                    <span className={cn('text-muted-foreground ml-2', compact ? 'text-xs' : 'text-sm')}>
+                        {entry.subtitle}
+                    </span>
+                    )}
+                </div>
+            )}
+
+            {/* Card Timer - If timerMemoryId is present */}
+            {entry.timerMemoryId && (
+                <div className="mt-1">
+                    <SecondaryTimerBadge 
+                        entry={{ 
+                            timerMemoryId: entry.timerMemoryId, 
+                            label: 'Block Time',
+                            format: 'countup',
+                            ownerId: entry.ownerId
+                        }}
+                        onHover={onBlockHover}
+                        onClick={onBlockClick}
+                        compact={true}
+                        className="bg-background/80 border-primary/20"
+                    />
+                </div>
+            )}
+            </div>
+            
+            {/* Right Controls (Next as button with text) */}
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+            {nextButton ? (
+                <Button
+                onClick={() => onControlAction?.(nextButton.action)}
+                variant="default"
+                size={compact ? 'sm' : 'default'}
+                className={cn(
+                    'flex items-center gap-1',
+                    nextButton.color || 'bg-blue-600 hover:bg-blue-700'
+                )}
+                >
+                {compact ? 'Next' : nextButton.label || 'Next'}
+                <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                </Button>
+            ) : onNext ? (
+                // Fallback if no controls but onNext exists (legacy/custom)
+                <Button
+                onClick={onNext}
+                size={compact ? 'sm' : 'default'}
+                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+                >
+                Next
+                <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                </Button>
+            ) : null}
+            </div>
+        </div>
+
+        {/* Bottom Row: Controls (Play/Pause + End Workout + Complete) */}
+        <div className="flex items-center justify-center gap-4 shrink-0">
           {playPauseButton && renderButton(playPauseButton)}
           {completeButton && renderButton(completeButton)}
           {stopButton && (
@@ -307,99 +429,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           )}
           {otherButtons.map(renderButton)}
         </div>
-
-        {/* Info - Rendered as Fragment Pills */}
-        <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-2">
-          
-          <div className="flex flex-wrap gap-2 items-center justify-center">
-            {/* Metrics display */}
-            {entry.metrics && entry.metrics.length > 0 && entry.metrics.map((metric, idx) => {
-               const type = metric.type || 'unknown';
-               const colorClasses = getFragmentColorClasses(type);
-               const icon = getFragmentIcon(type);
-               
-               return (
-                  <span
-                    key={idx}
-                    className={cn(
-                      `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
-                      compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
-                    )}
-                  >
-                    {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
-                    <span>{metric.value} {metric.unit}</span>
-                  </span>
-               );
-            })}
-
-            {/* Title as Action/Text Fragment */}
-            {entry.title && (
-              <span
-                className={cn(
-                  `inline-flex items-center gap-1 rounded font-mono border ${getFragmentColorClasses('action')} bg-opacity-60 shadow-sm transition-colors`,
-                  compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
-                )}
-              >
-                <span className={compact ? "text-xs" : "text-base leading-none"}>{getFragmentIcon('action')}</span>
-                <span className="font-semibold">{entry.title}</span>
-              </span>
-            )}
-
-            {entry.subtitle && (
-               <span className={cn('text-muted-foreground ml-2', compact ? 'text-xs' : 'text-sm')}>
-                 {entry.subtitle}
-               </span>
-            )}
-          </div>
-
-          {/* Card Timer - If timerMemoryId is present */}
-          {entry.timerMemoryId && (
-            <div className="mt-1">
-                <SecondaryTimerBadge 
-                    entry={{ 
-                        timerMemoryId: entry.timerMemoryId, 
-                        label: 'Block Time',
-                        format: 'countup',
-                        ownerId: entry.ownerId
-                    }}
-                    onHover={onBlockHover}
-                    onClick={onBlockClick}
-                    compact={true}
-                    className="bg-background/80 border-primary/20"
-                />
-            </div>
-          )}
-        </div>
-        
-        {/* Right Controls (Next as button with text) */}
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          {nextButton ? (
-            <Button
-              onClick={() => onControlAction?.(nextButton.action)}
-              variant="default"
-              size={compact ? 'sm' : 'default'}
-              className={cn(
-                'flex items-center gap-1',
-                nextButton.color || 'bg-blue-600 hover:bg-blue-700'
-              )}
-            >
-              {compact ? 'Next' : nextButton.label || 'Next'}
-              <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
-            </Button>
-          ) : onNext ? (
-            // Fallback if no controls but onNext exists (legacy/custom)
-            <Button
-              onClick={onNext}
-              size={compact ? 'sm' : 'default'}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
-            >
-              Next
-              <SkipForward className={cn(compact ? 'h-3 w-3' : 'h-4 w-4')} />
-            </Button>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 

@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntime } from './IScriptRuntime';
 import { RuntimeStack } from './RuntimeStack';
-import { ExecutionLogger } from './ExecutionLogger';
+import { ExecutionTracker } from './ExecutionTracker';
 import { TestableBlock, TestableBlockConfig } from './testing/TestableBlock';
 import { BlockWrapperFactory, DebugLogEvent, IRuntimeOptions } from './IRuntimeOptions';
 import { NextBlockLogger } from './NextBlockLogger';
@@ -61,7 +61,7 @@ export class DebugRuntimeStack extends RuntimeStack {
     
     constructor(
         private readonly runtime: IScriptRuntime,
-        private readonly logger: ExecutionLogger,
+        private readonly tracker: ExecutionTracker,
         private readonly options: IRuntimeOptions = {}
     ) {
         super();
@@ -122,10 +122,10 @@ export class DebugRuntimeStack extends RuntimeStack {
      */
     override push(block: IRuntimeBlock): void {
         const parentBlock = this.current;
-        let parentId: string | null = null;
+        let parentSpanId: string | null = null;
         
         if (parentBlock) {
-            parentId = this.logger.getActiveRecordId(parentBlock.key.toString());
+            parentSpanId = this.tracker.getActiveSpanId(parentBlock.key.toString());
         }
         
         // Wrap block if debug mode is active
@@ -160,40 +160,33 @@ export class DebugRuntimeStack extends RuntimeStack {
             }
         }
         
-        // Determine initial metrics
-        const initialMetrics = block.compiledMetrics ? [block.compiledMetrics] : [];
+        // Start tracking execution span
+        this.tracker.startSpan(block, parentSpanId);
         
-        // Fallback for legacy blocks without compiledMetrics
-        if (initialMetrics.length === 0 && block.blockType === 'Effort' && block.label) {
+        // Record initial metrics from block if available
+        if (block.compiledMetrics) {
+            this.tracker.recordLegacyMetric(block.key.toString(), block.compiledMetrics);
+        } else if (block.blockType === 'Effort' && block.label) {
             const label = block.label;
             const match = label.match(/^(\d+)\s+(.+)$/);
             if (match) {
                 const reps = parseInt(match[1], 10);
                 const exerciseName = match[2].trim();
                 if (!isNaN(reps)) {
-                    initialMetrics.push({
+                    this.tracker.recordLegacyMetric(block.key.toString(), {
                         exerciseId: exerciseName,
                         values: [{ type: 'repetitions', value: reps, unit: 'reps' }],
                         timeSpans: []
                     });
                 }
             } else {
-                initialMetrics.push({
+                this.tracker.recordLegacyMetric(block.key.toString(), {
                     exerciseId: label,
                     values: [],
                     timeSpans: []
                 });
             }
         }
-        
-        // Start logging execution
-        this.logger.startExecution(
-            block.key.toString(),
-            block.blockType || 'unknown',
-            block.label || block.key.toString(),
-            parentId,
-            initialMetrics
-        );
         
         // Provide runtime context if the block expects it (duck-typing)
         if (typeof (blockToPush as any).setRuntime === 'function') {
@@ -226,8 +219,8 @@ export class DebugRuntimeStack extends RuntimeStack {
         if (poppedBlock) {
             const blockKey = poppedBlock.key.toString();
             
-            // Complete execution log
-            this.logger.completeExecution(blockKey);
+            // Complete execution span
+            this.tracker.endSpan(blockKey);
             
             // Log pop event
             this._logDebugEvent({

@@ -9,7 +9,7 @@
 import React from 'react';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
+import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
 
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
@@ -32,9 +32,9 @@ export interface ExecutionLogPanelProps {
 }
 
 /**
- * Helper to convert ExecutionRecord to Segment for display
+ * Helper to convert ExecutionSpan to Segment for display
  */
-function recordToSegment(record: ExecutionRecord, hashCode: (str: string) => number): Segment {
+function recordToSegment(record: ExecutionSpan, hashCode: (str: string) => number): Segment {
   return {
     id: hashCode(record.blockId),
     name: record.label,
@@ -42,7 +42,7 @@ function recordToSegment(record: ExecutionRecord, hashCode: (str: string) => num
     startTime: Math.floor(record.startTime / 1000),
     endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
     duration: ((record.endTime ?? Date.now()) - record.startTime) / 1000,
-    parentId: record.parentId ? hashCode(record.parentId) : null,
+    parentId: record.parentSpanId ? hashCode(record.parentSpanId) : null,
     depth: 0,
     avgPower: 0,
     avgHr: 0,

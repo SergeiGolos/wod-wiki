@@ -12,6 +12,7 @@ import { IEvent } from './IEvent';
 import { RuntimeMetric } from './RuntimeMetric';
 import { PushCardDisplayAction, PopCardDisplayAction } from './actions/CardDisplayActions';
 import { TimerBehavior } from './behaviors/TimerBehavior';
+import { LoopCoordinatorBehavior } from './behaviors/LoopCoordinatorBehavior';
 
 
 export type AllocateRequest<T> = { 
@@ -141,7 +142,10 @@ export class RuntimeBlock implements IRuntimeBlock{
 
         // If no TimerBehavior is present but we have metrics, push a default activity card
         // This ensures blocks like "10 Pushups" (which have no timer) still show up in the UI
-        if (!this.getBehavior(TimerBehavior) && this.compiledMetrics) {
+        // BUT: Don't push cards for container/parent blocks (those with LoopCoordinatorBehavior)
+        // Container blocks manage children and shouldn't show as "current exercise"
+        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
+        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
             actions.push(new PushCardDisplayAction({
                 id: `card-${this.key}`,
                 ownerId: this.key.toString(),
@@ -191,8 +195,9 @@ export class RuntimeBlock implements IRuntimeBlock{
             if (result) { actions.push(...result); }
         }
 
-        // Pop the default card if we pushed one
-        if (!this.getBehavior(TimerBehavior) && this.compiledMetrics) {
+        // Pop the default card if we pushed one (only for leaf blocks)
+        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
+        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
             actions.push(new PopCardDisplayAction(`card-${this.key}`));
         }
 

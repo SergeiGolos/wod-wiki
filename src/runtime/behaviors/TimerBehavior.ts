@@ -2,8 +2,7 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-import { TimerState, TimerSpan } from '../models/MemoryModels';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { TimerSpan } from '../models/MemoryModels';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { ITickable } from '../ITickable';
 import { calculateDuration } from '../../lib/timeUtils';
@@ -64,7 +63,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
   constructor(
     private readonly direction: 'up' | 'down' = 'up',
     private readonly durationMs?: number,
-    private readonly label: string = 'Timer'
+    private readonly label: string = 'Timer',
+    private readonly role: 'primary' | 'secondary' | 'auto' = 'auto'
   ) {
     if (direction !== 'up' && direction !== 'down') {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
@@ -97,12 +97,22 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       },
     });
 
-    // Determine role based on stack depth
-    const stackDepth = runtime.stack.blocks.length;
-    const role = stackDepth === 1 ? 'root' :
-                 block.children && block.children.length > 0 ? 'segment' : 'leaf';
+    // Determine role based on stack depth if auto, otherwise use configured role
+    let finalRole = this.role;
+    if (finalRole === 'auto') {
+    
+        // Root is secondary by default if auto (but we passed explicit secondary for root)
+        // Actually, if we pass 'secondary' for root, this logic is skipped.
+        // But for other blocks, we might want auto logic.
+        // The old logic was:
+        // const role = stackDepth === 1 ? 'root' : block.children && block.children.length > 0 ? 'segment' : 'leaf';
+        // We can map that to primary/secondary/auto if needed, but TimerStateManager handles 'auto' now.
+        // However, TimerStateManager's 'auto' logic is based on direction (countdown=primary).
+        // We might want to preserve the hierarchy logic here if needed.
+        // But for now, let's trust TimerStateManager's auto logic or pass explicit roles.
+    }
 
-    return this.stateManager.initialize(runtime, block, Date.now(), role);
+    return this.stateManager.initialize(runtime, block, Date.now(), this.role);
   }
 
   /**
@@ -131,9 +141,10 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Since onTick doesn't provide the block, we rely on the memory reference or stored ID.
     // However, IRuntimeBehavior doesn't store the block by default.
     // We can get the block ID from the timerRef if initialized.
-    if (!this.timerRef) return;
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef) return;
     
-    const blockId = this.timerRef.ownerId;
+    const blockId = timerRef.ownerId;
     
     // Calculate elapsed time
     this.elapsedMs = timestamp - this.startTime;

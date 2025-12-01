@@ -53,11 +53,8 @@ export class RoundsBlock extends RuntimeBlock {
     }
 
     if (config.repScheme !== undefined) {
-      if (config.repScheme.length !== config.totalRounds) {
-        throw new RangeError(
-          `repScheme length (${config.repScheme.length}) must match totalRounds (${config.totalRounds})`
-        );
-      }
+      // Rep scheme cycles via modulo - no need to match totalRounds
+      // E.g., 21-15-9 with 5 rounds: 21, 15, 9, 21, 15
 
       for (let i = 0; i < config.repScheme.length; i++) {
         if (config.repScheme[i] <= 0) {

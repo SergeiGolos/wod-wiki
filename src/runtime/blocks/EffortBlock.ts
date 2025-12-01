@@ -8,8 +8,9 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
+import { ExecutionSpan } from '../models/ExecutionSpan';
+import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 import { RuntimeMetric } from '../RuntimeMetric';
-import { ExecutionRecord } from '../models/ExecutionRecord';
 
 /**
  * EffortBlock Configuration
@@ -51,7 +52,6 @@ class NextEventBehavior implements IRuntimeBehavior {
 export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
-  private readonly _compiledMetrics?: RuntimeMetric;
   private _forceComplete = false;
 
   constructor(
@@ -99,15 +99,6 @@ export class EffortBlock extends RuntimeBlock {
       label,     // label
       compiledMetrics  // pass through compiled metrics
     );
-    
-    this._compiledMetrics = compiledMetrics;
-  }
-  
-  /**
-   * Override compiledMetrics getter to return pre-compiled metrics
-   */
-  get compiledMetrics(): RuntimeMetric | undefined {
-    return this._compiledMetrics;
   }
 
   /**
@@ -256,33 +247,34 @@ export class EffortBlock extends RuntimeBlock {
     };
     metricsRef.set({ ...metrics });
 
-    // 2. Sync to ExecutionRecord for history/analytics
+    // 2. Sync to ExecutionSpan for history/analytics
     // This ensures live updates are reflected in the execution log
-    const recordRefs = runtime.memory.search({ 
-        type: 'execution-record', 
+    const spanRefs = runtime.memory.search({ 
+        type: EXECUTION_SPAN_TYPE, 
         ownerId: blockId, 
         id: null, 
         visibility: null 
     });
     
-    if (recordRefs.length > 0) {
-        const recordRef = recordRefs[0] as any;
-        const record = runtime.memory.get(recordRef) as ExecutionRecord;
+    if (spanRefs.length > 0) {
+        const spanRef = spanRefs[0] as any;
+        const span = runtime.memory.get(spanRef) as ExecutionSpan;
         
-        if (record && record.metrics && record.metrics.length > 0) {
-            // Update the reps value in the existing metric
-            const updatedMetrics = record.metrics.map(m => {
-                const updatedValues = m.values.map(v => {
-                    if (v.type === 'repetitions') {
-                        return { ...v, value: this.currentReps };
-                    }
-                    return v;
-                });
-                return { ...m, values: updatedValues };
-            });
+        if (span && span.metrics) {
+            // Update the span metrics with current reps and exercise info
+            const updatedMetrics = {
+                ...span.metrics,
+                exerciseId: this.config.exerciseName,
+                reps: {
+                    value: this.currentReps,
+                    unit: 'reps',
+                    recorded: Date.now()
+                },
+                targetReps: this.config.targetReps
+            };
             
-            runtime.memory.set(recordRef, {
-                ...record,
+            runtime.memory.set(spanRef, {
+                ...span,
                 metrics: updatedMetrics
             });
         }

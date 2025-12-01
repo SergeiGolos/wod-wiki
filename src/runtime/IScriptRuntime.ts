@@ -5,7 +5,8 @@ import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector } from './MetricCollector';
-import { ExecutionRecord } from './models/ExecutionRecord';
+import { ExecutionSpan } from './models/ExecutionSpan';
+import { ExecutionTracker } from './ExecutionTracker';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 
 import { RuntimeClock } from './RuntimeClock';
@@ -26,8 +27,14 @@ export interface IScriptRuntime {
     /** Metrics collection subsystem for workout analytics */
     readonly metrics?: IMetricCollector;
 
-    /** Persistent log of executed blocks */
-    readonly executionLog: ExecutionRecord[];
+    /** 
+     * ExecutionTracker for recording metrics to active spans.
+     * Use this to record metrics, start/end segments, etc.
+     */
+    readonly tracker: ExecutionTracker;
+
+    /** Persistent log of completed execution spans */
+    readonly executionLog: ExecutionSpan[];
     
     /**
      * Checks if the runtime execution has completed.

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExecutionLogger } from '../ExecutionLogger';
+import { ExecutionLogger, ExecutionRecord } from '../ExecutionLogger';
 import { IRuntimeMemory } from '../IRuntimeMemory';
-import { ExecutionRecord } from '../models/ExecutionRecord';
+import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 
 describe('ExecutionLogger', () => {
   let memory: IRuntimeMemory;
@@ -22,8 +22,8 @@ describe('ExecutionLogger', () => {
         const results: any[] = [];
         store.forEach((value, key) => {
             // Match ownerId if provided, or return all if null
-            if ((query.ownerId === null || value.blockId === query.ownerId) && query.type === 'execution-record') {
-                results.push({ id: key, type: 'execution-record', ownerId: value.blockId });
+            if ((query.ownerId === null || value.blockId === query.ownerId) && query.type === EXECUTION_SPAN_TYPE) {
+                results.push({ id: key, type: EXECUTION_SPAN_TYPE, ownerId: value.blockId });
             }
         });
         return results;
@@ -42,11 +42,11 @@ describe('ExecutionLogger', () => {
     const record = logger.startExecution('block-1', 'Timer', 'My Timer', null, []);
 
     expect(memory.allocate).toHaveBeenCalledWith(
-      'execution-record',
+      EXECUTION_SPAN_TYPE,
       'block-1',
       expect.objectContaining({
         blockId: 'block-1',
-        type: 'Timer',
+        type: 'timer', // Note: legacyTypeToSpanType converts to lowercase SpanType
         label: 'My Timer',
         status: 'active'
       }),

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { transformRuntimeToAnalytics } from './AnalyticsTransformer';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { ExecutionRecord } from '../runtime/ExecutionLogger';
+import { ExecutionSpan } from '../runtime/models/ExecutionSpan';
 
 describe('AnalyticsTransformer', () => {
   it('returns empty result when runtime is null', () => {
@@ -29,12 +29,16 @@ describe('AnalyticsTransformer', () => {
       executionLog: [
         {
           id: 'block-1',
+          blockId: 'block-1',
           label: 'Warmup',
-          type: 'warmup',
+          type: 'group',
           startTime: startTime,
           endTime: startTime + 60000,
-          metrics: []
-        } as unknown as ExecutionRecord
+          parentSpanId: null,
+          status: 'completed',
+          metrics: {},
+          segments: []
+        } as ExecutionSpan
       ],
       stack: { blocks: [] }
     } as unknown as ScriptRuntime;
