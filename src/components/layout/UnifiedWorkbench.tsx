@@ -43,6 +43,7 @@ import { RuntimeProvider as ClockRuntimeProvider } from '../../runtime/context/R
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
+import { useWakeLock } from '../../hooks/useWakeLock';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
 
 // Runtime imports
@@ -321,6 +322,12 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // Execution hook
   const execution = useRuntimeExecution(runtime);
+
+  // Screen Wake Lock - keep screen awake when in track mode and workout is running
+  // This prevents the phone screen from dimming/locking during active workouts
+  useWakeLock({
+    enabled: viewMode === 'track' && execution.status === 'running'
+  });
 
   // Real Analytics Data from Runtime
   // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
