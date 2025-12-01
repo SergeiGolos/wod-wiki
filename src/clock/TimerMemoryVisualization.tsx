@@ -2,6 +2,7 @@ import React from 'react';
 import { useMemorySubscription } from '../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../runtime/IMemoryReference';
 import { TimeSpan } from '../runtime/behaviors/TimerBehavior';
+import { formatTimestamp } from '@/lib/timeUtils';
 
 interface TimerMemoryVisualizationProps {
   timeSpansRef: TypedMemoryReference<TimeSpan[]>;
@@ -10,20 +11,6 @@ interface TimerMemoryVisualizationProps {
   onMemoryHover?: (highlighted: boolean) => void;
   isHighlighted?: boolean;
 }
-
-/**
- * Formats a Date object to HH:MM:SS format.
- */
-const formatTimestamp = (date?: Date): string => {
-  if (!date) return 'running';
-
-  return date.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-};
 
 /**
  * TimerMemoryVisualization displays timer memory allocations in a structured format.

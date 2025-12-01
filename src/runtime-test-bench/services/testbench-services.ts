@@ -1,13 +1,11 @@
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { JitCompiler } from '../../runtime/JitCompiler';
-import { 
-  TimeBoundRoundsStrategy,
-  IntervalStrategy,
-  TimerStrategy,
-  RoundsStrategy,
-  GroupStrategy,
-  EffortStrategy
-} from '../../runtime/strategies';
+import { TimeBoundRoundsStrategy } from '../../runtime/strategies/TimeBoundRoundsStrategy';
+import { IntervalStrategy } from '../../runtime/strategies/IntervalStrategy';
+import { TimerStrategy } from '../../runtime/strategies/TimerStrategy';
+import { RoundsStrategy } from '../../runtime/strategies/RoundsStrategy';
+import { GroupStrategy } from '../../runtime/strategies/GroupStrategy';
+import { EffortStrategy } from '../../runtime/strategies/EffortStrategy';
 
 /**
  * Module-Level Services for RuntimeTestBench

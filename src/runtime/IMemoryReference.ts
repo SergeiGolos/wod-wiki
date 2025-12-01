@@ -38,7 +38,7 @@ export interface SubscriptionOptions {
 }
 
 export class TypedMemoryReference<T>  implements IMemoryReference {    
-    public readonly id: string = crypto.randomUUID();
+    public id: string = crypto.randomUUID();
     private _subscriptions: IMemorySubscription<T>[] = [];
 
     constructor(

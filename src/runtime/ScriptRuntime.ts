@@ -10,9 +10,9 @@ import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
-import { TypedMemoryReference } from './IMemoryReference';
-import { RuntimeMetric, MetricValue } from './RuntimeMetric';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
+import { MemoryAwareRuntimeStack } from './MemoryAwareRuntimeStack';
+import { ExecutionLogger } from './ExecutionLogger';
 import {
     ActionFragmentCompiler,
     DistanceFragmentCompiler,
@@ -38,11 +38,13 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly clock: RuntimeClock;
     public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
+    private readonly executionLogger: ExecutionLogger;
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(public readonly script: WodScript, compiler: JitCompiler) {
-        this.stack = new RuntimeStack();
         this.memory = new RuntimeMemory();
+        this.executionLogger = new ExecutionLogger(this.memory);
+        this.stack = new MemoryAwareRuntimeStack(this, this.executionLogger);
         this.metrics = new MetricCollector();
         this.clock = new RuntimeClock();
         this.jit = compiler;
@@ -61,8 +63,6 @@ export class ScriptRuntime implements IScriptRuntime {
             new TimerFragmentCompiler()
         ]);
         
-        this._setupMemoryAwareStack();
-
         // Start the clock
         this.clock.start();
     }
@@ -72,15 +72,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * Used by UI to display ongoing execution state.
      */
     public get activeSpans(): ReadonlyMap<string, ExecutionRecord> {
-        const map = new Map<string, ExecutionRecord>();
-        this.memory.search({ type: 'execution-record', visibility: 'public', id: null, ownerId: null })
-            .forEach(ref => {
-                const record = this.memory.get(ref as any) as ExecutionRecord;
-                if (record && record.status === 'active') {
-                    map.set(record.blockId, record);
-                }
-            });
-        return map;
+        return this.executionLogger.getActiveSpans();
     }
 
     /**
@@ -88,129 +80,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * Note: This returns a copy of the records.
      */
     public get executionLog(): ExecutionRecord[] {
-        return this.memory.search({ type: 'execution-record', id: null, ownerId: null, visibility: null })
-            .map(ref => this.memory.get(ref as any) as ExecutionRecord)
-            .filter(r => r && r.status === 'completed');
-    }
-
-    /**
-     * Enhanced stack management with constructor-based initialization and consumer-managed disposal.
-     * Updated to support the new lifecycle pattern where:
-     * - Initialization happens in block constructors (not during push)
-     * - Cleanup happens via consumer-managed dispose() calls (not during pop)
-     */
-    private _setupMemoryAwareStack(): void {
-        // Override stack operations for logging and runtime context setup only
-        const originalPop = this.stack.pop.bind(this.stack);
-        const originalPush = this.stack.push.bind(this.stack);
-
-        this.stack.pop = () => {
-            const poppedBlock = originalPop();
-
-            if (poppedBlock) {
-                const blockId = poppedBlock.key.toString();
-
-
-                // Finalize execution span in memory
-                const refs = this.memory.search({ type: 'execution-record', ownerId: blockId, id: null, visibility: null });
-                if (refs.length > 0) {
-                    // Use TypedMemoryReference to ensure type safety if possible, or cast
-                    const ref = refs[0] as TypedMemoryReference<ExecutionRecord>;
-                    const record = this.memory.get(ref);
-                    
-                    if (record) {
-                        const updatedRecord: ExecutionRecord = {
-                            ...record,
-                            endTime: Date.now(),
-                            status: 'completed'
-                        };
-                        
-                        // Update memory (triggers subscribers)
-                        this.memory.set(ref, updatedRecord);
-                    }
-                }
-            }
-
-            return poppedBlock; // Consumer responsibility to dispose
-        };
-
-        this.stack.push = (block) => {
-            const blockId = block.key.toString();
-
-            
-            // Identify parent span
-            const parentBlock = this.stack.current;
-            let parentId: string | null = null;
-            
-            if (parentBlock) {
-                const parentRefs = this.memory.search({ type: 'execution-record', ownerId: parentBlock.key.toString(), id: null, visibility: null });
-                if (parentRefs.length > 0) {
-                    const parentRecord = this.memory.get(parentRefs[0] as any) as ExecutionRecord;
-                    if (parentRecord) {
-                        parentId = parentRecord.id;
-                    }
-                }
-            }
-
-            // Use pre-compiled metrics from block if available (unified metrics path)
-            // This is the preferred path - metrics are compiled during strategy execution
-            // and passed through block.compiledMetrics
-            const initialMetrics: RuntimeMetric[] = [];
-            
-            if (block.compiledMetrics) {
-                // Use pre-compiled metrics from FragmentCompilationManager
-                initialMetrics.push(block.compiledMetrics);
-            } else if (block.blockType === 'Effort' && block.label) {
-                // Fallback: Parse label for legacy blocks without compiledMetrics
-                // This maintains backward compatibility during migration
-                const label = block.label;
-                const match = label.match(/^(\d+)\s+(.+)$/);
-                if (match) {
-                    const reps = parseInt(match[1], 10);
-                    const exerciseName = match[2].trim();
-                    const values: MetricValue[] = [];
-                    if (!isNaN(reps)) {
-                        values.push({ type: 'repetitions', value: reps, unit: 'reps' });
-                    }
-                    initialMetrics.push({
-                        exerciseId: exerciseName,
-                        values,
-                        timeSpans: []
-                    });
-                } else {
-                    // No reps, just exercise name
-                    initialMetrics.push({
-                        exerciseId: label,
-                        values: [],
-                        timeSpans: []
-                    });
-                }
-            }
-
-            // Create execution record
-            const record: ExecutionRecord = {
-                id: `${Date.now()}-${blockId}`, // Simple unique ID
-                blockId: blockId,
-                parentId: parentId,
-                type: block.blockType || 'unknown',
-                label: block.label || blockId,
-                startTime: Date.now(),
-                status: 'active',
-                metrics: initialMetrics
-            };
-
-            // Store in memory
-            this.memory.allocate<ExecutionRecord>('execution-record', blockId, record, 'public');
-            
-            // Optionally allow blocks that expose setRuntime to receive runtime context (duck-typing)
-            if (typeof (block as any).setRuntime === 'function') {
-                (block as any).setRuntime(this);
-            }
-            
-            // Push block (no lifecycle method calls - constructor-based initialization)
-            originalPush(block);
-            
-        };
+        return this.executionLogger.getLog();
     }
 
     handle(event: IEvent): void {
