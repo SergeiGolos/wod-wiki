@@ -9,3 +9,9 @@ export {
   useWorkoutEmit, 
   useWorkoutEventBus 
 } from './useWorkoutEvents';
+
+export { 
+  useWakeLock,
+  type UseWakeLockOptions,
+  type UseWakeLockResult 
+} from './useWakeLock';
