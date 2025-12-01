@@ -22,7 +22,7 @@ export class TimerStateManager {
     /**
      * Initializes the timer state in memory and creates display actions.
      */
-    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number): IRuntimeAction[] {
+    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role?: 'root' | 'segment' | 'leaf'): IRuntimeAction[] {
         const initialState: TimerState = {
             blockId: block.key.toString(),
             label: this.label,
@@ -50,6 +50,7 @@ export class TimerStateManager {
             label: this.label,
             format: this.direction === 'down' ? 'countdown' : 'countup',
             durationMs: this.durationMs,
+            role: role
         });
 
         const cardAction = new PushCardDisplayAction({

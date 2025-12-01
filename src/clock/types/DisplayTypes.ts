@@ -35,6 +35,9 @@ export interface ITimerDisplayEntry {
   
   /** Priority for display ordering (lower = more important) */
   priority?: number;
+
+  /** Semantic role of the timer */
+  role?: 'root' | 'segment' | 'leaf';
 }
 
 /**
@@ -145,6 +148,18 @@ export interface IDisplayStackState {
   /** Global workout state */
   workoutState: 'idle' | 'running' | 'paused' | 'complete';
   
+  /**
+   * Memory reference ID for the global workout timer.
+   * This timer persists across the entire workout duration.
+   */
+  globalTimerMemoryId?: string;
+
+  /**
+   * Memory reference ID for the current lap/round timer.
+   * Tracks the duration of the current round or interval.
+   */
+  currentLapTimerMemoryId?: string;
+
   /** Total elapsed time across the entire workout (ms) */
   totalElapsedMs?: number;
   

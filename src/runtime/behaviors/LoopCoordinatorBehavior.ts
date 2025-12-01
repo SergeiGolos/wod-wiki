@@ -4,8 +4,11 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
-import { TimerBehavior } from './TimerBehavior';
+import { TimerBehavior, TimeSpan } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
+import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { TypedMemoryReference } from '../IMemoryReference';
+import { IDisplayStackState, createDefaultDisplayState } from '../../clock/types/DisplayTypes';
 
 /**
  * Loop type determines completion logic.
@@ -381,6 +384,29 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         };
 
         runtime.memory.allocate('execution-record', blockId, record, 'public');
+
+        // Create lap timer for this round
+        const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
+          `timer:lap:${block.key}:${rounds}`,
+          block.key.toString(),
+          [{ start: Date.now() }],
+          'public'
+        );
+
+        // Update display state
+        const stateRefs = runtime.memory.search({
+          id: null,
+          ownerId: 'runtime',
+          type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+          visibility: null
+        });
+
+        if (stateRefs.length > 0) {
+          const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
+          const state = stateRef.get() || createDefaultDisplayState();
+          state.currentLapTimerMemoryId = lapTimerRef.id;
+          stateRef.set(state);
+        }
     }
   }
 }
