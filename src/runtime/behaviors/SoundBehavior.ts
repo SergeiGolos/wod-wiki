@@ -63,10 +63,16 @@ export class SoundBehavior implements IRuntimeBehavior {
   }
 
   /**
+   * Valid direction values for timer-based sound behaviors.
+   */
+  private static readonly VALID_DIRECTIONS = ['up', 'down'] as const;
+
+  /**
    * Validates the configuration.
    */
   private validateConfig(config: SoundBehaviorConfig): void {
-    if (config.direction !== 'up' && config.direction !== 'down') {
+    // Type-safe direction validation using the valid directions constant
+    if (!SoundBehavior.VALID_DIRECTIONS.includes(config.direction as typeof SoundBehavior.VALID_DIRECTIONS[number])) {
       throw new TypeError(`Invalid direction: ${config.direction}. Must be 'up' or 'down'.`);
     }
 
