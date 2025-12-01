@@ -21,6 +21,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/RuntimeFactory';
+import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
 
 /**
@@ -88,6 +89,9 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
   const factoryRef = useRef(factory);
   factoryRef.current = factory;
 
+  // Track current runtime in a ref to avoid stale closure issues
+  const currentRuntimeRef = useRef<ScriptRuntime | null>(null);
+
   /**
    * Dispose the current runtime safely
    */
@@ -115,11 +119,12 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
     setIsInitializing(true);
     setError(null);
 
-    // Dispose existing runtime first
+    // Dispose existing runtime first AND clean up log service
     setRuntime(currentRuntime => {
       if (currentRuntime) {
         console.log('[RuntimeProvider] Disposing existing runtime before creating new one');
         try {
+          executionLogService.cleanup(); // Clean up subscription FIRST
           factoryRef.current.disposeRuntime(currentRuntime);
         } catch (err) {
           console.error('[RuntimeProvider] Error disposing existing runtime:', err);
@@ -130,26 +135,39 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
 
     try {
       const newRuntime = factoryRef.current.createRuntime(block);
-      setRuntime(newRuntime);
       
-      if (!newRuntime) {
+      if (newRuntime) {
+        // Start logging session for new execution
+        // Note: Historical logs are accessed via executionLogService.getHistoricalLogs()
+        // and should NOT be hydrated into runtime memory to avoid duplicate allocations
+        executionLogService.startSession(newRuntime);
+        
+        // Update runtime ref for cleanup
+        currentRuntimeRef.current = newRuntime;
+      } else {
         console.warn('[RuntimeProvider] Factory returned null runtime for block:', block.id);
+        currentRuntimeRef.current = null;
       }
+
+      setRuntime(newRuntime);
     } catch (err) {
       console.error('[RuntimeProvider] Error creating runtime:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
+      currentRuntimeRef.current = null;
     } finally {
       setIsInitializing(false);
     }
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - use ref to avoid stale closure
   useEffect(() => {
     return () => {
       console.log('[RuntimeProvider] Unmounting, disposing runtime');
-      if (runtime) {
+      // Use ref to get current runtime value, avoiding stale closure
+      if (currentRuntimeRef.current) {
         try {
-          factoryRef.current.disposeRuntime(runtime);
+          executionLogService.cleanup();
+          factoryRef.current.disposeRuntime(currentRuntimeRef.current);
         } catch (err) {
           console.error('[RuntimeProvider] Error disposing runtime on unmount:', err);
         }
