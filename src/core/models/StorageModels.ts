@@ -7,7 +7,7 @@ export interface WodResult {
   id: string;              // UUID
   documentId: string;      // Reference to the WodDocument (if saved)
   documentTitle: string;   // Snapshot of title in case doc is deleted
-  timestamp: number;       // When the workout finished
+  timestamp: number;       // When the workout session finished (set by finishSession)
   duration: number;        // Total milliseconds
   logs: ExecutionSpan[];   // The detailed runtime logs (splits, reps)
   metadata: {
