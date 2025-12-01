@@ -35,6 +35,26 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/**
+ * Type declarations for Screen Wake Lock API
+ * These are needed because the API may not be in all TypeScript lib definitions
+ */
+interface WakeLockSentinelType {
+  readonly released: boolean;
+  readonly type: 'screen';
+  release(): Promise<void>;
+  addEventListener(type: 'release', listener: () => void): void;
+  removeEventListener(type: 'release', listener: () => void): void;
+}
+
+interface WakeLockType {
+  request(type: 'screen'): Promise<WakeLockSentinelType>;
+}
+
+interface NavigatorWithWakeLock extends Navigator {
+  wakeLock?: WakeLockType;
+}
+
 export interface UseWakeLockOptions {
   /**
    * When true, automatically requests the wake lock.
@@ -64,11 +84,12 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
   const [isActive, setIsActive] = useState(false);
   const [isSupported] = useState(() => {
     // Check if running in browser and if Wake Lock API is supported
-    return typeof navigator !== 'undefined' && 'wakeLock' in navigator;
+    const nav = typeof navigator !== 'undefined' ? navigator as NavigatorWithWakeLock : undefined;
+    return nav !== undefined && 'wakeLock' in nav && nav.wakeLock !== undefined;
   });
   
   // Use ref to track the wake lock sentinel
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinelType | null>(null);
 
   /**
    * Request a screen wake lock
@@ -85,7 +106,8 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
     }
 
     try {
-      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      const nav = navigator as NavigatorWithWakeLock;
+      wakeLockRef.current = await nav.wakeLock!.request('screen');
       setIsActive(true);
       
       console.log('[useWakeLock] Wake lock acquired');
