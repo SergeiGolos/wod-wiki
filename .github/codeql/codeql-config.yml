@@ -1,0 +1,41 @@
+name: "WOD Wiki CodeQL Configuration"
+
+# CodeQL configuration for the WOD Wiki repository
+# This configuration is used by the Copilot Agent's codeql_checker tool
+# and can also be used with GitHub's CodeQL Action
+
+# Specify languages to analyze
+# For this TypeScript/JavaScript project, we focus on JavaScript analysis
+languages:
+  - javascript-typescript
+
+# Paths to analyze
+paths:
+  - src
+  - stories
+  - server
+  - tests
+
+# Paths to exclude from analysis
+paths-ignore:
+  - node_modules
+  - dist
+  - build
+  - storybook-static
+  - coverage
+  - "**/*.d.ts"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.test.js"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/*.spec.js"
+  - "**/*.stories.tsx"
+  - "**/*.stories.ts"
+  - public/exercises
+
+# Query suites to run
+# Using the default security-extended suite for comprehensive security scanning
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
