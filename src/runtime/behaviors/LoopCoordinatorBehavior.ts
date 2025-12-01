@@ -411,7 +411,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
           `timer:lap:${block.key}:${rounds}`,
           block.key.toString(),
-          [{ start: new Date() }],
+          [{ start: Date.now(), state: 'new' }],
           'public'
         );
 
@@ -432,6 +432,14 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
           if (state) {
             stateRef.set({ ...state, currentLapTimerMemoryId: lapTimerRef.id });
           }
+        }
+
+        // For INTERVAL loops (EMOM), restart the timer for the new round
+        if (this.config.loopType === LoopType.INTERVAL) {
+            const timerBehavior = block.getBehavior(TimerBehavior);
+            if (timerBehavior) {
+                timerBehavior.restart();
+            }
         }
     }
   }

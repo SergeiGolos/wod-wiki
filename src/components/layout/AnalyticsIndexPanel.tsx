@@ -210,8 +210,7 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
     let lastEndTime = 0;
 
     sorted.forEach(seg => {
-      const type = seg.type.toLowerCase();
-      console.log(`[AnalyticsIndexPanel] Segment: ${seg.name}, Type: ${seg.type}, LowerType: ${type}, isRoot: ${type === 'root'}`);
+      const type = seg.type.toLowerCase();      
       const fragments = segmentToFragments(seg);
       
       // Determine if this is a separator/grouping node

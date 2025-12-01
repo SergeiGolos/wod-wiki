@@ -3,6 +3,7 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TimerSpan } from '../models/MemoryModels';
+export type TimeSpan = TimerSpan;
 import { ITickable } from '../ITickable';
 import { calculateDuration } from '../../lib/timeUtils';
 import { TimerStateManager } from './TimerStateManager';
@@ -77,6 +78,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
         startTime: this.startTime,
       },
     });
+    
+    console.log(`⏱️ TimerBehavior: onPush for ${this.label}, autoStart=${this.autoStart}`);
 
     // Determine role based on stack depth if auto, otherwise use configured role
     let finalRole = this.role;
@@ -321,9 +324,11 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Resume the timer. Creates a new time span.
    */
   resume(): void {
+    console.log(`⏱️ TimerBehavior: Resume called for ${this.label}`);
     this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
+      console.warn(`⚠️ TimerBehavior: No timerRef for ${this.label}`);
       // Fallback to old behavior if memory not initialized
       if (this._runtime) {
         const now = this._runtime.clock.now;
@@ -339,10 +344,12 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     
     // If already running, don't resume
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
+      console.log(`ℹ️ TimerBehavior: Already running`);
       return;
     }
 
     // Add new span
+    console.log(`✅ TimerBehavior: Adding new span to ${this.label}`);
     spans.push({ start: Date.now(), state: 'new' });
     
     this.stateManager.updateState(spans, true);
@@ -406,5 +413,32 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     this.startTime = 0;
 
     this.stateManager.resetState();
+  }
+
+  /**
+   * Restart the timer. Resets state and starts immediately.
+   * Used for interval timers (EMOM).
+   */
+  restart(): void {
+    // 1. Reset internal state
+    this._isPaused = false;
+    this.elapsedMs = 0;
+    
+    if (this._runtime) {
+        this.startTime = this._runtime.clock.now;
+        // Ensure registered
+        this._runtime.clock.register(this);
+    }
+
+    // 2. Reset memory state and start new span
+    const timerRef = this.stateManager.getTimerRef();
+    if (timerRef) {
+        // Create fresh state with one new span
+        const newState = {
+            spans: [{ start: Date.now(), state: 'new' }],
+            isRunning: true
+        };
+        timerRef.set(newState as any);
+    }
   }
 }

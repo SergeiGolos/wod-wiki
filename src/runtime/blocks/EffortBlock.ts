@@ -11,6 +11,7 @@ import { CurrentMetrics } from '../models/MemoryModels';
 import { ExecutionSpan } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 import { RuntimeMetric } from '../RuntimeMetric';
+import { TimerBehavior } from '../behaviors/TimerBehavior';
 
 /**
  * EffortBlock Configuration
@@ -92,7 +93,12 @@ export class EffortBlock extends RuntimeBlock {
     super(
       runtime,
       sourceIds,
-      [nextEventBehavior, completionBehavior],
+      [
+        nextEventBehavior, 
+        completionBehavior,
+        // Add TimerBehavior for segment timing (count up)
+        new TimerBehavior('up', undefined, 'Segment Timer', 'primary')
+      ],
       "Effort",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam

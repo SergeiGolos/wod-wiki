@@ -11,6 +11,10 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { TimerBehavior } from "../behaviors/TimerBehavior";
+import { SoundBehavior } from "../behaviors/SoundBehavior";
+import { PREDEFINED_SOUNDS } from "../models/SoundModels";
+import { createCountdownSoundCues } from "./TimerStrategy";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -78,6 +82,20 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const children = code[0]?.children || [];
 
         const behaviors: IRuntimeBehavior[] = [];
+
+        // Add TimerBehavior for interval countdown (primary)
+        // LoopCoordinatorBehavior will restart this timer on every round
+        const timerBehavior = new TimerBehavior('down', intervalDurationMs, 'Interval', 'primary');
+        behaviors.push(timerBehavior);
+
+        // Add SoundBehavior for countdown cues
+        const soundCues = createCountdownSoundCues(intervalDurationMs);
+        const soundBehavior = new SoundBehavior({
+            direction: 'down',
+            durationMs: intervalDurationMs,
+            cues: soundCues
+        });
+        behaviors.push(soundBehavior);
 
         // Loop Coordinator (Interval)
         const loopCoordinator = new LoopCoordinatorBehavior({

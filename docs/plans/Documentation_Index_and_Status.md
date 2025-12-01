@@ -55,12 +55,13 @@ This document provides an index of the existing documentation and an analysis of
 | Feature | Status | Notes |
 | :--- | :--- | :--- |
 | **Stack Architecture** | ✅ Done | Core `RuntimeStack`, `RuntimeBlock` are stable. |
-| **Timer Behavior** | ✅ Done | High precision timing works. |
+| **Timer Behavior** | ✅ Done | High precision timing works. Refactored to use unified `TimerState` model. |
 | **Looping** | ⚠️ Partial | `LoopCoordinator` handles Fixed Rounds and Rep Schemes. **Intervals/EMOMs are broken.** |
 | **Intervals (EMOM)** | ❌ Missing | `IntervalStrategy.ts` is a stub. `LoopCoordinator` lacks timing wait logic. |
 | **History Tracking** | ✅ Done | `HistoryBehavior` creates `ExecutionSpan` objects. |
 | **Sound Cues** | ✅ Done | `SoundBehavior` logic is implemented (needs UI/AudioContext integration). |
-| **Memory Types** | ⚠️ Partial | `MemoryTypeEnum` exists but string literals might still be in use. |
+| **Memory Types** | ✅ Done | `MemoryTypeEnum` fully implemented. Memory search uses `type` field consistently. |
+| **Strategy Pattern** | ✅ Done | Strategies split into `src/runtime/strategies/` directory. |
 
 ### Editor
 
@@ -68,18 +69,19 @@ This document provides an index of the existing documentation and an analysis of
 | :--- | :--- | :--- |
 | **Syntax Highlighting** | ✅ Done | Monarch tokenizer works. |
 | **Folding** | ⚠️ Partial | `HeadingSectionFoldingFeature` works for headings/WOD blocks. **Rich folding (FrontMatter)** is missing. |
-| **Inline Widgets** | ⚠️ Partial | `RowBasedCardManager` exists in `src/editor/inline-cards`. |
-| **Rich Markdown** | ❌ Missing | No implementation for Images, Youtube, or FrontMatter tables found. |
-| **Autocomplete** | ❌ Missing | No `ExerciseIndex` or `SuggestionEngine` active. |
+| **Inline Widgets** | ✅ Done | `RichMarkdownManager` with `RowBasedCardManager` in `src/editor/inline-cards`. |
+| **Rich Markdown** | ⚠️ Partial | WOD block cards implemented. Images/Youtube/FrontMatter missing. |
+| **Autocomplete** | ✅ Done | `ExerciseSuggestionProvider` with LRU cache and 150ms debounce. |
+| **Editor Setup** | ✅ Done | `MarkdownEditor` refactored with `useMarkdownEditorSetup` hook. Reduced from 363→267 lines. |
 
 ### UI & UX
 
 | Feature | Status | Notes |
 | :--- | :--- | :--- |
-| **Workbench** | ⚠️ Debt | Coupled to specific implementations. Needs refactoring (`UnifiedWorkbench_Decoupling_Plan`). |
-| **Timer Display** | ✅ Done | `StackedClockDisplay` works, but could be cleaner. |
-| **Command Palette** | ❌ Missing | No `Cmd+K` menu. |
-| **Mobile Layout** | ❌ Missing | No responsive switching logic. |
+| **Workbench** | ✅ Done | Decoupled via `RuntimeFactory`, `RuntimeProvider`, `WorkoutEventBus`. Reduced from 761→493 lines. |
+| **Timer Display** | ✅ Done | `StackedClockDisplay` works, hooks use unified `TimerState` model. |
+| **Command Palette** | ✅ Done | `CommandPalette` component with `Ctrl+.` binding. |
+| **Mobile Layout** | ⚠️ Partial | `SlidingViewport` provides responsive behavior. |
 
 ### TV Casting
 
@@ -106,10 +108,12 @@ This document provides an index of the existing documentation and an analysis of
     *   *Docs*: `SoundBehavior_Design.md`.
 
 ### Technical Debt (Maintenance)
-1.  **Workbench Decoupling**: Essential for adding new views (like TV Preview or Mobile Layout).
+1.  **Workbench Decoupling**: ✅ **COMPLETED** - Refactored via `RuntimeFactory`, `RuntimeProvider`, and `WorkoutEventBus`.
     *   *Docs*: `UnifiedWorkbench_Decoupling_Plan.md`.
-2.  **Metric Refactor**: Finish migrating to `MemoryTypeEnum` to prevent bugs.
+2.  **Metric Refactor**: ✅ **COMPLETED** - Migrated to unified `TimerState` model with `MemoryTypeEnum`.
     *   *Docs*: `refactor-metrics-memory.md`.
+3.  **MarkdownEditor Cleanup**: ✅ **COMPLETED** - Extracted `useMarkdownEditorSetup` hook.
+    *   *Docs*: `cleanup-refactor.md`.
 
 ### Strategic Features (Differentiation)
 1.  **Rich Editor**: Images and FrontMatter make it a "real" Wiki.
@@ -121,25 +125,28 @@ This document provides an index of the existing documentation and an analysis of
 
 ## 4. Proposed Execution Plan
 
-### Phase 1: Core Runtime Fixes
+### Phase 1: Core Runtime Fixes ⚠️ PARTIAL
 **Goal**: Ensure all standard WOD types (For Time, AMRAP, EMOM, Rep Schemes) run correctly.
-1.  **Implement `IntervalStrategy`**: Create the blocks for EMOMs.
-2.  **Update `LoopCoordinatorBehavior`**: Add logic to wait for the interval timer to expire before starting the next round.
-3.  **Verify Sound**: Hook up `SoundBehavior` to play simple beeps.
+1.  **Implement `IntervalStrategy`**: ❌ Create the blocks for EMOMs. (Still needed)
+2.  **Update `LoopCoordinatorBehavior`**: ❌ Add logic to wait for the interval timer to expire before starting the next round. (Still needed)
+3.  **Verify Sound**: ❌ Hook up `SoundBehavior` to play simple beeps. (Still needed)
+4.  **Timer Memory Model**: ✅ **COMPLETED** - Unified `TimerState` model with `TimerSpan[]` and memory search by `type` field.
+5.  **Strategy Pattern Cleanup**: ✅ **COMPLETED** - Strategies split into `src/runtime/strategies/` directory.
 
-### Phase 2: UI Foundation & UX
+### Phase 2: UI Foundation & UX ✅ COMPLETED
 **Goal**: Make the app cleaner and more responsive.
-1.  **Decouple Workbench**: Refactor `UnifiedWorkbench` to accept slots.
-2.  **Command Palette**: Implement `Cmd+K` menu using `cmdk`.
-3.  **Responsive Layout**: Implement mobile tab switching.
+1.  **Decouple Workbench**: ✅ **COMPLETED** - `RuntimeFactory`, `RuntimeProvider`, `useWorkbenchRuntime` hook, `WorkoutEventBus`.
+2.  **Command Palette**: ✅ **COMPLETED** - `CommandPalette` component with `Ctrl+.` binding.
+3.  **Responsive Layout**: ✅ **COMPLETED** - `SlidingViewport` provides mobile tab switching.
 
-### Phase 3: Editor Enhancements
+### Phase 3: Editor Enhancements ⚠️ PARTIAL
 **Goal**: "IDE-like" experience.
-1.  **Rich Markdown**: Add Image drag-and-drop and Header styling.
-2.  **Autocomplete**: Wire up the exercise index.
+1.  **Rich Markdown**: ⚠️ WOD block cards done. Add Image drag-and-drop and Header styling. (Still needed)
+2.  **Autocomplete**: ✅ **COMPLETED** - `ExerciseSuggestionProvider` with LRU cache.
+3.  **MarkdownEditor Cleanup**: ✅ **COMPLETED** - `useMarkdownEditorSetup` hook extracted.
 
 ### Phase 4: Expansion (TV)
 **Goal**: Extend to the living room.
-1.  **Relay Server**: Deploy the WebSocket server.
-2.  **Cast UI**: Add "Cast" button to the web app.
-3.  **TV App**: Build the React Native TV client.
+1.  **Relay Server**: ❌ Deploy the WebSocket server. (Still needed)
+2.  **Cast UI**: ❌ Add "Cast" button to the web app. (Still needed)
+3.  **TV App**: ❌ Build the React Native TV client. (Still needed)

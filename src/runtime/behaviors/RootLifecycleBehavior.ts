@@ -74,6 +74,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         switch (this.state) {
             case RootState.INITIAL_IDLE:
+                console.log('🚀 RootLifecycleBehavior: Transitioning from INITIAL_IDLE to EXECUTING');
                 // Initial idle just finished (popped)
                 // Transition to execution
                 this.state = RootState.EXECUTING;
@@ -81,7 +82,10 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // Resume the root timer now that the workout is starting
                 const timer = block.getBehavior(TimerBehavior);
                 if (timer) {
+                    console.log('⏱️ RootLifecycleBehavior: Resuming root timer');
                     timer.resume();
+                } else {
+                    console.error('❌ RootLifecycleBehavior: Root timer not found!');
                 }
 
                 // NOTE: "Workout Started" section record is no longer created here.

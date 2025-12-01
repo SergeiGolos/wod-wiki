@@ -11,6 +11,7 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { TimerBehavior } from "../behaviors/TimerBehavior";
 
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -112,6 +113,9 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
                 compiledMetric
             );
         }
+
+        // Add TimerBehavior for generic effort blocks (count up)
+        behaviors.push(new TimerBehavior('up', undefined, 'Segment Timer', 'primary'));
 
         const block = new RuntimeBlock(
             runtime,

@@ -43,19 +43,26 @@ This class manages timer logic (start, stop, pause, tick), memory interaction, a
 - **Strategy Pattern:** Split `count-up` and `count-down` logic into separate strategies (`CountUpStrategy`, `CountDownStrategy`) or subclasses if they diverge significantly. (Deferred)
 - **Utility Functions:** Extract time calculation (elapsed, display time) into a utility helper `TimeCalculator`. (Deferred)
 
-### 3. `src/markdown-editor/MarkdownEditor.tsx` (363 lines)
+### 3. `src/markdown-editor/MarkdownEditor.tsx` ✅ COMPLETED
 
-**Analysis:**
-Similar to `WodWiki.tsx`, this component initializes a full-page Markdown editor with custom features like WOD blocks, context overlay, command palette, and rich markdown (cards). It has grown large due to feature accumulation.
+**Status:** Refactoring completed. File reduced from 363 to 267 lines (26% reduction).
 
-**Refactoring Proposal:**
-- **Custom Hooks:**
-    - `useMarkdownEditorSetup()`: Handle Monaco mount and configuration.
-    - `useThemeManager(monaco, theme)`: Handle custom theme definitions.
-    - `useFoldingManager(editor)`: Encapsulate folding logic.
-- **Sub-components:**
-    - `MarkdownToolbar`: Extract the toolbar JSX and logic.
-- **Event Handlers:** Move complex event handlers (like card actions) to a separate `EditorActionHandler` class or hook.
+**Completed Actions:**
+- ✅ Created `useMarkdownEditorSetup` hook (254 lines) - encapsulates Monaco setup logic
+- ✅ Extracted theme definitions to `defineCustomThemes` function
+- ✅ Extracted card action handler to dedicated callback
+- ✅ Simplified component to focus on state management and rendering
+- ✅ Moved manager initialization (RichMarkdownManager, HeadingSectionFoldingManager, HiddenAreasCoordinator) to hook
+
+**Implementation References:**
+- `src/markdown-editor/hooks/useMarkdownEditorSetup.ts` - New setup hook
+
+**Original Analysis:**
+Similar to `WodWiki.tsx`, this component initializes a full-page Markdown editor with custom features like WOD blocks, context overlay, command palette, and rich markdown (cards).
+
+**Remaining (Low Priority):**
+- Consider extracting `MarkdownToolbar` as a separate component
+- Command registration could be moved to a separate hook
 
 ### 4. `src/runtime/ScriptRuntime.ts` (338 lines)
 
@@ -132,17 +139,30 @@ This file contained multiple strategy classes and deprecated code. It was a "god
 
 **Note:** The React wrapper functionality may be handled via hooks in the `hooks/` subdirectory or integrated directly into parent components.
 
-### 11. `src/components/layout/UnifiedWorkbench.tsx` (761 lines)
+### 11. `src/components/layout/UnifiedWorkbench.tsx` ✅ COMPLETED
 
-**Analysis:**
-Massive component handling the entire app layout, responsive behavior, runtime integration, analytics transformation, and view switching. It's doing too much.
+**Status:** Refactoring completed per `UnifiedWorkbench_Decoupling_Plan.md`. File reduced from 761 to 493 lines (35% reduction).
 
-**Refactoring Proposal:**
-- **Extract Analytics Logic:** The `transformRuntimeToAnalytics` function is huge. Move it to `src/services/AnalyticsTransformer.ts`.
-- **Extract Panels:** The definition of panels (`trackIndexPanel`, `timerDisplay`, etc.) clutters the render method. Move these to separate component files or render methods.
-- **Custom Hooks:**
-    - `useWorkbenchNavigation()`: Handle view modes and mobile checks.
-    - `useWorkbenchRuntime()`: Handle runtime integration and event bus subscriptions.
+**Completed Actions:**
+- ✅ Phase 1: Created `RuntimeFactory.ts` and `RuntimeProvider.tsx` - runtime creation decoupled
+- ✅ Phase 2: Created `WorkoutEventBus.ts` and `useWorkoutEvents.ts` - event flow simplified
+- ✅ Phase 3: Extracted panel components (`PlanPanel`, `TrackPanelIndex`, `TrackPanelPrimary`, `AnalyzePanelIndex`, `AnalyzePanelPrimary`)
+- ✅ Created `useWorkbenchRuntime` hook - runtime logic encapsulated
+- ✅ Runtime lifecycle managed via `RuntimeProvider` context
+
+**Implementation References:**
+- `src/runtime/RuntimeFactory.ts` - Factory for runtime creation
+- `src/components/layout/RuntimeProvider.tsx` - React context for runtime
+- `src/services/WorkoutEventBus.ts` - Event bus for workout events
+- `src/hooks/useWorkoutEvents.ts` - Hook for event subscriptions
+- `src/components/workbench/useWorkbenchRuntime.ts` - Runtime logic hook
+
+**Original Analysis:**
+Massive component handling the entire app layout, responsive behavior, runtime integration, analytics transformation, and view switching.
+
+**Remaining (Low Priority):**
+- Analytics data transformation could be extracted to a service (Phase 4 of decoupling plan)
+- Theme sync could be simplified further (Phase 6 of decoupling plan)
 
 ### 12. `src/markdown-editor/widgets/TimerWidget.tsx` ❌ REMOVED
 

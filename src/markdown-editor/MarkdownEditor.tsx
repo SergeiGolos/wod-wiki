@@ -1,24 +1,35 @@
 /**
  * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
+ * 
+ * This component provides a Monaco-based markdown editor with:
+ * - WOD block detection and visualization
+ * - Rich markdown rendering via cards
+ * - Heading section folding
+ * - Command palette integration
+ * - Theme synchronization
  */
 
-import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { editor as monacoEditor } from 'monaco-editor';
 import type { Monaco } from '@monaco-editor/react';
+import { ChevronDown, List } from 'lucide-react';
+
+// WOD block hooks
 import { useWodBlocks } from './hooks/useWodBlocks';
-import { WodBlockManager } from './components/WodBlockManager';
 import { useContextOverlay } from './hooks/useContextOverlay';
 import { useWodDecorations } from './hooks/useWodDecorations';
 import { useParseAllBlocks } from './hooks/useParseAllBlocks';
 import { useSmartIncrement } from './hooks/useSmartIncrement';
-// Import Monaco loader configuration to use local Monaco instead of CDN
+import { useMarkdownEditorSetup } from './hooks/useMarkdownEditorSetup';
+
+// Components
+import { WodBlockManager } from './components/WodBlockManager';
+
+// Monaco loader configuration
 import './utils/monacoLoader';
-import { RichMarkdownManager } from '../editor/RichMarkdownManager';
-import { HeadingSectionFoldingManager } from '../editor/features/HeadingSectionFoldingFeature';
-import { ChevronDown, List } from 'lucide-react';
-import { HiddenAreasCoordinator } from '../editor/utils/HiddenAreasCoordinator';
-import { workoutEventBus } from '../services/WorkoutEventBus';
+
+// Theme hook
 import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
 
 export interface MarkdownEditorProps {
@@ -100,24 +111,54 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   highlightedLine,
   onStartWorkout
 }) => {
-  const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<Monaco | null>(null);
-  const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
-  const foldingManagerRef = useRef<HeadingSectionFoldingManager | null>(null);
-  const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
-  const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
-  const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [content, setContent] = useState(initialContent);
-  const [isAllFolded, setIsAllFolded] = useState(false);
-
-
   const { setIsOpen } = useCommandPalette();
 
+  // Use the WOD blocks hook
+  const { blocks, activeBlock, updateBlock } = useWodBlocks(null, content);
+  
+  // Keep a ref to blocks for the setup hook
+  const blocksRef = useRef(blocks);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
+  // Use the setup hook for Monaco initialization
+  const {
+    editorInstance,
+    monacoInstance,
+    isAllFolded,
+    handleEditorWillMount,
+    handleEditorDidMount,
+    handleToggleFoldAll,
+    cleanup
+  } = useMarkdownEditorSetup({
+    theme,
+    readonly,
+    onCursorPositionChange,
+    onMount,
+    onStartWorkout,
+    setCommandPaletteOpen: setIsOpen,
+    blocksRef
+  });
+
+  // Update WOD blocks hook with editor instance once available
+  const { blocks: editorBlocks, activeBlock: editorActiveBlock, updateBlock: editorUpdateBlock } = useWodBlocks(editorInstance, content);
+  
+  // Use editor-aware blocks when editor is available
+  const currentBlocks = editorInstance ? editorBlocks : blocks;
+  const currentActiveBlock = editorInstance ? editorActiveBlock : activeBlock;
+  const currentUpdateBlock = editorInstance ? editorUpdateBlock : updateBlock;
+
+  // Update blocksRef when blocks change
+  useEffect(() => {
+    blocksRef.current = currentBlocks;
+  }, [currentBlocks]);
 
   // Use smart increment hook
   useSmartIncrement({ editor: editorInstance, enabled: !readonly });
 
-  // Use shared hooks
+  // Use shared theme hook
   useMonacoTheme(editorInstance, theme);
 
   // Log theme prop changes
@@ -125,19 +166,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     console.log('[MarkdownEditor] Theme prop received:', theme);
   }, [theme]);
 
-  // Keep a ref to onStartWorkout for callbacks
-  const onStartWorkoutRef = useRef(onStartWorkout);
-  useEffect(() => {
-    onStartWorkoutRef.current = onStartWorkout;
-  }, [onStartWorkout]);
-
   // Register default commands
   const saveCommand = useMemo(() => ({
     id: 'editor.save',
     label: 'Save',
     action: () => {
       console.log('Save command triggered');
-      // In a real app, this would trigger a save callback or context action
     },
     shortcut: ['Meta', 'S'],
     group: 'Editor',
@@ -157,198 +191,33 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   }), [editorInstance]);
   useRegisterCommand(formatCommand);
 
-  // Use the WOD blocks hook
-  const { blocks, activeBlock, updateBlock } = useWodBlocks(editorInstance, content);
-  
-  // Keep a ref to blocks for callbacks
-  const blocksRef = useRef(blocks);
-  useEffect(() => {
-    blocksRef.current = blocks;
-  }, [blocks]);
-
-  // Parse ALL blocks for inlay hints (not just active block)
-  useParseAllBlocks(blocks, updateBlock);
+  // Parse ALL blocks for inlay hints
+  useParseAllBlocks(currentBlocks, currentUpdateBlock);
 
   // Use context overlay for active block
-  useContextOverlay(editorInstance, activeBlock, showContextOverlay);
-
-
+  useContextOverlay(editorInstance, currentActiveBlock, showContextOverlay);
 
   // Notify parent of block changes
   useEffect(() => {
     if (onBlocksChange) {
-      onBlocksChange(blocks);
+      onBlocksChange(currentBlocks);
     }
-  }, [blocks, onBlocksChange]);
+  }, [currentBlocks, onBlocksChange]);
 
   // Notify parent of active block changes
   useEffect(() => {
     if (onActiveBlockChange) {
-      onActiveBlockChange(activeBlock);
+      onActiveBlockChange(currentActiveBlock);
     }
-  }, [activeBlock, onActiveBlockChange]);
-
-  const handleEditorWillMount = (monaco: Monaco) => {
-    // Define custom themes to match application look and feel
-    console.log('[MarkdownEditor] Defining custom themes');
-    monaco.editor.defineTheme('wod-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#020817', // Matches --background in dark mode
-      }
-    });
-
-    monaco.editor.defineTheme('wod-light', {
-      base: 'vs',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#ffffff', // Matches --background in light mode
-      }
-    });
-    console.log('[MarkdownEditor] Custom themes defined: wod-light, wod-dark');
-  };
-
-  const handleEditorDidMount = (
-    editor: monacoEditor.IStandaloneCodeEditor,
-    monaco: Monaco
-  ) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
-    setEditorInstance(editor);
-    setMonacoInstance(monaco);
-
-    // Initialize Hidden Areas Coordinator
-    hiddenAreasCoordinatorRef.current = new HiddenAreasCoordinator(editor, monaco);
-
-    // Initialize Rich Markdown Manager
-    richMarkdownManagerRef.current = new RichMarkdownManager(
-      editor, 
-      (card, action) => {
-        console.log('[MarkdownEditor] Card action received:', action, card.id);
-        if (action === 'start-workout') {
-          // Use the ref to get the latest blocks
-          const currentBlocks = blocksRef.current;
-          console.log('[MarkdownEditor] Finding block for card:', card.id, 'StartLine:', card.sourceRange.startLineNumber);
-          console.log('[MarkdownEditor] Current blocks:', currentBlocks.length);
-          
-          if (card.cardType === 'wod-block') {
-             // We need to find the block in the blocks array that matches this card's range
-             const block = currentBlocks.find(b => b.startLine + 1 === card.sourceRange.startLineNumber);
-             if (block) {
-               console.log('[MarkdownEditor] Block found, emitting start-workout event:', block.id);
-               // Emit via event bus (primary mechanism)
-               workoutEventBus.emit({ type: 'start-workout', block });
-               // Also call callback for backward compatibility
-               if (onStartWorkoutRef.current) {
-                 onStartWorkoutRef.current(block);
-               }
-             } else {
-               console.warn('[MarkdownEditor] Could not find WOD block for card', card.id);
-               // Fallback: try to find by fuzzy line match
-               const fuzzyBlock = currentBlocks.find(b => Math.abs((b.startLine + 1) - card.sourceRange.startLineNumber) <= 1);
-               if (fuzzyBlock) {
-                  console.log('[MarkdownEditor] Fuzzy block found, emitting event:', fuzzyBlock.id);
-                  workoutEventBus.emit({ type: 'start-workout', block: fuzzyBlock });
-                  if (onStartWorkoutRef.current) {
-                    onStartWorkoutRef.current(fuzzyBlock);
-                  }
-               }
-             }
-          }
-        }
-      }, 
-      hiddenAreasCoordinatorRef.current
-    );
-
-    // Initialize Heading Section Folding Manager (provides fold/unfold all)
-    foldingManagerRef.current = new HeadingSectionFoldingManager(editor, monaco);
-    foldingManagerRef.current.onFoldStateChange((folded) => {
-      setIsAllFolded(folded);
-    });
-    console.log('[MarkdownEditor] Heading section folding manager initialized');
-
-    // Apply initial theme
-    console.log('[MarkdownEditor] Initial theme application:', theme);
-    monaco.editor.setTheme(theme);
-
-    // Enable glyph margin for icons and inlay hints
-    editor.updateOptions({
-      glyphMargin: true,
-      inlayHints: { enabled: 'on' }
-    });
-
-    // Disable default Command Palette (F1)
-    editor.addCommand(monaco.KeyCode.F1, () => {
-      // Do nothing or show hint
-      console.log('Default Command Palette disabled. Use Ctrl+.');
-    });
-
-    // Bind Ctrl+. to open our Command Palette
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, () => {
-      setIsOpen(true);
-    });
-
-    // Focus editor only if not in readonly mode
-    if (!readonly) {
-      editor.focus();
-    }
-
-    // Track cursor position
-    editor.onDidChangeCursorPosition((e) => {
-      if (onCursorPositionChange) {
-        onCursorPositionChange(e.position.lineNumber, e.position.column);
-      }
-    });
-
-    // Click-to-fold on headings
-    editor.onMouseDown((e) => {
-      if (e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
-        const position = e.target.position;
-        if (position) {
-          const model = editor.getModel();
-          const lineContent = model?.getLineContent(position.lineNumber);
-          // Check if it's a heading (starts with #)
-          if (lineContent?.trim().startsWith('#')) {
-            // Move cursor to the line (so toggleFold works on it)
-            editor.setPosition(position);
-            // Toggle fold
-            editor.getAction('editor.toggleFold')?.run();
-          }
-        }
-      }
-    });
-
-    if (onMount) {
-      onMount(editor, monaco);
-    }
-  };
+  }, [currentActiveBlock, onActiveBlockChange]);
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (richMarkdownManagerRef.current) {
-        richMarkdownManagerRef.current.dispose();
-      }
-      if (foldingManagerRef.current) {
-        foldingManagerRef.current.dispose();
-      }
-    };
-  }, []);
-
-  // Force refresh rich markdown manager when blocks change to ensure callbacks have latest blocks
-  useEffect(() => {
-    // This is a bit of a hack. The callback passed to RichMarkdownManager closes over 'blocks'.
-    // Since we only init RichMarkdownManager once, it sees the initial 'blocks' (empty).
-    // We need a way to access the latest blocks in the callback.
-    // Using a ref for blocks would solve this.
-  }, [blocks]);
-
+    return cleanup;
+  }, [cleanup]);
 
   // Use WOD decorations (inlay hints & semantic tokens & highlighting)
-  useWodDecorations(editorInstance, monacoInstance, blocks, activeBlock, {
+  useWodDecorations(editorInstance, monacoInstance, currentBlocks, currentActiveBlock, {
     enabled: true,
     languageId: 'markdown',
     highlightedLine
@@ -358,12 +227,10 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     const newContent = value || '';
     setContent(newContent);
 
-    // Notify content change
     if (onContentChange) {
       onContentChange(newContent);
     }
 
-    // Extract and notify title change (first line)
     if (onTitleChange) {
       const firstLine = newContent.split('\n')[0];
       onTitleChange(firstLine);
@@ -382,17 +249,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
     scrollBeyondLastLine: false,
     automaticLayout: true,
     inlayHints: { enabled: 'on' },
-    // Enable folding for heading sections and WOD blocks
     folding: false,
     ...editorOptions
   };
-
-  // Toggle fold all/unfold all
-  const handleToggleFoldAll = useCallback(() => {
-    if (foldingManagerRef.current) {
-      foldingManagerRef.current.toggleFoldAll();
-    }
-  }, []);
 
   return (
     <div className={`markdown-editor-container ${className}`} style={{ height, width }}>
@@ -400,9 +259,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
         <div className="markdown-toolbar border-b border-border bg-muted/50 p-2 flex items-center justify-between">
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>Markdown Editor</span>
-            {blocks.length > 0 && (
+            {currentBlocks.length > 0 && (
               <span className="text-blue-600">
-                ({blocks.length} WOD block{blocks.length !== 1 ? 's' : ''} detected)
+                ({currentBlocks.length} WOD block{currentBlocks.length !== 1 ? 's' : ''} detected)
               </span>
             )}
           </div>
@@ -439,8 +298,8 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       <WodBlockManager
         editor={editorInstance}
         monaco={monacoInstance}
-        blocks={blocks}
-        activeBlock={activeBlock}
+        blocks={currentBlocks}
+        activeBlock={currentActiveBlock}
       />
     </div>
   );
