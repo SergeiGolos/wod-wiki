@@ -86,10 +86,16 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
   }, []);
 
   // Play a beep sound using Web Audio API
-  const playBeep = useCallback((frequency: number = 440, duration: number = 200, volume: number = 0.5) => {
+  const playBeep = useCallback(async (frequency: number = 440, duration: number = 200, volume: number = 0.5) => {
     if (!audioContextRef.current) return;
     
     const ctx = audioContextRef.current;
+    
+    // Resume AudioContext if suspended (required after user interaction)
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
@@ -139,8 +145,13 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
   }, [playBeep]);
 
   // Start the timer
-  const handleStart = useCallback(() => {
+  const handleStart = useCallback(async () => {
     if (!runtimeRef.current || isRunning) return;
+
+    // Resume AudioContext on user interaction (required by browsers)
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
 
     // Reset state
     setElapsedMs(0);
@@ -159,6 +170,9 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
       'Timer'
     );
     blockRef.current = block;
+
+    // Push block to stack (required for event handler processing)
+    runtimeRef.current.stack.push(block);
 
     // Mount block and execute actions
     const actions = block.mount(runtimeRef.current);
