@@ -1,15 +1,15 @@
 # Runtime Debugging and Testing Architecture
 
-This document outlines the architecture for enabling a global debug mode, generic test blocks, and comprehensive logging within the runtime engine.
+This document outlines the architecture for enabling a global debug mode, generic test blocks, and comprehensive logging within the runtime engine. It builds upon existing infrastructure including [`TestableBlock`](../../src/runtime/testing/TestableBlock.ts) and [`NextBlockLogger`](../../src/runtime/NextBlockLogger.ts).
 
 ## 1. Objectives
 
 - **Global Debug Mode**: A toggleable state in the runtime engine that affects how blocks and behaviors are executed.
 - **Runtime Ownership**: The debug capabilities are owned by the `ScriptRuntime` instance and configured at construction time.
-- **Universal Spy Wrapping**: In debug mode, *every* `RuntimeBlock` processed by the runtime is wrapped by a generic Spy object.
-- **Transparency**: The Spy object fully implements `IRuntimeBlock` and displays itself as the original object to the rest of the system, delegating calls transparently.
-- **Behavior Overwriting (Override Language)**: The Spy object provides a mechanism to intercept and replace standard block behaviors with mocks or alternate logic.
-- **Console Logging**: The Spy automatically generates verbose logs for all block lifecycle events and state changes.
+- **Universal Spy Wrapping**: In debug mode, *every* `RuntimeBlock` processed by the runtime is wrapped using the existing `TestableBlock` class.
+- **Transparency**: The `TestableBlock` wrapper fully implements `IRuntimeBlock` and displays itself as the original object to the rest of the system, delegating calls transparently.
+- **Behavior Overwriting**: The `TestableBlock` provides multiple modes (`spy`, `override`, `passthrough`, `ignore`) for intercepting and replacing standard block behaviors.
+- **Console Logging**: Integration with the existing `NextBlockLogger` for structured debug output of block lifecycle events.
 
 ## 2. Architecture Overview
 
@@ -37,121 +37,176 @@ export class ScriptRuntime implements IScriptRuntime {
 }
 ```
 
-### 2.2. The Spy Wrapper (Transparent Proxy)
+### 2.2. Leveraging TestableBlock
 
-To satisfy the requirement that *any runtime block* is first wrapped by the spy object without changing the actual block, we will use a **Proxy** or **Decorator** pattern.
+The codebase already has a `TestableBlock` class in [`src/runtime/testing/TestableBlock.ts`](../../src/runtime/testing/TestableBlock.ts) that provides exactly this functionality with `spy`, `override`, `passthrough`, and `ignore` modes.
 
-#### mechanism:
-1.  **Wrapping**: When the JIT Compiler produces a block (or when the Runtime pushes it to the stack), if `debugMode` is active, the block is wrapped in a `RuntimeBlockSpy`.
-2.  **Transparency**: `RuntimeBlockSpy` implements `IRuntimeBlock`. It forwards all property access and method calls to the underlying block, *unless* they are explicitly overridden.
-3.  **Self-Display**: The Spy ensures that properties like `key`, `label`, `blockType`, and `context` appear identical to the original block.
+#### Mechanism:
+1.  **Interception**: When the JIT Compiler creates a block, if `debugMode` is on (or if specific test configurations are present), it wraps the block using `TestableBlock` in the appropriate mode.
+2.  **Spying**: `TestableBlock` in `spy` mode intercepts `mount`, `next`, `unmount`, `dispose`, and event handling, logging calls and optionally collecting metrics.
+3.  **Behavior Replacement**: In `override` mode, `TestableBlock` can suppress the original behaviors and substitute them with mock implementations.
+
+#### Example: Using TestableBlock in Spy Mode
 
 ```typescript
-class RuntimeBlockSpy implements IRuntimeBlock {
-    constructor(private readonly realBlock: IRuntimeBlock) {}
+import { TestableBlock } from "@/runtime/testing/TestableBlock";
 
-    get key() { return this.realBlock.key; }
-    get label() { return this.realBlock.label; }
-    // ... proxies all other properties ...
+// Wrap a block in spy mode with custom logging
+const testBlock = new TestableBlock(originalBlock, {
+    testId: 'debug-pushups-1',
+    mountMode: 'spy',
+    nextMode: 'spy',
+    disposeMode: 'spy'
+});
 
-    mount(runtime: IScriptRuntime): IRuntimeAction[] {
-        // 1. Log Start
-        console.log(`[Spy] Mount: ${this.label}`);
-
-        // 2. Check for Overrides
-        if (this.hasOverride('mount')) {
-             return this.executeOverride('mount', runtime);
-        }
-
-        // 3. Delegate
-        const result = this.realBlock.mount(runtime);
-
-        // 4. Log Result
-        console.log(`[Spy] Mount Result:`, result);
-        return result;
-    }
-
-    // ... implements next(), unmount(), etc.
-}
+// After execution, inspect recorded calls
+console.log(testBlock.calls);           // All recorded method calls
+console.log(testBlock.wasCalled('mount')); // Check if mount was called
+console.log(testBlock.callCount('next'));  // Count next() invocations
 ```
 
-### 2.3. Behavior Overwriting (The "Override Language")
+### 2.3. Behavior Injection & Overwriting
 
-The Spy object serves as the hook for the "Override Language". This allows tests to modify behavior without touching the original block code.
+Currently, `RuntimeBlock` takes an array of `IRuntimeBehavior` in its constructor. The `behaviors` property is declared as `protected readonly` (see [`src/runtime/RuntimeBlock.ts`](../../src/runtime/RuntimeBlock.ts)), which means it cannot be reassigned after construction.
 
-- **Injection**: Tests can register overrides for specific blocks (by Key or Type) on the Runtime.
-- **Execution**: The Spy checks these registrations before delegating.
+For testability, the `JitCompiler` (or a test extension) should wrap blocks with `TestableBlock` and select the desired mode (`spy`, `override`, etc.) to inject test behaviors via composition rather than mutation.
+
+The complete list of `IRuntimeBehavior` lifecycle hooks is:
+- `onPush` - Called when the owning block is pushed onto the stack
+- `onNext` - Called when determining the next block after a child completes
+- `onPop` - Called right before the owning block is popped from the stack
+- `onDispose` - Called when the block is being disposed
+- `onEvent` - Called when an event is dispatched to the block
+
+See [`src/runtime/IRuntimeBehavior.ts`](../../src/runtime/IRuntimeBehavior.ts) for the complete interface definition.
+
+#### Example: Overriding Behavior with TestableBlock
 
 ```typescript
-// Example of the "Override Language" usage in a test
-runtime.debug.spyOn('Pushups').override('next', (runtime, block) => {
-    // Custom logic to skip the timer
-    return [new NextBlockAction()];
+import { TestableBlock } from "@/runtime/testing/TestableBlock";
+
+// Override mount to skip default behavior
+const testBlock = new TestableBlock(originalBlock, {
+    testId: 'test-pushups',
+    mountMode: 'override',
+    mountOverride: (runtime) => {
+        console.log('[Test] Skipping default mount behavior');
+        return []; // Return empty actions
+    }
 });
 ```
 
 ### 2.4. Console Logging Integration
 
-The Spy wrapper enforces logging "for free" on all blocks.
-- **Lifecycle Logs**: `mount`, `next`, `unmount`.
-- **Event Logs**: When the block's event handlers are triggered.
-- **Data Dumps**: `debug()` method on the Spy prints the full state of the inner block.
+The codebase already has `NextBlockLogger` in [`src/runtime/NextBlockLogger.ts`](../../src/runtime/NextBlockLogger.ts) with toggleable logging via `NextBlockLogger.setEnabled(true)`. This existing logger provides structured debug output for block lifecycle events.
+
+#### Enabling Debug Logging
+
+```typescript
+import { NextBlockLogger } from "@/runtime/NextBlockLogger";
+
+// Enable logging
+NextBlockLogger.setEnabled(true);
+
+// Run your workout execution...
+
+// Review log history
+console.log(NextBlockLogger.getHistory());
+console.log(NextBlockLogger.getSummary());
+
+// Clear history when done
+NextBlockLogger.clearHistory();
+```
+
+#### Log Output Examples
+- **Next Action**: `🎯 NEXT-BLOCK | Action Start`, `✅ NEXT-BLOCK | Action Complete`
+- **Child Advancement**: `📍 NEXT-BLOCK | Child Advancement`
+- **Compilation**: `🔨 NEXT-BLOCK | Compilation Start`, `✅ NEXT-BLOCK | Compilation Success`
+- **Stack Operations**: `⬆️ NEXT-BLOCK | Push Start`, `✅ NEXT-BLOCK | Push Complete`
+- **Block Lifecycle**: `[Block: Pushups] MOUNT`, `[Block: Pushups] NEXT`, `[Block: Pushups] DISPOSE`
 
 ## 3. Implementation Plan
 
 ### 3.1. Update `ScriptRuntime` Construction
 - Add `IRuntimeOptions` to the constructor.
-- Implement logic to wrap blocks pushed to the stack if `debugMode` is true.
+- Implement logic to wrap blocks pushed to the stack using `TestableBlock` if `debugMode` is true.
+- Enable `NextBlockLogger` automatically when `debugMode` is active.
 
-### 3.2. Implement `RuntimeBlockSpy`
-- Create `src/runtime/debug/RuntimeBlockSpy.ts`.
-- Implement `IRuntimeBlock`.
-- Add logging hooks.
-- Add an `overrides` registry map within the spy or referenced from the runtime.
+### 3.2. Integrate with TestableBlock
+- Extend `TestableBlock` configuration if needed for additional debug features.
+- The existing `TestableBlock` already provides:
+  - Method interception (`spy`, `override`, `passthrough`, `ignore` modes)
+  - Call recording for assertions
+  - Custom test IDs for easy identification
 
 ### 3.3. Update `JitCompiler` (Optional)
-- Alternatively, the JIT compiler could return the wrapped block directly. However, wrapping at the `RuntimeStack.push` level might be safer to catch *all* blocks, including manually created ones.
-- *Decision*: Let's handle it in `RuntimeFactory` or `JitCompiler` to ensure the runtime only ever sees the Spy.
+- The JIT compiler could return the wrapped block directly. However, wrapping at the `RuntimeStack.push` level might be safer to catch *all* blocks, including manually created ones.
+- *Decision*: Let's handle it in `RuntimeFactory` or `JitCompiler` to ensure the runtime only ever sees the `TestableBlock` wrapper.
 
 ### 3.4. Debug Interface
-- Expose a `runtime.debug` API (available only in debug mode) to configure spies and overrides.
+- Expose a `runtime.debug` API (available only in debug mode) to configure `TestableBlock` wrappers and overrides.
+- Leverage `NextBlockLogger.setEnabled()` for toggling console output.
 
 ## 4. Workflows
 
 ### 4.1. Enabling Debug Mode
 ```typescript
+import { NextBlockLogger } from "@/runtime/NextBlockLogger";
+
+// Enable logging
+NextBlockLogger.setEnabled(true);
+
 const runtime = new RuntimeBuilder(script)
     .withDebugMode(true)
     .build();
 ```
 
-### 4.2. Runtime Execution with Spies
+### 4.2. Runtime Execution with TestableBlock
 1.  Runtime asks Compiler for a block.
 2.  Compiler creates `RuntimeBlock`.
-3.  Because `debugMode` is on, Compiler (or Factory) wraps it in `RuntimeBlockSpy`.
-4.  Runtime receives `RuntimeBlockSpy`.
+3.  Because `debugMode` is on, Compiler (or Factory) wraps it in `TestableBlock`.
+4.  Runtime receives `TestableBlock`.
 5.  Runtime calls `block.mount()`.
-6.  `RuntimeBlockSpy` logs "Mounting...", calls `realBlock.mount()`, logs result, returns result.
+6.  `TestableBlock` records the call, delegates to `realBlock.mount()`, returns result.
+7.  `NextBlockLogger` outputs structured logs if enabled.
 
 ### 4.3. Test Scenario
-User wants to verify that "10 Pushups" triggers a specific event but wants to skip the 10-second timer.
+User wants to verify that "10 Pushups" triggers a specific event but wants to skip the default behavior.
 
 1.  **Setup**:
     ```typescript
-    const runtime = new RuntimeFactory().createRuntime(block, { debug: true });
-
-    // Use the override language
-    runtime.spies.forLabel('Pushups').overrideBehavior(TimerBehavior, new MockTimer());
+    import { TestableBlock } from "@/runtime/testing/TestableBlock";
+    
+    // Create block normally
+    const pushupsBlock = compiler.compile(statements, runtime);
+    
+    // Wrap with TestableBlock using override mode
+    const testableBlock = new TestableBlock(pushupsBlock, {
+        testId: 'test-pushups',
+        mountMode: 'override',
+        mountOverride: (runtime) => {
+            // Custom logic - skip default mount, return specific actions
+            return [new CustomTestAction()];
+        }
+    });
     ```
 2.  **Run**:
-    - The `RuntimeBlockSpy` for "Pushups" sees the override.
-    - Instead of executing the real `TimerBehavior`, it uses `MockTimer`.
+    - The `TestableBlock` intercepts `mount()` and uses the override.
+    - After execution, inspect `testableBlock.calls` to verify behavior.
 
 ## 5. Summary of Changes
 
-1.  **`src/runtime/IScriptRuntime.ts`**: Add `debugMode` and `spyRegistry`.
-2.  **`src/runtime/debug/RuntimeBlockSpy.ts`**: The core Proxy implementation.
-3.  **`src/runtime/RuntimeFactory.ts`**: Update to accept options and inject the wrapping logic.
-4.  **`src/runtime/JitCompiler.ts`**: Ensure compiled blocks are wrapped if the runtime context demands it (or let the runtime handle the wrapping upon receipt).
+This architecture builds upon existing infrastructure rather than creating new implementations:
 
-This refined architecture ensures that the debug/spy system is transparent, owned by the runtime, and provides a powerful override mechanism for testing.
+1.  **`src/runtime/IScriptRuntime.ts`**: Add `debugMode` flag to `IRuntimeOptions`.
+2.  **`src/runtime/testing/TestableBlock.ts`**: Already exists - extend if needed for additional debug features.
+3.  **`src/runtime/NextBlockLogger.ts`**: Already exists - integrate with debug mode for automatic enabling.
+4.  **`src/runtime/JitCompiler.ts`**: Update to wrap compiled blocks with `TestableBlock` when debug mode is active.
+
+### Design Principles
+
+- **Behaviors remain immutable after construction**; do not allow modification via setters.
+- For testing, use the `TestableBlock` wrapper pattern to substitute behaviors via **composition over mutation**.
+- Leverage existing logging infrastructure (`NextBlockLogger`) rather than creating new loggers.
+
+This refined architecture ensures that the debug/spy system is transparent, owned by the runtime, and provides a powerful override mechanism for testing while maintaining compatibility with the existing codebase.
