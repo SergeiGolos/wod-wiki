@@ -12,6 +12,8 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
+import { HistoryBehavior } from "../behaviors/HistoryBehavior";
+import { createDebugMetadata } from "../models/ExecutionSpan";
 
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -116,6 +118,19 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
         // Add TimerBehavior for generic effort blocks (count up)
         behaviors.push(new TimerBehavior('up', undefined, 'Segment Timer', 'primary'));
+        
+        // Add HistoryBehavior with debug metadata stamped at creation time
+        // This ensures analytics can identify effort blocks
+        behaviors.push(new HistoryBehavior({
+            label: "Effort",
+            debugMetadata: createDebugMetadata(
+                ['effort', 'leaf_node'],
+                {
+                    strategyUsed: 'EffortStrategy',
+                    exerciseId: exerciseId || undefined
+                }
+            )
+        }));
 
         const block = new RuntimeBlock(
             runtime,

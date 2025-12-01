@@ -52,6 +52,28 @@ export type SegmentType =
   | 'transition'; // Between exercises/rounds
 
 // ============================================================================
+// Debug Metadata
+// ============================================================================
+
+/**
+ * DebugMetadata - Contextual information captured at span creation time.
+ * 
+ * This eliminates the need to infer context later during analytics.
+ * All relevant information (strategy used, workout type tags, etc.)
+ * is stamped onto the span when it is created.
+ * 
+ * @see docs/plans/jit-01-execution-span-consolidation.md
+ */
+export interface DebugMetadata {
+  /** Tags for categorization (e.g., "amrap", "emom", "time_bound", "rounds_based") */
+  tags: string[];
+  /** Arbitrary key-value context captured during execution */
+  context: Record<string, unknown>;
+  /** Captured log messages during this span */
+  logs?: string[];
+}
+
+// ============================================================================
 // Metric Value
 // ============================================================================
 
@@ -230,6 +252,14 @@ export interface ExecutionSpan {
   // === Source Info ===
   /** Source line IDs from the workout script */
   sourceIds?: number[];
+  
+  // === Debug & Context ===
+  /** 
+   * Debug metadata captured at span creation time.
+   * Eliminates the need to infer context during analytics.
+   * @see docs/plans/jit-01-execution-span-consolidation.md
+   */
+  debugMetadata?: DebugMetadata;
 }
 
 // ============================================================================
@@ -292,7 +322,8 @@ export function createExecutionSpan(
   type: SpanType,
   label: string,
   parentSpanId: string | null = null,
-  sourceIds?: number[]
+  sourceIds?: number[],
+  debugMetadata?: DebugMetadata
 ): ExecutionSpan {
   return {
     id: `${Date.now()}-${blockId}`,
@@ -304,7 +335,23 @@ export function createExecutionSpan(
     startTime: Date.now(),
     metrics: createEmptyMetrics(),
     segments: [],
-    sourceIds
+    sourceIds,
+    ...(debugMetadata && { debugMetadata })
+  };
+}
+
+/**
+ * Create a DebugMetadata object with default values.
+ * Use this when stamping context onto spans at creation time.
+ */
+export function createDebugMetadata(
+  tags: string[] = [],
+  context: Record<string, unknown> = {}
+): DebugMetadata {
+  return {
+    tags,
+    context,
+    logs: []
   };
 }
 

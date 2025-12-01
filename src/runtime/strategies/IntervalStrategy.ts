@@ -14,6 +14,7 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
+import { createDebugMetadata } from "../models/ExecutionSpan";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -129,7 +130,21 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             intervalDurationMs
         });
         behaviors.push(loopCoordinator);
-        behaviors.push(new HistoryBehavior("EMOM"));
+        
+        // Add HistoryBehavior with debug metadata stamped at creation time
+        // This ensures analytics can identify this as an EMOM workout
+        behaviors.push(new HistoryBehavior({
+            label: "EMOM",
+            debugMetadata: createDebugMetadata(
+                ['emom', 'interval', 'fixed_rounds'],
+                {
+                    strategyUsed: 'IntervalStrategy',
+                    intervalDuration: intervalDurationMs,
+                    totalRounds,
+                    loopType: 'interval'
+                }
+            )
+        }));
 
         // Completion Behavior
         behaviors.push(new CompletionBehavior(
