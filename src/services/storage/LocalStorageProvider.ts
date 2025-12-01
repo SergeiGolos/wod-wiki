@@ -1,14 +1,33 @@
 import { WodResult, WodResultMetadata } from '../../core/models/StorageModels';
-import { v4 as uuidv4 } from 'uuid';
 
 const RESULT_PREFIX = 'wodwiki:results:';
-const DOC_PREFIX = 'wodwiki:docs:';
+const DOC_PREFIX = 'wodwiki:docs:'; // Reserved for future document storage feature
 
 /**
  * LocalStorage implementation of storage provider.
  * Follows the architecture plan in docs/plan/local-storage-architecture.md
+ * 
+ * Note: Methods are kept async for future extensibility (e.g., switching to IndexedDB).
+ * The current localStorage implementation is synchronous but wrapped in async for API consistency.
  */
 export class LocalStorageProvider {
+
+  /**
+   * Validates that a parsed object conforms to the WodResult interface.
+   */
+  private validateWodResult(data: unknown): data is WodResult {
+    if (typeof data !== 'object' || data === null) return false;
+    const obj = data as Record<string, unknown>;
+    return (
+      typeof obj.id === 'string' &&
+      typeof obj.documentId === 'string' &&
+      typeof obj.documentTitle === 'string' &&
+      typeof obj.timestamp === 'number' &&
+      typeof obj.duration === 'number' &&
+      Array.isArray(obj.logs) &&
+      typeof obj.schemaVersion === 'number'
+    );
+  }
 
   // --- Result Operations ---
 
@@ -27,7 +46,12 @@ export class LocalStorageProvider {
     const data = localStorage.getItem(key);
     if (!data) return null;
     try {
-      return JSON.parse(data) as WodResult;
+      const parsed = JSON.parse(data);
+      if (!this.validateWodResult(parsed)) {
+        console.error('Invalid WodResult structure in localStorage', id);
+        return null;
+      }
+      return parsed;
     } catch (e) {
       console.error('Failed to parse result from localStorage', e);
       return null;
@@ -42,7 +66,13 @@ export class LocalStorageProvider {
         try {
           const item = localStorage.getItem(key);
           if (item) {
-            const result = JSON.parse(item) as WodResult;
+            const parsed = JSON.parse(item);
+            // Validate the result structure
+            if (!this.validateWodResult(parsed)) {
+              console.warn(`Invalid WodResult structure at key ${key}`);
+              continue;
+            }
+            const result = parsed as WodResult;
             // Filter by documentId if provided
             if (documentId && result.documentId !== documentId) {
                 continue;

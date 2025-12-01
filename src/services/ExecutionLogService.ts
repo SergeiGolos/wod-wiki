@@ -1,7 +1,7 @@
 import { IScriptRuntime } from '../runtime/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { ExecutionSpan, isActiveSpan } from '../runtime/models/ExecutionSpan';
+import { ExecutionSpan } from '../runtime/models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../runtime/ExecutionTracker';
 import { v4 as uuidv4 } from 'uuid';
 import { IMemoryReference } from '../runtime/IMemoryReference';
@@ -13,16 +13,36 @@ import { IMemoryReference } from '../runtime/IMemoryReference';
 export class ExecutionLogService {
   private currentResult: WodResult | null = null;
   private unsubscribe: (() => void) | null = null;
+  
+  // Map for O(1) span lookup by id
+  private spanMap: Map<string, ExecutionSpan> = new Map();
+  
+  // Incremental duration tracking for performance
+  private earliestStart: number = Infinity;
+  private latestEnd: number = 0;
+  
+  // Debounce timer for localStorage writes
+  private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly SAVE_DEBOUNCE_MS = 1000; // Save at most once per second
 
   constructor(private storage: LocalStorageProvider) {}
 
   /**
    * Initialize logging for a runtime session.
-   * If resume is true, it attempts to load the latest unfinished result (not implemented yet).
-   * For now, it starts a new result session or updates the existing one.
+   * Creates a new result container and subscribes to memory changes
+   * to track execution spans in real-time.
+   *
+   * @param runtime - The runtime instance to track
+   * @param documentId - ID of the workout document (defaults to 'scratchpad')
+   * @param documentTitle - Title of the workout (defaults to 'Scratchpad Workout')
    */
   startSession(runtime: IScriptRuntime, documentId: string = 'scratchpad', documentTitle: string = 'Scratchpad Workout') {
     this.cleanup();
+
+    // Reset incremental tracking
+    this.spanMap.clear();
+    this.earliestStart = Infinity;
+    this.latestEnd = 0;
 
     // Initialize current result container
     this.currentResult = {
@@ -45,31 +65,21 @@ export class ExecutionLogService {
   }
 
   /**
-   * Load historical logs into the runtime memory.
-   * This allows the UI (History Timeline) to display past execution data.
+   * Returns the most recent historical logs from storage.
+   * Historical logs should NOT be allocated into runtime memory to avoid
+   * duplicate allocations and memory ownership violations.
+   * Use this method to access historical data directly.
    */
-  async hydrate(runtime: IScriptRuntime) {
-    // For now, let's load the *most recent* result to simulate "history persistence" across refresh.
-    // In a real app, we might load a specific result or a set of recent ones.
+  async getHistoricalLogs(): Promise<ExecutionSpan[]> {
     const latest = await this.storage.getLatestResult();
-
     if (latest && latest.logs.length > 0) {
-      console.log('[ExecutionLogService] Hydrating runtime with logs from', latest.timestamp);
-
-      latest.logs.forEach(span => {
-        // We need to allocate these spans in memory so the UI can query them.
-        // We use 'public' visibility so they are accessible.
-        // Note: ownerId is usually the blockId.
-        try {
-            runtime.memory.allocate(EXECUTION_SPAN_TYPE, span.blockId, span, 'public');
-        } catch (e) {
-            console.warn('[ExecutionLogService] Failed to hydrate span', span.id, e);
-        }
-      });
+      console.log('[ExecutionLogService] Retrieved historical logs from', latest.timestamp);
+      return latest.logs;
     }
+    return [];
   }
 
-  private handleMemoryChange(ref: IMemoryReference, value: any, oldValue: any) {
+  private handleMemoryChange(ref: IMemoryReference, value: any, _oldValue: any) {
     if (ref.type !== EXECUTION_SPAN_TYPE) return;
 
     const span = value as ExecutionSpan;
@@ -79,37 +89,75 @@ export class ExecutionLogService {
     // Since we are persisting the *entire* log history, we can just update our local copy.
 
     if (this.currentResult) {
-       // Find if we already have this span in our logs
-       const existingIndex = this.currentResult.logs.findIndex(s => s.id === span.id);
+       // Use Map for O(1) lookup instead of array search
+       this.spanMap.set(span.id, span);
+       
+       // Update logs array from map (maintains insertion order)
+       this.currentResult.logs = Array.from(this.spanMap.values());
 
-       if (existingIndex >= 0) {
-         this.currentResult.logs[existingIndex] = span;
-       } else {
-         this.currentResult.logs.push(span);
+       // Update min/max incrementally for O(1) duration calculation
+       this.earliestStart = Math.min(this.earliestStart, span.startTime);
+       const endTime = span.endTime ?? Date.now();
+       this.latestEnd = Math.max(this.latestEnd, endTime);
+       
+       // Calculate duration from cached values
+       if (this.earliestStart !== Infinity) {
+         this.currentResult.duration = this.latestEnd - this.earliestStart;
        }
 
-       // Update timestamp
-       this.currentResult.timestamp = Date.now();
-
-       // Calculate duration based on earliest start and latest end
-       if (this.currentResult.logs.length > 0) {
-           const start = Math.min(...this.currentResult.logs.map(s => s.startTime));
-           const end = Math.max(...this.currentResult.logs.map(s => s.endTime ?? Date.now()));
-           this.currentResult.duration = end - start;
+       // Debounce persistence to avoid excessive localStorage writes
+       if (this.saveDebounceTimer) {
+         clearTimeout(this.saveDebounceTimer);
        }
+       
+       this.saveDebounceTimer = setTimeout(() => {
+         if (this.currentResult) {
+           this.storage.saveResult(this.currentResult);
+         }
+         this.saveDebounceTimer = null;
+       }, this.SAVE_DEBOUNCE_MS);
+    }
+  }
 
-       // Persist to storage
-       // Optimization: Debounce this in production, but for now direct save is safer.
-       this.storage.saveResult(this.currentResult);
+  /**
+   * Mark the current session as finished with a completion timestamp.
+   * Call this when the workout actually completes.
+   */
+  finishSession() {
+    if (this.currentResult) {
+      this.currentResult.timestamp = Date.now();
+      
+      // Flush any pending debounced save immediately
+      if (this.saveDebounceTimer) {
+        clearTimeout(this.saveDebounceTimer);
+        this.saveDebounceTimer = null;
+      }
+      
+      this.storage.saveResult(this.currentResult);
+      console.log('[ExecutionLogService] Finished session', this.currentResult.id);
     }
   }
 
   cleanup() {
+    // Flush pending save immediately on cleanup
+    if (this.saveDebounceTimer) {
+      clearTimeout(this.saveDebounceTimer);
+      if (this.currentResult) {
+        this.storage.saveResult(this.currentResult);
+      }
+      this.saveDebounceTimer = null;
+    }
+    
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
     }
+    
+    // Reset state
     this.currentResult = null;
+    this.spanMap.clear();
+    this.earliestStart = Infinity;
+    this.latestEnd = 0;
   }
 }
 
