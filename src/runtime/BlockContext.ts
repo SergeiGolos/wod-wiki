@@ -124,23 +124,21 @@ export class BlockContext implements IBlockContext {
             return anchorRef;
         }
         
-        // Create new anchor with stable ID
-        // Anchors use their semantic ID as the memory reference ID
-        const anchorRef = new TypedMemoryReference<IAnchorValue>(
-            this.runtime.memory,
-            this.ownerId,
+        // Create new anchor using the runtime's memory allocation system
+        // We use 'public' visibility so it can be shared
+        const anchorRef = this.runtime.memory.allocate<IAnchorValue>(
             MemoryTypeEnum.ANCHOR,
+            this.ownerId,
+            undefined, // No initial value
             'public'
         );
         
-        // Override the auto-generated UUID with the stable anchor ID
+        // Ensure the ID matches the requested anchorId for consistent lookup
+        // This relies on the memory implementation allowing ID mutation or pre-allocation
+        // Since TypedMemoryReference is the class, we can override the ID here if needed
+        // but cleaner if allocate accepted an ID.
+        // For now, we manually override to maintain contract with getOrCreateAnchor semantics
         (anchorRef as any).id = anchorId;
-        
-        // Manually add to runtime memory since we're bypassing normal allocation
-        (this.runtime.memory as any)._references.push({
-            ref: anchorRef,
-            data: undefined
-        });
         
         this._references.push(anchorRef);
         return anchorRef;

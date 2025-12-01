@@ -19,6 +19,7 @@ import { HeadingSectionFoldingManager } from '../editor/features/HeadingSectionF
 import { ChevronDown, List } from 'lucide-react';
 import { HiddenAreasCoordinator } from '../editor/utils/HiddenAreasCoordinator';
 import { workoutEventBus } from '../services/WorkoutEventBus';
+import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -115,6 +116,9 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
   // Use smart increment hook
   useSmartIncrement({ editor: editorInstance, enabled: !readonly });
+
+  // Use shared hooks
+  useMonacoTheme(editorInstance, theme);
 
   // Log theme prop changes
   useEffect(() => {
@@ -365,18 +369,6 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
       onTitleChange(firstLine);
     }
   };
-
-  // Update theme when prop changes
-  useEffect(() => {
-    if (monacoInstance && editorInstance) {
-      console.log('[MarkdownEditor] Theme changing to:', theme);
-      monacoInstance.editor.setTheme(theme);
-      // Force editor to refresh
-      editorInstance.updateOptions({});
-    } else {
-      console.log('[MarkdownEditor] Monaco not ready yet, theme:', theme);
-    }
-  }, [theme, monacoInstance, editorInstance]);
 
   // Default Monaco options
   const defaultOptions: monacoEditor.IStandaloneEditorConstructionOptions = {

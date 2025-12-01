@@ -14,6 +14,8 @@ import { ExerciseDataProvider } from '../types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import { RichMarkdownManager } from './RichMarkdownManager';
 import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
+import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
+import { useEditorResize } from '@/hooks/editor/useEditorResize';
 
 interface WodWikiProps {
   id: string;
@@ -66,6 +68,10 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
     const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
     const [height, setHeight] = useState(50); // Initial height
     const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
+
+    // Use shared hooks
+    useMonacoTheme(editorRef.current, theme);
+    useEditorResize(editorRef.current);
     
     // Configure exercise provider when it changes
     useEffect(() => {
@@ -90,11 +96,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
         onMount(editor);
       }
       
-      // Apply theme AFTER initializer has defined custom themes
-      if (theme) {
-        console.log('[WodWiki] Applying theme:', theme);
-        monaco.editor.setTheme(theme);
-      }
+      // Theme applied by hook
       
       editor.onDidContentSizeChange(() => {
         handleContentSizeChange();
@@ -183,14 +185,6 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       }
     };
   }, [highlightedLine]);
-
-  // Update theme when prop changes
-  useEffect(() => {
-    if (monacoRef.current && theme) {
-      console.log('[WodWiki] Theme changed to:', theme);
-      monacoRef.current.editor.setTheme(theme);
-    }
-  }, [theme]);
   
     return (
       <div data-highlighted-line={highlightedLine} className="wodwiki-container">

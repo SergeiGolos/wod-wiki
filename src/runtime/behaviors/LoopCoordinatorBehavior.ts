@@ -146,6 +146,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     // Delegate to onNext to compile and push first child
+    // Pass the block explicitly
     return this.onNext(runtime, block);
   }
 

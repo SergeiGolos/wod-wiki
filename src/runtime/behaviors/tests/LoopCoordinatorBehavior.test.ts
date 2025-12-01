@@ -336,14 +336,25 @@ describe('LoopCoordinatorBehavior', () => {
         },
         script: {
           getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        },
+        memory: {
+          search: vi.fn().mockReturnValue([]),
+          get: vi.fn(),
+          set: vi.fn(),
+          allocate: vi.fn()
         }
       } as any;
 
+      // Mock block with key for emitRoundChanged
+      const mockBlock = { key: { toString: () => 'mock-block-key' } } as any;
+
       // First call: position 0
-      const actions1 = behavior.onNext(mockRuntime, {} as any);
-      expect(actions1).toHaveLength(1);
-      expect(actions1[0].type).toBe('push-block');
-      expect((actions1[0] as any).block).toBe(mockCompiledBlock);
+      const actions1 = behavior.onNext(mockRuntime, mockBlock);
+      expect(actions1.length).toBeGreaterThanOrEqual(1); // May include SetRoundsDisplayAction
+      const pushAction1 = actions1.find(a => a.type === 'push-block');
+      expect(pushAction1).toBeDefined();
+      expect((pushAction1 as any).block).toBe(mockCompiledBlock);
+
       // Context parameter removed - inheritance via public memory
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 1 }], // Resolved by getIds
@@ -351,8 +362,8 @@ describe('LoopCoordinatorBehavior', () => {
       );
 
       // Second call: position 1
-      const actions2 = behavior.onNext(mockRuntime, {} as any);
-      expect(actions2).toHaveLength(1);
+      const actions2 = behavior.onNext(mockRuntime, mockBlock);
+      expect(actions2.length).toBeGreaterThanOrEqual(1);
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 2 }], // Resolved by getIds
         mockRuntime
@@ -375,16 +386,26 @@ describe('LoopCoordinatorBehavior', () => {
         },
         script: {
           getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        },
+        memory: {
+          search: vi.fn().mockReturnValue([]),
+          get: vi.fn(),
+          set: vi.fn(),
+          allocate: vi.fn()
         }
       } as any;
+
+      // Mock block with key for emitRoundChanged
+      const mockBlock = { key: { toString: () => 'mock-block-key' } } as any;
 
       // Advance through 4 calls (2 rounds × 2 children)
       // Calls: index 0→1→2→3, position 0→1→0→1, rounds 0→0→1→1
       for (let i = 0; i < 4; i++) {
-        const actions = behavior.onNext(mockRuntime, {} as any);
+        const actions = behavior.onNext(mockRuntime, mockBlock);
         
-        expect(actions).toHaveLength(1);
-        expect(actions[0].type).toBe('push-block');
+        expect(actions.length).toBeGreaterThanOrEqual(1);
+        const pushAction = actions.find(a => a.type === 'push-block');
+        expect(pushAction).toBeDefined();
         
         // Check which child was compiled based on position
         const expectedChildId = i % 2 === 0 ? 1 : 2;
@@ -402,7 +423,7 @@ describe('LoopCoordinatorBehavior', () => {
       expect(state.index).toBe(3);
 
       // 5th call: will increment to index=4, rounds=floor(4/2)=2, then check complete (rounds >= 2), return []
-      const actions5 = behavior.onNext(mockRuntime, {} as any);
+      const actions5 = behavior.onNext(mockRuntime, mockBlock);
       expect(actions5).toEqual([]);
 
       // Verify completion state - index DOES increment before checking completion
@@ -429,15 +450,25 @@ describe('LoopCoordinatorBehavior', () => {
         },
         script: {
           getIds: vi.fn((ids: number[]) => ids.map(id => ({ id })))
+        },
+        memory: {
+          search: vi.fn().mockReturnValue([]),
+          get: vi.fn(),
+          set: vi.fn(),
+          allocate: vi.fn()
         }
       } as any;
 
+      // Mock block with key for emitRoundChanged
+      const mockBlock = { key: { toString: () => 'mock-block-key' } } as any;
+
       // onPush should immediately compile first child
-      const actions = behavior.onPush(mockRuntime, {} as any);
+      const actions = behavior.onPush(mockRuntime, mockBlock);
       
-      expect(actions).toHaveLength(1);
-      expect(actions[0].type).toBe('push-block');
-      expect((actions[0] as any).block).toBe(mockCompiledBlock);
+      expect(actions.length).toBeGreaterThanOrEqual(1);
+      const pushAction = actions.find(a => a.type === 'push-block');
+      expect(pushAction).toBeDefined();
+      expect((pushAction as any).block).toBe(mockCompiledBlock);
       // Context parameter removed - inheritance via public memory
       expect(mockRuntime.jit.compile).toHaveBeenCalledWith(
         [{ id: 1 }], // Resolved by getIds

@@ -5,9 +5,9 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TimerState, TimerSpan } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/TimerDisplayActions';
-import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
 import { ITickable } from '../ITickable';
+import { calculateDuration } from '../../lib/timeUtils';
+import { TimerStateManager } from './TimerStateManager';
 
 /**
  * Timer memory reference types for runtime memory system.
@@ -52,7 +52,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
   private readonly tickIntervalMs = 100; // ~10 ticks per second
   private lastTickTime = 0;
   private _runtime?: IScriptRuntime;
-  private timerRef?: TypedMemoryReference<TimerState>;
+  private stateManager: TimerStateManager;
 
   /**
    * Creates a new TimerBehavior with optional memory injection.
@@ -69,6 +69,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     if (direction !== 'up' && direction !== 'down') {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
     }
+    this.stateManager = new TimerStateManager(direction, durationMs, label);
   }
 
   /**
@@ -77,29 +78,6 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     this._runtime = runtime;
-    
-    // Initialize TimerState
-    const initialState: TimerState = {
-        blockId: block.key.toString(),
-        label: this.label,
-        format: this.direction === 'down' ? 'down' : 'up',
-        durationMs: this.durationMs,
-        spans: [{ start: Date.now(), state: 'new' }],
-        isRunning: true,
-        // Card info can be updated by the block later if needed, or we can pass it in
-        card: {
-            title: this.direction === 'down' ? 'AMRAP' : 'For Time',
-            subtitle: this.label
-        }
-    };
-
-    this.timerRef = runtime.memory.allocate<TimerState>(
-        `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
-        block.key.toString(),
-        initialState,
-        'public'
-    );
-    
     this.startTime = runtime.clock.now;
     this.elapsedMs = 0;
     this._isPaused = false;
@@ -119,32 +97,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       },
     });
 
-    // Create display actions
-    const timerAction = new PushTimerDisplayAction({
-      id: `timer-${block.key}`,
-      ownerId: block.key.toString(),
-      timerMemoryId: this.timerRef.id,
-      label: this.label,
-      format: this.direction === 'down' ? 'countdown' : 'countup',
-      durationMs: this.durationMs,
-      // Default buttons could be added here if needed
-    });
-
-    const cardAction = new PushCardDisplayAction({
-      id: `card-${block.key}`,
-      ownerId: block.key.toString(),
-      type: 'active-block',
-      title: this.direction === 'down' ? 'AMRAP' : 'For Time',
-      subtitle: this.label,
-      metrics: block.compiledMetrics?.values.map(m => ({
-        type: m.type,
-        value: m.value ?? 0,
-        unit: m.unit,
-        isActive: true // Highlight active block metrics
-      }))
-    });
-
-    return [timerAction, cardAction];
+    return this.stateManager.initialize(runtime, block, Date.now());
   }
 
   /**
@@ -154,10 +107,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Unregister from clock
     runtime.clock.unregister(this);
 
-    return [
-      new PopTimerDisplayAction(`timer-${block.key}`),
-      new PopCardDisplayAction(`card-${block.key}`)
-    ];
+    return this.stateManager.cleanup(block);
   }
 
   /**
@@ -247,6 +197,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    */
   getDisplayTime(): number {
     const seconds = this.getElapsedMs() / 1000;
+    // Use the utility for consistency, though implementation is trivial
     return Math.round(seconds * 10) / 10;
   }
 
@@ -254,8 +205,9 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Check if timer is currently running.
    */
   isRunning(): boolean {
-    if (this.timerRef) {
-      return this.timerRef.get()?.isRunning || false;
+    const timerRef = this.stateManager.getTimerRef();
+    if (timerRef) {
+      return timerRef.get()?.isRunning || false;
     }
     return !this._isPaused;
   }
@@ -275,8 +227,9 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * A timer is paused if it has time spans but the last one is stopped and there's an interval running.
    */
   isPaused(): boolean {
-    if (this.timerRef) {
-      const state = this.timerRef.get();
+    const timerRef = this.stateManager.getTimerRef();
+    if (timerRef) {
+      const state = timerRef.get();
       if (state) {
         const spans = state.spans;
         // Paused means: we have spans, the last span is closed, and memory says not running
@@ -293,11 +246,12 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Start the timer. Creates a new time span.
    */
   start(): void {
-    if (!this.timerRef || !this._runtime) {
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef || !this._runtime) {
       return;
     }
 
-    const state = this.timerRef.get();
+    const state = timerRef.get();
     if (!state) return;
     
     const spans = [...state.spans];
@@ -310,33 +264,26 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Add new span
     spans.push({ start: Date.now(), state: 'new' });
     
-    this.timerRef.set({
-        ...state,
-        spans,
-        isRunning: true
-    });
+    this.stateManager.updateState(spans, true);
   }
 
   /**
    * Stop the timer. Closes the current time span.
    */
   stop(): void {
-    if (!this.timerRef) {
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef) {
       return;
     }
 
-    const state = this.timerRef.get();
+    const state = timerRef.get();
     if (!state) return;
 
     const spans = [...state.spans];
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
       spans[spans.length - 1].stop = Date.now();
       
-      this.timerRef.set({
-          ...state,
-          spans,
-          isRunning: false
-      });
+      this.stateManager.updateState(spans, false);
     }
   }
 
@@ -344,7 +291,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Pause the timer. Closes the current time span.
    */
   pause(): void {
-    if (!this.timerRef) {
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef) {
       // Fallback to old behavior if memory not initialized
       if (!this._isPaused && this._runtime) {
         this._isPaused = true;
@@ -354,7 +302,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       return;
     }
 
-    const state = this.timerRef.get();
+    const state = timerRef.get();
     if (!state) return;
 
     const spans = [...state.spans];
@@ -367,18 +315,15 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Close the current span
     spans[spans.length - 1].stop = Date.now();
     
-    this.timerRef.set({
-        ...state,
-        spans,
-        isRunning: false
-    });
+    this.stateManager.updateState(spans, false);
   }
 
   /**
    * Resume the timer. Creates a new time span.
    */
   resume(): void {
-    if (!this.timerRef) {
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef) {
       // Fallback to old behavior if memory not initialized
       if (this._isPaused && this._runtime) {
         this._isPaused = false;
@@ -388,7 +333,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       return;
     }
 
-    const state = this.timerRef.get();
+    const state = timerRef.get();
     if (!state) return;
 
     const spans = [...state.spans];
@@ -401,11 +346,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Add new span
     spans.push({ start: Date.now(), state: 'new' });
     
-    this.timerRef.set({
-        ...state,
-        spans,
-        isRunning: true
-    });
+    this.stateManager.updateState(spans, true);
   }
 
   /**
@@ -421,8 +362,9 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Get time spans for this timer from memory.
    */
   getTimeSpans(): TimerSpan[] {
-    if (this.timerRef) {
-      return this.timerRef.get()?.spans || [];
+    const timerRef = this.stateManager.getTimerRef();
+    if (timerRef) {
+      return timerRef.get()?.spans || [];
     }
     
     // Fallback for tests that don't use memory
@@ -445,15 +387,12 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       return 0;
     }
 
-    let total = 0;
-    const now = new Date();
-
-    for (const span of spans) {
-        const endTime = span.stop || now.getTime();
-        total += endTime - span.start;
-    }
-
-    return total;
+    // Use calculateDuration utility
+    // Note: TimerSpan uses numbers for timestamps (from MemoryModels) or fallback logic in getTimeSpans()
+    return calculateDuration(
+        spans.map(s => ({ start: s.start, stop: s.stop })),
+        Date.now()
+    );
   }
   /**
    * Reset the timer. Clears all time spans and stops the timer.
@@ -467,15 +406,6 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     this.elapsedMs = 0;
     this.startTime = 0;
 
-    if (this.timerRef) {
-        const state = this.timerRef.get();
-        if (state) {
-            this.timerRef.set({
-                ...state,
-                spans: [],
-                isRunning: false
-            });
-        }
-    }
+    this.stateManager.resetState();
   }
 }

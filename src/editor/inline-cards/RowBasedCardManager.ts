@@ -28,6 +28,7 @@ import {
   MediaRuleGenerator,
 } from './rule-generators';
 import { HiddenAreasCoordinator } from '../utils/HiddenAreasCoordinator';
+import { useEditorEvents } from './hooks/useEditorEvents';
 
 // System configuration
 const CONFIG = {
@@ -41,7 +42,7 @@ export class RowBasedCardManager {
   private parser: CardParser;
   private renderer: RowRuleRenderer;
   private cards: Map<string, InlineCard> = new Map();
-  private disposables: { dispose(): void }[] = [];
+  private eventManagerDisposer?: { dispose(): void };
   
   // Rule generators for each card type
   private ruleGenerators: Map<string, CardRuleGenerator<any>> = new Map();
@@ -110,28 +111,20 @@ export class RowBasedCardManager {
    * Set up editor event listeners
    */
   private setupEventListeners(): void {
-    // Cursor position changes
-    const cursorDisposable = this.editor.onDidChangeCursorPosition((e) => {
-      const newLine = e.position.lineNumber;
-      if (newLine !== this.lastCursorLine) {
-        this.lastCursorLine = newLine;
-        this.debouncedUpdateEditingState();
+    this.eventManagerDisposer = useEditorEvents(
+      this.editor,
+      (lineNumber) => {
+        if (lineNumber !== this.lastCursorLine) {
+          this.lastCursorLine = lineNumber;
+          this.debouncedUpdateEditingState();
+        }
+      },
+      () => this.debouncedParseContent(),
+      () => {
+        this.lastContentVersion = -1;
+        this.parseContent();
       }
-    });
-    this.disposables.push(cursorDisposable);
-
-    // Content changes
-    const contentDisposable = this.editor.onDidChangeModelContent(() => {
-      this.debouncedParseContent();
-    });
-    this.disposables.push(contentDisposable);
-
-    // Model change
-    const modelDisposable = this.editor.onDidChangeModel(() => {
-      this.lastContentVersion = -1;
-      this.parseContent();
-    });
-    this.disposables.push(modelDisposable);
+    );
   }
 
   /**
@@ -417,8 +410,7 @@ export class RowBasedCardManager {
     }
 
     this.renderer.dispose();
-    this.disposables.forEach(d => d.dispose());
-    this.disposables = [];
+    this.eventManagerDisposer?.dispose();
     this.cards.clear();
     this.hoverDecorationsCollection.clear();
 

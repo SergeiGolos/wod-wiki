@@ -1,0 +1,89 @@
+import { IRuntimeBlockStrategy } from "../IRuntimeBlockStrategy";
+import { IRuntimeBehavior } from "../IRuntimeBehavior";
+import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IScriptRuntime } from "../IScriptRuntime";
+import { BlockKey } from "../../core/models/BlockKey";
+import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { RuntimeBlock } from "../RuntimeBlock";
+import { BlockContext } from "../BlockContext";
+import { CompletionBehavior } from "../behaviors/CompletionBehavior";
+import { RuntimeMetric } from "../RuntimeMetric";
+
+/**
+ * Strategy that creates group blocks for nested/grouped exercises.
+ * Matches statements that have child statements (nested structure).
+ *
+ * Example: "(3 rounds)\n  (2 rounds)\n    5 Pullups"
+ * - Creates hierarchical block structure
+ * - Parent groups contain child blocks
+ * - Enables complex workout composition
+ *
+ * This strategy should be evaluated after specific strategies (Timer, Rounds, etc.)
+ * but before the fallback EffortStrategy.
+ *
+ * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ *
+ * TODO: Full compile() implementation requires:
+ * 1. Extract child statements from code[0].children
+ * 2. Create container RuntimeBlock with blockType="Group"
+ * 3. Set up LoopCoordinatorBehavior to manage child compilation:
+ *    - loopType: LoopType.FIXED with totalRounds=1 (execute once)
+ *    - childGroups: [childStatements]
+ * 4. Pass compilation context to children
+ * 5. Handle nested groups recursively
+ * 6. Group completes when all children complete
+ *
+ * Note: Groups are primarily structural containers. The parent block
+ * (e.g., RoundsBlock) typically handles the looping logic, and groups
+ * just organize exercises hierarchically.
+ */
+export class GroupStrategy implements IRuntimeBlockStrategy {
+    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+        if (!statements || statements.length === 0) {
+            console.warn('GroupStrategy: No statements provided');
+            return false;
+        }
+
+        // Match if statement has children
+        // This indicates a nested/grouped structure
+        const hasChildren = statements[0].children && statements[0].children.length > 0;
+
+        return hasChildren;
+    }
+
+    compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        // Compile statement fragments to metrics using FragmentCompilationManager
+        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
+            code[0] as CodeStatement,
+            runtime
+        );
+
+        console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
+
+        // Placeholder implementation - creates a simple block
+        // Full implementation will use LoopCoordinatorBehavior to manage children
+
+        const blockKey = new BlockKey();
+        const blockId = blockKey.toString();
+        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+
+        const context = new BlockContext(runtime, blockId, exerciseId);
+
+        const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new CompletionBehavior(
+            () => true, // Temporary - should check children completion
+            []
+        ));
+
+        return new RuntimeBlock(
+            runtime,
+            code[0]?.id ? [code[0].id] : [],
+            behaviors,
+            context,
+            blockKey,
+            "Group",
+            "Group",
+            compiledMetric
+        );
+    }
+}
