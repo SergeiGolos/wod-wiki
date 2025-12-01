@@ -5,8 +5,15 @@
 export enum MemoryTypeEnum {
   /**
    * Display stack - List of Block IDs (string[])
+   * @deprecated Use DISPLAY_STACK_STATE for the full display state
    */
   DISPLAY_STACK = 'displaystack',
+
+  /**
+   * Display stack state - Full UI display hierarchy state
+   * Type: IDisplayStackState (timer stack, card stack, workout state)
+   */
+  DISPLAY_STACK_STATE = 'displaystack',
 
   /**
    * Timer state prefix - use as `timer:${blockId}`

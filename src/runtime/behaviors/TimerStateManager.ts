@@ -1,5 +1,6 @@
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeAction } from '../IRuntimeAction';
 import { TimerState, TimerSpan } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';

@@ -57,7 +57,7 @@ The timer/clock system uses a **stack-based display architecture** with **memory
 | **TimerDisplay** | `src/components/workout/TimerDisplay.tsx` | Enhanced timer with multi-timer stack and activity cards |
 | **DigitalClock** | `src/clock/components/DigitalClock.tsx` | Standalone digital clock for side-by-side layouts |
 | **TimeDisplay** | `src/clock/components/TimeDisplay.tsx` | Renders array of time units with separators |
-| **ClockAnchor** | `src/clock/components/ClockAnchor.tsx` | Anchor component with play/pause controls |
+| **TimeUnit** | `src/clock/components/TimeUnit.tsx` | Individual time unit display (hours, minutes, seconds) |
 
 ### Card Components
 
@@ -110,56 +110,36 @@ interface ITimerDisplayEntry {
 | **TimerBlock** | `src/runtime/blocks/TimerBlock.ts` | Via TimerBehavior | ✅ Yes |
 | **RoundsBlock** | `src/runtime/blocks/RoundsBlock.ts` | Via LoopCoordinatorBehavior | ❌ No (tracks rounds only) |
 | **EffortBlock** | `src/runtime/blocks/EffortBlock.ts` | None | ❌ No (tracks reps) |
-| **RuntimeBlock** | `src/runtime/blocks/RuntimeBlock.ts` | Base class | Via attached behaviors |
+| **RuntimeBlock** | `src/runtime/RuntimeBlock.ts` | Base class | Via attached behaviors |
 
 ### Timer Registration Pattern (TimerBehavior)
 
+> **Note**: Timer initialization is now delegated to `TimerStateManager` for better separation of concerns.
+
 ```typescript
-// In TimerBehavior.onPush()
+// In TimerBehavior.onPush() - delegates to TimerStateManager
 onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-  // 1. Allocate timer state in memory
-  const initialState: TimerState = {
-    blockId: block.key.toString(),
-    label: this.label,
-    format: this.direction === 'down' ? 'down' : 'up',
-    durationMs: this.durationMs,
-    spans: [{ start: Date.now(), state: 'new' }],
-    isRunning: true,
-    card: { title: '...', subtitle: '...' }
-  };
-
-  this.timerRef = runtime.memory.allocate<TimerState>(
-    `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,  // Type: "timer:block-123"
-    block.key.toString(),                                      // OwnerId: block key
-    initialState,
-    'public'
-  );
-
-  // 2. Register with unified clock for tick events
+  this._runtime = runtime;
+  this.startTime = runtime.clock.now;
+  
+  // Register with unified clock for tick events
   runtime.clock.register(this);
+  
+  // Emit timer:started event
+  runtime.handle({
+    name: 'timer:started',
+    timestamp: new Date(),
+    data: { blockId: block.key.toString(), direction: this.direction, startTime: this.startTime },
+  });
 
-  // 3. Return display actions
-  return [
-    new PushTimerDisplayAction({
-      id: `timer-${block.key}`,
-      ownerId: block.key.toString(),
-      timerMemoryId: this.timerRef.id,
-      label: this.label,
-      format: this.direction === 'down' ? 'countdown' : 'countup',
-      durationMs: this.durationMs,
-    }),
-    new PushCardDisplayAction({
-      id: `card-${block.key}`,
-      ownerId: block.key.toString(),
-      type: 'active-block',
-      title: this.direction === 'down' ? 'AMRAP' : 'For Time',
-      subtitle: this.label,
-      metrics: block.compiledMetrics?.values.map(m => ({
-        type: m.type, value: m.value ?? 0, unit: m.unit, isActive: true
-      }))
-    })
-  ];
+  // Delegate to TimerStateManager for memory allocation and display actions
+  return this.stateManager.initialize(runtime, block, Date.now());
 }
+
+// TimerStateManager.initialize() handles:
+// 1. Allocating TimerState in memory with type `timer:{blockId}`
+// 2. Creating PushTimerDisplayAction for clock UI
+// 3. Creating PushCardDisplayAction for workout info card
 ```
 
 ### Rounds Registration Pattern (LoopCoordinatorBehavior)
@@ -191,10 +171,14 @@ onNext(runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
 
 | Enum Value | Pattern | Description |
 |------------|---------|-------------|
-| `DISPLAY_STACK_STATE` | `displaystack` | UI display hierarchy state |
+| `DISPLAY_STACK` | `displaystack` | UI display hierarchy state |
 | `TIMER_PREFIX` | `timer:` | Timer state per block |
 | `METRICS_CURRENT` | `metrics:current` | Live metrics for UI |
 | `HANDLER_PREFIX` | `handler:` | Event handlers |
+| `METRIC_REPS` | `metric:reps` | Target reps for current round/block |
+| `ANCHOR` | `anchor` | Cross-block reference anchors |
+
+> **⚠️ Bug Note**: Code previously referenced `MemoryTypeEnum.DISPLAY_STACK_STATE` which did not exist. This has been fixed by adding `DISPLAY_STACK_STATE` to the enum (aliased to the same `'displaystack'` value as `DISPLAY_STACK`).
 
 ### TimerState Model
 
@@ -227,9 +211,10 @@ export function useDisplayStack(): IDisplayStackState {
 
   const stateRef = useMemo(() => {
     const refs = runtime.memory.search({
-      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+      id: null,
       ownerId: 'runtime',
-      id: null, visibility: null
+      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+      visibility: null
     });
     return refs[0] as TypedMemoryReference<IDisplayStackState> | undefined;
   }, [runtime]);
@@ -255,7 +240,7 @@ export function useDisplayStack(): IDisplayStackState {
 | UI Element | Source | Memory Location |
 |------------|--------|-----------------|
 | Main Timer (00:00.00) | `timerStack[last].timerMemoryId` → TimeSpan[] | `timer:blockKey` |
-| Round Counter (Round 1/3) | `IDisplayStackState.currentRound/totalRounds` | `DISPLAY_STACK_STATE` |
+| Round Counter (Round 1/3) | `IDisplayStackState.currentRound/totalRounds` | `DISPLAY_STACK` |
 | Metric Badges (3 Rounds, 21, 15, 9) | `cardStack[last].metrics` | Card pushed by behavior |
 | Control Buttons | `cardStack[last].buttons` or default controls | Card pushed by behavior |
 
@@ -589,7 +574,19 @@ new PushTimerDisplayAction({
 | [src/clock/hooks/useDisplayStack.ts](src/clock/hooks/useDisplayStack.ts) | React hooks for display state |
 | [src/clock/components/StackedClockDisplay.tsx](src/clock/components/StackedClockDisplay.tsx) | Main clock UI component |
 | [src/runtime/behaviors/TimerBehavior.ts](src/runtime/behaviors/TimerBehavior.ts) | Timer allocation & management |
+| [src/runtime/behaviors/TimerStateManager.ts](src/runtime/behaviors/TimerStateManager.ts) | Timer state and display action helper |
 | [src/runtime/behaviors/LoopCoordinatorBehavior.ts](src/runtime/behaviors/LoopCoordinatorBehavior.ts) | Round/loop management |
 | [src/runtime/actions/TimerDisplayActions.ts](src/runtime/actions/TimerDisplayActions.ts) | Timer stack actions |
+| [src/runtime/actions/CardDisplayActions.ts](src/runtime/actions/CardDisplayActions.ts) | Card stack actions |
 | [src/runtime/actions/WorkoutStateActions.ts](src/runtime/actions/WorkoutStateActions.ts) | Workout state + rounds actions |
 | [src/runtime/MemoryTypeEnum.ts](src/runtime/MemoryTypeEnum.ts) | Memory type constants |
+
+---
+
+## Appendix: Known Bugs (Resolved)
+
+### MemoryTypeEnum.DISPLAY_STACK_STATE Missing ✅ FIXED
+
+**Issue**: Multiple files referenced `MemoryTypeEnum.DISPLAY_STACK_STATE` but the enum only defined `DISPLAY_STACK`.
+
+**Resolution**: Added `DISPLAY_STACK_STATE = 'displaystack'` to `MemoryTypeEnum`. Both values now point to the same string for backwards compatibility.
