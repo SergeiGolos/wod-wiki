@@ -15,6 +15,7 @@ import {
   useCurrentCard, 
   useWorkoutState 
 } from '../hooks/useDisplayStack';
+import { useTimerHierarchy } from '../hooks/useTimerHierarchy';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../types/DisplayTypes';
 import { CardComponentRegistry } from '../registry/CardComponentRegistry';
 import { FallbackCard } from '../cards/DefaultCards';
@@ -73,15 +74,34 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
   const currentTimer = useCurrentTimer();
   const currentCard = useCurrentCard();
   const workoutState = useWorkoutState();
+  const timerHierarchy = useTimerHierarchy();
 
-  // Primary timer is the top (last) of the stack
-  const primaryTimer = currentTimer;
+  // Primary timer is the segment timer if available, otherwise root
+  // If we have hierarchy roles, use them. Otherwise fallback to stack logic.
+  const hasRoles = displayState.timerStack.some(t => !!t.role);
   
-  // Secondary timers are all timers except the top one
+  const primaryTimer = hasRoles
+    ? (timerHierarchy.segment || timerHierarchy.root || currentTimer)
+    : currentTimer;
+
+  // Secondary timers
   const secondaryTimers = useMemo(() => {
-    if (displayState.timerStack.length <= 1) return [];
-    return displayState.timerStack.slice(0, -1);
-  }, [displayState.timerStack]);
+    if (hasRoles) {
+      // Show root (if not primary) and leaf
+      const secondary: ITimerDisplayEntry[] = [];
+      if (timerHierarchy.root && timerHierarchy.root.id !== primaryTimer?.id) {
+        secondary.push(timerHierarchy.root);
+      }
+      if (timerHierarchy.leaf && timerHierarchy.leaf.id !== primaryTimer?.id) {
+        secondary.push(timerHierarchy.leaf);
+      }
+      return secondary;
+    } else {
+      // Fallback: all timers except top one
+      if (displayState.timerStack.length <= 1) return [];
+      return displayState.timerStack.slice(0, -1);
+    }
+  }, [displayState.timerStack, hasRoles, timerHierarchy, primaryTimer]);
 
   // Handle button clicks - emit to runtime if handler provided
   const handleButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {

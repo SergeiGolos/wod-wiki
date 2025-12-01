@@ -2,6 +2,7 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
+import { TimeSpan, calculateDuration } from '../../lib/timeUtils';
 import { 
   IDisplayStackState, 
   createDefaultDisplayState 
@@ -65,6 +66,25 @@ export class SetWorkoutStateAction implements IRuntimeAction {
 
     const previousState = state.workoutState;
     state.workoutState = this.workoutState;
+
+    // Allocate global timer if starting workout and not already present
+    if (this.workoutState === 'running' && previousState === 'idle' && !state.globalTimerMemoryId) {
+      const globalTimerRef = runtime.memory.allocate<TimeSpan[]>(
+        'timer:global',
+        'runtime',
+        [{ start: runtime.clock.now }],
+        'public'
+      );
+      state.globalTimerMemoryId = globalTimerRef.id;
+    }
+
+    // Update totalElapsedMs on every state change if global timer exists
+    if (state.globalTimerMemoryId) {
+      const spans = runtime.memory.get(state.globalTimerMemoryId) as TimeSpan[];
+      if (spans) {
+        state.totalElapsedMs = calculateDuration(spans, runtime.clock.now);
+      }
+    }
 
     // Update memory
     stateRef.set({ ...state });
