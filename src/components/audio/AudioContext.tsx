@@ -7,7 +7,8 @@ interface AudioContextType {
     playTestSound: () => void;
 }
 
-const AudioContext = createContext<AudioContextType | undefined>(undefined);
+// Named WodAudioContext to avoid conflict with Web Audio API's native AudioContext
+const WodAudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
     const [isEnabled, setIsEnabled] = useState(audioService.isEnabled());
@@ -20,7 +21,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const toggleAudio = useCallback(() => {
         const newState = !isEnabled;
         setIsEnabled(newState);
-        audioService.setEnabled(newState);
+        // Note: useEffect syncs the service state, no need to call setEnabled here
 
         if (newState) {
             audioService.playSound('beep');
@@ -34,14 +35,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }, [isEnabled]);
 
     return (
-        <AudioContext.Provider value={{ isEnabled, toggleAudio, playTestSound }}>
+        <WodAudioContext.Provider value={{ isEnabled, toggleAudio, playTestSound }}>
             {children}
-        </AudioContext.Provider>
+        </WodAudioContext.Provider>
     );
 }
 
 export function useAudio() {
-    const context = useContext(AudioContext);
+    const context = useContext(WodAudioContext);
     if (context === undefined) {
         throw new Error('useAudio must be used within an AudioProvider');
     }

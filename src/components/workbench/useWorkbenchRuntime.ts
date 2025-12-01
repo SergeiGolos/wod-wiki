@@ -10,6 +10,7 @@ import { IEventHandler } from '../../runtime/IEventHandler';
 import { IEvent } from '../../runtime/IEvent';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/RegisterEventHandlerAction';
+import { UnregisterEventHandlerAction } from '../../runtime/actions/UnregisterEventHandlerAction';
 
 /**
  * Hook to encapsulate UnifiedWorkbench runtime logic.
@@ -33,7 +34,9 @@ export const useWorkbenchRuntime = (
           if (event.name === 'sound:play' && event.data) {
             const { sound, volume } = event.data as { sound: string, volume?: number };
             if (sound) {
-              audioService.playSound(sound, volume);
+              audioService.playSound(sound, volume).catch(err => {
+                console.warn('Failed to play sound:', err);
+              });
             }
           }
           return [];
@@ -43,6 +46,12 @@ export const useWorkbenchRuntime = (
       // Register the handler
       const action = new RegisterEventHandlerAction(audioHandler, 'global');
       action.do(runtime);
+
+      // Cleanup on unmount or runtime change
+      return () => {
+        const unregisterAction = new UnregisterEventHandlerAction('global-audio-handler');
+        unregisterAction.do(runtime);
+      };
     }
   }, [runtime]);
 
