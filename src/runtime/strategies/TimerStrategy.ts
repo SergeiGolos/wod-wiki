@@ -15,6 +15,7 @@ import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
+import { createDebugMetadata } from "../models/ExecutionSpan";
 
 /**
  * Creates default countdown sound cues for a timer with specified duration.
@@ -112,7 +113,20 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         // Add timer behavior with determined direction
         const timerBehavior = new TimerBehavior(direction, durationMs, label);
         behaviors.push(timerBehavior);
-        behaviors.push(new HistoryBehavior("Timer"));
+        
+        // Add HistoryBehavior with debug metadata stamped at creation time
+        // This ensures analytics can identify the timer configuration
+        behaviors.push(new HistoryBehavior({
+            label: "Timer",
+            debugMetadata: createDebugMetadata(
+                ['timer', direction === 'down' ? 'countdown' : 'count_up'],
+                {
+                    strategyUsed: 'TimerStrategy',
+                    timerDirection: direction,
+                    ...(durationMs && { timerDuration: durationMs })
+                }
+            )
+        }));
 
         // Add SoundBehavior
         if (direction === 'down' && durationMs && durationMs > 0) {

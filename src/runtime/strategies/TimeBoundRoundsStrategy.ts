@@ -14,6 +14,7 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
+import { createDebugMetadata } from "../models/ExecutionSpan";
 
 /**
  * Strategy that creates time-bound rounds blocks for AMRAP workouts.
@@ -107,7 +108,21 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // 1. Timer Behavior (Countdown)
         const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP');
         behaviors.push(timerBehavior);
-        behaviors.push(new HistoryBehavior("AMRAP"));
+        
+        // Add HistoryBehavior with debug metadata stamped at creation time
+        // This ensures analytics can identify this as an AMRAP workout
+        behaviors.push(new HistoryBehavior({
+            label: "AMRAP",
+            debugMetadata: createDebugMetadata(
+                ['amrap', 'time_bound', 'max_rounds'],
+                {
+                    strategyUsed: 'TimeBoundRoundsStrategy',
+                    timerDuration: durationMs,
+                    timerDirection: 'down',
+                    targetRounds: Infinity
+                }
+            )
+        }));
 
         // 2. Sound Behavior (tick-tick-buzz countdown)
         const soundCues = createCountdownSoundCues(durationMs);

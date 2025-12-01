@@ -22,6 +22,7 @@ import {
   SegmentType,
   TimeSegment,
   MetricValueWithTimestamp,
+  DebugMetadata,
   createExecutionSpan,
   createTimeSegment,
   createEmptyMetrics,
@@ -52,11 +53,13 @@ export class ExecutionTracker {
    * 
    * @param block The runtime block to track
    * @param parentSpanId ID of the parent span (null for root)
+   * @param debugMetadata Optional debug metadata to stamp onto the span
    * @returns The created ExecutionSpan
    */
   startSpan(
     block: IRuntimeBlock,
-    parentSpanId: string | null
+    parentSpanId: string | null,
+    debugMetadata?: DebugMetadata
   ): ExecutionSpan {
     const blockId = block.key.toString();
     const type = this.resolveSpanType(block.blockType);
@@ -66,7 +69,8 @@ export class ExecutionTracker {
       type,
       block.label || blockId,
       parentSpanId,
-      block.sourceIds
+      block.sourceIds,
+      debugMetadata
     );
     
     this.memory.allocate<ExecutionSpan>(
@@ -338,6 +342,106 @@ export class ExecutionTracker {
     );
     
     this.updateSpan(blockId, { segments: updatedSegments });
+  }
+
+  // ============================================================================
+  // Debug Metadata
+  // ============================================================================
+
+  /**
+   * Add a debug log message to a span.
+   * Messages are captured in the debugMetadata.logs array.
+   * 
+   * @param blockId The block ID
+   * @param message The log message to capture
+   */
+  addDebugLog(blockId: string, message: string): void {
+    const span = this.getActiveSpan(blockId);
+    if (!span) return;
+    
+    const debugMetadata: DebugMetadata = span.debugMetadata || {
+      tags: [],
+      context: {},
+      logs: []
+    };
+    
+    const logs = debugMetadata.logs || [];
+    logs.push(`[${new Date().toISOString()}] ${message}`);
+    
+    this.updateSpan(blockId, {
+      debugMetadata: {
+        ...debugMetadata,
+        logs
+      }
+    });
+  }
+
+  /**
+   * Add a tag to a span's debug metadata.
+   * Tags are used for categorization (e.g., "amrap", "emom", "time_bound").
+   * 
+   * @param blockId The block ID
+   * @param tag The tag to add
+   */
+  addDebugTag(blockId: string, tag: string): void {
+    const span = this.getActiveSpan(blockId);
+    if (!span) return;
+    
+    const debugMetadata: DebugMetadata = span.debugMetadata || {
+      tags: [],
+      context: {},
+      logs: []
+    };
+    
+    if (!debugMetadata.tags.includes(tag)) {
+      this.updateSpan(blockId, {
+        debugMetadata: {
+          ...debugMetadata,
+          tags: [...debugMetadata.tags, tag]
+        }
+      });
+    }
+  }
+
+  /**
+   * Set debug context values for a span.
+   * Context is an arbitrary key-value store for execution metadata.
+   * 
+   * @param blockId The block ID
+   * @param context Key-value pairs to merge into the debug context
+   */
+  setDebugContext(blockId: string, context: Record<string, unknown>): void {
+    const span = this.getActiveSpan(blockId);
+    if (!span) return;
+    
+    const debugMetadata: DebugMetadata = span.debugMetadata || {
+      tags: [],
+      context: {},
+      logs: []
+    };
+    
+    this.updateSpan(blockId, {
+      debugMetadata: {
+        ...debugMetadata,
+        context: {
+          ...debugMetadata.context,
+          ...context
+        }
+      }
+    });
+  }
+
+  /**
+   * Set or replace the entire debug metadata for a span.
+   * 
+   * @param blockId The block ID
+   * @param debugMetadata The complete debug metadata to set
+   */
+  setDebugMetadata(blockId: string, debugMetadata: DebugMetadata): void {
+    const span = this.getActiveSpan(blockId);
+    if (!span) return;
+    
+    this.updateSpan(blockId, { debugMetadata });
   }
 
   // ============================================================================

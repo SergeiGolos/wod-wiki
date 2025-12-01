@@ -3,21 +3,44 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { ExecutionSpan, SpanMetrics, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
+import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
 import { EXECUTION_SPAN_TYPE } from "../ExecutionTracker";
 import { RuntimeMetric } from "../RuntimeMetric";
 
 /**
+ * Configuration for HistoryBehavior
+ */
+export interface HistoryBehaviorConfig {
+    /** Human-readable label for the span */
+    label?: string;
+    /** Debug metadata to stamp onto the span at creation time */
+    debugMetadata?: DebugMetadata;
+}
+
+/**
  * Behavior that tracks the execution history of a block.
  * Records start time, end time, parent ID, and metrics, then logs to runtime.executionLog.
+ * 
+ * Supports debug metadata stamping per the ExecutionSpan consolidation plan.
+ * @see docs/plans/jit-01-execution-span-consolidation.md
  */
 export class HistoryBehavior implements IRuntimeBehavior {
     private startTime: number = 0;
     private parentSpanId: string | null = null;
     private label: string;
+    private debugMetadata?: DebugMetadata;
 
-    constructor(label?: string) {
-        this.label = label || "Block";
+    constructor(labelOrConfig?: string | HistoryBehaviorConfig) {
+        if (typeof labelOrConfig === 'string') {
+            // Backward compatible: string parameter is just the label
+            this.label = labelOrConfig || "Block";
+        } else if (labelOrConfig) {
+            // New config-based initialization
+            this.label = labelOrConfig.label || "Block";
+            this.debugMetadata = labelOrConfig.debugMetadata;
+        } else {
+            this.label = "Block";
+        }
     }
 
     onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
@@ -55,7 +78,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
         // Create initial metrics from block's compiled metrics
         const initialMetrics = this.extractMetricsFromBlock(block);
         
-        // Create execution span
+        // Create execution span with debug metadata stamped at creation time
+        // This eliminates the need to infer context during analytics
         const span: ExecutionSpan = {
             id: `${this.startTime}-${block.key.toString()}`,
             blockId: block.key.toString(),
@@ -65,7 +89,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
             startTime: this.startTime,
             status: 'active',
             metrics: initialMetrics,
-            segments: []
+            segments: [],
+            ...(this.debugMetadata && { debugMetadata: this.debugMetadata })
         };
         
         runtime.memory.allocate(EXECUTION_SPAN_TYPE, block.key.toString(), span, 'public');

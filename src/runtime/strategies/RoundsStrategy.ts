@@ -12,6 +12,7 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { createDebugMetadata } from "../models/ExecutionSpan";
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
@@ -122,7 +123,22 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             }
         });
         behaviors.push(loopCoordinator);
-        behaviors.push(new HistoryBehavior("Rounds"));
+        
+        // Add HistoryBehavior with debug metadata stamped at creation time
+        // This ensures analytics can identify the workout structure
+        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
+        behaviors.push(new HistoryBehavior({
+            label: "Rounds",
+            debugMetadata: createDebugMetadata(
+                ['rounds', repScheme ? 'rep_scheme' : 'fixed_rounds'],
+                {
+                    strategyUsed: 'RoundsStrategy',
+                    totalRounds,
+                    loopType,
+                    ...(repScheme && { repScheme })
+                }
+            )
+        }));
 
         // Completion Behavior
         behaviors.push(new CompletionBehavior(
@@ -140,8 +156,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
 
 
         }
-
-        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
 
         return new RuntimeBlock(
             runtime,

@@ -1,7 +1,7 @@
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
-import { SpanMetrics } from '../runtime/models/ExecutionSpan';
+import { ExecutionSpan, SpanMetrics, DebugMetadata } from '../runtime/models/ExecutionSpan';
 
 /**
  * Extract numeric metrics from SpanMetrics object into a Record<string, number>
@@ -53,6 +53,203 @@ function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Re
   
   return metrics;
 }
+
+// ============================================================================
+// AnalyticsTransformer Class
+// ============================================================================
+
+/**
+ * Extended Segment interface that includes debug metadata from ExecutionSpan.
+ * This is the UI-ready segment format that includes contextual information.
+ */
+export interface SegmentWithMetadata extends Segment {
+  /** Debug metadata from the source ExecutionSpan */
+  debugMetadata?: DebugMetadata;
+  /** Tags extracted from debugMetadata for easy filtering */
+  tags?: string[];
+  /** Original span type for reference */
+  spanType?: string;
+}
+
+/**
+ * AnalyticsTransformer - The single point of transformation from ExecutionSpan to UI-ready data.
+ * 
+ * Per the ExecutionSpan consolidation plan, this is the ONLY component that should
+ * read raw ExecutionSpans. UI components should consume Segments produced by this class.
+ * 
+ * @see docs/plans/jit-01-execution-span-consolidation.md
+ */
+export class AnalyticsTransformer {
+  
+  /**
+   * Transform raw ExecutionSpans into UI-ready Segments.
+   * This is the primary transformation method that UI components should use.
+   * 
+   * @param spans Array of ExecutionSpans from runtime.executionLog
+   * @param workoutStartTime Optional start time for calculating relative timestamps
+   * @returns Array of Segments ready for UI consumption
+   */
+  toSegments(spans: ExecutionSpan[], workoutStartTime?: number): SegmentWithMetadata[] {
+    if (!spans || spans.length === 0) {
+      return [];
+    }
+
+    // Calculate workout start time if not provided
+    const startTime = workoutStartTime ?? Math.min(...spans.map(s => s.startTime));
+    
+    // Map IDs to depth for hierarchy
+    const idToDepth = new Map<string, number>();
+    
+    return spans.map(span => {
+      // Calculate depth from parent chain
+      let depth = 0;
+      if (span.parentSpanId && idToDepth.has(span.parentSpanId)) {
+        depth = (idToDepth.get(span.parentSpanId) || 0) + 1;
+      }
+      idToDepth.set(span.id, depth);
+      
+      // Calculate duration
+      const endTime = span.endTime || Date.now();
+      const duration = (endTime - span.startTime) / 1000;
+      
+      // Extract metrics
+      const metrics = extractMetricsFromSpanMetrics(span.metrics);
+      
+      const segment: SegmentWithMetadata = {
+        id: hashCode(span.id),
+        name: span.label,
+        type: span.type,
+        startTime: (span.startTime - startTime) / 1000,
+        endTime: (endTime - startTime) / 1000,
+        duration,
+        parentId: span.parentSpanId ? hashCode(span.parentSpanId) : null,
+        depth,
+        metrics,
+        lane: depth,
+        // Include debug metadata for rich UI display
+        debugMetadata: span.debugMetadata,
+        tags: span.debugMetadata?.tags,
+        spanType: span.type
+      };
+      
+      return segment;
+    });
+  }
+
+  /**
+   * Group segments by configured analytics categories.
+   * Returns an AnalyticsGroup structure for chart/graph display.
+   * 
+   * @param segments Array of Segments to analyze
+   * @returns AnalyticsGroup array with metric configurations
+   */
+  toAnalyticsGroup(segments: SegmentWithMetadata[]): AnalyticsGroup[] {
+    const groups: AnalyticsGroup[] = [];
+    
+    // Identify all unique metric keys present in the segments
+    const availableMetricKeys = new Set<string>();
+    segments.forEach(s => Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k)));
+    
+    // Define standard metric configs
+    const standardMetrics: Record<string, AnalyticsGraphConfig> = {
+      'power': { id: 'power', label: 'Power', unit: 'W', color: '#8b5cf6', dataKey: 'power', icon: 'Zap' },
+      'heart_rate': { id: 'heart_rate', label: 'Heart Rate', unit: 'bpm', color: '#ef4444', dataKey: 'heart_rate', icon: 'Activity' },
+      'cadence': { id: 'cadence', label: 'Cadence', unit: 'rpm', color: '#3b82f6', dataKey: 'cadence', icon: 'Wind' },
+      'speed': { id: 'speed', label: 'Speed', unit: 'km/h', color: '#10b981', dataKey: 'speed', icon: 'Gauge' },
+      'resistance': { id: 'resistance', label: 'Resistance', unit: 'kg', color: '#f59e0b', dataKey: 'resistance', icon: 'Dumbbell' },
+      'repetitions': { id: 'repetitions', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'repetitions', icon: 'Hash' },
+      'calories': { id: 'calories', label: 'Calories', unit: 'cal', color: '#f97316', dataKey: 'calories', icon: 'Flame' },
+      'time': { id: 'time', label: 'Time', unit: 'ms', color: '#14b8a6', dataKey: 'time', icon: 'Clock' },
+    };
+    
+    // Create a "Performance" group for found metrics
+    const performanceGraphs: AnalyticsGraphConfig[] = [];
+    
+    availableMetricKeys.forEach(key => {
+      if (standardMetrics[key]) {
+        performanceGraphs.push(standardMetrics[key]);
+      } else {
+        // Generic fallback for unknown metrics
+        performanceGraphs.push({
+          id: key,
+          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+          unit: '',
+          color: '#888888',
+          dataKey: key
+        });
+      }
+    });
+    
+    if (performanceGraphs.length > 0) {
+      groups.push({
+        id: 'performance',
+        name: 'Performance',
+        graphs: performanceGraphs
+      });
+    }
+    
+    return groups;
+  }
+
+  /**
+   * Filter segments by tag.
+   * Uses the debugMetadata.tags to filter segments.
+   * 
+   * @param segments Array of segments to filter
+   * @param tags Tags to filter by (segments must have ALL tags)
+   * @returns Filtered array of segments
+   */
+  filterByTags(segments: SegmentWithMetadata[], tags: string[]): SegmentWithMetadata[] {
+    if (!tags || tags.length === 0) {
+      return segments;
+    }
+    
+    return segments.filter(segment => {
+      const segmentTags = segment.tags || [];
+      return tags.every(tag => segmentTags.includes(tag));
+    });
+  }
+
+  /**
+   * Filter segments by workout type.
+   * Common types: 'amrap', 'emom', 'rounds', 'timer', 'effort'
+   * 
+   * @param segments Array of segments to filter
+   * @param type Workout type to filter by
+   * @returns Filtered array of segments
+   */
+  filterByType(segments: SegmentWithMetadata[], type: string): SegmentWithMetadata[] {
+    return segments.filter(segment => segment.spanType === type);
+  }
+
+  /**
+   * Get debug context from a segment.
+   * Extracts the strategy-stamped context for analysis.
+   * 
+   * @param segment The segment to inspect
+   * @returns The context object or empty object if not available
+   */
+  getDebugContext(segment: SegmentWithMetadata): Record<string, unknown> {
+    return segment.debugMetadata?.context || {};
+  }
+
+  /**
+   * Check if a segment was created by a specific strategy.
+   * Uses the debugMetadata.context.strategyUsed field.
+   * 
+   * @param segment The segment to check
+   * @param strategyName Strategy name to match
+   * @returns True if the segment was created by the specified strategy
+   */
+  isFromStrategy(segment: SegmentWithMetadata, strategyName: string): boolean {
+    const context = this.getDebugContext(segment);
+    return context.strategyUsed === strategyName;
+  }
+}
+
+// ============================================================================
+// Legacy Function (Backward Compatibility)
+// ============================================================================
 
 // --- Analytics Data Transformation ---
 export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: any[], segments: Segment[], groups: AnalyticsGroup[] } => {
