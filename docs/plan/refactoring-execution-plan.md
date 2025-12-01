@@ -64,7 +64,7 @@ This document outlines the step-by-step plan to execute the codebase cleanup and
 ### Step 2.3: Refactor ScriptRuntime
 - **Objective:** De-clutter `ScriptRuntime.ts` by extracting the stack monkey-patching and event loop.
 - **Action:**
-    - Create `src/runtime/MemoryAwareRuntimeStack.ts` (extends `RuntimeStack`) to encapsulate the "pop/dispose" logic.
+    - Create `src/runtime/MemoryAwareRuntimeStack.ts` (extends `RuntimeStack`) to encapsulate the "pop/dispose" logic.      
     - Create `src/runtime/ExecutionLogger.ts` to handle `ExecutionRecord` logic (observer pattern).
     - Update `ScriptRuntime` to use these new classes instead of inline logic.
 - **Verification:**
