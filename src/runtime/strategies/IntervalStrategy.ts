@@ -17,12 +17,16 @@ import { createCountdownSoundCues } from "./TimerStrategy";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
- * Matches statements with Timer + Action fragments (e.g., "EMOM 10" or "every 1 minute for 10 minutes").
+ * Matches statements with Timer + behavior.repeating_interval hint from dialect.
  *
  * EMOM = Every Minute On the Minute
  * Example: "EMOM 10\n  5 Pullups\n  10 Pushups"
  * - Executes child exercises at the start of each minute
  * - Continues for specified number of intervals
+ *
+ * The strategy now uses semantic hints from the dialect registry instead of
+ * hardcoded regex matching. The 'behavior.repeating_interval' hint is set by
+ * dialects like CrossFitDialect when detecting EMOM or similar patterns.
  *
  * Implementation Status: COMPLETE
  */
@@ -38,16 +42,16 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             return false;
         }
 
-        const fragments = statements[0].fragments;
+        const statement = statements[0];
+        const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
-        const hasEmomAction = fragments.some(f =>
-            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
-            (f.value as string)?.toUpperCase().includes('EMOM')
-        );
+        
+        // Check for behavior.repeating_interval hint from dialect (e.g., EMOM detected)
+        const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
 
-        // Match if has Timer AND Action/Effort with "EMOM"
+        // Match if has Timer AND repeating_interval hint
         // This takes precedence over simple TimerStrategy
-        return hasTimer && hasEmomAction;
+        return hasTimer && isInterval;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
