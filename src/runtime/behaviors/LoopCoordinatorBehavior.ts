@@ -8,7 +8,7 @@ import { TimerBehavior, TimeSpan } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
-import { IDisplayStackState, createDefaultDisplayState } from '../../clock/types/DisplayTypes';
+import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 
 /**
  * Loop type determines completion logic.
@@ -73,6 +73,7 @@ export interface LoopState {
 export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   private index: number = -1; // Pre-first-advance state (onPush will increment to 0)
   private readonly config: LoopConfig;
+  private lapTimerRefs: TypedMemoryReference<TimeSpan[]>[] = []; // Track lap timer refs for cleanup
 
   /**
    * Creates a new LoopCoordinatorBehavior.
@@ -330,7 +331,8 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Safe to call multiple times.
    */
   dispose(): void {
-    // No resources to dispose (no timers, no event listeners)
+    // Clear lap timer refs (actual memory release happens via RuntimeMemory)
+    this.lapTimerRefs = [];
   }
 
   /**
@@ -393,6 +395,9 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
           'public'
         );
 
+        // Track lap timer ref for cleanup
+        this.lapTimerRefs.push(lapTimerRef);
+
         // Update display state
         const stateRefs = runtime.memory.search({
           id: null,
@@ -403,9 +408,10 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
         if (stateRefs.length > 0) {
           const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
-          const state = stateRef.get() || createDefaultDisplayState();
-          state.currentLapTimerMemoryId = lapTimerRef.id;
-          stateRef.set(state);
+          const state = stateRef.get();
+          if (state) {
+            stateRef.set({ ...state, currentLapTimerMemoryId: lapTimerRef.id });
+          }
         }
     }
   }

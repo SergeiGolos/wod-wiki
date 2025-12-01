@@ -72,7 +72,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
       const globalTimerRef = runtime.memory.allocate<TimeSpan[]>(
         'timer:global',
         'runtime',
-        [{ start: runtime.clock.now }],
+        [{ start: Date.now() }],
         'public'
       );
       state.globalTimerMemoryId = globalTimerRef.id;
@@ -82,7 +82,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
     if (state.globalTimerMemoryId) {
       const spans = runtime.memory.get(state.globalTimerMemoryId) as TimeSpan[];
       if (spans) {
-        state.totalElapsedMs = calculateDuration(spans, runtime.clock.now);
+        state.totalElapsedMs = calculateDuration(spans, Date.now());
       }
     }
 

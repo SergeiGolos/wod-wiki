@@ -98,7 +98,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     });
 
     // Determine role based on stack depth
-    const stackDepth = runtime.stack.depth();
+    const stackDepth = runtime.stack.blocks.length;
     const role = stackDepth === 1 ? 'root' :
                  block.children && block.children.length > 0 ? 'segment' : 'leaf';
 

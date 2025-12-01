@@ -21,6 +21,11 @@ export class TimerStateManager {
 
     /**
      * Initializes the timer state in memory and creates display actions.
+     * @param runtime The script runtime context
+     * @param block The runtime block being initialized
+     * @param startTime The timer start timestamp (epoch milliseconds)
+     * @param role Optional semantic role for the timer ('root', 'segment', or 'leaf')
+     * @returns Array of runtime actions to push timer and card display entries
      */
     initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role?: 'root' | 'segment' | 'leaf'): IRuntimeAction[] {
         const initialState: TimerState = {
