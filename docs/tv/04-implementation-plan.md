@@ -17,7 +17,7 @@ This document provides a detailed implementation roadmap for the WOD Wiki TV Cas
 - `TVFocusGuideView` component handles complex focus navigation scenarios
 - `useTVEventHandler` hook provides clean TV remote event handling
 - Expo SDK 54+ supports TV builds via Expo Dev Client
-- Latest stable version: 0.82.1-0
+- Latest stable version: 0.76.5-0
 
 **Best Practices to Apply**:
 - Use `TVFocusGuideView` with `trapFocus*` properties to prevent focus escaping critical UI areas
@@ -1035,12 +1035,12 @@ interface HRRecoveryStrategy {
 ```json
 {
   "dependencies": {
-    "react-native": "npm:react-native-tvos@0.82.1-0",
+    "react-native": "npm:react-native-tvos@0.76.5-0",
     "react-native-ble-plx": "^3.1.0",
-    "@react-navigation/native": "^7.0.0",
-    "@react-navigation/native-stack": "^7.0.0",
-    "react-native-screens": "^4.0.0",
-    "react-native-safe-area-context": "^5.0.0"
+    "@react-navigation/native": "^6.0.0",
+    "@react-navigation/native-stack": "^6.0.0",
+    "react-native-screens": "^3.0.0",
+    "react-native-safe-area-context": "^4.0.0"
   }
 }
 ```

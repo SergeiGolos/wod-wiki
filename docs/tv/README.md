@@ -117,7 +117,7 @@ Web App (Track View)                    Android TV
 - Risk mitigation and resource requirements
 
 **Research Sources**:
-- react-native-tvos (0.82.1-0) documentation
+- react-native-tvos (0.76.5-0) documentation
 - Android TV design guidelines
 - Socket.IO best practices
 - Google Cast architecture patterns
