@@ -13,8 +13,9 @@ import { NextEventHandler } from '../../src/runtime/NextEventHandler';
 import { EffortStrategy, TimerStrategy, RoundsStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
-import { TimerBehavior, TIMER_MEMORY_TYPES } from '../../src/runtime/behaviors/TimerBehavior';
+import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
 import { useTimerElapsed } from '../../src/runtime/hooks/useTimerElapsed';
+import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -56,16 +57,17 @@ const blockColors: Record<string, string> = {
 
 // Clock display component for JIT compiler demo
 function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime | ScriptRuntime }) {
-  // Find the first timer block in the current stack
+  // Find the first timer block in the current stack by checking for TimerState memory
   const timerBlock = runtime?.stack?.blocksBottomFirst?.find(block => {
-    // Check if this block has TimerBehavior by looking for timer memory references
-    const timeSpansRefs = runtime.memory.search({
+    // Check if this block has TimerState memory (new unified model)
+    // The 'type' field in memory allocation is `timer:${blockId}`
+    const timerStateRefs = runtime.memory.search({
       id: null,
       ownerId: block.key.toString(),
-      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
       visibility: null
     });
-    return timeSpansRefs.length > 0;
+    return timerStateRefs.length > 0;
   });
 
   if (!timerBlock) {

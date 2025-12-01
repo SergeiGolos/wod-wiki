@@ -78,6 +78,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // Transition to execution
                 this.state = RootState.EXECUTING;
 
+                // Resume the root timer now that the workout is starting
+                const timer = block.getBehavior(TimerBehavior);
+                if (timer) {
+                    timer.resume();
+                }
+
                 // NOTE: "Workout Started" section record is no longer created here.
                 // The UI displays execution records from blocks; section markers
                 // were causing confusion in the execution log display.

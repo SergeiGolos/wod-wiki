@@ -18,15 +18,30 @@ This is the main editor component. It handles Monaco initialization, syntax high
 - **Separate Initializers:** The `WodWikiSyntaxInitializer` is already separate, but instantiation and setup inside the component is verbose. Create a helper or hook `useSyntaxInitializer`.
 - **Component Composition:** Split the render into smaller components if possible, though it's mostly a wrapper around `Editor`.
 
-### 2. `src/runtime/behaviors/TimerBehavior.ts` (485 lines)
+### 2. `src/runtime/behaviors/TimerBehavior.ts` ✅ PARTIALLY COMPLETED
 
-**Analysis:**
+**Status:** Phase 1 cleanup completed. Deprecated code removed and memory model unified.
+
+**Completed Actions:**
+- ✅ Removed deprecated `TIMER_MEMORY_TYPES` constant
+- ✅ Removed redundant `TimeSpan` interface (now uses `TimerSpan` from MemoryModels)
+- ✅ Unified memory model - timer state is now a single `TimerState` object
+- ✅ Updated `TimerStateManager` delegation pattern
+- ✅ Updated all dependent hooks (`useTimerReferences`, `useTimerElapsed`)
+- ✅ Updated test harnesses (`TimerTestHarness`, `EnhancedTimerHarness`)
+- ✅ Updated integration tests (`runtime-hooks.test.ts`)
+
+**Remaining (Future Cleanup):**
+- Extract time calculation utilities to `TimeCalculator`
+- Consider splitting count-up/count-down logic if they diverge further
+
+**Original Analysis:**
 This class manages timer logic (start, stop, pause, tick), memory interaction, and event emission. It handles both count-up and count-down (AMRAP) logic. It also deals with legacy vs. new memory references.
 
 **Refactoring Proposal:**
-- **Extract State Management:** Move the `TimerState` management (updating spans, start/stop logic) into a separate `TimerStateManager` or `TimerMemoryService` class. The behavior should only orchestrate actions.
-- **Strategy Pattern:** Split `count-up` and `count-down` logic into separate strategies (`CountUpStrategy`, `CountDownStrategy`) or subclasses if they diverge significantly.
-- **Utility Functions:** Extract time calculation (elapsed, display time) into a utility helper `TimeCalculator`.
+- **Extract State Management:** ✅ Done - `TimerStateManager` handles memory state
+- **Strategy Pattern:** Split `count-up` and `count-down` logic into separate strategies (`CountUpStrategy`, `CountDownStrategy`) or subclasses if they diverge significantly. (Deferred)
+- **Utility Functions:** Extract time calculation (elapsed, display time) into a utility helper `TimeCalculator`. (Deferred)
 
 ### 3. `src/markdown-editor/MarkdownEditor.tsx` (363 lines)
 
@@ -71,15 +86,13 @@ Parses text content into card objects. It contains logic for multiple card types
 - **Parser Strategy Pattern:** Create an interface `ICardTypeParser` and implement separate parsers for each type (`HeadingParser`, `MediaParser`, `WodBlockParser`).
 - **Composite Parser:** `CardParser` should just iterate through registered parsers. This removes the monolithic `parseAllCards` method and makes adding new card types easier.
 
-### 7. `src/views/runtime/RuntimeLayout.tsx` (376 lines)
+### 7. `src/views/runtime/RuntimeLayout.tsx` ❌ REMOVED
 
-**Analysis:**
-Large layout component coordinating multiple panels (history, context, debug, timer, analytics). It also handles mock data generation (which is very large) and runtime initialization.
+**Status:** This file does not exist. The `src/views/runtime/` directory contains:
+- `RuntimeDebugView.tsx` - Debug visualization component
+- `FragmentVisualizer.tsx` - Fragment display component
 
-**Refactoring Proposal:**
-- **Remove Mock Data:** Move `generateSessionData` and related logic to a separate `MockDataService` or `data/mocks.ts` file.
-- **Extract Sub-panels:** `TimerDisplay` is defined inline; move it to `src/components/runtime/TimerDisplay.tsx`.
-- **Hooks for Logic:** Move runtime initialization and event handling (start/stop/pause) into a `useRuntimeController` hook.
+**Note:** This item was based on outdated analysis. The runtime layout functionality may have been integrated elsewhere or the file was never created.
 
 ### 8. `src/runtime-test-bench/TestBench.tsx` (230 lines)
 
@@ -90,24 +103,34 @@ The main entry point for the test bench UI. It manages state for the script, run
 - **State Management:** Use a reducer or a context provider (`TestBenchContext`) to manage the complex state (script, output, runtime, memory).
 - **Component Extraction:** Extract the layout structure into a `TestBenchLayout` component, keeping `TestBench` as the container/controller.
 
-### 9. `src/runtime/strategies.ts` (containing multiple strategies)
+### 9. `src/runtime/strategies.ts` ✅ COMPLETED
 
-**Analysis:**
-This file contains multiple strategy classes (`EffortStrategy`, `TimerStrategy`, `RoundsStrategy`, `IntervalStrategy`, `TimeBoundRoundsStrategy`, `GroupStrategy`) and deprecated code. It's a "god file" for strategies.
+**Status:** Refactoring completed. Strategies have been split into `src/runtime/strategies/` directory:
+- `EffortStrategy.ts`
+- `GroupStrategy.ts`
+- `IntervalStrategy.ts`
+- `RoundsStrategy.ts`
+- `TimeBoundRoundsStrategy.ts`
+- `TimerStrategy.ts`
+- `index.ts` (barrel export)
 
-**Refactoring Proposal:**
-- **Split Files:** Create a directory `src/runtime/strategies/` and move each strategy into its own file (`TimerStrategy.ts`, `RoundsStrategy.ts`, etc.).
-- **Remove Deprecated Code:** Delete the commented-out/deprecated strategies.
-- **Shared Helpers:** If strategies share logic (like `BlockContext` creation), extract it to a helper.
+**Original Analysis:**
+This file contained multiple strategy classes and deprecated code. It was a "god file" for strategies.
 
-### 10. `src/editor/inline-cards/RowBasedCardSystem.tsx` (207 lines)
+**Completed Actions:**
+- ✅ Split into separate files in `src/runtime/strategies/`
+- ✅ Clean separation of concerns per strategy
 
-**Analysis:**
-React wrapper around `RowBasedCardManager`. It handles lifecycle and integration with the Monaco editor instance.
+### 10. `src/editor/inline-cards/RowBasedCardSystem.tsx` ❌ REMOVED
 
-**Refactoring Proposal:**
-- **Simplify Lifecycle:** The `useEffect` that initializes the manager is long. Extract the setup logic into a function or hook.
-- **Props Interface:** The interface is simple, but the component does a lot of "glue" work. Ensure it only focuses on React-Monaco integration.
+**Status:** This file does not exist. The `src/editor/inline-cards/` directory contains:
+- `RowBasedCardManager.ts` - Main card manager (still needs refactoring, see item 5)
+- `CardParser.ts` - Card parsing logic (see item 6)
+- `RowRuleRenderer.ts` - Rule rendering
+- `components/` - Sub-components directory
+- `hooks/` - Custom hooks directory
+
+**Note:** The React wrapper functionality may be handled via hooks in the `hooks/` subdirectory or integrated directly into parent components.
 
 ### 11. `src/components/layout/UnifiedWorkbench.tsx` (761 lines)
 
@@ -121,14 +144,13 @@ Massive component handling the entire app layout, responsive behavior, runtime i
     - `useWorkbenchNavigation()`: Handle view modes and mobile checks.
     - `useWorkbenchRuntime()`: Handle runtime integration and event bus subscriptions.
 
-### 12. `src/markdown-editor/widgets/TimerWidget.tsx` (181 lines)
+### 12. `src/markdown-editor/widgets/TimerWidget.tsx` ❌ REMOVED
 
-**Analysis:**
-Visual widget for timers in the editor.
+**Status:** This file does not exist. The `src/markdown-editor/widgets/` directory contains:
+- `ContextOverlay.tsx` - Context overlay widget
+- `ReactMonacoWidget.ts` - Base Monaco widget integration
 
-**Refactoring Proposal:**
-- **Sub-components:** Split into `TimerDisplay`, `TimerControls`, and `TimerSettings`.
-- **Logic Extraction:** Move timer calculation logic to `useTimer` hook if not already done.
+**Note:** Timer widget functionality may have been moved to `src/clock/` components or was never implemented.
 
 ### 13. `src/runtime-test-bench/services/TestBenchExecutionService.ts` (179 lines)
 
@@ -139,11 +161,13 @@ Service to manage execution in the test bench.
 - **Single Responsibility:** Ensure it only handles execution. If it handles UI state, move that out.
 - **Simplify Methods:** Break down large methods like `executeStep` or `runFull` into smaller, testable steps.
 
-### 14. `src/runtime/strategies/IntervalStrategy.ts` & `RoundsStrategy.ts`
+### 14. `src/runtime/strategies/IntervalStrategy.ts` & `RoundsStrategy.ts` ✅ COMPLETED
 
-**Analysis:**
-These are currently part of `src/runtime/strategies.ts` (as found in analysis). If they were separate, they would be candidates for cleanup.
-- **Cleanup:** As mentioned in step 9, separate them into files. Ensure `match` and `compile` logic is clean.
+**Status:** These files now exist as separate modules in `src/runtime/strategies/`:
+- `IntervalStrategy.ts` - EMOM/interval workout compilation
+- `RoundsStrategy.ts` - Multi-round workout compilation
+
+**Note:** Part of the strategies.ts split (item 9). Each strategy is now in its own file with clean `match` and `compile` methods.
 
 ### 15. `src/clock/TimerMemoryVisualization.tsx` (162 lines)
 

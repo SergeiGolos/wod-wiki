@@ -27,14 +27,14 @@ export class TimerStateManager {
      * @param role Optional semantic role for the timer ('root', 'segment', or 'leaf')
      * @returns Array of runtime actions to push timer and card display entries
      */
-    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto'): IRuntimeAction[] {
+    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto', autoStart: boolean = true): IRuntimeAction[] {
         const initialState: TimerState = {
             blockId: block.key.toString(),
             label: this.label,
             format: this.direction === 'down' ? 'down' : 'up',
             durationMs: this.durationMs,
-            spans: [{ start: startTime, state: 'new' }],
-            isRunning: true,
+            spans: autoStart ? [{ start: startTime, state: 'new' }] : [],
+            isRunning: autoStart,
             card: {
                 title: this.direction === 'down' ? 'AMRAP' : 'For Time',
                 subtitle: this.label
@@ -73,7 +73,7 @@ export class TimerStateManager {
             subtitle: this.label,
             metrics: block.compiledMetrics?.values.map(m => {
                 // Special handling for effort type to avoid "0 effort:Pullups"
-                if (m.type === 'effort') {
+                if (m.type.toLowerCase() === 'effort') {
                     // Strip 'effort:' prefix if present
                     const cleanUnit = m.unit.startsWith('effort:') ? m.unit.substring(7) : m.unit;
                     return {

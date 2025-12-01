@@ -2,20 +2,18 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
-import { TimerBehavior, TIMER_MEMORY_TYPES, TimeSpan } from '../../../src/runtime/behaviors/TimerBehavior';
+import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { ClockAnchor } from '../../anchors/ClockAnchor';
+import { TimerState, TimerSpan } from '../../../src/runtime/models/MemoryModels';
+import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
 
 export interface EnhancedTimerHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
   block: RuntimeBlock;
-  memoryRefs: {
-    timeSpans: TypedMemoryReference<TimeSpan[]>;
-    isRunning: TypedMemoryReference<boolean>;
-  };
+  timerStateRef: TypedMemoryReference<TimerState> | undefined;
   controls: {
     start: () => void;
     stop: () => void;
@@ -35,7 +33,7 @@ export interface EnhancedTimerHarnessProps {
   /** Whether the timer should start running immediately */
   autoStart?: boolean;
   /** Optional: Pre-configured time spans for complex scenarios */
-  timeSpans?: TimeSpan[];
+  timeSpans?: TimerSpan[];
   /** Children to render with runtime context */
   children: (harness: EnhancedTimerHarnessResult) => React.ReactNode;
 }
@@ -66,92 +64,88 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   }, []);
 
   // Create block, push it, and set memory all in one useMemo
-  const { block, blockKey, memoryRefs, behavior } = useMemo(() => {
+  const { block, blockKey, timerStateRef, behavior } = useMemo(() => {
     console.log('[EnhancedTimerHarness] Creating and initializing block');
 
-    const timerBehavior = new TimerBehavior();
+    const direction = timerType === 'countdown' ? 'down' : 'up';
+    const timerBehavior = new TimerBehavior(direction, durationMs, 'Timer');
     const newBlock = new RuntimeBlock(runtime, [1], [timerBehavior], 'Timer');
 
     // Mount block immediately to trigger behavior initialization
     newBlock.mount(runtime);
 
-    // Find timer memory references
-    const timeSpansRefs = runtime.memory.search({
+    // Find unified TimerState reference using the new memory model
+    // The 'type' field in memory allocation is `timer:${blockId}`
+    const timerStateRefs = runtime.memory.search({
       id: null,
       ownerId: newBlock.key.toString(),
-      type: TIMER_MEMORY_TYPES.TIME_SPANS,
+      type: `${MemoryTypeEnum.TIMER_PREFIX}${newBlock.key.toString()}`,
       visibility: null
     });
 
-    const isRunningRefs = runtime.memory.search({
-      id: null,
-      ownerId: newBlock.key.toString(),
-      type: TIMER_MEMORY_TYPES.IS_RUNNING,
-      visibility: null
-    });
-
-    console.log('[EnhancedTimerHarness] Found memory refs:', {
+    console.log('[EnhancedTimerHarness] Found timer state refs:', {
       blockKey: newBlock.key.toString(),
-      timeSpansRefs: timeSpansRefs.length,
-      isRunningRefs: isRunningRefs.length
+      timerStateRefs: timerStateRefs.length
     });
 
-    let timeSpansRef: TypedMemoryReference<TimeSpan[]> | undefined;
-    let isRunningRef: TypedMemoryReference<boolean> | undefined;
+    let timerRef: TypedMemoryReference<TimerState> | undefined;
 
-    if (timeSpansRefs.length > 0 && isRunningRefs.length > 0) {
-      timeSpansRef = timeSpansRefs[0] as TypedMemoryReference<TimeSpan[]>;
-      isRunningRef = isRunningRefs[0] as TypedMemoryReference<boolean>;
+    if (timerStateRefs.length > 0) {
+      timerRef = timerStateRefs[0] as TypedMemoryReference<TimerState>;
+      const currentState = timerRef.get();
 
-      // Set timer state based on props
-      let spans: TimeSpan[];
+      if (currentState) {
+        // Set timer state based on props
+        let spans: TimerSpan[];
 
-      if (timeSpans) {
-        // Use provided time spans (for complex scenarios)
-        spans = timeSpans;
-      } else if (autoStart) {
-        // Running timer: start time in the past, no stop time
-        spans = [{
-          start: new Date(Date.now() - durationMs),
-          stop: undefined
-        }];
-      } else {
-        // Stopped timer: start and stop time
-        spans = [{
-          start: new Date(Date.now() - durationMs),
-          stop: new Date()
-        }];
+        if (timeSpans) {
+          // Use provided time spans (for complex scenarios)
+          spans = timeSpans;
+        } else if (autoStart) {
+          // Running timer: start time in the past, no stop time
+          spans = [{
+            start: Date.now() - durationMs,
+            stop: undefined,
+            state: 'new'
+          }];
+        } else {
+          // Stopped timer: start and stop time
+          spans = [{
+            start: Date.now() - durationMs,
+            stop: Date.now(),
+            state: 'new'
+          }];
+        }
+
+        console.log('[EnhancedTimerHarness] Setting timer state:', {
+          timerType,
+          durationMs,
+          autoStart,
+          spans
+        });
+
+        timerRef.set({
+          ...currentState,
+          spans,
+          isRunning: autoStart
+        });
       }
-
-      console.log('[EnhancedTimerHarness] Setting timer state:', {
-        timerType,
-        durationMs,
-        autoStart,
-        spans
-      });
-
-      timeSpansRef.set(spans);
-      isRunningRef.set(autoStart);
     } else {
-      console.error('[EnhancedTimerHarness] Could not find timer memory references!');
-      throw new Error('Failed to find timer memory references - TimerBehavior may not have initialized properly');
+      console.warn('[EnhancedTimerHarness] Could not find timer state reference - timer may not display correctly');
     }
 
     return {
       block: newBlock,
       blockKey: newBlock.key.toString(),
-      memoryRefs: {
-        timeSpans: timeSpansRef!,
-        isRunning: isRunningRef!
-      },
+      timerStateRef: timerRef,
       behavior: timerBehavior
     };
   }, [runtime, timerType, durationMs, autoStart, timeSpans]);
 
   // Subscribe to running state
   const isRunning = useMemo(() => {
-    return memoryRefs.isRunning.get();
-  }, [memoryRefs.isRunning, recalcTrigger]);
+    return timerStateRef?.get()?.isRunning ?? false;
+  }, [timerStateRef, recalcTrigger]);
 
   // Control functions
   const handleStart = useCallback(() => {
@@ -182,23 +176,34 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     console.log('[EnhancedTimerHarness] Resetting timer');
     behavior.reset();
 
-    // Reset memory based on timer type
-    if (timerType === 'countdown') {
-      // For countdown, set up initial duration
-      const spans = [{
-        start: new Date(),
-        stop: undefined
-      }];
-      memoryRefs.timeSpans.set(spans);
-      memoryRefs.isRunning.set(false);
-    } else {
-      // For count up, reset to zero
-      memoryRefs.timeSpans.set([]);
-      memoryRefs.isRunning.set(false);
+    // Reset memory based on timer type using unified TimerState
+    if (timerStateRef) {
+      const currentState = timerStateRef.get();
+      if (currentState) {
+        if (timerType === 'countdown') {
+          // For countdown, set up initial duration
+          timerStateRef.set({
+            ...currentState,
+            spans: [{
+              start: Date.now(),
+              stop: undefined,
+              state: 'new'
+            }],
+            isRunning: false
+          });
+        } else {
+          // For count up, reset to zero
+          timerStateRef.set({
+            ...currentState,
+            spans: [],
+            isRunning: false
+          });
+        }
+      }
     }
 
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior, timerType, memoryRefs]);
+  }, [behavior, timerType, timerStateRef]);
 
   const recalculateElapsed = useCallback(() => {
     console.log('[EnhancedTimerHarness] Recalculating elapsed time');
@@ -217,7 +222,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     runtime,
     blockKey,
     block,
-    memoryRefs,
+    timerStateRef,
     controls: {
       start: handleStart,
       stop: handleStop,
@@ -242,7 +247,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
  * Memory Card Component with start/stop table and recalculate functionality
  */
 interface MemoryCardProps {
-  timeSpans: TimeSpan[];
+  timeSpans: TimerSpan[];
   isRunning: boolean;
   blockKey: string;
   onRecalculate: () => void;
@@ -256,9 +261,9 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
   onRecalculate,
   timerType
 }) => {
-  const formatTimestamp = (date?: Date): string => {
-    if (!date) return 'running';
-    return date.toLocaleTimeString('en-US', {
+  const formatTimestamp = (timestamp?: number): string => {
+    if (!timestamp) return 'running';
+    return new Date(timestamp).toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
@@ -271,8 +276,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
 
     return timeSpans.reduce((total, span) => {
       if (!span.start) return total;
-      const stop = span.stop || new Date();
-      return total + (stop.getTime() - span.start.getTime());
+      const stop = span.stop || Date.now();
+      return total + (stop - span.start);
     }, 0);
   };
 
@@ -348,8 +353,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
                 {timeSpans.map((span, index) => {
                   const duration = span.start
                     ? span.stop
-                      ? Math.round((span.stop.getTime() - span.start.getTime()) / 1000)
-                      : Math.round((Date.now() - span.start.getTime()) / 1000)
+                      ? Math.round((span.stop - span.start) / 1000)
+                      : Math.round((Date.now() - span.start) / 1000)
                     : 0;
 
                   return (

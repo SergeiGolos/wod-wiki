@@ -3,29 +3,9 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TimerSpan } from '../models/MemoryModels';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { ITickable } from '../ITickable';
 import { calculateDuration } from '../../lib/timeUtils';
 import { TimerStateManager } from './TimerStateManager';
-
-/**
- * Timer memory reference types for runtime memory system.
- * These constants are used to identify and search for timer-related memory references.
- * 
- * @deprecated Use MemoryTypeEnum instead
- */
-export const TIMER_MEMORY_TYPES = {
-  PREFIX: MemoryTypeEnum.TIMER_PREFIX,
-} as const;
-
-/**
- * TimeSpan represents a segment of time with start and optional stop timestamps.
- * Used to track timer execution across pause/resume cycles.
- */
-export interface TimeSpan {
-  start?: Date;   // When this segment started
-  stop?: Date;    // When this segment stopped (undefined = currently running)
-}
 
 /**
  * TimerBehavior manages time tracking for workout blocks.
@@ -64,7 +44,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     private readonly direction: 'up' | 'down' = 'up',
     private readonly durationMs?: number,
     private readonly label: string = 'Timer',
-    private readonly role: 'primary' | 'secondary' | 'auto' = 'auto'
+    private readonly role: 'primary' | 'secondary' | 'auto' = 'auto',
+    private readonly autoStart: boolean = true
   ) {
     if (direction !== 'up' && direction !== 'down') {
       throw new TypeError(`Invalid timer direction: ${direction}. Must be 'up' or 'down'.`);
@@ -80,7 +61,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     this._runtime = runtime;
     this.startTime = runtime.clock.now;
     this.elapsedMs = 0;
-    this._isPaused = false;
+    this._isPaused = !this.autoStart; // Initialize paused state based on autoStart
     this.lastTickTime = 0;
 
     // Register with unified clock
@@ -112,7 +93,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
         // But for now, let's trust TimerStateManager's auto logic or pass explicit roles.
     }
 
-    return this.stateManager.initialize(runtime, block, Date.now(), this.role);
+    return this.stateManager.initialize(runtime, block, Date.now(), this.role, this.autoStart);
   }
 
   /**
@@ -262,6 +243,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Start the timer. Creates a new time span.
    */
   start(): void {
+    this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef || !this._runtime) {
       return;
@@ -287,6 +269,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Stop the timer. Closes the current time span.
    */
   stop(): void {
+    this._isPaused = true;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
       return;
@@ -307,11 +290,11 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Pause the timer. Closes the current time span.
    */
   pause(): void {
+    this._isPaused = true;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
       // Fallback to old behavior if memory not initialized
-      if (!this._isPaused && this._runtime) {
-        this._isPaused = true;
+      if (this._runtime) {
         this.pauseTime = this._runtime.clock.now;
         this.elapsedMs = this.pauseTime - this.startTime;
       }
@@ -338,11 +321,11 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Resume the timer. Creates a new time span.
    */
   resume(): void {
+    this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
       // Fallback to old behavior if memory not initialized
-      if (this._isPaused && this._runtime) {
-        this._isPaused = false;
+      if (this._runtime) {
         const now = this._runtime.clock.now;
         this.startTime = now - this.elapsedMs;
       }

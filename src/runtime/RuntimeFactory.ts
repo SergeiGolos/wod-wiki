@@ -109,7 +109,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     
     // Add TimerBehavior to root block (starts on load)
     // Use 'up' direction (count up) for the main workout timer
-    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer'));
+    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'secondary', false));
     
     // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
     

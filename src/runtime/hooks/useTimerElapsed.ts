@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useTimerReferences } from './useTimerReferences';
 import { useMemorySubscription } from './useMemorySubscription';
-import { TimeSpan } from '../behaviors/TimerBehavior';
+import { TimerSpan } from '../models/MemoryModels';
 
 /**
  * Result from useTimerElapsed hook.
@@ -9,13 +9,13 @@ import { TimeSpan } from '../behaviors/TimerBehavior';
 export interface UseTimerElapsedResult {
   elapsed: number;          // Total milliseconds across all spans
   isRunning: boolean;       // Current running state
-  timeSpans: TimeSpan[];    // Array of start/stop pairs
+  timeSpans: TimerSpan[];   // Array of start/stop pairs (number timestamps)
 }
 
 /**
  * Hook to calculate elapsed time for a timer block.
  * 
- * This hook combines timer memory references and subscription to provide
+ * This hook uses the unified TimerState from runtime memory to provide
  * real-time elapsed time calculation. It polls for updates when the timer
  * is running to show current time, but only subscribes to memory changes
  * for start/stop/pause/resume events.
@@ -37,11 +37,14 @@ export interface UseTimerElapsedResult {
  * ```
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
-  const { timeSpans: timeSpansRef, isRunning: isRunningRef } = useTimerReferences(blockKey);
+  const { timerState: timerStateRef } = useTimerReferences(blockKey);
   
-  // Subscribe to memory changes
-  const timeSpans = useMemorySubscription(timeSpansRef) || [];
-  const isRunning = useMemorySubscription(isRunningRef) || false;
+  // Subscribe to unified TimerState changes
+  const timerState = useMemorySubscription(timerStateRef);
+  
+  // Extract spans and running state from unified state
+  const timeSpans = timerState?.spans || [];
+  const isRunning = timerState?.isRunning || false;
 
   const [now, setNow] = useState(Date.now());
 
@@ -52,9 +55,10 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     return timeSpans.reduce((total, span) => {
       if (!span.start) return total;
       
+      // TimerSpan uses number timestamps (epoch ms)
       // If no stop time, timer is running - use current time
-      const stop = span.stop?.getTime() || now;
-      const start = span.start.getTime();
+      const stop = span.stop || now;
+      const start = span.start;
       return total + (stop - start);
     }, 0);
   }, [timeSpans, now]);
