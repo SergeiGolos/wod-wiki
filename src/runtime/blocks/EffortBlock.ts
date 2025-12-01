@@ -1,6 +1,9 @@
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
+import { IRuntimeBehavior } from '../IRuntimeBehavior';
+import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IEvent } from '../IEvent';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
@@ -14,6 +17,22 @@ import { ExecutionRecord } from '../models/ExecutionRecord';
 export interface EffortBlockConfig {
   exerciseName: string;
   targetReps: number;
+}
+
+/**
+ * NextEventBehavior - Sets forceComplete flag when 'next' event is received.
+ * Must be added before CompletionBehavior in behaviors array so the flag is set
+ * before the completion condition is checked.
+ */
+class NextEventBehavior implements IRuntimeBehavior {
+  constructor(private readonly setForceComplete: () => void) {}
+  
+  onEvent(event: IEvent, _runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
+    if (event.name === 'next') {
+      this.setForceComplete();
+    }
+    return [];
+  }
 }
 
 /**
@@ -33,6 +52,7 @@ export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
   private readonly _compiledMetrics?: RuntimeMetric;
+  private _forceComplete = false;
 
   constructor(
     runtime: IScriptRuntime,
@@ -49,20 +69,30 @@ export class EffortBlock extends RuntimeBlock {
       throw new RangeError(`targetReps must be >= 1, got: ${config.targetReps}`);
     }
 
-    // Create completion behavior that checks if reps are complete
+    // Create NextEventBehavior to set forceComplete flag on 'next' event
+    // This MUST be added before CompletionBehavior so the flag is set before condition check
+    const nextEventBehavior = new NextEventBehavior(() => {
+      this._forceComplete = true;
+    });
+
+    // Create completion behavior that checks if reps are complete OR user forced completion
+    // Listens for 'reps:updated' (natural completion) and 'next' (user forced completion)
+    // We disable checkOnNext so that tick events don't auto-complete
     const completionBehavior = new CompletionBehavior(
-      () => this.isComplete(),
-      ['reps:updated']
+      () => this.isComplete() || this._forceComplete,
+      ['reps:updated', 'next'], // Complete when reps hit target OR user clicks next
+      false, // Don't check on push
+      false  // Don't check on tick (onNext called by tick handler)
     );
 
     // Generate label from exercise name and reps
     const label = `${config.targetReps} ${config.exerciseName}`;
 
-    // Initialize RuntimeBlock with completion behavior
+    // Initialize RuntimeBlock with behaviors in order (NextEventBehavior first!)
     super(
       runtime,
       sourceIds,
-      [completionBehavior],
+      [nextEventBehavior, completionBehavior],
       "Effort",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam

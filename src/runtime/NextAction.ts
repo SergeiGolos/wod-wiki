@@ -19,7 +19,7 @@ export class NextAction implements IRuntimeAction {
       NextBlockLogger.logValidationFailure('Invalid runtime state', {
         hasStack: !!runtime.stack,
         hasMemory: !!runtime.memory,
-        hasErrors: runtime.Errors?.() || false,
+        hasErrors: !!(runtime.errors && runtime.errors.length > 0),
       });
       return;
     }
@@ -58,7 +58,15 @@ export class NextAction implements IRuntimeAction {
         blockKey: currentBlock.key.toString(),
         stackDepth: runtime.stack.blocks.length,
       });
-      runtime.setError(error);
+      // Add error to runtime errors array if available
+      if (runtime.errors && Array.isArray(runtime.errors)) {
+        runtime.errors.push({
+          error: error as Error,
+          source: 'NextAction',
+          timestamp: Date.now(),
+          blockKey: currentBlock.key.toString()
+        });
+      }
     }
   }
 
@@ -74,12 +82,12 @@ export class NextAction implements IRuntimeAction {
     }
 
     // Check for runtime errors
-    if (runtime.hasErrors && typeof runtime.hasErrors === 'function' && runtime.hasErrors()) {
+    if (runtime.errors && runtime.errors.length > 0) {
       return false;
     }
 
     // Check for corrupted memory state
-    if (runtime.memory.state === 'corrupted') {
+    if ((runtime.memory as any).state === 'corrupted') {
       return false;
     }
 

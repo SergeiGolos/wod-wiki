@@ -62,8 +62,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         this.controls.registerButton({
             id: 'btn-start',
             label: 'Start Workout',
-            icon: 'play',
-            action: 'timer:start',
+            icon: 'next',
+            action: 'timer:next',
             variant: 'default',
             size: 'lg'
         });
@@ -279,7 +279,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         this.controls.registerButton({
             id: 'btn-complete',
             label: 'Complete',
-            icon: 'check',
+            icon: 'x',
             action: 'timer:complete',
             variant: 'destructive',
             size: 'lg'

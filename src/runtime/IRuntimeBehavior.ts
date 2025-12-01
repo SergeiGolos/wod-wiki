@@ -25,4 +25,7 @@ export interface IRuntimeBehavior {
 
   /** Called when the block is being disposed. Use this to clean up resources or log final metrics. */
   onDispose?(runtime: IScriptRuntime, block: IRuntimeBlock): void;
+
+  /** Called when an event is dispatched to the block. */
+  onEvent?(event: any, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
 }

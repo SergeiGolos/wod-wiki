@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { NextAction } from '../NextAction';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
+import { NextBlockLogger } from '../NextBlockLogger';
 
 describe('NextAction', () => {
   let action: NextAction;
@@ -28,8 +29,7 @@ describe('NextAction', () => {
         get: vi.fn(),
         set: vi.fn()
       },
-      hasErrors: vi.fn().mockReturnValue(false),
-      setError: vi.fn(),
+      errors: [],
       handle: vi.fn()
     } as any;
   });
@@ -98,7 +98,7 @@ describe('NextAction', () => {
   });
 
   it('should set error state when runtime has errors', () => {
-    vi.mocked(mockRuntime.hasErrors).mockReturnValue(true);
+    mockRuntime.errors = [{ error: new Error('Existing error'), source: 'test' }];
 
     action.do(mockRuntime);
 
@@ -106,7 +106,7 @@ describe('NextAction', () => {
     expect(mockCurrentBlock.next).not.toHaveBeenCalled();
   });
 
-  it('should set error state when block.next(runtime) throws exception', () => {
+  it('should add to errors array when block.next(runtime) throws exception', () => {
     const error = new Error('Block execution failed');
     vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
       throw error;
@@ -114,10 +114,13 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(mockRuntime.setError).toHaveBeenCalledWith(error);
+    expect(mockRuntime.errors.length).toBe(1);
+    expect(mockRuntime.errors[0].error).toBe(error);
+    expect(mockRuntime.errors[0].source).toBe('NextAction');
   });
 
   it('should log error when block.next(runtime) throws exception', () => {
+    NextBlockLogger.setEnabled(true);
     const error = new Error('Block execution failed');
     vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
       throw error;
@@ -137,9 +140,11 @@ describe('NextAction', () => {
       })
     );
     consoleSpy.mockRestore();
+    NextBlockLogger.setEnabled(false);
   });
 
   it('should log message when no current block available', () => {
+    NextBlockLogger.setEnabled(true);
     mockRuntime.stack.current = null as any;
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -152,9 +157,11 @@ describe('NextAction', () => {
       })
     );
     consoleSpy.mockRestore();
+    NextBlockLogger.setEnabled(false);
   });
 
   it('should log block advancement details', () => {
+    NextBlockLogger.setEnabled(true);
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
 
@@ -168,9 +175,11 @@ describe('NextAction', () => {
       })
     );
     consoleSpy.mockRestore();
+    NextBlockLogger.setEnabled(false);
   });
 
   it('should log completion with new stack depth', () => {
+    NextBlockLogger.setEnabled(true);
     mockRuntime.stack.blocks = [mockCurrentBlock, {}];
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
@@ -185,6 +194,7 @@ describe('NextAction', () => {
       })
     );
     consoleSpy.mockRestore();
+    NextBlockLogger.setEnabled(false);
   });
 
   it('should validate runtime state before execution', () => {
@@ -235,6 +245,7 @@ describe('NextAction', () => {
 
     const mockRuntimeWithNested = {
       ...mockRuntime,
+      errors: [],
       stack: {
         current: nestedBlock,
         blocks: [mockCurrentBlock, nestedBlock]

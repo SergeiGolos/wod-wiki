@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Play, Pause, Square, SkipForward, Timer as TimerIcon, ChevronRight } from 'lucide-react';
+import { Play, Pause, Square, SkipForward, Timer as TimerIcon, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
@@ -28,6 +28,8 @@ import {
 } from '../../clock/hooks/useDisplayStack';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { CardComponentRegistry } from '../../clock/registry/CardComponentRegistry';
+import { getFragmentColorClasses } from '../../views/runtime/fragmentColorMap';
+import { getFragmentIcon } from '../../views/runtime/FragmentVisualizer';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -77,6 +79,9 @@ const formatTime = (ms: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
 };
 
+/**
+ * Secondary Timer Badge - Compact display for non-primary timers
+ */
 /**
  * Secondary Timer Badge - Compact display for non-primary timers
  */
@@ -243,6 +248,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                  btn.icon === 'next' ? SkipForward : 
                  btn.icon === 'check' ? ChevronRight :
                  btn.icon === 'analytics' ? TimerIcon :
+                 btn.icon === 'x' ? X :
                  Play;
 
     return (
@@ -263,20 +269,22 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     );
   };
 
-  // Split buttons into groups - play/pause and stop go on left, next goes on right
+  // Split buttons into groups - play/pause, stop, and complete (x) go on left, next goes on right
   const playPauseButton = controls?.buttons.find(b => ['play', 'pause'].includes(b.icon || ''));
   const stopButton = controls?.buttons.find(b => b.icon === 'stop');
+  const completeButton = controls?.buttons.find(b => b.icon === 'x');
   const nextButton = controls?.buttons.find(b => ['next', 'check'].includes(b.icon || ''));
-  const otherButtons = controls?.buttons.filter(b => !['play', 'pause', 'stop', 'next', 'check'].includes(b.icon || '')) || [];
+  const otherButtons = controls?.buttons.filter(b => !['play', 'pause', 'stop', 'next', 'check', 'x'].includes(b.icon || '')) || [];
 
   // Default activity card layout
   return (
     <Card className={cn('w-full', compact ? 'p-2' : 'p-4')}>
       <CardContent className={cn('flex items-center justify-between gap-4', compact ? 'p-2' : 'p-4')}>
         
-        {/* Left Controls (Play/Pause + End Workout) */}
+        {/* Left Controls (Play/Pause + End Workout + Complete) */}
         <div className="flex items-center gap-2 shrink-0">
           {playPauseButton && renderButton(playPauseButton)}
+          {completeButton && renderButton(completeButton)}
           {stopButton && (
             <Button
               onClick={() => onControlAction?.(stopButton.action)}
@@ -291,32 +299,46 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           {otherButtons.map(renderButton)}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          {entry.title && (
-            <h4 className={cn('font-semibold truncate', compact ? 'text-sm' : 'text-base')}>
-              {entry.title}
-            </h4>
-          )}
-          {entry.subtitle && (
-            <p className={cn('text-muted-foreground truncate', compact ? 'text-xs' : 'text-sm')}>
-              {entry.subtitle}
-            </p>
-          )}
+        {/* Info - Rendered as Fragment Pills */}
+        <div className="flex-1 min-w-0 flex flex-wrap gap-2 items-center justify-center">
           
           {/* Metrics display */}
-          {entry.metrics && entry.metrics.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {entry.metrics.map((metric, idx) => (
-                <Badge 
-                  key={idx} 
-                  variant={metric.isActive ? 'default' : 'secondary'}
-                  className={cn(compact ? 'text-xs px-2 py-0.5' : 'text-sm')}
+          {entry.metrics && entry.metrics.length > 0 && entry.metrics.map((metric, idx) => {
+             const type = metric.type || 'unknown';
+             const colorClasses = getFragmentColorClasses(type);
+             const icon = getFragmentIcon(type);
+             
+             return (
+                <span
+                  key={idx}
+                  className={cn(
+                    `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm transition-colors`,
+                    compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+                  )}
                 >
-                  {metric.value} {metric.unit || metric.type}
-                </Badge>
-              ))}
-            </div>
+                  {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
+                  <span>{metric.value} {metric.unit}</span>
+                </span>
+             );
+          })}
+
+          {/* Title as Action/Text Fragment */}
+          {entry.title && (
+            <span
+              className={cn(
+                `inline-flex items-center gap-1 rounded font-mono border ${getFragmentColorClasses('action')} bg-opacity-60 shadow-sm transition-colors`,
+                compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+              )}
+            >
+              <span className={compact ? "text-xs" : "text-base leading-none"}>{getFragmentIcon('action')}</span>
+              <span className="font-semibold">{entry.title}</span>
+            </span>
+          )}
+
+          {entry.subtitle && (
+             <span className={cn('text-muted-foreground ml-2', compact ? 'text-xs' : 'text-sm')}>
+               {entry.subtitle}
+             </span>
           )}
         </div>
         

@@ -10,6 +10,8 @@ import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
 import { IEvent } from './IEvent';
 import { RuntimeMetric } from './RuntimeMetric';
+import { PushCardDisplayAction, PopCardDisplayAction } from './actions/CardDisplayActions';
+import { TimerBehavior } from './behaviors/TimerBehavior';
 
 
 export type AllocateRequest<T> = { 
@@ -136,6 +138,24 @@ export class RuntimeBlock implements IRuntimeBlock{
             const result = behavior?.onPush?.(runtime, this);
             if (result) { actions.push(...result); }
         }
+
+        // If no TimerBehavior is present but we have metrics, push a default activity card
+        // This ensures blocks like "10 Pushups" (which have no timer) still show up in the UI
+        if (!this.getBehavior(TimerBehavior) && this.compiledMetrics) {
+            actions.push(new PushCardDisplayAction({
+                id: `card-${this.key}`,
+                ownerId: this.key.toString(),
+                type: 'active-block',
+                title: this.label,
+                subtitle: this.blockType,
+                metrics: this.compiledMetrics.values.map(m => ({
+                    type: m.type,
+                    value: m.value ?? 0,
+                    unit: m.unit,
+                    isActive: true
+                }))
+            }));
+        }
         
         return actions;
     }
@@ -169,6 +189,11 @@ export class RuntimeBlock implements IRuntimeBlock{
          for (const behavior of this.behaviors) {
             const result = behavior?.onPop?.(runtime, this);
             if (result) { actions.push(...result); }
+        }
+
+        // Pop the default card if we pushed one
+        if (!this.getBehavior(TimerBehavior) && this.compiledMetrics) {
+            actions.push(new PopCardDisplayAction(`card-${this.key}`));
         }
 
         return actions;

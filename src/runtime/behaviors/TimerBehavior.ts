@@ -136,7 +136,12 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       type: 'active-block',
       title: this.direction === 'down' ? 'AMRAP' : 'For Time',
       subtitle: this.label,
-      // Metrics could be populated if we had access to them here
+      metrics: block.compiledMetrics?.values.map(m => ({
+        type: m.type,
+        value: m.value ?? 0,
+        unit: m.unit,
+        isActive: true // Highlight active block metrics
+      }))
     });
 
     return [timerAction, cardAction];

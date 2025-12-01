@@ -38,9 +38,18 @@ const METRIC_TO_FRAGMENT_TYPE: Record<string, FragmentType> = {
  */
 export function metricToFragment(metric: MetricValue): ICodeFragment {
   const fragmentType = METRIC_TO_FRAGMENT_TYPE[metric.type] || FragmentType.Text;
+  
+  // Strip 'effort:' or 'action:' prefix from unit if present
+  let unit = metric.unit || '';
+  if (unit.startsWith('effort:')) {
+    unit = unit.substring(7); // Remove 'effort:' prefix
+  } else if (unit.startsWith('action:')) {
+    unit = unit.substring(7); // Remove 'action:' prefix
+  }
+  
   const displayValue = metric.value !== undefined 
-    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
-    : metric.unit;
+    ? `${metric.value}${unit ? ' ' + unit : ''}`
+    : unit;
   
   return {
     type: metric.type,

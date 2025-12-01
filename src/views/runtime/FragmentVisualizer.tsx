@@ -21,7 +21,7 @@ export interface FragmentVisualizerProps {
 /**
  * Get icon/emoji for fragment type
  */
-function getFragmentIcon(type: string): string | null {
+export function getFragmentIcon(type: string): string | null {
   const iconMap: Record<string, string> = {
     'timer': '⏱️',
     'duration': '⏱️',
