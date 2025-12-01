@@ -21,7 +21,11 @@ import { RuntimeMetric } from "../RuntimeMetric";
  * This strategy should be evaluated after specific strategies (Timer, Rounds, etc.)
  * but before the fallback EffortStrategy.
  *
- * Implementation Status: PARTIAL - Match logic complete, compile logic needs full implementation
+ * This strategy now supports optional `behavior.group` hint from dialects.
+ * Dialects can explicitly mark statements as groups.
+ * The structural fallback (has children) is preserved for backward compatibility.
+ *
+ * Implementation Status: PARTIAL - Match logic complete with hints, compile logic needs full implementation
  *
  * TODO: Full compile() implementation requires:
  * 1. Extract child statements from code[0].children
@@ -44,11 +48,17 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
             return false;
         }
 
-        // Match if statement has children
-        // This indicates a nested/grouped structure
-        const hasChildren = statements[0].children && statements[0].children.length > 0;
+        const statement = statements[0];
+        
+        // Check for explicit group hint from dialect
+        // Parser may emit this for any indented block
+        const isGroup = statement.hints?.has('behavior.group') ?? false;
+        
+        // Structural fallback: Has children
+        const hasChildren = (statement.children && statement.children.length > 0) || false;
 
-        return hasChildren;
+        // Match if explicit group hint OR has children
+        return isGroup || hasChildren;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {

@@ -15,16 +15,35 @@ import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 
+/**
+ * Strategy that creates effort blocks for simple exercises.
+ * This is the fallback strategy that matches statements without
+ * timer or rounds fragments.
+ *
+ * This strategy now supports explicit `behavior.effort` hint from dialects.
+ * The hint takes priority and allows forcing effort behavior even on
+ * complex lines via dialect configuration.
+ *
+ * Implementation Status: COMPLETE - Match logic uses hints with structural fallback
+ */
 export class EffortStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
         if (!statements[0].fragments) return false;
 
-        const fragments = statements[0].fragments;
+        const statement = statements[0];
+        
+        // Explicit effort hint takes priority
+        // Allows forcing effort behavior even on complex lines
+        if (statement.hints?.has('behavior.effort')) {
+            return true;
+        }
+
+        const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
 
-        // Only match if NO timer AND NO rounds (pure effort)
+        // Structural fallback: Only match if NO timer AND NO rounds (pure effort)
         return !hasTimer && !hasRounds;
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {

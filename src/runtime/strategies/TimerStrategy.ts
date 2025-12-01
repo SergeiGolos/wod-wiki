@@ -64,6 +64,14 @@ export function createCountUpSoundCues(): SoundCue[] {
  * - Duration specified without ^ → countdown
  * - Duration specified with ^ modifier → count-up (forced)
  * - No duration → count-up
+ *
+ * This strategy now supports optional `behavior.timer` hint from dialects.
+ * Dialects can flag "Rest" or "Work" timers explicitly.
+ *
+ * NOTE: Due to precedence, this strategy only matches if
+ * TimeBoundRoundsStrategy and IntervalStrategy didn't match.
+ *
+ * Implementation Status: COMPLETE - Match logic uses hints with structural fallback
  */
 export class TimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -77,8 +85,20 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             return false;
         }
 
-        const fragments = statements[0].fragments;
-        return fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const statement = statements[0];
+        const fragments = statement.fragments;
+        
+        // Structural check: Has timer fragment
+        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        
+        // Check for explicit timer hint from dialect (optional)
+        // Dialects can flag "Rest" or "Work" timers explicitly
+        const isExplicitTimer = statement.hints?.has('behavior.timer') ?? false;
+
+        // Match if has Timer fragment OR explicit timer hint
+        // NOTE: Due to precedence, this only matches if
+        // TimeBoundRoundsStrategy and IntervalStrategy didn't match
+        return hasTimer || isExplicitTimer;
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
