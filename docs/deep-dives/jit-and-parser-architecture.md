@@ -133,33 +133,193 @@ Parent blocks often need to enforce or modify the context for their children. Th
 2.  **Modify:** The child inherits the parent's value but can modify it (e.g., add to a cumulative total).
 3.  **Ensure:** The parent enforces a value on the child (e.g., an EMOM parent ensuring all children have a 1-minute timer).
 
-## 6. Implementation Detail & Visualizations
+## 6. Detailed Strategy Refactoring (Before vs After)
 
-This section details the specific code changes and models required to implement the **Dialect-Based Post-Parser**.
+This section provides a detailed breakdown of how *each* of the six JIT strategies will be refactored. The "Before" code reflects the current implementation (identifying hardcoded regexes or structural checks), while the "After" code demonstrates the new Dialect-driven approach.
 
-### Workflow Comparison
+### 1. TimeBoundRoundsStrategy (AMRAP)
+Handles "As Many Rounds As Possible" within a fixed time.
 
-#### Before: Coupled Semantics
-The Strategy is responsible for both *identifying* the workout type (parsing) and *implementing* it (compilation).
+**Before:** Relies on finding a `Timer` fragment AND either a `Rounds` fragment OR explicit "AMRAP" text.
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    const fragments = statements[0].fragments;
+    const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+    const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
 
-```mermaid
-sequenceDiagram
-    participant Text
-    participant Parser
-    participant JIT
-    participant Strategy
-    participant Block
-
-    Text->>Parser: "20:00 AMRAP"
-    Parser->>JIT: CodeStatement (AST)
-    JIT->>Strategy: match(Statement)
-    Strategy->>Strategy: Check fragments for "AMRAP" regex
-    Strategy-->>JIT: true
-    JIT->>Strategy: compile(Statement)
-    Strategy->>Block: Create RuntimeBlock
+    // MIXED CONCERN: Regex parsing inside strategy
+    const hasAmrapAction = fragments.some(f =>
+        (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
+        (f.value as string)?.toUpperCase().includes('AMRAP')
+    );
+    return hasTimer && (hasRounds || hasAmrapAction);
+}
 ```
 
-#### After: Decoupled Dialects with Registry
+**After:** Checks for the `behavior.time_bound` hint emitted by a Dialect.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+
+    // Generic check: Does the dialect say this is time-bound?
+    // This supports "AMRAP", "For Time", "Max Effort", etc.
+    const isTimeBound = meta.hints?.has('behavior.time_bound');
+
+    // Still checks structural requirement (Must have a timer)
+    const hasTimer = statements[0].fragments.some(f => f.fragmentType === FragmentType.Timer);
+
+    return hasTimer && isTimeBound;
+}
+```
+
+### 2. IntervalStrategy (EMOM)
+Handles "Every Minute on the Minute" style intervals.
+
+**Before:** Explicitly scans for "EMOM" text.
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    const fragments = statements[0].fragments;
+    const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+
+    // MIXED CONCERN: Regex parsing inside strategy
+    const hasEmomAction = fragments.some(f =>
+        (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
+        (f.value as string)?.toUpperCase().includes('EMOM')
+    );
+    return hasTimer && hasEmomAction;
+}
+```
+
+**After:** Checks for `behavior.repeating_interval`.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+    const hasTimer = statements[0].fragments.some(f => f.fragmentType === FragmentType.Timer);
+
+    // Supports "EMOM", "E2MOM", "Every 3:00", etc.
+    const isInterval = meta.hints?.has('behavior.repeating_interval');
+
+    return hasTimer && isInterval;
+}
+```
+
+### 3. TimerStrategy
+Handles simple countdowns or timers (e.g., "Rest 2:00").
+
+**Before:** Checks for any `Timer` fragment.
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    const fragments = statements[0].fragments;
+    return fragments.some(f => f.fragmentType === FragmentType.Timer);
+}
+```
+
+**After:** Checks for `behavior.timer` hint OR structural fallback.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+    const hasTimer = statements[0].fragments.some(f => f.fragmentType === FragmentType.Timer);
+
+    // Dialect can explicitly flag "Rest" or "Work" timers
+    const isExplicitTimer = meta.hints?.has('behavior.timer');
+
+    // Fallback: If it has a timer and no other conflicting hints (like time_bound)
+    return hasTimer || isExplicitTimer;
+}
+```
+
+### 4. RoundsStrategy
+Handles fixed round counts (e.g., "3 Rounds").
+
+**Before:** Checks for `Rounds` fragment but *excludes* `Timer` fragment (priority).
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    const fragments = statements[0].fragments;
+    const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+    const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+    return hasRounds && !hasTimer;
+}
+```
+
+**After:** Checks for `behavior.fixed_rounds`.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+
+    // Checks hint
+    const isFixedRounds = meta.hints?.has('behavior.fixed_rounds');
+
+    // Still respects structural priority (TimerStrategy handles timers)
+    const hasTimer = statements[0].fragments.some(f => f.fragmentType === FragmentType.Timer);
+
+    return isFixedRounds && !hasTimer;
+}
+```
+
+### 5. GroupStrategy
+Handles nested indentation groups without explicit metrics.
+
+**Before:** Checks strictly for children.
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    return statements[0].children && statements[0].children.length > 0;
+}
+```
+
+**After:** Checks for `behavior.group` hint. The standard parser will likely emit this for any indented block.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+    const isGroup = meta.hints?.has('behavior.group');
+    const hasChildren = statements[0].children && statements[0].children.length > 0;
+
+    return isGroup || hasChildren;
+}
+```
+
+### 6. EffortStrategy (Fallback)
+Handles everything else (e.g., "5 Pullups").
+
+**Before:** Matches if NO timer and NO rounds.
+```typescript
+// Current Implementation
+match(statements: ICodeStatement[]): boolean {
+    const fragments = statements[0].fragments;
+    const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+    const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+    return !hasTimer && !hasRounds;
+}
+```
+
+**After:** Checks for `behavior.effort` or acts as catch-all.
+```typescript
+// Proposed Implementation
+match(statements: ICodeStatement[]): boolean {
+    const meta = statements[0].meta;
+
+    // Explicit hint allows forcing "Effort" behavior even on complex lines
+    if (meta.hints?.has('behavior.effort')) return true;
+
+    // Structural fallback remains for backward compatibility
+    const hasTimer = statements[0].fragments.some(f => f.fragmentType === FragmentType.Timer);
+    const hasRounds = statements[0].fragments.some(f => f.fragmentType === FragmentType.Rounds);
+    return !hasTimer && !hasRounds;
+}
+```
+
+## 7. Implementation: Dialect Registry & Visualizations
+
+### Workflow with Dialect Registry
 A `DialectRegistry` runs loaded dialects. Strategies check for *behavioral hints* and apply *inheritance rules*.
 
 ```mermaid
@@ -220,71 +380,6 @@ export class DialectRegistry {
             result.hints.forEach(h => statement.meta.hints.add(h));
             // Merge inheritance rules...
         }
-    }
-}
-```
-
-### Code Comparison: Before vs. After
-
-#### BEFORE: Hardcoded Regex in Strategy
-Currently, `TimeBoundRoundsStrategy.ts` mixes parsing logic with compilation logic.
-
-```typescript
-// src/runtime/strategies/TimeBoundRoundsStrategy.ts (Current)
-export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
-        // ...
-        const hasAmrapText = fragments.some(f =>
-            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
-            (f.value as string)?.toUpperCase().includes('AMRAP')
-        );
-        return hasTimer && (hasRounds || hasAmrapText);
-    }
-}
-```
-
-#### AFTER: Decoupled Logic with Generic Hints
-The `AmrapDialect` handles parsing and sets generic behavior hints.
-
-**1. The Dialect (New File)**
-```typescript
-// src/dialects/AmrapDialect.ts
-export class AmrapDialect implements IDialect {
-    id = 'amrap';
-
-    analyze(statement: ICodeStatement) {
-        // Parsing logic lives here
-        const isAmrap = statement.fragments.some(f =>
-            f.value?.toString().includes('AMRAP')
-        );
-
-        if (isAmrap) {
-            return {
-                hints: ['behavior.time_bound', 'behavior.infinite_rounds'],
-                inheritance: [
-                    // Example: Ensure children know they are in an AMRAP context
-                    { property: 'context', mode: 'ensure', value: 'amrap' }
-                ]
-            };
-        }
-        return { hints: [] };
-    }
-}
-```
-
-**2. The Updated Strategy**
-```typescript
-// src/runtime/strategies/TimeBoundRoundsStrategy.ts (Proposed)
-export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
-        const stmt = statements[0];
-
-        // PURE LOGIC: Check for generic behavior, not specific keywords
-        const isTimeBound = stmt.meta.hints?.has('behavior.time_bound');
-        const isInfinite = stmt.meta.hints?.has('behavior.infinite_rounds');
-
-        // Strategy now supports ANY dialect that flags 'time_bound'
-        return isTimeBound && isInfinite;
     }
 }
 ```
