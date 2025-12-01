@@ -185,8 +185,12 @@ export class RepFragment implements ICodeFragment {
   ) { 
     this.value = reps;
     this.image = reps !== undefined ? reps.toString() : '?';
+    // Preserve explicit collection state, only default to UserCollected if 
+    // reps is undefined AND collection state is the default Defined value
     this.collectionState = reps === undefined 
-      ? FragmentCollectionState.UserCollected 
+      ? (collectionState === FragmentCollectionState.Defined 
+          ? FragmentCollectionState.UserCollected 
+          : collectionState)
       : collectionState;
   }
   readonly type: string = "rep";
@@ -195,7 +199,7 @@ export class RepFragment implements ICodeFragment {
 
 // Updated ResistanceFragment
 export class ResistanceFragment implements ICodeFragment {
-  readonly value: { amount: number | undefined, units: string };
+  readonly value: ResistanceValue;
   readonly image: string;
   readonly collectionState: FragmentCollectionState;
 
@@ -207,13 +211,22 @@ export class ResistanceFragment implements ICodeFragment {
   ) {
     this.value = { amount: value, units: units };
     this.image = value !== undefined ? `${value} ${units}` : `? ${units}`;
+    // Preserve explicit collection state, only default to UserCollected if 
+    // value is undefined AND collection state is the default Defined value
     this.collectionState = value === undefined 
-      ? FragmentCollectionState.UserCollected 
+      ? (collectionState === FragmentCollectionState.Defined 
+          ? FragmentCollectionState.UserCollected 
+          : collectionState)
       : collectionState;
   }
   readonly type: string = "resistance";
   readonly fragmentType = FragmentType.Resistance;
 }
+
+// Type-safe value type for resistance (use discriminated union for clarity)
+export type ResistanceValue = 
+  | { amount: number; units: string }     // Defined value
+  | { amount: undefined; units: string }; // Collectible value
 ```
 
 #### Option B: Create Collectible Fragment Subclasses
@@ -227,7 +240,15 @@ export abstract class CollectibleFragment implements ICodeFragment {
   abstract readonly type: string;
   
   readonly collectionState: FragmentCollectionState = FragmentCollectionState.UserCollected;
-  readonly value: undefined = undefined;
+  
+  // Value starts as undefined, but can be updated when collected
+  private _value: any = undefined;
+  get value() { return this._value; }
+  
+  // Allow updating collected value (immutability is relaxed for collectibles)
+  setCollectedValue(newValue: any): void {
+    this._value = newValue;
+  }
   readonly image: string = '?';
   
   constructor(public meta?: CodeMetadata) {}
@@ -360,15 +381,22 @@ function CollectibleValueEditor({
   isEditable,
   collectionMethod
 }: CollectibleValueEditorProps) {
+  // Safe formatting that handles undefined values in complex types
   const formatValue = () => {
     if (currentValue === undefined) return '—';
     switch (fragmentType) {
       case FragmentType.Rep:
         return `${currentValue} reps`;
       case FragmentType.Resistance:
-        return `${currentValue.amount} ${currentValue.units}`;
+        // Handle case where amount may be undefined
+        return currentValue.amount !== undefined 
+          ? `${currentValue.amount} ${currentValue.units}` 
+          : `— ${currentValue.units}`;
       case FragmentType.Distance:
-        return `${currentValue.amount} ${currentValue.units}`;
+        // Handle case where amount may be undefined
+        return currentValue.amount !== undefined 
+          ? `${currentValue.amount} ${currentValue.units}` 
+          : `— ${currentValue.units}`;
       case FragmentType.Timer:
         return formatDuration(currentValue);
       default:
@@ -376,15 +404,54 @@ function CollectibleValueEditor({
     }
   };
 
+  // Render appropriate input based on fragment type
+  const renderInput = () => {
+    switch (fragmentType) {
+      case FragmentType.Rep:
+      case FragmentType.Timer:
+        return (
+          <input 
+            type="number" 
+            value={currentValue ?? ''} 
+            onChange={e => onValueChange(Number(e.target.value))}
+            placeholder="Enter value"
+          />
+        );
+      
+      case FragmentType.Resistance:
+      case FragmentType.Distance:
+        // Complex types need separate inputs for amount and units
+        return (
+          <div className="compound-input">
+            <input 
+              type="number" 
+              value={currentValue?.amount ?? ''} 
+              onChange={e => onValueChange({ 
+                amount: Number(e.target.value), 
+                units: currentValue?.units ?? '' 
+              })}
+              placeholder="Amount"
+            />
+            <span className="units">{currentValue?.units ?? ''}</span>
+          </div>
+        );
+      
+      default:
+        return (
+          <input 
+            type="text" 
+            value={currentValue ?? ''} 
+            onChange={e => onValueChange(e.target.value)}
+            placeholder="Enter value"
+          />
+        );
+    }
+  };
+
   return (
     <div className="collectible-value">
       {isEditable ? (
-        <input 
-          type="number" 
-          value={currentValue ?? ''} 
-          onChange={e => onValueChange(parseValue(e.target.value, fragmentType))}
-          placeholder="Enter value"
-        />
+        renderInput()
       ) : (
         <span className={`value ${collectionMethod}`}>
           {formatValue()}
