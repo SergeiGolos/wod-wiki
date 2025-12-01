@@ -115,6 +115,23 @@ export interface CodeMetadata {
 }
 ```
 
+### Hint Naming Convention
+
+Hints use a **namespaced dot notation** to organize semantic categories:
+
+| Namespace | Purpose | Examples |
+|-----------|---------|----------|
+| `behavior.*` | Generic behavioral patterns | `behavior.time_bound`, `behavior.repeating_interval` |
+| `workout.*` | Specific workout type identifiers | `workout.amrap`, `workout.emom`, `workout.tabata` |
+| `feature.*` | Optional feature flags | `feature.auto_advance`, `feature.count_down` |
+| `domain.*` | Domain-specific extensions | `domain.crossfit`, `domain.running` |
+
+**Guidelines:**
+- Use lowercase with underscores for multi-word hints (e.g., `behavior.time_bound`)
+- Behavioral hints are generic and reusable across dialects
+- Workout hints are specific identifiers for display/analytics
+- Multiple hints can coexist (e.g., both `behavior.time_bound` AND `workout.amrap`)
+
 ### 2. Dialect Interface
 
 ```typescript
