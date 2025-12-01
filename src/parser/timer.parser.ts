@@ -121,10 +121,12 @@ export class MdTimerParse extends CstParser {
 
     $.RULE("resistance", () => {            
       $.OPTION1(() => $.CONSUME(AtSign));
-      $.OR([
-        { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder for collectible resistance
-        { ALT: () => $.CONSUME(Number) }
-      ]);
+      $.OPTION(() => {
+        $.OR([
+          { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder for collectible resistance
+          { ALT: () => $.CONSUME(Number) }
+        ]);
+      });
       $.CONSUME(Weight);
     });
 

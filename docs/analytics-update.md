@@ -106,36 +106,51 @@ export const QuestionSymbol = createToken({
 #### Parser Rule Updates
 
 ```typescript
-// In timer.parser.ts - Add ? support to numeric fragments
+// In timer.visitor.ts - Add ? support to numeric fragments
 reps(ctx: any): RepFragment[] {
   if (ctx.QuestionSymbol) {
     const meta = this.getMeta([ctx.QuestionSymbol[0]]);
-    return [new CollectibleRepFragment(undefined, meta)];
+    return [new RepFragment(undefined, meta)];
   }
   const meta = this.getMeta([ctx.Number[0]]);
   return [new RepFragment(ctx.Number[0].image * 1, meta)];
 }
 
-// Similar updates for resistance, distance, rounds
+// Similar updates for resistance, distance
 resistance(ctx: any): ResistanceFragment[] {
   let load: number | undefined;
-  let isCollectible = false;
   
   if (ctx.QuestionSymbol) {
     load = undefined;
-    isCollectible = true;
   } else if (ctx.Number && ctx.Number.length > 0) {
     load = ctx.Number[0].image * 1;
+  } else {
+    load = 1; // default when no number specified
   }
   
   let units = (ctx.Weight && ctx.Weight[0].image) || "";
-  let meta = this.getMeta([ctx.QuestionSymbol?.[0] ?? ctx.Number[0], ctx.Weight[0]]);
+  let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Weight?.[0]].filter(Boolean);
+  return [new ResistanceFragment(load, units, this.getMeta(metaTokens))];
+}
+
+distance(ctx: any): DistanceFragment[] {
+  let load: number | undefined;
   
-  return [new ResistanceFragment(load, units, meta, isCollectible)];
+  if (ctx.QuestionSymbol) {
+    load = undefined;
+  } else if (ctx.Number && ctx.Number.length > 0) {
+    load = ctx.Number[0].image * 1;
+  } else {
+    load = 1; // default when no number specified (e.g., "m" = 1m)
+  }
+  
+  let units = (ctx.Distance && ctx.Distance[0].image) || "";
+  let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Distance?.[0]].filter(Boolean);
+  return [new DistanceFragment(load, units, this.getMeta(metaTokens))];
 }
 ```
 
-#### Visitor Grammar Updates
+#### Parser Grammar Updates
 
 Update the grammar rules to accept `?` as an alternative to numbers:
 
@@ -149,87 +164,89 @@ $.RULE("reps", () => {
 });
 
 $.RULE("resistance", () => {
-  $.OR([
-    { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder
-    { ALT: () => $.CONSUME(Number) }
-  ]);
-  $.OPTION(() => $.CONSUME(Weight));
+  $.OPTION1(() => $.CONSUME(AtSign)); // Optional bodyweight prefix
+  $.OPTION(() => {
+    $.OR([
+      { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder
+      { ALT: () => $.CONSUME(Number) }
+    ]);
+  });
+  $.CONSUME(Weight); // Require unit
 });
 
 $.RULE("distance", () => {
-  $.OR([
-    { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder
-    { ALT: () => $.CONSUME(Number) }
-  ]);
+  $.OPTION(() => {
+    $.OR([
+      { ALT: () => $.CONSUME(QuestionSymbol) },  // NEW: ? placeholder
+      { ALT: () => $.CONSUME(Number) }           // Existing: numeric value
+    ]);
+  });
   $.CONSUME(Distance);
 });
 ```
 
 ### 3. Fragment Class Updates
 
-#### Option A: Extend Existing Fragments (Recommended)
+#### Implemented Approach: Extend Existing Fragments
 
-Add optional collection state to existing fragment classes:
+The fragment classes have been updated to automatically determine collection state based on whether the value is undefined:
 
 ```typescript
-// Updated RepFragment
+// Updated RepFragment (src/fragments/RepFragment.ts)
 export class RepFragment implements ICodeFragment {
   readonly value?: number;
   readonly image: string;
   readonly collectionState: FragmentCollectionState;
 
-  constructor(
-    public reps?: number, 
-    public meta?: CodeMetadata,
-    collectionState: FragmentCollectionState = FragmentCollectionState.Defined
-  ) { 
+  constructor(public reps?: number, public meta?: CodeMetadata) { 
     this.value = reps;
     this.image = reps !== undefined ? reps.toString() : '?';
-    // Preserve explicit collection state, only default to UserCollected if 
-    // reps is undefined AND collection state is the default Defined value
+    // If reps is undefined, this is a collectible fragment
     this.collectionState = reps === undefined 
-      ? (collectionState === FragmentCollectionState.Defined 
-          ? FragmentCollectionState.UserCollected 
-          : collectionState)
-      : collectionState;
+      ? FragmentCollectionState.UserCollected 
+      : FragmentCollectionState.Defined;
   }
   readonly type: string = "rep";
   readonly fragmentType = FragmentType.Rep;
 }
 
-// Updated ResistanceFragment
+// Updated ResistanceFragment (src/fragments/ResistanceFragment.ts)
 export class ResistanceFragment implements ICodeFragment {
-  readonly value: ResistanceValue;
+  readonly value: { amount: number | undefined, units: string };
   readonly image: string;
   readonly collectionState: FragmentCollectionState;
 
-  constructor(
-    value: number | undefined, 
-    public units: string, 
-    public meta?: CodeMetadata,
-    collectionState: FragmentCollectionState = FragmentCollectionState.Defined
-  ) {
+  constructor(value: number | undefined, public units: string, public meta?: CodeMetadata) {
     this.value = { amount: value, units: units };
     this.image = value !== undefined ? `${value} ${units}` : `? ${units}`;
-    // Preserve explicit collection state, only default to UserCollected if 
-    // value is undefined AND collection state is the default Defined value
+    // If value is undefined, this is a collectible fragment
     this.collectionState = value === undefined 
-      ? (collectionState === FragmentCollectionState.Defined 
-          ? FragmentCollectionState.UserCollected 
-          : collectionState)
-      : collectionState;
+      ? FragmentCollectionState.UserCollected 
+      : FragmentCollectionState.Defined;
   }
   readonly type: string = "resistance";
   readonly fragmentType = FragmentType.Resistance;
 }
 
-// Type-safe value type for resistance (use discriminated union for clarity)
-export type ResistanceValue = 
-  | { amount: number; units: string }     // Defined value
-  | { amount: undefined; units: string }; // Collectible value
+// Updated DistanceFragment (src/fragments/DistanceFragment.ts) - similar pattern
+export class DistanceFragment implements ICodeFragment {
+  readonly value: { amount: number | undefined, units: string };
+  readonly image: string;
+  readonly collectionState: FragmentCollectionState;
+
+  constructor(value: number | undefined, public units: string, public meta?: CodeMetadata) {
+    this.value = { amount: value, units: units };
+    this.image = value !== undefined ? `${value} ${units}` : `? ${units}`;
+    this.collectionState = value === undefined 
+      ? FragmentCollectionState.UserCollected 
+      : FragmentCollectionState.Defined;
+  }
+  readonly type: string = "distance";
+  readonly fragmentType = FragmentType.Distance;
+}
 ```
 
-#### Option B: Create Collectible Fragment Subclasses
+#### Alternative Option: Create Collectible Fragment Subclasses
 
 Create specialized subclasses for collectible fragments:
 
@@ -469,24 +486,24 @@ function CollectibleValueEditor({
 
 ## Implementation Plan
 
-### Phase 1: Fragment System Foundation (Week 1)
+### Phase 1: Fragment System Foundation ✅ COMPLETED
 
-1. **Add `FragmentCollectionState` enum** to `src/core/models/CodeFragment.ts`
-2. **Update `ICodeFragment` interface** with optional `collectionState` property
-3. **Update existing fragment classes** to support collection state:
-   - `RepFragment`
-   - `ResistanceFragment`
-   - `DistanceFragment`
-   - `RoundsFragment`
-   - `TimerFragment`
-4. **Add unit tests** for fragment collection states
+1. ✅ **Add `FragmentCollectionState` enum** to `src/core/models/CodeFragment.ts`
+2. ✅ **Update `ICodeFragment` interface** with optional `collectionState` property
+3. ✅ **Update existing fragment classes** to support collection state:
+   - ✅ `RepFragment`
+   - ✅ `ResistanceFragment`
+   - ✅ `DistanceFragment`
+   - (Pending) `RoundsFragment`
+   - (Pending) `TimerFragment`
+4. ✅ **Add unit tests** for fragment collection states
 
-### Phase 2: Parser Updates (Week 2)
+### Phase 2: Parser Updates ✅ COMPLETED
 
-1. **Update parser grammar** to accept `?` in place of numbers
-2. **Update visitor** to create fragments with appropriate collection state
-3. **Add parser tests** for `?` placeholder syntax
-4. **Update syntax documentation** with new placeholder syntax
+1. ✅ **Update parser grammar** to accept `?` in place of numbers
+2. ✅ **Update visitor** to create fragments with appropriate collection state
+3. ✅ **Add parser tests** for `?` placeholder syntax
+4. (Pending) **Update syntax documentation** with new placeholder syntax
 
 ### Phase 3: Runtime Integration (Week 3)
 
