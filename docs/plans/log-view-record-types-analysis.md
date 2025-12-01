@@ -6,6 +6,44 @@ This document provides a detailed analysis of the record types created by the ru
 
 ---
 
+## UI Consumer Components
+
+The `ExecutionRecord` data is consumed by **three distinct UI components**, each with different transformation and display requirements:
+
+| Component | Purpose | Display Order | Data Transform |
+|-----------|---------|---------------|----------------|
+| [RuntimeEventLog](../../src/components/workout/RuntimeEventLog.tsx) | Sectioned log view | Chronological | `ExecutionRecord` → `LogSection[]` |
+| [RuntimeHistoryPanel](../../src/components/workout/RuntimeHistoryPanel.tsx) | Tree view (Track) | **Newest-first** | `ExecutionRecord` → `MetricItem[]` |
+| [AnalyticsLayout](../../src/views/analytics/AnalyticsLayout.tsx) | Timeline/Graphs | Chronological | `ExecutionRecord` → `Segment[]` |
+
+### Component Data Flow
+
+```
+                          ┌──────────────────────────────┐
+                          │   runtime.memory             │
+                          │   (execution-record type)    │
+                          └──────────────┬───────────────┘
+                                         │
+              ┌──────────────────────────┼──────────────────────────┐
+              │                          │                          │
+              ▼                          ▼                          ▼
+    ┌─────────────────┐      ┌─────────────────────┐     ┌─────────────────┐
+    │ RuntimeEventLog │      │ RuntimeHistoryPanel │     │ AnalyticsLayout │
+    │                 │      │                     │     │                 │
+    │ → LogSection[]  │      │ → MetricItem[]      │     │ → Segment[]     │
+    │ → LogEntry[]    │      │ + MetricsTreeView   │     │ + TimelineView  │
+    │                 │      │                     │     │ + GitTreeSidebar│
+    └─────────────────┘      └─────────────────────┘     └─────────────────┘
+              │                          │                          │
+              ▼                          ▼                          ▼
+    ┌─────────────────┐      ┌─────────────────────┐     ┌─────────────────┐
+    │ Sectioned List  │      │ Indented Tree       │     │ Timeline Bars   │
+    │ with Fragments  │      │ with Connections    │     │ + Telemetry     │
+    └─────────────────┘      └─────────────────────┘     └─────────────────┘
+```
+
+---
+
 ## Record Types Summary
 
 The log view displays records from two primary sources:

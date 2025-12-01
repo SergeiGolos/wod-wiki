@@ -8,8 +8,6 @@ import React from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeEventLog } from '../workout/RuntimeEventLog';
 
-import { WodBlock } from '../../markdown-editor/types';
-
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
   runtime: ScriptRuntime | null;
@@ -37,12 +35,6 @@ export interface TimerIndexPanelProps {
   
   /** Workout start time (timestamp when execution began) */
   workoutStartTime?: number | null;
-
-  /** Active block for context panel */
-  activeBlock?: WodBlock | null;
-
-  /** Hide the WorkoutContextPanel */
-  hideContextPanel?: boolean;
 }
 
 /**
@@ -55,9 +47,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   autoScroll = true,
   mobile = false,
   className = '',
-  workoutStartTime,
-  activeBlock,
-  hideContextPanel
+  workoutStartTime
 }) => {
   return (
     <RuntimeEventLog
@@ -68,8 +58,6 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       mobile={mobile}
       className={className}
       workoutStartTime={workoutStartTime}
-      activeBlock={activeBlock}
-      hideContextPanel={hideContextPanel}
     />
   );
 };

@@ -5,20 +5,14 @@ import { cn } from '../../lib/utils';
 import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../../runtime/RuntimeMetric';
-import { WodBlock } from '../../markdown-editor/types';
-import { WorkoutContextPanel } from '../workout/WorkoutContextPanel';
-
 export interface RuntimeEventLogProps {
   runtime: ScriptRuntime | null;
-  activeBlock?: WodBlock | null;
   activeStatementIds?: Set<number>;
   highlightedBlockKey?: string | null;
   autoScroll?: boolean;
   mobile?: boolean;
   className?: string;
   workoutStartTime?: number | null;
-  /** Hide the WorkoutContextPanel (when it's displayed elsewhere like the debugger) */
-  hideContextPanel?: boolean;
 }
 
 interface LogEntry {
@@ -120,14 +114,12 @@ function createLabelFragment(label: string, type: string): ICodeFragment {
 
 export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
   runtime,
-  activeBlock,
   activeStatementIds = new Set(),
   highlightedBlockKey,
   autoScroll = true,
   mobile = false,
   className = '',
-  workoutStartTime,
-  hideContextPanel = false
+  workoutStartTime
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [updateVersion, setUpdateVersion] = React.useState(0);
@@ -389,16 +381,6 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
         {sections.length === 0 ? (
            <div className="p-4 text-sm text-muted-foreground italic mt-8">
              Waiting for workout to start...
-             {!hideContextPanel && activeBlock && (
-               <div className="mt-4 border-t border-border pt-4">
-                 <WorkoutContextPanel
-                   block={activeBlock}
-                   mode="run"
-                   activeStatementIds={activeStatementIds}
-                   className="shrink-0"
-                 />
-               </div>
-             )}
            </div>
         ) : (
           <div className="space-y-6 mt-4">
@@ -457,16 +439,6 @@ export const RuntimeEventLog: React.FC<RuntimeEventLogProps> = ({
             ))}
 
             {/* Active Context at bottom */}
-            {!hideContextPanel && activeBlock && (
-              <div className="mt-8 border-t border-border pt-4">
-                 <WorkoutContextPanel
-                   block={activeBlock}
-                   mode="run"
-                   activeStatementIds={activeStatementIds}
-                   className="shrink-0"
-                 />
-              </div>
-            )}
           </div>
         )}
       </div>

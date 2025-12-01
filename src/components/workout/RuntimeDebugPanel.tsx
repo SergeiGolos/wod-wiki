@@ -289,7 +289,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           <button
             key={tab.id}
             type="button"
-            className={`flex-1 py-2 transition-colors ${
+            className={`flex-1 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
               isActive
                 ? 'text-foreground bg-background border-b-2 border-primary'
                 : 'text-muted-foreground hover:text-foreground'
