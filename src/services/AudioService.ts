@@ -13,8 +13,13 @@ export class AudioService {
     constructor() {
         // Initialize enabled state from localStorage if available
         if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('wod-wiki-audio-enabled');
-            this.enabled = stored === 'true';
+            try {
+                const stored = localStorage.getItem('wod-wiki-audio-enabled');
+                this.enabled = stored === 'true';
+            } catch (e) {
+                console.warn('Failed to read audio preference from localStorage:', e);
+                this.enabled = false;
+            }
         }
     }
 
@@ -36,7 +41,11 @@ export class AudioService {
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
         if (typeof window !== 'undefined') {
-            localStorage.setItem('wod-wiki-audio-enabled', String(enabled));
+            try {
+                localStorage.setItem('wod-wiki-audio-enabled', String(enabled));
+            } catch (e) {
+                console.warn('Failed to save audio preference to localStorage:', e);
+            }
         }
 
         // Resume context if enabling
@@ -50,10 +59,22 @@ export class AudioService {
     }
 
     /**
-     * Play a sound based on its name
+     * Play a sound based on its name.
+     *
+     * @param name - Sound name to play. Supported values: 'beep', 'tick', 'buzzer',
+     *               'chime', 'complete', 'start'. Falls back to a default beep for
+     *               unknown names.
+     * @param volume - Volume level (0.0 to 1.0, default: 1.0)
+     * @returns Promise that resolves when the sound starts playing
      */
     async playSound(name: string, volume: number = 1.0) {
         if (!this.enabled) return;
+
+        // Validate volume parameter
+        if (volume < 0 || volume > 1.0) {
+            console.warn(`Invalid volume ${volume}, clamping to range [0, 1]`);
+            volume = Math.max(0, Math.min(1.0, volume));
+        }
 
         // Initialize context if needed (must happen after user interaction usually)
         if (!this.context) {
@@ -68,30 +89,32 @@ export class AudioService {
         }
 
         const now = this.context.currentTime;
-        const oscillator = this.context.createOscillator();
-        const gainNode = this.context.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(this.masterGain);
-
-        // Apply volume
-        gainNode.gain.value = volume;
 
         switch (name) {
             case 'beep':
-            case 'tick':
+            case 'tick': {
                 // Short high pitch beep
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.masterGain);
+                
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(880, now); // A5
-                oscillator.frequency.exponentialRampToValueAtTime(0.01, now + 0.1);
                 gainNode.gain.setValueAtTime(volume, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 oscillator.start(now);
                 oscillator.stop(now + 0.1);
                 break;
+            }
 
-            case 'buzzer':
+            case 'buzzer': {
                 // Long lower pitch buzz
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.masterGain);
+                
                 oscillator.type = 'sawtooth';
                 oscillator.frequency.setValueAtTime(150, now);
                 oscillator.frequency.linearRampToValueAtTime(100, now + 0.5);
@@ -100,6 +123,7 @@ export class AudioService {
                 oscillator.start(now);
                 oscillator.stop(now + 0.5);
                 break;
+            }
 
             case 'chime':
             case 'complete':
@@ -115,8 +139,13 @@ export class AudioService {
                 this.playNote(now + 0.15, 880, 'square', 0.3, volume); // A5
                 break;
 
-            default:
+            default: {
                 // Fallback beep
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.masterGain);
+                
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(440, now);
                 gainNode.gain.setValueAtTime(volume, now);
@@ -124,6 +153,7 @@ export class AudioService {
                 oscillator.start(now);
                 oscillator.stop(now + 0.1);
                 break;
+            }
         }
     }
 

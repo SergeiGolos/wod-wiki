@@ -83,6 +83,9 @@ export const PREDEFINED_SOUNDS = {
   
   /** Clock tick - good for second-by-second countdown */
   TICK: 'tick',
+  
+  /** Ascending sequence - good for timer start */
+  START: 'start',
 } as const;
 
 export type PredefinedSoundName = typeof PREDEFINED_SOUNDS[keyof typeof PREDEFINED_SOUNDS];

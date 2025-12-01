@@ -51,7 +51,7 @@ export function createCountdownSoundCues(durationMs: number): SoundCue[] {
  */
 export function createCountUpSoundCues(): SoundCue[] {
     return [
-        { id: 'start', threshold: 0, sound: 'start', volume: 1.0 }
+        { id: 'start', threshold: 0, sound: PREDEFINED_SOUNDS.START, volume: 1.0 }
     ];
 }
 
