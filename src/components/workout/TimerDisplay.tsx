@@ -152,6 +152,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
       controls={controls}
       activeItems={activeItems}
+      compact={props.compact}
     />
   );
 };
@@ -175,6 +176,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onStop={props.onStop}
       onNext={props.onNext}
       isRunning={props.isRunning}
+      compact={props.compact}
     // No stack data available in this mode
     />
   );
