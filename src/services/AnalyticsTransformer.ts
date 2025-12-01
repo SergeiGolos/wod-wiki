@@ -104,7 +104,7 @@ export class AnalyticsTransformer {
       // Calculate depth from parent chain
       let depth = 0;
       if (span.parentSpanId && idToDepth.has(span.parentSpanId)) {
-        depth = (idToDepth.get(span.parentSpanId) || 0) + 1;
+        depth = idToDepth.get(span.parentSpanId)! + 1;
       }
       idToDepth.set(span.id, depth);
       

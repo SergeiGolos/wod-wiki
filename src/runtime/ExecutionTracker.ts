@@ -349,6 +349,18 @@ export class ExecutionTracker {
   // ============================================================================
 
   /**
+   * Get or create default debug metadata for a span.
+   * Helper to avoid repeated default object creation.
+   */
+  private getOrCreateDebugMetadata(span: ExecutionSpan): DebugMetadata {
+    return span.debugMetadata || {
+      tags: [],
+      context: {},
+      logs: []
+    };
+  }
+
+  /**
    * Add a debug log message to a span.
    * Messages are captured in the debugMetadata.logs array.
    * 
@@ -359,12 +371,7 @@ export class ExecutionTracker {
     const span = this.getActiveSpan(blockId);
     if (!span) return;
     
-    const debugMetadata: DebugMetadata = span.debugMetadata || {
-      tags: [],
-      context: {},
-      logs: []
-    };
-    
+    const debugMetadata = this.getOrCreateDebugMetadata(span);
     const logs = debugMetadata.logs || [];
     logs.push(`[${new Date().toISOString()}] ${message}`);
     
@@ -387,11 +394,7 @@ export class ExecutionTracker {
     const span = this.getActiveSpan(blockId);
     if (!span) return;
     
-    const debugMetadata: DebugMetadata = span.debugMetadata || {
-      tags: [],
-      context: {},
-      logs: []
-    };
+    const debugMetadata = this.getOrCreateDebugMetadata(span);
     
     if (!debugMetadata.tags.includes(tag)) {
       this.updateSpan(blockId, {
@@ -414,11 +417,7 @@ export class ExecutionTracker {
     const span = this.getActiveSpan(blockId);
     if (!span) return;
     
-    const debugMetadata: DebugMetadata = span.debugMetadata || {
-      tags: [],
-      context: {},
-      logs: []
-    };
+    const debugMetadata = this.getOrCreateDebugMetadata(span);
     
     this.updateSpan(blockId, {
       debugMetadata: {
