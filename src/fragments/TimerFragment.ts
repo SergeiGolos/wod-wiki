@@ -4,7 +4,18 @@ import { CodeMetadata } from "../core/models/CodeMetadata";
 export class TimerFragment implements ICodeFragment {
   readonly value: number;
 
-  constructor(public image: string, public meta: CodeMetadata) {
+  /**
+   * Creates a new TimerFragment.
+   * 
+   * @param image The timer string (e.g., "5:00", "1:30:00")
+   * @param meta Code metadata for source location
+   * @param forceCountUp If true, timer counts up even with explicit duration (^ modifier)
+   */
+  constructor(
+    public image: string, 
+    public meta: CodeMetadata,
+    public readonly forceCountUp: boolean = false
+  ) {
     const digits = this.image
       .split(":")
       .map((segment: any) => 1 * (segment == "" ? 0 : segment))
@@ -33,4 +44,17 @@ export class TimerFragment implements ICodeFragment {
   readonly original: number; // in ms
   readonly type: string = "duration";
   readonly fragmentType = FragmentType.Timer;
+  
+  /**
+   * Determines the intended timer direction based on value and modifiers.
+   * - If forceCountUp is true (^ modifier), always returns 'up'
+   * - If value > 0 (explicit duration), returns 'down' (countdown)
+   * - If value === 0 or undefined, returns 'up' (count-up)
+   */
+  get direction(): 'up' | 'down' {
+    if (this.forceCountUp) {
+      return 'up';
+    }
+    return this.value > 0 ? 'down' : 'up';
+  }
 }

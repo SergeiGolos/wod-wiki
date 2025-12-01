@@ -80,6 +80,7 @@ export class MdTimerParse extends CstParser {
     });
     
     $.RULE("duration", () => {
+      $.OPTION(() => $.CONSUME(Up, { LABEL: "countUpModifier" }));
       $.CONSUME(Timer);
     });
 

@@ -162,7 +162,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   duration(ctx: any): TimerFragment[] {
     const meta = this.getMeta([ctx.Timer[0]]);
-    return [new TimerFragment(ctx.Timer[0].image, meta)];
+    const forceCountUp = !!ctx.countUpModifier;
+    return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
   }
 
   distance(ctx: any): DistanceFragment[] {
