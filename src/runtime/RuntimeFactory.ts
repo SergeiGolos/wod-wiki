@@ -6,11 +6,15 @@
  * - WodScript creation from block content
  * - ScriptRuntime instantiation with JIT compiler
  * - Root block compilation and mounting
+ * - Optional debug mode enabling
  * 
  * @example
  * ```typescript
  * const factory = new RuntimeFactory(globalCompiler);
  * const runtime = factory.createRuntime(wodBlock);
+ * 
+ * // With debug mode
+ * const debugRuntime = factory.createRuntime(wodBlock, { debugMode: true });
  * ```
  */
 
@@ -25,6 +29,7 @@ import { LoopType } from './behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';
+import { IRuntimeOptions } from './IRuntimeOptions';
 
 /**
  * Interface for runtime factory implementations
@@ -34,9 +39,10 @@ export interface IRuntimeFactory {
   /**
    * Creates a new ScriptRuntime from a WodBlock
    * @param block - The WOD block containing workout script and parsed statements
+   * @param options - Optional runtime options (debug mode, logging, etc.)
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
-  createRuntime(block: WodBlock): ScriptRuntime | null;
+  createRuntime(block: WodBlock, options?: IRuntimeOptions): ScriptRuntime | null;
   
   /**
    * Disposes of a runtime and cleans up resources
@@ -57,14 +63,15 @@ export class RuntimeFactory implements IRuntimeFactory {
    * Process:
    * 1. Validates block has statements
    * 2. Creates WodScript from content + statements
-   * 3. Instantiates ScriptRuntime with JIT compiler
+   * 3. Instantiates ScriptRuntime with JIT compiler and options
    * 4. Creates a Root RuntimeBlock that wraps all top-level statements
    * 5. Pushes root block to stack and mounts it
    * 
    * @param block - The WOD block to create runtime for
+   * @param options - Optional runtime options (debug mode, logging, etc.)
    * @returns Initialized ScriptRuntime or null if invalid block
    */
-  createRuntime(block: WodBlock): ScriptRuntime | null {
+  createRuntime(block: WodBlock, options?: IRuntimeOptions): ScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
       console.warn('[RuntimeFactory] Cannot create runtime: block has no statements');
       return null;
@@ -75,8 +82,8 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create WodScript from block content and statements
     const script = new WodScript(block.content, block.statements);
     
-    // Create runtime with JIT compiler
-    const runtime = new ScriptRuntime(script, this.compiler);
+    // Create runtime with JIT compiler and optional debug options
+    const runtime = new ScriptRuntime(script, this.compiler, options);
     
     // Create Root Block manually
     // This ensures we always have a root grouping node that walks all children once

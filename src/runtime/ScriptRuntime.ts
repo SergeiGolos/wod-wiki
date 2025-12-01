@@ -12,6 +12,7 @@ import { IMetricCollector, MetricCollector } from './MetricCollector';
 import { ExecutionRecord } from './models/ExecutionRecord';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { MemoryAwareRuntimeStack } from './MemoryAwareRuntimeStack';
+import { DebugRuntimeStack } from './DebugRuntimeStack';
 import { ExecutionLogger } from './ExecutionLogger';
 import {
     ActionFragmentCompiler,
@@ -25,6 +26,9 @@ import {
     TextFragmentCompiler,
     TimerFragmentCompiler
 } from './FragmentCompilers';
+import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
+import { NextBlockLogger } from './NextBlockLogger';
+import { TestableBlock } from './testing/TestableBlock';
 
 import { RuntimeClock } from './RuntimeClock';
 
@@ -38,13 +42,37 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly clock: RuntimeClock;
     public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
+    public readonly options: IRuntimeOptions;
     private readonly executionLogger: ExecutionLogger;
     private _lastUpdatedBlocks: Set<string> = new Set();
     
-    constructor(public readonly script: WodScript, compiler: JitCompiler) {
+    constructor(
+        public readonly script: WodScript, 
+        compiler: JitCompiler,
+        options: IRuntimeOptions = {}
+    ) {
+        // Merge with defaults
+        this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
+        
         this.memory = new RuntimeMemory();
         this.executionLogger = new ExecutionLogger(this.memory);
-        this.stack = new MemoryAwareRuntimeStack(this, this.executionLogger);
+        
+        // Use DebugRuntimeStack if debugMode is enabled, otherwise use MemoryAwareRuntimeStack
+        if (this.options.debugMode) {
+            this.stack = new DebugRuntimeStack(this, this.executionLogger, this.options);
+            
+            // Enable NextBlockLogger automatically in debug mode
+            NextBlockLogger.setEnabled(true);
+            console.log('🔍 ScriptRuntime: Debug mode enabled - blocks will be wrapped with TestableBlock');
+        } else {
+            this.stack = new MemoryAwareRuntimeStack(this, this.executionLogger);
+        }
+        
+        // Enable logging if explicitly requested (even without full debug mode)
+        if (this.options.enableLogging && !this.options.debugMode) {
+            NextBlockLogger.setEnabled(true);
+        }
+        
         this.metrics = new MetricCollector();
         this.clock = new RuntimeClock();
         this.jit = compiler;
@@ -198,5 +226,77 @@ export class ScriptRuntime implements IScriptRuntime {
         this.handle(tickEvent);
 
         return [];
+    }
+    
+    // ========== Debug API ==========
+    
+    /**
+     * Whether the runtime is in debug mode.
+     * When true, blocks are wrapped with TestableBlock for inspection.
+     */
+    public get isDebugMode(): boolean {
+        return this.options.debugMode ?? false;
+    }
+    
+    /**
+     * Get the debug stack (only available in debug mode).
+     * Returns undefined if debug mode is not enabled.
+     */
+    public get debugStack(): DebugRuntimeStack | undefined {
+        if (this.isDebugMode && this.stack instanceof DebugRuntimeStack) {
+            return this.stack;
+        }
+        return undefined;
+    }
+    
+    /**
+     * Get all wrapped TestableBlock instances (debug mode only).
+     * Returns empty map if debug mode is not enabled.
+     */
+    public getWrappedBlocks(): ReadonlyMap<string, TestableBlock> {
+        return this.debugStack?.wrappedBlocks ?? new Map();
+    }
+    
+    /**
+     * Get a specific wrapped block by its key (debug mode only).
+     */
+    public getWrappedBlock(blockKey: string): TestableBlock | undefined {
+        return this.debugStack?.getWrappedBlock(blockKey);
+    }
+    
+    /**
+     * Get all method calls from all wrapped blocks (debug mode only).
+     * Useful for inspecting the complete lifecycle history.
+     */
+    public getAllBlockCalls(): Array<{ blockKey: string; calls: ReadonlyArray<any> }> {
+        return this.debugStack?.getAllCalls() ?? [];
+    }
+    
+    /**
+     * Clear all recorded calls from wrapped blocks (debug mode only).
+     */
+    public clearAllBlockCalls(): void {
+        this.debugStack?.clearAllCalls();
+    }
+    
+    /**
+     * Get NextBlockLogger history for analysis.
+     */
+    public getLogHistory(): ReadonlyArray<any> {
+        return NextBlockLogger.getHistory();
+    }
+    
+    /**
+     * Get NextBlockLogger summary string.
+     */
+    public getLogSummary(): string {
+        return NextBlockLogger.getSummary();
+    }
+    
+    /**
+     * Clear NextBlockLogger history.
+     */
+    public clearLogHistory(): void {
+        NextBlockLogger.clearHistory();
     }
 }

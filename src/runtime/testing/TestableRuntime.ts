@@ -13,6 +13,10 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
 import { ITestSetupAction } from './actions/ITestSetupAction';
 import { CodeStatement } from '../../core/models/CodeStatement';
+import { FragmentCompilationManager } from '../FragmentCompilationManager';
+import { RuntimeClock } from '../RuntimeClock';
+import { IBlockContext } from '../IBlockContext';
+import { RuntimeMetric } from '../RuntimeMetric';
 
 /**
  * Snapshot of runtime state at a point in time
@@ -34,7 +38,7 @@ export interface RuntimeSnapshot {
       id: string;
       ownerId: string;
       type: string;
-      visibility: 'public' | 'private';
+      visibility: 'public' | 'private' | 'inherited';
       value: any;
     }>;
     totalCount: number;
@@ -108,6 +112,30 @@ class StubBlockKey extends BlockKey {
 }
 
 /**
+ * A stub context for pre-populating the stack.
+ * Provides minimal implementation for testing purposes.
+ */
+class StubBlockContext implements IBlockContext {
+  readonly ownerId: string;
+  readonly exerciseId: string;
+  readonly references: ReadonlyArray<IMemoryReference> = [];
+  
+  constructor(blockId: string) {
+    this.ownerId = blockId;
+    this.exerciseId = blockId;
+  }
+  
+  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): any { 
+    return { id: '', type: '', ownerId: this.ownerId, visibility: 'private', value: () => null };
+  }
+  get<T>(_type?: string): T | undefined { return undefined; }
+  getAll<T>(_type?: string): T[] { return []; }
+  release(): void {}
+  isReleased(): boolean { return false; }
+  getOrCreateAnchor(): any { return { id: '', type: '', ownerId: this.ownerId, visibility: 'public', value: () => null }; }
+}
+
+/**
  * A minimal stub block for pre-populating the stack
  */
 class StubBlock implements IRuntimeBlock {
@@ -115,11 +143,14 @@ class StubBlock implements IRuntimeBlock {
   readonly sourceIds: number[] = [];
   readonly blockType?: string;
   readonly label: string;
+  readonly context: IBlockContext;
+  readonly compiledMetrics?: RuntimeMetric;
   
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
     this.label = config.label ?? config.key;
+    this.context = new StubBlockContext(config.key);
   }
   
   mount(): [] { return []; }
@@ -201,6 +232,14 @@ export class TestableRuntime implements IScriptRuntime {
   
   get jit(): JitCompiler {
     return this._wrapped.jit;
+  }
+  
+  get clock(): RuntimeClock {
+    return this._wrapped.clock;
+  }
+  
+  get fragmentCompiler(): FragmentCompilationManager {
+    return this._wrapped.fragmentCompiler;
   }
   
   get errors(): RuntimeError[] | undefined {

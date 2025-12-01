@@ -5,13 +5,32 @@
  * by wrapping them with testable wrappers that track method calls,
  * memory operations, and stack changes.
  * 
- * @example
- * ```typescript
- * import { TestableBlock, TestableRuntime, TestableBlockHarness } from '@/runtime/testing';
+ * ## Debug Mode Usage
  * 
- * // Wrap a real block for testing
- * const testableBlock = new TestableBlock(realBlock, {
- *   testId: 'my-test-block',
+ * Enable debug mode to automatically wrap all blocks with TestableBlock:
+ * 
+ * ```typescript
+ * import { RuntimeBuilder } from '@/runtime';
+ * import { NextBlockLogger } from '@/runtime/NextBlockLogger';
+ * 
+ * // Enable debug mode via RuntimeBuilder
+ * const runtime = new RuntimeBuilder(script, compiler)
+ *   .withDebugMode(true)
+ *   .build();
+ * 
+ * // Execute workout...
+ * 
+ * // Inspect wrapped blocks
+ * const wrapped = runtime.getWrappedBlocks();
+ * console.log('All block calls:', runtime.getAllBlockCalls());
+ * 
+ * // Get log history
+ * console.log(NextBlockLogger.getHistory());
+ * console.log(NextBlockLogger.getSummary());
+ * ```
+ * 
+ * ## Manual Testing
+ * 
  *   nextMode: 'spy'
  * });
  * 
@@ -25,6 +44,27 @@
  * testableBlock.mount(testRuntime);
  * const after = testRuntime.snapshot('after');
  * const diff = testRuntime.diff(before, after);
+ * ```
+ * 
+ * ## Queue-Based Testing
+ * 
+ * For interactive testing with step-by-step execution:
+ * 
+ * ```typescript
+ * import { QueueTestHarness, TestTemplate } from '@/runtime/testing';
+ * 
+ * // Use built-in templates or create custom ones
+ * const customTemplate: TestTemplate = {
+ *   id: 'my-test',
+ *   name: 'My Test',
+ *   description: 'Test custom behavior',
+ *   wodScript: '5 Pullups',
+ *   queue: [
+ *     { type: 'push', label: 'Push Block', statementIndex: 0 },
+ *     { type: 'mount', label: 'Mount' },
+ *     { type: 'next', label: 'Advance' }
+ *   ]
+ * };
  * ```
  */
 
@@ -63,9 +103,13 @@ export {
   SnapshotDiffSummary,
   ModifiedValuesViewer,
   BlockTestScenarioBuilder,
+  QueueTestHarness,
   type BlockTestScenarioBuilderProps,
   type ScenarioDefinition,
-  type ScenarioExecutionResult
+  type ScenarioExecutionResult,
+  type QueueTestHarnessProps,
+  type QueueAction,
+  type TestTemplate
 } from './components';
 
 // Test setup actions

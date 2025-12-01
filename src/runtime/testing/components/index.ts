@@ -14,3 +14,10 @@ export {
   type ScenarioDefinition,
   type ScenarioExecutionResult
 } from './BlockTestScenarioBuilder';
+
+export {
+  QueueTestHarness,
+  type QueueTestHarnessProps,
+  type QueueAction,
+  type TestTemplate
+} from './QueueTestHarness';

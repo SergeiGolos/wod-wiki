@@ -3,6 +3,8 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
+import { IBlockContext } from '../IBlockContext';
+import { RuntimeMetric } from '../RuntimeMetric';
 
 /**
  * Configuration for method interception behavior
@@ -158,6 +160,14 @@ export class TestableBlock implements IRuntimeBlock {
   
   get label(): string {
     return this._config.labelOverride || this._wrapped.label;
+  }
+  
+  get context(): IBlockContext {
+    return this._wrapped.context;
+  }
+  
+  get compiledMetrics(): RuntimeMetric | undefined {
+    return this._wrapped.compiledMetrics;
   }
   
   // ========== Testing API ==========

@@ -3,6 +3,11 @@
  * 
  * Focused logging utility for validating and debugging the "next block" advancement flow.
  * Provides structured logs with validation data for each stage of the process.
+ * 
+ * Also includes block lifecycle logging for debug mode:
+ * - mount/unmount tracking
+ * - next() call tracking
+ * - dispose tracking
  */
 
 export interface NextBlockLogData {
@@ -16,6 +21,7 @@ export interface NextBlockLogData {
     compiledBlockKey?: string;
     isComplete?: boolean;
     error?: Error;
+    duration?: number;
 }
 
 export class NextBlockLogger {
@@ -301,5 +307,169 @@ export class NextBlockLogger {
     log(message: string, data?: any) {
         if (!NextBlockLogger.enabled) return;
         console.log(`[NextBlock] ${message}`, data || '');
+    }
+    
+    // ========== Block Lifecycle Logging ==========
+    
+    /**
+     * Log block mount lifecycle event.
+     */
+    static logBlockMount(blockKey: string, blockType: string | undefined, actionCount: number, duration: number): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'block-mount',
+            blockKey,
+            actionCount,
+            duration,
+        };
+        
+        this.addToHistory(data);
+        console.log(`🔼 BLOCK | Mount`, {
+            block: blockKey,
+            type: blockType ?? 'unknown',
+            actions: actionCount,
+            duration: `${duration.toFixed(2)}ms`,
+        });
+    }
+    
+    /**
+     * Log block next lifecycle event.
+     */
+    static logBlockNext(blockKey: string, blockType: string | undefined, actionCount: number, duration: number): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'block-next',
+            blockKey,
+            actionCount,
+            duration,
+        };
+        
+        this.addToHistory(data);
+        console.log(`➡️  BLOCK | Next`, {
+            block: blockKey,
+            type: blockType ?? 'unknown',
+            actions: actionCount,
+            duration: `${duration.toFixed(2)}ms`,
+        });
+    }
+    
+    /**
+     * Log block unmount lifecycle event.
+     */
+    static logBlockUnmount(blockKey: string, blockType: string | undefined, actionCount: number, duration: number): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'block-unmount',
+            blockKey,
+            actionCount,
+            duration,
+        };
+        
+        this.addToHistory(data);
+        console.log(`🔽 BLOCK | Unmount`, {
+            block: blockKey,
+            type: blockType ?? 'unknown',
+            actions: actionCount,
+            duration: `${duration.toFixed(2)}ms`,
+        });
+    }
+    
+    /**
+     * Log block dispose lifecycle event.
+     */
+    static logBlockDispose(blockKey: string, blockType: string | undefined, duration: number): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'block-dispose',
+            blockKey,
+            duration,
+        };
+        
+        this.addToHistory(data);
+        console.log(`🗑️  BLOCK | Dispose`, {
+            block: blockKey,
+            type: blockType ?? 'unknown',
+            duration: `${duration.toFixed(2)}ms`,
+        });
+    }
+    
+    /**
+     * Log event handler invocation.
+     */
+    static logEventHandler(blockKey: string, eventName: string, actionCount: number): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'event-handler',
+            blockKey,
+            actionCount,
+        };
+        
+        this.addToHistory(data);
+        console.log(`⚡ EVENT | Handler`, {
+            block: blockKey,
+            event: eventName,
+            actions: actionCount,
+        });
+    }
+    
+    /**
+     * Log memory allocation.
+     */
+    static logMemoryAllocate(type: string, ownerId: string, refId: string): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'memory-allocate',
+            blockKey: ownerId,
+        };
+        
+        this.addToHistory(data);
+        console.log(`📦 MEMORY | Allocate`, {
+            type,
+            owner: ownerId,
+            refId,
+        });
+    }
+    
+    /**
+     * Log memory release.
+     */
+    static logMemoryRelease(type: string, ownerId: string, refId: string): void {
+        if (!this.enabled) return;
+        
+        const data: NextBlockLogData = {
+            stage: 'memory-release',
+            blockKey: ownerId,
+        };
+        
+        this.addToHistory(data);
+        console.log(`🗑️  MEMORY | Release`, {
+            type,
+            owner: ownerId,
+            refId,
+        });
+    }
+    
+    /**
+     * Get all lifecycle logs for a specific block.
+     */
+    static getBlockHistory(blockKey: string): NextBlockLogData[] {
+        return this.logHistory.filter(log => log.blockKey === blockKey);
+    }
+    
+    /**
+     * Get lifecycle stage counts (useful for debugging).
+     */
+    static getStageCounts(): Record<string, number> {
+        const counts: Record<string, number> = {};
+        for (const log of this.logHistory) {
+            counts[log.stage] = (counts[log.stage] ?? 0) + 1;
+        }
+        return counts;
     }
 }

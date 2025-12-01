@@ -1,5 +1,15 @@
 # Runtime Debugging and Testing Architecture
 
+> **Implementation Status: ✅ COMPLETE**
+> 
+> This architecture has been implemented in the following files:
+> - [`src/runtime/IRuntimeOptions.ts`](../../src/runtime/IRuntimeOptions.ts) - Runtime configuration options
+> - [`src/runtime/RuntimeBuilder.ts`](../../src/runtime/RuntimeBuilder.ts) - Fluent builder for runtime creation
+> - [`src/runtime/DebugRuntimeStack.ts`](../../src/runtime/DebugRuntimeStack.ts) - Debug-aware stack with automatic wrapping
+> - [`src/runtime/ScriptRuntime.ts`](../../src/runtime/ScriptRuntime.ts) - Updated to support debug mode
+> - [`src/runtime/NextBlockLogger.ts`](../../src/runtime/NextBlockLogger.ts) - Enhanced logging with lifecycle events
+> - [`src/runtime/__tests__/RuntimeDebugMode.test.ts`](../../src/runtime/__tests__/RuntimeDebugMode.test.ts) - Comprehensive test suite
+
 This document outlines the architecture for enabling a global debug mode, generic test blocks, and comprehensive logging within the runtime engine. It builds upon existing infrastructure including [`TestableBlock`](../../src/runtime/testing/TestableBlock.ts) and [`NextBlockLogger`](../../src/runtime/NextBlockLogger.ts).
 
 ## 1. Objectives
@@ -210,3 +220,112 @@ This architecture builds upon existing infrastructure rather than creating new i
 - Leverage existing logging infrastructure (`NextBlockLogger`) rather than creating new loggers.
 
 This refined architecture ensures that the debug/spy system is transparent, owned by the runtime, and provides a powerful override mechanism for testing while maintaining compatibility with the existing codebase.
+
+## 6. Quick Start Guide
+
+### Enabling Debug Mode
+
+```typescript
+import { RuntimeBuilder } from '@/runtime';
+import { WodScript } from '@/parser/WodScript';
+import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
+
+// Parse your workout script
+const script = new WodScript('3 Rounds\n  10 Pushups\n  15 Squats', statements);
+
+// Create runtime with debug mode enabled
+const runtime = new RuntimeBuilder(script, globalCompiler)
+    .withDebugMode(true)
+    .build();
+
+// All blocks are now automatically wrapped with TestableBlock
+```
+
+### Inspecting Block Calls
+
+```typescript
+// After execution, inspect wrapped blocks
+const allCalls = runtime.getAllBlockCalls();
+console.log('All block method calls:', allCalls);
+
+// Get a specific wrapped block
+const pushupBlock = runtime.getWrappedBlock('effort-pushups-1');
+if (pushupBlock) {
+    console.log('Mount was called:', pushupBlock.wasCalled('mount'));
+    console.log('Next call count:', pushupBlock.callCount('next'));
+    console.log('All calls:', pushupBlock.calls);
+}
+```
+
+### Using NextBlockLogger
+
+```typescript
+import { NextBlockLogger } from '@/runtime/NextBlockLogger';
+
+// Enable logging (automatically enabled in debug mode)
+NextBlockLogger.setEnabled(true);
+
+// After execution, review logs
+console.log('Log summary:', NextBlockLogger.getSummary());
+console.log('Stage counts:', NextBlockLogger.getStageCounts());
+console.log('Full history:', NextBlockLogger.getHistory());
+
+// Get logs for a specific block
+const blockLogs = NextBlockLogger.getBlockHistory('effort-pushups-1');
+
+// Clear logs when done
+NextBlockLogger.clearHistory();
+```
+
+### Custom Debug Event Handler
+
+```typescript
+const runtime = new RuntimeBuilder(script, compiler)
+    .withDebugMode(true)
+    .withDebugLogHandler((event) => {
+        // Custom handling of debug events
+        console.log(`[${event.type}] ${event.blockKey}`, event.details);
+        
+        // Send to analytics, write to file, etc.
+        analytics.track('runtime-debug', event);
+    })
+    .build();
+```
+
+### Override Block Behavior for Testing
+
+```typescript
+import { TestableBlock } from '@/runtime/testing';
+
+const realBlock = compiler.compile(statements, runtime);
+
+// Override mount to skip default behavior
+const testBlock = new TestableBlock(realBlock, {
+    testId: 'test-pushups',
+    mountMode: 'override',
+    mountOverride: (runtime) => {
+        console.log('[Test] Custom mount behavior');
+        return []; // Return custom actions or empty
+    },
+    nextMode: 'spy', // Spy on next() calls
+    disposeMode: 'passthrough', // Let dispose run normally
+});
+
+// Use testBlock instead of realBlock
+runtime.stack.push(testBlock);
+```
+
+### Using RuntimeFactory with Debug Mode
+
+```typescript
+import { RuntimeFactory } from '@/runtime/RuntimeFactory';
+import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
+
+const factory = new RuntimeFactory(globalCompiler);
+
+// Create runtime with debug mode for a WodBlock
+const runtime = factory.createRuntime(wodBlock, { 
+    debugMode: true,
+    enableLogging: true 
+});
+```

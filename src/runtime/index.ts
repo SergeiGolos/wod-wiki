@@ -1,4 +1,8 @@
 export * from './ScriptRuntime';
+export * from './RuntimeBuilder';
+export * from './IRuntimeOptions';
+export * from './DebugRuntimeStack';
+export { NextBlockLogger, type NextBlockLogData } from './NextBlockLogger';
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
 export { PlaySoundAction } from './actions/PlaySoundAction';
 export type { 
