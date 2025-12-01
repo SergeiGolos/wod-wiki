@@ -4,6 +4,17 @@ import { hashCode } from '../lib/utils';
 import { ExecutionSpan, SpanMetrics, DebugMetadata } from '../runtime/models/ExecutionSpan';
 
 /**
+ * Format a metric key into a human-readable label.
+ * Capitalizes the first letter and replaces underscores with spaces.
+ * 
+ * @param key The metric key (e.g., 'heart_rate')
+ * @returns Formatted label (e.g., 'Heart rate')
+ */
+function formatMetricLabel(key: string): string {
+  return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+}
+
+/**
  * Extract numeric metrics from SpanMetrics object into a Record<string, number>
  */
 function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Record<string, number> {
@@ -172,7 +183,7 @@ export class AnalyticsTransformer {
         // Generic fallback for unknown metrics
         performanceGraphs.push({
           id: key,
-          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+          label: formatMetricLabel(key),
           unit: '',
           color: '#888888',
           dataKey: key
@@ -403,7 +414,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       // Generic fallback for unknown metrics
       performanceGraphs.push({
         id: key,
-        label: key.charAt(0).toUpperCase() + key.slice(1),
+        label: formatMetricLabel(key),
         unit: '',
         color: '#888888',
         dataKey: key

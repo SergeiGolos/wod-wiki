@@ -126,7 +126,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify the workout structure
-        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
         behaviors.push(new HistoryBehavior({
             label: "Rounds",
             debugMetadata: createDebugMetadata(
@@ -153,8 +152,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                 repScheme[0],
                 'inherited'
             );
-
-
         }
 
         return new RuntimeBlock(
@@ -164,7 +161,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Rounds",
-            label,
+            repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
             compiledMetric
         );
     }
