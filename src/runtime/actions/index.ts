@@ -8,6 +8,7 @@
 export { EmitEventAction } from './EmitEventAction';
 export { StartTimerAction } from './StartTimerAction';
 export { StopTimerAction } from './StopTimerAction';
+export { PlaySoundAction } from './PlaySoundAction';
 export { RegisterEventHandlerAction } from './RegisterEventHandlerAction';
 export { UnregisterEventHandlerAction } from './UnregisterEventHandlerAction';
 export { ErrorAction } from './ErrorAction';
