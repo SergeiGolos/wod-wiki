@@ -151,53 +151,58 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
 
                         {/* Main Timer Circle & Controls */}
                         <div className="flex flex-col items-center w-full">
-                            <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center z-10">
-                                <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
-                                    <circle
-                                        className="stroke-slate-200 dark:stroke-slate-700"
-                                        cx="110" cy="110" fill="none" r="100" strokeWidth="10" // Thinner stroke for background
-                                    ></circle>
-                                    <circle
-                                        className="stroke-primary transition-all duration-300 ease-in-out"
-                                        cx="110" cy="110" fill="none" r="100" strokeLinecap="round" strokeWidth="10"
-                                        style={{
-                                            strokeDasharray: strokeDasharray,
-                                            strokeDashoffset: strokeDashoffset
-                                        }}
-                                    ></circle>
-                                </svg>
+                            {/* Controls and Timer - Timer floats between control buttons on mobile */}
+                            <div className="w-full flex justify-between items-center px-4 sm:px-12 sm:flex-col sm:gap-4">
+                                {/* End Button - Left on mobile, below timer on desktop */}
+                                <div className="order-1 sm:order-2 sm:w-full sm:flex sm:justify-start">
+                                    <button
+                                        onClick={onStop}
+                                        className="text-sm font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors flex flex-col items-center gap-1 py-2 px-4 rounded-lg"
+                                    >
+                                        <StopCircle className="w-8 h-8" />
+                                        <span>End</span>
+                                    </button>
+                                </div>
 
-                                <button
-                                    onClick={isRunning ? onPause : onStart}
-                                    className="relative z-10 w-60 h-60 sm:w-64 sm:h-64 bg-white dark:bg-slate-800 rounded-full flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-4 focus:ring-primary/30 pt-4 group"
-                                >
-                                    <span className="text-5xl sm:text-6xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                                        {formatTime(displayTime)}
-                                    </span>
-                                    <div className="mt-2 text-primary">
-                                        {isRunning ? <Pause className="w-12 h-12 sm:w-16 sm:h-16" /> : <Play className="w-12 h-12 sm:w-16 sm:h-16 ml-2" />}
-                                    </div>
-                                </button>
-                            </div>
+                                {/* Timer Circle - Center on mobile, top on desktop */}
+                                <div className="relative w-48 h-48 sm:w-80 sm:h-80 flex items-center justify-center z-10 order-2 sm:order-1">
+                                    <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
+                                        <circle
+                                            className="stroke-slate-200 dark:stroke-slate-700"
+                                            cx="110" cy="110" fill="none" r="100" strokeWidth="10"
+                                        ></circle>
+                                        <circle
+                                            className="stroke-primary transition-all duration-300 ease-in-out"
+                                            cx="110" cy="110" fill="none" r="100" strokeLinecap="round" strokeWidth="10"
+                                            style={{
+                                                strokeDasharray: strokeDasharray,
+                                                strokeDashoffset: strokeDashoffset
+                                            }}
+                                        ></circle>
+                                    </svg>
 
-                            {/* Controls - Positioned below the timer */}
-                            <div className="w-full flex justify-between items-center px-4 sm:px-12 mt-4">
-                                {/* End Button */}
-                                <button
-                                    onClick={onStop}
-                                    className="text-sm font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors flex flex-col items-center gap-1 py-2 px-4 rounded-lg"
-                                >
-                                    <StopCircle className="w-8 h-8" />
-                                    <span>End</span>
-                                </button>
+                                    <button
+                                        onClick={isRunning ? onPause : onStart}
+                                        className="relative z-10 w-40 h-40 sm:w-64 sm:h-64 bg-white dark:bg-slate-800 rounded-full flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-4 focus:ring-primary/30 pt-2 sm:pt-4 group"
+                                    >
+                                        <span className="text-3xl sm:text-6xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                                            {formatTime(displayTime)}
+                                        </span>
+                                        <div className="mt-1 sm:mt-2 text-primary">
+                                            {isRunning ? <Pause className="w-8 h-8 sm:w-16 sm:h-16" /> : <Play className="w-8 h-8 sm:w-16 sm:h-16 ml-1 sm:ml-2" />}
+                                        </div>
+                                    </button>
+                                </div>
 
-                                {/* Skip Button */}
-                                <button
-                                    onClick={onNext}
-                                    className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border-4 border-blue-500 shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-4 focus:ring-blue-400/30"
-                                >
-                                    <SkipForward className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 dark:text-slate-500" />
-                                </button>
+                                {/* Skip Button - Right on mobile, below timer on desktop */}
+                                <div className="order-3 sm:w-full sm:flex sm:justify-end">
+                                    <button
+                                        onClick={onNext}
+                                        className="w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border-4 border-blue-500 shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-4 focus:ring-blue-400/30"
+                                    >
+                                        <SkipForward className="w-6 h-6 sm:w-10 sm:h-10 text-slate-400 dark:text-slate-500" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
