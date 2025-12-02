@@ -277,27 +277,50 @@ Each story should validate:
 
 ### File Naming Convention
 
-Stories should follow the existing pattern:
+Stories should follow the existing project pattern, organized by category:
 ```
-stories/components/{ComponentName}.stories.tsx
+stories/{category}/{ComponentName}.stories.tsx
 ```
 
-With the story structure:
+Where `{category}` matches existing directories like `components/`, `clock/`, `runtime/`, etc.
+
+Example story structure for `FragmentVisualizer`:
 ```typescript
 import type { Meta, StoryObj } from '@storybook/react';
+import { FragmentVisualizer } from '../../src/views/runtime/FragmentVisualizer';
+import { FragmentType } from '../../src/core/models/CodeFragment';
 
-const meta: Meta<typeof ComponentName> = {
-  title: 'Components/{Category}/{ComponentName}',
-  component: ComponentName,
+const meta: Meta<typeof FragmentVisualizer> = {
+  title: 'Components/Runtime/FragmentVisualizer',
+  component: FragmentVisualizer,
   parameters: { layout: 'padded' },
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof ComponentName>;
+type Story = StoryObj<typeof FragmentVisualizer>;
 
-export const Default: Story = { args: { /* default props */ } };
-export const Scenario1: Story = { args: { /* scenario props */ } };
+export const Default: Story = {
+  args: {
+    fragments: [
+      { type: 'timer', fragmentType: FragmentType.Timer, value: 300000, image: '5:00' },
+      { type: 'rep', fragmentType: FragmentType.Rep, value: 10, image: '10x' },
+    ]
+  }
+};
+
+export const EmptyFragments: Story = {
+  args: { fragments: [] }
+};
+
+export const CompactMode: Story = {
+  args: {
+    fragments: [
+      { type: 'effort', fragmentType: FragmentType.Effort, value: 'Pushups', image: 'Pushups' },
+    ],
+    compact: true
+  }
+};
 ```
 
 ---
