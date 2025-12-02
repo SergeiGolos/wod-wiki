@@ -143,6 +143,188 @@ These actively-used components should have Storybook stories added:
 - `ThemeProvider` (2 usages)
 - `Dialog` (2 usages)
 
+### Story Implementation Plan
+
+The following table outlines the recommended stories, scenarios, and validation states for each component:
+
+#### 1. RuntimeProvider (`src/components/layout/RuntimeProvider.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Provider wraps child components | Children render correctly |
+| WithRuntime | Runtime initialized with valid WodBlock | `runtime` is not null, `isInitializing` is false |
+| InitializingState | Runtime is being created | `isInitializing` is true, loading indicator visible |
+| ErrorState | Runtime factory throws error | `error` is populated, component displays error state |
+| DisposalOnUnmount | Component unmounts with active runtime | Runtime disposed, no memory leaks |
+| ReinitializeRuntime | New block passed while runtime exists | Old runtime disposed, new runtime created |
+
+#### 2. FragmentVisualizer (`src/views/runtime/FragmentVisualizer.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Display array of mixed fragments | All fragments render with correct icons/colors |
+| EmptyFragments | Empty fragment array | "No fragments to display" message shown |
+| WithParseError | Error object provided | Error panel with message, line, column displayed |
+| CompactMode | `compact={true}` | Smaller padding, reduced font sizes |
+| TimerFragments | Timer-only fragments | ⏱️ icon, orange color scheme |
+| RoundsFragments | Rounds-only fragments | 🔄 icon, proper color scheme |
+| MixedFragments | Timer + Rounds + Effort + Rep | All fragment types render correctly |
+
+#### 3. ThemeToggle (`src/components/theme/ThemeToggle.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| DarkMode | Theme set to dark | Moon icon visible, sun hidden |
+| LightMode | Theme set to light | Sun icon visible, moon hidden |
+| SystemMode | Theme follows system preference | Correct icon based on prefers-color-scheme |
+| ToggleInteraction | User clicks toggle | Theme switches, icon animates |
+
+#### 4. CommitGraph (`src/components/ui/CommitGraph.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Default text "WOD.WIKI++" | Grid renders with text pattern |
+| CustomText | Custom text prop | Text renders in grid pattern |
+| DarkTheme | Dark theme active | Blue dark palette (dark → bright) |
+| LightTheme | Light theme active | Blue light palette (light → dark) |
+| NoRandomness | `randomness={false}` | Only text pixels lit (default adds random background dots) |
+| CustomDimensions | Custom rows/cols | Grid dimensions match props |
+
+#### 5. WodIndexPanel (`src/components/layout/WodIndexPanel.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | List of document items | Headers and WOD blocks render |
+| EmptyDocument | Empty items array | "Empty document" message shown |
+| ActiveBlock | Block marked as active | Active block has ring highlight |
+| HoverHighlight | Block hovered | Hovered block has background highlight |
+| MobileMode | `mobile={true}` | Larger padding, touch-friendly sizes |
+| ParsedState | WOD block with state="parsed" | Green badge shows "parsed" |
+| ClickInteraction | User clicks item | `onBlockClick` callback fires |
+
+#### 6. WodWiki (`src/editor/WodWiki.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Empty editor | Monaco editor renders, syntax highlighting active |
+| WithCode | Pre-populated workout script | Code displays with proper tokenization |
+| ReadOnly | `readonly={true}` | Editor is not editable |
+| HighlightedLine | `highlightedLine` prop set | Specific line has decoration |
+| WithExerciseProvider | Exercise provider configured | Typeahead suggestions work |
+| ValueChange | User edits code | `onValueChange` callback fires with parsed result |
+
+#### 7. WodScriptVisualizer (`src/components/WodScriptVisualizer.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Array of statements | UnifiedItemList renders statements |
+| WithActiveStatements | Active statement IDs provided | Active items highlighted |
+| WithSelection | Statement selected | Selected item has selection styling |
+| CompactMode | `compact={true}` | Reduced spacing and sizes |
+| HoverInteraction | User hovers item | `onHover` callback fires |
+| EmptyStatements | Empty array | Empty message displays |
+
+#### 8. StatementDisplay (`src/components/fragments/StatementDisplay.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Default | Single statement with fragments | Fragments render via FragmentVisualizer |
+| ActiveState | `isActive={true}` | Primary color background highlight |
+| GroupedMode | `isGrouped={true}` | No outer border, reduced styling |
+| CompactMode | `compact={true}` | Smaller padding |
+| WithActions | Custom actions passed | Action buttons render on right |
+| ClickableStatement | onClick handler provided | Cursor pointer, click triggers handler |
+
+#### 9. ThemeProvider (`src/components/theme/ThemeProvider.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| DarkTheme | `defaultTheme="dark"` | Document has "dark" class |
+| LightTheme | `defaultTheme="light"` | Document has "light" class |
+| SystemTheme | `defaultTheme="system"` | Theme follows system preference |
+| PersistsToStorage | Theme changed | localStorage updated with new theme |
+| CustomStorageKey | Custom `storageKey` prop | Uses custom key in localStorage |
+
+#### 10. Dialog (`src/components/headless/Dialog.tsx`)
+| Story | Scenario | Validation State |
+|-------|----------|------------------|
+| Closed | `open={false}` | Dialog not visible |
+| Open | `open={true}` | Dialog visible with backdrop |
+| WithContent | Full dialog structure | Title, description, content render |
+| CloseOnBackdrop | User clicks backdrop | `onOpenChange(false)` called |
+| AnimatedTransition | Dialog opens/closes | Smooth fade and scale animation |
+| CustomClassName | Custom className on content | Styles applied correctly |
+
+### Implementation Priority
+
+Based on usage frequency and component complexity, the recommended implementation order is:
+
+1. **High Priority** (Foundation components used across the app):
+   - `ThemeProvider` / `ThemeToggle` - Foundation for theming
+   - `Dialog` - Used for modals throughout the app
+   
+2. **Medium Priority** (Core visualization components):
+   - `FragmentVisualizer` - Core to workout display
+   - `StatementDisplay` - Builds on FragmentVisualizer
+   - `WodScriptVisualizer` - Statement collection display
+   
+3. **Lower Priority** (Context-specific components):
+   - `RuntimeProvider` - Requires mocked runtime factory
+   - `WodWiki` - Complex Monaco integration
+   - `WodIndexPanel` - Document navigation
+   - `CommitGraph` - Visual branding element
+
+### Testing Strategy
+
+Each story should validate:
+
+1. **Render States**: Component renders without errors in all scenarios
+2. **Visual States**: Correct styling/colors for each state
+3. **Interactive States**: User interactions trigger correct callbacks
+4. **Edge Cases**: Empty data, error states, loading states
+5. **Accessibility**: Keyboard navigation, ARIA attributes where applicable
+
+### File Naming Convention
+
+Stories should follow the existing project pattern, organized by category:
+```
+stories/{category}/{ComponentName}.stories.tsx
+```
+
+Where `{category}` matches existing directories like `components/`, `clock/`, `runtime/`, etc.
+
+Example story structure for `FragmentVisualizer`:
+```typescript
+import type { Meta, StoryObj } from '@storybook/react';
+import { FragmentVisualizer } from '../../src/views/runtime/FragmentVisualizer';
+import { FragmentType } from '../../src/core/models/CodeFragment';
+
+const meta: Meta<typeof FragmentVisualizer> = {
+  title: 'Components/Runtime/FragmentVisualizer',
+  component: FragmentVisualizer,
+  parameters: { layout: 'padded' },
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof FragmentVisualizer>;
+
+// Note: ICodeFragment uses both 'type' (string) and 'fragmentType' (enum) fields
+// The 'type' field is retained for compatibility but will be replaced by fragmentType
+export const Default: Story = {
+  args: {
+    fragments: [
+      { type: 'timer', fragmentType: FragmentType.Timer, value: 300000, image: '5:00' },
+      { type: 'rep', fragmentType: FragmentType.Rep, value: 10, image: '10x' },
+    ]
+  }
+};
+
+export const EmptyFragments: Story = {
+  args: { fragments: [] }
+};
+
+export const CompactMode: Story = {
+  args: {
+    fragments: [
+      { type: 'effort', fragmentType: FragmentType.Effort, value: 'Pushups', image: 'Pushups' },
+    ],
+    compact: true
+  }
+};
+```
+
 ---
 
 *Updated after cleanup: 28 orphaned files removed*
