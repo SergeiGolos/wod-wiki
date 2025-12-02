@@ -1,13 +1,14 @@
-import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentCollectionState } from "../core/models/CodeFragment";
 import { CodeMetadata } from "../core/models/CodeMetadata";
 
 export class TimerFragment implements ICodeFragment {
-  readonly value: number;
+  readonly value: number | undefined;
+  readonly collectionState: FragmentCollectionState;
 
   /**
    * Creates a new TimerFragment.
    * 
-   * @param image The timer string (e.g., "5:00", "1:30:00")
+   * @param image The timer string (e.g., "5:00", "1:30:00") or ":?" for collectible
    * @param meta Code metadata for source location
    * @param forceCountUp If true, timer counts up even with explicit duration (^ modifier)
    */
@@ -16,32 +17,45 @@ export class TimerFragment implements ICodeFragment {
     public meta: CodeMetadata,
     public readonly forceCountUp: boolean = false
   ) {
-    const digits = this.image
-      .split(":")
-      .map((segment: any) => 1 * (segment == "" ? 0 : segment))
-      .reverse();
+    // Check if this is a collectible timer (:?)
+    if (this.image === ':?') {
+      // Placeholder values for collectible timers - actual duration will be collected at runtime
+      this.days = 0;
+      this.hours = 0;
+      this.minutes = 0;
+      this.seconds = 0;
+      this.original = undefined;
+      this.value = undefined;
+      this.collectionState = FragmentCollectionState.RuntimeGenerated;
+    } else {
+      const digits = this.image
+        .split(":")
+        .map((segment: any) => 1 * (segment == "" ? 0 : segment))
+        .reverse();
 
-    while (digits.length < 4) {
-      digits.push(0);
+      while (digits.length < 4) {
+        digits.push(0);
+      }
+      this.days = digits[3];
+      this.hours = digits[2];
+      this.minutes = digits[1];
+      this.seconds = digits[0];
+
+      this.original = (this.seconds +
+        this.minutes * 60 +
+        this.hours * 60 * 60 +
+        this.days * 60 * 60 * 24) * 1000;
+      
+      this.value = this.original;
+      this.collectionState = FragmentCollectionState.Defined;
     }
-    this.days = digits[3];
-    this.hours = digits[2];
-    this.minutes = digits[1];
-    this.seconds = digits[0];
-
-    this.original = (this.seconds +
-      this.minutes * 60 +
-      this.hours * 60 * 60 +
-      this.days * 60 * 60 * 24) * 1000;
-    
-    this.value = this.original;
   }
 
   readonly days: number;
   readonly hours: number;
   readonly minutes: number;
   readonly seconds: number;
-  readonly original: number; // in ms
+  readonly original: number | undefined; // in ms
   readonly type: string = "duration";
   readonly fragmentType = FragmentType.Timer;
   
@@ -49,11 +63,14 @@ export class TimerFragment implements ICodeFragment {
    * Determines the intended timer direction based on value and modifiers.
    * - If forceCountUp is true (^ modifier), always returns 'up'
    * - If value > 0 (explicit duration), returns 'down' (countdown)
-   * - If value === 0 or undefined, returns 'up' (count-up)
+   * - If value === 0, undefined, or collectible, returns 'up' (count-up)
    */
   get direction(): 'up' | 'down' {
     if (this.forceCountUp) {
       return 'up';
+    }
+    if (this.value === undefined) {
+      return 'up'; // Collectible timers count up by default
     }
     return this.value > 0 ? 'down' : 'up';
   }

@@ -165,8 +165,16 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   duration(ctx: any): TimerFragment[] {
-    const meta = this.getMeta([ctx.Timer[0]]);
     const forceCountUp = !!ctx.countUpModifier;
+    
+    // Handle collectible timer (:?)
+    if (ctx.CollectibleTimer) {
+      const meta = this.getMeta([ctx.CollectibleTimer[0]]);
+      return [new TimerFragment(':?', meta, forceCountUp)];
+    }
+    
+    // Handle regular timer
+    const meta = this.getMeta([ctx.Timer[0]]);
     return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
   }
 

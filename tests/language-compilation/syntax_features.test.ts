@@ -154,6 +154,29 @@ describe('Syntax Features Regression Tests', () => {
       expect(fragment.image).toBe('? m');
     });
 
+    it('parses collectible duration :?', () => {
+      const result = parse(':?');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Timer);
+      expect(fragment.value).toBeUndefined();
+      expect(fragment.collectionState).toBe(FragmentCollectionState.RuntimeGenerated);
+      expect(fragment.image).toBe(':?');
+    });
+
+    it('parses collectible duration :? with exercise', () => {
+      const result = parse(':? Run');
+      expect(result.errors).toHaveLength(0);
+      const fragments = result.statements[0].fragments;
+      const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
+      const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
+      expect(timerFragment).toBeDefined();
+      expect(timerFragment?.value).toBeUndefined();
+      expect(timerFragment?.collectionState).toBe(FragmentCollectionState.RuntimeGenerated);
+      expect(effortFragment).toBeDefined();
+      expect(effortFragment?.value).toBe('Run');
+    });
+
     it('parses defined reps with Defined collection state', () => {
       const result = parse('10 Pushups');
       expect(result.errors).toHaveLength(0);
@@ -179,6 +202,15 @@ describe('Syntax Features Regression Tests', () => {
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Distance);
       expect(fragment.value).toEqual({ amount: 400, units: 'm' });
+      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
+    });
+
+    it('parses defined timer with Defined collection state', () => {
+      const result = parse('20:00');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Timer);
+      expect(fragment.value).toBe(1200000);
       expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
     });
   });

@@ -567,8 +567,8 @@ function CollectibleValueEditor({
 | `? lb` | Collect weight (lb) | User input |
 | `? kg` | Collect weight (kg) | User input |
 | `? m` | Collect distance (m) | User input |
+| `:?` | Collect duration (elapsed time) | Runtime generated |
 | `? rounds` | Collect rounds count | Runtime or user |
-| `[:Finish] ?` | Collect elapsed time | Runtime generated |
 
 ### Full Workout Examples
 
@@ -577,7 +577,10 @@ function CollectibleValueEditor({
 (21-15-9)
   Thrusters 95lb
   Pull-ups
-[:Finish] ?  # Total time collected automatically
+:?  # Total time collected automatically at completion
+
+# For Time workout with collectible duration
+:? Run 5k  # Duration tracked until completed
 
 # Max effort bench press
 ? lb Bench Press  # User enters weight after

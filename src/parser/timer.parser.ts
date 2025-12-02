@@ -20,6 +20,7 @@ import {
   Up,
   Collon,
   QuestionSymbol,
+  CollectibleTimer,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -85,7 +86,10 @@ export class MdTimerParse extends CstParser {
     
     $.RULE("duration", () => {
       $.OPTION(() => $.CONSUME(Up, { LABEL: "countUpModifier" }));
-      $.CONSUME(Timer);
+      $.OR([
+        { ALT: () => $.CONSUME(CollectibleTimer) },  // NEW: :? placeholder for collectible duration
+        { ALT: () => $.CONSUME(Timer) }
+      ]);
     });
 
     $.RULE("rounds", () => {
