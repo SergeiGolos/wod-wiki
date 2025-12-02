@@ -153,7 +153,7 @@ The following table outlines the recommended stories, scenarios, and validation 
 | Default | Provider wraps child components | Children render correctly |
 | WithRuntime | Runtime initialized with valid WodBlock | `runtime` is not null, `isInitializing` is false |
 | InitializingState | Runtime is being created | `isInitializing` is true, loading indicator visible |
-| ErrorState | Runtime factory throws error | `error` is populated, error boundary displays |
+| ErrorState | Runtime factory throws error | `error` is populated, component displays error state |
 | DisposalOnUnmount | Component unmounts with active runtime | Runtime disposed, no memory leaks |
 | ReinitializeRuntime | New block passed while runtime exists | Old runtime disposed, new runtime created |
 
@@ -183,7 +183,7 @@ The following table outlines the recommended stories, scenarios, and validation 
 | CustomText | Custom text prop | Text renders in grid pattern |
 | DarkTheme | Dark theme active | Blue dark palette (dark → bright) |
 | LightTheme | Light theme active | Blue light palette (light → dark) |
-| NoRandomness | `randomness={false}` | Only text pixels lit, no scattered dots |
+| NoRandomness | `randomness={false}` | Only text pixels lit (default adds random background dots) |
 | CustomDimensions | Custom rows/cols | Grid dimensions match props |
 
 #### 5. WodIndexPanel (`src/components/layout/WodIndexPanel.tsx`)
@@ -300,6 +300,8 @@ const meta: Meta<typeof FragmentVisualizer> = {
 export default meta;
 type Story = StoryObj<typeof FragmentVisualizer>;
 
+// Note: ICodeFragment uses both 'type' (string) and 'fragmentType' (enum) fields
+// The 'type' field is retained for compatibility but will be replaced by fragmentType
 export const Default: Story = {
   args: {
     fragments: [
