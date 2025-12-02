@@ -156,31 +156,58 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   reps(ctx: any): RepFragment[] {
+    if (ctx.QuestionSymbol) {
+      const meta = this.getMeta([ctx.QuestionSymbol[0]]);
+      return [new RepFragment(undefined, meta)];
+    }
     const meta = this.getMeta([ctx.Number[0]]);
     return [new RepFragment(ctx.Number[0].image * 1, meta)];
   }
 
   duration(ctx: any): TimerFragment[] {
-    const meta = this.getMeta([ctx.Timer[0]]);
     const forceCountUp = !!ctx.countUpModifier;
+    
+    // Handle collectible timer (:?)
+    if (ctx.CollectibleTimer) {
+      const meta = this.getMeta([ctx.CollectibleTimer[0]]);
+      return [new TimerFragment(':?', meta, forceCountUp)];
+    }
+    
+    // Handle regular timer
+    const meta = this.getMeta([ctx.Timer[0]]);
     return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
   }
 
   distance(ctx: any): DistanceFragment[] {
-    let load =
-      (ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image) || "1";
+    let load: number | undefined;
+    
+    if (ctx.QuestionSymbol) {
+      load = undefined;
+    } else if (ctx.Number && ctx.Number.length > 0) {
+      load = ctx.Number[0].image * 1;
+    } else {
+      load = 1; // default when no number specified (e.g., "m" = 1m)
+    }
+    
     let units = (ctx.Distance && ctx.Distance[0].image) || "";
-    let meta = [ctx.Number[0], ctx.Distance[0]];
-    return [new DistanceFragment(load, units, this.getMeta(meta))];
+    let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Distance?.[0]].filter(Boolean);
+    return [new DistanceFragment(load, units, this.getMeta(metaTokens))];
   }
 
   resistance(ctx: any): ResistanceFragment[] {
-    let load =
-      (ctx.Number && ctx.Number.length > 0 && ctx.Number[0].image) || "1";
+    let load: number | undefined;
+    
+    if (ctx.QuestionSymbol) {
+      load = undefined;
+    } else if (ctx.Number && ctx.Number.length > 0) {
+      load = ctx.Number[0].image * 1;
+    } else {
+      load = 1; // default when no number specified
+    }
+    
     let units = (ctx.Weight && ctx.Weight[0].image) || "";
-
-    let meta = [ctx.Number[0], ctx.Weight[0]];
-    return [new ResistanceFragment(load, units, this.getMeta(meta))];
+    let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Weight?.[0]].filter(Boolean);
+    return [new ResistanceFragment(load, units, this.getMeta(metaTokens))];
   }
 
   labels(ctx: any) {
