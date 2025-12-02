@@ -26,6 +26,11 @@ export const Timer = createToken({
   pattern: /(?::\d+|(?:\d+:){1,3}\d+)/,
 });
 
+export const CollectibleTimer = createToken({
+  name: "CollectibleTimer",
+  pattern: /:\?/,
+});
+
 export const Distance = createToken({
   name: "Distance",
   pattern: /(m|ft|mile|km|miles)\b/i,
@@ -111,6 +116,7 @@ export const allTokens = [
   GroupClose,
   Comma,
   AtSign,
+  CollectibleTimer,  // Must be before Timer to match :? before :digit
   Timer,
   Trend,    
   Collon,  
