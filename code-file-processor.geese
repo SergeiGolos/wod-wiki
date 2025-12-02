@@ -1,0 +1,122 @@
+---
+include:
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+exclude:
+  - "*.test.ts"
+  - "*.spec.ts"
+  - "node_modules/**"
+  - "dist/**"
+  - "storybook/**"
+recipe: "code-review"
+temperature: 0.3
+project_name: "Wod-Wiki"
+review_focus: "TypeScript best practices, code quality, and performance"
+author: "Wiki Development Team"
+version: "1.0.0"
+---
+
+Please perform a comprehensive {{review_focus}} review of the following file from {{project_name}} v{{version}}.
+
+## File Information
+- **Filename:** {{filename}}
+- **Path:** {{filepath}}
+- **Size:** {{content.length}} characters
+- **Author:** {{author}}
+
+## Code to Review
+```typescript
+{{content}}
+```
+
+## Review Guidelines
+
+Please analyze the TypeScript code and provide feedback on:
+
+### TypeScript Best Practices
+- Proper typing and type annotations
+- Interface and type definitions
+- Generic usage and type safety
+- Optional vs required properties
+- Type imports and exports
+
+### Code Quality
+- Code organization and structure
+- Naming conventions
+- Error handling patterns
+- Code duplication
+- Function and class design
+- Import/export patterns
+
+### Performance
+- Algorithmic efficiency
+- Memory usage patterns
+- Bundle size considerations
+- React performance patterns (if applicable)
+- Async/await usage
+
+### Security
+- Input validation
+- Type safety for external data
+- Dependency security
+- Authentication/authorization patterns
+
+## Expected Output Format
+
+### Summary
+- Overall TypeScript rating (1-10)
+- Code quality assessment (1-10)  
+- Performance assessment (1-10)
+- Security assessment (1-10)
+- Critical issues found
+- Positive aspects highlighted
+
+### Detailed Analysis
+
+#### TypeScript Issues
+1. **[High/Medium/Low]** - Brief description
+   - Location: Line numbers or function names
+   - Problem: Why this is a TypeScript issue
+   - Recommendation: How to fix or improve
+   - Code example: Before/after if helpful
+
+#### Code Quality Issues
+1. **[High/Medium/Low]** - Brief description
+   - Location: Where in the code
+   - Problem: Code quality concern
+   - Recommendation: Improvement suggestion
+   - Code example: Better approach
+
+#### Performance Opportunities
+1. **[High/Medium/Low]** - Brief description
+   - Location: Performance bottleneck
+   - Problem: Why this is inefficient
+   - Recommendation: Optimization approach
+   - Code example: Optimized version
+
+#### Security Concerns
+1. **[High/Medium/Low]** - Brief description
+   - Location: Security vulnerability
+   - Problem: Security issue explanation
+   - Recommendation: Fix or mitigation
+   - Code example: Secure implementation
+
+### Best Practices Recommendations
+- Specific actionable suggestions
+- TypeScript patterns to adopt
+- Code organization improvements
+- Testing recommendations
+- Documentation improvements
+
+### Quick Wins
+- Easy fixes with high impact
+- Simple refactoring opportunities
+- Immediate improvements
+
+### Long-term Improvements
+- Architectural suggestions
+- Advanced TypeScript features to consider
+- Performance optimizations
+- Security enhancements
+
+Thank you for your thorough analysis of this {{project_name}} TypeScript codebase!
