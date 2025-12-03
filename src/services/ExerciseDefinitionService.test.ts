@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { ExerciseDefinitionService } from './ExerciseDefinitionService';
+import { ExerciseDefinitionService } from '../repositories/workout/ExerciseDefinitionService';
 import { Exercise, Level, Category } from '../exercise.d';
 
 describe('ExerciseDefinitionService', () => {

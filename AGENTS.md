@@ -26,8 +26,8 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 - `bun run test:watch` - Run unit tests in watch mode
 - `bun run test:storybook` - Run Storybook component tests (requires Playwright)
 - `bun run test:e2e` - Run end-to-end tests with Playwright
-- `bun run vitest run src/path/to/test.test.ts` - Run single test file
-- `bun run tsc --noEmit` - Type check without emitting files
+- `bun x vitest run src/path/to/test.test.ts` - Run single test file
+- `bun x tsc --noEmit` - Type check without emitting files
 - `bun run storybook` - Start Storybook development server
 - `bun run build-storybook` - Build static Storybook
 

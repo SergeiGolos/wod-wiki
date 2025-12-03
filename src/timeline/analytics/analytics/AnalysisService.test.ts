@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { AnalysisService } from './AnalysisService';
-import { ExerciseDefinitionService } from '../../../../repositories/workout/ExerciseDefinitionService';
+import { ExerciseDefinitionService } from '../../../repositories/workout/ExerciseDefinitionService';
 import { IProjectionEngine } from './IProjectionEngine';
 import { RuntimeMetric } from '../runtime/RuntimeMetric';
-import { Exercise, Level, Category } from '../exercise.d';
+import { Exercise, Level, Category } from '../../../exercise.d';
 import { ProjectionResult } from './ProjectionResult';
 
 // Mock projection engine for testing
