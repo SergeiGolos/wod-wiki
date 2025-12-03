@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
-import { BlockKey } from '../../../src/BlockKey';
+import { BlockKey } from '../../../src/core/models/BlockKey';
 import { IRuntimeBlock } from '../../../src/runtime/IRuntimeBlock';
 import { IRuntimeAction } from '../../../src/runtime/IRuntimeAction';
 

@@ -15,6 +15,10 @@ export class RuntimeStack {
         return [...this._blocks].reverse();
     }
 
+    public get blocksBottomFirst(): readonly IRuntimeBlock[] {
+        return [...this._blocks];
+    }
+
     public get keys(): BlockKey[] {
         return [...this._blocks].reverse().map(b => b.key);
     }

@@ -1,4 +1,4 @@
-name: build-qwik
+name: build-bun
 on:
   workflow_call:
     inputs:
@@ -21,28 +21,27 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: latest
 
       - name: Update version in package.json
         run: |
-          node -e "const pkg=require('./package.json'); pkg.version='${{ inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))"
+          bun -e "const pkg=require('./package.json'); pkg.version='${{ inputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2))"
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
     
       - name: Run tests
-        run: npm run test
+        run: bun run test
         # TODO: Pass all tests and remove this.
         # Continue on error in case there are test 
         # failures that shouldn't block the build
         continue-on-error: true
 
       - name: Generate coverage report
-        run: npm run test:coverage
+        run: bun run test:coverage
         continue-on-error: true
 
       - name: Upload coverage reports
@@ -60,30 +59,8 @@ jobs:
         run: |
           sed -i 's/__GA_ID__/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
-      # - name: Build Package      
-      #   run: npm run build
-
-      # - name: Configure npm for default registry with token
-      #   run: |
-      #     # For the default NPM registry (npmjs.org)
-      #     SCOPE=@bitcobblers
-      #     echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN || '' }}" > .npmrc
-      #     echo "${SCOPE}:registry=https://registry.npmjs.org/" >> .npmrc
-      #   if: ${{ env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}
-      #   env:
-      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-
-      # - name: Publish Package
-      #   # Only run when on main/tag
-      #   if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && env.NPM_TOKEN != '' && env.NPM_TOKEN != 'n/a' }}  
-      #   run: npm publish --access public
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
-      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
- 
-    
       - name: Build Storybook
-        run: npm run build-storybook
+        run: bun run build-storybook
         env:
           # Configure API URL for production build
           # Default to localhost for GitHub Pages, can be overridden with repository variable

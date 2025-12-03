@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { VolumeProjectionEngine } from './VolumeProjectionEngine';
 import { RuntimeMetric } from '../../runtime/RuntimeMetric';
-import { Exercise, Level, Category } from '../../exercise.d';
+import { Exercise, Level, Category } from '../../../../exercise.d';
 
 describe('VolumeProjectionEngine', () => {
   const engine = new VolumeProjectionEngine();

@@ -3,7 +3,7 @@ import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBo
 import { ICodeStatement } from '../../src/CodeStatement';
 import { ICodeFragment, FragmentType } from '../../src/CodeFragment';
 import { IScriptRuntime } from '../../src/IScriptRuntime';
-import { BlockKey } from '../../src/BlockKey';
+import { BlockKey } from '../../src/core/models/BlockKey';
 
 describe('Strategy Matching Contract', () => {
   let mockRuntime: IScriptRuntime;

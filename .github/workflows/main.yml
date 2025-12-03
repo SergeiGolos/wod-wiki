@@ -26,7 +26,7 @@ jobs:
 
   build:    
     needs: [calc-variables]
-    uses: ./.github/workflows/_build-qwik.yml
+    uses: ./.github/workflows/_build-bun.yml
     secrets: inherit
     with:
       version: ${{ needs.calc-variables.outputs.package-version }}

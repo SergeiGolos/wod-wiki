@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -9,7 +9,7 @@ console.log('🔧 Setting up WOD Wiki testing environment...\n');
 // Install dependencies
 console.log('📦 Installing dependencies...');
 try {
-  execSync('npm install', { stdio: 'inherit' });
+  execSync('bun install', { stdio: 'inherit' });
   console.log('✅ Dependencies installed\n');
 } catch (error) {
   console.error('❌ Failed to install dependencies:', error.message);
@@ -19,7 +19,7 @@ try {
 // Install Playwright browsers
 console.log('🎭 Installing Playwright browsers...');
 try {
-  execSync('npx playwright install chromium', { stdio: 'inherit' });
+  execSync('bun x playwright install chromium', { stdio: 'inherit' });
   console.log('✅ Playwright browsers installed\n');
 } catch (error) {
   console.error('❌ Failed to install Playwright browsers:', error.message);
@@ -43,6 +43,6 @@ for (const file of configFiles) {
 }
 
 console.log('\n🎉 Setup complete! You can now run:');
-console.log('  npm run test          # Run unit tests only');
-console.log('  npm run test:storybook # Run Storybook tests only');
-console.log('  npm run storybook     # Start Storybook dev server');
+console.log('  bun run test          # Run unit tests only');
+console.log('  bun run test:storybook # Run Storybook tests only');
+console.log('  bun run storybook     # Start Storybook dev server');
