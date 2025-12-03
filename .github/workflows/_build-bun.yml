@@ -54,10 +54,10 @@ jobs:
             !coverage/**/*.tmp
           retention-days: 30
 
-      - name: Replace GA tag in manager-head.html
+      - name: Replace GA tag in preview-head.html
         if: ${{ vars.G_TAG != '' }}
         run: |
-          sed -i 's/__GA_ID__/${{ vars.G_TAG }}/g' .storybook/preview-head.html
+          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
       - name: Build Storybook
         run: bun run build-storybook
