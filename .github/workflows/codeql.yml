@@ -30,18 +30,17 @@ jobs:
           languages: javascript-typescript
           config-file: ./.github/codeql/codeql-config.yml
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       # Build the library for better analysis accuracy
       - name: Build (for better analysis)
-        run: npm run build:lib
+        run: bun run build:lib
         continue-on-error: true
 
       - name: Perform CodeQL Analysis
