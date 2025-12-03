@@ -57,7 +57,14 @@ describe('Block Compilation Contract', () => {
       reset: vi.fn(),
       isRunning: vi.fn(),
       getCurrentTime: vi.fn(),
-      handle: vi.fn()
+      handle: vi.fn(),
+      fragmentCompiler: {
+        compileStatementFragments: vi.fn().mockReturnValue({
+          exerciseId: 'test-exercise',
+          values: [],
+          timeSpans: []
+        })
+      }
     } as any;
   });
 

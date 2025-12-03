@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * WOD Wiki Unified Development Startup Script
  * 
@@ -9,7 +9,7 @@
  * - Android TV Emulator (optional)
  * 
  * Usage:
- *   node scripts/dev-start.cjs [options]
+ *   bun scripts/dev-start.cjs [options]
  * 
  * Options:
  *   --no-emulator     Skip starting the Android TV emulator
@@ -17,7 +17,7 @@
  *   --web-only        Run only Storybook + Relay Server (no TV app)
  * 
  * Debug Ports:
- *   - Storybook: Use `npm run storybook:debug` for --inspect=9229
+ *   - Storybook: Use `bun run storybook:debug` for --inspect=9229
  *   - Relay Server: Add NODE_OPTIONS=--inspect=9230 when debugging
  *   - TV App: Use React Native Debugger / Flipper via Metro bundler
  */
@@ -104,7 +104,7 @@ function checkDependencies(dir, name) {
   if (!fs.existsSync(nodeModulesPath)) {
     log(name, colors.yellow, `node_modules not found, installing dependencies...`);
     try {
-      execSync('npm install', { cwd: dir, stdio: 'inherit' });
+      execSync('bun install', { cwd: dir, stdio: 'inherit' });
       log(name, colors.green, `Dependencies installed successfully`);
     } catch (err) {
       log(name, colors.red, `Failed to install dependencies: ${err.message}`);
@@ -218,7 +218,7 @@ async function main() {
   }
   console.log('');
   console.log(`${colors.bright}Debug Ports:${colors.reset}`);
-  console.log(`  ${colors.cyan}▸ Storybook Debug:${colors.reset}      Use 'npm run storybook:debug' for --inspect=9229`);
+  console.log(`  ${colors.cyan}▸ Storybook Debug:${colors.reset}      Use 'bun run storybook:debug' for --inspect=9229`);
   console.log(`  ${colors.cyan}▸ Relay Server Debug:${colors.reset}   Add NODE_OPTIONS=--inspect=9230`);
   if (!options.webOnly) {
     console.log(`  ${colors.cyan}▸ TV App Debug:${colors.reset}         React Native Debugger / Flipper via Metro`);
@@ -231,12 +231,12 @@ async function main() {
   // Note: Service configurations are hardcoded and not user-controllable.
   // The only user input (AVD name) is validated in parseArgs().
   const services = [
-    { name: 'storybook', command: 'npm run storybook', color: 'green' },
-    { name: 'relay', command: 'npm run dev', cwd: 'server', color: 'yellow' },
+    { name: 'storybook', command: 'bun run storybook', color: 'green' },
+    { name: 'relay', command: 'bun run dev', cwd: 'server', color: 'yellow' },
   ];
 
   if (!options.webOnly) {
-    services.push({ name: 'metro', command: 'npm start', cwd: 'tv', color: 'magenta' });
+    services.push({ name: 'metro', command: 'bun start', cwd: 'tv', color: 'magenta' });
   }
 
   // Build service commands (safe: service.cwd and service.command are hardcoded above)
@@ -256,10 +256,10 @@ async function main() {
     ...commands,
   ];
 
-  // Use npx to run concurrently
-  // Note: shell: true is required for command chaining (cd && npm run).
+  // Use bun x to run concurrently
+  // Note: shell: true is required for command chaining (cd && bun run).
   // All arguments are from hardcoded configurations, not user input.
-  const concurrentlyProcess = spawn('npx', concurrentlyArgs, {
+  const concurrentlyProcess = spawn('bun', ['x', ...concurrentlyArgs], {
     cwd: rootDir,
     stdio: 'inherit',
     shell: true,

@@ -1,11 +1,5 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { defineWorkspace } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-
-const dirname =
-  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 export default defineWorkspace([
   // Regular Node.js unit tests
@@ -20,16 +14,17 @@ export default defineWorkspace([
   // Storybook component tests with Playwright
   {
     plugins: [
-      storybookTest({ configDir: path.join(dirname, '.storybook') }),
+      storybookTest({ configDir: '.storybook' }),
     ],
     test: {
       name: 'storybook',
       browser: {
         enabled: true,
-        headless: true,
+        name: 'chromium',
         provider: 'playwright',
-        instances: [{ browser: 'chromium' }],
+        headless: true,
       },
+      include: ['**/*.stories.?(m)[jt]s?(x)'],
       setupFiles: ['.storybook/vitest.setup.js'],
     },
   },

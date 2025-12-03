@@ -151,6 +151,7 @@ tests/e2e/screenshots/
 
 # lock files
 pnpm-lock.yaml
+package-lock.json
 server/package-lock.json
 tv/package-lock.json
 .playwright-mcp/
