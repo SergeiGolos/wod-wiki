@@ -129,7 +129,7 @@ describe('RootLifecycle Integration', () => {
         
         if (!runtime) throw new Error('Failed to create runtime');
 
-        // Helper to get controls
+        // Helper to get controls (finds controls with buttons, prioritizing idle block controls)
         const getControls = () => {
             const refs = runtime.memory.search({
                 type: 'runtime-controls',
@@ -138,6 +138,14 @@ describe('RootLifecycle Integration', () => {
                 visibility: null
             });
             if (refs.length === 0) return null;
+            // Find controls with buttons (idle block's controls) or fall back to first
+            for (const ref of refs) {
+                const controls = runtime.memory.get(ref as TypedMemoryReference<RuntimeControls>);
+                if (controls && controls.buttons.length > 0) {
+                    return controls;
+                }
+            }
+            // Fall back to first controls if none have buttons
             return runtime.memory.get(refs[0] as TypedMemoryReference<RuntimeControls>);
         };
 

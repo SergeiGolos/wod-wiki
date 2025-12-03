@@ -39,13 +39,34 @@ export class IdleBehavior implements IRuntimeBehavior {
         // This allows the UI to show appropriate buttons (e.g. "Start" or "Next")
         const buttons: RuntimeButton[] = [];
         
-        if (this.config.popOnNext) {
+        // Add button if popOnNext is true OR if there are popOnEvents configured
+        const hasPopTrigger = this.config.popOnNext || (this.config.popOnEvents && this.config.popOnEvents.length > 0);
+        
+        if (hasPopTrigger) {
+            const labelLower = this.config.buttonLabel?.toLowerCase() || '';
+            const actionLower = this.config.buttonAction?.toLowerCase() || '';
+            
+            // Derive button ID from action or label
+            let buttonId = 'btn-next';
+            let icon = 'next';
+            let variant: 'default' | 'secondary' = 'secondary';
+            
+            if (labelLower.includes('start') || actionLower.includes('start')) {
+                buttonId = 'btn-start';
+                icon = 'play';
+                variant = 'default';
+            } else if (labelLower.includes('analytics') || actionLower.includes('analytics')) {
+                buttonId = 'btn-analytics';
+                icon = 'analytics';
+                variant = 'default';
+            }
+            
             buttons.push({
-                id: 'btn-next',
+                id: buttonId,
                 label: this.config.buttonLabel || 'Next',
-                icon: this.config.buttonLabel?.toLowerCase().includes('start') ? 'play' : 'next',
+                icon: icon,
                 action: this.config.buttonAction || 'timer:next',
-                variant: this.config.buttonLabel?.toLowerCase().includes('start') ? 'default' : 'secondary',
+                variant: variant,
                 size: 'lg'
             });
         }
@@ -55,7 +76,7 @@ export class IdleBehavior implements IRuntimeBehavior {
             block.key.toString(),
             { 
                 buttons,
-                displayMode: 'timer' 
+                displayMode: 'clock' 
             },
             'public'
         );
