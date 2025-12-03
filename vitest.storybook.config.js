@@ -1,15 +1,16 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 
-const dirname =
-  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
-
 export default defineConfig({
-  plugins: [react(), storybookTest({ configDir: path.join(dirname, '.storybook') })],
+  plugins: [
+    react(),
+    storybookTest({
+      configDir: '.storybook',
+    }),
+  ],
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
@@ -21,10 +22,11 @@ export default defineConfig({
     name: 'storybook',
     browser: {
       enabled: true,
-      headless: true,
+      name: 'chromium',
       provider: 'playwright',
-      instances: [{ browser: 'chromium' }],
+      headless: true,
     },
+    include: ['**/*.stories.?(m)[jt]s?(x)'],
     setupFiles: ['.storybook/vitest.setup.js'],
   },
 });
