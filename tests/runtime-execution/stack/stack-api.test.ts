@@ -22,7 +22,6 @@ class MockRuntimeBlock implements IRuntimeBlock {
     public readonly initContext?: any
   ) {
     // Constructor-based initialization as per new requirements
-    console.log(`Initializing MockRuntimeBlock ${key.toString()}`);
     this.sourceIds = sourceIds;
   }
   blockType?: string | undefined;
@@ -40,7 +39,6 @@ class MockRuntimeBlock implements IRuntimeBlock {
   }
   
   dispose(_runtime: any): void {
-    console.log(`Disposing MockRuntimeBlock ${this.key.toString()}`);
     this.disposed = true;
   }
   

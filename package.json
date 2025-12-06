@@ -13,10 +13,8 @@
   "scripts": {
     "setup": "bun setup-testing.js",
     "test": "vitest run --project=unit",
-    "test:watch": "vitest --project=unit",
     "test:coverage": "vitest run --project=unit --coverage --coverage.reporter=html --coverage.reporter=json-summary",
     "test:storybook": "bunx vitest --project=storybook",
-    "test:storybook:ui": "bunx vitest --project=storybook --ui",
     "test:ui": "bun run test:storybook && bun run test:e2e",
     "test:perf": "vitest run tests/performance/**/*.test.ts",
     "test:e2e": "bun x playwright test",
@@ -29,9 +27,7 @@
     "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
     "docs:check": "bun scripts/check-docs-links.cjs",
-    "dev:all": "bun scripts/dev-start.cjs",
-    "dev:web": "bun scripts/dev-start.cjs --web-only",
-    "dev:no-emulator": "bun scripts/dev-start.cjs --no-emulator"
+    "dev": "bun scripts/dev-start.cjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -46,10 +42,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "lucide-react": "^0.545.0",
-    "pnpm": "^10.20.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.4.1",
-    "sharp": "^0.34.4",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0"
   },
@@ -92,11 +86,9 @@
     "jsdom": "^27.0.0",
     "playwright": "^1.57.0",
     "postcss": "^8.5.6",
-    "prop-types": "^15.8.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "rollup": "^4.41.0",
-    "rxjs": "^7.8.2",
     "storybook": "^10.1.2",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",

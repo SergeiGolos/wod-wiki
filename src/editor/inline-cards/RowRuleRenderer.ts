@@ -134,16 +134,6 @@ export class RowRuleRenderer {
       }
     }
 
-    // Debug logging for grouped rules
-    console.log('[RowRuleRenderer] Rule breakdown:', {
-      hiddenAreas: hiddenAreaRules.length,
-      viewZones: viewZoneRules.length,
-      headerFooter: headerFooterRules.length,
-      styled: styledRules.length,
-      overlays: overlayRules.length,
-      fullCards: fullCardRules.length,
-    });
-
     // Apply each type in correct order:
     // 1. Hidden areas first (affects line numbers)
     this.applyHiddenAreaRules(hiddenAreaRules);

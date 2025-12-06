@@ -38,8 +38,6 @@ describe('RoundsBlock - Metric Inheritance', () => {
       children: [[1]] // Single group containing statement ID 1
     });
 
-    console.log('✅ Created RoundsBlock');
-
     // Search for public METRIC_REPS in memory
     const publicRepsRefs = runtime.memory.search({
       type: MemoryTypeEnum.METRIC_REPS,
@@ -50,12 +48,10 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
     // Verify metric was allocated
     expect(publicRepsRefs.length).toBeGreaterThan(0);
-    console.log(`✅ Found ${publicRepsRefs.length} public METRIC_REPS`);
 
     // Verify initial value is 21 (first round)
     const repsValue = runtime.memory.get(publicRepsRefs[0] as any);
     expect(repsValue).toBe(21);
-    console.log(`✅ Initial reps value: ${repsValue}`);
   });
 
   it('should update public METRIC_REPS when rounds advance', () => {
@@ -79,7 +75,6 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
     // Initial value should be 21
     expect(runtime.memory.get(repsRef as any)).toBe(21);
-    console.log('✅ Round 1 reps: 21');
 
     // Push block to stack and mount
     runtime.stack.push(roundsBlock);
@@ -98,7 +93,6 @@ describe('RoundsBlock - Metric Inheritance', () => {
     
     // Verify reps updated to 15
     expect(runtime.memory.get(repsRef as any)).toBe(15);
-    console.log('✅ Round 2 reps: 15');
 
     // Execute next actions
     for (const action of nextActions) {
@@ -113,7 +107,6 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
     // Verify reps updated to 9
     expect(runtime.memory.get(repsRef as any)).toBe(9);
-    console.log('✅ Round 3 reps: 9');
   });
 
   it('should NOT allocate METRIC_REPS when no rep scheme is configured', () => {
@@ -135,6 +128,5 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
     // Should NOT allocate metric for fixed rounds
     expect(publicRepsRefs.length).toBe(0);
-    console.log('✅ No METRIC_REPS allocated for fixed rounds');
   });
 });
