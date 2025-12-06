@@ -47,7 +47,7 @@ flowchart LR
     end
     subgraph Execute
       D --> E[RuntimeStack push]
-      E --> F[mount() actions]
+      E --> F["mount() actions"]
       F --> G[LoopCoordinator pushes children]
       G --> H[next()/completion]
     end
