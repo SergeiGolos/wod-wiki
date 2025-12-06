@@ -13,8 +13,10 @@ import {
   useTimerStack,
   useCardStack
 } from '../../clock/hooks/useDisplayStack';
+import { spanMetricsToFragments } from '../../runtime/utils/metricsToFragments';
+import { IDisplayItem } from '../../core/models/DisplayItem';
 
-import { RefinedTimerDisplay, BreadcrumbItem } from './RefinedTimerDisplay';
+import { RefinedTimerDisplay } from './RefinedTimerDisplay';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -87,8 +89,8 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   // Current activity card
   const currentCard = cardStack.length > 0 ? cardStack[cardStack.length - 1] : undefined;
 
-  // Calculate active items for breadcrumb
-  const activeItems = useMemo(() => {
+  // Calculate stack items for display
+  const stackItems = useMemo(() => {
     if (!runtime) return undefined;
 
     // Cast to any to access activeSpans if not in interface
@@ -100,7 +102,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
     if (activeSpansMap.size === 0) return undefined;
 
-    const items: BreadcrumbItem[] = [];
+    const items: IDisplayItem[] = [];
 
     // Filter spans to only those present in the timer stack (or card stack for the active leaf)
     // This ensures we only show what's visually relevant/active on the stack
@@ -114,22 +116,24 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
       const isLeaf = timerEntry === timerStack[timerStack.length - 1];
 
-      const item: BreadcrumbItem = {
-        type: span.type === 'group' ? 'group' : 'exercise',
-        isLeaf
+      // Generate fragments from metrics using the utility
+      const fragments = spanMetricsToFragments(
+          span.metrics || {}, 
+          span.label || (span.type === 'group' ? 'Group' : 'Block'), 
+          span.type
+      );
+
+      const item: IDisplayItem = {
+        id: span.id,
+        parentId: span.parentSpanId || null,
+        fragments: fragments,
+        depth: 0, // Flat list for visual cleaness in the stack view
+        isHeader: false,
+        status: isLeaf ? 'active' : 'completed', // Visually showing parents as completed/context
+        sourceType: 'span',
+        sourceId: span.id,
+        label: span.label
       };
-
-      // Format based on metrics
-      if (span.metrics?.currentRound && span.metrics?.totalRounds) {
-        item.metric = `${span.metrics.currentRound}/${span.metrics.totalRounds}`;
-      } else if (span.metrics?.currentRound) {
-        item.metric = `${span.metrics.currentRound}`;
-      }
-
-      // Add label
-      if (span.label) {
-        item.label = span.label;
-      }
 
       items.push(item);
     });
@@ -151,7 +155,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       currentCard={currentCard}
 
       controls={controls}
-      activeItems={activeItems}
+      stackItems={stackItems}
       compact={props.compact}
     />
   );
