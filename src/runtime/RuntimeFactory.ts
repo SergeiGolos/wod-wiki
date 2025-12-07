@@ -108,10 +108,9 @@ export class RuntimeFactory implements IRuntimeFactory {
     });
     behaviors.push(rootBehavior);
     
-    // Add TimerBehavior to root block (starts paused, will resume when workout execution begins)
+    // Add TimerBehavior to root block and start it immediately for the overall runtime clock
     // Use 'up' direction (count up) for the main workout timer
-    // autoStart=false so timer is paused during "Ready to Start" idle phase
-    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'secondary', false));
+    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'secondary', true));
     
     // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
     

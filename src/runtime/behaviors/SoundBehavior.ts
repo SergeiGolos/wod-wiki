@@ -258,17 +258,6 @@ export class SoundBehavior implements IRuntimeBehavior {
   }
 
   /**
-   * Called when the block is popped from the stack.
-   * Unregisters the event handler.
-   */
-  onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-    if (this.handlerId) {
-      return [new UnregisterEventHandlerAction(this.handlerId)];
-    }
-    return [];
-  }
-
-  /**
    * Cleanup resources on disposal.
    */
   onDispose(runtime: IScriptRuntime, block: IRuntimeBlock): void {
