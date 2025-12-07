@@ -15,7 +15,7 @@
 
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../RuntimeMetric';
-import { SpanMetrics } from '../models/ExecutionSpan';
+import { RecordedMetricValue, SpanMetrics } from '../models/ExecutionSpan';
 
 /**
  * Mapping from MetricValue type to FragmentType for display
@@ -65,6 +65,26 @@ export function metricToFragment(metric: MetricValue): ICodeFragment {
     fragmentType,
     value: metric.value,
     image: displayValue,
+  };
+}
+
+/**
+ * Convert a recorded metric (unified shape) to an ICodeFragment.
+ */
+function recordedMetricToFragment(metric: RecordedMetricValue): ICodeFragment {
+  const fragmentType = METRIC_TO_FRAGMENT_TYPE[metric.type] || FragmentType.Text;
+
+  const shouldHideValue = metric.type === 'repetitions' && metric.value === 0;
+  const hasValue = metric.value !== undefined && !shouldHideValue;
+  const displayValue = hasValue
+    ? `${metric.value}${metric.unit ? ' ' + metric.unit : ''}`
+    : (metric.label ?? metric.unit ?? metric.type);
+
+  return {
+    type: metric.type,
+    fragmentType,
+    value: metric.value,
+    image: displayValue
   };
 }
 
@@ -207,6 +227,15 @@ export function spanMetricsToFragments(
       });
     }
   }
+
+  // Grouped metrics (preferred unified shape)
+  if (metrics.metricGroups && metrics.metricGroups.length > 0) {
+    for (const group of metrics.metricGroups) {
+      for (const metric of group.metrics) {
+        fragments.push(recordedMetricToFragment(metric));
+      }
+    }
+  }
   
   // Current Reps - show current/target format if tracking progress
   if (metrics.reps && metrics.reps.value !== undefined) {
@@ -290,16 +319,23 @@ export function spanMetricsToFragments(
       image: `${metrics.calories.value} cal`
     });
   }
-  
-  // Fall back to legacy metrics if present
-  if (fragments.length === 0 && metrics.legacyMetrics && metrics.legacyMetrics.length > 0) {
-    return metricsToFragments(metrics.legacyMetrics);
+
+  // Always append legacy metrics if present so grouped/flattened values are preserved.
+  if (metrics.legacyMetrics && metrics.legacyMetrics.length > 0) {
+    fragments.push(...metricsToFragments(metrics.legacyMetrics));
   }
-  
-  // Fall back to label if no fragments
+
+  // Fall back to label if still empty
   if (fragments.length === 0) {
     return [createLabelFragment(label, type)];
   }
-  
-  return fragments;
+
+  // Deduplicate by type + image to reduce duplicate chips when legacy + typed overlap
+  const seen = new Set<string>();
+  return fragments.filter(fragment => {
+    const key = `${fragment.type}|${fragment.image}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

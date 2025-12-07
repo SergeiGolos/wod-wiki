@@ -1,8 +1,9 @@
 import { IRuntimeMemory } from './IRuntimeMemory';
-import { ExecutionSpan, createEmptyMetrics, SpanType, legacyTypeToSpanType } from './models/ExecutionSpan';
+import { ExecutionSpan, createEmptyMetrics, SpanType, legacyTypeToSpanType, legacyRuntimeMetricToGroup } from './models/ExecutionSpan';
 import { TypedMemoryReference } from './IMemoryReference';
 import { RuntimeMetric } from './RuntimeMetric';
 import { EXECUTION_SPAN_TYPE } from './ExecutionTracker';
+import { metricsToFragments, createLabelFragment } from './utils/metricsToFragments';
 
 // Re-export ExecutionSpan as ExecutionRecord for backward compatibility
 export type ExecutionRecord = ExecutionSpan;
@@ -30,6 +31,9 @@ export class ExecutionLogger {
     metrics: RuntimeMetric[] = []
   ): ExecutionSpan {
     const spanType: SpanType = legacyTypeToSpanType(type);
+    const fragments = metrics.length > 0
+      ? metricsToFragments(metrics)
+      : [createLabelFragment(label, type)];
     const record: ExecutionSpan = {
       id: `${Date.now()}-${blockId}`, // Simple unique ID
       blockId,
@@ -40,9 +44,12 @@ export class ExecutionLogger {
       status: 'active',
       metrics: {
         ...createEmptyMetrics(),
-        legacyMetrics: metrics
+        legacyMetrics: metrics,
+        ...(metrics.length > 0 ? { metricGroups: metrics.map(m => legacyRuntimeMetricToGroup(m)) } : {})
       },
-      segments: []
+      segments: [],
+      fragments,
+      compiledMetrics: metrics[0]
     };
 
     this.memory.allocate<ExecutionSpan>(EXECUTION_SPAN_TYPE, blockId, record, 'public');

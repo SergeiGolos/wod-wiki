@@ -63,7 +63,7 @@ export class RuntimeBlock implements IRuntimeBlock{
         
         this.behaviors = behaviors;
 
-        // Register default 'tick' handler to bridge event-driven runtime with block.next() method
+        // Register default 'next' handler to bridge explicit next events to block.next()
         this.registerDefaultHandler();
         
         // Register event dispatcher to route events to behaviors
@@ -75,8 +75,8 @@ export class RuntimeBlock implements IRuntimeBlock{
             id: `handler-tick-${this.key.toString()}`,
             name: `TickHandler-${this.label}`,
             handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Only handle 'tick' event (periodic updates)
-                if (event.name !== 'tick') return [];
+                // Only handle explicit next events
+                if (event.name !== 'next') return [];
                 
                 // Only handle if this is the current block
                 if (runtime.stack.current !== this) return [];
@@ -87,7 +87,7 @@ export class RuntimeBlock implements IRuntimeBlock{
         };
 
         // Register with event bus (guarded for test stubs without eventBus)
-        const unsub = this._runtime?.eventBus?.register?.('tick', handler, this.key.toString());
+        const unsub = this._runtime?.eventBus?.register?.('next', handler, this.key.toString());
         if (unsub) {
             this._unsubscribers.push(unsub);
         }

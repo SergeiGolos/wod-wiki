@@ -92,7 +92,7 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
             context,
             blockKey,
             "Group",
-            "Group",
+            "Total Time",
             compiledMetric
         );
     }

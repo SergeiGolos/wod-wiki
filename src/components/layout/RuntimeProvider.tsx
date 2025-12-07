@@ -18,45 +18,15 @@
  * ```
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/RuntimeFactory';
 import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
+import { RuntimeContext, type RuntimeContextState } from './RuntimeContext';
 
-/**
- * Runtime context state interface
- */
-interface RuntimeContextState {
-  /** Current active runtime instance (null if none) */
-  runtime: ScriptRuntime | null;
-  
-  /** Whether runtime is currently initializing */
-  isInitializing: boolean;
-  
-  /** Error from last runtime operation */
-  error: Error | null;
-  
-  /** Initialize a new runtime for the given block */
-  initializeRuntime: (block: WodBlock) => void;
-  
-  /** Dispose the current runtime */
-  disposeRuntime: () => void;
-}
-
-const RuntimeContext = createContext<RuntimeContextState | undefined>(undefined);
-
-/**
- * Hook to access runtime context
- * @throws Error if used outside RuntimeProvider
- */
-export const useRuntime = (): RuntimeContextState => {
-  const context = useContext(RuntimeContext);
-  if (!context) {
-    throw new Error('useRuntime must be used within a RuntimeProvider');
-  }
-  return context;
-};
+// Re-export useRuntime for backward compatibility
+export { useRuntime } from './useRuntime';
 
 /**
  * Props for RuntimeProvider

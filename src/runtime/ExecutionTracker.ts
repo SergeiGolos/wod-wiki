@@ -28,8 +28,10 @@ import {
   createEmptyMetrics,
   legacyTypeToSpanType,
   legacyTypeToMetricKey,
-  fromLegacyMetricValue
+  fromLegacyMetricValue,
+  legacyRuntimeMetricToGroup
 } from './models/ExecutionSpan';
+import { metricsToFragments, createLabelFragment } from './utils/metricsToFragments';
 
 /** Memory type identifier for execution spans */
 export const EXECUTION_SPAN_TYPE = 'execution-span';
@@ -63,6 +65,16 @@ export class ExecutionTracker {
   ): ExecutionSpan {
     const blockId = block.key.toString();
     const type = this.resolveSpanType(block.blockType);
+    const fragments = block.compiledMetrics
+      ? metricsToFragments([block.compiledMetrics])
+      : [createLabelFragment(block.label, block.blockType || 'group')];
+
+    const initialMetrics: SpanMetrics = {
+      ...createEmptyMetrics(),
+      ...(block.compiledMetrics ? { legacyMetrics: [block.compiledMetrics] } : {}),
+      ...(block.compiledMetrics?.exerciseId ? { exerciseId: block.compiledMetrics.exerciseId } : {}),
+      ...(block.compiledMetrics ? { metricGroups: [legacyRuntimeMetricToGroup(block.compiledMetrics)] } : {})
+    };
     
     const span = createExecutionSpan(
       blockId,
@@ -70,7 +82,12 @@ export class ExecutionTracker {
       block.label || blockId,
       parentSpanId,
       block.sourceIds,
-      debugMetadata
+      debugMetadata,
+      {
+        metrics: initialMetrics,
+        fragments,
+        compiledMetrics: block.compiledMetrics
+      }
     );
     
     this.memory.allocate<ExecutionSpan>(
@@ -260,6 +277,12 @@ export class ExecutionTracker {
       updatedMetrics.legacyMetrics = [];
     }
     updatedMetrics.legacyMetrics.push(metric);
+
+    // Mirror into grouped metrics for unified pipeline
+    if (!updatedMetrics.metricGroups) {
+      updatedMetrics.metricGroups = [];
+    }
+    updatedMetrics.metricGroups.push(legacyRuntimeMetricToGroup(metric));
     
     // Also extract to typed properties
     if (metric.exerciseId && !updatedMetrics.exerciseId) {

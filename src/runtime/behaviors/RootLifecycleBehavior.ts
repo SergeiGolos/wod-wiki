@@ -14,6 +14,7 @@ import { IEvent } from '../IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
 import { IEventHandler } from '../IEventHandler';
 import { captureRuntimeTimestamp } from '../RuntimeClock';
+import { SetWorkoutStateAction } from '../actions/WorkoutStateActions';
 
 enum RootState {
     MOUNTING,
@@ -71,18 +72,18 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         this.registerControlHandler(runtime, block);
 
         const startTime = options?.startTime ?? captureRuntimeTimestamp(runtime.clock);
-        return [new PushBlockAction(idleBlock, { startTime })];
+        return [
+            new SetWorkoutStateAction('running'),
+            new PushBlockAction(idleBlock, { startTime })
+        ];
     }
 
     onNext(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         switch (this.state) {
-            case RootState.INITIAL_IDLE:
+            case RootState.INITIAL_IDLE: {
                 console.log('🚀 RootLifecycleBehavior: Transitioning from INITIAL_IDLE to EXECUTING');
-                // Initial idle just finished (popped)
-                // Transition to execution
                 this.state = RootState.EXECUTING;
 
-                // Resume the root timer now that the workout is starting
                 const timer = block.getBehavior(TimerBehavior);
                 if (timer) {
                     console.log('⏱️ RootLifecycleBehavior: Resuming root timer');
@@ -91,65 +92,53 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     console.error('❌ RootLifecycleBehavior: Root timer not found!');
                 }
 
-                // NOTE: "Workout Started" section record is no longer created here.
-                // The UI displays execution records from blocks; section markers
-                // were causing confusion in the execution log display.
-
-                // Update controls for execution
                 this.updateExecutionControls();
                 this.controls.setDisplayMode('timer');
 
-                return this.loopCoordinator.onNext(runtime, block, options);
+                return [
+                    new SetWorkoutStateAction('running'),
+                    ...this.loopCoordinator.onNext(runtime, block, options)
+                ];
+            }
 
-            case RootState.EXECUTING:
-                // Delegate to loop coordinator
+            case RootState.EXECUTING: {
                 const actions = this.loopCoordinator.onNext(runtime, block, options);
-                
-                // Check if loop is complete
-                if (this.loopCoordinator.isComplete(runtime, block)) {
 
+                if (this.loopCoordinator.isComplete(runtime, block)) {
                     this.state = RootState.FINAL_IDLE;
-                    
-                    // NOTE: "Completed" section record is no longer created here.
-                    // ScriptRuntime handles execution records for blocks.
-                    
-                    // Stop the timer
+
                     const timer = block.getBehavior(TimerBehavior);
                     if (timer) {
                         timer.stop();
                     }
-                    
+
                     const finalIdleBlock = this.createIdleBlock(
                         runtime,
                         'idle-end',
                         'Finished',
                         { 
                             popOnNext: false,
-                            popOnEvents: ['stop', 'view-results'], // Wait for explicit stop/view
+                            popOnEvents: ['stop', 'view-results'],
                             buttonLabel: 'View Analytics',
                             buttonAction: 'view:analytics'
                         }
                     );
-                    
-                    // Add the final idle block push to the actions
-                    // Note: We append it to any actions returned by loopCoordinator (though usually it returns empty when complete)
-                    
-                    // Clear execution controls
+
                     this.controls.clearButtons();
-                    
-                    // NOTE: We no longer register "View Analytics" button here.
-                    // The IdleBehavior of the final idle block will register it.
 
                     const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
-                    return [...actions, new PushBlockAction(finalIdleBlock, { startTime })];
+                    return [
+                        ...actions,
+                        new SetWorkoutStateAction('complete'),
+                        new PushBlockAction(finalIdleBlock, { startTime })
+                    ];
                 }
-                
+
                 return actions;
+            }
 
             case RootState.FINAL_IDLE:
-                // Final idle just finished
                 this.state = RootState.COMPLETE;
-
                 return [new PopBlockAction()];
 
             case RootState.COMPLETE:
@@ -163,7 +152,6 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     onEvent(_event: IEvent, _runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
         // We use a separate handler registered in memory to handle events globally
         // because onEvent is only called if the block is active (top of stack)
-        // or if we manually dispatch to it.
         return [];
     }
 
@@ -210,7 +198,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         size: 'lg'
                     });
                 }
-                break;
+                return [new SetWorkoutStateAction('paused')];
 
             case 'timer:resume':
                 if (timer) {
@@ -225,7 +213,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         size: 'lg'
                     });
                 }
-                break;
+                return [new SetWorkoutStateAction('running')];
 
             case 'timer:next':
                 // Pop the current leaf block (skip current segment)
@@ -264,7 +252,10 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // The IdleBehavior of the final idle block will register it.
 
                 const startTime = block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
-                return [new PushBlockAction(finalIdleBlock, { startTime })];
+                return [
+                    new SetWorkoutStateAction('complete'),
+                    new PushBlockAction(finalIdleBlock, { startTime })
+                ];
         }
 
         return [];

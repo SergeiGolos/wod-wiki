@@ -32,14 +32,10 @@ export class PopBlockAction implements IRuntimeAction {
 
         try {
             const blockKey = currentBlock.key.toString();
-            NextBlockLogger.logError('pop-block-action', new Error('Pop starting'), {
-                blockKey,
-                stackDepth: runtime.stack.blocks.length
-            });
 
             const capture = (runtime as any)?.clock?.captureTimestamp;
             const completedAt = typeof capture === 'function'
-                ? capture()
+                ? capture.call(runtime.clock)  // Fix: bind 'this' context
                 : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
             const lifecycle: BlockLifecycleOptions = { completedAt };
 

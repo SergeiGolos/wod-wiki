@@ -30,14 +30,42 @@ export class PushBlockAction implements IRuntimeAction {
             const blockKey = this.block.key.toString();
             const depthBefore = runtime.stack.blocks.length;
 
+            // Block push timing rules:
+            // If startTime is explicitly provided in options, use it (preserves existing behavior)
+            // Otherwise apply new timing rules:
+            // 1. If clock running → create start time automatically
+            // 2. If clock not running AND block has startTime → start clock
+            // 3. If clock not running AND no startTime → leave clock stopped, no startTime
+            
             const capture = (runtime as any)?.clock?.captureTimestamp;
-            const startTime = typeof capture === 'function'
-                ? capture(this.options.startTime)
-                : (this.options.startTime ?? { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() });
-            const lifecycle: BlockLifecycleOptions = { ...this.options, startTime };
+            let startTime: any;
+            
+            if (this.options.startTime) {
+                // Explicit startTime provided - use it as-is (backward compatibility)
+                startTime = typeof capture === 'function'
+                    ? capture.call(runtime.clock, this.options.startTime)
+                    : this.options.startTime;
+            } else {
+                // No explicit startTime - apply timing rules
+                const isClockRunning = runtime.clock?.isRunning ?? false;
+                
+                if (isClockRunning) {
+                    // Clock running → create startTime automatically
+                    startTime = typeof capture === 'function'
+                        ? capture.call(runtime.clock)
+                        : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
+                } else {
+                    // Clock not running, no startTime provided → don't create startTime
+                    startTime = undefined;
+                }
+            }
+            
+            const lifecycle: BlockLifecycleOptions = startTime ? { ...this.options, startTime } : { ...this.options };
 
             const target = this.block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
-            target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
+            if (startTime) {
+                target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
+            }
 
             // Log push start
             NextBlockLogger.logPushBlockStart(blockKey, depthBefore);
