@@ -2,7 +2,7 @@ import { CodeStatement } from '../../core/models/CodeStatement';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior, TimeSpan } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
@@ -12,6 +12,7 @@ import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 import { ExecutionSpan, createEmptyMetrics } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 import { IEvent } from '../IEvent';
+import { captureRuntimeTimestamp } from '../RuntimeClock';
 
 /**
  * Loop type determines completion logic.
@@ -149,22 +150,22 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when the block is pushed onto the stack.
    * Automatically compiles and pushes the first child group.
    */
-  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onPush(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Delegate to onNext to compile and push first child
     // Pass the block explicitly
-    return this.onNext(runtime, block);
+    return this.onNext(runtime, block, options);
   }
 
   /**
    * Called when advancing to the next execution step.
    * Returns PushBlockAction for next child or empty array if complete.
    */
-  onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onNext(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Handle INTERVAL waiting logic
     if (this.config.loopType === LoopType.INTERVAL) {
         // If we are waiting, do nothing (waiting for timer:complete)
         if (this.isWaitingForInterval) {
-            return [];
+          return [];
         }
 
         // If we have started at least one round (index >= 0) and the timer is running,
@@ -181,13 +182,13 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     }
 
     // Proceed to advance
-    return this.advance(runtime, block);
+          return this.advance(runtime, block, options);
   }
 
   /**
    * Advances the loop state and returns actions to execute next step.
    */
-  private advance(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  private advance(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Increment index
     this.index++;
 
@@ -246,8 +247,10 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         return actions;
       }
 
+      const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+
       // Return PushBlockAction to push the compiled child onto the stack
-      actions.push(new PushBlockAction(compiledBlock));
+      actions.push(new PushBlockAction(compiledBlock, { startTime }));
       return actions;
     } catch (error) {
       console.error(`LoopCoordinatorBehavior: Compilation failed for position ${state.position}:`, error);

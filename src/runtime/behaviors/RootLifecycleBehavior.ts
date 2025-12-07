@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { IdleBehavior } from './IdleBehavior';
 import { TimerBehavior } from './TimerBehavior';
@@ -13,6 +13,7 @@ import { PopBlockAction } from '../PopBlockAction';
 import { IEvent } from '../IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
 import { IEventHandler } from '../IEventHandler';
+import { captureRuntimeTimestamp } from '../RuntimeClock';
 
 enum RootState {
     MOUNTING,
@@ -33,7 +34,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         this.controls = new RuntimeControlsBehavior();
     }
 
-    onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    onPush(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         // Start with Initial Idle Block
         this.state = RootState.INITIAL_IDLE;
         
@@ -69,10 +70,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         // Register global event handler for controls
         this.registerControlHandler(runtime, block);
 
-        return [new PushBlockAction(idleBlock)];
+        const startTime = options?.startTime ?? captureRuntimeTimestamp(runtime.clock);
+        return [new PushBlockAction(idleBlock, { startTime })];
     }
 
-    onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+    onNext(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         switch (this.state) {
             case RootState.INITIAL_IDLE:
                 console.log('🚀 RootLifecycleBehavior: Transitioning from INITIAL_IDLE to EXECUTING');
@@ -97,11 +99,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 this.updateExecutionControls();
                 this.controls.setDisplayMode('timer');
 
-                return this.loopCoordinator.onNext(runtime, block);
+                return this.loopCoordinator.onNext(runtime, block, options);
 
             case RootState.EXECUTING:
                 // Delegate to loop coordinator
-                const actions = this.loopCoordinator.onNext(runtime, block);
+                const actions = this.loopCoordinator.onNext(runtime, block, options);
                 
                 // Check if loop is complete
                 if (this.loopCoordinator.isComplete(runtime, block)) {
@@ -138,7 +140,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     // NOTE: We no longer register "View Analytics" button here.
                     // The IdleBehavior of the final idle block will register it.
 
-                    return [...actions, new PushBlockAction(finalIdleBlock)];
+                    const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+                    return [...actions, new PushBlockAction(finalIdleBlock, { startTime })];
                 }
                 
                 return actions;
@@ -172,7 +175,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 return this.handleControlEvent(event, rt, block);
             }
         };
-        this.controlUnsub = runtime.eventBus.register('*', handler, block.key.toString());
+        this.controlUnsub = runtime.eventBus?.register?.('*', handler, block.key.toString());
     }
 
     onPop(): IRuntimeAction[] {
@@ -260,7 +263,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // NOTE: We no longer register "View Analytics" button here.
                 // The IdleBehavior of the final idle block will register it.
 
-                return [new PushBlockAction(finalIdleBlock)];
+                const startTime = block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+                return [new PushBlockAction(finalIdleBlock, { startTime })];
         }
 
         return [];

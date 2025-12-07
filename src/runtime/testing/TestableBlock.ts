@@ -1,7 +1,7 @@
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IBlockContext } from '../IBlockContext';
 import { RuntimeMetric } from '../RuntimeMetric';
@@ -215,35 +215,35 @@ export class TestableBlock implements IRuntimeBlock {
   
   // ========== IRuntimeBlock Methods (intercepted) ==========
   
-  mount(runtime: IScriptRuntime): IRuntimeAction[] {
-    return this._intercept('mount', runtime, this._config.mountMode, () => {
+  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return this._intercept('mount', runtime, this._config.mountMode, options, () => {
       if (this._config.mountMode === 'override') {
         return this._config.mountOverride(runtime);
       }
-      return this._wrapped.mount(runtime);
+      return this._wrapped.mount(runtime, options);
     });
   }
   
-  next(runtime: IScriptRuntime): IRuntimeAction[] {
-    return this._intercept('next', runtime, this._config.nextMode, () => {
+  next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return this._intercept('next', runtime, this._config.nextMode, options, () => {
       if (this._config.nextMode === 'override') {
         return this._config.nextOverride(runtime);
       }
-      return this._wrapped.next(runtime);
+      return this._wrapped.next(runtime, options);
     });
   }
   
-  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
-    return this._intercept('unmount', runtime, this._config.unmountMode, () => {
+  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return this._intercept('unmount', runtime, this._config.unmountMode, options, () => {
       if (this._config.unmountMode === 'override') {
         return this._config.unmountOverride(runtime);
       }
-      return this._wrapped.unmount(runtime);
+      return this._wrapped.unmount(runtime, options);
     });
   }
   
   dispose(runtime: IScriptRuntime): void {
-    this._intercept('dispose', runtime, this._config.disposeMode, () => {
+    this._intercept('dispose', runtime, this._config.disposeMode, undefined, () => {
       if (this._config.disposeMode === 'override') {
         this._config.disposeOverride(runtime);
         return;
@@ -264,12 +264,13 @@ export class TestableBlock implements IRuntimeBlock {
     method: keyof IRuntimeBlock,
     runtime: IScriptRuntime,
     mode: InterceptMode,
+    options: BlockLifecycleOptions | undefined,
     execute: () => R
   ): R {
     const startTime = performance.now();
     const call: MethodCall = {
       method,
-      args: [runtime],
+      args: [runtime, options],
       timestamp: Date.now(),
       duration: 0,
     };

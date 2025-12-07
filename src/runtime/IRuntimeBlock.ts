@@ -4,6 +4,14 @@ import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IBlockContext } from "./IBlockContext";
 import { RuntimeMetric } from "./RuntimeMetric";
+import { RuntimeTimestamp } from "./RuntimeClock";
+
+export interface BlockLifecycleOptions {
+    /** Shared start timestamp (wall + monotonic) captured once and propagated to children. */
+    startTime?: RuntimeTimestamp;
+    /** Completion timestamp that can be passed to parents/children to avoid drift. */
+    completedAt?: RuntimeTimestamp;
+}
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -31,6 +39,12 @@ import { RuntimeMetric } from "./RuntimeMetric";
  * ```
  */
 export interface IRuntimeBlock {
+    /**
+     * Execution timing metadata propagated by the runtime (start/completion timestamps).
+     * Implementations can rely on RuntimeStack/PushBlockAction to set this.
+     */
+    executionTiming?: BlockLifecycleOptions;
+
     /**
      * Unique identifier for this block instance.
      * Used for tracking and debugging purposes.
@@ -78,19 +92,21 @@ export interface IRuntimeBlock {
      * Note: In constructor-based initialization pattern,
      * this method handles runtime registration only.
      * 
-     * @param runtime The script runtime context
+    * @param runtime The script runtime context
+    * @param options Lifecycle timing data (start time)
      * @returns Array of runtime actions to execute after mount
      */
-    mount(runtime: IScriptRuntime): IRuntimeAction[];
+    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      * 
-     * @param runtime The script runtime context
+    * @param runtime The script runtime context
+    * @param options Lifecycle timing data (completion timestamp)
      * @returns Array of runtime actions representing next execution steps
      */
-    next(runtime: IScriptRuntime): IRuntimeAction[];
+    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Called when this block is popped from the runtime stack.
@@ -99,10 +115,11 @@ export interface IRuntimeBlock {
      * Note: In consumer-managed disposal pattern,
      * this method does NOT clean up resources.
      * 
-     * @param runtime The script runtime context
+    * @param runtime The script runtime context
+    * @param options Lifecycle timing data (completion timestamp)
      * @returns Array of runtime actions to execute after unmount
      */
-    unmount(runtime: IScriptRuntime): IRuntimeAction[];
+    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Cleans up any resources held by this block.

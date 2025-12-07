@@ -9,6 +9,7 @@ export default defineWorkspace([
       include: ['src/**/*.{test,spec}.{js,ts}'],
       exclude: ['stories/**/*', 'src/**/*.stories.*'],
       environment: 'node',
+      setupFiles: ['./tests/unit-setup.ts'],
     },
   },
   // Storybook component tests with Playwright

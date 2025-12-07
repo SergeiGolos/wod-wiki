@@ -1,5 +1,5 @@
 import { IRuntimeAction } from './IRuntimeAction';
-import { IRuntimeBlock } from './IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntime } from './IScriptRuntime';
 import { NextBlockLogger } from './NextBlockLogger';
 
@@ -10,7 +10,7 @@ import { NextBlockLogger } from './NextBlockLogger';
 export class PushBlockAction implements IRuntimeAction {
     private _type = 'push-block';
 
-    constructor(public readonly block: IRuntimeBlock) {}
+    constructor(public readonly block: IRuntimeBlock, private readonly options: BlockLifecycleOptions = {}) {}
 
     get type(): string {
         return this._type;
@@ -30,14 +30,23 @@ export class PushBlockAction implements IRuntimeAction {
             const blockKey = this.block.key.toString();
             const depthBefore = runtime.stack.blocks.length;
 
+            const capture = (runtime as any)?.clock?.captureTimestamp;
+            const startTime = typeof capture === 'function'
+                ? capture(this.options.startTime)
+                : (this.options.startTime ?? { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() });
+            const lifecycle: BlockLifecycleOptions = { ...this.options, startTime };
+
+            const target = this.block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
+            target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
+
             // Log push start
             NextBlockLogger.logPushBlockStart(blockKey, depthBefore);
             
             // Push the block onto the stack
-            runtime.stack.push(this.block);
+            runtime.stack.push(this.block, lifecycle);
             
             // Call the block's mount() method to get any initial actions
-            const mountActions = this.block.mount(runtime);
+            const mountActions = this.block.mount(runtime, lifecycle);
             
             // Execute any returned actions
             for (const action of mountActions) {

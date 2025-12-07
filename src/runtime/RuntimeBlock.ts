@@ -1,7 +1,7 @@
 import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { IRuntimeBlock } from './IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
 import { NextBlockLogger } from './NextBlockLogger';
@@ -13,6 +13,7 @@ import { RuntimeMetric } from './RuntimeMetric';
 import { PushCardDisplayAction, PopCardDisplayAction } from './actions/CardDisplayActions';
 import { TimerBehavior } from './behaviors/TimerBehavior';
 import { LoopCoordinatorBehavior } from './behaviors/LoopCoordinatorBehavior';
+import { captureRuntimeTimestamp } from './RuntimeClock';
 
 
 export type AllocateRequest<T> = { 
@@ -28,6 +29,7 @@ export class RuntimeBlock implements IRuntimeBlock{
     public readonly label: string;
     public readonly compiledMetrics?: RuntimeMetric;
     public readonly context: IBlockContext;
+    public executionTiming: BlockLifecycleOptions = {};
     private _memory: IMemoryReference[] = [];
     private _unsubscribers: Array<() => void> = [];
 
@@ -84,9 +86,11 @@ export class RuntimeBlock implements IRuntimeBlock{
             }
         };
 
-        // Register with event bus
-        const unsub = this._runtime.eventBus.register('tick', handler, this.key.toString());
-        this._unsubscribers.push(unsub);
+        // Register with event bus (guarded for test stubs without eventBus)
+        const unsub = this._runtime?.eventBus?.register?.('tick', handler, this.key.toString());
+        if (unsub) {
+            this._unsubscribers.push(unsub);
+        }
     }
 
     private registerEventDispatcher() {
@@ -107,8 +111,10 @@ export class RuntimeBlock implements IRuntimeBlock{
             }
         };
 
-        const unsub = this._runtime.eventBus.register('*', handler, this.key.toString());
-        this._unsubscribers.push(unsub);
+        const unsub = this._runtime?.eventBus?.register?.('*', handler, this.key.toString());
+        if (unsub) {
+            this._unsubscribers.push(unsub);
+        }
     }
 
     
@@ -131,11 +137,17 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      */    
-    mount(runtime: IScriptRuntime): IRuntimeAction[] {
+    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const mountOptions: BlockLifecycleOptions = {
+            ...options,
+            startTime: captureRuntimeTimestamp(runtime.clock, options?.startTime),
+        };
+        this.executionTiming.startTime = mountOptions.startTime;
+
         // Call behaviors
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(runtime, this);
+            const result = behavior?.onPush?.(runtime, this, mountOptions);
             if (result) { actions.push(...result); }
         }
 
@@ -167,7 +179,11 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      */
-    next(runtime: IScriptRuntime): IRuntimeAction[] {
+    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const nextOptions = { ...options };
+        if (nextOptions.completedAt) {
+            this.executionTiming.completedAt = nextOptions.completedAt;
+        }
         // Log behavior orchestration
         NextBlockLogger.logBehaviorOrchestration(
             this.key.toString(),
@@ -176,7 +192,7 @@ export class RuntimeBlock implements IRuntimeBlock{
 
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(runtime, this);
+            const result = behavior?.onNext?.(runtime, this, nextOptions);
             if (result) { actions.push(...result); }
         }
         return actions;
@@ -186,11 +202,17 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, manages result spans, and cleans up resources.
      */
-    unmount(runtime: IScriptRuntime): IRuntimeAction[] {
+    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const unmountOptions: BlockLifecycleOptions = {
+            ...options,
+            completedAt: captureRuntimeTimestamp(runtime.clock, options?.completedAt),
+        };
+        this.executionTiming.completedAt = unmountOptions.completedAt;
+
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
          for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(runtime, this);
+            const result = behavior?.onPop?.(runtime, this, unmountOptions);
             if (result) { actions.push(...result); }
         }
 

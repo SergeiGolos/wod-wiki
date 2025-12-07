@@ -1,5 +1,5 @@
 import { IRuntimeAction } from "./IRuntimeAction";
-import { IRuntimeBlock } from "./IRuntimeBlock";
+import { BlockLifecycleOptions, IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 
 /**
@@ -15,13 +15,13 @@ import { IScriptRuntime } from "./IScriptRuntime";
 
 export interface IRuntimeBehavior {
   /** Called when the owning block is pushed onto the stack. May return initial events to emit. */
-  onPush?(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
+  onPush?(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
 
   /** Called when determining the next block after a child completes. Return a block to override. */
-  onNext?(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
+  onNext?(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
 
   /** Called right before the owning block is popped from the stack. */
-  onPop?(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
+  onPop?(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
 
   /** Called when the block is being disposed. Use this to clean up resources or log final metrics. */
   onDispose?(runtime: IScriptRuntime, block: IRuntimeBlock): void;

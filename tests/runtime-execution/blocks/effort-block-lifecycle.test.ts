@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockRuntime } from '../../helpers/test-utils';
 import { EffortBlock } from '../../../src/runtime/blocks/EffortBlock';
 
+if (!(vi as any).mocked) {
+  (vi as any).mocked = <T>(fn: T): T => fn;
+}
+
 /**
  * Contract tests for EffortBlock
  * 

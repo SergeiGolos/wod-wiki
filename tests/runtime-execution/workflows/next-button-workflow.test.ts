@@ -5,6 +5,10 @@ import { NextAction } from '../../../src/runtime/NextAction';
 import { ErrorAction } from '../../../src/runtime/actions/ErrorAction';
 import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
 
+if (!(vi as any).mocked) {
+  (vi as any).mocked = <T>(fn: T): T => fn;
+}
+
 describe('Next Button Integration Tests', () => {
   let mockRuntime: IScriptRuntime;
   let handler: NextEventHandler;

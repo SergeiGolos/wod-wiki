@@ -9,6 +9,7 @@ import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { CurrentMetrics } from '../models/MemoryModels';
+import { BlockLifecycleOptions } from '../IRuntimeBlock';
 
 /**
  * RoundsBlock Configuration
@@ -155,9 +156,9 @@ export class RoundsBlock extends RuntimeBlock {
   /**
    * Mount the rounds block and push display entries.
    */
-  mount(runtime: IScriptRuntime): IRuntimeAction[] {
+  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Call parent mount (includes behaviors)
-    const actions = super.mount(runtime);
+    const actions = super.mount(runtime, options);
 
     // Push to display stack
     actions.push(new PushStackItemAction(this.key.toString()));
@@ -171,8 +172,8 @@ export class RoundsBlock extends RuntimeBlock {
   /**
    * Unmount the rounds block and pop display entries.
    */
-  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
-    const actions = super.unmount(runtime);
+  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    const actions = super.unmount(runtime, options);
 
     // Pop from display stack
     actions.push(new PopStackItemAction(this.key.toString()));
@@ -183,9 +184,9 @@ export class RoundsBlock extends RuntimeBlock {
   /**
    * Override next() to update public reps metric and display after round advances.
    */
-  next(runtime: IScriptRuntime): IRuntimeAction[] {
+  next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Call parent implementation (invokes behaviors)
-    const actions = super.next(runtime);
+    const actions = super.next(runtime, options);
 
     // Update metrics for new round
     this.updateMetrics(runtime);

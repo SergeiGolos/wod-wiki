@@ -2,7 +2,7 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { IEvent } from '../IEvent';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
@@ -110,12 +110,12 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Initialize effort tracking when block is mounted onto the stack.
    */
-  mount(runtime: IScriptRuntime): IRuntimeAction[] {
+  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Update metrics
     this.updateMetrics(runtime);
 
     // Call parent mount (includes behaviors)
-    const actions = super.mount(runtime);
+    const actions = super.mount(runtime, options);
 
     // Push to display stack
     actions.push(new PushStackItemAction(this.key.toString()));
@@ -126,9 +126,9 @@ export class EffortBlock extends RuntimeBlock {
   /**
    * Cleanup effort tracking when block is unmounted.
    */
-  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
+  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Call parent unmount (includes behaviors)
-    const actions = super.unmount(runtime);
+    const actions = super.unmount(runtime, options);
 
     // Pop from display stack
     actions.push(new PopStackItemAction(this.key.toString()));

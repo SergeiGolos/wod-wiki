@@ -1,5 +1,6 @@
 import { IRuntimeAction } from './IRuntimeAction';
 import { IScriptRuntime } from './IScriptRuntime';
+import { BlockLifecycleOptions } from './IRuntimeBlock';
 import { NextBlockLogger } from './NextBlockLogger';
 
 /**
@@ -36,7 +37,13 @@ export class PopBlockAction implements IRuntimeAction {
                 stackDepth: runtime.stack.blocks.length
             });
 
-            runtime.stack.pop();
+            const capture = (runtime as any)?.clock?.captureTimestamp;
+            const completedAt = typeof capture === 'function'
+                ? capture()
+                : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
+            const lifecycle: BlockLifecycleOptions = { completedAt };
+
+            runtime.stack.pop(lifecycle);
         } catch (error) {
             NextBlockLogger.logError('pop-block-action', error as Error, {
                 blockKey: currentBlock.key.toString(),

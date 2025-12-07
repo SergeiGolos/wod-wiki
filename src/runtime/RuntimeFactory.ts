@@ -30,6 +30,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';
 import { IRuntimeOptions } from './IRuntimeOptions';
+import { captureRuntimeTimestamp } from './RuntimeClock';
 
 /**
  * Interface for runtime factory implementations
@@ -128,9 +129,11 @@ export class RuntimeFactory implements IRuntimeFactory {
       return runtime; // Return runtime even without root block for debugging
     }
 
-    // Push and mount root block
-    runtime.stack.push(rootBlock);
-    const actions = rootBlock.mount(runtime);
+    // Push and mount root block with a shared start timestamp for deterministic timing
+    const rootStartTime = captureRuntimeTimestamp(runtime.clock);
+    const lifecycle = { startTime: rootStartTime };
+    runtime.stack.push(rootBlock, lifecycle);
+    const actions = rootBlock.mount(runtime, lifecycle);
     actions.forEach(action => action.do(runtime));
     
 

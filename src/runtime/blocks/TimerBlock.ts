@@ -7,6 +7,7 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { BlockLifecycleOptions } from '../IRuntimeBlock';
 
 /**
  * TimerBlock Configuration
@@ -185,9 +186,9 @@ export class TimerBlock extends RuntimeBlock {
   /**
    * Mount the timer block and push display entries.
    */
-  mount(runtime: IScriptRuntime): IRuntimeAction[] {
+  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Get base actions from parent
-    const actions = super.mount(runtime);
+    const actions = super.mount(runtime, options);
 
     // Push block to display stack
     actions.push(new PushStackItemAction(this.key.toString()));
@@ -198,8 +199,8 @@ export class TimerBlock extends RuntimeBlock {
   /**
    * Unmount the timer block and pop display entries.
    */
-  unmount(runtime: IScriptRuntime): IRuntimeAction[] {
-    const actions = super.unmount(runtime);
+  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    const actions = super.unmount(runtime, options);
 
     // Pop from display stack
     actions.push(new PopStackItemAction(this.key.toString()));

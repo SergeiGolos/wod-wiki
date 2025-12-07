@@ -16,6 +16,7 @@ export default defineConfig({
           include: ['src/**/*.{test,spec}.{js,ts}'],
           exclude: ['stories/**/*', 'src/**/*.stories.*'],
           environment: 'node',
+          setupFiles: ['./tests/unit-setup.ts'],
         },
       },
       // React component tests (jsdom environment)

@@ -1,5 +1,28 @@
 import { ITickable } from './ITickable';
 
+export interface RuntimeTimestamp {
+    wallTimeMs: number;
+    monotonicTimeMs: number;
+}
+
+/**
+ * Safely capture a runtime timestamp even if a full RuntimeClock instance is not available.
+ * Falls back to Date.now/performance.now when running in tests with partial runtime stubs.
+ */
+export function captureRuntimeTimestamp(
+    clock?: { captureTimestamp?: (seed?: Partial<RuntimeTimestamp>) => RuntimeTimestamp },
+    seed?: Partial<RuntimeTimestamp>
+): RuntimeTimestamp {
+    const capture = clock?.captureTimestamp;
+    if (capture) {
+        return capture.call(clock, seed);
+    }
+
+    const wallTimeMs = seed?.wallTimeMs ?? Date.now();
+    const monotonicTimeMs = seed?.monotonicTimeMs ?? (typeof performance !== 'undefined' && performance.now ? performance.now() : wallTimeMs);
+    return { wallTimeMs, monotonicTimeMs };
+}
+
 /**
  * RuntimeClock manages the central execution loop for the runtime.
  * It replaces individual setInterval/setTimeout calls scattered across behaviors.
@@ -15,6 +38,18 @@ export class RuntimeClock {
      */
     public get now(): number {
         return performance.now();
+    }
+
+    /**
+     * Capture a timestamp with both wall-clock and monotonic sources using a shared sampling point.
+     * Allows callers to seed one or both values (e.g., from a parent block) while ensuring the
+     * other component is captured from the current clock to keep the pair consistent.
+     */
+    public captureTimestamp(seed?: Partial<RuntimeTimestamp>): RuntimeTimestamp {
+        return {
+            wallTimeMs: seed?.wallTimeMs ?? Date.now(),
+            monotonicTimeMs: seed?.monotonicTimeMs ?? this.now,
+        };
     }
 
     /**

@@ -4,6 +4,11 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { NextBlockLogger } from '../NextBlockLogger';
 
+// Polyfill vi.mocked for Vitest versions where it's unavailable
+if (!(vi as any).mocked) {
+  (vi as any).mocked = <T>(fn: T): T => fn;
+}
+
 describe('NextAction', () => {
   let action: NextAction;
   let mockRuntime: IScriptRuntime;

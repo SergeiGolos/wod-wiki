@@ -1,6 +1,15 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Vitest <2 compatibility: provide vi.mocked helper used across tests
+if (!(vi as any).mocked) {
+  Object.defineProperty(vi as any, 'mocked', {
+    value: <T>(fn: T): T => fn,
+    writable: false,
+    configurable: true,
+  });
+}
+
 // Mock React 18 createRoot if not available
 if (!globalThis.document) {
   globalThis.document = {

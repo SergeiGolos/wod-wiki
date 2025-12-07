@@ -1,4 +1,4 @@
-import { IRuntimeBlock } from './IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../core/models/BlockKey';
 import { NextBlockLogger } from './NextBlockLogger';
 import { ExecutionTracker } from './ExecutionTracker';
@@ -6,6 +6,7 @@ import { IScriptRuntime } from './IScriptRuntime';
 import { BlockWrapperFactory, DebugLogEvent, IRuntimeOptions } from './IRuntimeOptions';
 import { TestableBlock, TestableBlockConfig } from './testing/TestableBlock';
 import { IRuntimeAction } from './IRuntimeAction';
+import { RuntimeTimestamp } from './RuntimeClock';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -181,7 +182,7 @@ export class RuntimeStack {
     }
   }
 
-  public push(block: IRuntimeBlock): void {
+  public push(block: IRuntimeBlock, options: BlockLifecycleOptions = {}): void {
     this.validateBlock(block);
 
     const parentBlock = this.current;
@@ -203,6 +204,9 @@ export class RuntimeStack {
     this.recordLegacyMetric(block);
 
     const wrappedBlock = this.wrapBlock(block, parentBlock);
+
+    const startTime = this.getTimestamp(options.startTime);
+    this.setStartTime(wrappedBlock, startTime);
 
     if (typeof (wrappedBlock as any).setRuntime === 'function') {
       (wrappedBlock as any).setRuntime(this.runtime);
@@ -239,18 +243,22 @@ export class RuntimeStack {
     });
   }
 
-  public pop(): IRuntimeBlock | undefined {
+  public pop(options: BlockLifecycleOptions = {}): IRuntimeBlock | undefined {
     const currentBlock = this.current;
     if (!currentBlock) {
       return undefined;
     }
+
+    const completedAt = this.getTimestamp(options.completedAt);
+    const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt };
+    this.setCompletedTime(currentBlock, completedAt);
 
     this.safeCall(() => this.hooks.onBeforePop?.(currentBlock), 'hooks.onBeforePop', {
       blockKey: currentBlock.key.toString(),
     });
 
     const unmountActions =
-      this.safeCall(() => currentBlock.unmount(this.runtime) ?? [], 'block.unmount', {
+      this.safeCall(() => currentBlock.unmount(this.runtime, lifecycleOptions) ?? [], 'block.unmount', {
         blockKey: currentBlock.key.toString(),
       }) ?? [];
 
@@ -307,7 +315,7 @@ export class RuntimeStack {
     const parent = this.current;
     if (parent) {
       const nextActions =
-        this.safeCall(() => parent.next(this.runtime) ?? [], 'parent.next', {
+        this.safeCall(() => parent.next(this.runtime, lifecycleOptions) ?? [], 'parent.next', {
           parentKey: parent.key.toString(),
           childKey: ownerKey,
         }) ?? [];
@@ -369,6 +377,34 @@ export class RuntimeStack {
       parentKey: parentBlock?.key.toString(),
     });
     return wrapped ?? block;
+  }
+
+  private setStartTime(block: IRuntimeBlock, startTime: RuntimeTimestamp): void {
+    const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
+    target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
+  }
+
+  private setCompletedTime(block: IRuntimeBlock, completedAt: RuntimeTimestamp): void {
+    const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
+    target.executionTiming = { ...(target.executionTiming ?? {}), completedAt };
+  }
+
+  private getTimestamp(seed?: RuntimeTimestamp): RuntimeTimestamp {
+    const fallback = (): RuntimeTimestamp => ({
+      wallTimeMs: seed?.wallTimeMs ?? Date.now(),
+      monotonicTimeMs: seed?.monotonicTimeMs ?? (typeof performance !== 'undefined' ? performance.now() : Date.now()),
+    });
+
+    const capture = (this.runtime as any)?.clock?.captureTimestamp;
+    if (typeof capture === 'function') {
+      try {
+        return capture(seed) ?? fallback();
+      } catch {
+        return fallback();
+      }
+    }
+
+    return fallback();
   }
 
   private recordLegacyMetric(block: IRuntimeBlock): void {
