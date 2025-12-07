@@ -80,6 +80,18 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   const controls = useMemorySubscription(controlsRef);
 
+  // Subscribe to primary-clock registry
+  const primaryClockRef = useMemo(() => {
+      const refs = runtime.memory.search({
+          type: 'registry',
+          id: 'primary-clock',
+      });
+      return refs.length > 0 ? (refs[0] as TypedMemoryReference<string>) : undefined;
+  }, [runtime]);
+
+  const primaryClockValue = useMemorySubscription(primaryClockRef);
+  const focusedBlockId = primaryClockValue || undefined;
+
   // Primary timer is the last in stack (if display stack enabled)
   const primaryTimer = timerStack.length > 0 ? timerStack[timerStack.length - 1] : undefined;
 
@@ -88,6 +100,32 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   // Current activity card
   const currentCard = cardStack.length > 0 ? cardStack[cardStack.length - 1] : undefined;
+
+  // Calculate timer states for ALL timers in the stack
+  // We want to give every card its accurate running time.
+  const timerStates = useMemo(() => {
+      const map = new Map<string, { elapsed: number; duration?: number; format: 'countdown' | 'countup' }>();
+      
+      timerStack.forEach(t => {
+          // Default accumulated time from the timer entry (snapshot)
+          let elapsed = t.accumulatedMs || 0;
+
+          // If this timer matches the currently active primary timer, use the LIVE elapsedMs prop
+          // This ensures smooth 60fps animation for the active block.
+          if (primaryTimer && t.id === primaryTimer.id) {
+              elapsed = props.elapsedMs;
+          }
+
+          map.set(t.ownerId, {
+              elapsed,
+              duration: t.durationMs,
+              format: t.format
+          });
+      });
+
+      return map;
+  }, [timerStack, primaryTimer, props.elapsedMs]);
+
 
   // Calculate stack items for display
   const stackItems = useMemo(() => {
@@ -157,6 +195,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       controls={controls}
       stackItems={stackItems}
       compact={props.compact}
+      
+      focusedBlockId={focusedBlockId}
+      timerStates={timerStates}
     />
   );
 };
