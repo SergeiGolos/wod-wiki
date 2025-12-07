@@ -13,6 +13,7 @@ import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorB
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { RuntimeMetric } from "../RuntimeMetric";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
@@ -53,6 +54,9 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Rounds");
+
         // Compile statement fragments to metrics using FragmentCompilationManager
         const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
             code[0] as CodeStatement,
@@ -175,7 +179,8 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Rounds",
             repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
     }
 }

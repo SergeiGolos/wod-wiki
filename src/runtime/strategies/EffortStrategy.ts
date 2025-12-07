@@ -14,6 +14,7 @@ import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Strategy that creates effort blocks for simple exercises.
@@ -47,6 +48,9 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds;
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Effort");
+
         // 1. Compile statement fragments to metrics using FragmentCompilationManager
         const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
             code[0] as CodeStatement,
@@ -131,12 +135,14 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
                     exerciseName,
                     targetReps: reps
                 },
-                compiledMetric
+                compiledMetric,
+                fragmentGroups
             );
         }
 
         // Add TimerBehavior for generic effort blocks (count up)
-        behaviors.push(new TimerBehavior('up', undefined, 'Segment Timer', 'primary'));
+        // Segment timers should not override the main workout clock; mark as secondary
+        behaviors.push(new TimerBehavior('up', undefined, 'Segment Timer', 'secondary'));
         
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify effort blocks
@@ -159,7 +165,8 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Effort",
             "Effort",
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
 
         return block;

@@ -2,6 +2,7 @@ import React from 'react';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { getFragmentColorClasses } from './fragmentColorMap';
 import { cn } from '../../lib/utils';
+import { VisualizerSize } from '../../core/models/DisplayItem';
 import type { ParseError } from './types';
 
 export interface FragmentVisualizerProps {
@@ -14,7 +15,10 @@ export interface FragmentVisualizerProps {
   /** Optional className for container styling */
   className?: string;
 
-  /** Optional compact mode for tighter display */
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
+
+  /** @deprecated Use size='compact' instead */
   compact?: boolean;
 }
 
@@ -50,8 +54,12 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
   fragments, 
   error, 
   className = '',
-  compact = false
+  size: sizeProp = 'normal',
+  compact: compactProp
 }) => {
+  // Backward compatibility
+  const size = compactProp ? 'compact' : sizeProp;
+
   // Error state takes precedence
   if (error) {
     return (
@@ -88,6 +96,26 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
     );
   }
 
+  const styles = {
+    compact: {
+      padding: 'px-1 py-0',
+      text: 'text-[10px] leading-tight',
+      icon: 'text-xs'
+    },
+    normal: {
+      padding: 'px-2 py-0.5',
+      text: 'text-sm',
+      icon: 'text-base leading-none'
+    },
+    focused: {
+      padding: 'px-2.5 py-1',
+      text: 'text-base',
+      icon: 'text-lg leading-none'
+    }
+  };
+
+  const currentStyle = styles[size];
+
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {fragments.map((fragment, index) => {
@@ -101,11 +129,12 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
             key={index}
             className={cn(
               `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`,
-              compact ? "px-1 py-0 text-[10px] leading-tight" : "px-2 py-0.5 text-sm"
+              currentStyle.padding,
+              currentStyle.text
             )}
             title={`${type.toUpperCase()}: ${JSON.stringify(fragment.value, null, 2)}`}
           >
-            {icon && <span className={compact ? "text-xs" : "text-base leading-none"}>{icon}</span>}
+            {icon && <span className={currentStyle.icon}>{icon}</span>}
             <span>{tokenValue}</span>
           </span>
         );

@@ -10,7 +10,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { FragmentVisualizer } from '@/views/runtime/FragmentVisualizer';
-import { IDisplayItem, isActiveItem, isCompletedItem } from '@/core/models/DisplayItem';
+import { IDisplayItem, isActiveItem, isCompletedItem, VisualizerSize } from '@/core/models/DisplayItem';
 
 export interface UnifiedItemRowProps {
   /** The item to display */
@@ -19,7 +19,9 @@ export interface UnifiedItemRowProps {
   isSelected?: boolean;
   /** Whether this item is highlighted (e.g., hovered) */
   isHighlighted?: boolean;
-  /** Compact display mode */
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
+  /** @deprecated Use size='compact' instead */
   compact?: boolean;
   /** Show timestamp column */
   showTimestamp?: boolean;
@@ -87,7 +89,7 @@ function getStatusClasses(item: IDisplayItem): string {
 /**
  * Get status indicator dot
  */
-function StatusDot({ status }: { status: IDisplayItem['status'] }) {
+function StatusDot({ status, size }: { status: IDisplayItem['status'], size: VisualizerSize }) {
   const colorMap = {
     active: 'bg-green-500 animate-pulse',
     completed: 'bg-blue-500',
@@ -96,11 +98,18 @@ function StatusDot({ status }: { status: IDisplayItem['status'] }) {
     pending: 'bg-gray-300'
   };
   
+  const sizeClasses = {
+    compact: 'w-1.5 h-1.5',
+    normal: 'w-2 h-2',
+    focused: 'w-2.5 h-2.5'
+  };
+  
   return (
     <span 
       className={cn(
-        'inline-block w-2 h-2 rounded-full flex-shrink-0',
-        colorMap[status]
+        'inline-block rounded-full flex-shrink-0 transition-all',
+        colorMap[status],
+        sizeClasses[size]
       )}
       title={status}
     />
@@ -111,7 +120,8 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
   item,
   isSelected = false,
   isHighlighted = false,
-  compact = false,
+  size: sizeProp = 'normal',
+  compact: compactProp,
   showTimestamp = false,
   showDuration = false,
   actions,
@@ -119,8 +129,39 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
   onHover,
   className
 }) => {
-  const indentSize = 16; // pixels per depth level
-  const paddingLeft = item.depth * indentSize;
+  // Backward compatibility
+  const size = compactProp ? 'compact' : sizeProp;
+
+  // Configuration based on size
+  const config = {
+    compact: {
+      padding: 'px-1 py-0.5',
+      indent: 12,
+      baseIndent: 8,
+      fontSize: 'text-xs md:text-sm',
+      tsFontSize: 'text-[10px]',
+      durationWidth: 'min-w-[32px]'
+    },
+    normal: {
+      padding: 'px-2 py-1',
+      indent: 16,
+      baseIndent: 12,
+      fontSize: 'text-sm md:text-base',
+      tsFontSize: 'text-xs',
+      durationWidth: 'min-w-[40px]'
+    },
+    focused: {
+      padding: 'px-3 py-2',
+      indent: 20,
+      baseIndent: 16,
+      fontSize: 'text-base md:text-lg',
+      tsFontSize: 'text-xs md:text-sm',
+      durationWidth: 'min-w-[48px]'
+    }
+  };
+
+  const currentConfig = config[size];
+  const paddingLeft = item.depth * currentConfig.indent;
   
   const handleClick = () => {
     onClick?.(item);
@@ -142,9 +183,9 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
     <div
       className={cn(
         // Base styles
-        'flex items-center gap-2 border-l-2 transition-colors',
-        // Padding based on compact mode
-        compact ? 'px-2 py-0.5' : 'px-3 py-1.5',
+        'flex items-center gap-2 border-l-2 transition-all',
+        // Padding based on size
+        currentConfig.padding,
         // Status-based left border color
         getStatusClasses(item),
         // Header styling
@@ -160,7 +201,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
         // Custom className
         className
       )}
-      style={{ paddingLeft: `${paddingLeft + (compact ? 8 : 12)}px` }}
+      style={{ paddingLeft: `${paddingLeft + currentConfig.baseIndent}px` }}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -168,7 +209,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       tabIndex={onClick ? 0 : undefined}
     >
       {/* Status indicator dot */}
-      <StatusDot status={item.status} />
+      <StatusDot status={item.status} size={size} />
       
       {/* Linked indicator */}
       {item.isLinked && (
@@ -182,13 +223,13 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
         {item.fragments.length > 0 ? (
           <FragmentVisualizer 
             fragments={item.fragments} 
-            compact={compact}
-            className="inline-flex"
+            size={size}
+            className={cn("inline-flex", currentConfig.fontSize)}
           />
         ) : item.label ? (
           <span className={cn(
             'text-muted-foreground',
-            compact ? 'text-xs' : 'text-sm'
+            currentConfig.fontSize
           )}>
             {item.label}
           </span>
@@ -203,7 +244,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       {showTimestamp && item.startTime && (
         <span className={cn(
           'text-muted-foreground font-mono flex-shrink-0',
-          compact ? 'text-[10px]' : 'text-xs'
+          currentConfig.tsFontSize
         )}>
           {formatTimestamp(item.startTime)}
         </span>
@@ -212,8 +253,9 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       {/* Duration column */}
       {showDuration && duration !== undefined && (
         <span className={cn(
-          'text-muted-foreground font-mono flex-shrink-0 min-w-[40px] text-right',
-          compact ? 'text-[10px]' : 'text-xs'
+          'text-muted-foreground font-mono flex-shrink-0 text-right',
+          currentConfig.durationWidth,
+          currentConfig.tsFontSize
         )}>
           {formatDuration(duration)}
         </span>

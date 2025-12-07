@@ -1,0 +1,25 @@
+{
+  "title": "JIT Strategy - Rounds",
+  "description": "Multi-round compilation when no timer is present.",
+  "ref": "copilot/implement-rootblock-functionality",
+  "steps": [
+    {
+      "title": "Match fixed rounds",
+      "description": "Matches dialect hint `behavior.fixed_rounds` or Rounds fragments while explicitly skipping any statement that also contains a Timer fragment.",
+      "file": "src/runtime/strategies/RoundsStrategy.ts",
+      "line": 28
+    },
+    {
+      "title": "Compile rounds + rep scheme",
+      "description": "compile() pulls totalRounds from the RoundsFragment, builds optional repScheme from RepFragments or legacy array value, assembles childGroups (or siblings fallback), and stamps HistoryBehavior with createDebugMetadata.",
+      "file": "src/runtime/strategies/RoundsStrategy.ts",
+      "line": 55
+    },
+    {
+      "title": "Loop coordinator + inherited reps",
+      "description": "LoopCoordinatorBehavior picks LoopType (REP_SCHEME vs FIXED), runs childGroups, and onRoundStart writes METRIC_REPS into inherited memory; HistoryBehavior records rounds metadata; CompletionBehavior watches 'rounds:complete'; BlockContext pre-allocates METRIC_REPS when repScheme exists.",
+      "file": "src/runtime/strategies/RoundsStrategy.ts",
+      "line": 114
+    }
+  ]
+}

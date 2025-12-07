@@ -8,6 +8,7 @@ import { RuntimeBlock } from "../RuntimeBlock";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Strategy that creates group blocks for nested/grouped exercises.
@@ -62,20 +63,20 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments ?? [], "Group");
 
-        console.warn(`  ⚠️  GroupStrategy.compile() is a placeholder - full implementation pending`);
-
-        // Placeholder implementation - creates a simple block
-        // Full implementation will use LoopCoordinatorBehavior to manage children
+        // Compile statement fragments to metrics using FragmentCompilationManager (legacy compatibility)
+        const compiledMetric: RuntimeMetric | undefined = runtime.fragmentCompiler
+            ? runtime.fragmentCompiler.compileStatementFragments(
+                code[0] as CodeStatement,
+                runtime
+            )
+            : undefined;
 
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = compiledMetric?.exerciseId || (code[0] as any)?.exerciseId || '';
 
         const context = new BlockContext(runtime, blockId, exerciseId);
 
@@ -93,7 +94,8 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Group",
             "Total Time",
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
     }
 }

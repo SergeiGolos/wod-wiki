@@ -17,6 +17,7 @@ import { FragmentCompilationManager } from '../FragmentCompilationManager';
 import { RuntimeClock } from '../RuntimeClock';
 import { IBlockContext } from '../IBlockContext';
 import { RuntimeMetric } from '../RuntimeMetric';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // Re-export for backward compatibility
 export type ExecutionRecord = ExecutionSpan;
@@ -148,12 +149,14 @@ class StubBlock implements IRuntimeBlock {
   readonly label: string;
   readonly context: IBlockContext;
   readonly compiledMetrics?: RuntimeMetric;
+  readonly fragments?: ICodeFragment[][];
   
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
     this.label = config.label ?? config.key;
     this.context = new StubBlockContext(config.key);
+    this.fragments = [];
   }
   
   mount(): [] { return []; }

@@ -6,12 +6,15 @@ import { MdTimerInterpreter } from '../parser/timer.visitor';
 import { WodScript } from '../parser/WodScript';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
+import { VisualizerSize } from '../core/models/DisplayItem';
 
 interface ParsedViewProps {
   wodscript: string;
   onSelectionChange?: (statementId: number | null) => void;
   activeStatementIds?: number[];
   selectedStatementId?: number | null;
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
 }
 
 const ParsedView: React.FC<ParsedViewProps> = ({
@@ -19,6 +22,7 @@ const ParsedView: React.FC<ParsedViewProps> = ({
   onSelectionChange,
   activeStatementIds,
   selectedStatementId,
+  size = 'normal'
 }) => {
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +80,7 @@ const ParsedView: React.FC<ParsedViewProps> = ({
         activeStatementIds={activeStatementIds ? new Set(activeStatementIds) : undefined}
         selectedStatementId={selectedStatementId}
         onSelectionChange={onSelectionChange}
+        size={size}
       />
     </div>
   );

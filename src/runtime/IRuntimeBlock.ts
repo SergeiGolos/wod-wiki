@@ -5,6 +5,7 @@ import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IBlockContext } from "./IBlockContext";
 import { RuntimeMetric } from "./RuntimeMetric";
 import { RuntimeTimestamp } from "./RuntimeClock";
+import { ICodeFragment } from "../core/models/CodeFragment";
 
 export interface BlockLifecycleOptions {
     /** Shared start timestamp (wall + monotonic) captured once and propagated to children. */
@@ -78,6 +79,13 @@ export interface IRuntimeBlock {
      * Metrics flow: Parser → Fragments → FragmentCompilationManager → compiledMetrics → ExecutionRecord
      */
     readonly compiledMetrics?: RuntimeMetric;
+
+    /**
+     * Fragment groups associated with this block. Each inner array represents one execution bucket
+     * (e.g., per round or per interval). Runtime recording can append to these groups to preserve
+     * iteration-specific data.
+     */
+    readonly fragments?: ICodeFragment[][];
 
     /**
      * The execution context for this block.

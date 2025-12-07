@@ -16,7 +16,15 @@ import { ICodeFragment } from './CodeFragment';
 /**
  * Status of a display item in the execution lifecycle
  */
+/**
+ * Status of a display item in the execution lifecycle
+ */
 export type DisplayStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
+
+/**
+ * Visual size configurations for display components
+ */
+export type VisualizerSize = 'compact' | 'normal' | 'focused';
 
 /**
  * Source type indicator for debugging and tooltips

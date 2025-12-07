@@ -1,3 +1,4 @@
+import { ICodeFragment } from '../../core/models/CodeFragment';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -59,7 +60,8 @@ export class EffortBlock extends RuntimeBlock {
     runtime: IScriptRuntime,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
-    compiledMetrics?: RuntimeMetric
+    compiledMetrics?: RuntimeMetric,
+    fragments?: ICodeFragment[][]
   ) {
     // Validate configuration
     if (!config.exerciseName || config.exerciseName.trim() === '') {
@@ -97,13 +99,15 @@ export class EffortBlock extends RuntimeBlock {
         nextEventBehavior, 
         completionBehavior,
         // Add TimerBehavior for segment timing (count up)
-        new TimerBehavior('up', undefined, 'Segment Timer', 'primary')
+        // Segment timer is secondary so it doesn't steal the primary clock
+        new TimerBehavior('up', undefined, 'Segment Timer', 'secondary')
       ],
       "Effort",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam
       label,     // label
-      compiledMetrics  // pass through compiled metrics
+      compiledMetrics,  // pass through compiled metrics
+      fragments
     );
   }
 

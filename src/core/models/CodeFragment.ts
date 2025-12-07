@@ -1,3 +1,4 @@
+import { MetricBehavior } from "../../types/MetricBehavior";
 import { CodeMetadata } from "./CodeMetadata";
 
 /**
@@ -26,6 +27,8 @@ export interface ICodeFragment {
   readonly fragmentType: FragmentType;
   /** Collection state for collectible fragments. Defaults to 'defined' for fully specified values. */
   readonly collectionState?: FragmentCollectionState;
+  /** Behavioral grouping describing the intent of the fragment. */
+  readonly behavior?: MetricBehavior;
   // Pure data interface - no metric methods
 }
 

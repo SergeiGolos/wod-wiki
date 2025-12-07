@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { UnifiedItemList, statementsToDisplayItems, IDisplayItem } from './unified';
+import { VisualizerSize } from '../core/models/DisplayItem';
 
 export interface WodScriptVisualizerProps {
   statements: ICodeStatement[];
@@ -10,7 +11,9 @@ export interface WodScriptVisualizerProps {
   onHover?: (id: number | null) => void;
   onRenderActions?: (statement: ICodeStatement) => React.ReactNode;
   className?: string;
-  /** Compact display mode */
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
+  /** @deprecated Use size='compact' instead */
   compact?: boolean;
 }
 
@@ -22,7 +25,8 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   onHover,
   onRenderActions,
   className = '',
-  compact = false
+  size = 'normal',
+  compact
 }) => {
   // Create a map for looking up statements by id (used for renderActions)
   const statementMap = useMemo(() => 
@@ -64,6 +68,7 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
     <UnifiedItemList
       items={displayItems}
       selectedIds={selectedIds}
+      size={size}
       compact={compact}
       groupLinked
       autoScroll={false}

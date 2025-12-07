@@ -65,9 +65,11 @@ export class ExecutionTracker {
   ): ExecutionSpan {
     const blockId = block.key.toString();
     const type = this.resolveSpanType(block.blockType);
-    const fragments = block.compiledMetrics
-      ? metricsToFragments([block.compiledMetrics])
-      : [createLabelFragment(block.label, block.blockType || 'group')];
+    const fragments = block.fragments?.length
+      ? block.fragments.flat()
+      : block.compiledMetrics
+        ? metricsToFragments([block.compiledMetrics])
+        : [createLabelFragment(block.label, block.blockType || 'group')];
 
     const initialMetrics: SpanMetrics = {
       ...createEmptyMetrics(),

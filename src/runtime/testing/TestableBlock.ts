@@ -5,6 +5,7 @@ import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IBlockContext } from '../IBlockContext';
 import { RuntimeMetric } from '../RuntimeMetric';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * Configuration for method interception behavior
@@ -168,6 +169,10 @@ export class TestableBlock implements IRuntimeBlock {
   
   get compiledMetrics(): RuntimeMetric | undefined {
     return this._wrapped.compiledMetrics;
+  }
+
+  get fragments(): ICodeFragment[][] | undefined {
+    return this._wrapped.fragments;
   }
   
   // ========== Testing API ==========

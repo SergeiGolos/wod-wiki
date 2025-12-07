@@ -1,4 +1,5 @@
 import { ICodeFragment } from "../CodeFragment";
+import { MetricBehavior } from "../types/MetricBehavior";
 import { RuntimeMetric, MetricValue } from "./RuntimeMetric";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { ICodeStatement } from "../CodeStatement";
@@ -44,8 +45,14 @@ export class FragmentCompilationManager {
         const label = effort.trim();
         return {
             exerciseId: label,  // Use exerciseId to match RuntimeMetric interface
+            behavior: this.resolveBehavior(statement.fragments),
             values: allValues,
             timeSpans: []
         };
+    }
+
+    private resolveBehavior(fragments: ICodeFragment[]): MetricBehavior {
+        const explicitBehavior = fragments.find(fragment => fragment.behavior !== undefined)?.behavior;
+        return explicitBehavior ?? MetricBehavior.Defined;
     }
 }

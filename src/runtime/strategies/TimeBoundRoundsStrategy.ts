@@ -15,6 +15,7 @@ import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Strategy that creates time-bound rounds blocks for AMRAP workouts.
@@ -59,6 +60,9 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "TimeBoundRounds");
+
         // Compile statement fragments to metrics using FragmentCompilationManager
         const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
             code[0] as CodeStatement,
@@ -97,8 +101,8 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
 
-        // 1. Timer Behavior (Countdown)
-        const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP');
+        // 1. Timer Behavior (Countdown) - keep secondary so global clock stays primary
+        const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP', 'secondary');
         behaviors.push(timerBehavior);
         
         // Add HistoryBehavior with debug metadata stamped at creation time
@@ -149,7 +153,8 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Timer", // It's technically a Timer block structure
             label,
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
     }
 }

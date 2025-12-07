@@ -1,0 +1,25 @@
+{
+  "title": "JIT Strategy - TimeBoundRounds",
+  "description": "AMRAP compilation path (Timer + Rounds/time_bound hint).",
+  "ref": "copilot/implement-rootblock-functionality",
+  "steps": [
+    {
+      "title": "Match AMRAP shape",
+      "description": "Matches Timer fragments combined with either Rounds fragments or dialect hint `behavior.time_bound`, giving this strategy precedence over Timer/Rounds.",
+      "file": "src/runtime/strategies/TimeBoundRoundsStrategy.ts",
+      "line": 38
+    },
+    {
+      "title": "Compile AMRAP block",
+      "description": "compile() derives duration (default 20:00), builds BlockContext + RuntimeBlock, wires TimerBehavior('down', secondary) and HistoryBehavior using createDebugMetadata so analytics tag the block as AMRAP.",
+      "file": "src/runtime/strategies/TimeBoundRoundsStrategy.ts",
+      "line": 61
+    },
+    {
+      "title": "Loop until timer expiry",
+      "description": "SoundBehavior pulls countdown cues from createCountdownSoundCues (shared with TimerStrategy), LoopCoordinatorBehavior runs TIME_BOUND with childGroups = stmt.children and totalRounds = Infinity, and CompletionBehavior waits on timer/children completion while labeling the block with mm:ss AMRAP.",
+      "file": "src/runtime/strategies/TimeBoundRoundsStrategy.ts",
+      "line": 101
+    }
+  ]
+}

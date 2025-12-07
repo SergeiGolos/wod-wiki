@@ -16,6 +16,7 @@ import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Creates default countdown sound cues for a timer with specified duration.
@@ -102,6 +103,9 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Timer");
+
         // Compile statement fragments to metrics using FragmentCompilationManager
         const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
             code[0] as CodeStatement,
@@ -203,7 +207,8 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Timer",
             label,
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
     }
 }

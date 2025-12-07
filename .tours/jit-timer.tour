@@ -1,0 +1,25 @@
+{
+  "title": "JIT Strategy - Timer",
+  "description": "Generic timer compilation path (countdown or count-up).",
+  "ref": "copilot/implement-rootblock-functionality",
+  "steps": [
+    {
+      "title": "Match timer fragments or hint",
+      "description": "Matches statements with Timer fragments or dialect hint `behavior.timer` after higher-precedence AMRAP/EMOM checks pass.",
+      "file": "src/runtime/strategies/TimerStrategy.ts",
+      "line": 77
+    },
+    {
+      "title": "Compile timer block",
+      "description": "compile() builds BlockContext, reads TimerFragment to pick direction/value (default count-up), and wires HistoryBehavior with createDebugMetadata to tag countdown vs count-up timers.",
+      "file": "src/runtime/strategies/TimerStrategy.ts",
+      "line": 104
+    },
+    {
+      "title": "Timer behaviors + sound",
+      "description": "TimerBehavior runs count-down or count-up; SoundBehavior uses createCountdownSoundCues for down or createCountUpSoundCues for up; optional LoopCoordinatorBehavior (FIXED, totalRounds=1) executes children once; CompletionBehavior listens for timer/children completion.",
+      "file": "src/runtime/strategies/TimerStrategy.ts",
+      "line": 134
+    }
+  ]
+}

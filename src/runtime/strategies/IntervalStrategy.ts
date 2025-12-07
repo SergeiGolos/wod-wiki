@@ -15,6 +15,7 @@ import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -56,6 +57,9 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Interval");
+
         // Compile statement fragments to metrics using FragmentCompilationManager
         const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
             code[0] as CodeStatement,
@@ -110,7 +114,8 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
         // Add TimerBehavior for interval countdown (primary)
         // LoopCoordinatorBehavior will restart this timer on every round
-        const timerBehavior = new TimerBehavior('down', intervalDurationMs, 'Interval', 'primary');
+        // Interval timer drives segment pacing; keep it secondary so the global clock stays primary
+        const timerBehavior = new TimerBehavior('down', intervalDurationMs, 'Interval', 'secondary');
         behaviors.push(timerBehavior);
 
         // Add SoundBehavior for countdown cues
@@ -160,7 +165,8 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Interval",
             "EMOM",
-            compiledMetric
+            compiledMetric,
+            fragmentGroups
         );
     }
 }
