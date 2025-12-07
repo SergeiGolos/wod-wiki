@@ -147,7 +147,7 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
             `}</style>
             
             {/* Main Content Area */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4 lg:gap-8 items-center lg:items-start overflow-hidden lg:overflow-visible">
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4 lg:gap-8 items-center lg:items-start overflow-hidden">
                 
                 {/* Left Panel - Stack View - CENTERED content */}
                 <div className={`
@@ -163,13 +163,15 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                         const isFocused = item.sourceId === (focusedBlockId || primaryTimer?.ownerId);
 
                         return (
-                            <div key={item.id} className={`transition-all duration-300 ${isFocused ? 'scale-105' : 'opacity-80 hover:opacity-100'}`}>
+                            <div key={item.id} className="transition-all duration-300">
                                 <UnifiedItemRow 
                                     item={item} 
                                     compact={compact}
                                     className={`
-                                        bg-white dark:bg-slate-800 shadow-md border rounded-lg p-3
-                                        ${isFocused ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30' : 'border-slate-200 dark:border-slate-700'}
+                                        shadow-md border rounded-lg p-3
+                                        ${isFocused 
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30' 
+                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
                                     `}
                                     actions={state ? (
                                         <CardTimerPill 

@@ -4,8 +4,9 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { TimerState, TimerSpan } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/TimerDisplayActions';
+import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/TimerDisplayActions';
 import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { calculateDuration } from '../../lib/timeUtils';
 
 /**
  * TimerStateManager handles the memory state and display actions for a timer.
@@ -62,7 +63,11 @@ export class TimerStateManager {
             label: this.label,
             format: this.direction === 'down' ? 'countdown' : 'countup',
             durationMs: this.durationMs,
-            role: finalRole
+            role: finalRole,
+            // Initialize with live timer data
+            accumulatedMs: 0,
+            startTime: autoStart ? startTime : undefined,
+            isRunning: autoStart
         });
 
         const cardAction = new PushCardDisplayAction({
@@ -117,7 +122,7 @@ export class TimerStateManager {
     /**
      * Updates the timer state with new spans and running status.
      */
-    updateState(spans: TimerSpan[], isRunning: boolean): void {
+    updateState(runtime: IScriptRuntime | undefined, spans: TimerSpan[], isRunning: boolean): void {
         if (!this.timerRef) return;
 
         const state = this.timerRef.get();
@@ -128,6 +133,23 @@ export class TimerStateManager {
             spans,
             isRunning
         });
+
+        if (runtime) {
+            // Re-calculate safely
+            // Filter to only closed spans for accumulated
+            const closedSpans = spans.filter(s => s.stop !== undefined);
+            const acc = calculateDuration(closedSpans.map(s => ({ start: s.start, stop: s.stop! })), 0);
+            
+            // Find current running span start
+            const runningSpan = spans.find(s => !s.stop);
+            const currentStartTime = runningSpan ? runningSpan.start : undefined;
+
+            new UpdateTimerDisplayAction(`timer-${state.blockId}`, {
+                accumulatedMs: acc,
+                startTime: currentStartTime,
+                isRunning: isRunning
+            }).do(runtime);
+        }
     }
 
     /**

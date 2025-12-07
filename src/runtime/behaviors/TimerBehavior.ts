@@ -265,7 +265,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Add new span
     spans.push({ start: Date.now(), state: 'new' });
     
-    this.stateManager.updateState(spans, true);
+    this.stateManager.updateState(this._runtime, spans, true);
   }
 
   /**
@@ -285,7 +285,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
       spans[spans.length - 1].stop = Date.now();
       
-      this.stateManager.updateState(spans, false);
+      this.stateManager.updateState(this._runtime, spans, false);
     }
   }
 
@@ -317,7 +317,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // Close the current span
     spans[spans.length - 1].stop = Date.now();
     
-    this.stateManager.updateState(spans, false);
+    this.stateManager.updateState(this._runtime, spans, false);
   }
 
   /**
@@ -352,7 +352,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     console.log(`✅ TimerBehavior: Adding new span to ${this.label}`);
     spans.push({ start: Date.now(), state: 'new' });
     
-    this.stateManager.updateState(spans, true);
+    this.stateManager.updateState(this._runtime, spans, true);
   }
 
   /**
@@ -431,14 +431,6 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     }
 
     // 2. Reset memory state and start new span
-    const timerRef = this.stateManager.getTimerRef();
-    if (timerRef) {
-        // Create fresh state with one new span
-        const newState = {
-            spans: [{ start: Date.now(), state: 'new' }],
-            isRunning: true
-        };
-        timerRef.set(newState as any);
-    }
+    this.stateManager.updateState(this._runtime, [{ start: Date.now(), state: 'new' }], true);
   }
 }

@@ -38,6 +38,21 @@ export interface ITimerDisplayEntry {
 
   /** Semantic role of the timer */
   role?: 'primary' | 'secondary' | 'auto';
+
+  /** 
+   * Accumulated time from previous spans (for paused/resumed timers).
+   * Used for calculating live display time without memory subscription.
+   */
+  accumulatedMs?: number;
+
+  /**
+   * Start time of the current running span (epoch ms).
+   * If undefined, timer is not currently running a span.
+   */
+  startTime?: number;
+
+  /** Whether the timer is currently running */
+  isRunning?: boolean;
 }
 
 /**
