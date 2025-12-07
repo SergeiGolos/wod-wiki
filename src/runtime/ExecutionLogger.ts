@@ -48,8 +48,7 @@ export class ExecutionLogger {
         ...(metrics.length > 0 ? { metricGroups: metrics.map(m => legacyRuntimeMetricToGroup(m)) } : {})
       },
       segments: [],
-      fragments,
-      compiledMetrics: metrics[0]
+      fragments
     };
 
     this.memory.allocate<ExecutionSpan>(EXECUTION_SPAN_TYPE, blockId, record, 'public');

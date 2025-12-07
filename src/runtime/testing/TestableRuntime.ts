@@ -16,7 +16,6 @@ import { CodeStatement } from '../../core/models/CodeStatement';
 import { FragmentCompilationManager } from '../FragmentCompilationManager';
 import { RuntimeClock } from '../RuntimeClock';
 import { IBlockContext } from '../IBlockContext';
-import { RuntimeMetric } from '../RuntimeMetric';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // Re-export for backward compatibility
@@ -148,7 +147,6 @@ class StubBlock implements IRuntimeBlock {
   readonly blockType?: string;
   readonly label: string;
   readonly context: IBlockContext;
-  readonly compiledMetrics?: RuntimeMetric;
   readonly fragments?: ICodeFragment[][];
   
   constructor(config: InitialStackEntry) {

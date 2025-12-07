@@ -43,7 +43,6 @@ function createMockBlock(id: string): IRuntimeBlock {
         blockType: 'Mock',
         label: `Mock Block ${id}`,
         context: mockContext,
-        compiledMetrics: undefined,
         mount: vi.fn().mockReturnValue([]),
         next: vi.fn().mockReturnValue([]),
         unmount: vi.fn().mockReturnValue([]),

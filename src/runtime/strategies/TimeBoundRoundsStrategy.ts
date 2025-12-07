@@ -153,7 +153,6 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Timer", // It's technically a Timer block structure
             label,
-            compiledMetric,
             fragmentGroups
         );
     }

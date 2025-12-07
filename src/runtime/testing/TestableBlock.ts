@@ -4,7 +4,6 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IBlockContext } from '../IBlockContext';
-import { RuntimeMetric } from '../RuntimeMetric';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
@@ -165,10 +164,6 @@ export class TestableBlock implements IRuntimeBlock {
   
   get context(): IBlockContext {
     return this._wrapped.context;
-  }
-  
-  get compiledMetrics(): RuntimeMetric | undefined {
-    return this._wrapped.compiledMetrics;
   }
 
   get fragments(): ICodeFragment[][] | undefined {

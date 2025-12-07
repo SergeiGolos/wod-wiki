@@ -94,7 +94,6 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Group",
             "Total Time",
-            compiledMetric,
             fragmentGroups
         );
     }

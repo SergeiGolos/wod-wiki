@@ -11,7 +11,6 @@ import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
 import { ExecutionSpan } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
-import { RuntimeMetric } from '../RuntimeMetric';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 
 /**
@@ -60,7 +59,6 @@ export class EffortBlock extends RuntimeBlock {
     runtime: IScriptRuntime,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
-    compiledMetrics?: RuntimeMetric,
     fragments?: ICodeFragment[][]
   ) {
     // Validate configuration
@@ -106,7 +104,6 @@ export class EffortBlock extends RuntimeBlock {
       undefined, // blockKey
       undefined, // blockTypeParam
       label,     // label
-      compiledMetrics,  // pass through compiled metrics
       fragments
     );
   }

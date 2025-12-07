@@ -135,7 +135,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
                     exerciseName,
                     targetReps: reps
                 },
-                compiledMetric,
                 fragmentGroups
             );
         }
@@ -165,7 +164,6 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Effort",
             "Effort",
-            compiledMetric,
             fragmentGroups
         );
 

@@ -165,7 +165,6 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Interval",
             "EMOM",
-            compiledMetric,
             fragmentGroups
         );
     }

@@ -293,8 +293,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       parentSpanId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
       depth: i,
       metrics: {} as SpanMetrics,
-      fragments: b.compiledMetrics ? spanMetricsToFragments({ legacyMetrics: [b.compiledMetrics] } as SpanMetrics, b.label || '', b.blockType || 'unknown') : undefined,
-      compiledMetrics: b.compiledMetrics
+      fragments: b.fragments?.flat()
     }))
   ];
 

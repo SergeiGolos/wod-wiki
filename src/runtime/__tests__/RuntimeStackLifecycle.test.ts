@@ -42,7 +42,6 @@ const createBlock = (
     blockType: 'Test',
     label,
     context,
-    compiledMetrics: undefined,
     mount: vi.fn().mockReturnValue([]),
     next: vi.fn(() => {
       callOrder.push(`${label}.next`);

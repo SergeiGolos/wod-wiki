@@ -3,10 +3,9 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, legacyRuntimeMetricToGroup } from "../models/ExecutionSpan";
+import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
 import { EXECUTION_SPAN_TYPE } from "../ExecutionTracker";
-import { RuntimeMetric } from "../RuntimeMetric";
-import { metricsToFragments, createLabelFragment } from "../utils/metricsToFragments";
+import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**
  * Configuration for HistoryBehavior
@@ -76,7 +75,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
             this.label = block.blockType;
         }
 
-        // Create initial metrics from block's compiled metrics
+        // Create initial metrics from block fragments
         const initialMetrics = this.extractMetricsFromBlock(block);
         
         // Create execution span with debug metadata stamped at creation time
@@ -91,8 +90,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
             status: 'active',
             metrics: initialMetrics,
             segments: [],
-            fragments: this.buildFragments(block, initialMetrics),
-            compiledMetrics: block.compiledMetrics,
+            fragments: this.buildFragments(block),
             ...(this.debugMetadata && { debugMetadata: this.debugMetadata })
         };
         
@@ -138,87 +136,24 @@ export class HistoryBehavior implements IRuntimeBehavior {
     }
     
     /**
-     * Extract initial metrics from block's compiled metrics.
-     * This ensures exercise name, target reps, etc. are captured in the span.
+     * Extract initial metrics from block fragments.
      */
     private extractMetricsFromBlock(block: IRuntimeBlock): SpanMetrics {
         const metrics = createEmptyMetrics();
-        
-        // Try to get compiled metrics from the block
-        const compiledMetrics = block.compiledMetrics as RuntimeMetric | undefined;
-        
-        if (compiledMetrics) {
-            // Extract exercise ID
-            if (compiledMetrics.exerciseId) {
-                metrics.exerciseId = compiledMetrics.exerciseId;
-            }
-            
-            // Extract metric values
-            for (const value of compiledMetrics.values) {
-                const recorded = Date.now();
-                
-                switch (value.type) {
-                    case 'repetitions':
-                        if (value.value !== undefined) {
-                            // targetReps is just a number in SpanMetrics
-                            metrics.targetReps = value.value;
-                        }
-                        break;
-                    case 'resistance':
-                        if (value.value !== undefined) {
-                            metrics.weight = {
-                                value: value.value,
-                                unit: value.unit || 'lb',
-                                recorded
-                            };
-                        }
-                        break;
-                    case 'distance':
-                        if (value.value !== undefined) {
-                            metrics.distance = {
-                                value: value.value,
-                                unit: value.unit || 'm',
-                                recorded
-                            };
-                        }
-                        break;
-                    case 'time':
-                        if (value.value !== undefined) {
-                            metrics.duration = {
-                                value: value.value,
-                                unit: value.unit || 'ms',
-                                recorded
-                            };
-                        }
-                        break;
-                    case 'calories':
-                        if (value.value !== undefined) {
-                            metrics.calories = {
-                                value: value.value,
-                                unit: value.unit || 'cal',
-                                recorded
-                            };
-                        }
-                        break;
-                }
-            }
-            
-            // Store legacy metrics for backward compatibility
-            metrics.legacyMetrics = [compiledMetrics];
 
-            // Mirror into grouped metrics for unified pipeline
-            metrics.metricGroups = [legacyRuntimeMetricToGroup(compiledMetrics)];
-        }
-        
+        // Prefer exercise id carried on context if present
+        metrics.exerciseId = block.context?.exerciseId || metrics.exerciseId;
+
         return metrics;
     }
 
     /**
      * Build a fragment array to keep visualization context on spans.
      */
-    private buildFragments(block: IRuntimeBlock, metrics: SpanMetrics) {
-        if (block.compiledMetrics) {
-            return metricsToFragments([block.compiledMetrics]);
+    private buildFragments(block: IRuntimeBlock) {
+        const fromBlock = block.fragments?.flat();
+        if (fromBlock && fromBlock.length > 0) {
+            return fromBlock;
         }
 
         // Fallback to label fragment to avoid empty chips in history

@@ -13,7 +13,7 @@
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { TypedMemoryReference } from './IMemoryReference';
-import { RuntimeMetric, MetricValue as LegacyMetricValue } from './RuntimeMetric';
+import { RuntimeMetric } from './RuntimeMetric';
 import {
   ExecutionSpan,
   SpanMetrics,
@@ -26,12 +26,10 @@ import {
   createExecutionSpan,
   createTimeSegment,
   createEmptyMetrics,
-  legacyTypeToSpanType,
-  legacyTypeToMetricKey,
-  fromLegacyMetricValue,
-  legacyRuntimeMetricToGroup
+  legacyTypeToSpanType
 } from './models/ExecutionSpan';
 import { metricsToFragments, createLabelFragment } from './utils/metricsToFragments';
+import { ICodeFragment } from '../core/models/CodeFragment';
 
 /** Memory type identifier for execution spans */
 export const EXECUTION_SPAN_TYPE = 'execution-span';
@@ -44,6 +42,26 @@ export const EXECUTION_SPAN_TYPE = 'execution-span';
  */
 export class ExecutionTracker {
   constructor(private readonly memory: IRuntimeMemory) {}
+
+  /**
+   * Append fragments to an existing span for the given block.
+   * When spans already carry fragments, new ones are concatenated.
+   */
+  appendFragments(blockId: string, fragments: ICodeFragment[]): void {
+    if (!fragments || fragments.length === 0) return;
+    const ref = this.findSpanRef(blockId);
+    if (!ref) return;
+    const span = this.memory.get(ref);
+    if (!span) return;
+
+    const existing = span.fragments ?? [];
+    const updatedSpan: ExecutionSpan = {
+      ...span,
+      fragments: [...existing, ...fragments],
+    };
+
+    this.memory.set(ref, updatedSpan);
+  }
 
   // ============================================================================
   // Span Lifecycle
@@ -67,15 +85,11 @@ export class ExecutionTracker {
     const type = this.resolveSpanType(block.blockType);
     const fragments = block.fragments?.length
       ? block.fragments.flat()
-      : block.compiledMetrics
-        ? metricsToFragments([block.compiledMetrics])
-        : [createLabelFragment(block.label, block.blockType || 'group')];
+      : [createLabelFragment(block.label, block.blockType || 'group')];
 
     const initialMetrics: SpanMetrics = {
       ...createEmptyMetrics(),
-      ...(block.compiledMetrics ? { legacyMetrics: [block.compiledMetrics] } : {}),
-      ...(block.compiledMetrics?.exerciseId ? { exerciseId: block.compiledMetrics.exerciseId } : {}),
-      ...(block.compiledMetrics ? { metricGroups: [legacyRuntimeMetricToGroup(block.compiledMetrics)] } : {})
+      ...(block.context?.exerciseId ? { exerciseId: block.context.exerciseId } : {}),
     };
     
     const span = createExecutionSpan(
@@ -87,8 +101,7 @@ export class ExecutionTracker {
       debugMetadata,
       {
         metrics: initialMetrics,
-        fragments,
-        compiledMetrics: block.compiledMetrics
+        fragments
       }
     );
     
@@ -263,42 +276,31 @@ export class ExecutionTracker {
 
   /**
    * Record a legacy RuntimeMetric.
-   * Converts to unified format while preserving original data.
-   * 
+   * Deprecated: retained for compatibility but does minimal work.
+   *
    * @param blockId The block ID
    * @param metric Legacy RuntimeMetric
    */
   recordLegacyMetric(blockId: string, metric: RuntimeMetric): void {
     const span = this.getActiveSpan(blockId);
     if (!span) return;
-    
-    const updatedMetrics = { ...span.metrics };
-    
-    // Preserve in legacy array
-    if (!updatedMetrics.legacyMetrics) {
-      updatedMetrics.legacyMetrics = [];
-    }
-    updatedMetrics.legacyMetrics.push(metric);
 
-    // Mirror into grouped metrics for unified pipeline
-    if (!updatedMetrics.metricGroups) {
-      updatedMetrics.metricGroups = [];
+    const updated: Partial<ExecutionSpan> = {};
+
+    // Soft-touch: ensure exerciseId is set
+    if (metric.exerciseId && !span.metrics.exerciseId) {
+      updated.metrics = { ...span.metrics, exerciseId: metric.exerciseId } as SpanMetrics;
     }
-    updatedMetrics.metricGroups.push(legacyRuntimeMetricToGroup(metric));
-    
-    // Also extract to typed properties
-    if (metric.exerciseId && !updatedMetrics.exerciseId) {
-      updatedMetrics.exerciseId = metric.exerciseId;
+
+    // Convert legacy metric to fragments and append
+    const fragments = metricsToFragments([metric]);
+    if (fragments.length > 0) {
+      updated.fragments = [...(span.fragments ?? []), ...fragments];
     }
-    
-    for (const value of metric.values) {
-      const key = legacyTypeToMetricKey(value.type);
-      if (key && value.value !== undefined) {
-        (updatedMetrics as any)[key] = fromLegacyMetricValue(value, metric.exerciseId);
-      }
+
+    if (updated.metrics || updated.fragments) {
+      this.updateSpan(blockId, updated as ExecutionSpan);
     }
-    
-    this.updateSpan(blockId, { metrics: updatedMetrics });
   }
 
   // ============================================================================

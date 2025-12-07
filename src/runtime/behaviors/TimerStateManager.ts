@@ -70,33 +70,20 @@ export class TimerStateManager {
             isRunning: autoStart
         });
 
+        const fragmentMetrics = (block.fragments?.flat() ?? []).map(f => ({
+            type: f.fragmentType,
+            value: typeof f.value === 'number' ? f.value : '',
+            unit: typeof f.value === 'string' ? f.value : f.type,
+            isActive: true
+        }));
+
         const cardAction = new PushCardDisplayAction({
             id: `card-${block.key}`,
             ownerId: block.key.toString(),
             type: 'active-block',
             title: this.direction === 'down' ? 'AMRAP' : 'For Time',
             subtitle: this.label,
-            metrics: block.compiledMetrics?.values.map(m => {
-                // Special handling for effort type to avoid "0 effort:Pullups"
-                if (m.type.toLowerCase() === 'effort') {
-                    // Strip 'effort:' prefix if present
-                    const cleanUnit = m.unit.startsWith('effort:') ? m.unit.substring(7) : m.unit;
-                    return {
-                        type: m.type,
-                        value: '', // Don't show numeric value for effort
-                        unit: cleanUnit,
-                        image: cleanUnit, // Use clean unit as image
-                        isActive: true
-                    };
-                }
-                
-                return {
-                    type: m.type,
-                    value: m.value ?? 0,
-                    unit: m.unit,
-                    isActive: true
-                };
-            })
+            metrics: fragmentMetrics
         });
 
         return [timerAction, cardAction];

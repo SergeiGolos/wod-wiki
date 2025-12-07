@@ -12,7 +12,7 @@
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { IDisplayItem, isActiveItem, VisualizerSize } from '@/core/models/DisplayItem';
+import { IDisplayItem, isActiveItem, VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 import { UnifiedItemRow } from './UnifiedItemRow';
 import { groupLinkedItems } from '@/core/adapters/displayItemAdapters';
 
@@ -25,6 +25,8 @@ export interface UnifiedItemListProps {
   selectedIds?: Set<string>;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
+  /** Optional filter configuration */
+  filter?: VisualizerFilter;
   /** @deprecated Use size='compact' instead */
   compact?: boolean;
   /** Show timestamps */
@@ -69,6 +71,7 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
   activeItemId,
   selectedIds,
   size: sizeProp = 'normal',
+  filter,
   compact: compactProp,
   showTimestamps = false,
   showDurations = false,
@@ -148,6 +151,7 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
           isSelected={isSelected}
           isHighlighted={isActive && !isSelected}
           size={size}
+          filter={filter}
           showTimestamp={showTimestamps}
           showDuration={showDurations}
           actions={renderActions?.(item)}

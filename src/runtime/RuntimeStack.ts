@@ -407,38 +407,9 @@ export class RuntimeStack {
     return fallback();
   }
 
-  private recordLegacyMetric(block: IRuntimeBlock): void {
-    if (!block.compiledMetrics && !(block.blockType === 'Effort' && block.label)) {
-      return;
-    }
-
-    if (block.compiledMetrics) {
-      this.tracker.recordLegacyMetric?.(block.key.toString(), block.compiledMetrics);
-      return;
-    }
-
-    const label = block.label;
-    if (!label) {
-      return;
-    }
-    const match = label.match(/^(\d+)\s+(.+)$/);
-    if (match) {
-      const reps = parseInt(match[1], 10);
-      const exerciseName = match[2].trim();
-      if (!isNaN(reps)) {
-        this.tracker.recordLegacyMetric?.(block.key.toString(), {
-          exerciseId: exerciseName,
-          values: [{ type: 'repetitions', value: reps, unit: 'reps' }],
-          timeSpans: [],
-        });
-      }
-    } else {
-      this.tracker.recordLegacyMetric?.(block.key.toString(), {
-        exerciseId: label,
-        values: [],
-        timeSpans: [],
-      });
-    }
+  private recordLegacyMetric(_block: IRuntimeBlock): void {
+    // Legacy metric recording deprecated; fragments now flow directly via ExecutionTracker
+    return;
   }
 
   private resolveOwnerKey(block: IRuntimeBlock): string {

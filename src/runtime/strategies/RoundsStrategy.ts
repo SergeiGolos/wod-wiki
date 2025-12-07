@@ -179,7 +179,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Rounds",
             repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
-            compiledMetric,
             fragmentGroups
         );
     }

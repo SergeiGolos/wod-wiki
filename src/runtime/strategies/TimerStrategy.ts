@@ -207,7 +207,6 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Timer",
             label,
-            compiledMetric,
             fragmentGroups
         );
     }

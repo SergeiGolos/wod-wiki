@@ -13,7 +13,7 @@ import { ICodeFragment, FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
 import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import { spanMetricsToFragments, createLabelFragment, metricsToFragments } from '../../runtime/utils/metricsToFragments';
+import { spanMetricsToFragments, createLabelFragment } from '../../runtime/utils/metricsToFragments';
 
 // ============================================================================
 // Constants
@@ -194,17 +194,7 @@ export function blockToDisplayItem(
   stackIndex: number,
   startTime?: number
 ): IDisplayItem {
-  // Extract fragments from compiled metrics if available
-  let fragments: ICodeFragment[] = [];
-  
-  if (block.compiledMetrics) {
-    fragments = metricsToFragments([block.compiledMetrics]);
-  }
-  
-  // Fallback to label fragment if no metrics
-  if (fragments.length === 0 && block.label) {
-    fragments = [createLabelFragment(block.label, block.blockType || 'group')];
-  }
+  const fragments = block.fragments?.flat() ?? [createLabelFragment(block.label, block.blockType || 'group')];
   
   const isHeader = HEADER_TYPES.has((block.blockType || '').toLowerCase());
   

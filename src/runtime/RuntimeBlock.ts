@@ -11,10 +11,6 @@ import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
 import { IEvent } from './IEvent';
-import { RuntimeMetric } from './RuntimeMetric';
-import { PushCardDisplayAction, PopCardDisplayAction } from './actions/CardDisplayActions';
-import { TimerBehavior } from './behaviors/TimerBehavior';
-import { LoopCoordinatorBehavior } from './behaviors/LoopCoordinatorBehavior';
 import { captureRuntimeTimestamp } from './RuntimeClock';
 
 
@@ -29,7 +25,6 @@ export class RuntimeBlock implements IRuntimeBlock{
     public readonly key: BlockKey;
     public readonly blockType?: string;
     public readonly label: string;
-    public readonly compiledMetrics?: RuntimeMetric;
     public readonly fragments: ICodeFragment[][];
     public readonly context: IBlockContext;
     public executionTiming: BlockLifecycleOptions = {};
@@ -45,7 +40,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         blockKey?: BlockKey,
         blockTypeParam?: string,
         label?: string,
-        compiledMetrics?: RuntimeMetric,
         fragments?: ICodeFragment[][]
     ) {
         // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
@@ -54,17 +48,15 @@ export class RuntimeBlock implements IRuntimeBlock{
             this.key = new BlockKey();
             this.blockType = contextOrBlockType as string | undefined;
             this.label = label || (contextOrBlockType as string) || 'Block';
-            this.compiledMetrics = compiledMetrics;
             this.fragments = fragments ?? [];
             // Create a default context for backward compatibility
             this.context = new BlockContext(_runtime, this.key.toString());
         } else {
-            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?, compiledMetrics?)
+            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?)
             this.key = blockKey ?? new BlockKey();
             this.context = contextOrBlockType;
             this.blockType = blockTypeParam;
             this.label = label || blockTypeParam || 'Block';
-            this.compiledMetrics = compiledMetrics;
             this.fragments = fragments ?? [];
         }
         
@@ -158,27 +150,6 @@ export class RuntimeBlock implements IRuntimeBlock{
             if (result) { actions.push(...result); }
         }
 
-        // If no TimerBehavior is present but we have metrics, push a default activity card
-        // This ensures blocks like "10 Pushups" (which have no timer) still show up in the UI
-        // BUT: Don't push cards for container/parent blocks (those with LoopCoordinatorBehavior)
-        // Container blocks manage children and shouldn't show as "current exercise"
-        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
-        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
-            actions.push(new PushCardDisplayAction({
-                id: `card-${this.key}`,
-                ownerId: this.key.toString(),
-                type: 'active-block',
-                title: this.label,
-                subtitle: this.blockType,
-                metrics: this.compiledMetrics.values.map(m => ({
-                    type: m.type,
-                    value: m.value ?? 0,
-                    unit: m.unit,
-                    isActive: true
-                }))
-            }));
-        }
-        
         return actions;
     }
 
@@ -224,12 +195,6 @@ export class RuntimeBlock implements IRuntimeBlock{
          for (const behavior of this.behaviors) {
             const result = behavior?.onPop?.(runtime, this, unmountOptions);
             if (result) { actions.push(...result); }
-        }
-
-        // Pop the default card if we pushed one (only for leaf blocks)
-        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
-        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
-            actions.push(new PopCardDisplayAction(`card-${this.key}`));
         }
 
         return actions;
@@ -308,19 +273,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         // Prefer to append to the last group, otherwise create the first group.
         const targetGroup = this.fragments.length > 0 ? this.fragments.length - 1 : 0;
         this.appendFragments([fragment], targetGroup);
-
-        if (this.compiledMetrics) {
-            this.compiledMetrics.values.push({
-                type: 'time',
-                value: elapsedMs,
-                unit: 'ms',
-            });
-            this.compiledMetrics.timeSpans.push({
-                start: new Date(startMs),
-                stop: new Date(endMs),
-            });
-        }
-
         this.elapsedFragmentRecorded = true;
     }
 }

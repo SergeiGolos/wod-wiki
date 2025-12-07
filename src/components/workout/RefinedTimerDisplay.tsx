@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
-import { IDisplayItem } from '../../core/models/DisplayItem';
+import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
+import { FragmentCollectionState } from '../../core/models/CodeFragment';
 import { UnifiedItemRow } from '../unified/UnifiedItemRow';
 
 export interface RefinedTimerDisplayProps {
@@ -133,6 +134,17 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
          return effectiveTimerState.elapsed;
     }, [effectiveTimerState]);
 
+    // Filter configuration for Stack View
+    const stackFilter: VisualizerFilter = {
+        allowedStates: [
+            FragmentCollectionState.Defined, 
+            FragmentCollectionState.Collected,
+        ],
+        nameOverrides: {
+            'ellapsed-time': false,
+            'elapsed': false
+        }
+    };
 
     return (
         <div className={`flex flex-col h-full w-full max-w-6xl mx-auto ${compact ? 'p-2' : 'p-4 gap-4'}`}>
@@ -166,7 +178,8 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                             <div key={item.id} className="transition-all duration-300">
                                 <UnifiedItemRow 
                                     item={item} 
-                                    compact={compact}
+                                    size="focused" 
+                                    filter={stackFilter}
                                     className={`
                                         shadow-md border rounded-lg p-3
                                         ${isFocused 
@@ -209,6 +222,7 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                             {/* SVG Background Ring */}
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
                                 <circle
+
                                     className="stroke-slate-100 dark:stroke-slate-800"
                                     cx="110" cy="110" fill="none" r="100" strokeWidth="8"
                                 ></circle>
@@ -259,11 +273,6 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                                 <SkipForward className="w-8 h-8" />
                             </button>
                         </div>
-
-
-
-
-
                 </div>
             </div>
         </div>

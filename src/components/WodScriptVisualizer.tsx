@@ -1,82 +1,78 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { UnifiedItemList, statementsToDisplayItems, IDisplayItem } from './unified';
-import { VisualizerSize } from '../core/models/DisplayItem';
+import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 
 export interface WodScriptVisualizerProps {
   statements: ICodeStatement[];
-  activeStatementIds?: Set<number>;
-  selectedStatementId?: number | null;
-  onSelectionChange?: (id: number | null) => void;
-  onHover?: (id: number | null) => void;
-  onRenderActions?: (statement: ICodeStatement) => React.ReactNode;
-  className?: string;
+  showTimestamps?: boolean;
+  showDurations?: boolean;
+  autoScroll?: boolean;
+  selectedLine?: number;
+  highlightedLine?: number;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
+  /** Optional filter configuration */
+  filter?: VisualizerFilter;
   /** @deprecated Use size='compact' instead */
   compact?: boolean;
+  onSelectionChange?: (itemId: string | null) => void;
+  renderActions?: (item: IDisplayItem) => React.ReactNode;
+  className?: string;
+  maxHeight?: string | number;
 }
 
 export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   statements,
-  activeStatementIds = new Set(),
-  selectedStatementId,
+  showTimestamps,
+  showDurations,
+  autoScroll,
+  selectedLine,
+  highlightedLine,
+  size,
+  filter,
+  compact,
   onSelectionChange,
-  onHover,
-  onRenderActions,
-  className = '',
-  size = 'normal',
-  compact
+  renderActions,
+  className,
+  maxHeight
 }) => {
-  // Create a map for looking up statements by id (used for renderActions)
-  const statementMap = useMemo(() => 
-    new Map<number, ICodeStatement>(statements.map(s => [s.id, s])), 
-    [statements]
-  );
+  // Convert statements to display items
+  const items = useMemo(() => {
+    return statementsToDisplayItems(statements);
+  }, [statements]);
 
-  // Convert statements to unified display items
-  const displayItems = useMemo(() => 
-    statementsToDisplayItems(statements, activeStatementIds),
-    [statements, activeStatementIds]
-  );
-
-  // Selected IDs set for highlighting
-  const selectedIds = useMemo(() => 
-    selectedStatementId ? new Set([selectedStatementId.toString()]) : undefined,
-    [selectedStatementId]
-  );
-
-  // Handle selection changes - convert string ID back to number
-  const handleSelectionChange = useCallback((id: string | null) => {
-    onSelectionChange?.(id ? parseInt(id, 10) : null);
-  }, [onSelectionChange]);
-
-  // Handle hover changes - convert string ID back to number
-  const handleHover = useCallback((id: string | null) => {
-    onHover?.(id ? parseInt(id, 10) : null);
-  }, [onHover]);
-
-  // Render actions for an item
-  const renderActions = useCallback((item: IDisplayItem) => {
-    if (!onRenderActions) return null;
-    const statement = statementMap.get(typeof item.sourceId === 'number' ? item.sourceId : parseInt(item.sourceId as string, 10));
-    if (!statement) return null;
-    return onRenderActions(statement);
-  }, [onRenderActions, statementMap]);
+  // Find active item ID based on highlighted/selected line if provided
+  const activeItemId = useMemo(() => {
+    // Basic mapping: if we have a highlighted line, try to find an item that roughly corresponds?
+    // In strict visualizer, usually the 'id' of the display item matches the statement id.
+    // If selectedLine is passed, we might need to map it.
+    // However, existing usage suggests strict ID matching might be handled by parent or custom hooks.
+    // For now, let's leave this undefined unless we have a specific ID passed.
+    // If statementsToDisplayItems attaches IDs matching statement IDs, we can use that?
+    // statementsToDisplayItems typically uses statement.id as sourceId.
+    if (selectedLine !== undefined) {
+         const found = items.find(i => Number(i.sourceId) === selectedLine); // Assuming line/ID correlation or sourceId
+         return found?.id;
+    }
+    return undefined;
+  }, [items, selectedLine]);
 
   return (
-    <UnifiedItemList
-      items={displayItems}
-      selectedIds={selectedIds}
+    <UnifiedItemList 
+      items={items}
+      activeItemId={activeItemId}
       size={size}
+      filter={filter}
       compact={compact}
-      groupLinked
-      autoScroll={false}
-      renderActions={onRenderActions ? renderActions : undefined}
-      onSelectionChange={handleSelectionChange}
-      onHover={handleHover}
+      showTimestamps={showTimestamps}
+      showDurations={showDurations}
+      autoScroll={autoScroll}
+      renderActions={renderActions}
+      onSelectionChange={onSelectionChange}
       className={className}
-      emptyMessage="No statements to display"
+      maxHeight={maxHeight}
     />
   );
 };
+

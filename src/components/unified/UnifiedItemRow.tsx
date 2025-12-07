@@ -10,7 +10,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { FragmentVisualizer } from '@/views/runtime/FragmentVisualizer';
-import { IDisplayItem, isActiveItem, isCompletedItem, VisualizerSize } from '@/core/models/DisplayItem';
+import { IDisplayItem, isActiveItem, isCompletedItem, VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
 export interface UnifiedItemRowProps {
   /** The item to display */
@@ -21,6 +21,8 @@ export interface UnifiedItemRowProps {
   isHighlighted?: boolean;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
+  /** Optional filter configuration */
+  filter?: VisualizerFilter;
   /** @deprecated Use size='compact' instead */
   compact?: boolean;
   /** Show timestamp column */
@@ -121,6 +123,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
   isSelected = false,
   isHighlighted = false,
   size: sizeProp = 'normal',
+  filter,
   compact: compactProp,
   showTimestamp = false,
   showDuration = false,
@@ -224,6 +227,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
           <FragmentVisualizer 
             fragments={item.fragments} 
             size={size}
+            filter={filter}
             className={cn("inline-flex", currentConfig.fontSize)}
           />
         ) : item.label ? (
