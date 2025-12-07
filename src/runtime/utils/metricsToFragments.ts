@@ -1,5 +1,6 @@
 /**
  * Shared utility for converting RuntimeMetric arrays to ICodeFragment arrays.
+ * Legacy bridge — prefer emitting fragments directly instead of metrics.
  * 
  * This utility is used by multiple UI components:
  * - RuntimeEventLog (sectioned log view)

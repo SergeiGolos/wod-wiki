@@ -3,18 +3,19 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -46,25 +47,25 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const statement = statements[0];
         const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasEmomAction = fragments.some(
+            f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'emom'
+        );
         
         // Check for behavior.repeating_interval hint from dialect (e.g., EMOM detected)
         const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
 
-        // Match if has Timer AND repeating_interval hint
+        // Match if has Timer AND (repeating_interval hint OR explicit EMOM action)
         // This takes precedence over simple TimerStrategy
-        return hasTimer && isInterval;
+        return hasTimer && (isInterval || hasEmomAction);
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Interval");
 
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         const fragments = code[0]?.fragments || [];
@@ -107,10 +108,12 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const children = code[0]?.children || [];
 
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         // Add TimerBehavior for interval countdown (primary)
         // LoopCoordinatorBehavior will restart this timer on every round
-        const timerBehavior = new TimerBehavior('down', intervalDurationMs, 'Interval', 'primary');
+        // Interval timer drives segment pacing; keep it secondary so the global clock stays primary
+        const timerBehavior = new TimerBehavior('down', intervalDurationMs, 'Interval', 'secondary');
         behaviors.push(timerBehavior);
 
         // Add SoundBehavior for countdown cues
@@ -160,7 +163,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Interval",
             "EMOM",
-            compiledMetric
+            fragmentGroups
         );
     }
 }

@@ -1,0 +1,25 @@
+{
+  "title": "JIT Strategy - Interval",
+  "description": "EMOM interval compilation path (Timer + repeating_interval hint).",
+  "ref": "copilot/implement-rootblock-functionality",
+  "steps": [
+    {
+      "title": "Match interval hint",
+      "description": "Matches Timer statements flagged with dialect hint `behavior.repeating_interval`, claiming EMOM-style work before the plain TimerStrategy.",
+      "file": "src/runtime/strategies/IntervalStrategy.ts",
+      "line": 35
+    },
+    {
+      "title": "Compile interval block",
+      "description": "compile() derives intervalDurationMs from the first Timer fragment, infers totalRounds from Rounds or a second timer (default 10), builds BlockContext/RuntimeBlock, and stamps HistoryBehavior debug metadata for EMOM analytics.",
+      "file": "src/runtime/strategies/IntervalStrategy.ts",
+      "line": 58
+    },
+    {
+      "title": "Interval pacing behaviors",
+      "description": "TimerBehavior('down', secondary) drives each interval, SoundBehavior pulls countdown cues via createCountdownSoundCues, LoopCoordinatorBehavior runs INTERVAL with childGroups = stmt.children and totalRounds, and CompletionBehavior waits on 'interval:complete'.",
+      "file": "src/runtime/strategies/IntervalStrategy.ts",
+      "line": 114
+    }
+  ]
+}

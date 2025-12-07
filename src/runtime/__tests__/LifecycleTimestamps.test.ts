@@ -39,7 +39,6 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     context: {
       release: vi.fn(),
     } as any,
-    compiledMetrics: undefined,
     executionTiming: {},
     mount: vi.fn().mockReturnValue([]),
     next: vi.fn((runtime, options?: BlockLifecycleOptions) => {
@@ -122,7 +121,6 @@ describe('Lifecycle timestamps', () => {
       blockType: 'Timer',
       label: 'Timer',
       context: { release: vi.fn() } as any,
-      compiledMetrics: undefined,
       executionTiming: {},
       mount: vi.fn(),
       next: vi.fn(),

@@ -1,3 +1,4 @@
+import { ICodeFragment } from '../../core/models/CodeFragment';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -10,8 +11,8 @@ import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
 import { ExecutionSpan } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
-import { RuntimeMetric } from '../RuntimeMetric';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
+import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
 /**
  * EffortBlock Configuration
@@ -59,7 +60,7 @@ export class EffortBlock extends RuntimeBlock {
     runtime: IScriptRuntime,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
-    compiledMetrics?: RuntimeMetric
+    fragments?: ICodeFragment[][]
   ) {
     // Validate configuration
     if (!config.exerciseName || config.exerciseName.trim() === '') {
@@ -97,14 +98,18 @@ export class EffortBlock extends RuntimeBlock {
         nextEventBehavior, 
         completionBehavior,
         // Add TimerBehavior for segment timing (count up)
-        new TimerBehavior('up', undefined, 'Segment Timer', 'primary')
+        // Segment timer is secondary so it doesn't steal the primary clock
+        new TimerBehavior('up', undefined, 'Segment Timer', 'secondary')
       ],
       "Effort",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam
       label,     // label
-      compiledMetrics  // pass through compiled metrics
+      fragments
     );
+
+    // Ensure actions are exposed (fragment-based plus default next)
+    this.behaviors.unshift(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
   }
 
   /**

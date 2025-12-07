@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { RuntimeMetric } from '../RuntimeMetric';
+import { metricsToFragments } from '../utils/metricsToFragments';
 
 /**
  * Action for declarative metric emission from behaviors.
@@ -37,12 +38,14 @@ export class EmitMetricAction implements IRuntimeAction {
     
     const blockId = currentBlock.key.toString();
     
-    // Primary: Record to ExecutionTracker (unified tracking)
+    // Primary: convert to fragments and append to execution tracker
     if (runtime.tracker) {
-      runtime.tracker.recordLegacyMetric(blockId, this.metric);
+      const fragments = metricsToFragments([this.metric]);
+      runtime.tracker.appendFragments(blockId, fragments);
+      runtime.tracker.recordLegacyMetric(blockId, this.metric); // keep exerciseId propagation for now
     }
 
-    // Secondary: Also collect in the global metrics system for aggregate stats
+    // Secondary: Deprecated metric collector remains for compatibility
     if (runtime.metrics && typeof runtime.metrics.collect === 'function') {
       runtime.metrics.collect(this.metric);
     }

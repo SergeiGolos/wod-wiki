@@ -95,7 +95,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     
     const blockKey = new BlockKey('root');
     // Use 'root' as blockId and exerciseId for the root context
-    const context = new BlockContext(runtime, blockKey.toString(), 'root');
+    const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
     
     const behaviors: IRuntimeBehavior[] = [];
     
@@ -109,8 +109,8 @@ export class RuntimeFactory implements IRuntimeFactory {
     behaviors.push(rootBehavior);
     
     // Add TimerBehavior to root block and start it immediately for the overall runtime clock
-    // Use 'up' direction (count up) for the main workout timer
-    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'secondary', true));
+    // Use 'up' direction (count up) for the main workout timer; mark as primary for the UI
+    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'primary', true));
     
     // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
     

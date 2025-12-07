@@ -1,3 +1,4 @@
+import { MetricBehavior } from "../../types/MetricBehavior";
 import { CodeMetadata } from "./CodeMetadata";
 
 /**
@@ -15,7 +16,16 @@ export enum FragmentCollectionState {
   UserCollected = 'user-collected',
   
   /** Value has been collected and populated */
-  Collected = 'collected'
+  Collected = 'collected',
+
+  /** Value is a hint or suggestion not strictly enforced */
+  Hinted = 'hinted',
+
+  /** Value is actively being tracked during execution */
+  Tracked = 'tracked',
+
+  /** Value is derived from analysis */
+  Analyzed = 'analyzed'
 }
 
 export interface ICodeFragment {
@@ -26,6 +36,8 @@ export interface ICodeFragment {
   readonly fragmentType: FragmentType;
   /** Collection state for collectible fragments. Defaults to 'defined' for fully specified values. */
   readonly collectionState?: FragmentCollectionState;
+  /** Behavioral grouping describing the intent of the fragment. */
+  readonly behavior?: MetricBehavior;
   // Pure data interface - no metric methods
 }
 

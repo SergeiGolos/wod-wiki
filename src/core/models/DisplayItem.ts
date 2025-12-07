@@ -8,10 +8,14 @@
  * ensuring consistent color-coding and styling across all views.
  * 
  * @see docs/deep-dives/unified-visualization-system.md
- * @see docs/deep-dives/unified-visualization-implementation-guide.md
+ * 
+ * Can represent:
+ * - Parsed code statements (from parser)
+ * - Active runtime blocks (from stack)
+ * - Execution spans (from history)
  */
 
-import { ICodeFragment } from './CodeFragment';
+import { ICodeFragment, FragmentCollectionState } from './CodeFragment';
 
 /**
  * Status of a display item in the execution lifecycle
@@ -19,18 +23,27 @@ import { ICodeFragment } from './CodeFragment';
 export type DisplayStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
 
 /**
+ * Visual size configurations for display components
+ */
+export type VisualizerSize = 'compact' | 'normal' | 'focused';
+
+/**
+ * Filter configuration for fragments within display items
+ */
+export interface VisualizerFilter {
+  /** Only show fragments with these states. If undefined, show all. */
+  allowedStates?: FragmentCollectionState[];
+  /** Hide fragments of these types (overrides allowedStates) */
+  typeOverrides?: Record<string, boolean>;
+  /** Hide specific named fragments (overrides everything) */
+  nameOverrides?: Record<string, boolean>;
+}
+
+/**
  * Source type indicator for debugging and tooltips
  */
 export type DisplaySourceType = 'statement' | 'block' | 'span' | 'record';
 
-/**
- * Unified display item interface
- * 
- * Can represent:
- * - Parsed code statements (from parser)
- * - Active runtime blocks (from stack)
- * - Execution spans (from history)
- */
 export interface IDisplayItem {
   // === Identity ===
   /** Unique identifier */
@@ -43,11 +56,14 @@ export interface IDisplayItem {
    * Fragments to display - THE KEY FIELD
    * 
    * All workout data ultimately becomes fragment arrays:
-   * - Statements: already have fragments[]
-   * - Blocks: compiledMetrics → metricsToFragments()
-   * - Spans: SpanMetrics → spanMetricsToFragments()
+  * - Statements: already have fragments[]
+  * - Blocks: carry fragments directly
+  * - Spans: SpanMetrics → spanMetricsToFragments()
    */
   fragments: ICodeFragment[];
+  
+  /** Calculated duration (ms) */
+  duration?: number;
   
   // === Layout ===
   /** Nesting depth for indentation (0 = root level) */
@@ -72,8 +88,6 @@ export interface IDisplayItem {
   startTime?: number;
   /** End timestamp (ms) */
   endTime?: number;
-  /** Calculated duration (ms) */
-  duration?: number;
   
   // === Optional Label ===
   /** Display label (fallback if fragments empty) */

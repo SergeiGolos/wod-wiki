@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Lexer } from 'chevrotain';
 import { allTokens } from '../parser/timer.tokens';
 import { MdTimerParse } from '../parser/timer.parser';
@@ -6,25 +6,23 @@ import { MdTimerInterpreter } from '../parser/timer.visitor';
 import { WodScript } from '../parser/WodScript';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
+import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
+import { FragmentCollectionState } from '../core/models/CodeFragment';
 
 interface ParsedViewProps {
   wodscript: string;
-  onSelectionChange?: (statementId: number | null) => void;
-  activeStatementIds?: number[];
-  selectedStatementId?: number | null;
+  className?: string;
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
 }
 
-const ParsedView: React.FC<ParsedViewProps> = ({
-  wodscript,
-  onSelectionChange,
-  activeStatementIds,
-  selectedStatementId,
+export const ParsedView: React.FC<ParsedViewProps> = ({ 
+  wodscript, 
+  className = '',
+  size = 'normal'
 }) => {
-  const [error, setError] = useState<string | null>(null);
-
-  const parsedScript = useMemo(() => {
-    setError(null);
-    if (!wodscript) return null;
+  const { statements, error } = useMemo(() => {
+    if (!wodscript) return { statements: [], error: null };
     
     const trimmedScript = wodscript.trim();
 
@@ -33,50 +31,56 @@ const ParsedView: React.FC<ParsedViewProps> = ({
       const lexingResult = lexer.tokenize(trimmedScript);
       
       if (lexingResult.errors.length > 0) {
-        const msg = `Lexing errors: ${lexingResult.errors.map(e => e.message).join(', ')}`;
-        console.error(msg);
-        setError(msg);
-        return null;
+        throw new Error(`Lexing errors: ${lexingResult.errors.map(e => e.message).join(', ')}`);
       }
 
       const parser = new MdTimerParse(lexingResult.tokens) as any;
       const cst = parser.wodMarkdown();
 
       if (parser.errors.length > 0) {
-        const msg = `Parsing errors: ${parser.errors.map((e: any) => e.message).join(', ')}`;
-        console.error(msg);
-        setError(msg);
-        return null;
+        throw new Error(`Parsing errors: ${parser.errors.map((e: any) => e.message).join(', ')}`);
       }
 
       const interpreter = new MdTimerInterpreter();
       const statements = interpreter.visit(cst) as ICodeStatement[];
       
-      return new WodScript(trimmedScript, statements);
+      return { statements, error: null };
     } catch (e) {
-      const msg = `Error parsing script: ${e instanceof Error ? e.message : String(e)}`;
-      console.error(msg);
-      setError(msg);
-      return null;
+      return { statements: [], error: e as Error };
     }
   }, [wodscript]);
 
-  if (error) {
-    return <div className="text-red-500 p-4 border border-red-200 rounded bg-red-50">{error}</div>;
-  }
+  // Filter configuration for Plan Screen Overlay
+  const planFilter: VisualizerFilter = {
+    allowedStates: [
+      FragmentCollectionState.Defined,
+      FragmentCollectionState.Hinted, 
+      FragmentCollectionState.Collected,
+      FragmentCollectionState.UserCollected 
+    ]
+  };
 
-  if (!parsedScript) {
-    return <div className="text-gray-500">No script to display</div>;
+  if (error) {
+    return (
+      <div className={`p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 ${className}`}>
+        <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">Parse Error</h3>
+        <pre className="text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap font-mono">
+          {error.message}
+        </pre>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-1 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg font-mono text-sm">
-      <WodScriptVisualizer
-        statements={parsedScript.statements}
-        activeStatementIds={activeStatementIds ? new Set(activeStatementIds) : undefined}
-        selectedStatementId={selectedStatementId}
-        onSelectionChange={onSelectionChange}
-      />
+    <div className={`h-full overflow-hidden flex flex-col ${className}`}>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <WodScriptVisualizer 
+          statements={statements} 
+          size={size}
+          filter={planFilter}
+          className="h-full"
+        />
+      </div>
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
@@ -11,8 +11,9 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
@@ -53,11 +54,10 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Rounds");
+
+        const exerciseId = (code[0] as any)?.exerciseId || '';
 
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
@@ -105,11 +105,11 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         const loopType = repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
         const loopCoordinator = new LoopCoordinatorBehavior({
@@ -175,7 +175,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Rounds",
             repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
-            compiledMetric
+            fragmentGroups
         );
     }
 }

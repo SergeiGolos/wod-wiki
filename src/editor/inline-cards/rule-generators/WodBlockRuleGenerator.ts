@@ -373,7 +373,7 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     // Statements list with fragments
     React.createElement('div', {
       key: 'body',
-      className: 'flex-1 overflow-hidden p-3 flex flex-col justify-center',
+      className: 'overflow-hidden px-3 flex flex-col justify-center',
     }, [
         React.createElement(WodScriptVisualizer, {
             key: 'visualizer',

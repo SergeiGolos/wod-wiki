@@ -12,7 +12,7 @@
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { IDisplayItem, isActiveItem } from '@/core/models/DisplayItem';
+import { IDisplayItem, isActiveItem, VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 import { UnifiedItemRow } from './UnifiedItemRow';
 import { groupLinkedItems } from '@/core/adapters/displayItemAdapters';
 
@@ -23,7 +23,11 @@ export interface UnifiedItemListProps {
   activeItemId?: string;
   /** Set of selected item IDs */
   selectedIds?: Set<string>;
-  /** Compact display mode */
+  /** Display size variant @default 'normal' */
+  size?: VisualizerSize;
+  /** Optional filter configuration */
+  filter?: VisualizerFilter;
+  /** @deprecated Use size='compact' instead */
   compact?: boolean;
   /** Show timestamps */
   showTimestamps?: boolean;
@@ -52,17 +56,23 @@ export interface UnifiedItemListProps {
 /**
  * LinkedGroup - Visual wrapper for grouped linked items
  */
-const LinkedGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="border-l-2 border-orange-400/50 ml-2 pl-1 space-y-0.5 my-1 bg-orange-500/5 rounded-r">
-    {children}
-  </div>
-);
+const LinkedGroup: React.FC<{ children: React.ReactNode; size: VisualizerSize }> = ({ children, size }) => {
+  const spacing = size === 'compact' ? 'space-y-0.5' : size === 'focused' ? 'space-y-1.5' : 'space-y-1';
+  
+  return (
+    <div className={cn("border-l-2 border-orange-400/50 ml-2 pl-1 my-1 bg-orange-500/5 rounded-r", spacing)}>
+      {children}
+    </div>
+  );
+};
 
 export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
   items,
   activeItemId,
   selectedIds,
-  compact = false,
+  size: sizeProp = 'normal',
+  filter,
+  compact: compactProp,
   showTimestamps = false,
   showDurations = false,
   groupLinked = true,
@@ -77,6 +87,9 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLDivElement>(null);
+
+  // Backward compatibility
+  const size = compactProp ? 'compact' : sizeProp;
   
   // Process items: optionally group linked items
   const processedItems = useMemo(() => {
@@ -137,7 +150,8 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
           item={item}
           isSelected={isSelected}
           isHighlighted={isActive && !isSelected}
-          compact={compact}
+          size={size}
+          filter={filter}
           showTimestamp={showTimestamps}
           showDuration={showDurations}
           actions={renderActions?.(item)}
@@ -154,13 +168,16 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
     return (
       <div className={cn(
         'flex items-center justify-center text-muted-foreground text-sm',
-        compact ? 'p-2' : 'p-4',
+        size === 'compact' ? 'p-2' : size === 'focused' ? 'p-6' : 'p-4',
         className
       )}>
         {emptyMessage}
       </div>
     );
   }
+
+  const listSpacing = size === 'compact' ? 'space-y-0.5' : size === 'focused' ? 'space-y-1.5' : 'space-y-1';
+  const listPadding = size === 'compact' ? 'py-1' : size === 'focused' ? 'py-3' : 'py-2';
   
   return (
     <div 
@@ -172,13 +189,13 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
       style={maxHeight ? { maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight } : undefined}
     >
       <div className={cn(
-        'space-y-0.5',
-        compact ? 'py-1' : 'py-2'
+        listSpacing,
+        listPadding
       )}>
         {processedItems.map((entry, index) => {
           if (entry.type === 'group') {
             return (
-              <LinkedGroup key={`group-${index}`}>
+              <LinkedGroup key={`group-${index}`} size={size}>
                 {entry.items.map(item => renderItem(item, true))}
               </LinkedGroup>
             );

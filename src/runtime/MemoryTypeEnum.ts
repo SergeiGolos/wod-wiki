@@ -16,6 +16,12 @@ export enum MemoryTypeEnum {
   DISPLAY_STACK_STATE = 'displaystack',
 
   /**
+   * Action stack state - Available actions surfaced to UI
+   * Type: ActionStackState
+   */
+  ACTION_STACK_STATE = 'actions',
+
+  /**
    * Timer state prefix - use as `timer:${blockId}`
    * Type: TimerState
    */

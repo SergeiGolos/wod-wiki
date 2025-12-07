@@ -1,0 +1,25 @@
+{
+  "title": "JIT Strategy - Group",
+  "description": "Structural grouping for nested statements (placeholder compile).",
+  "ref": "copilot/implement-rootblock-functionality",
+  "steps": [
+    {
+      "title": "Match grouped statements",
+      "description": "Matches explicit dialect hint `behavior.group` or any statement with children so nested structures are captured before falling back to EffortStrategy.",
+      "file": "src/runtime/strategies/GroupStrategy.ts",
+      "line": 45
+    },
+    {
+      "title": "Placeholder compile",
+      "description": "compile() currently only builds a RuntimeBlock shell with BlockContext and a CompletionBehavior(() => true) stub—no LoopCoordinatorBehavior, no HistoryBehavior, and no child wiring yet.",
+      "file": "src/runtime/strategies/GroupStrategy.ts",
+      "line": 64
+    },
+    {
+      "title": "Reminder about pending implementation",
+      "description": "A console.warn flags the placeholder; TODO notes call for LoopCoordinatorBehavior (loopType FIXED, totalRounds=1, childGroups = stmt.children), proper completion on children, and HistoryBehavior once implemented.",
+      "file": "src/runtime/strategies/GroupStrategy.ts",
+      "line": 71
+    }
+  ]
+}

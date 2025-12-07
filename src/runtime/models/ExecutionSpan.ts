@@ -276,11 +276,8 @@ export interface ExecutionSpan {
   /** All metrics for this span */
   metrics: SpanMetrics;
 
-  /** Fragments carried forward from the originating statements/compiled metrics */
+  /** Fragments carried forward from the originating statements */
   fragments?: ICodeFragment[];
-
-  /** Raw compiled metrics snapshot for downstream adapters/analytics */
-  compiledMetrics?: RuntimeMetric;
   
   // === Time Segments ===
   /** Sub-spans for detailed tracking (rounds, minutes, etc.) */

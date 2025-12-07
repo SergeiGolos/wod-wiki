@@ -3,19 +3,20 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
+import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Creates default countdown sound cues for a timer with specified duration.
@@ -102,18 +103,15 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const distributor = new PassthroughFragmentDistributor();
+        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Timer");
 
         // 1. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
 
         // 2. Extract exerciseId from compiled metric or statement
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = (code[0] as any)?.exerciseId || '';
 
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
@@ -129,6 +127,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
 
         // 5. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         // Add timer behavior with determined direction
         const timerBehavior = new TimerBehavior(direction, durationMs, label);
@@ -203,7 +202,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             blockKey,
             "Timer",
             label,
-            compiledMetric
+            fragmentGroups
         );
     }
 }

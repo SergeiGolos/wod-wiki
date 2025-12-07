@@ -9,6 +9,8 @@ import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
+import { ActionDescriptor } from '../../runtime/actions/ActionStackActions';
+import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
 import {
   useTimerStack,
   useCardStack
@@ -79,6 +81,19 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   }, [runtime]);
 
   const controls = useMemorySubscription(controlsRef);
+
+  // Subscribe to action stack (visible actions)
+  const actionStateRef = useMemo(() => {
+    const refs = runtime.memory.search({
+      type: MemoryTypeEnum.ACTION_STACK_STATE,
+      ownerId: 'runtime',
+      id: null,
+      visibility: null
+    });
+    return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<{ visible: ActionDescriptor[] }>) : undefined;
+  }, [runtime]);
+
+  const actionState = useMemorySubscription(actionStateRef);
 
   // Subscribe to primary-clock registry
   const primaryClockRef = useMemo(() => {
@@ -192,6 +207,13 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onPause={props.onPause}
       onStop={props.onStop}
       onNext={props.onNext}
+      actions={actionState?.visible}
+      onAction={(eventName, payload) => {
+        runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
+        if (eventName === 'next') {
+          props.onNext?.();
+        }
+      }}
       isRunning={props.isRunning}
       primaryTimer={primaryTimer}
       secondaryTimers={secondaryTimers}

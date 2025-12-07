@@ -1,3 +1,5 @@
+import { MetricBehavior } from "../types/MetricBehavior";
+
 /**
  * Represents a single measured value in the workout system.
  * Provides a standardized format for all metric data with type classification,
@@ -27,6 +29,8 @@ export interface TimeSpan {
 export interface RuntimeMetric {
   /** The ID of the ExerciseDefinition this metric relates to. */
   exerciseId: string;
+  /** Behavior grouping that explains how this metric is intended to be used. */
+  behavior?: MetricBehavior;
   /** Array of metric values (reps, distance, etc.) */
   values: MetricValue[];
   /** The time spans during which the values were recorded. */
@@ -42,6 +46,8 @@ export interface MetricEntry {
   sourceId: string;
   /** Runtime block id that owns this metric entry */
   blockId: string;
+  /** Behavior grouping carried from the parent RuntimeMetric */
+  behavior?: MetricBehavior;
   /** Metric type */
   type: MetricValue['type'];
   /** Numeric or undefined value */

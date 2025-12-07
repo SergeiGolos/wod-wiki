@@ -44,8 +44,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             'idle-start', 
             'Ready', 
             { 
-                popOnNext: false, 
-                popOnEvents: ['next'],
+                popOnNext: true, 
+                popOnEvents: [],
                 buttonLabel: 'Start Workout',
                 buttonAction: 'timer:start'
             }
@@ -115,7 +115,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     const finalIdleBlock = this.createIdleBlock(
                         runtime,
                         'idle-end',
-                        'Finished',
+                        'Cooldown, checkout the Analytics',
                         { 
                             popOnNext: false,
                             popOnEvents: ['stop', 'view-results'],
@@ -236,7 +236,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 const finalIdleBlock = this.createIdleBlock(
                     runtime,
                     'idle-end',
-                    'Finished',
+                    'Cooldown, checkout the Analytics',
                     { 
                         popOnNext: false, 
                         popOnEvents: ['stop', 'view-results'],
@@ -316,7 +316,9 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 popOnEvents: config.popOnEvents,
                 buttonLabel: config.buttonLabel,
                 buttonAction: config.buttonAction
-            })
+            }),
+            // Add TimerBehavior so this block appears in the timer stack
+            new TimerBehavior('up', undefined, label, 'secondary')
         ];
 
         return new RuntimeBlock(
