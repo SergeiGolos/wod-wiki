@@ -95,7 +95,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     
     const blockKey = new BlockKey('root');
     // Use 'root' as blockId and exerciseId for the root context
-    const context = new BlockContext(runtime, blockKey.toString(), 'Total Time');
+    const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
     
     const behaviors: IRuntimeBehavior[] = [];
     
@@ -121,7 +121,7 @@ export class RuntimeFactory implements IRuntimeFactory {
         context,
         blockKey,
         "Root",
-        "Total Time"
+        "Workout"
     );
     
     if (!rootBlock) {
