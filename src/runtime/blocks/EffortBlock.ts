@@ -12,6 +12,7 @@ import { CurrentMetrics } from '../models/MemoryModels';
 import { ExecutionSpan } from '../models/ExecutionSpan';
 import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
+import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
 /**
  * EffortBlock Configuration
@@ -106,6 +107,9 @@ export class EffortBlock extends RuntimeBlock {
       label,     // label
       fragments
     );
+
+    // Ensure actions are exposed (fragment-based plus default next)
+    this.behaviors.unshift(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
   }
 
   /**

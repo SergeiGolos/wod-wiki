@@ -14,6 +14,7 @@ import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates effort blocks for simple exercises.
@@ -91,6 +92,8 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
         // 6. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        const actionBehavior = new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []);
+        behaviors.push(actionBehavior);
 
         // Effort blocks are leaf nodes that complete on first next() call (not on push)
         // This prevents recursion during mount where push -> complete -> pop -> next -> push...

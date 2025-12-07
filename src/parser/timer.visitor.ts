@@ -1,5 +1,5 @@
 import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
-import { ICodeStatement } from "../CodeStatement";
+
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
@@ -10,6 +10,7 @@ import { DistanceFragment } from "../fragments/DistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
+import { ICodeStatement } from "@/core";
 
 export type GroupType = 'round' | 'compose' | 'repeat';
 
@@ -129,10 +130,34 @@ export class MdTimerInterpreter extends BaseCstVisitor {
  
   action(ctx: any): ActionFragment[] {
     const meta = this.getMeta([ctx.ActionOpen[0], ctx.ActionClose[0]]);
-    const action = ctx.Identifier.map(
-      (identifier: any) => identifier.image
-    ).join(" ");
-    return [new ActionFragment(action, meta)];
+
+    // Collect all tokens inside the action fence and restore ordering by startOffset
+    const tokenBuckets = [
+      ...(ctx.Identifier || []),
+      ...(ctx.AllowedSymbol || []),
+      ...(ctx.Minus || []),
+    ];
+
+    const sortedTokens = tokenBuckets.sort((a: any, b: any) => a.startOffset - b.startOffset);
+
+    // Build raw text. Keep punctuation tight, insert spaces only between word tokens.
+    const raw = sortedTokens.reduce((acc: string, tok: any, idx: number) => {
+      const image = tok.image as string;
+      const prev = sortedTokens[idx - 1];
+      const isWord = /[a-z0-9]/i.test(image);
+      const prevIsWord = prev ? /[a-z0-9]/i.test(prev.image) : false;
+
+      if (idx > 0 && isWord && prevIsWord) {
+        acc += ' ';
+      }
+
+      return acc + image;
+    }, '').trim();
+
+    const isPinned = raw.startsWith('!');
+    const name = raw.replace(/^!/, '').trim();
+
+    return [new ActionFragment(name, meta, { raw, isPinned, name })];
   }
 
 

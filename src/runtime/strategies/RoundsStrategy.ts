@@ -13,6 +13,7 @@ import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorB
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
@@ -108,6 +109,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
 
         // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         const loopType = repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
         const loopCoordinator = new LoopCoordinatorBehavior({

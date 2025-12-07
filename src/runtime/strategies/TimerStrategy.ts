@@ -16,6 +16,7 @@ import { TimerFragment } from "../fragments/TimerFragment";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Creates default countdown sound cues for a timer with specified duration.
@@ -126,6 +127,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
 
         // 5. Create behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         // Add timer behavior with determined direction
         const timerBehavior = new TimerBehavior(direction, durationMs, label);

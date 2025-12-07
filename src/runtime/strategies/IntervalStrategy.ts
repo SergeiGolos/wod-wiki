@@ -15,6 +15,7 @@ import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -104,6 +105,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const children = code[0]?.children || [];
 
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
         // Add TimerBehavior for interval countdown (primary)
         // LoopCoordinatorBehavior will restart this timer on every round

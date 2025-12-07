@@ -15,6 +15,7 @@ import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
  * Strategy that creates time-bound rounds blocks for AMRAP workouts.
@@ -93,6 +94,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
 
         // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
+        behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, stmt.id ? [stmt.id] : []));
 
         // 1. Timer Behavior (Countdown) - keep secondary so global clock stays primary
         const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP', 'secondary');

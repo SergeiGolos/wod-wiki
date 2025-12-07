@@ -10,6 +10,7 @@ import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { CurrentMetrics } from '../models/MemoryModels';
 import { BlockLifecycleOptions } from '../IRuntimeBlock';
+import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
 /**
  * RoundsBlock Configuration
@@ -42,7 +43,8 @@ export class RoundsBlock extends RuntimeBlock {
   constructor(
     runtime: IScriptRuntime,
     sourceIds: number[],
-    private readonly config: RoundsBlockConfig
+    private readonly config: RoundsBlockConfig,
+    fragments?: ICodeFragment[][]
   ) {
     // Validate configuration
     if (config.totalRounds < 1) {
@@ -98,8 +100,12 @@ export class RoundsBlock extends RuntimeBlock {
       "Rounds",  // blockType
       undefined, // blockKey
       undefined, // blockTypeParam
-      label      // label
+      label,     // label
+      fragments
     );
+
+    // Expose actions from fragments + default next
+    this.behaviors.unshift(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
 
     // Store reference to loop coordinator for context access
     this.loopCoordinator = loopCoordinator;
