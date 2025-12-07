@@ -44,7 +44,8 @@ const createDebugRuntimeStub = () => {
 
 class BareBlock extends RuntimeBlock {
   constructor(runtime: any) {
-    super(runtime, [], [], new BlockContext(runtime, new BlockKey().toString()), new BlockKey(), 'Test', 'Test');
+    const key = new BlockKey();
+    super(runtime, [], [], new BlockContext(runtime, key.toString()), key, 'Test', 'Test');
   }
 }
 
