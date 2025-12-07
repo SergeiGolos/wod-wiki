@@ -1,6 +1,6 @@
 import { IScriptRuntime } from './IScriptRuntime';
 import { JitCompiler } from './JitCompiler';
-import { RuntimeStack } from './RuntimeStack';
+import { RuntimeStack, RuntimeStackLogger, RuntimeStackOptions } from './RuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IEventHandler } from "./IEventHandler";
@@ -27,7 +27,7 @@ import {
     TextFragmentCompiler,
     TimerFragmentCompiler
 } from './FragmentCompilers';
-import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
+import { DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
 import { NextBlockLogger } from './NextBlockLogger';
 import { TestableBlock } from './testing/TestableBlock';
 
@@ -44,14 +44,14 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly eventBus: EventBus;
     public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
-    public readonly options: IRuntimeOptions;
+    public readonly options: RuntimeStackOptions;
     private readonly executionTracker: ExecutionTracker;
     private _lastUpdatedBlocks: Set<string> = new Set();
     
     constructor(
         public readonly script: WodScript, 
         compiler: JitCompiler,
-        options: IRuntimeOptions = {}
+        options: RuntimeStackOptions = {}
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
@@ -60,15 +60,29 @@ export class ScriptRuntime implements IScriptRuntime {
         this.executionTracker = new ExecutionTracker(this.memory);
         this.eventBus = new EventBus();
         
+        const unregisterHook = this.options.hooks?.unregisterByOwner;
+        const stackOptions: RuntimeStackOptions = {
+            ...this.options,
+            tracker: this.options.tracker ?? this.executionTracker,
+            logger: this.options.logger ?? this.createStackLogger(),
+            hooks: {
+                ...this.options.hooks,
+                unregisterByOwner: (ownerKey: string) => {
+                    unregisterHook?.(ownerKey);
+                    this.eventBus.unregisterByOwner(ownerKey);
+                },
+            },
+        };
+
         // Use DebugRuntimeStack if debugMode is enabled, otherwise use MemoryAwareRuntimeStack
         if (this.options.debugMode) {
-            this.stack = new DebugRuntimeStack(this, this.executionTracker, this.options);
+            this.stack = new DebugRuntimeStack(this, this.executionTracker, stackOptions);
             
             // Enable NextBlockLogger automatically in debug mode
             NextBlockLogger.setEnabled(true);
             console.log('🔍 ScriptRuntime: Debug mode enabled - blocks will be wrapped with TestableBlock');
         } else {
-            this.stack = new MemoryAwareRuntimeStack(this, this.executionTracker);
+            this.stack = new MemoryAwareRuntimeStack(this, this.executionTracker, stackOptions);
         }
         
         // Enable logging if explicitly requested (even without full debug mode)
@@ -150,25 +164,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * This demonstrates the consumer-managed dispose pattern.
      */
     public popAndDispose(): void {
-        if (typeof (this.stack as any).popWithLifecycle === 'function') {
-            (this.stack as any).popWithLifecycle();
-            return;
-        }
-
-        const poppedBlock = this.stack.pop();
-        if (poppedBlock) {
-            try {
-                poppedBlock.dispose(this);
-            } catch (error) {
-                console.error(`  ❌ Error disposing block: ${error}`);
-            }
-
-            try {
-                this.eventBus.unregisterByOwner(poppedBlock.key.toString());
-            } catch (error) {
-                console.error('  ❌ Error unregistering handlers during popAndDispose', error);
-            }
-        }
+        this.stack.pop();
     }
 
     /**
@@ -179,32 +175,8 @@ export class ScriptRuntime implements IScriptRuntime {
         // Stop the clock
         this.clock.stop();
 
-        const disposeErrors: Error[] = [];
-        
         while (this.stack.blocks.length > 0) {
-            const block = this.stack.pop();
-            if (block) {
-                try {
-                    block.dispose(this);
-                } catch (error) {
-                    disposeErrors.push(error as Error);
-                    console.error(`  ❌ Error disposing ${block.key.toString()}: ${error}`);
-                }
-
-                try {
-                    this.eventBus.unregisterByOwner(block.key.toString());
-                } catch (error) {
-                    console.error('  ❌ Error unregistering handlers during disposeAllBlocks', error);
-                }
-
-                if (this.stack instanceof DebugRuntimeStack) {
-                    (this.stack as DebugRuntimeStack).cleanupWrappedBlock(block.key.toString());
-                }
-            }
-        }
-        
-        if (disposeErrors.length > 0) {
-            console.warn(`🧠 ScriptRuntime.disposeAllBlocks() - ${disposeErrors.length} dispose errors occurred`);
+            this.stack.pop();
         }
     }
     
@@ -261,6 +233,19 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public getWrappedBlock(blockKey: string): TestableBlock | undefined {
         return this.debugStack?.getWrappedBlock(blockKey);
+    }
+
+    private createStackLogger(): RuntimeStackLogger {
+        return {
+            debug: (message: string, details?: Record<string, unknown>) => {
+                if (this.options.enableLogging || this.options.debugMode) {
+                    console.debug(message, details);
+                }
+            },
+            error: (message: string, error: unknown, details?: Record<string, unknown>) => {
+                console.error(message, error, details);
+            },
+        };
     }
     
     /**

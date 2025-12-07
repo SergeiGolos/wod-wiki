@@ -67,8 +67,8 @@ flowchart LR
 - **Mount**: block returns initial `IRuntimeAction[]` (often `PushAction` for first child).
 - **Handle Events**: `ScriptRuntime.handle` pulls all `handler` refs from memory; actions executed in order.
 - **Next**: after child pop, parent `next()` decides next child or completion.
-- **Pop**: block removed from stack.
-- **Dispose**: consumer (runtime) must call `dispose()` immediately after pop to release memory/handlers.
+- **Pop**: stack orchestrates unmount → pop/end span → dispose → `context.release()` → hook-driven unregister → parent `next()` actions.
+- **Dispose**: executed inside stack pop; blocks still implement `dispose()`/`context.release()` but callers do not manually dispose.
 
 ```mermaid
 gantt
@@ -124,7 +124,8 @@ graph TD
 - Add behavior: compose into blocks; ensure constructor allocation and memory/handler registration; use `recordMetric`/segments for telemetry.
 
 ## Operational Notes
-- Stack depth capped (RuntimeStack); constructor-based init; consumer-managed dispose after pop.
+- Stack depth capped (RuntimeStack); constructor-based init; pop runs full lifecycle sequencing with injected tracker/wrapper/logger/hooks (no more consumer-managed dispose).
+- `popWithLifecycle` has been removed; call `pop()` for lifecycle + instrumentation (hooks default to no-ops unless supplied by runtime wiring).
 - Clock started in `ScriptRuntime` ctor; `tick()` emits generic tick events.
 - Debug mode: `DebugRuntimeStack` wraps blocks (`TestableBlock`), enables `NextBlockLogger`.
 - Errors: actions can include `ErrorAction`; runtime stops further handler processing if errors exist.

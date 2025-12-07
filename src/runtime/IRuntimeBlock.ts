@@ -10,19 +10,11 @@ import { RuntimeMetric } from "./RuntimeMetric";
  * 
  * ## Lifecycle Management
  * 
- * This interface supports two lifecycle patterns:
- * 
- * ### 1. Constructor-Based Initialization (Preferred)
- * - Blocks are initialized during construction
- * - RuntimeStack.push() adds block without calling lifecycle methods
- * - Consumer is responsible for proper resource management
- * - Provides better performance and cleaner separation of concerns
- * 
- * ### 2. Consumer-Managed Disposal (Required)
- * - RuntimeStack.pop() returns block without cleanup
- * - Consumer MUST call dispose() on returned blocks
- * - Optional cleanup() method called before dispose() if present
- * - Ensures explicit resource management and prevents memory leaks
+ * Lifecycle pattern:
+ * - Blocks initialize in constructors and register resources
+ * - RuntimeStack.push() validates and stores blocks
+ * - RuntimeStack.pop() orchestrates unmount → dispose → context.release → parent.next
+ * - Blocks must implement dispose/unmount, but callers no longer manually dispose popped blocks
  * 
  * ## Performance Requirements
  * - All lifecycle methods should complete within 50ms
@@ -31,15 +23,11 @@ import { RuntimeMetric } from "./RuntimeMetric";
  * 
  * @example
  * ```typescript
- * // Constructor-based initialization
  * const block = new MyRuntimeBlock(config); // Initialization happens here
- * stack.push(block); // No lifecycle method calls
+ * stack.push(block);
  * 
- * // Consumer-managed disposal
- * const poppedBlock = stack.pop(); // No cleanup method calls
- * if (poppedBlock) {
- *   poppedBlock.dispose(); // Consumer responsibility
- * }
+ * // Pop now runs lifecycle sequencing internally
+ * stack.pop();
  * ```
  */
 export interface IRuntimeBlock {

@@ -22,7 +22,11 @@ const createRuntimeStub = () => {
     clock: { now: 0, register: () => {}, unregister: () => {} },
     handle: (_event: any) => {},
   };
-  runtime.stack = new MemoryAwareRuntimeStack(runtime, tracker);
+  runtime.stack = new MemoryAwareRuntimeStack(runtime, tracker, {
+    hooks: {
+      unregisterByOwner: (ownerKey: string) => runtime.eventBus.unregisterByOwner(ownerKey),
+    },
+  });
   return runtime as any;
 };
 
@@ -38,7 +42,12 @@ const createDebugRuntimeStub = () => {
     clock: { now: 0, register: () => {}, unregister: () => {} },
     handle: (_event: any) => {},
   };
-  runtime.stack = new DebugRuntimeStack(runtime, tracker, { debugMode: true });
+  runtime.stack = new DebugRuntimeStack(runtime, tracker, {
+    debugMode: true,
+    hooks: {
+      unregisterByOwner: (ownerKey: string) => runtime.eventBus.unregisterByOwner(ownerKey),
+    },
+  });
   return runtime as any;
 };
 
@@ -74,7 +83,7 @@ describe('EventBus dispatch', () => {
   });
 });
 
-describe('Lifecycle popWithLifecycle', () => {
+describe('Lifecycle pop sequencing', () => {
   it('unmounts, disposes, and releases context memory', () => {
     const runtime = createRuntimeStub();
     const stack = runtime.stack as MemoryAwareRuntimeStack;
@@ -87,7 +96,7 @@ describe('Lifecycle popWithLifecycle', () => {
     stack.push(block);
     expect(runtime.memory.search({ ownerId: block.key.toString(), type: 'test-mem', id: null, visibility: null }).length).toBe(1);
 
-    stack.popWithLifecycle();
+    stack.pop();
 
     expect(runtime.memory.search({ ownerId: block.key.toString(), type: 'test-mem', id: null, visibility: null }).length).toBe(0);
     expect(unregisterSpy).toHaveBeenCalledWith(block.key.toString());
@@ -103,7 +112,7 @@ describe('Lifecycle popWithLifecycle', () => {
     stack.push(block);
     expect(stack.getWrappedBlock(block.key.toString())).toBeDefined();
 
-    stack.popWithLifecycle();
+    stack.pop();
 
     expect(unregisterSpy).toHaveBeenCalledWith(block.key.toString());
     expect(stack.getWrappedBlock(block.key.toString())).toBeUndefined();

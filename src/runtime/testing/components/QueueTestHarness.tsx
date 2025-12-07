@@ -304,10 +304,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
         }
         
         case 'pop': {
-          const popped = runtime.stack.pop();
-          if (popped) {
-            popped.dispose(runtime);
-          }
+          runtime.stack.pop();
           resultBlock = runtime.stack.current ?? null;
           break;
         }
