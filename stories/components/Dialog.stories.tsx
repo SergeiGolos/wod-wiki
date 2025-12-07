@@ -9,53 +9,53 @@ const meta: Meta<typeof Dialog> = {
   parameters: {
     layout: 'centered',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;
 type Story = StoryObj<typeof Dialog>;
 
 // Interactive wrapper for dialog stories
-const DialogDemo: React.FC<{ 
+const DialogDemo: React.FC<{
   initialOpen?: boolean;
   children?: React.ReactNode;
   title?: string;
   description?: string;
   contentClassName?: string;
-}> = ({ 
-  initialOpen = false, 
+}> = ({
+  initialOpen = false,
   children,
   title = "Dialog Title",
   description = "This is a dialog description providing context.",
   contentClassName
 }) => {
-  const [open, setOpen] = useState(initialOpen);
-  
-  return (
-    <div className="space-y-4">
-      <Button onClick={() => setOpen(true)}>Open Dialog</Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={contentClassName}>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
-          {children || (
-            <div className="mt-4">
-              <p className="text-sm text-gray-600">
-                Dialog content goes here. You can add forms, messages, or any other content.
-              </p>
-              <div className="mt-6 flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => setOpen(false)}>Confirm</Button>
+    const [open, setOpen] = useState(initialOpen);
+
+    return (
+      <div className="space-y-4">
+        <Button onClick={() => setOpen(true)}>Open Dialog</Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className={contentClassName}>
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+            {children || (
+              <div className="mt-4">
+                <p className="text-sm text-gray-600">
+                  Dialog content goes here. You can add forms, messages, or any other content.
+                </p>
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={() => setOpen(false)}>Confirm</Button>
+                </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
 
 /**
  * Dialog in closed state
@@ -90,7 +90,7 @@ export const Open: Story = {
  */
 export const WithContent: Story = {
   render: () => (
-    <DialogDemo 
+    <DialogDemo
       initialOpen={true}
       title="Confirm Action"
       description="Are you sure you want to proceed with this action?"
@@ -124,7 +124,7 @@ export const WithContent: Story = {
 export const CloseOnBackdrop: Story = {
   render: () => (
     <div className="space-y-4">
-      <DialogDemo 
+      <DialogDemo
         initialOpen={true}
         title="Click Outside to Close"
         description="Click the backdrop (dark area) to close this dialog."
@@ -155,7 +155,7 @@ export const CloseOnBackdrop: Story = {
 export const AnimatedTransition: Story = {
   render: () => {
     const [open, setOpen] = useState(false);
-    
+
     return (
       <div className="space-y-4 text-center">
         <p className="text-sm text-muted-foreground">
@@ -199,7 +199,7 @@ export const AnimatedTransition: Story = {
  */
 export const CustomClassName: Story = {
   render: () => (
-    <DialogDemo 
+    <DialogDemo
       initialOpen={true}
       title="Custom Styled Dialog"
       description="This dialog has a custom className applied."
@@ -230,7 +230,7 @@ export const CustomClassName: Story = {
 export const FormDialog: Story = {
   render: () => {
     const [open, setOpen] = useState(true);
-    
+
     return (
       <div>
         <Button onClick={() => setOpen(true)}>Edit Profile</Button>

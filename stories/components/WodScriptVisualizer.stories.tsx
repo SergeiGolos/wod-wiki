@@ -10,7 +10,7 @@ const meta: Meta<typeof WodScriptVisualizer> = {
   parameters: {
     layout: 'padded',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;
@@ -181,7 +181,7 @@ export const CompactMode: Story = {
 export const HoverInteraction: Story = {
   render: () => {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
-    
+
     return (
       <div className="space-y-4">
         <div className="text-sm text-muted-foreground">
@@ -225,7 +225,7 @@ export const EmptyStatements: Story = {
 export const SelectionChange: Story = {
   render: () => {
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    
+
     return (
       <div className="space-y-4">
         <div className="text-sm text-muted-foreground">
@@ -341,7 +341,7 @@ export const FullInteractiveDemo: Story = {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const [activeIds] = useState(new Set([2]));
-    
+
     return (
       <div className="space-y-4">
         <div className="flex gap-4 text-sm">

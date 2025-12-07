@@ -22,7 +22,7 @@ const meta: Meta<typeof AnalyticsIndexPanel> = {
   parameters: {
     layout: 'fullscreen',
   },
-  tags: ['autodocs'],
+
   argTypes: {
     onSelectSegment: { action: 'selected' },
   },
@@ -36,7 +36,7 @@ type Story = StoryObj<typeof AnalyticsIndexPanel>;
 const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segment[] => {
   const segments: Segment[] = [];
   let currentTime = 0;
-  
+
   // Root
   segments.push({
     id: 1,
@@ -62,7 +62,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         duration: 60,
         parentId: 1,
         depth: 1,
-        metrics: { 
+        metrics: {
           power: i % 2 === 0 ? 200 : 50,
           heart_rate: i % 2 === 0 ? 160 : 110
         },
@@ -73,7 +73,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
   } else {
     // Complex nested structure
     let idCounter = 2;
-    
+
     // Warmup
     segments.push({
       id: idCounter++,
@@ -87,7 +87,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
       metrics: { power: 100, heart_rate: 110 },
       lane: 1
     });
-    
+
     // Main Set
     const mainSetId = idCounter++;
     segments.push({
@@ -133,7 +133,7 @@ const generateSegments = (count: number, complexity: 'simple' | 'complex'): Segm
         metrics: { power: 200, heart_rate: 160, cadence: 180 },
         lane: 3
       });
-      
+
       segments.push({
         id: idCounter++,
         name: '15 Burpees',
@@ -174,7 +174,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
     // Cindy: 20 min AMRAP of 5 Pull-ups, 10 Push-ups, 15 Squats
     const duration = 20 * 60;
     const rootId = idCounter++;
-    
+
     segments.push({
       id: rootId,
       name: 'AMRAP 20: Cindy',
@@ -192,85 +192,85 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
     let round = 1;
     // Simulate rounds until time is up
     while (currentTime < duration) {
-       // Variation in round times
-       const pullupTime = 10 + Math.random() * 5;
-       const pushupTime = 15 + Math.random() * 5;
-       const squatTime = 20 + Math.random() * 5;
-       const transitionTime = 5 + Math.random() * 5;
-       
-       const roundDuration = pullupTime + pushupTime + squatTime + transitionTime;
-       
-       // Don't add partial round if it exceeds time significantly (simplified logic)
-       if (currentTime + roundDuration > duration + 30) break;
+      // Variation in round times
+      const pullupTime = 10 + Math.random() * 5;
+      const pushupTime = 15 + Math.random() * 5;
+      const squatTime = 20 + Math.random() * 5;
+      const transitionTime = 5 + Math.random() * 5;
 
-       const roundId = idCounter++;
-       const roundEnd = Math.min(currentTime + roundDuration, duration);
-       
-       segments.push({
-         id: roundId,
-         name: `Round ${round}`,
-         type: 'round',
-         startTime: currentTime,
-         endTime: roundEnd,
-         duration: roundEnd - currentTime,
-         parentId: rootId,
-         depth: 1,
-         metrics: { 
-           power: 150 - (round * 0.5),
-           heart_rate: 140 + (round * 0.5)
-         },
-         lane: 1
-       });
+      const roundDuration = pullupTime + pushupTime + squatTime + transitionTime;
 
-       // Movements
-       let moveStart = currentTime;
-       
-       // Pullups
-       segments.push({
-         id: idCounter++,
-         name: '5 Pull-ups',
-         type: 'work',
-         startTime: moveStart,
-         endTime: moveStart + pullupTime,
-         duration: pullupTime,
-         parentId: roundId,
-         depth: 2,
-         metrics: { power: 160, heart_rate: 145 },
-         lane: 2
-       });
-       moveStart += pullupTime;
+      // Don't add partial round if it exceeds time significantly (simplified logic)
+      if (currentTime + roundDuration > duration + 30) break;
 
-       // Pushups
-       segments.push({
-         id: idCounter++,
-         name: '10 Push-ups',
-         type: 'work',
-         startTime: moveStart,
-         endTime: moveStart + pushupTime,
-         duration: pushupTime,
-         parentId: roundId,
-         depth: 2,
-         metrics: { power: 140, heart_rate: 150 },
-         lane: 2
-       });
-       moveStart += pushupTime;
+      const roundId = idCounter++;
+      const roundEnd = Math.min(currentTime + roundDuration, duration);
 
-       // Squats
-       segments.push({
-         id: idCounter++,
-         name: '15 Squats',
-         type: 'work',
-         startTime: moveStart,
-         endTime: moveStart + squatTime,
-         duration: squatTime,
-         parentId: roundId,
-         depth: 2,
-         metrics: { power: 130, heart_rate: 155 },
-         lane: 2
-       });
+      segments.push({
+        id: roundId,
+        name: `Round ${round}`,
+        type: 'round',
+        startTime: currentTime,
+        endTime: roundEnd,
+        duration: roundEnd - currentTime,
+        parentId: rootId,
+        depth: 1,
+        metrics: {
+          power: 150 - (round * 0.5),
+          heart_rate: 140 + (round * 0.5)
+        },
+        lane: 1
+      });
 
-       currentTime = roundEnd;
-       round++;
+      // Movements
+      let moveStart = currentTime;
+
+      // Pullups
+      segments.push({
+        id: idCounter++,
+        name: '5 Pull-ups',
+        type: 'work',
+        startTime: moveStart,
+        endTime: moveStart + pullupTime,
+        duration: pullupTime,
+        parentId: roundId,
+        depth: 2,
+        metrics: { power: 160, heart_rate: 145 },
+        lane: 2
+      });
+      moveStart += pullupTime;
+
+      // Pushups
+      segments.push({
+        id: idCounter++,
+        name: '10 Push-ups',
+        type: 'work',
+        startTime: moveStart,
+        endTime: moveStart + pushupTime,
+        duration: pushupTime,
+        parentId: roundId,
+        depth: 2,
+        metrics: { power: 140, heart_rate: 150 },
+        lane: 2
+      });
+      moveStart += pushupTime;
+
+      // Squats
+      segments.push({
+        id: idCounter++,
+        name: '15 Squats',
+        type: 'work',
+        startTime: moveStart,
+        endTime: moveStart + squatTime,
+        duration: squatTime,
+        parentId: roundId,
+        depth: 2,
+        metrics: { power: 130, heart_rate: 155 },
+        lane: 2
+      });
+
+      currentTime = roundEnd;
+      round++;
     }
   } else if (type === 'emom') {
     // EMOM 10: 15 Wall Balls
@@ -294,7 +294,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
     for (let i = 0; i < minutes; i++) {
       const intervalStart = i * 60;
       const intervalId = idCounter++;
-      
+
       segments.push({
         id: intervalId,
         name: `Minute ${i + 1}`,
@@ -360,14 +360,14 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
     for (let r = 1; r <= 3; r++) {
       const roundStart = currentTime;
       const roundId = idCounter++;
-      
+
       // Run 400m (~2 mins)
       const runTime = 110 + Math.random() * 20;
       // KBS (~1 min)
       const kbsTime = 50 + Math.random() * 10;
       // Pullups (~40s)
       const pullupTime = 30 + Math.random() * 15;
-      
+
       const roundDuration = runTime + kbsTime + pullupTime;
 
       segments.push({
@@ -425,7 +425,7 @@ const generateWorkoutData = (type: 'amrap' | 'emom' | 'rounds'): Segment[] => {
         metrics: { power: 160, heart_rate: 165 },
         lane: 2
       });
-      
+
       currentTime += roundDuration;
     }
 

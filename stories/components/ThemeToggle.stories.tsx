@@ -22,7 +22,7 @@ const meta: Meta<typeof ThemeToggleWrapper> = {
   parameters: {
     layout: 'centered',
   },
-  tags: ['autodocs'],
+
   argTypes: {
     theme: {
       control: 'select',

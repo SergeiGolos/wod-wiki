@@ -7,7 +7,7 @@ const meta: Meta<typeof ParsedView> = {
   parameters: {
     layout: 'centered',
   },
-  tags: ['autodocs'],
+
   argTypes: {
     wodscript: { control: 'text' },
     activeStatementIds: { control: 'object' },
@@ -52,13 +52,13 @@ export const MultipleActive: Story = {
 };
 
 export const Interactive: Story = {
-    args: {
-        wodscript: sampleScript,
-    },
-    render: (args) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const [selected, setSelected] = React.useState<number | null>(null);
-        return <ParsedView {...args} selectedStatementId={selected} onSelectionChange={setSelected} />;
-    }
+  args: {
+    wodscript: sampleScript,
+  },
+  render: (args) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [selected, setSelected] = React.useState<number | null>(null);
+    return <ParsedView {...args} selectedStatementId={selected} onSelectionChange={setSelected} />;
+  }
 }
 import React from 'react';

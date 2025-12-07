@@ -11,7 +11,7 @@ const meta: Meta<typeof StatementDisplay> = {
   parameters: {
     layout: 'padded',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;
@@ -338,7 +338,7 @@ export const FragmentListDefault: StoryObj<typeof FragmentList> = {
       { type: 'effort', fragmentType: FragmentType.Effort, value: 'Pushups', image: 'Pushups' },
       { type: 'resistance', fragmentType: FragmentType.Resistance, value: 0, image: 'bodyweight' },
     ];
-    
+
     return (
       <div className="space-y-4">
         <div>

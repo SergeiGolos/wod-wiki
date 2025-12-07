@@ -6,7 +6,7 @@ import React from 'react';
 // Demo component to show theme state
 const ThemeDisplay: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  
+
   return (
     <div className="p-6 bg-background text-foreground rounded-lg border border-border space-y-4">
       <div className="flex items-center justify-between">
@@ -45,7 +45,7 @@ const meta: Meta<typeof ThemeProvider> = {
   parameters: {
     layout: 'centered',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;

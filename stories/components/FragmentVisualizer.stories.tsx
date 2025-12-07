@@ -9,7 +9,7 @@ const meta: Meta<typeof FragmentVisualizer> = {
   parameters: {
     layout: 'padded',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;

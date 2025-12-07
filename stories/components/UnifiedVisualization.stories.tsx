@@ -9,7 +9,7 @@ const meta: Meta<typeof UnifiedItemList> = {
   parameters: {
     layout: 'padded',
   },
-  tags: ['autodocs'],
+
 };
 
 export default meta;
