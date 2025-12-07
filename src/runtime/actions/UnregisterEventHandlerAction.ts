@@ -22,19 +22,6 @@ export class UnregisterEventHandlerAction implements IRuntimeAction {
   ) {}
 
   do(runtime: IScriptRuntime): void {
-    // Remove handler from memory
-    const handlerRefs = runtime.memory.search({
-      type: 'handler',
-      id: this.handlerId,
-      ownerId: null,
-      visibility: null
-    });
-    
-    if (handlerRefs.length > 0) {
-      runtime.memory.release(handlerRefs[0] as any);
-
-    } else {
-      console.warn(`⚠️ Handler not found for unregistration: ${this.handlerId}`);
-    }
+    runtime.eventBus.unregisterById(this.handlerId);
   }
 }

@@ -28,14 +28,6 @@ export class RegisterEventHandlerAction implements IRuntimeAction {
   ) {}
 
   do(runtime: IScriptRuntime): void {
-    // Store handler in memory with standardized type 'handler'
-    runtime.memory.allocate(
-      'handler',
-      this.handler.id,
-      this.handler,
-      this.visibility
-    );
-    
-
+    runtime.eventBus.register('*', this.handler, this.ownerId);
   }
 }

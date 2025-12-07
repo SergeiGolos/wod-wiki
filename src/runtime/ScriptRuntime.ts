@@ -14,6 +14,7 @@ import { FragmentCompilationManager } from './FragmentCompilationManager';
 import { MemoryAwareRuntimeStack } from './MemoryAwareRuntimeStack';
 import { DebugRuntimeStack } from './DebugRuntimeStack';
 import { ExecutionTracker } from './ExecutionTracker';
+import { EventBus } from './EventBus';
 import {
     ActionFragmentCompiler,
     DistanceFragmentCompiler,
@@ -40,6 +41,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly memory: IRuntimeMemory;
     public readonly metrics: IMetricCollector;
     public readonly clock: RuntimeClock;
+    public readonly eventBus: EventBus;
     public readonly fragmentCompiler: FragmentCompilationManager;
     public readonly errors: RuntimeError[] = [];
     public readonly options: IRuntimeOptions;
@@ -56,6 +58,7 @@ export class ScriptRuntime implements IScriptRuntime {
         
         this.memory = new RuntimeMemory();
         this.executionTracker = new ExecutionTracker(this.memory);
+        this.eventBus = new EventBus();
         
         // Use DebugRuntimeStack if debugMode is enabled, otherwise use MemoryAwareRuntimeStack
         if (this.options.debugMode) {
@@ -120,37 +123,7 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     handle(event: IEvent): void {
-        const allActions: IRuntimeAction[] = [];
-        const updatedBlocks = new Set<string>();
-
-        // UNIFIED HANDLER PROCESSING: Get ALL handlers from memory (not just current block)
-        const handlerRefs = this.memory.search({ type: 'handler', id: null, ownerId: null, visibility: null });
-        const allHandlers = handlerRefs
-            .map(ref => this.memory.get(ref as any))
-            .filter(Boolean) as IEventHandler[];
-
-        // Process ALL handlers in memory
-        for (let i = 0; i < allHandlers.length; i++) {
-            const handler = allHandlers[i];
-            const actions = handler.handler(event, this);
-
-            if (actions.length > 0) {
-                allActions.push(...actions);
-            }
-            
-            // Check for errors - if runtime has errors, abort further processing
-            if (this.errors && this.errors.length > 0) {
-                break;
-            }
-        }
-
-        for (let i = 0; i < allActions.length; i++) {
-            const action = allActions[i];
-            action.do(this);
-        }
-        
-        // Store updated blocks for consumers to query
-        this._lastUpdatedBlocks = updatedBlocks;
+        this.eventBus.dispatch(event, this);
     }
     
     /**
@@ -177,15 +150,23 @@ export class ScriptRuntime implements IScriptRuntime {
      * This demonstrates the consumer-managed dispose pattern.
      */
     public popAndDispose(): void {
+        if (typeof (this.stack as any).popWithLifecycle === 'function') {
+            (this.stack as any).popWithLifecycle();
+            return;
+        }
+
         const poppedBlock = this.stack.pop();
-        
         if (poppedBlock) {
-            // Consumer responsibility: call dispose() on the popped block
             try {
                 poppedBlock.dispose(this);
             } catch (error) {
                 console.error(`  ❌ Error disposing block: ${error}`);
-                // Continue execution despite dispose error
+            }
+
+            try {
+                this.eventBus.unregisterByOwner(poppedBlock.key.toString());
+            } catch (error) {
+                console.error('  ❌ Error unregistering handlers during popAndDispose', error);
             }
         }
     }
@@ -208,6 +189,16 @@ export class ScriptRuntime implements IScriptRuntime {
                 } catch (error) {
                     disposeErrors.push(error as Error);
                     console.error(`  ❌ Error disposing ${block.key.toString()}: ${error}`);
+                }
+
+                try {
+                    this.eventBus.unregisterByOwner(block.key.toString());
+                } catch (error) {
+                    console.error('  ❌ Error unregistering handlers during disposeAllBlocks', error);
+                }
+
+                if (this.stack instanceof DebugRuntimeStack) {
+                    (this.stack as DebugRuntimeStack).cleanupWrappedBlock(block.key.toString());
                 }
             }
         }

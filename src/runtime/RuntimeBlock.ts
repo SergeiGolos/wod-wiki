@@ -28,8 +28,8 @@ export class RuntimeBlock implements IRuntimeBlock{
     public readonly label: string;
     public readonly compiledMetrics?: RuntimeMetric;
     public readonly context: IBlockContext;
-    // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
     private _memory: IMemoryReference[] = [];
+    private _unsubscribers: Array<() => void> = [];
 
     constructor(
         protected _runtime: IScriptRuntime,
@@ -83,9 +83,10 @@ export class RuntimeBlock implements IRuntimeBlock{
                 return this.next(runtime);
             }
         };
-        
-        // Allocate handler in memory
-        this.context.allocate<IEventHandler>('handler', handler, 'private');
+
+        // Register with event bus
+        const unsub = this._runtime.eventBus.register('tick', handler, this.key.toString());
+        this._unsubscribers.push(unsub);
     }
 
     private registerEventDispatcher() {
@@ -93,9 +94,6 @@ export class RuntimeBlock implements IRuntimeBlock{
             id: `dispatcher-${this.key.toString()}`,
             name: `EventDispatcher-${this.label}`,
             handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Only dispatch if this is the current block
-                if (runtime.stack.current !== this) return [];
-                
                 const actions: IRuntimeAction[] = [];
                 for (const behavior of this.behaviors) {
                     if (behavior.onEvent) {
@@ -108,8 +106,9 @@ export class RuntimeBlock implements IRuntimeBlock{
                 return actions;
             }
         };
-        
-        this.context.allocate<IEventHandler>('handler', handler, 'private');
+
+        const unsub = this._runtime.eventBus.register('*', handler, this.key.toString());
+        this._unsubscribers.push(unsub);
     }
 
     
@@ -216,6 +215,11 @@ export class RuntimeBlock implements IRuntimeBlock{
         for (const memRef of this._memory) {
             runtime.memory.release(memRef);
         }
+        // Unsubscribe from event bus
+        for (const unsub of this._unsubscribers) {
+            try { unsub(); } catch (error) { console.error('Error unsubscribing handler', error); }
+        }
+        this._unsubscribers = [];
         
         // NOTE: context.release() is NOT called here - it is the caller's responsibility
         // This allows behaviors to access memory during unmount() and disposal

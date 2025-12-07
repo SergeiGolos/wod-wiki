@@ -21,6 +21,60 @@ export class MemoryAwareRuntimeStack extends RuntimeStack {
   }
 
   /**
+   * Pops the current block and performs full lifecycle cleanup:
+   * unmount -> pop (ends span) -> dispose -> context.release -> parent.next
+   */
+  popWithLifecycle(): void {
+    const currentBlock = this.current;
+    if (!currentBlock) {
+      return;
+    }
+
+    let unmountActions: IRuntimeAction[] = [];
+    try {
+      unmountActions = currentBlock.unmount(this.runtime);
+    } catch (error) {
+      console.error('Error during block unmount', error);
+    }
+
+    const popped = this.pop(); // tracker.endSpan occurs in pop override
+
+    if (popped) {
+      try {
+        popped.dispose(this.runtime);
+      } catch (error) {
+        console.error('Error disposing block', error);
+      }
+
+      try {
+        if (popped.context && typeof popped.context.release === 'function') {
+          popped.context.release();
+        }
+      } catch (error) {
+        console.error('Error releasing block context', error);
+      }
+
+      try {
+        this.runtime.eventBus?.unregisterByOwner?.(popped.key.toString());
+      } catch (error) {
+        console.error('Error unregistering event handlers for block', error);
+      }
+    }
+
+    for (const action of unmountActions) {
+      try { action.do(this.runtime); } catch (error) { console.error('Error running unmount action', error); }
+    }
+
+    const parent = this.current;
+    if (parent) {
+      const nextActions = parent.next(this.runtime);
+      for (const action of nextActions) {
+        try { action.do(this.runtime); } catch (error) { console.error('Error running parent next action', error); }
+      }
+    }
+  }
+
+  /**
    * Pushes a block onto the stack and starts execution tracking.
    */
   override push(block: IRuntimeBlock): void {

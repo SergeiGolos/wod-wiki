@@ -38,41 +38,30 @@ export class PopBlockAction implements IRuntimeAction {
         }
 
         try {
+            if (typeof (runtime.stack as any).popWithLifecycle === 'function') {
+                (runtime.stack as any).popWithLifecycle();
+                return;
+            }
+
+            // Fallback for stacks without lifecycle support
             const blockKey = currentBlock.key.toString();
             const depthBefore = runtime.stack.blocks.length;
-
-            // Log pop start
             NextBlockLogger.logError('pop-block-action', new Error('Pop starting'), {
                 blockKey,
                 stackDepth: depthBefore
             });
 
-            // 1. Call block's unmount() method to get any final actions
             const unmountActions = currentBlock.unmount(runtime);
-
-            // 2. Pop the block from the stack
             const poppedBlock = runtime.stack.pop();
 
             if (poppedBlock) {
-                // 3. Call dispose() for behavior cleanup
                 poppedBlock.dispose(runtime);
-
-                // 4. Call context.release() for memory cleanup
                 if (poppedBlock.context && typeof poppedBlock.context.release === 'function') {
                     poppedBlock.context.release();
                 }
-
-                const depthAfter = runtime.stack.blocks.length;
-
-                // Log pop completion
-
-
-                // 5. Execute any unmount actions returned
                 for (const action of unmountActions) {
                     action.do(runtime);
                 }
-
-                // 6. Call parent block's next() if there's a parent
                 const parentBlock = runtime.stack.current;
                 if (parentBlock) {
                     const nextActions = parentBlock.next(runtime);

@@ -4,8 +4,6 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { PlaySoundAction } from '../actions/PlaySoundAction';
-import { RegisterEventHandlerAction } from '../actions/RegisterEventHandlerAction';
-import { UnregisterEventHandlerAction } from '../actions/UnregisterEventHandlerAction';
 import { IEventHandler } from '../IEventHandler';
 import { IEvent } from '../IEvent';
 import { 
@@ -49,6 +47,7 @@ export class SoundBehavior implements IRuntimeBehavior {
   private soundStateRef?: TypedMemoryReference<SoundState>;
   private handlerId?: string;
   private _blockId?: string;
+  private unsubscribe?: () => void;
 
   /**
    * Creates a new SoundBehavior.
@@ -145,10 +144,17 @@ export class SoundBehavior implements IRuntimeBehavior {
         return self.handleEvent(event, rt);
       }
     };
-    
-    return [
-      new RegisterEventHandlerAction(eventHandler, this._blockId)
-    ];
+
+    this.unsubscribe = runtime.eventBus.register('timer:tick', eventHandler, this._blockId);
+    return [];
+  }
+
+  onPop(): IRuntimeAction[] {
+    if (this.unsubscribe) {
+      try { this.unsubscribe(); } catch (error) { console.error('Error unsubscribing sound handler', error); }
+      this.unsubscribe = undefined;
+    }
+    return [];
   }
 
   /**

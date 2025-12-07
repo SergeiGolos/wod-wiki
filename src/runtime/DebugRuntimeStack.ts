@@ -5,6 +5,7 @@ import { ExecutionTracker } from './ExecutionTracker';
 import { TestableBlock, TestableBlockConfig } from './testing/TestableBlock';
 import { BlockWrapperFactory, DebugLogEvent, IRuntimeOptions } from './IRuntimeOptions';
 import { NextBlockLogger } from './NextBlockLogger';
+import { IRuntimeAction } from './IRuntimeAction';
 
 /**
  * Default block wrapper factory that uses TestableBlock in spy mode.
@@ -238,6 +239,62 @@ export class DebugRuntimeStack extends RuntimeStack {
         }
         
         return poppedBlock;
+    }
+
+    /**
+     * Full lifecycle pop helper matching MemoryAwareRuntimeStack semantics.
+     * Unmount -> pop (ends span) -> dispose -> context.release -> unregister handlers -> parent.next
+     */
+    popWithLifecycle(): void {
+        const currentBlock = this.current;
+        if (!currentBlock) {
+            return;
+        }
+
+        let unmountActions: IRuntimeAction[] = [];
+        try {
+            unmountActions = currentBlock.unmount(this.runtime);
+        } catch (error) {
+            console.error('Error during block unmount', error);
+        }
+
+        const popped = this.pop();
+
+        if (popped) {
+            try {
+                popped.dispose(this.runtime);
+            } catch (error) {
+                console.error('Error disposing block', error);
+            }
+
+            try {
+                if (popped.context && typeof popped.context.release === 'function') {
+                    popped.context.release();
+                }
+            } catch (error) {
+                console.error('Error releasing block context', error);
+            }
+
+            try {
+                this.runtime.eventBus?.unregisterByOwner?.(popped.key.toString());
+            } catch (error) {
+                console.error('Error unregistering event handlers for block', error);
+            }
+
+            this.cleanupWrappedBlock(popped.key.toString());
+        }
+
+        for (const action of unmountActions) {
+            try { action.do(this.runtime); } catch (error) { console.error('Error running unmount action', error); }
+        }
+
+        const parent = this.current;
+        if (parent) {
+            const nextActions = parent.next(this.runtime);
+            for (const action of nextActions) {
+                try { action.do(this.runtime); } catch (error) { console.error('Error running parent next action', error); }
+            }
+        }
     }
     
     /**

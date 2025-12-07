@@ -26,6 +26,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     private state: RootState = RootState.MOUNTING;
     private loopCoordinator: LoopCoordinatorBehavior;
     private controls: RuntimeControlsBehavior;
+    private controlUnsub?: () => void;
 
     constructor(loopConfig: LoopConfig) {
         this.loopCoordinator = new LoopCoordinatorBehavior(loopConfig);
@@ -171,9 +172,15 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 return this.handleControlEvent(event, rt, block);
             }
         };
-        
-        // Allocate handler in memory (public so it's found by runtime.handle)
-        runtime.memory.allocate<IEventHandler>('handler', block.key.toString(), handler, 'public');
+        this.controlUnsub = runtime.eventBus.register('*', handler, block.key.toString());
+    }
+
+    onPop(): IRuntimeAction[] {
+        if (this.controlUnsub) {
+            try { this.controlUnsub(); } catch (error) { console.error('Error unsubscribing root control handler', error); }
+            this.controlUnsub = undefined;
+        }
+        return [];
     }
 
     private handleControlEvent(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {

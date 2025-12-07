@@ -10,6 +10,7 @@ import { ExecutionTracker } from './ExecutionTracker';
 import { FragmentCompilationManager } from './FragmentCompilationManager';
 
 import { RuntimeClock } from './RuntimeClock';
+import { EventBus } from './EventBus';
 
 export interface IScriptRuntime {
     readonly script: WodScript;
@@ -17,6 +18,7 @@ export interface IScriptRuntime {
     readonly stack: RuntimeStack;
     readonly jit: JitCompiler;
     readonly clock: RuntimeClock;
+    readonly eventBus: EventBus;
     
     /** Fragment compilation manager for converting fragments to metrics */
     readonly fragmentCompiler: FragmentCompilationManager;

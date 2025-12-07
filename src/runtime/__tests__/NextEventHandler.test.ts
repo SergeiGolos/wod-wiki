@@ -27,6 +27,7 @@ describe('NextEventHandler', () => {
         },
         blocks: []
       },
+      eventBus: { register: vi.fn(), unregisterById: vi.fn(), unregisterByOwner: vi.fn(), dispatch: vi.fn() },
       memory: {
         allocate: vi.fn(),
         deallocate: vi.fn(),
