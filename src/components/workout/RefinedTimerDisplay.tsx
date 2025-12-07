@@ -181,7 +181,7 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                                     size="focused" 
                                     filter={stackFilter}
                                     className={`
-                                        shadow-md border rounded-lg p-3
+                                        shadow-md border rounded-lg pr-3
                                         ${isFocused 
                                             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30' 
                                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}

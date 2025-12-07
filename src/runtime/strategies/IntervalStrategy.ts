@@ -3,14 +3,13 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
@@ -60,15 +59,9 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Interval");
 
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
-
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         const fragments = code[0]?.fragments || [];

@@ -150,7 +150,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
     // Filter spans to only those present in the timer stack (or card stack for the active leaf)
     // This ensures we only show what's visually relevant/active on the stack
     // We iterate through the timerStack to preserve order
-    timerStack.forEach(timerEntry => {
+    timerStack.forEach((timerEntry, index) => {
       const span = activeSpansMap.get(timerEntry.ownerId);
       if (!span) return;
 
@@ -159,10 +159,16 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
       const isLeaf = timerEntry === timerStack[timerStack.length - 1];
 
+      // Determine display label - Override root block to "Total Time"
+      let displayLabel = span.label || (span.type === 'group' ? 'Group' : 'Block');
+      if (index === 0) {
+          displayLabel = "Total Time";
+      }
+
       // Generate fragments from metrics using the utility
       const fragments = spanMetricsToFragments(
           span.metrics || {}, 
-          span.label || (span.type === 'group' ? 'Group' : 'Block'), 
+          displayLabel, 
           span.type
       );
 
@@ -175,7 +181,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
         status: isLeaf ? 'active' : 'completed', // Visually showing parents as completed/context
         sourceType: 'span',
         sourceId: timerEntry.ownerId,
-        label: span.label
+        label: displayLabel
       };
 
       items.push(item);

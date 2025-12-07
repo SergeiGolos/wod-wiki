@@ -3,14 +3,13 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { EffortBlock } from "../blocks/EffortBlock";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createDebugMetadata } from "../models/ExecutionSpan";
@@ -49,40 +48,26 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
     }
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Effort");
-
-        // 1. Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const fragments = code[0]?.fragments || [];
+        const fragmentGroups = distributor.distribute(fragments, "Effort");
 
         // 2. Generate BlockKey
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
 
         // 3. Extract exerciseId from compiled metric or statement
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = (code[0] as any)?.exerciseId || '';
 
         // 4. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
 
-        // 5. Extract reps from compiled metrics OR inherit from parent's public metric
+        // 5. Extract reps from fragments or inherit from parent's public metric
         let reps: number | undefined = undefined;
 
-        // First, check if compiled metrics contain reps
-        const repsValue = compiledMetric.values.find(v => v.type === 'repetitions');
-        if (repsValue && typeof repsValue.value === 'number') {
-            reps = repsValue.value;
-        }
-
-        // Also check fragment for explicit reps (fallback)
-        if (reps === undefined) {
-            const fragments = code[0]?.fragments || [];
-            const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
-            if (repsFragment && typeof repsFragment.value === 'number') {
-                reps = repsFragment.value;
-            }
+        // Prefer explicit rep fragments when present
+        const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
+        if (typeof repsFragment?.value === 'number') {
+            reps = repsFragment.value;
         }
 
         // If no explicit reps, check for inherited reps from parent blocks
@@ -125,8 +110,10 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Use EffortBlock if reps are specified, otherwise fallback to generic RuntimeBlock
         // This ensures proper rep tracking and completion logic
         if (reps !== undefined) {
-            // Extract exercise name from compiled metric
-            const exerciseName = compiledMetric.exerciseId || (code[0] as any)?.exerciseName || "Exercise";
+            const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
+            const exerciseName = (typeof effortFragment?.value === 'string' && effortFragment.value.trim().length > 0)
+                ? effortFragment.value
+                : (code[0] as any)?.exerciseName || "Exercise";
 
             return new EffortBlock(
                 runtime,

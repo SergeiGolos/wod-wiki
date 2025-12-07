@@ -3,11 +3,10 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
@@ -66,17 +65,9 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(code[0]?.fragments ?? [], "Group");
 
-        // Compile statement fragments to metrics using FragmentCompilationManager (legacy compatibility)
-        const compiledMetric: RuntimeMetric | undefined = runtime.fragmentCompiler
-            ? runtime.fragmentCompiler.compileStatementFragments(
-                code[0] as CodeStatement,
-                runtime
-            )
-            : undefined;
-
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric?.exerciseId || (code[0] as any)?.exerciseId || '';
+        const exerciseId = (code[0] as any)?.exerciseId || '';
 
         const context = new BlockContext(runtime, blockId, exerciseId);
 

@@ -3,7 +3,7 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement, CodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
@@ -11,7 +11,6 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { RuntimeMetric } from "../RuntimeMetric";
 import { createDebugMetadata } from "../models/ExecutionSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
@@ -57,11 +56,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Rounds");
 
-        // Compile statement fragments to metrics using FragmentCompilationManager
-        const compiledMetric: RuntimeMetric = runtime.fragmentCompiler.compileStatementFragments(
-            code[0] as CodeStatement,
-            runtime
-        );
+        const exerciseId = (code[0] as any)?.exerciseId || '';
 
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
@@ -109,7 +104,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = compiledMetric.exerciseId || (code[0] as any)?.exerciseId || '';
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         // Create Behaviors
