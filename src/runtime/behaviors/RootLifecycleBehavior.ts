@@ -44,8 +44,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             'idle-start', 
             'Ready', 
             { 
-                popOnNext: false, 
-                popOnEvents: ['next'],
+                popOnNext: true, 
+                popOnEvents: [],
                 buttonLabel: 'Start Workout',
                 buttonAction: 'timer:start'
             }
