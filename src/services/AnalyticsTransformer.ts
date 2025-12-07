@@ -2,6 +2,7 @@ import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
 import { ExecutionSpan, SpanMetrics, DebugMetadata } from '../runtime/models/ExecutionSpan';
+import { spanMetricsToFragments } from '../runtime/utils/metricsToFragments';
 
 /**
  * Format a metric key into a human-readable label.
@@ -125,6 +126,9 @@ export class AnalyticsTransformer {
       
       // Extract metrics
       const metrics = extractMetricsFromSpanMetrics(span.metrics);
+      const fragments = (span.fragments && span.fragments.length > 0)
+        ? span.fragments
+        : spanMetricsToFragments(span.metrics, span.label, span.type);
       
       const segment: SegmentWithMetadata = {
         id: hashCode(span.id),
@@ -137,6 +141,7 @@ export class AnalyticsTransformer {
         depth,
         metrics,
         lane: depth,
+        fragments,
         // Include debug metadata for rich UI display
         debugMetadata: span.debugMetadata,
         tags: span.debugMetadata?.tags,
@@ -277,7 +282,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
   }
 
   // Combine completed log and active stack
-  const allRecords = [
+  const combinedRecords = [
     ...runtime.executionLog,
     ...runtime.stack.blocks.map((b, i) => ({
       id: b.key.toString(),
@@ -287,9 +292,21 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       endTime: undefined as number | undefined,
       parentSpanId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
       depth: i,
-      metrics: {} as SpanMetrics
+      metrics: {} as SpanMetrics,
+      fragments: b.compiledMetrics ? spanMetricsToFragments({ legacyMetrics: [b.compiledMetrics] } as SpanMetrics, b.label || '', b.blockType || 'unknown') : undefined,
+      compiledMetrics: b.compiledMetrics
     }))
   ];
+
+  // Deduplicate by record id so active stack entries do not duplicate completed log spans
+  const seenRecordIds = new Set<string>();
+  const allRecords = combinedRecords.filter(record => {
+    const recordId = record.id?.toString();
+    if (!recordId) return true;
+    if (seenRecordIds.has(recordId)) return false;
+    seenRecordIds.add(recordId);
+    return true;
+  });
 
   // We need a consistent start time for the timeline
   // Find the earliest start time
@@ -321,6 +338,9 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
 
     // Extract metrics from SpanMetrics object
     const metrics = extractMetricsFromSpanMetrics(record.metrics);
+    const fragments = (record as any).fragments && (record as any).fragments.length > 0
+      ? (record as any).fragments
+      : spanMetricsToFragments(record.metrics || ({} as SpanMetrics), record.label || record.type, record.type || 'group');
 
     segments.push({
       id: hashCode(record.id), // Use hash for numeric ID required by Segment interface
@@ -332,7 +352,8 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
       parentId: parentId ? hashCode(parentId) : null,
       depth: depth,
       metrics: metrics,
-      lane: depth
+      lane: depth,
+      fragments
     });
   });
 

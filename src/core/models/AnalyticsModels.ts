@@ -33,4 +33,6 @@ export interface Segment {
   depth: number;
   metrics: Record<string, number>; // Dynamic metrics map (e.g., 'power': 200, 'heart_rate': 150)
   lane: number;
+  /** Optional fragments carried from runtime spans for visualization */
+  fragments?: import('./CodeFragment').ICodeFragment[];
 }

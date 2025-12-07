@@ -133,12 +133,14 @@ export function spanToDisplayItem(
     if (depth > 20) break; // Safety limit
   }
   
-  // Convert span metrics to fragments
-  const fragments = spanMetricsToFragments(
-    span.metrics || {},
-    span.label,
-    span.type
-  );
+  // Convert span metrics to fragments; prefer precomputed fragments if present
+  const fragments = (span.fragments && span.fragments.length > 0)
+    ? span.fragments
+    : spanMetricsToFragments(
+        span.metrics || {},
+        span.label,
+        span.type
+      );
   
   // Map span status to display status
   const status: DisplayStatus = span.status as DisplayStatus;

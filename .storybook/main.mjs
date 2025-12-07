@@ -17,6 +17,9 @@ const config = {
     // "@storybook/addon-vitest" - disabled due to bun + Windows compatibility issues
     // Run tests via CLI: bun run test:storybook
   ],
+  docs: {
+    autodocs: false,
+  },
   "staticDirs": ["../public"],
   "framework": {
     "name": "@storybook/react-vite",
@@ -26,7 +29,7 @@ const config = {
     // Ensure source maps are generated for debugging
     config.build = config.build || {};
     config.build.sourcemap = true;
-    
+
     // Enable CSS source maps
     config.css = config.css || {};
     config.css.devSourcemap = true;
@@ -41,11 +44,11 @@ const config = {
       react: path.resolve(process.cwd(), 'node_modules/react'),
       'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),
     };
-    
+
     // Disable Vite's publicDir to avoid conflict with Storybook's staticDirs
     // This prevents race condition when copying public assets
     config.publicDir = false;
-    
+
     // Pre-bundle heavy dependencies to reduce HTTP requests during dev
     // Monaco Editor alone has 100+ modules that would otherwise be loaded separately
     config.optimizeDeps = config.optimizeDeps || {};
@@ -59,7 +62,7 @@ const config = {
       'lucide-react',
       'cmdk',
     ];
-    
+
     return config;
   }
 };

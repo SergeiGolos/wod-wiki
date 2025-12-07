@@ -3,9 +3,10 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
+import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, legacyRuntimeMetricToGroup } from "../models/ExecutionSpan";
 import { EXECUTION_SPAN_TYPE } from "../ExecutionTracker";
 import { RuntimeMetric } from "../RuntimeMetric";
+import { metricsToFragments, createLabelFragment } from "../utils/metricsToFragments";
 
 /**
  * Configuration for HistoryBehavior
@@ -90,6 +91,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
             status: 'active',
             metrics: initialMetrics,
             segments: [],
+            fragments: this.buildFragments(block, initialMetrics),
+            compiledMetrics: block.compiledMetrics,
             ...(this.debugMetadata && { debugMetadata: this.debugMetadata })
         };
         
@@ -202,8 +205,23 @@ export class HistoryBehavior implements IRuntimeBehavior {
             
             // Store legacy metrics for backward compatibility
             metrics.legacyMetrics = [compiledMetrics];
+
+            // Mirror into grouped metrics for unified pipeline
+            metrics.metricGroups = [legacyRuntimeMetricToGroup(compiledMetrics)];
         }
         
         return metrics;
+    }
+
+    /**
+     * Build a fragment array to keep visualization context on spans.
+     */
+    private buildFragments(block: IRuntimeBlock, metrics: SpanMetrics) {
+        if (block.compiledMetrics) {
+            return metricsToFragments([block.compiledMetrics]);
+        }
+
+        // Fallback to label fragment to avoid empty chips in history
+        return [createLabelFragment(block.label, block.blockType || 'group')];
     }
 }

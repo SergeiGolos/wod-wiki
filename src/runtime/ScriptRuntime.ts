@@ -32,6 +32,7 @@ import { NextBlockLogger } from './NextBlockLogger';
 import { TestableBlock } from './testing/TestableBlock';
 
 import { RuntimeClock } from './RuntimeClock';
+import { NextEventHandler } from './NextEventHandler';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -59,6 +60,8 @@ export class ScriptRuntime implements IScriptRuntime {
         this.memory = new RuntimeMemory();
         this.executionTracker = new ExecutionTracker(this.memory);
         this.eventBus = new EventBus();
+        // Handle explicit next events to advance the current block once per request
+        this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
         
         const unregisterHook = this.options.hooks?.unregisterByOwner;
         const stackOptions: RuntimeStackOptions = {

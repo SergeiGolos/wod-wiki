@@ -12,6 +12,7 @@
  */
 
 import { MetricValue as LegacyMetricValue, RuntimeMetric } from '../RuntimeMetric';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // ============================================================================
 // Span Types & Status
@@ -95,6 +96,30 @@ export interface MetricValueWithTimestamp<T = number> {
   source?: string;
 }
 
+/**
+ * Rich metric value with type information for grouped emission.
+ * This is the unified shape for metrics derived from fragments (replacing legacy MetricValue).
+ */
+export interface RecordedMetricValue<T = number> extends MetricValueWithTimestamp<T> {
+  /** Metric type discriminator (matches legacy MetricValue types) */
+  type: LegacyMetricValue['type'] | string;
+  /** Optional display label if different from type/unit */
+  label?: string;
+}
+
+/**
+ * Grouped metrics representing a collection captured for a span or time segment.
+ * Supports metrics[][] semantics without flattening.
+ */
+export interface MetricGroup {
+  /** Optional identifier for tracing */
+  id?: string;
+  /** Human-readable label (e.g., exercise name, round label) */
+  label?: string;
+  /** Metrics contained in this group */
+  metrics: RecordedMetricValue[];
+}
+
 // ============================================================================
 // Span Metrics
 // ============================================================================
@@ -160,6 +185,12 @@ export interface SpanMetrics {
    * New code should use typed properties above.
    */
   legacyMetrics?: RuntimeMetric[];
+
+  /**
+   * Grouped metrics derived from fragments or runtime capture (preferred over legacy arrays).
+   * Each group represents a metrics[][] collection for a span or segment.
+   */
+  metricGroups?: MetricGroup[];
   
   // === Extensible Metrics ===
   /** Custom metrics not covered by typed properties */
@@ -244,6 +275,12 @@ export interface ExecutionSpan {
   // === Metrics ===
   /** All metrics for this span */
   metrics: SpanMetrics;
+
+  /** Fragments carried forward from the originating statements/compiled metrics */
+  fragments?: ICodeFragment[];
+
+  /** Raw compiled metrics snapshot for downstream adapters/analytics */
+  compiledMetrics?: RuntimeMetric;
   
   // === Time Segments ===
   /** Sub-spans for detailed tracking (rounds, minutes, etc.) */
@@ -323,7 +360,8 @@ export function createExecutionSpan(
   label: string,
   parentSpanId: string | null = null,
   sourceIds?: number[],
-  debugMetadata?: DebugMetadata
+  debugMetadata?: DebugMetadata,
+  extra?: Partial<ExecutionSpan>
 ): ExecutionSpan {
   return {
     id: `${Date.now()}-${blockId}`,
@@ -336,7 +374,8 @@ export function createExecutionSpan(
     metrics: createEmptyMetrics(),
     segments: [],
     sourceIds,
-    ...(debugMetadata && { debugMetadata })
+    ...(debugMetadata && { debugMetadata }),
+    ...(extra || {})
   };
 }
 
@@ -391,6 +430,23 @@ export function fromLegacyMetricValue(
     unit: legacy.unit,
     recorded: Date.now(),
     source
+  };
+}
+
+/**
+ * Convert a legacy RuntimeMetric into a grouped RecordedMetric set.
+ * This is a bridge helper while migrating off RuntimeMetric.
+ */
+export function legacyRuntimeMetricToGroup(metric: RuntimeMetric, recordedAt: number = Date.now()): MetricGroup {
+  return {
+    label: metric.exerciseId,
+    metrics: metric.values.map(value => ({
+      type: value.type,
+      value: value.value,
+      unit: value.unit,
+      recorded: recordedAt,
+      source: metric.exerciseId
+    }))
   };
 }
 

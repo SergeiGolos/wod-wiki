@@ -65,6 +65,10 @@ function getFragmentTypeFromSegmentType(type: string): FragmentType {
  * Convert segment to fragment array for visualization
  */
 function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFragment[] {
+  if (segment.fragments && segment.fragments.length > 0) {
+    return segment.fragments;
+  }
+
   const fragments: ICodeFragment[] = [];
   
   // Add type fragment
