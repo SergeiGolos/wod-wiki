@@ -47,13 +47,16 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const statement = statements[0];
         const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasEmomAction = fragments.some(
+            f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'emom'
+        );
         
         // Check for behavior.repeating_interval hint from dialect (e.g., EMOM detected)
         const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
 
-        // Match if has Timer AND repeating_interval hint
+        // Match if has Timer AND (repeating_interval hint OR explicit EMOM action)
         // This takes precedence over simple TimerStrategy
-        return hasTimer && isInterval;
+        return hasTimer && (isInterval || hasEmomAction);
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {

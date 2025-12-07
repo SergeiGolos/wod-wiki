@@ -51,12 +51,15 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        const hasAmrapAction = fragments.some(
+            f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'amrap'
+        );
         
         // Check for behavior.time_bound hint from dialect (e.g., AMRAP detected)
         const isTimeBound = statement.hints?.has('behavior.time_bound') ?? false;
 
-        // Match if has Timer AND (Rounds OR time_bound hint)
-        return hasTimer && (hasRounds || isTimeBound);
+        // Match if has Timer AND (Rounds OR time_bound hint OR explicit AMRAP action)
+        return hasTimer && (hasRounds || isTimeBound || hasAmrapAction);
     }
 
     compile(code: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock {

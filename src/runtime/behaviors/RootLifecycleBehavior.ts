@@ -42,7 +42,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         const idleBlock = this.createIdleBlock(
             runtime, 
             'idle-start', 
-            'Waiting To Start', 
+            'Ready', 
             { 
                 popOnNext: false, 
                 popOnEvents: ['next'],
