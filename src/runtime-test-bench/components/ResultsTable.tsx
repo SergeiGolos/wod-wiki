@@ -1,20 +1,20 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
 import { ExecutionSpan, SpanMetrics } from '../../runtime/models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/ExecutionTracker';
 
 interface ResultsTableProps {
   snapshot: ExecutionSnapshot | null;
+  highlightedLine?: number;
 }
 
-export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot }) => {
+export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlightedLine }) => {
   if (!snapshot) {
     return <div className="p-4 text-gray-500">No execution data available</div>;
   }
 
-  // Filter for execution spans
+  // Filter for execution spans (mapped to 'span' type by RuntimeAdapter)
   const spans = snapshot.memory.entries
-    .filter(entry => entry.type === EXECUTION_SPAN_TYPE)
+    .filter(entry => entry.type === 'span')
     .map(entry => entry.value as ExecutionSpan)
     .sort((a, b) => a.startTime - b.startTime);
 
@@ -57,8 +57,17 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot }) => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {spans.map((span) => (
-            <tr key={span.id} className={span.status === 'active' ? 'bg-blue-50' : ''}>
+          {spans.map((span) => {
+            // Check if span's blockId matches a block with the highlighted line
+            const matchesLine = highlightedLine !== undefined && 
+              snapshot?.stack.blocks.some(block => 
+                block.key === span.blockId && block.lineNumber === highlightedLine
+              );
+            
+            return (
+            <tr key={span.id} className={`
+              ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : span.status === 'active' ? 'bg-blue-50' : ''}
+            `}>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                 {span.blockId.substring(0, 8)}
               </td>
@@ -75,7 +84,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot }) => {
                 {span.endTime ? `${((span.endTime - span.startTime) / 1000).toFixed(2)}s` : 'Running...'}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

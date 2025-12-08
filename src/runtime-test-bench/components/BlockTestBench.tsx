@@ -20,7 +20,7 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
   className = ''
 }) => {
   const { state, dispatch } = useTestBenchContext();
-  const { code, snapshot } = state;
+  const { code, snapshot, selectedLine } = state;
   
   // Local runtime state
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
@@ -37,24 +37,62 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
     }
   }, [initialScript, code, dispatch]);
 
+  const updateSnapshot = () => {
+    if (runtime) {
+      const newSnapshot = adapter.createSnapshot(runtime);
+      dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
+    }
+  };
+
+  // Update snapshot when execution status changes
+  useEffect(() => {
+    if (status === 'running' && runtime) {
+      const interval = setInterval(updateSnapshot, 100);
+      return () => clearInterval(interval);
+    }
+  }, [status, runtime]);
+
+  // Extract WOD content from markdown code blocks
+  const extractWodContent = (text: string): string => {
+    const wodBlockRegex = /```wod\s*\n([\s\S]*?)```/;
+    const match = text.match(wodBlockRegex);
+    return match ? match[1].trim() : text;
+  };
+
   const handleStart = () => {
-    // Create new runtime
-    const script = globalParser.read(code);
-    const newRuntime = new ScriptRuntime();
+    if (runtime && (status === 'idle' || status === 'paused')) {
+      execution.start();
+      updateSnapshot();
+      return;
+    }
+
+    // Extract WOD content from markdown if present
+    const wodContent = extractWodContent(code);
+    
+    // Create new runtime with proper initialization
+    const script = globalParser.read(wodContent);
+    const newRuntime = new ScriptRuntime(script, globalCompiler);
     const block = globalCompiler.compile(script.statements, newRuntime);
     
-    newRuntime.stack.push(block);
-    setRuntime(newRuntime);
-    
-    // Update snapshot
-    const newSnapshot = adapter.createSnapshot(newRuntime);
-    dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
+    if (block) {
+      newRuntime.stack.push(block);
+      setRuntime(newRuntime);
+      
+      // Update snapshot after runtime is initialized
+      setTimeout(() => {
+        const newSnapshot = adapter.createSnapshot(newRuntime);
+        dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
+      }, 0);
+    }
   };
 
   const handleRestart = () => {
     if (runtime) {
-      // runtime.dispose(); // ScriptRuntime might not have dispose, check implementation
+      execution.stop();
+      runtime.disposeAllBlocks();
     }
+    setRuntime(null);
+    dispatch({ type: 'SET_SNAPSHOT', payload: null });
     handleStart();
   };
 
@@ -64,20 +102,27 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       return;
     }
     
-    // Trigger next event
-    runtime.handle({
+    // Use NextEvent directly for proper block advancement
+    const nextEvent = {
       name: 'next',
       timestamp: new Date(),
       data: {}
-    });
-    
-    // Update snapshot
-    const newSnapshot = adapter.createSnapshot(runtime);
-    dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
+    };
+    runtime.handle(nextEvent);
+    updateSnapshot();
+  };
+
+  const handlePause = () => {
+    execution.pause();
+    updateSnapshot();
   };
 
   const handleCodeChange = (newCode: string) => {
     dispatch({ type: 'SET_CODE', payload: newCode });
+  };
+
+  const handleEditorClick = (lineNumber: number) => {
+    dispatch({ type: 'SET_SELECTED_LINE', payload: lineNumber });
   };
 
   const blocks = snapshot?.stack.blocks || [];
@@ -90,6 +135,7 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       <BlockTestControls 
         status={status}
         onStart={handleStart}
+        onPause={handlePause}
         onRestart={handleRestart}
         onNext={handleNext}
       />
@@ -106,6 +152,8 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
                value={code} 
                onChange={handleCodeChange}
                status={status}
+               highlightedLine={selectedLine || undefined}
+               onLineClick={handleEditorClick}
              />
           </div>
         </div>
@@ -132,10 +180,12 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
               <RuntimeStackPanel 
                 blocks={blocks} 
                 activeBlockIndex={activeIndex}
+                highlightedLine={selectedLine || undefined}
               />
             ) : (
               <MemoryPanel 
-                entries={memoryEntries} 
+                entries={memoryEntries}
+                highlightedLine={selectedLine || undefined}
               />
             )}
           </div>
@@ -148,7 +198,7 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
           Execution Results
         </div>
         <div className="flex-1 overflow-auto">
-          <ResultsTable snapshot={snapshot} />
+          <ResultsTable snapshot={snapshot} highlightedLine={selectedLine || undefined} />
         </div>
       </div>
     </div>

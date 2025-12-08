@@ -12,6 +12,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
   blocks,
   activeBlockIndex,
   highlightedBlockKey,
+  highlightedLine,
   onBlockHover,
   onBlockClick,
   showMetrics = true,
@@ -35,6 +36,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
   // Render a single block
   const renderBlock = useCallback((block: typeof blocks[0]) => {
     const isHighlighted = highlightedBlockKey === block.key;
+    const isHighlightedByLine = highlightedLine !== undefined && block.lineNumber === highlightedLine;
     const isActive = activeBlockIndex !== undefined && blocks[activeBlockIndex]?.key === block.key;
 
     // Status color for the indicator dot
@@ -51,7 +53,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         key={block.key}
         className={`
           flex items-center gap-2 py-1 px-2 border-b border-border/40 cursor-pointer transition-colors text-sm
-          ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
+          ${isHighlightedByLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
           ${isActive ? 'bg-muted/50 font-medium' : ''}
         `}
         onMouseEnter={() => onBlockHover?.(block.key, block.lineNumber)}
@@ -105,7 +107,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         </span>
       </div>
     );
-  }, [blocks, activeBlockIndex, highlightedBlockKey, onBlockHover, onBlockClick, showIcons, showMetrics]);
+  }, [blocks, activeBlockIndex, highlightedBlockKey, highlightedLine, onBlockHover, onBlockClick, showIcons, showMetrics]);
 
   // Render block tree recursively
   const renderBlockTree = useCallback((blockKey: string): React.ReactNode => {

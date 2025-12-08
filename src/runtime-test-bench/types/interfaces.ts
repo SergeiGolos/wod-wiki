@@ -242,6 +242,9 @@ export interface MemoryEntry {
   groupLabel?: string;
   icon?: string;
 
+  // Source
+  lineNumber?: number;
+
   // State
   isValid: boolean;
   isHighlighted: boolean;
@@ -295,6 +298,7 @@ export interface EditorPanelProps extends BasePanelProps {
 
   // Highlighting
   highlightedLine?: number;
+  onLineClick?: (lineNumber: number) => void;
 
   // Errors
   errors?: ParseError[];
@@ -349,6 +353,7 @@ export interface RuntimeStackPanelProps extends BasePanelProps {
 
   // Highlighting
   highlightedBlockKey?: string;
+  highlightedLine?: number;
 
   // Interactions
   onBlockHover?: (blockKey?: string, lineNumber?: number) => void;
@@ -378,6 +383,7 @@ export interface MemoryPanelProps extends BasePanelProps {
   // Highlighting
   highlightedOwnerKey?: string;
   highlightedMemoryId?: string;
+  highlightedLine?: number;
 
   // Interactions
   onEntryHover?: (entryId?: string, ownerKey?: string) => void;

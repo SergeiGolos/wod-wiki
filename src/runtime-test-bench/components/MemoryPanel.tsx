@@ -15,6 +15,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   onGroupByChange,
   highlightedOwnerKey,
   highlightedMemoryId,
+  highlightedLine,
   onEntryHover,
   onEntryClick,
   showMetadata = false,
@@ -87,14 +88,16 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   const renderEntryRow = (entry: typeof entries[0]) => {
     const isHighlightedById = highlightedMemoryId === entry.id;
     const isHighlightedByOwner = highlightedOwnerKey === entry.ownerId;
-    const isHighlighted = isHighlightedById || isHighlightedByOwner;
+    // Check if entry's owner has a lineNumber that matches highlightedLine
+    const isHighlightedByLine = highlightedLine !== undefined && entry.lineNumber === highlightedLine;
+    const isHighlighted = isHighlightedById || isHighlightedByOwner || isHighlightedByLine;
 
     return (
       <tr
         key={entry.id}
         className={`
           cursor-pointer transition-colors border-b border-border/40 last:border-0
-          ${isHighlightedByOwner ? 'bg-yellow-200 dark:bg-yellow-900/40' : isHighlightedById ? 'bg-primary/10' : 'hover:bg-muted/30'}
+          ${isHighlightedByLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : isHighlightedByOwner ? 'bg-yellow-200 dark:bg-yellow-900/40' : isHighlightedById ? 'bg-primary/10' : 'hover:bg-muted/30'}
           ${!entry.isValid ? 'opacity-60' : ''}
         `}
         onMouseEnter={() => onEntryHover?.(entry.id, entry.ownerId)}

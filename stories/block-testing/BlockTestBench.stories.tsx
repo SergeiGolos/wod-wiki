@@ -22,34 +22,40 @@ type Story = StoryObj<typeof meta>;
 
 export const LoopingBasics: Story = {
   args: {
-    initialScript: `3 Rounds:
+    initialScript: `\`\`\`wod
+(3) Rounds
   5 Pushups
-  10 Situps`,
+  10 Situps
+\`\`\``,
   },
 };
 
 export const Grouping: Story = {
   args: {
-    initialScript: `For Time: {
+    initialScript: `\`\`\`wod
   Run 400m
   10 Pullups
-}`,
+\`\`\``,
   },
 };
 
 export const Inheritance: Story = {
   args: {
-    initialScript: `3 Rounds:
+    initialScript: `\`\`\`wod
+(3) Rounds
   10 Pushups
-  Rest 1:00`,
+  Rest 1:00
+\`\`\``,
   },
 };
 
 export const ComplexAMRAP: Story = {
   args: {
-    initialScript: `20:00 AMRAP:
+    initialScript: `\`\`\`wod
+20:00 AMRAP:
   5 Pullups
   10 Pushups
-  15 Squats`,
+  15 Squats
+\`\`\``,
   },
 };

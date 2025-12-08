@@ -89,7 +89,6 @@ Time components are crucial for workouts.
 ## Duration (For Time)
 Just list the exercises. The timer counts up.
 \`\`\`wod
-For Time:
   100 Burpees
 \`\`\`
 

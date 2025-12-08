@@ -107,7 +107,7 @@ const DEFAULT_TEMPLATES: TestTemplate[] = [
     id: 'timer-expiration',
     name: 'Timer Expiration',
     description: 'Test TimerBlock completion when time expires',
-    wodScript: `5:00 For Time:
+    wodScript: `5:00 For Time
   Run 400m`,
     queue: [
       { type: 'push', label: 'Push Timer Block', statementIndex: 0, includeChildren: true },

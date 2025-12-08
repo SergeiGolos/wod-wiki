@@ -121,6 +121,14 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       visibility: null
     });
 
+    // Build a map of owner block IDs to their line numbers
+    const ownerLineMap = new Map<string, number>();
+    runtime.stack.blocks.forEach(block => {
+      if (block.sourceIds && block.sourceIds.length > 0) {
+        ownerLineMap.set(block.key.toString(), block.sourceIds[0]);
+      }
+    });
+
     return references.map(ref => {
       const value = ref.value();
       const memoryType = this.mapMemoryType(ref.type);
@@ -135,6 +143,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         label: this.generateMemoryLabel(ref, memoryType),
         groupLabel: this.generateGroupLabel(memoryType),
         icon: this.getMemoryIcon(memoryType),
+        lineNumber: ownerLineMap.get(ref.ownerId),
         isValid: value !== undefined,
         isHighlighted: false, // TODO: Implement highlighting logic
         metadata: {

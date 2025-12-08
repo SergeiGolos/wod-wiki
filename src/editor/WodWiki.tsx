@@ -10,12 +10,12 @@ import { Monaco } from '@monaco-editor/react';
 import { DefaultSuggestionService } from './SuggestionService';
 import { IScript } from '../parser/WodScript';
 import { CodeMetadata } from '../core/models/CodeMetadata';
-import { ExerciseDataProvider } from '../types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import { RichMarkdownManager } from './RichMarkdownManager';
 import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
 import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
 import { useEditorResize } from '@/hooks/editor/useEditorResize';
+import { ExerciseDataProvider } from '@/core/types/providers';
 
 interface WodWikiProps {
   id: string;
@@ -29,6 +29,8 @@ interface WodWikiProps {
   readonly?: boolean;
   /** Line number to highlight */
   highlightedLine?: number;
+  /** Optional callback when a line is clicked */
+  onLineClick?: (lineNumber: number) => void;
   /** Optional exercise data provider for suggestions and hover */
   exerciseProvider?: ExerciseDataProvider;
   /** Editor theme */
@@ -60,7 +62,7 @@ const tokens: WodWikiToken[] = [
 
 
 
-export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine, exerciseProvider, theme = "wod-wiki-theme" }: WodWikiProps) => {        
+export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMount, readonly = false, highlightedLine, onLineClick, exerciseProvider, theme = "wod-wiki-theme" }: WodWikiProps) => {        
     const initializer = new WodWikiSyntaxInitializer(new SemantcTokenEngine(tokens), new SuggestionEngine(new DefaultSuggestionService()), onValueChange, id, readonly);      
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
@@ -101,6 +103,15 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       editor.onDidContentSizeChange(() => {
         handleContentSizeChange();
       });
+
+      // Add click handler to notify about line clicks
+      if (onLineClick) {
+        editor.onMouseDown((e) => {
+          if (e.target.position) {
+            onLineClick(e.target.position.lineNumber);
+          }
+        });
+      }
     };
 
     // Cleanup on unmount

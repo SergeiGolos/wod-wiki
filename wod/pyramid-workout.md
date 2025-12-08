@@ -8,7 +8,7 @@
 A pyramid-style bodyweight workout that starts high and decreases reps each round.
 
 ```wod
-For Time:
+For Time
   100 Burpees
   75 Situps
   50 Pushups

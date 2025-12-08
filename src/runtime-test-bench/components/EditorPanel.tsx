@@ -15,6 +15,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   status,
   suggestions = [],
   onSuggestionSelect,
+  onLineClick,
   readonly = false,
   className = '',
   testId = 'editor-panel'
@@ -29,14 +30,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
   // Status badge styling and text
   const getStatusBadge = () => {
-    const statusConfig = {
+    const statusConfig: Record<string, { text: string; className: string }> = {
       idle: { text: 'Ready', className: 'bg-gray-600 text-gray-200' },
       parsing: { text: 'Parsing...', className: 'bg-yellow-600 text-yellow-200' },
       valid: { text: 'Valid', className: 'bg-green-600 text-green-200' },
-      error: { text: 'Error', className: 'bg-red-600 text-red-200' }
+      error: { text: 'Error', className: 'bg-red-600 text-red-200' },
+      running: { text: 'Running', className: 'bg-blue-600 text-blue-200' },
+      paused: { text: 'Paused', className: 'bg-yellow-600 text-yellow-200' },
+      completed: { text: 'Completed', className: 'bg-green-600 text-green-200' }
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] || { text: status, className: 'bg-gray-600 text-gray-200' };
 
     return (
       <span className={`px-2 py-1 rounded text-xs font-medium ${config.className}`}>
@@ -85,6 +89,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             onValueChange={handleValueChange}
             readonly={readonly}
             highlightedLine={highlightedLine}
+            onLineClick={onLineClick}
           />
         </div>
 

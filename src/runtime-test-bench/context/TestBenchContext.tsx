@@ -6,6 +6,7 @@ export interface TestBenchContextState {
   parseResults: ParseResults;
   snapshot: ExecutionSnapshot | null;
   compilationLog: any[];
+  selectedLine: number | null;
 }
 
 type TestBenchAction =
@@ -14,6 +15,7 @@ type TestBenchAction =
   | { type: 'SET_SNAPSHOT'; payload: ExecutionSnapshot | null }
   | { type: 'ADD_LOG'; payload: any }
   | { type: 'CLEAR_LOG' }
+  | { type: 'SET_SELECTED_LINE'; payload: number | null }
   | { type: 'RESET' };
 
 const initialState: TestBenchContextState = {
@@ -25,7 +27,8 @@ const initialState: TestBenchContextState = {
     status: 'idle'
   },
   snapshot: null,
-  compilationLog: []
+  compilationLog: [],
+  selectedLine: null
 };
 
 const testBenchReducer = (state: TestBenchContextState, action: TestBenchAction): TestBenchContextState => {
@@ -40,6 +43,8 @@ const testBenchReducer = (state: TestBenchContextState, action: TestBenchAction)
       return { ...state, compilationLog: [...state.compilationLog, action.payload] };
     case 'CLEAR_LOG':
       return { ...state, compilationLog: [] };
+    case 'SET_SELECTED_LINE':
+      return { ...state, selectedLine: action.payload };
     case 'RESET':
       return { ...initialState, code: state.code }; // Preserve code on reset
     default:
