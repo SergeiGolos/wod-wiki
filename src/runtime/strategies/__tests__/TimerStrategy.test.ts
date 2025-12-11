@@ -4,6 +4,8 @@ import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { TimerBehavior } from '../../behaviors/TimerBehavior';
+import { SoundBehavior } from '../../behaviors/SoundBehavior';
+import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
 // Mock runtime
 const mockRuntime = {
@@ -104,7 +106,7 @@ describe('TimerStrategy', () => {
 
       expect(block).toBeDefined();
       expect(block.blockType).toBe('Timer');
-      
+
       const timerBehavior = block.getBehavior(TimerBehavior);
       expect(timerBehavior).toBeDefined();
     });
@@ -139,6 +141,45 @@ describe('TimerStrategy', () => {
       const timerBehavior = block.getBehavior(TimerBehavior);
 
       expect((timerBehavior as any).direction).toBe('up');
+    });
+
+    it('should attach SoundBehavior with countdown cues', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 10000, direction: 'down', type: 'timer' } // 10s
+        ],
+        children: [],
+        meta: { line: 1, offset: 0, column: 0 }
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const soundBehavior = block.getBehavior(SoundBehavior);
+
+      expect(soundBehavior).toBeDefined();
+      const config = (soundBehavior as any).config;
+      expect(config.direction).toBe('down');
+      // Should have 3-2-1 and complete cues
+      expect(config.cues.length).toBeGreaterThan(0);
+      expect(config.cues.find(c => c.id === '3-sec')).toBeDefined();
+      expect(config.cues.find(c => c.id === 'complete')).toBeDefined();
+    });
+
+    it('should attach HistoryBehavior', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Timer, value: 60000, direction: 'down', type: 'timer' }
+        ],
+        children: [],
+        meta: { line: 1, offset: 0, column: 0 }
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const historyBehavior = block.getBehavior(HistoryBehavior);
+
+      expect(historyBehavior).toBeDefined();
+      expect((historyBehavior as any).label).toBe("Timer");
     });
   });
 });

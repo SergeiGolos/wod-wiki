@@ -5,6 +5,8 @@ import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
 import { TimerBehavior } from '../../behaviors/TimerBehavior';
+import { CompletionBehavior } from '../../behaviors/CompletionBehavior';
+import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
 // Mock runtime
 const mockRuntime = {
@@ -150,6 +152,46 @@ describe('TimeBoundRoundsStrategy', () => {
       expect(loopCoordinator).toBeDefined();
       expect((loopCoordinator as any).config.loopType).toBe(LoopType.TIME_BOUND);
       expect((loopCoordinator as any).config.totalRounds).toBe(Infinity);
+    });
+
+    it('should configure CompletionBehavior to depend on timer', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Action, value: 'AMRAP', type: 'action' },
+          { fragmentType: FragmentType.Timer, value: '20:00', type: 'timer' }
+        ],
+        children: [[2]],
+        meta: { line: 1, offset: 0, column: 0 },
+        hints: new Set(['behavior.time_bound', 'workout.amrap'])
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const completionBehavior = block.getBehavior(CompletionBehavior);
+
+      expect(completionBehavior).toBeDefined();
+      // We can't easily test the internal predicate function without running it, 
+      // but we can check the events listened to.
+      expect((completionBehavior as any).triggerEvents).toContain('timer:complete');
+    });
+
+    it('should attach HistoryBehavior', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Action, value: 'AMRAP', type: 'action' },
+          { fragmentType: FragmentType.Timer, value: '20:00', type: 'timer' }
+        ],
+        children: [[2]],
+        meta: { line: 1, offset: 0, column: 0 },
+        hints: new Set(['behavior.time_bound', 'workout.amrap'])
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const historyBehavior = block.getBehavior(HistoryBehavior);
+
+      expect(historyBehavior).toBeDefined();
+      expect((historyBehavior as any).label).toBe("AMRAP");
     });
   });
 });

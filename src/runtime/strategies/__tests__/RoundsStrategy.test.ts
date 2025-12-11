@@ -4,6 +4,7 @@ import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
+import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
 // Mock runtime
 const mockRuntime = {
@@ -169,6 +170,23 @@ describe('RoundsStrategy', () => {
       expect((loopCoordinator as any).config.totalRounds).toBe(3);
       expect((loopCoordinator as any).config.loopType).toBe(LoopType.REP_SCHEME);
       expect((loopCoordinator as any).config.repScheme).toEqual([21, 15, 9]);
+    });
+
+    it('should attach HistoryBehavior', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
+        ],
+        children: [[2]],
+        meta: { line: 1, offset: 0, column: 0 }
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const historyBehavior = block.getBehavior(HistoryBehavior);
+
+      expect(historyBehavior).toBeDefined();
+      expect((historyBehavior as any).label).toBe("Rounds");
     });
   });
 });

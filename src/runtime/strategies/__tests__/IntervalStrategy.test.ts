@@ -6,6 +6,8 @@ import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
 import { TimerBehavior } from '../../behaviors/TimerBehavior';
+import { SoundBehavior } from '../../behaviors/SoundBehavior';
+import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
 // Mock runtime
 const mockRuntime = {
@@ -16,7 +18,7 @@ const mockRuntime = {
     allocate: vi.fn().mockReturnValue({ id: 'mem-1' }),
   },
   clock: {
-      register: vi.fn(),
+    register: vi.fn(),
   }
 } as unknown as IScriptRuntime;
 
@@ -108,5 +110,47 @@ describe('IntervalStrategy', () => {
     const block = strategy.compile([statement], mockRuntime);
     const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
     expect((loopCoordinator as any).config.totalRounds).toBe(10);
+  });
+
+  it('should attach SoundBehavior with countdown cues', () => {
+    const statement: ICodeStatement = {
+      id: 1,
+      type: 'statement',
+      fragments: [
+        { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
+        { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
+      ],
+      children: [[2]],
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
+    } as any;
+
+    const block = strategy.compile([statement], mockRuntime);
+    const soundBehavior = block.getBehavior(SoundBehavior);
+
+    expect(soundBehavior).toBeDefined();
+    // Verify cues
+    const config = (soundBehavior as any).config;
+    expect(config.direction).toBe('down');
+    expect(config.cues.length).toBeGreaterThan(0);
+  });
+
+  it('should attach HistoryBehavior', () => {
+    const statement: ICodeStatement = {
+      id: 1,
+      type: 'statement',
+      fragments: [
+        { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
+        { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' },
+        { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
+      ],
+      children: [[2]],
+      hints: new Set(['behavior.repeating_interval', 'workout.emom'])
+    } as any;
+
+    const block = strategy.compile([statement], mockRuntime);
+    const historyBehavior = block.getBehavior(HistoryBehavior);
+
+    expect(historyBehavior).toBeDefined();
+    expect((historyBehavior as any).label).toBe("EMOM");
   });
 });
