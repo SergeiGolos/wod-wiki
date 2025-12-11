@@ -80,9 +80,17 @@ export class SetWorkoutStateAction implements IRuntimeAction {
 
     // Update totalElapsedMs on every state change if global timer exists
     if (state.globalTimerMemoryId) {
-      const spans = runtime.memory.get(state.globalTimerMemoryId) as TimeSpan[];
-      if (spans) {
-        state.totalElapsedMs = calculateDuration(spans, Date.now());
+      const timerRefs = runtime.memory.search({
+        id: state.globalTimerMemoryId,
+        ownerId: null,
+        type: null,
+        visibility: null
+      });
+      if (timerRefs.length > 0) {
+        const spans = (timerRefs[0] as TypedMemoryReference<TimeSpan[]>).get();
+        if (spans) {
+          state.totalElapsedMs = calculateDuration(spans, Date.now());
+        }
       }
     }
 

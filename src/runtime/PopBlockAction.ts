@@ -14,7 +14,7 @@ export class PopBlockAction implements IRuntimeAction {
         return this._type;
     }
 
-    set type(value: string) {
+    set type(_value: string) {
         throw new Error('Cannot modify readonly property type');
     }
 
@@ -31,8 +31,6 @@ export class PopBlockAction implements IRuntimeAction {
         }
 
         try {
-            const blockKey = currentBlock.key.toString();
-
             const capture = (runtime as any)?.clock?.captureTimestamp;
             const completedAt = typeof capture === 'function'
                 ? capture.call(runtime.clock)  // Fix: bind 'this' context

@@ -16,7 +16,7 @@ export class PushBlockAction implements IRuntimeAction {
         return this._type;
     }
 
-    set type(value: string) {
+    set type(_value: string) {
         throw new Error('Cannot modify readonly property type');
     }
 
