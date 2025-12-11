@@ -7,29 +7,29 @@ This file provides guidance for Google Gemini when working with code in this rep
 WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using a specialized syntax. It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
 
 **Tech Stack**: TypeScript, React, Storybook, Vitest, Monaco Editor, Tailwind CSS, Chevrotain parser
-**Package Manager**: npm
+**Package Manager**: bun
 
 ## Essential Development Commands
 
 ### Environment Setup
-- `npm install` - Install dependencies (~15 seconds)
-- `npm run setup` - Install Playwright browsers (may fail with download errors - this is expected)
+- `bun install` - Install dependencies (~15 seconds)
+- `bun run setup` - Install Playwright browsers (may fail with download errors - this is expected)
 
 ### Development Workflow
-- `npm run storybook` - Start Storybook development server on http://localhost:6006 (~2 seconds startup)
-- `npm run build-storybook` - Build static Storybook (~30 seconds - NEVER CANCEL, set timeout to 60+ minutes)
-- `npm run docs:check` - Validate documentation links (<1 second)
+- `bun run storybook` - Start Storybook development server on http://localhost:6006 (~2 seconds startup)
+- `bun run build-storybook` - Build static Storybook (~30 seconds - NEVER CANCEL, set timeout to 60+ minutes)
+- `bun run docs:check` - Validate documentation links (<1 second)
 
 ### Testing Commands
-- `npm test` - Run all tests using Vitest (~2-3 seconds)
-- - `npm run test:storybook` - Run Storybook component tests (requires Playwright)
-- `npm run test:watch` - Run unit tests in watch mode
-- `npm run test:e2e` - Run end-to-end tests with Playwright
+- `bun run test` - Run all tests using Vitest (~2-3 seconds)
+- `bun run test:storybook` - Run Storybook component tests (requires Playwright)
+- `bun run test:watch` - Run unit tests in watch mode
+- `bun run test:e2e` - Run end-to-end tests with Playwright
 
 ### Build & Type Checking
-- `npm run build-storybook` - Build static Storybook (~30 seconds)
-- `npx vitest run src/path/to/test.test.ts` - Run single test file
-- `npx tsc --noEmit` - Type check without emitting files
+- `bun run build-storybook` - Build static Storybook (~30 seconds)
+- `bun x vitest run src/path/to/test.test.ts` - Run single test file
+- `bun x tsc --noEmit` - Type check without emitting files
 
 ## Project Architecture
 
@@ -134,26 +134,26 @@ stories/                # Storybook stories
 After making changes, always validate:
 
 1. **Storybook Development Flow**:
-   - Run `npm run storybook`
+   - Run `bun run storybook`
    - Verify Storybook loads on http://localhost:6006
    - Navigate to Clock > Default > Default story
    - Test component interactions in Controls panel
 
 2. **Build Validation**:
-   - Run `npm run build-storybook` and wait for completion (~30 seconds)
+   - Run `bun run build-storybook` and wait for completion (~30 seconds)
    - Verify build completes without errors and creates `storybook-static/` directory
 
 3. **Unit Test Regression**:
-   - Run `npm run test`
+   - Run `bun run test`
    - Ensure no NEW test failures are introduced
    - Accept existing 4 module failures and 1 integration test failure as baseline
 
 ## Known Issues and Constraints
 
-- **Playwright Browser Download**: `npm run setup` may fail downloading Chromium browsers (expected)
+- **Playwright Browser Download**: `bun run setup` may fail downloading Chromium browsers (expected)
 - **TypeScript Errors**: 369 TypeScript errors exist in the codebase - only fix errors related to your changes
 - **No ESLint**: Code style enforced through TypeScript and manual review
-- **Build Times**: NEVER cancel builds - `npm run build-storybook` may take up to 60 minutes
+- **Build Times**: NEVER cancel builds - `bun run build-storybook` may take up to 60 minutes
 
 ## Testing Guidelines
 
