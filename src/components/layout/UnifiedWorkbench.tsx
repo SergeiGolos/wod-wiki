@@ -43,7 +43,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { AnalyticsTransformer, SegmentWithMetadata } from '../../services/AnalyticsTransformer';
+import { AnalyticsTransformer, SegmentWithMetadata, transformRuntimeToAnalytics } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -65,7 +65,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
-  
+
   // Consume Workbench Context (document state, view mode)
   const {
     content,
@@ -90,13 +90,13 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
-  
+
   // Block hover state (for highlighting in editor when hovering timer badges)
   const [hoveredBlockKey, setHoveredBlockKey] = useState<string | null>(null);
-  
+
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -154,8 +154,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // Real Analytics Data from Runtime
   // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
-  const [analyticsState, setAnalyticsState] = useState<{data: any[], segments: Segment[], groups: AnalyticsGroup[]}>({ data: [], segments: [], groups: [] });
-  
+  const [analyticsState, setAnalyticsState] = useState<{ data: any[], segments: Segment[], groups: AnalyticsGroup[] }>({ data: [], segments: [], groups: [] });
+
   const lastAnalyticsUpdateRef = useRef(0);
   const lastStatusRef = useRef(execution.status);
 
@@ -187,7 +187,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const activeStatementIds = useMemo(() => {
     if (!runtime || viewMode !== 'track') return new Set<number>();
     const ids = new Set<number>();
-    
+
     // Only highlight the LEAF block (the one currently executing)
     // This avoids highlighting parent blocks (like "3 rounds") when a child is running
     // Only highlight the LEAF block (the one currently executing)
@@ -196,7 +196,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     if (leafBlock && leafBlock.sourceIds) {
       leafBlock.sourceIds.forEach(id => ids.add(id));
     }
-    
+
     return ids;
   }, [runtime, execution.stepCount, viewMode]);
 
@@ -378,7 +378,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
               </span>
             )}
           </div>
-          
+
           <div className="flex gap-2 items-center">
             {/* Debug Button - Always visible, to the left */}
             {!isMobile && (
@@ -387,7 +387,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
                 onClick={() => setIsDebugMode(!isDebugMode)}
               />
             )}
-            
+
             {!isMobile && (
               <Button
                 variant="ghost"

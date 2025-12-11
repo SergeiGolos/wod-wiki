@@ -44,27 +44,27 @@ export interface RuntimeStackOptions extends IRuntimeOptions {
 
 const noopTracker: RuntimeStackTracker = {
   getActiveSpanId: () => null,
-  startSpan: () => {},
-  endSpan: () => {},
+  startSpan: () => { },
+  endSpan: () => { },
 
 };
 
 const noopWrapper: RuntimeStackWrapper = {
   wrap: block => block,
-  cleanup: () => {},
+  cleanup: () => { },
 };
 
 const noopLogger: RuntimeStackLogger = {
-  debug: () => {},
-  error: () => {},
+  debug: () => { },
+  error: () => { },
 };
 
 const noopHooks: RuntimeStackHooks = {
-  onBeforePush: () => {},
-  onAfterPush: () => {},
-  onBeforePop: () => {},
-  onAfterPop: () => {},
-  unregisterByOwner: () => {},
+  onBeforePush: () => { },
+  onAfterPush: () => { },
+  onBeforePop: () => { },
+  onAfterPop: () => { },
+  unregisterByOwner: () => { },
 };
 
 /**
@@ -201,7 +201,7 @@ export class RuntimeStack {
       parentSpanId,
     });
 
-    this.recordLegacyMetric(block);
+
 
     const wrappedBlock = this.wrapBlock(block, parentBlock);
 
