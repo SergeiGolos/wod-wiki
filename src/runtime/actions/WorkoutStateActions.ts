@@ -87,7 +87,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
         visibility: null
       });
       if (timerRefs.length > 0) {
-        const spans = runtime.memory.get(timerRefs[0] as TypedMemoryReference<TimeSpan[]>);
+        const spans = (timerRefs[0] as TypedMemoryReference<TimeSpan[]>).get();
         if (spans) {
           state.totalElapsedMs = calculateDuration(spans, Date.now());
         }
