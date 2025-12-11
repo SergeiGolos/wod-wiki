@@ -55,7 +55,7 @@ export class NextAction implements IRuntimeAction {
         runtime.errors.push({
           error: error as Error,
           source: 'NextAction',
-          timestamp: Date.now(),
+          timestamp: new Date(),
           blockKey: currentBlock.key.toString()
         });
       }
