@@ -3,15 +3,7 @@ import { IScriptRuntime } from './IScriptRuntime';
 import { NextBlockLogger } from './NextBlockLogger';
 
 export class NextAction implements IRuntimeAction {
-  private _type = 'next';
-
-  get type(): string {
-    return this._type;
-  }
-
-  set type(value: string) {
-    throw new Error('Cannot modify readonly property type');
-  }
+  readonly type = 'next';
 
   do(runtime: IScriptRuntime): void {
     // Validate runtime state

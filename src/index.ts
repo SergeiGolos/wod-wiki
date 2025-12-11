@@ -28,12 +28,11 @@ export * from './editor-entry';
 export * from './clock-entry';
 
 // Export types
-// export * from './types';
+export * from './types';
 
 
 // Styles
 import './index.css';
 
-// Runtime test bench (for development/testing)
-export { RuntimeTestBench } from './runtime-test-bench/RuntimeTestBench';
+
 // export * from './runtime-test-bench';

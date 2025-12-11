@@ -301,13 +301,7 @@ export class NextBlockLogger {
         }
     }
     
-    /**
-     * Generic log method for compatibility
-     */
-    log(message: string, data?: any) {
-        if (!NextBlockLogger.enabled) return;
-        console.log(`[NextBlock] ${message}`, data || '');
-    }
+
     
     // ========== Block Lifecycle Logging ==========
     

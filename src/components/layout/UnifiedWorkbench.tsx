@@ -43,7 +43,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { transformRuntimeToAnalytics } from '../../services/AnalyticsTransformer';
+import { AnalyticsTransformer, SegmentWithMetadata } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -82,6 +82,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     startWorkout,
     completeWorkout
   } = useWorkbench();
+
+  const analyticsTransformer = useMemo(() => new AnalyticsTransformer(), []);
 
   // Local UI state
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
@@ -164,7 +166,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
 
       if (shouldUpdate) {
-        const newState = transformRuntimeToAnalytics(runtime);
+        const newState = transformRuntimeToAnalytics(runtime); // TODO: Refactor to use AnalyticsTransformer and consolidate time series generation.
         setAnalyticsState(newState);
         lastAnalyticsUpdateRef.current = now;
         lastStatusRef.current = execution.status;

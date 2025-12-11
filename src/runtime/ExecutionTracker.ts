@@ -274,34 +274,7 @@ export class ExecutionTracker {
     this.updateSpan(blockId, { metrics: updatedMetrics });
   }
 
-  /**
-   * Record a legacy RuntimeMetric.
-   * Deprecated: retained for compatibility but does minimal work.
-   *
-   * @param blockId The block ID
-   * @param metric Legacy RuntimeMetric
-   */
-  recordLegacyMetric(blockId: string, metric: RuntimeMetric): void {
-    const span = this.getActiveSpan(blockId);
-    if (!span) return;
 
-    const updated: Partial<ExecutionSpan> = {};
-
-    // Soft-touch: ensure exerciseId is set
-    if (metric.exerciseId && !span.metrics.exerciseId) {
-      updated.metrics = { ...span.metrics, exerciseId: metric.exerciseId } as SpanMetrics;
-    }
-
-    // Convert legacy metric to fragments and append
-    const fragments = metricsToFragments([metric]);
-    if (fragments.length > 0) {
-      updated.fragments = [...(span.fragments ?? []), ...fragments];
-    }
-
-    if (updated.metrics || updated.fragments) {
-      this.updateSpan(blockId, updated as ExecutionSpan);
-    }
-  }
 
   // ============================================================================
   // Segment Management

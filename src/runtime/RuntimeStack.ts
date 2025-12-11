@@ -14,7 +14,7 @@ export interface RuntimeStackTracker {
   getActiveSpanId?: (blockKey: string) => string | null | undefined;
   startSpan?: (block: IRuntimeBlock, parentSpanId: string | null) => void;
   endSpan?: (blockKey: string) => void;
-  recordLegacyMetric?: (blockKey: string, metric: unknown) => void;
+
 }
 
 export interface RuntimeStackWrapper {
@@ -46,7 +46,7 @@ const noopTracker: RuntimeStackTracker = {
   getActiveSpanId: () => null,
   startSpan: () => {},
   endSpan: () => {},
-  recordLegacyMetric: () => {},
+
 };
 
 const noopWrapper: RuntimeStackWrapper = {
@@ -407,10 +407,7 @@ export class RuntimeStack {
     return fallback();
   }
 
-  private recordLegacyMetric(_block: IRuntimeBlock): void {
-    // Legacy metric recording deprecated; fragments now flow directly via ExecutionTracker
-    return;
-  }
+
 
   private resolveOwnerKey(block: IRuntimeBlock): string {
     if (block instanceof TestableBlock) {

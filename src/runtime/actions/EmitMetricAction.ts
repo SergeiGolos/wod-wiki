@@ -42,7 +42,7 @@ export class EmitMetricAction implements IRuntimeAction {
     if (runtime.tracker) {
       const fragments = metricsToFragments([this.metric]);
       runtime.tracker.appendFragments(blockId, fragments);
-      runtime.tracker.recordLegacyMetric(blockId, this.metric); // keep exerciseId propagation for now
+
     }
 
     // Secondary: Deprecated metric collector remains for compatibility

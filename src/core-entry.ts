@@ -41,7 +41,7 @@ export type { IRuntimeBlockStrategy } from './runtime/IRuntimeBlockStrategy';
 export type { IMemoryReference, TypedMemoryReference } from './runtime/IMemoryReference';
 export type { IEvent } from './runtime/IEvent';
 export type { IEventHandler } from './runtime/IEventHandler';
-// export type { IBehavior } from './runtime/IBehavior';
+
 export type { IBlockContext } from './runtime/IBlockContext';
 
 // Runtime actions

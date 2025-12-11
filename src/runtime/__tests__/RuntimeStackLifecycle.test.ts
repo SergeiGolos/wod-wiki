@@ -63,9 +63,7 @@ describe('RuntimeStack instrumentation', () => {
     const tracker = {
       getActiveSpanId: vi.fn().mockReturnValue(null),
       startSpan: vi.fn(() => callOrder.push('tracker.startSpan')),
-      endSpan: vi.fn(),
-      recordLegacyMetric: vi.fn(),
-    };
+                endSpan: vi.fn(),    };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => {
         callOrder.push('wrapper.wrap');
@@ -108,7 +106,7 @@ describe('RuntimeStack instrumentation', () => {
       getActiveSpanId: vi.fn(),
       startSpan: vi.fn(),
       endSpan: vi.fn(() => callOrder.push('tracker.endSpan')),
-      recordLegacyMetric: vi.fn(),
+
     };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => block),
