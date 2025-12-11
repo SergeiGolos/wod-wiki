@@ -3,6 +3,8 @@ import { EffortStrategy } from '../EffortStrategy';
 import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
+import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
+import { EffortBlock } from '../../blocks/EffortBlock';
 
 // Mock runtime
 const mockRuntime = {
@@ -147,6 +149,39 @@ describe('EffortStrategy', () => {
 
       expect(block).toBeDefined();
       expect(block.blockType).toBe('Effort');
+    });
+
+    it('should configure reps when RepFragment is present', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Rep, value: 10, type: 'reps' },
+          { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
+        ],
+        children: [],
+        meta: { line: 1, offset: 0, column: 0 }
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      expect(block).toBeInstanceOf(EffortBlock);
+      expect((block as any).config.targetReps).toBe(10);
+    });
+
+    it('should attach HistoryBehavior', () => {
+      const statement: ICodeStatement = {
+        id: 1,
+        fragments: [
+          { fragmentType: FragmentType.Effort, value: '10 Pullups', type: 'effort' }
+        ],
+        children: [],
+        meta: { line: 1, offset: 0, column: 0 }
+      } as any;
+
+      const block = strategy.compile([statement], mockRuntime);
+      const historyBehavior = block.getBehavior(HistoryBehavior);
+
+      expect(historyBehavior).toBeDefined();
+      expect((historyBehavior as any).label).toBe("Effort");
     });
   });
 });

@@ -161,8 +161,8 @@ describe('TimerStrategy', () => {
       expect(config.direction).toBe('down');
       // Should have 3-2-1 and complete cues
       expect(config.cues.length).toBeGreaterThan(0);
-      expect(config.cues.find(c => c.id === '3-sec')).toBeDefined();
-      expect(config.cues.find(c => c.id === 'complete')).toBeDefined();
+      expect(config.cues.find((c: any) => c.id === '3-sec')).toBeDefined();
+      expect(config.cues.find((c: any) => c.id === 'complete')).toBeDefined();
     });
 
     it('should attach HistoryBehavior', () => {

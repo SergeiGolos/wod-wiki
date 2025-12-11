@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
-import { ICodeStatement } from '../../src/CodeStatement';
-import { ICodeFragment, FragmentType } from '../../src/CodeFragment';
-import { IScriptRuntime } from '../../src/IScriptRuntime';
 import { BlockKey } from '../../src/core/models/BlockKey';
+import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
+import { ICodeStatement } from '../../src/core/models/CodeStatement';
+import { FragmentType } from '../../src/core/models/CodeFragment';
 
 describe('Strategy Matching Contract', () => {
   let mockRuntime: IScriptRuntime;

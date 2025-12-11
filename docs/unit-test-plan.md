@@ -27,23 +27,23 @@ Tests in this section verify that the JIT compiler correctly translates WOD scri
     - Assert: `SoundBehavior` is configured with default countdown cues.
 
 ### 1.3. TimeBoundRoundsStrategy (AMRAP)
-*   **Should create a block with infinite loops and a timer**
-    *   Input: `amrap 10:00`
-    *   Assert: `LoopCoordinatorBehavior` has `loopType: TIME_BOUND`, `totalRounds` is Infinity. `TimerBehavior` has 10 min duration.
-*   **Should configure CompletionBehavior correctly**
-    *   Assert: Completion depends on Timer expiry, not Loop completion.
+- [x] **Should create a block with infinite loops and a timer**
+    - Input: `amrap 10:00`
+    - Assert: `LoopCoordinatorBehavior` has `loopType: TIME_BOUND`, `totalRounds` is Infinity. `TimerBehavior` has 10 min duration.
+- [x] **Should configure CompletionBehavior correctly**
+    - Assert: Completion depends on Timer expiry, not Loop completion.
 
 ### 1.4. IntervalStrategy (EMOM)
-*   **Should create a block with interval looping**
-    *   Input: `emom 10`
-    *   Assert: `LoopCoordinatorBehavior` has `loopType: INTERVAL`, `intervalDuration` is 60s (default) or specified.
-*   **Should configure TimerBehavior for intervals**
-    *   Assert: Timer resets on interval.
+- [x] **Should create a block with interval looping**
+    - Input: `emom 10`
+    - Assert: `LoopCoordinatorBehavior` has `loopType: INTERVAL`, `intervalDuration` is 60s (default) or specified.
+- [x] **Should configure TimerBehavior for intervals**
+    - Assert: Timer resets on interval.
 
 ### 1.5. EffortStrategy
-*   **Should create an EffortBlock for exercises**
-    *   Input: `10 push-ups`
-    *   Assert: `EffortBlock`, `reps` configured to 10 (if applicable), `HistoryBehavior` present.
+- [x] **Should create an EffortBlock for exercises**
+    - Input: `10 push-ups`
+    - Assert: `EffortBlock`, `reps` configured to 10 (if applicable), `HistoryBehavior` present.
 
 ---
 
