@@ -12,7 +12,7 @@ export class TickEvent implements IEvent {
     this.timestamp = new Date(now + TickEvent._counter);
     this.data = data;
   }
-
+}
 
 export class NextEvent implements IEvent {
   readonly name: string = 'next';
@@ -39,8 +39,8 @@ export class NextEvent implements IEvent {
   // Custom toJSON method for proper JSON serialization
   toJSON() {
     return {
-      name: this._name,
-      timestamp: this._timestamp,
+      name: this.name,
+      timestamp: this.timestamp,
       data: this._data
     };
   }
