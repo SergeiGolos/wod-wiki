@@ -5,35 +5,37 @@ This document outlines the plan to migrate the `wod-wiki` codebase from Vitest t
 ## 1. Analysis and Scope
 
 ### Current Setup
-- **Framework**: Vitest
+- **Framework**: Bun native test runner (with Vitest retained for Storybook)
 - **Scripts**:
-  - `test` (Unit): Runs `vitest run --project=unit` (Target: `src/**/*.test.ts`)
-  - `test:components` (Components): Runs explicit setup in `vitest.config.js` (Target: `tests/**/*.test.ts`)
-  - `test:storybook`: Runs `vitest --project=storybook`
+  - `test` (Unit): Runs `bun test src --preload ./tests/unit-setup.ts` (Target: `src/**/*.test.ts`)
+  - `test:components` (Components/DOM): Runs `bun test tests --preload ./tests/setup.ts` (Target: `tests/**/*.test.ts`)
+  - `test:storybook`: Runs `bunx vitest run --config vitest.storybook.config.js`
 - **Environments**:
   - Unit tests: `node`
   - Component tests: `jsdom` (via `@testing-library/react`)
-- **Key Dependencies**: `vitest`, `@testing-library/react`, `jsdom`, `@vitest/coverage-v8`
+- **Key Dependencies**: `@testing-library/react`, `jsdom`, `bun-types` (plus `vitest` / Storybook Vitest addon for Storybook tests)
 
 ### Goals
 - Replace `vitest` with `bun test`.
-- Remove Vitest dependencies to reduce bloat.
+- Reduce Vitest footprint (keep only what Storybook requires).
 - Ensure `src` (Node logic) and `tests` (Components/DOM) pass under Bun.
 
 ## 2. Migration Steps
 
 ### Step 1: Manage Dependencies
 **Remove**:
-- `vitest`
-- `@vitest/coverage-v8`
-- `@vitest/browser` (if unused by other tools)
-- `@storybook/addon-vitest` (Note: If this is critical for Storybook interaction, we might need to retain it strictly for Storybook, but we will aim to move unit/component tests to Bun).
-- `jsdom` (Bun uses `happy-dom` by default, or we can keep `jsdom` and use `bun test --preload` to use it if `happy-dom` is insufficient. `global-jsdom` might be needed).
+  - `@vitest/coverage-v8` (Bun provides `--coverage`)
+
+**Keep (Storybook only)**:
+  - `vitest`
+  - `@storybook/addon-vitest`
+
+**Keep (DOM bootstrapping)**:
+  - `jsdom` (used by `tests/unit-setup.ts` preload to provide DOM globals for browser-only imports during coverage/module eval)
 
 **Install**:
-- `happy-dom` (if not built-in or if specific version needed).
-- `@types/bun` (already likely installed).
-- `global-jsdom` (optional/fallback).
+  - `bun-types` (TypeScript typings for `bun:test`)
+  - `@types/jsdom` (typings for `JSDOM` when used in preload)
 
 ### Step 2: Configuration (`bunfig.toml`)
 Create a `bunfig.toml` or rely on `package.json` configuration to map paths if needed. Bun generally works without config, but we need to handle the `setupFiles`.
@@ -44,9 +46,9 @@ Refactor scripts to use `bun test`:
 ```json
 {
   "scripts": {
-    "test": "bun test src/",
-    "test:components": "bun test tests/ --preload ./tests/setup-bun.ts",
-    "test:coverage": "bun test --coverage"
+    "test": "bun test src --preload ./tests/unit-setup.ts",
+    "test:components": "bun test tests --preload ./tests/setup.ts",
+    "test:coverage": "bun test src --preload ./tests/unit-setup.ts --coverage --coverage-reporter=lcov"
   }
 }
 ```
@@ -54,28 +56,11 @@ Refactor scripts to use `bun test`:
 *Note: Bun runs tests in parallel by default. We can use filter patterns to split unit vs component tests.*
 
 ### Step 4: Create Bun Setup Files
-Detailed changes for `tests/setup.ts`:
-- **Mocking**: Replace `vi.fn()` with `import { mock } from "bun:test"`.
-- **Globals**: Bun has `beforeAll`, `afterAll`, `describe`, `test`, `expect` built-in.
-- **DOM**: Ensure `happy-dom` or `global-jsdom` is loaded for component tests.
+Use Bun preloads to replace Vitest `setupFiles`:
+- `tests/setup.ts` for component/DOM tests
+- `tests/unit-setup.ts` for unit tests (includes jsdom bootstrapping where needed)
 
-Create `tests/setup-bun.ts` (example):
-```typescript
-import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { beforeEach, afterEach, mock } from "bun:test";
-
-// Register Happy DOM for component tests
-GlobalRegistrator.register();
-
-// Mock ResizeObserver/IntersectionObserver
-global.ResizeObserver = mock(() => ({
-  observe: mock(),
-  unobserve: mock(),
-  disconnect: mock(),
-}));
-
-// ... port other mocks from setup.ts
-```
+Note: Bun's `vi` is available from `bun:test`, but it does not include `vi.mocked`, so a compatibility shim is used in preloads.
 
 ### Step 5: Code Migration (Global Replace)
 Perform codebase-wide replacements:
@@ -83,10 +68,8 @@ Perform codebase-wide replacements:
     - `import { ... } from 'vitest'` -> `import { ... } from 'bun:test'`
     - Remove `import { vi } from 'vitest'`
 2.  **Mocking API**:
-    - `vi.fn()` -> `mock()` (import from `bun:test`)
-    - `vi.spyOn()` -> `spyOn()` (import from `bun:test`)
-    - `vi.mocked()` -> Remove or replace with type assertion.
-    - `vi.advanceTimersByTime()` -> Bun's `jest.advanceTimersByTime` (Bun implements Jest globals compatibility).
+  - Keep using `vi.fn()`, `vi.spyOn()`, timers, etc. from `bun:test`
+  - Provide a `vi.mocked` shim in preloads where needed
 
 ### Step 6: Verify and Fix
 1.  Run `bun test src/` (Unit tests).
@@ -97,7 +80,7 @@ Perform codebase-wide replacements:
     - Timer/Mock incompatibilities.
 
 ### Step 7: Storybook Considerations
-The `test:storybook` script currently relies on Vitest. If the user wants to keep the Storybook integration as-is (common for visual testing), we might keep `vitest` *only* for that script, or investigate `bun-playwright` full integration. For now, the primary goal is migrating the standard test suite.
+Storybook testing still relies on Vitest via the Storybook Vitest addon. The standard test suite (unit/components/perf/coverage) runs under Bun.
 
 ## 3. Rollout Plan
 1.  **Draft**: Create `tests/setup-bun.ts`.
