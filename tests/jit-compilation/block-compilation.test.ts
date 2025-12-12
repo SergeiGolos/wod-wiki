@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  TimerStrategy, 
-  RoundsStrategy, 
+import {
+  TimerStrategy,
+  RoundsStrategy,
   EffortStrategy,
   TimeBoundRoundsStrategy,
   IntervalStrategy,
   GroupStrategy
 } from '../../src/runtime/strategies';
-import { ICodeStatement } from '../../src/CodeStatement';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
+import { ICodeStatement } from '../../src/core/models/CodeStatement';
 
 describe('Block Compilation Contract', () => {
   let mockRuntime: IScriptRuntime;
@@ -72,10 +72,10 @@ describe('Block Compilation Contract', () => {
   const parseWorkout = (text: string): ICodeStatement[] => {
     const parser = new MdTimerRuntime();
     const script = parser.read(text);
-    
+
     // Update mock runtime to use the actual script for ID resolution
     mockRuntime.script = script;
-    
+
     return script.statements;
   };
 
@@ -253,7 +253,7 @@ describe('Block Compilation Contract', () => {
 
       // WHEN: GroupStrategy.compile() is called with statement that has children
       const strategy = new GroupStrategy();
-      
+
       // Check if first statement has children (parsed with nesting)
       if (statements[0].children && statements[0].children.length > 0) {
         const block = strategy.compile([statements[0]], mockRuntime);

@@ -10,16 +10,16 @@ This document provides a comprehensive matrix of all RuntimeBlock types in the W
 
 ### Block Types Summary
 
-| Block Type | Strategy | Category | Timer | Loop | Completion | History | Sound | Controls |
-|------------|----------|----------|-------|------|------------|---------|-------|----------|
-| **Root** | RuntimeFactory | Group | ✅ (up) | ✅ | via RootLifecycle | - | - | ✅ |
-| **Rounds** | RoundsStrategy | Group | - | ✅ | ✅ | ✅ | - | - |
-| **Timer** | TimerStrategy | Record/Group | ✅ | Optional | ✅ | ✅ | ✅ | - |
-| **AMRAP** | TimeBoundRoundsStrategy | Group | ✅ (down) | ✅ (infinite) | ✅ | ✅ | ✅ | - |
-| **EMOM** | IntervalStrategy | Group | ✅ (down) | ✅ (interval) | ✅ | ✅ | ✅ | - |
-| **Effort** | EffortStrategy | Record | ✅ (up) | - | ✅ | ✅ | - | - |
-| **Idle** | (inline) | Record | - | - | via IdleBehavior | - | - | ✅ |
-| **Group** | GroupStrategy | Group | - | - | ✅ | - | - | - |
+| Block Type | Strategy                | Category     | Timer    | Loop         | Completion        | History | Sound | Controls |
+| ---------- | ----------------------- | ------------ | -------- | ------------ | ----------------- | ------- | ----- | -------- |
+| **Root**   | RuntimeFactory          | Group        | ✅ (up)   | ✅ 1x         | via RootLifecycle | -       | -     | ✅        |
+| **Rounds** | RoundsStrategy          | Group        | -        | ✅            | ✅                 | ✅       | -     | -        |
+| **Timer**  | TimerStrategy           | Record/Group | ✅        | Optional     | ✅                 | ✅       | ✅     | -        |
+| **AMRAP**  | TimeBoundRoundsStrategy | Group        | ✅ (down) | ✅ (infinite) | ✅                 | ✅       | ✅     | -        |
+| **EMOM**   | IntervalStrategy        | Group        | ✅ (down) | ✅ (interval) | ✅                 | ✅       | ✅     | -        |
+| **Effort** | EffortStrategy          | Record       | ✅ (up)   | -            | ✅                 | ✅       | -     | -        |
+| **Idle**   | (inline)                | Record       | -        | -            | via IdleBehavior  | -       | -     | ✅        |
+| **Group**  | GroupStrategy           | Group        | -        | -            | ✅                 | -       | -     | -        |
 
 ---
 

@@ -1,0 +1,85 @@
+{
+    "$schema": "https://aka.ms/codetour-schema",
+    "title": "Runtime Stack Tour",
+    "description": "A deep dive into the RuntimeStack, managing execution flow, lifecycle events, and debugging hooks.",
+    "steps": [
+        {
+            "title": "Introduction",
+            "description": "# RuntimeStack\n\nThe `RuntimeStack` class is the central nervous system of the runtime execution. It manages the stack of active blocks, orchestrates their lifecycle (push/pop), and provides hooks for tracking, logging, and debugging.\n\nIt ensures that blocks are executed in the correct order and that their context is preserved.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 101
+        },
+        {
+            "title": "Pluggable Components",
+            "description": "The stack is designed to be extensible through these interfaces:\n\n*   **Tracker**: For tracing execution spans (e.g., performance monitoring).\n*   **Wrapper**: For wrapping blocks with decorators (e.g., for testing spies due to `TestableBlock`).\n*   **Logger**: For diagnostic output.\n*   **Hooks**: For lifecycle event callbacks (onPush, onPop).",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 13
+        },
+        {
+            "title": "Initialization",
+            "description": "The constructor initializes the stack. Note how it applies 'No-Op' defaults (e.g., `noopTracker`) to ensure the stack can function safely even if some optional components aren't provided.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 113
+        },
+        {
+            "title": "Push Operation - Entry",
+            "description": "The `push` method is the entry point for starting a block execution. It first validates the block (checking for nulls and stack depth) and triggers the `onBeforePush` hook.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 185
+        },
+        {
+            "title": "Tracking and Spans",
+            "description": "Here, the stack interacts with the `tracker` to start a new execution span. This links the new block to its parent's span, creating a hierarchical trace of execution.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 198
+        },
+        {
+            "title": "Block Wrapping",
+            "description": "This is a critical flexibility point. `wrapBlock` allows the system to replace the raw runtime block with a wrapper. This is heavily used in testing to inject `TestableBlock` instances that can spy on execution.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 206
+        },
+        {
+            "title": "Modifying State",
+            "description": "The block is finally pushed onto the `_blocks` stack. The timestamp is recorded, and if the block needs a reference to the runtime, it is injected here.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 216
+        },
+        {
+            "title": "Pop Operation - Entry",
+            "description": "When a block finishes, `pop` is called. It captures the completion time and triggers the `onBeforePop` hook.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 246
+        },
+        {
+            "title": "Unmounting",
+            "description": "Before removing the block from the basic stack structure, we call `unmount`. This gives the block a chance to define cleanup logic or emit final actions.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 260
+        },
+        {
+            "title": "Resource Cleanup",
+            "description": "After popping the block from the array, several cleanup steps occur:\n1.  The execution span is ended.\n2.  `dispose` is called on the block.\n3.  The block's context is released.\n4.  Hooks and wrappers are cleaned up.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 273
+        },
+        {
+            "title": "Parent Notification",
+            "description": "Crucially, after a child pops, the *parent* (now the current block) is notified via `next()`. This allows the parent block to determine what to do next, now that one of its children has completed.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 315
+        },
+        {
+            "title": "Safety - Stack Depth",
+            "description": "`validateBlock` protects the runtime from stack overflows by enforcing a `MAX_STACK_DEPTH`. This is a vital safeguard against infinite recursion in user scripts.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 367
+        },
+        {
+            "title": "Defensive Coding",
+            "description": "`safeCall` is used throughout the class to wrap calls to external dependencies (listeners, loggers). It ensures that a failure in a logger or hook doesn't crash the entire runtime.",
+            "file": "src/runtime/RuntimeStack.ts",
+            "line": 471
+        }
+    ]
+}
