@@ -3,7 +3,6 @@ import { Lexer } from 'chevrotain';
 import { allTokens } from '../parser/timer.tokens';
 import { MdTimerParse } from '../parser/timer.parser';
 import { MdTimerInterpreter } from '../parser/timer.visitor';
-import { WodScript } from '../parser/WodScript';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';

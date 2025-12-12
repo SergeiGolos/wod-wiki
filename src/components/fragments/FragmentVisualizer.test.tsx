@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import type { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import type { ParseError } from './types';
+import type { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import { ParseError } from '@/core';
+
 
 // These tests will FAIL initially because FragmentVisualizer doesn't exist yet (TDD requirement)
 

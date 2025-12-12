@@ -1,4 +1,4 @@
-import { ICodeStatement } from "./CodeStatement";
+import { ICodeStatement } from "@/core";
 
 export interface IScript {
   source: string;
