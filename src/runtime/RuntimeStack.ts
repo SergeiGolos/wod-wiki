@@ -480,15 +480,6 @@ export class RuntimeStack {
   private _logDebugEvent(event: DebugLogEvent): void {
     if (this._onDebugLog) {
       this._onDebugLog(event);
-    }
-
-    if ((NextBlockLogger as any).enabled) {
-      const prefix = `🔍 DEBUG | ${event.type}`;
-      console.log(prefix, {
-        blockKey: event.blockKey,
-        blockType: event.blockType,
-        ...event.details,
-      });
-    }
+    }   
   }
 }
