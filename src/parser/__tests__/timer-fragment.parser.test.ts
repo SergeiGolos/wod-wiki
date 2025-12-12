@@ -43,10 +43,7 @@ describe('Timer fragment parsing', () => {
     expect(timer.direction).toBe('up');
   });
 
-  // Note: The test plan describes ^5:00 as having forceCountUp=true, but the current parser
-  // grammar treats ^ as a separate trend/increment fragment, not as a timer modifier.
-  // The countUpModifier option in the duration rule is currently unreachable because
-  // trend is parsed as an alternative before duration in wodBlock.
+  // Note: ^ is parsed as a separate increment fragment, not a timer modifier (see parser grammar)
   it('parses ^5:00 as separate increment and timer fragments', () => {
     const script = parse('^5:00');
     
