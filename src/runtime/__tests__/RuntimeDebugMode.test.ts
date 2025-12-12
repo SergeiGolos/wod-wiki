@@ -3,7 +3,6 @@ import { RuntimeBuilder } from '../RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { JitCompiler } from '../JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { NextBlockLogger } from '../NextBlockLogger';
 import { DebugRuntimeStack } from '../DebugRuntimeStack';
 import { TestableBlock } from '../testing/TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -58,10 +57,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
     beforeEach(() => {
         compiler = new JitCompiler([]);
         script = new WodScript('10 Pushups', []);
-        
-        // Reset NextBlockLogger
-        NextBlockLogger.setEnabled(false);
-        NextBlockLogger.clearHistory();
     });
 
     describe('RuntimeBuilder', () => {
@@ -83,31 +78,31 @@ describe('Runtime Debugging and Testing Architecture', () => {
         });
 
         test('should auto-enable logging when debug mode is enabled', () => {
-            new RuntimeBuilder(script, compiler)
+            const runtime = new RuntimeBuilder(script, compiler)
                 .withDebugMode(true)
                 .build();
             
-            // NextBlockLogger should be enabled
-            expect((NextBlockLogger as any).enabled).toBe(true);
+            expect(runtime.options.enableLogging).toBe(true);
         });
 
         test('should enable logging independently of debug mode', () => {
-            new RuntimeBuilder(script, compiler)
+            const runtime = new RuntimeBuilder(script, compiler)
                 .withLogging(true)
                 .build();
             
-            expect((NextBlockLogger as any).enabled).toBe(true);
+            expect(runtime.isDebugMode).toBe(false);
+            expect(runtime.options.enableLogging).toBe(true);
         });
 
         test('should return options via getOptions()', () => {
             const builder = new RuntimeBuilder(script, compiler)
                 .withDebugMode(true)
-                .withMaxLogHistory(100);
+                .withLogging(true);
             
             const options = builder.getOptions();
             
             expect(options.debugMode).toBe(true);
-            expect(options.maxLogHistory).toBe(100);
+            expect(options.enableLogging).toBe(true);
         });
 
         test('should support buildWithOptions() for debugging', () => {
@@ -213,81 +208,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             runtime.clearAllBlockCalls();
             
             expect(runtime.getAllBlockCalls()[0].calls.length).toBe(0);
-        });
-    });
-
-    describe('NextBlockLogger Integration', () => {
-        test('should be enabled when debug mode is active', () => {
-            new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
-            
-            expect((NextBlockLogger as any).enabled).toBe(true);
-        });
-
-        test('should provide log history via runtime', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
-            
-            // Trigger some logs by pushing a block
-            const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
-            
-            const history = runtime.getLogHistory();
-            expect(history.length).toBeGreaterThan(0);
-        });
-
-        test('should support clearLogHistory()', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
-            
-            const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
-            
-            runtime.clearLogHistory();
-            
-            expect(runtime.getLogHistory().length).toBe(0);
-        });
-
-        test('should track block lifecycle stages', () => {
-            NextBlockLogger.setEnabled(true);
-            
-            NextBlockLogger.logBlockMount('test-block', 'Effort', 2, 5.5);
-            NextBlockLogger.logBlockNext('test-block', 'Effort', 1, 2.3);
-            NextBlockLogger.logBlockDispose('test-block', 'Effort', 1.2);
-            
-            const history = NextBlockLogger.getHistory();
-            expect(history.length).toBe(3);
-            
-            const stages = history.map(h => h.stage);
-            expect(stages).toContain('block-mount');
-            expect(stages).toContain('block-next');
-            expect(stages).toContain('block-dispose');
-        });
-
-        test('should provide stage counts via getStageCounts()', () => {
-            NextBlockLogger.setEnabled(true);
-            
-            NextBlockLogger.logBlockMount('block-1', 'Effort', 1, 1);
-            NextBlockLogger.logBlockMount('block-2', 'Timer', 2, 2);
-            NextBlockLogger.logBlockNext('block-1', 'Effort', 0, 1);
-            
-            const counts = NextBlockLogger.getStageCounts();
-            expect(counts['block-mount']).toBe(2);
-            expect(counts['block-next']).toBe(1);
-        });
-
-        test('should provide block-specific history via getBlockHistory()', () => {
-            NextBlockLogger.setEnabled(true);
-            
-            NextBlockLogger.logBlockMount('block-1', 'Effort', 1, 1);
-            NextBlockLogger.logBlockMount('block-2', 'Timer', 2, 2);
-            NextBlockLogger.logBlockNext('block-1', 'Effort', 0, 1);
-            
-            const block1History = NextBlockLogger.getBlockHistory('block-1');
-            expect(block1History.length).toBe(2);
         });
     });
 

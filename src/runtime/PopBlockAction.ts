@@ -1,7 +1,6 @@
 import { IRuntimeAction } from './IRuntimeAction';
 import { IScriptRuntime } from './IScriptRuntime';
 import { BlockLifecycleOptions } from './IRuntimeBlock';
-import { NextBlockLogger } from './NextBlockLogger';
 
 /**
  * Action that pops the current block from the runtime stack.
@@ -20,13 +19,11 @@ export class PopBlockAction implements IRuntimeAction {
 
     do(runtime: IScriptRuntime): void {
         if (!runtime.stack) {
-            NextBlockLogger.logValidationFailure('No stack available in runtime');
             return;
         }
 
         const currentBlock = runtime.stack.current;
         if (!currentBlock) {
-            NextBlockLogger.logValidationFailure('No block to pop from stack');
             return;
         }
 
@@ -39,9 +36,6 @@ export class PopBlockAction implements IRuntimeAction {
 
             runtime.stack.pop(lifecycle);
         } catch (error) {
-            NextBlockLogger.logError('pop-block-action', error as Error, {
-                blockKey: currentBlock.key.toString(),
-            });
             if (typeof (runtime as any).setError === 'function') {
                 (runtime as any).setError(error);
             }

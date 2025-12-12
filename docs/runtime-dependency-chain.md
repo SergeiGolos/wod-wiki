@@ -67,7 +67,7 @@ This is used when you need fine-grained control over configuration, especially f
 1.  **Instantiation**: `new RuntimeBuilder(script, compiler)`.
 2.  **Configuration** (fluent API):
     *   `.withDebugMode(boolean)`: Wraps blocks in `TestableBlock` proxies.
-    *   `.withLogging(boolean)`: Enables `NextBlockLogger`.
+    *   `.withLogging(boolean)`: Enables runtime debug logging.
     *   `.withDefaultTestableConfig(...)`: Configures spy/mock behavior for blocks.
 3.  **`build()` called**:
     *   Constructs the `RuntimeStackOptions` object.

@@ -13,7 +13,6 @@
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { TypedMemoryReference } from './IMemoryReference';
-import { RuntimeMetric } from './RuntimeMetric';
 import {
   ExecutionSpan,
   SpanMetrics,
@@ -28,7 +27,7 @@ import {
   createEmptyMetrics,
   legacyTypeToSpanType
 } from './models/ExecutionSpan';
-import { metricsToFragments, createLabelFragment } from './utils/metricsToFragments';
+import { createLabelFragment } from './utils/metricsToFragments';
 import { ICodeFragment } from '../core/models/CodeFragment';
 
 /** Memory type identifier for execution spans */

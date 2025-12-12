@@ -28,7 +28,6 @@ import {
     TimerFragmentCompiler
 } from './FragmentCompilers';
 import { DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
-import { NextBlockLogger } from './NextBlockLogger';
 import { TestableBlock } from './testing/TestableBlock';
 
 import { RuntimeClock } from './RuntimeClock';
@@ -80,17 +79,9 @@ export class ScriptRuntime implements IScriptRuntime {
         // Use DebugRuntimeStack if debugMode is enabled, otherwise use MemoryAwareRuntimeStack
         if (this.options.debugMode) {
             this.stack = new DebugRuntimeStack(this, this.executionTracker, stackOptions);
-            
-            // Enable NextBlockLogger automatically in debug mode
-            NextBlockLogger.setEnabled(true);
             console.log('🔍 ScriptRuntime: Debug mode enabled - blocks will be wrapped with TestableBlock');
         } else {
             this.stack = new MemoryAwareRuntimeStack(this, this.executionTracker, stackOptions);
-        }
-        
-        // Enable logging if explicitly requested (even without full debug mode)
-        if (this.options.enableLogging && !this.options.debugMode) {
-            NextBlockLogger.setEnabled(true);
         }
         
         this.metrics = new MetricCollector();
@@ -266,24 +257,4 @@ export class ScriptRuntime implements IScriptRuntime {
         this.debugStack?.clearAllCalls();
     }
     
-    /**
-     * Get NextBlockLogger history for analysis.
-     */
-    public getLogHistory(): ReadonlyArray<any> {
-        return NextBlockLogger.getHistory();
-    }
-    
-    /**
-     * Get NextBlockLogger summary string.
-     */
-    public getLogSummary(): string {
-        return NextBlockLogger.getSummary();
-    }
-    
-    /**
-     * Clear NextBlockLogger history.
-     */
-    public clearLogHistory(): void {
-        NextBlockLogger.clearHistory();
-    }
 }

@@ -1,7 +1,6 @@
 import { IRuntimeAction } from './IRuntimeAction';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IScriptRuntime } from './IScriptRuntime';
-import { NextBlockLogger } from './NextBlockLogger';
 
 /**
  * Action that pushes a compiled block onto the runtime stack.
@@ -22,7 +21,6 @@ export class PushBlockAction implements IRuntimeAction {
 
     do(runtime: IScriptRuntime): void {
         if (!runtime.stack) {
-            NextBlockLogger.logValidationFailure('No stack available in runtime');
             return;
         }
 
@@ -67,9 +65,6 @@ export class PushBlockAction implements IRuntimeAction {
                 target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
             }
 
-            // Log push start
-            NextBlockLogger.logPushBlockStart(blockKey, depthBefore);
-            
             // Push the block onto the stack
             runtime.stack.push(this.block, lifecycle);
             
@@ -82,13 +77,7 @@ export class PushBlockAction implements IRuntimeAction {
             }
             
             const depthAfter = runtime.stack.blocks.length;
-
-            // Log push completion
-            NextBlockLogger.logPushBlockComplete(blockKey, depthAfter, mountActions.length);
         } catch (error) {
-            NextBlockLogger.logError('push-block-action', error as Error, {
-                blockKey: this.block.key.toString(),
-            });
             if (typeof (runtime as any).setError === 'function') {
                 (runtime as any).setError(error);
             }

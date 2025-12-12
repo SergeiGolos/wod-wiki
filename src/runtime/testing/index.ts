@@ -11,7 +11,6 @@
  * 
  * ```typescript
  * import { RuntimeBuilder } from '@/runtime';
- * import { NextBlockLogger } from '@/runtime/NextBlockLogger';
  * 
  * // Enable debug mode via RuntimeBuilder
  * const runtime = new RuntimeBuilder(script, compiler)
@@ -23,10 +22,6 @@
  * // Inspect wrapped blocks
  * const wrapped = runtime.getWrappedBlocks();
  * console.log('All block calls:', runtime.getAllBlockCalls());
- * 
- * // Get log history
- * console.log(NextBlockLogger.getHistory());
- * console.log(NextBlockLogger.getSummary());
  * ```
  * 
  * ## Manual Testing
@@ -102,4 +97,3 @@ export {
 
 // Test setup actions
 export * from './actions';
-

@@ -6,7 +6,6 @@ import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
-import { NextBlockLogger } from './NextBlockLogger';
 import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
@@ -162,12 +161,6 @@ export class RuntimeBlock implements IRuntimeBlock{
         if (nextOptions.completedAt) {
             this.executionTiming.completedAt = nextOptions.completedAt;
         }
-        // Log behavior orchestration
-        NextBlockLogger.logBehaviorOrchestration(
-            this.key.toString(),
-            this.behaviors.length
-        );
-
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
             const result = behavior?.onNext?.(runtime, this, nextOptions);

@@ -1,6 +1,5 @@
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../core/models/BlockKey';
-import { NextBlockLogger } from './NextBlockLogger';
 import { ExecutionTracker } from './ExecutionTracker';
 import { IScriptRuntime } from './IScriptRuntime';
 import { BlockWrapperFactory, DebugLogEvent, IRuntimeOptions } from './IRuntimeOptions';
@@ -124,10 +123,6 @@ export class RuntimeStack {
     this.wrapper = options.wrapper ?? this.createDefaultWrapper();
     this.logger = options.logger ?? noopLogger;
     this.hooks = { ...noopHooks, ...options.hooks };
-
-    if (options.debugMode || options.enableLogging) {
-      NextBlockLogger.setEnabled(true);
-    }
   }
 
   /** Whether debug mode is currently active */
@@ -215,8 +210,6 @@ export class RuntimeStack {
     const depthBefore = this._blocks.length;
     this._blocks.push(wrappedBlock);
     const depthAfter = this._blocks.length;
-
-    NextBlockLogger.logStackPush(block.key.toString(), depthBefore, depthAfter);
 
     this._logDebugEvent({
       type: 'stack-push',
@@ -447,7 +440,6 @@ export class RuntimeStack {
           },
         });
 
-        NextBlockLogger.logPushBlockStart(block.key.toString(), this._blocks.length);
         return wrapped;
       },
       cleanup: (block: IRuntimeBlock) => {

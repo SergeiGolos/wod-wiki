@@ -12,13 +12,12 @@ export type BlockWrapperFactory = (block: IRuntimeBlock, config?: TestableBlockC
  * These options control debugging, logging, and testing capabilities.
  */
 export interface IRuntimeOptions {
-    /**
-     * Enable debug mode for the runtime.
-     * When true:
-     * - All blocks pushed to the stack are automatically wrapped with TestableBlock
-     * - NextBlockLogger is automatically enabled
-     * - Additional lifecycle events are logged
-     */
+     /**
+      * Enable debug mode for the runtime.
+      * When true:
+      * - All blocks pushed to the stack are automatically wrapped with TestableBlock
+      * - Additional lifecycle events are logged
+      */
     debugMode?: boolean;
     
     /**
@@ -33,18 +32,12 @@ export interface IRuntimeOptions {
      */
     defaultTestableConfig?: Partial<TestableBlockConfig>;
     
-    /**
-     * Enable console logging via NextBlockLogger.
-     * Automatically set to true when debugMode is true.
-     */
-    enableLogging?: boolean;
-    
-    /**
-     * Maximum log history size for NextBlockLogger.
-     * Default: 50
-     */
-    maxLogHistory?: number;
-    
+     /**
+      * Enable console logging for runtime debug output.
+      * Automatically set to true when debugMode is true.
+      */
+     enableLogging?: boolean;
+     
     /**
      * Custom log handler for debug events.
      * If provided, called in addition to console logging.
@@ -84,5 +77,4 @@ export interface DebugLogEvent {
 export const DEFAULT_RUNTIME_OPTIONS: Required<Omit<IRuntimeOptions, 'blockWrapperFactory' | 'onDebugLog' | 'defaultTestableConfig'>> = {
     debugMode: false,
     enableLogging: false,
-    maxLogHistory: 50,
 };

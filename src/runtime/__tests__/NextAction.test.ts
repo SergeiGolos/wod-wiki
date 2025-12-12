@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { NextAction } from '../NextAction';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { NextBlockLogger } from '../NextBlockLogger';
 
 // Polyfill vi.mocked for Vitest versions where it's unavailable
 if (!(vi as any).mocked) {
@@ -122,84 +121,6 @@ describe('NextAction', () => {
     expect(mockRuntime.errors.length).toBe(1);
     expect(mockRuntime.errors[0].error).toBe(error);
     expect(mockRuntime.errors[0].source).toBe('NextAction');
-  });
-
-  it('should log error when block.next(runtime) throws exception', () => {
-    NextBlockLogger.setEnabled(true);
-    const error = new Error('Block execution failed');
-    vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
-      throw error;
-    });
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    action.do(mockRuntime);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '❌ NEXT-BLOCK | Error in next-action',
-      expect.objectContaining({
-        context: expect.objectContaining({
-          blockKey: 'test-block',
-          stackDepth: 0
-        }),
-        error: 'Block execution failed'
-      })
-    );
-    consoleSpy.mockRestore();
-    NextBlockLogger.setEnabled(false);
-  });
-
-  it('should log message when no current block available', () => {
-    NextBlockLogger.setEnabled(true);
-    mockRuntime.stack.current = null as any;
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    action.do(mockRuntime);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '⚠️  NEXT-BLOCK | Validation Failed: No current block to advance from',
-      expect.objectContaining({
-        stackDepth: 0
-      })
-    );
-    consoleSpy.mockRestore();
-    NextBlockLogger.setEnabled(false);
-  });
-
-  it('should log block advancement details', () => {
-    NextBlockLogger.setEnabled(true);
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
-
-    action.do(mockRuntime);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '🎯 NEXT-BLOCK | Action Start',
-      expect.objectContaining({
-        block: 'test-block',
-        depth: 0
-      })
-    );
-    consoleSpy.mockRestore();
-    NextBlockLogger.setEnabled(false);
-  });
-
-  it('should log completion with new stack depth', () => {
-    NextBlockLogger.setEnabled(true);
-    mockRuntime.stack.blocks = [mockCurrentBlock, {}];
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
-
-    action.do(mockRuntime);
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '✅ NEXT-BLOCK | Action Complete',
-      expect.objectContaining({
-        actionsExecuted: 0,
-        newDepth: 2
-      })
-    );
-    consoleSpy.mockRestore();
-    NextBlockLogger.setEnabled(false);
   });
 
   it('should validate runtime state before execution', () => {

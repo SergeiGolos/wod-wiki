@@ -3,7 +3,6 @@ import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
 import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
 import { TestableBlockConfig } from './testing/TestableBlock';
-import { NextBlockLogger } from './NextBlockLogger';
 
 /**
  * RuntimeBuilder provides a fluent API for constructing ScriptRuntime instances
@@ -23,7 +22,6 @@ import { NextBlockLogger } from './NextBlockLogger';
  * const customRuntime = new RuntimeBuilder(script, compiler)
  *   .withDebugMode(true)
  *   .withLogging(true)
- *   .withMaxLogHistory(100)
  *   .withDefaultTestableConfig({ mountMode: 'spy', nextMode: 'spy' })
  *   .withDebugLogHandler((event) => {
  *     console.log('[Debug]', event);
@@ -43,7 +41,6 @@ export class RuntimeBuilder {
      * Enable or disable debug mode.
      * When enabled:
      * - All blocks are wrapped with TestableBlock for inspection
-     * - NextBlockLogger is automatically enabled
      * - Lifecycle events are tracked and can be inspected
      */
     withDebugMode(enabled: boolean): this {
@@ -55,21 +52,12 @@ export class RuntimeBuilder {
         return this;
     }
     
-    /**
-     * Enable or disable logging via NextBlockLogger.
-     * Can be enabled independently of debug mode for lighter-weight logging.
-     */
+     /**
+      * Enable or disable debug logging.
+      * Can be enabled independently of debug mode for lighter-weight logging.
+      */
     withLogging(enabled: boolean): this {
         this.options.enableLogging = enabled;
-        return this;
-    }
-    
-    /**
-     * Set the maximum log history size for NextBlockLogger.
-     * Default is 50 entries.
-     */
-    withMaxLogHistory(size: number): this {
-        this.options.maxLogHistory = size;
         return this;
     }
     
@@ -111,15 +99,6 @@ export class RuntimeBuilder {
      * Build the ScriptRuntime with the configured options.
      */
     build(): ScriptRuntime {
-        // Configure NextBlockLogger before creating runtime
-        if (this.options.enableLogging || this.options.debugMode) {
-            NextBlockLogger.setEnabled(true);
-            if (this.options.maxLogHistory) {
-                // Set max history size if NextBlockLogger supports it
-                (NextBlockLogger as any).maxHistorySize = this.options.maxLogHistory;
-            }
-        }
-        
         // Create runtime with options
         return new ScriptRuntime(this.script, this.compiler, this.options);
     }
