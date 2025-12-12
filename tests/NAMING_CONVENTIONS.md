@@ -99,7 +99,7 @@ Tests marked as TODO should include:
  * - Another test case
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 
 describe('{Test Category}', () => {
   it.todo('should {description of test case}');

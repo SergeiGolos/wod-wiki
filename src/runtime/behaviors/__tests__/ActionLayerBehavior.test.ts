@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { ActionLayerBehavior } from '../ActionLayerBehavior';
 import { PushActionsAction } from '../../actions/ActionStackActions';
 import { RuntimeMemory } from '../../RuntimeMemory';

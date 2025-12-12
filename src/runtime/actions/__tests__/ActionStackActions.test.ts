@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { RuntimeMemory } from '../../RuntimeMemory';
 import { MemoryTypeEnum } from '../../MemoryTypeEnum';
 import { PushActionsAction, PopActionsAction, UpdateActionsAction, ActionDescriptor } from '../ActionStackActions';

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import type { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import type { ParseError } from './types';
 

@@ -2,7 +2,7 @@
  * Unit tests for block detection utilities
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { detectWodBlocks, findBlockAtLine, extractBlockContent } from './blockDetection';
 
 describe('detectWodBlocks', () => {

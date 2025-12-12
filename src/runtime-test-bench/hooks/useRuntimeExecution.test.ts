@@ -1,11 +1,6 @@
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
 import { renderHook, act } from '@testing-library/react';
 import { useRuntimeExecution } from './useRuntimeExecution';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-
-// Mock ScriptRuntime
-vi.mock('../../runtime/ScriptRuntime');
 
 describe('useRuntimeExecution', () => {
     let mockRuntime: any;

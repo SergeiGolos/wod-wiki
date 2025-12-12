@@ -209,7 +209,7 @@ npm run android -- --device tv_api_33
 
 ```typescript
 // server/tests/session-manager.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { SessionManager } from '../src/session-manager';
 
 describe('SessionManager', () => {
@@ -247,7 +247,7 @@ describe('SessionManager', () => {
 
 ```typescript
 // src/services/cast/__tests__/CastManager.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
 import { CastManager } from '../CastManager';
 
 // Mock WebSocket
@@ -347,7 +347,7 @@ describe('Timer Component', () => {
 
 ```typescript
 // tests/integration/websocket-relay.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import WebSocket from 'ws';
 import { startServer, stopServer } from '../../server/src';
 

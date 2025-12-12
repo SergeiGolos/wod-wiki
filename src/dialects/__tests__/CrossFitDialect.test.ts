@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { CrossFitDialect } from '../CrossFitDialect';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { FragmentType } from '../../core/models/CodeFragment';

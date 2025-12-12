@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { createMockRuntime, mockPerformanceNow, createEventCapture } from '../../helpers/test-utils';
 

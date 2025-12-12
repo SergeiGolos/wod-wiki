@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { LoopCoordinatorBehavior, LoopType } from '../LoopCoordinatorBehavior';
 import { IRuntimeBlock } from '../../IRuntimeBlock';
 import { IScriptRuntime } from '../../IScriptRuntime';

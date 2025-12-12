@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { NextEvent } from '../../../src/runtime/NextEvent';
 import { IEvent } from '../../../src/runtime/IEvent';
 

@@ -5,7 +5,7 @@
  * specs/001-runtime-stack-needs/contracts/runtime-stack-api.md
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { BlockKey } from '../../../src/core/models/BlockKey';
 import { IRuntimeBlock } from '../../../src/runtime/IRuntimeBlock';

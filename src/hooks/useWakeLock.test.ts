@@ -6,7 +6,7 @@
  * so we test the hook's behavior with mocked navigator.wakeLock
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useWakeLock } from './useWakeLock';
 

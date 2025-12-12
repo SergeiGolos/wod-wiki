@@ -10,7 +10,7 @@
  * - Test edge cases (empty stack, undefined values)
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { RuntimeSelectors, runtimeSelectors } from './runtime-selectors';
 import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { IRuntimeBlock } from '../../runtime/IRuntimeBlock';

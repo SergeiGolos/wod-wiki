@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { MetricCollector } from '../../src/runtime/MetricCollector';
 import { RuntimeMetric } from './RuntimeMetric';
 

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeBuilder } from '../RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { JitCompiler } from '../JitCompiler';

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'bun:test';
 import { EventBus } from '../EventBus';
 import { IEventHandler } from '../IEventHandler';
 import { RuntimeMemory } from '../RuntimeMemory';

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from 'bun:test';
 import { BlockContext } from '../../../src/runtime/BlockContext';
 import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';

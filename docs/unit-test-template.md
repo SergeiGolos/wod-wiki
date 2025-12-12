@@ -23,13 +23,13 @@ This level ensures the JIT compiler correctly constructs runtime blocks from par
 ### 2.1. Test Structure
 
 ```typescript
-import { suite, test, expect } from 'vitest';
+import { describe, test, expect } from 'bun:test';
 import { WodParser } from '@/parser/WodParser';
 import { JitCompiler } from '@/runtime/JitCompiler';
 // Assuming a compiler that can create a block without pushing to a stack
 // or a test setup that allows inspecting the created block.
 
-suite('JIT Compiler: [Statement Type]', () => {
+describe('JIT Compiler: [Statement Type]', () => {
     test('should create a block with correct fragments and behaviors', () => {
         // 1. ARRANGE
         const script = 'rounds 5 / timer 30s';

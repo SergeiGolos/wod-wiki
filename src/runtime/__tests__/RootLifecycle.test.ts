@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { RuntimeFactory } from '../RuntimeFactory';
 import { createTestableRuntime } from '../testing/TestableRuntime';
 import { WodBlock } from '../../markdown-editor/types';

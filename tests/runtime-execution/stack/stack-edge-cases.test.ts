@@ -5,7 +5,7 @@
  * in the RuntimeStack implementation.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { BlockKey } from '../../../src/core/models/BlockKey';
 import { IRuntimeBlock } from '../../../src/runtime/IRuntimeBlock';

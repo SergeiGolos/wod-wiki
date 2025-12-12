@@ -10,7 +10,7 @@
  * - Test partial recovery (continuing after errors)
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 
 describe('Parser Error Recovery', () => {
   it.todo('should handle malformed fragment syntax');

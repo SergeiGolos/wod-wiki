@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { BlockContext } from '../../../src/runtime/BlockContext';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';

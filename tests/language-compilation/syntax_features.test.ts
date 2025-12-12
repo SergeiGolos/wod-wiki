@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { FragmentType, FragmentCollectionState } from '../../src/core/models/CodeFragment';
 import { RoundsFragment } from '../../src/fragments/RoundsFragment';

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'bun:test';
 import { DialectRegistry } from '../DialectRegistry';
 import { IDialect, DialectAnalysis } from '../../core/models/Dialect';
 import { ICodeStatement } from '../../core/models/CodeStatement';

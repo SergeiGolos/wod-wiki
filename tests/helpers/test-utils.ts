@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from 'bun:test';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { IEvent } from '../../src/runtime/IEvent';

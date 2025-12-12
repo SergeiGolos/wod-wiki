@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from 'bun:test';
 import { AnalysisService } from './AnalysisService';
 import { ExerciseDefinitionService } from '../../../repositories/workout/ExerciseDefinitionService';
 import { IProjectionEngine } from './IProjectionEngine';

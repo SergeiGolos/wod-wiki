@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { ExerciseDefinitionService } from '../repositories/workout/ExerciseDefinitionService';
 import { Exercise, Level, Category } from '../exercise.d';
 

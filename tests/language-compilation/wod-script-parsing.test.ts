@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { WodScript } from '../../src/WodScript';
 import { ICodeStatement } from '../../src/CodeStatement';
 import { CodeMetadata } from '../../src/CodeMetadata';

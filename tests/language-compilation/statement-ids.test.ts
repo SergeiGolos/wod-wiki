@@ -1,5 +1,5 @@
 // Test to verify statement IDs use line numbers (not character offsets)
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 
 describe('Statement ID Line Number Verification', () => {

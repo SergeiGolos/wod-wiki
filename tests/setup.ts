@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { afterAll, beforeAll, vi } from 'bun:test';
 
 // Vitest <2 compatibility: provide vi.mocked helper used across tests
 if (!(vi as any).mocked) {
@@ -55,7 +55,7 @@ const originalError = console.error;
 const originalWarn = console.warn;
 
 beforeAll(() => {
-  console.error = vi.fn((...args) => {
+  console.error = vi.fn((...args: unknown[]) => {
     // Allow certain expected errors
     const errorMsg = args.join(' ');
     if (
@@ -67,7 +67,7 @@ beforeAll(() => {
     originalError(...args);
   });
 
-  console.warn = vi.fn((...args) => {
+  console.warn = vi.fn((...args: unknown[]) => {
     const warnMsg = args.join(' ');
     if (warnMsg.includes('componentWillReceiveProps')) {
       return;

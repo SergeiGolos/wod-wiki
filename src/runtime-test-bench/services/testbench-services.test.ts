@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { globalParser, globalCompiler } from './testbench-services';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { JitCompiler } from '../../runtime/JitCompiler';

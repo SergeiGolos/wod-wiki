@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'bun:test';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 

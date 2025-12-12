@@ -27,6 +27,7 @@
 
     /* Module Resolution */
     "baseUrl": ".",
+    "types": ["bun-types"],
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -3,7 +3,7 @@
  * Tests T076: Parse Code to WodScript
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 
 describe('T076: Parse Code to WodScript', () => {

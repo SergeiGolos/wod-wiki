@@ -5,7 +5,7 @@
  * specified in the contracts and maintain acceptable performance characteristics.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { BlockKey } from '../../src/BlockKey';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';

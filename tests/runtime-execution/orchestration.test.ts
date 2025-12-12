@@ -12,7 +12,7 @@
  * - Test integration between JIT compiler, stack, and memory
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 
 describe('Runtime Orchestration', () => {
   it.todo('should initialize runtime with JIT compiler, stack, and memory');

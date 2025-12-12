@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'bun:test';
 import { ExerciseSearchEngine } from './ExerciseSearchEngine';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import type { ExercisePathIndex, ExerciseDataProvider } from '../types/providers';

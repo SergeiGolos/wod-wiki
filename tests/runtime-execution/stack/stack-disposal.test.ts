@@ -5,7 +5,7 @@
  * and edge cases in the RuntimeStack implementation.
  */
 
-import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi, afterEach } from 'bun:test';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { BlockKey } from '../../../src/core/models/BlockKey';
 import { IRuntimeBlock } from '../../../src/runtime/IRuntimeBlock';
