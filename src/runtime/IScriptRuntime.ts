@@ -4,31 +4,25 @@ import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
-import { IMetricCollector } from './MetricCollector';
 import { ExecutionSpan } from './models/ExecutionSpan';
 import { ExecutionTracker } from './ExecutionTracker';
-import { FragmentCompilationManager } from './FragmentCompilationManager';
 
 import { RuntimeClock } from './RuntimeClock';
 import { EventBus } from './EventBus';
 
 export interface IScriptRuntime {
     readonly script: WodScript;
+    
+    readonly eventBus: EventBus;
     readonly memory: IRuntimeMemory;
     readonly stack: RuntimeStack;
+    
     readonly jit: JitCompiler;
     readonly clock: RuntimeClock;
-    readonly eventBus: EventBus;
-    
-    /** Fragment compilation manager for converting fragments to metrics */
-    readonly fragmentCompiler: FragmentCompilationManager;
     
     /** Errors collected during runtime execution */
     readonly errors?: RuntimeError[];
     
-    /** Metrics collection subsystem for workout analytics */
-    readonly metrics?: IMetricCollector;
-
     /** 
      * ExecutionTracker for recording metrics to active spans.
      * Use this to record metrics, start/end segments, etc.

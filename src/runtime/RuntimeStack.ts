@@ -125,6 +125,9 @@ export class RuntimeStack {
     this.hooks = { ...noopHooks, ...options.hooks };
   }
 
+  /**     
+     * @deprecated
+  */
   /** Whether debug mode is currently active */
   get isDebugMode(): boolean {
     return this.options.debugMode ?? false;
@@ -135,16 +138,22 @@ export class RuntimeStack {
     return [...this._blocks].reverse();
   }
 
+  /**     
+     * @deprecated
+  */
   public get blocksTopFirst(): readonly IRuntimeBlock[] {
     return this.blocks;
   }
 
+  /**     
+     * @deprecated
+     */
   public get blocksBottomFirst(): readonly IRuntimeBlock[] {
     return [...this._blocks];
   }
 
   public get keys(): BlockKey[] {
-    return [...this._blocks].reverse().map(b => b.key);
+    return this.blocks.map(b => b.key);
   }
 
   public get current(): IRuntimeBlock | undefined {
@@ -154,15 +163,23 @@ export class RuntimeStack {
     return this._blocks[this._blocks.length - 1];
   }
 
+  /**     
+     * @deprecated
+     */
   /** Get all wrapped TestableBlock instances for inspection (debug mode only). */
   get wrappedBlocks(): ReadonlyMap<string, TestableBlock> {
     return this._wrappedBlocks;
   }
-
+/**     
+     * @deprecated
+     */
   getWrappedBlock(blockKey: string): TestableBlock | undefined {
     return this._wrappedBlocks.get(blockKey);
   }
 
+  /**     
+     * @deprecated
+     */
   getAllCalls(): Array<{ blockKey: string; calls: ReadonlyArray<any> }> {
     const result: Array<{ blockKey: string; calls: ReadonlyArray<any> }> = [];
     for (const [key, block] of this._wrappedBlocks) {
@@ -171,6 +188,9 @@ export class RuntimeStack {
     return result;
   }
 
+  /**     
+     * @deprecated
+     */
   clearAllCalls(): void {
     for (const block of this._wrappedBlocks.values()) {
       block.clearCalls();
@@ -326,11 +346,17 @@ export class RuntimeStack {
     return popped;
   }
 
+  /**     
+     * @deprecated
+   */
   public setBlocks(blocks: IRuntimeBlock[]): void {
     this._blocks.length = 0;
     this._blocks.push(...blocks);
   }
 
+  /**     
+     * @deprecated
+     */
   public getParentBlocks(): IRuntimeBlock[] {
     if (this._blocks.length <= 1) {
       return [];
@@ -338,15 +364,24 @@ export class RuntimeStack {
     return [...this._blocks].slice(0, -1);
   }
 
+  /**     
+     * @deprecated
+     */
   public graph(): IRuntimeBlock[] {
     return [...this._blocks].reverse();
   }
 
+  /**     
+     * @deprecated
+     */
   cleanupWrappedBlock(blockKey: string): void {
     this._wrappedBlocks.delete(blockKey);
     this._wrappedBlocks.delete(blockKey.replace('debug-', ''));
   }
 
+  /**     
+     * @deprecated
+     */
   private validateBlock(block: IRuntimeBlock): void {
     if (block === null || block === undefined) {
       throw new TypeError('Block cannot be null or undefined');
@@ -364,6 +399,9 @@ export class RuntimeStack {
     }
   }
 
+  /**     
+     * @deprecated
+     */
   private wrapBlock(block: IRuntimeBlock, parentBlock: IRuntimeBlock | undefined): IRuntimeBlock {
     const wrapped = this.safeCall(() => this.wrapper.wrap?.(block, parentBlock), 'wrapper.wrap', {
       blockKey: block.key.toString(),
@@ -372,16 +410,25 @@ export class RuntimeStack {
     return wrapped ?? block;
   }
 
+  /**     
+     * @deprecated
+     */
   private setStartTime(block: IRuntimeBlock, startTime: RuntimeTimestamp): void {
     const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
     target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
   }
 
+  /**     
+     * @deprecated
+     */
   private setCompletedTime(block: IRuntimeBlock, completedAt: RuntimeTimestamp): void {
     const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
     target.executionTiming = { ...(target.executionTiming ?? {}), completedAt };
   }
 
+  /**     
+     * @deprecated
+     */
   private getTimestamp(seed?: RuntimeTimestamp): RuntimeTimestamp {
     const fallback = (): RuntimeTimestamp => ({
       wallTimeMs: seed?.wallTimeMs ?? Date.now(),
@@ -400,8 +447,9 @@ export class RuntimeStack {
     return fallback();
   }
 
-
-
+/**     
+     * @deprecated
+     */
   private resolveOwnerKey(block: IRuntimeBlock): string {
     if (block instanceof TestableBlock) {
       return block.wrapped.key.toString();
@@ -409,6 +457,9 @@ export class RuntimeStack {
     return block.key.toString();
   }
 
+  /**     
+     * @deprecated
+     */
   private createDefaultWrapper(): RuntimeStackWrapper {
     if (!this.options.debugMode) {
       return noopWrapper;
@@ -449,17 +500,23 @@ export class RuntimeStack {
       },
     };
   }
-
+/**     
+     * @deprecated
+     */
   private popRaw(): IRuntimeBlock | undefined {
     return this._blocks.pop();
   }
-
+/**     
+     * @deprecated
+     */
   private runActions(actions: IRuntimeAction[], stage: string, context: Record<string, unknown>): void {
     for (const action of actions) {
       this.safeCall(() => action.do(this.runtime), stage, context);
     }
   }
-
+/**     
+     * @deprecated
+     */
   private safeCall<T>(fn: () => T, stage: string, details?: Record<string, unknown>): T | undefined {
     try {
       return fn();
@@ -468,7 +525,9 @@ export class RuntimeStack {
       return undefined;
     }
   }
-
+/**     
+     * @deprecated
+     */
   private _logDebugEvent(event: DebugLogEvent): void {
     if (this._onDebugLog) {
       this._onDebugLog(event);
