@@ -9,8 +9,7 @@ import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { ExecutionSpan, createEmptyMetrics } from '../models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
+import { ExecutionSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
 import { IEvent } from '../IEvent';
 import { captureRuntimeTimestamp } from '../RuntimeClock';
 
@@ -20,13 +19,13 @@ import { captureRuntimeTimestamp } from '../RuntimeClock';
 export enum LoopType {
   /** Fixed number of rounds with same reps each round */
   FIXED = 'fixed',
-  
+
   /** Variable reps per round (e.g., 21-15-9) */
   REP_SCHEME = 'repScheme',
-  
+
   /** Loop until timer expires (AMRAP) */
   TIME_BOUND = 'timeBound',
-  
+
   /** Fixed intervals with timer resets (EMOM) */
   INTERVAL = 'interval',
 }
@@ -40,19 +39,19 @@ export interface LoopConfig {
    * Example: [[1, 2], [3]] = "compile statements 1+2 together, then 3"
    */
   childGroups: number[][];
-  
+
   /** Type of loop execution */
   loopType: LoopType;
-  
+
   /** Total rounds to complete (for fixed and repScheme types) */
   totalRounds?: number;
-  
+
   /** Variable reps per round (for repScheme type) */
   repScheme?: number[];
-  
+
   /** Interval duration in milliseconds (for interval type) */
   intervalDurationMs?: number;
-  
+
   /** Callback executed when a new round starts (before child compilation) */
   onRoundStart?: (runtime: IScriptRuntime, roundIndex: number) => void;
 }
@@ -63,10 +62,10 @@ export interface LoopConfig {
 export interface LoopState {
   /** Total next() calls (increments every advancement) */
   index: number;
-  
+
   /** Current child group position: index % childGroups.length */
   position: number;
-  
+
   /** Completed rounds: Math.floor(index / childGroups.length) */
   rounds: number;
 }
@@ -163,26 +162,26 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   onNext(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     // Handle INTERVAL waiting logic
     if (this.config.loopType === LoopType.INTERVAL) {
-        // If we are waiting, do nothing (waiting for timer:complete)
-        if (this.isWaitingForInterval) {
+      // If we are waiting, do nothing (waiting for timer:complete)
+      if (this.isWaitingForInterval) {
+        return [];
+      }
+
+      // If we have started at least one round (index >= 0) and the timer is running,
+      // it means we finished the work early and need to wait.
+      // EXCEPTION: If index is -1, we are just starting, so proceed immediately.
+      if (this.index >= 0) {
+        const timerBehavior = block.getBehavior(TimerBehavior);
+        if (timerBehavior && timerBehavior.isRunning() && !timerBehavior.isComplete()) {
+          console.log(`LoopCoordinator: Work complete, waiting for interval timer...`);
+          this.isWaitingForInterval = true;
           return [];
         }
-
-        // If we have started at least one round (index >= 0) and the timer is running,
-        // it means we finished the work early and need to wait.
-        // EXCEPTION: If index is -1, we are just starting, so proceed immediately.
-        if (this.index >= 0) {
-            const timerBehavior = block.getBehavior(TimerBehavior);
-            if (timerBehavior && timerBehavior.isRunning() && !timerBehavior.isComplete()) {
-                console.log(`LoopCoordinator: Work complete, waiting for interval timer...`);
-                this.isWaitingForInterval = true;
-                return [];
-            }
-        }
+      }
     }
 
     // Proceed to advance
-          return this.advance(runtime, block, options);
+    return this.advance(runtime, block, options);
   }
 
   /**
@@ -207,7 +206,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Current round is 1-indexed for display
     const currentRound = state.rounds + 1;
     const totalRounds = this.config.totalRounds;
-    
+
     if (totalRounds) {
       actions.push(new SetRoundsDisplayAction(currentRound, totalRounds));
     }
@@ -216,10 +215,10 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Emit for every round start, including the first one (rounds=0)
     if (state.position === 0) {
       this.emitRoundChanged(runtime, state.rounds, block);
-      
+
       // Execute custom round start logic (e.g., updating inherited metrics)
       if (this.config.onRoundStart) {
-          this.config.onRoundStart(runtime, state.rounds);
+        this.config.onRoundStart(runtime, state.rounds);
       }
     }
 
@@ -241,7 +240,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Children will search memory for public metrics from parent blocks
     try {
       const compiledBlock = runtime.jit.compile(childStatements, runtime);
-      
+
       if (!compiledBlock) {
         console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);
         return actions;
@@ -262,46 +261,46 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Handles events dispatched to the block.
    */
   onEvent(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-      // Handle interval completion
-      if (event.name === 'timer:complete' && this.config.loopType === LoopType.INTERVAL) {
-          // Verify the event comes from OUR block
-          if (event.data?.blockId === block.key.toString()) {
-              if (this.isWaitingForInterval) {
-                  console.log(`LoopCoordinator: Interval timer complete, advancing to next round.`);
-                  this.isWaitingForInterval = false;
-                  return this.advance(runtime, block);
-              } else {
-                  // If we receive timer:complete but we weren't waiting, it usually means
-                  // we are still working (AMRAP within Interval? Or just slow).
-                  // In classic EMOM: "Every Minute On the Minute".
-                  // If work takes > 1 min, you fail the interval or start next one immediately.
-                  // We should probably just advance immediately if we are not complete.
-                  // But currently, if child is running, we can't just "advance" because the child is on top of stack.
-                  // This event handler runs on the PARENT block.
-                  // If stack.current is child, parent gets event?
-                  // RuntimeBlock.registerEventDispatcher only dispatches if `runtime.stack.current === this`.
-                  // So we only get this event if we are the current block (meaning children are done/popped).
+    // Handle interval completion
+    if (event.name === 'timer:complete' && this.config.loopType === LoopType.INTERVAL) {
+      // Verify the event comes from OUR block
+      if (event.data?.blockId === block.key.toString()) {
+        if (this.isWaitingForInterval) {
+          console.log(`LoopCoordinator: Interval timer complete, advancing to next round.`);
+          this.isWaitingForInterval = false;
+          return this.advance(runtime, block);
+        } else {
+          // If we receive timer:complete but we weren't waiting, it usually means
+          // we are still working (AMRAP within Interval? Or just slow).
+          // In classic EMOM: "Every Minute On the Minute".
+          // If work takes > 1 min, you fail the interval or start next one immediately.
+          // We should probably just advance immediately if we are not complete.
+          // But currently, if child is running, we can't just "advance" because the child is on top of stack.
+          // This event handler runs on the PARENT block.
+          // If stack.current is child, parent gets event?
+          // RuntimeBlock.registerEventDispatcher only dispatches if `runtime.stack.current === this`.
+          // So we only get this event if we are the current block (meaning children are done/popped).
 
-                  // Wait, if children are running, `runtime.stack.current` is the child.
-                  // So `onEvent` will NOT be called on parent.
-                  // So we only catch `timer:complete` if we are waiting (children popped).
+          // Wait, if children are running, `runtime.stack.current` is the child.
+          // So `onEvent` will NOT be called on parent.
+          // So we only catch `timer:complete` if we are waiting (children popped).
 
-                  // But what if the timer completes WHILE child is running?
-                  // `TimerBehavior` emits `timer:complete`.
-                  // `RuntimeBlock` (parent) registers dispatcher.
-                  // Dispatcher checks `runtime.stack.current === this`.
-                  // If child is running, parent is NOT current. So parent ignores event.
+          // But what if the timer completes WHILE child is running?
+          // `TimerBehavior` emits `timer:complete`.
+          // `RuntimeBlock` (parent) registers dispatcher.
+          // Dispatcher checks `runtime.stack.current === this`.
+          // If child is running, parent is NOT current. So parent ignores event.
 
-                  // This means if you are slow (work > interval), the parent never sees `timer:complete`.
-                  // When child finally finishes, `onNext` is called.
-                  // `onNext` sees timer is complete (or stopped).
-                  // If stopped, `isRunning()` is false.
-                  // Then we proceed to `advance()`.
-                  // This seems correct for "Catch up" behavior (start next round immediately).
-              }
-          }
+          // This means if you are slow (work > interval), the parent never sees `timer:complete`.
+          // When child finally finishes, `onNext` is called.
+          // `onNext` sees timer is complete (or stopped).
+          // If stopped, `isRunning()` is false.
+          // Then we proceed to `advance()`.
+          // This seems correct for "Catch up" behavior (start next round immediately).
+        }
       }
-      return [];
+    }
+    return [];
   }
 
   /**
@@ -356,7 +355,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     if (timerBehavior) {
       return timerBehavior.isComplete();
     }
-    
+
     return false;
   }
 
@@ -384,24 +383,24 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     const state = this.getState();
     const currentRound = state.rounds + 1;
     const roundOwnerId = `${block.key.toString()}-round-${currentRound}`;
-    
-    const refs = runtime.memory.search({ 
-        type: EXECUTION_SPAN_TYPE, 
-        id: null,
-        ownerId: roundOwnerId, 
-        visibility: null 
+
+    const refs = runtime.memory.search({
+      type: EXECUTION_SPAN_TYPE,
+      id: null,
+      ownerId: roundOwnerId,
+      visibility: null
     });
 
     if (refs.length > 0) {
-        const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
-        if (span && span.status === 'active') {
-            const updatedSpan: ExecutionSpan = {
-                ...span,
-                endTime: Date.now(),
-                status: 'completed'
-            };
-            runtime.memory.set(refs[0] as any, updatedSpan);
-        }
+      const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+      if (span && span.status === 'active') {
+        const updatedSpan: ExecutionSpan = {
+          ...span,
+          endTime: Date.now(),
+          status: 'completed'
+        };
+        runtime.memory.set(refs[0] as any, updatedSpan);
+      }
     }
 
     return [];
@@ -426,100 +425,100 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
     // 1. Close previous round span
     if (prevRound > 0) {
-        const prevRoundOwnerId = `${blockId}-round-${prevRound}`;
-        const refs = runtime.memory.search({ 
-            type: EXECUTION_SPAN_TYPE, 
-            id: null,
-            ownerId: prevRoundOwnerId, 
-            visibility: null 
-        });
+      const prevRoundOwnerId = `${blockId}-round-${prevRound}`;
+      const refs = runtime.memory.search({
+        type: EXECUTION_SPAN_TYPE,
+        id: null,
+        ownerId: prevRoundOwnerId,
+        visibility: null
+      });
 
-        if (refs.length > 0) {
-            const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
-            if (span && span.status === 'active') {
-                const updatedSpan: ExecutionSpan = {
-                    ...span,
-                    endTime: Date.now(),
-                    status: 'completed'
-                };
-                runtime.memory.set(refs[0] as any, updatedSpan);
-            }
+      if (refs.length > 0) {
+        const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+        if (span && span.status === 'active') {
+          const updatedSpan: ExecutionSpan = {
+            ...span,
+            endTime: Date.now(),
+            status: 'completed'
+          };
+          runtime.memory.set(refs[0] as any, updatedSpan);
         }
+      }
     }
 
     // 2. Create new round span
     // Only if we are not complete
     if (rounds < (this.config.totalRounds || Infinity)) {
-        const newRoundOwnerId = `${blockId}-round-${nextRound}`;
-        const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round';
-        const label = this.config.loopType === LoopType.INTERVAL 
-            ? `Interval ${nextRound}`
-            : `Round ${nextRound}`;
-        
-        const startTime = Date.now();
-        
-        // Create metrics with round info
-        const metrics = createEmptyMetrics();
-        metrics.currentRound = nextRound;
-        if (this.config.totalRounds) {
-            metrics.totalRounds = this.config.totalRounds;
+      const newRoundOwnerId = `${blockId}-round-${nextRound}`;
+      const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round';
+      const label = this.config.loopType === LoopType.INTERVAL
+        ? `Interval ${nextRound}`
+        : `Round ${nextRound}`;
+
+      const startTime = Date.now();
+
+      // Create metrics with round info
+      const metrics = createEmptyMetrics();
+      metrics.currentRound = nextRound;
+      if (this.config.totalRounds) {
+        metrics.totalRounds = this.config.totalRounds;
+      }
+      if (this.config.repScheme) {
+        metrics.repScheme = this.config.repScheme;
+        // Set target reps for this specific round using modulo to cycle
+        // E.g., 21-15-9: round 0 → 21, round 1 → 15, round 2 → 9, round 3 → 21, etc.
+        const schemeIndex = rounds % this.config.repScheme.length;
+        metrics.targetReps = this.config.repScheme[schemeIndex];
+      }
+
+      const span: ExecutionSpan = {
+        id: `${startTime}-${newRoundOwnerId}`,
+        blockId: newRoundOwnerId,
+        parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock
+        type: spanType as any,
+        label: label,
+        startTime: startTime,
+        status: 'active',
+        metrics: metrics,
+        segments: []
+      };
+
+      runtime.memory.allocate(EXECUTION_SPAN_TYPE, newRoundOwnerId, span, 'public');
+
+      // Create lap timer for this round
+      const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
+        `timer:lap:${block.key}:${rounds}`,
+        block.key.toString(),
+        [{ start: Date.now(), state: 'new' }],
+        'public'
+      );
+
+      // Track lap timer ref for cleanup
+      this.lapTimerRefs.push(lapTimerRef);
+
+      // Update display state
+      const stateRefs = runtime.memory.search({
+        id: null,
+        ownerId: 'runtime',
+        type: MemoryTypeEnum.DISPLAY_STACK_STATE,
+        visibility: null
+      });
+
+      if (stateRefs.length > 0) {
+        const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
+        const state = stateRef.get();
+        if (state) {
+          stateRef.set({ ...state, currentLapTimerMemoryId: lapTimerRef.id });
         }
-        if (this.config.repScheme) {
-            metrics.repScheme = this.config.repScheme;
-            // Set target reps for this specific round using modulo to cycle
-            // E.g., 21-15-9: round 0 → 21, round 1 → 15, round 2 → 9, round 3 → 21, etc.
-            const schemeIndex = rounds % this.config.repScheme.length;
-            metrics.targetReps = this.config.repScheme[schemeIndex];
+      }
+
+      // For INTERVAL loops (EMOM), restart the timer for the new round
+      if (this.config.loopType === LoopType.INTERVAL) {
+        const timerBehavior = block.getBehavior(TimerBehavior);
+        if (timerBehavior) {
+          timerBehavior.restart();
         }
-        
-        const span: ExecutionSpan = {
-            id: `${startTime}-${newRoundOwnerId}`,
-            blockId: newRoundOwnerId,
-            parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock
-            type: spanType as any,
-            label: label,
-            startTime: startTime,
-            status: 'active',
-            metrics: metrics,
-            segments: []
-        };
-
-        runtime.memory.allocate(EXECUTION_SPAN_TYPE, newRoundOwnerId, span, 'public');
-
-        // Create lap timer for this round
-        const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
-          `timer:lap:${block.key}:${rounds}`,
-          block.key.toString(),
-          [{ start: Date.now(), state: 'new' }],
-          'public'
-        );
-
-        // Track lap timer ref for cleanup
-        this.lapTimerRefs.push(lapTimerRef);
-
-        // Update display state
-        const stateRefs = runtime.memory.search({
-          id: null,
-          ownerId: 'runtime',
-          type: MemoryTypeEnum.DISPLAY_STACK_STATE,
-          visibility: null
-        });
-
-        if (stateRefs.length > 0) {
-          const stateRef = stateRefs[0] as TypedMemoryReference<IDisplayStackState>;
-          const state = stateRef.get();
-          if (state) {
-            stateRef.set({ ...state, currentLapTimerMemoryId: lapTimerRef.id });
-          }
-        }
-
-        // For INTERVAL loops (EMOM), restart the timer for the new round
-        if (this.config.loopType === LoopType.INTERVAL) {
-            const timerBehavior = block.getBehavior(TimerBehavior);
-            if (timerBehavior) {
-                timerBehavior.restart();
-            }
-        }
+      }
     }
   }
 }

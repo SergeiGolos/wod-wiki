@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { RuntimeStack } from '../RuntimeStack';
-import { ExecutionTracker } from '../ExecutionTracker';
+import { ExecutionTracker } from '../../tracker/ExecutionTracker';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../PushBlockAction';

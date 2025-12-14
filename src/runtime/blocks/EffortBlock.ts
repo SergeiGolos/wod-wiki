@@ -9,8 +9,7 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
-import { ExecutionSpan } from '../models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../ExecutionTracker';
+import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
@@ -28,8 +27,8 @@ export interface EffortBlockConfig {
  * before the completion condition is checked.
  */
 class NextEventBehavior implements IRuntimeBehavior {
-  constructor(private readonly setForceComplete: () => void) {}
-  
+  constructor(private readonly setForceComplete: () => void) { }
+
   onEvent(event: IEvent, _runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
     if (event.name === 'next') {
       this.setForceComplete();
@@ -95,7 +94,7 @@ export class EffortBlock extends RuntimeBlock {
       runtime,
       sourceIds,
       [
-        nextEventBehavior, 
+        nextEventBehavior,
         completionBehavior,
         // Add TimerBehavior for segment timing (count up)
         // Segment timer is secondary so it doesn't steal the primary clock
@@ -242,53 +241,53 @@ export class EffortBlock extends RuntimeBlock {
    */
   private updateMetrics(runtime: IScriptRuntime): void {
     const blockId = this.key.toString();
-    
+
     // 1. Update METRICS_CURRENT for live UI
     const metricsRef = runtime.memory.allocate<CurrentMetrics>(
-        MemoryTypeEnum.METRICS_CURRENT,
-        'runtime',
-        {},
-        'public'
+      MemoryTypeEnum.METRICS_CURRENT,
+      'runtime',
+      {},
+      'public'
     );
     const metrics = metricsRef.get() || {};
     metrics['reps'] = {
-        value: this.currentReps,
-        unit: 'reps',
-        sourceId: blockId
+      value: this.currentReps,
+      unit: 'reps',
+      sourceId: blockId
     };
     metricsRef.set({ ...metrics });
 
     // 2. Sync to ExecutionSpan for history/analytics
     // This ensures live updates are reflected in the execution log
-    const spanRefs = runtime.memory.search({ 
-        type: EXECUTION_SPAN_TYPE, 
-        ownerId: blockId, 
-        id: null, 
-        visibility: null 
+    const spanRefs = runtime.memory.search({
+      type: EXECUTION_SPAN_TYPE,
+      ownerId: blockId,
+      id: null,
+      visibility: null
     });
-    
+
     if (spanRefs.length > 0) {
-        const spanRef = spanRefs[0] as any;
-        const span = runtime.memory.get(spanRef) as ExecutionSpan;
-        
-        if (span && span.metrics) {
-            // Update the span metrics with current reps and exercise info
-            const updatedMetrics = {
-                ...span.metrics,
-                exerciseId: this.config.exerciseName,
-                reps: {
-                    value: this.currentReps,
-                    unit: 'reps',
-                    recorded: Date.now()
-                },
-                targetReps: this.config.targetReps
-            };
-            
-            runtime.memory.set(spanRef, {
-                ...span,
-                metrics: updatedMetrics
-            });
-        }
+      const spanRef = spanRefs[0] as any;
+      const span = runtime.memory.get(spanRef) as ExecutionSpan;
+
+      if (span && span.metrics) {
+        // Update the span metrics with current reps and exercise info
+        const updatedMetrics = {
+          ...span.metrics,
+          exerciseId: this.config.exerciseName,
+          reps: {
+            value: this.currentReps,
+            unit: 'reps',
+            recorded: Date.now()
+          },
+          targetReps: this.config.targetReps
+        };
+
+        runtime.memory.set(spanRef, {
+          ...span,
+          metrics: updatedMetrics
+        });
+      }
     }
 
     // 3. Emit reps:updated event

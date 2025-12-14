@@ -11,22 +11,24 @@ import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
 
+import { useExecutionSpans, useSpanHierarchy } from '../../clock/hooks/useExecutionSpans';
+
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
   runtime: ScriptRuntime | null;
-  
+
   /** Historical segments for analysis mode */
   historicalSegments?: Segment[];
-  
+
   /** Currently active segment ID */
   activeSegmentId?: number | null;
-  
+
   /** Whether to disable auto-scroll */
   disableScroll?: boolean;
-  
+
   /** Ref to scroll container */
   scrollRef?: React.RefObject<HTMLDivElement>;
-  
+
   /** Children to render below the tree (e.g., "feeding" connector) */
   children?: React.ReactNode;
 }
@@ -34,7 +36,12 @@ export interface ExecutionLogPanelProps {
 /**
  * Helper to convert ExecutionSpan to Segment for display
  */
-function recordToSegment(record: ExecutionSpan, hashCode: (str: string) => number): Segment {
+function recordToSegment(
+  record: ExecutionSpan,
+  hashCode: (str: string) => number,
+  depthMap: Map<string, number>
+): Segment {
+  const depth = depthMap.get(record.id) || 0;
   return {
     id: hashCode(record.blockId),
     name: record.label,
@@ -43,10 +50,10 @@ function recordToSegment(record: ExecutionSpan, hashCode: (str: string) => numbe
     endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
     duration: ((record.endTime ?? Date.now()) - record.startTime) / 1000,
     parentId: record.parentSpanId ? hashCode(record.parentSpanId) : null,
-    depth: 0,
+    depth: depth,
     avgPower: 0,
     avgHr: 0,
-    lane: 0
+    lane: depth
   };
 }
 
@@ -74,6 +81,9 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   scrollRef,
   children
 }) => {
+  const { active, completed } = useExecutionSpans(runtime);
+  const depthMap = useSpanHierarchy(runtime);
+
   // Build segments from runtime memory if available
   const segments = React.useMemo(() => {
     if (historicalSegments.length > 0) {
@@ -84,53 +94,13 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
       return [];
     }
 
-    // 1. Get completed segments from execution log
-    const historySegments: Segment[] = runtime.executionLog.map(record => 
-      recordToSegment(record, hashCode)
-    );
+    const allSpans = [...completed, ...active];
 
-    // 2. Get active segments from stack
-    const activeSegments: Segment[] = runtime.stack.blocks.map((block, stackIndex) => {
-      let startTime = Date.now();
-      
-      // Try to get start time from memory
-      const startTimeRefs = runtime.memory.search({ 
-        type: 'metric-start-time', 
-        ownerId: block.key.toString(),
-        id: null,
-        visibility: null
-      });
-      
-      if (startTimeRefs.length > 0) {
-        const storedStartTime = runtime.memory.get(startTimeRefs[0] as any) as number;
-        if (storedStartTime) {
-          startTime = storedStartTime;
-        }
-      }
+    // Convert all spans (completed + active) to Segments
+    const allSegments = allSpans.map(span =>
+      recordToSegment(span, hashCode, depthMap)
+    ).sort((a, b) => a.startTime - b.startTime);
 
-      const parentId = stackIndex > 0 
-        ? runtime.stack.blocks[stackIndex - 1].key.toString() 
-        : null;
-
-      return {
-        id: hashCode(block.key.toString()),
-        name: block.blockType || block.key.toString(),
-        type: (block.blockType || 'unknown').toLowerCase(),
-        startTime: Math.floor(startTime / 1000),
-        endTime: Math.floor(Date.now() / 1000),
-        duration: (Date.now() - startTime) / 1000,
-        parentId: parentId ? hashCode(parentId) : null,
-        depth: stackIndex,
-        avgPower: 0,
-        avgHr: 0,
-        lane: 0
-      };
-    });
-
-    // Combine and normalize times
-    const allSegments = [...historySegments, ...activeSegments]
-      .sort((a, b) => a.startTime - b.startTime);
-    
     if (allSegments.length > 0) {
       const minStartTime = allSegments[0].startTime;
       allSegments.forEach(s => {
@@ -140,17 +110,17 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
     }
 
     return allSegments;
-  }, [runtime, historicalSegments]);
+  }, [runtime, historicalSegments, active, completed, depthMap]);
 
   const selectedIds = React.useMemo(() => {
     return new Set(activeSegmentId ? [activeSegmentId] : []);
   }, [activeSegmentId]);
 
   return (
-    <GitTreeSidebar 
+    <GitTreeSidebar
       segments={segments}
       selectedIds={selectedIds}
-      onSelect={() => {}} // No selection in this mode
+      onSelect={() => { }} // No selection in this mode
       disableScroll={disableScroll}
       hideHeader={true}
       scrollContainerRef={scrollRef}

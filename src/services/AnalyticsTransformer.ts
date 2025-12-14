@@ -20,9 +20,9 @@ function formatMetricLabel(key: string): string {
  */
 function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Record<string, number> {
   const metrics: Record<string, number> = {};
-  
+
   if (!spanMetrics) return metrics;
-  
+
   // Extract typed metrics
   if (spanMetrics.reps?.value !== undefined) {
     metrics['repetitions'] = spanMetrics.reps.value;
@@ -51,7 +51,7 @@ function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Re
   if (spanMetrics.currentRound !== undefined) {
     metrics['rounds'] = spanMetrics.currentRound;
   }
-  
+
   // Extract legacy metrics if present
   if (spanMetrics.legacyMetrics) {
     spanMetrics.legacyMetrics.forEach(m => {
@@ -62,7 +62,7 @@ function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Re
       });
     });
   }
-  
+
   return metrics;
 }
 
@@ -92,7 +92,7 @@ export interface SegmentWithMetadata extends Segment {
  * @see docs/plans/jit-01-execution-span-consolidation.md
  */
 export class AnalyticsTransformer {
-  
+
   /**
    * Transform raw ExecutionSpans into UI-ready Segments.
    * This is the primary transformation method that UI components should use.
@@ -108,10 +108,10 @@ export class AnalyticsTransformer {
 
     // Calculate workout start time if not provided
     const startTime = workoutStartTime ?? Math.min(...spans.map(s => s.startTime));
-    
+
     // Map IDs to depth for hierarchy
     const idToDepth = new Map<string, number>();
-    
+
     return spans.map(span => {
       // Calculate depth from parent chain
       let depth = 0;
@@ -119,17 +119,17 @@ export class AnalyticsTransformer {
         depth = idToDepth.get(span.parentSpanId)! + 1;
       }
       idToDepth.set(span.id, depth);
-      
+
       // Calculate duration
       const endTime = span.endTime || Date.now();
       const duration = (endTime - span.startTime) / 1000;
-      
+
       // Extract metrics
       const metrics = extractMetricsFromSpanMetrics(span.metrics);
       const fragments = (span.fragments && span.fragments.length > 0)
         ? span.fragments
         : spanMetricsToFragments(span.metrics, span.label, span.type);
-      
+
       const segment: SegmentWithMetadata = {
         id: hashCode(span.id),
         name: span.label,
@@ -147,7 +147,7 @@ export class AnalyticsTransformer {
         tags: span.debugMetadata?.tags,
         spanType: span.type
       };
-      
+
       return segment;
     });
   }
@@ -161,11 +161,11 @@ export class AnalyticsTransformer {
    */
   toAnalyticsGroup(segments: SegmentWithMetadata[]): AnalyticsGroup[] {
     const groups: AnalyticsGroup[] = [];
-    
+
     // Identify all unique metric keys present in the segments
     const availableMetricKeys = new Set<string>();
     segments.forEach(s => Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k)));
-    
+
     // Define standard metric configs
     const standardMetrics: Record<string, AnalyticsGraphConfig> = {
       'power': { id: 'power', label: 'Power', unit: 'W', color: '#8b5cf6', dataKey: 'power', icon: 'Zap' },
@@ -177,10 +177,10 @@ export class AnalyticsTransformer {
       'calories': { id: 'calories', label: 'Calories', unit: 'cal', color: '#f97316', dataKey: 'calories', icon: 'Flame' },
       'time': { id: 'time', label: 'Time', unit: 'ms', color: '#14b8a6', dataKey: 'time', icon: 'Clock' },
     };
-    
+
     // Create a "Performance" group for found metrics
     const performanceGraphs: AnalyticsGraphConfig[] = [];
-    
+
     availableMetricKeys.forEach(key => {
       if (standardMetrics[key]) {
         performanceGraphs.push(standardMetrics[key]);
@@ -195,7 +195,7 @@ export class AnalyticsTransformer {
         });
       }
     });
-    
+
     if (performanceGraphs.length > 0) {
       groups.push({
         id: 'performance',
@@ -203,7 +203,7 @@ export class AnalyticsTransformer {
         graphs: performanceGraphs
       });
     }
-    
+
     return groups;
   }
 
@@ -219,7 +219,7 @@ export class AnalyticsTransformer {
     if (!tags || tags.length === 0) {
       return segments;
     }
-    
+
     return segments.filter(segment => {
       const segmentTags = segment.tags || [];
       return tags.every(tag => segmentTags.includes(tag));
@@ -276,25 +276,18 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
 
   // 1. Convert ExecutionRecords to Segments
   // We need to establish a timeline.
+  const completedSpans = runtime.tracker.getCompletedSpans();
+  const activeSpans = Array.from(runtime.tracker.getActiveSpansMap().values());
+
   // If the workout hasn't started, return empty.
-  if (runtime.executionLog.length === 0 && runtime.stack.blocks.length === 0) {
+  if (completedSpans.length === 0 && activeSpans.length === 0) {
     return { data: [], segments: [], groups: [] };
   }
 
   // Combine completed log and active stack
   const combinedRecords = [
-    ...runtime.executionLog,
-    ...runtime.stack.blocks.map((b, i) => ({
-      id: b.key.toString(),
-      label: b.label || b.blockType || 'Block',
-      type: b.blockType || 'unknown',
-      startTime: Date.now(), // This is tricky for active blocks without stored start time
-      endTime: undefined as number | undefined,
-      parentSpanId: i > 0 ? runtime.stack.blocks[i-1].key.toString() : null,
-      depth: i,
-      metrics: {} as SpanMetrics,
-      fragments: b.fragments?.flat()
-    }))
+    ...completedSpans,
+    ...activeSpans
   ];
 
   // Deduplicate by record id so active stack entries do not duplicate completed log spans
@@ -310,8 +303,8 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
   // We need a consistent start time for the timeline
   // Find the earliest start time
   let workoutStartTime = Date.now();
-  if (runtime.executionLog.length > 0) {
-    workoutStartTime = Math.min(...runtime.executionLog.map(r => r.startTime));
+  if (combinedRecords.length > 0) {
+    workoutStartTime = Math.min(...combinedRecords.map(r => r.startTime));
   }
 
   // Sort by start time

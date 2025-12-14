@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { RuntimeStack } from '../RuntimeStack';
-import { ExecutionTracker } from '../ExecutionTracker';
+import { ExecutionTracker } from '../../tracker/ExecutionTracker';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -63,7 +63,8 @@ describe('RuntimeStack instrumentation', () => {
     const tracker = {
       getActiveSpanId: vi.fn().mockReturnValue(null),
       startSpan: vi.fn(() => callOrder.push('tracker.startSpan')),
-                endSpan: vi.fn(),    };
+      endSpan: vi.fn(),
+    };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => {
         callOrder.push('wrapper.wrap');

@@ -5,15 +5,15 @@
 		{"id":"3384c53635653ace","type":"text","text":"###  Memory\n\n- block-id\n- access-modifier\n- type\n- data","x":-140,"y":-480,"width":250,"height":190,"color":"2"},
 		{"id":"8dcf84d836d7fc5d","x":-140,"y":-1180,"width":250,"height":60,"color":"2","type":"text","text":"### Tracker"},
 		{"id":"58b348b38b4c7c61","x":-140,"y":-1060,"width":250,"height":60,"color":"2","type":"text","text":"### Stack"},
-		{"id":"3f7c7eeae5d951c8","type":"text","text":"### Block Functions\n\n- push\n- pop\n- next","x":-140,"y":-925,"width":250,"height":160,"color":"2"},
-		{"id":"186b35e9dedac5fb","type":"text","text":"# JavaScript Fn","x":-140,"y":-680,"width":250,"height":80,"color":"2"},
 		{"id":"902a4c1e08aaca56","type":"text","text":"# RuntimeAction[]\n- Start Timer\n- Stop Timer\n- Track : write a trackable execution event\n- Display : send data for main display\n- PlaySoundAction\n- ErrorAction\n- UnregisterEventHandlerAction\n- RegisterEventHandlerAction\n- RegisterAction\n- UnregisterAction","x":400,"y":-845,"width":320,"height":410,"color":"2"},
 		{"id":"d1298ae9bb2b59f4","x":-931,"y":-1180,"width":281,"height":69,"type":"text","text":"# Results"},
 		{"id":"a1ae7feb56a5f568","x":-915,"y":-845,"width":250,"height":60,"type":"text","text":"# History Panel"},
 		{"id":"e2735068b5b397a6","x":-915,"y":-700,"width":250,"height":60,"type":"text","text":"# Clock Panel\n"},
 		{"id":"d9e466db03f669ec","type":"text","text":"# Event Handlers\n- Start Timer\n- Stop Timer\n- \n- ","x":435,"y":-340,"width":250,"height":200,"color":"2"},
 		{"id":"383357ef51465d42","x":-140,"y":-160,"width":250,"height":60,"color":"6","type":"text","text":"# User Event"},
-		{"id":"479cfc20c33fa77b","x":-140,"y":-60,"width":250,"height":60,"color":"6","type":"text","text":"# Tick Event"}
+		{"id":"479cfc20c33fa77b","x":-140,"y":-60,"width":250,"height":60,"color":"6","type":"text","text":"# Tick Event"},
+		{"id":"3f7c7eeae5d951c8","type":"text","text":"### Block Functions\nCompose from IBehaviors\n\n- push\n- pop\n- next","x":-140,"y":-960,"width":250,"height":195,"color":"2"},
+		{"id":"186b35e9dedac5fb","type":"text","text":"# Fn IBehavior","x":-140,"y":-670,"width":250,"height":50,"color":"2"}
 	],
 	"edges":[
 		{"id":"0ad5027adf2d8965","fromNode":"3f7c7eeae5d951c8","fromSide":"bottom","toNode":"186b35e9dedac5fb","toSide":"top","label":"Run"},

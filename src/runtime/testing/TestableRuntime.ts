@@ -8,6 +8,8 @@ import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
 import { IMetricCollector } from '../MetricCollector';
 import { ExecutionSpan } from '../models/ExecutionSpan';
+import { ExecutionTracker } from '../../tracker/ExecutionTracker';
+import { EventBus } from '../EventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
@@ -27,14 +29,14 @@ export type ExecutionRecord = ExecutionSpan;
 export interface RuntimeSnapshot {
   /** Timestamp when snapshot was taken */
   timestamp: number;
-  
+
   /** Stack state */
   stack: {
     depth: number;
     blockKeys: string[];
     currentBlockKey?: string;
   };
-  
+
   /** Memory state */
   memory: {
     entries: Array<{
@@ -46,7 +48,7 @@ export interface RuntimeSnapshot {
     }>;
     totalCount: number;
   };
-  
+
   /** Label for this snapshot */
   label?: string;
 }
@@ -57,13 +59,13 @@ export interface RuntimeSnapshot {
 export interface SnapshotDiff {
   before: RuntimeSnapshot;
   after: RuntimeSnapshot;
-  
+
   stack: {
     pushed: string[];
     popped: string[];
     depthChange: number;
   };
-  
+
   memory: {
     allocated: string[];
     released: string[];
@@ -96,7 +98,7 @@ export interface InitialStackEntry {
 export interface TestableRuntimeConfig {
   /** Pre-populate memory with these entries */
   initialMemory?: InitialMemoryEntry[];
-  
+
   /** Pre-populate stack with these block stubs */
   initialStack?: InitialStackEntry[];
 }
@@ -108,7 +110,7 @@ class StubBlockKey extends BlockKey {
   constructor(private readonly _id: string) {
     super();
   }
-  
+
   override toString(): string {
     return this._id;
   }
@@ -122,18 +124,18 @@ class StubBlockContext implements IBlockContext {
   readonly ownerId: string;
   readonly exerciseId: string;
   readonly references: ReadonlyArray<IMemoryReference> = [];
-  
+
   constructor(blockId: string) {
     this.ownerId = blockId;
     this.exerciseId = blockId;
   }
-  
-  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): any { 
+
+  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): any {
     return { id: '', type: '', ownerId: this.ownerId, visibility: 'private', value: () => null };
   }
   get<T>(_type?: string): T | undefined { return undefined; }
   getAll<T>(_type?: string): T[] { return []; }
-  release(): void {}
+  release(): void { }
   isReleased(): boolean { return false; }
   getOrCreateAnchor(): any { return { id: '', type: '', ownerId: this.ownerId, visibility: 'public', value: () => null }; }
 }
@@ -148,7 +150,7 @@ class StubBlock implements IRuntimeBlock {
   readonly label: string;
   readonly context: IBlockContext;
   readonly fragments?: ICodeFragment[][];
-  
+
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
@@ -156,11 +158,11 @@ class StubBlock implements IRuntimeBlock {
     this.context = new StubBlockContext(config.key);
     this.fragments = [];
   }
-  
+
   mount(): [] { return []; }
   next(): [] { return []; }
   unmount(): [] { return []; }
-  dispose(): void {}
+  dispose(): void { }
   getBehavior(): undefined { return undefined; }
 }
 
@@ -190,7 +192,7 @@ export class TestableRuntime implements IScriptRuntime {
   private _snapshots: RuntimeSnapshot[] = [];
   private _wrappedMemory: IRuntimeMemory;
   private _wrappedStack: RuntimeStack;
-  
+
   constructor(
     private readonly _wrapped: IScriptRuntime,
     config: TestableRuntimeConfig = {}
@@ -198,7 +200,7 @@ export class TestableRuntime implements IScriptRuntime {
     // Set up wrapped memory and stack first
     this._wrappedMemory = this._createWrappedMemory();
     this._wrappedStack = this._createWrappedStack();
-    
+
     // Apply initial memory state
     if (config.initialMemory) {
       for (const entry of config.initialMemory) {
@@ -210,7 +212,7 @@ export class TestableRuntime implements IScriptRuntime {
         );
       }
     }
-    
+
     // Apply initial stack state (using stub blocks)
     if (config.initialStack) {
       for (const stub of config.initialStack) {
@@ -219,94 +221,92 @@ export class TestableRuntime implements IScriptRuntime {
       }
     }
   }
-  
+
   // ========== IScriptRuntime Properties (delegated) ==========
-  
+
   get script(): WodScript {
     return this._wrapped.script;
   }
-  
+
   get memory(): IRuntimeMemory {
     return this._wrappedMemory;
   }
-  
+
   get stack(): RuntimeStack {
     return this._wrappedStack;
   }
-  
+
   get jit(): JitCompiler {
     return this._wrapped.jit;
   }
-  
+
   get clock(): RuntimeClock {
     return this._wrapped.clock;
   }
-  
-  get fragmentCompiler(): FragmentCompilationManager {
-    return this._wrapped.fragmentCompiler;
-  }
-  
+
+
   get errors(): RuntimeError[] | undefined {
     return this._wrapped.errors;
   }
-  
-  get metrics(): IMetricCollector | undefined {
-    return this._wrapped.metrics;
+
+
+  get tracker(): ExecutionTracker {
+    return this._wrapped.tracker;
   }
-  
-  get executionLog(): ExecutionRecord[] {
-    return this._wrapped.executionLog;
+
+  get eventBus(): EventBus {
+    return this._wrapped.eventBus;
   }
-  
+
   // ========== IScriptRuntime Methods (delegated) ==========
-  
+
   isComplete(): boolean {
     return this._wrapped.isComplete();
   }
-  
+
   handle(event: IEvent): void {
     this._wrapped.handle(event);
   }
-  
+
   // ========== Testing API ==========
-  
+
   /** Access the underlying runtime */
   get wrapped(): IScriptRuntime {
     return this._wrapped;
   }
-  
+
   /** All recorded memory operations */
   get memoryOperations(): ReadonlyArray<MemoryOperation> {
     return [...this._memoryOps];
   }
-  
+
   /** All recorded stack operations */
   get stackOperations(): ReadonlyArray<StackOperation> {
     return [...this._stackOps];
   }
-  
+
   /** All captured snapshots */
   get snapshots(): ReadonlyArray<RuntimeSnapshot> {
     return [...this._snapshots];
   }
-  
+
   /** Clear all recorded operations */
   clearOperations(): void {
     this._memoryOps = [];
     this._stackOps = [];
   }
-  
+
   /** Clear all captured snapshots */
   clearSnapshots(): void {
     this._snapshots = [];
   }
-  
+
   /** Clear everything (operations and snapshots) */
   reset(): void {
     this.clearOperations();
     this.clearSnapshots();
   }
-  
+
   /** Capture current state as a snapshot */
   snapshot(label?: string): RuntimeSnapshot {
     const memoryRefs = this._wrapped.memory.search({
@@ -315,7 +315,7 @@ export class TestableRuntime implements IScriptRuntime {
       type: null,
       visibility: null
     });
-    
+
     const snapshot: RuntimeSnapshot = {
       timestamp: Date.now(),
       label,
@@ -335,24 +335,24 @@ export class TestableRuntime implements IScriptRuntime {
         totalCount: memoryRefs.length
       }
     };
-    
+
     this._snapshots.push(snapshot);
     return snapshot;
   }
-  
+
   /** Calculate diff between two snapshots */
   diff(before: RuntimeSnapshot, after: RuntimeSnapshot): SnapshotDiff {
     const beforeMemIds = new Set(before.memory.entries.map(e => e.id));
     const afterMemIds = new Set(after.memory.entries.map(e => e.id));
-    
+
     const allocated = after.memory.entries
       .filter(e => !beforeMemIds.has(e.id))
       .map(e => e.id);
-    
+
     const released = before.memory.entries
       .filter(e => !afterMemIds.has(e.id))
       .map(e => e.id);
-    
+
     const modified: Array<{ id: string; oldValue: any; newValue: any }> = [];
     for (const afterEntry of after.memory.entries) {
       const beforeEntry = before.memory.entries.find(e => e.id === afterEntry.id);
@@ -364,10 +364,10 @@ export class TestableRuntime implements IScriptRuntime {
         });
       }
     }
-    
+
     const beforeStackKeys = new Set(before.stack.blockKeys);
     const afterStackKeys = new Set(after.stack.blockKeys);
-    
+
     return {
       before,
       after,
@@ -383,21 +383,21 @@ export class TestableRuntime implements IScriptRuntime {
       }
     };
   }
-  
+
   /** Get memory operations filtered by type */
   getMemoryOps(operation?: MemoryOperation['operation']): MemoryOperation[] {
     if (!operation) return [...this._memoryOps];
     return this._memoryOps.filter(op => op.operation === operation);
   }
-  
+
   /** Get stack operations filtered by type */
   getStackOps(operation?: StackOperation['operation']): StackOperation[] {
     if (!operation) return [...this._stackOps];
     return this._stackOps.filter(op => op.operation === operation);
   }
-  
+
   // ========== Event Simulation API ==========
-  
+
   /**
    * Simulate a 'tick' event (periodic timer update)
    * This is typically called by the runtime loop
@@ -409,7 +409,7 @@ export class TestableRuntime implements IScriptRuntime {
       data: { source: 'test-simulation' }
     });
   }
-  
+
   /**
    * Simulate a 'next' event (user action to advance)
    * This triggers completion for generic effort blocks
@@ -421,7 +421,7 @@ export class TestableRuntime implements IScriptRuntime {
       data: { source: 'test-simulation' }
     });
   }
-  
+
   /**
    * Simulate a rep completion event for EffortBlock
    * @param blockId - The block receiving the rep update
@@ -438,7 +438,7 @@ export class TestableRuntime implements IScriptRuntime {
       }
     });
   }
-  
+
   /**
    * Simulate a timer event
    * @param eventType - Type of timer event
@@ -451,7 +451,7 @@ export class TestableRuntime implements IScriptRuntime {
       data: { source: 'test-simulation', ...data }
     });
   }
-  
+
   /**
    * Simulate round completion
    * @param blockId - The block completing a round
@@ -468,7 +468,7 @@ export class TestableRuntime implements IScriptRuntime {
       }
     });
   }
-  
+
   /**
    * Simulate a custom event
    * @param name - Event name
@@ -481,7 +481,7 @@ export class TestableRuntime implements IScriptRuntime {
       data: { source: 'test-simulation', ...data }
     });
   }
-  
+
   /**
    * Run multiple ticks (simulate time passage)
    * @param count - Number of ticks to simulate
@@ -495,9 +495,9 @@ export class TestableRuntime implements IScriptRuntime {
       }
     }
   }
-  
+
   // ========== Test Setup API ==========
-  
+
   /**
    * Apply an array of test setup actions to configure runtime state.
    * Use this to set up specific scenarios before testing lifecycle operations.
@@ -516,7 +516,7 @@ export class TestableRuntime implements IScriptRuntime {
       action.apply(this);
     }
   }
-  
+
   /**
    * Compile and push a statement from a parsed script by statement ID.
    * The statement ID is the unique identifier assigned during parsing.
@@ -539,36 +539,36 @@ export class TestableRuntime implements IScriptRuntime {
     options: { includeChildren?: boolean; mountAfterPush?: boolean } = {}
   ): IRuntimeBlock | undefined {
     const { includeChildren = false, mountAfterPush = true } = options;
-    
+
     const statement = script.getId(statementId);
     if (!statement) {
       console.warn(`pushStatementById: No statement found with ID ${statementId}`);
       return undefined;
     }
-    
+
     // Gather statements to compile
     let statementsToCompile = [statement];
-    
+
     if (includeChildren && statement.children && statement.children.length > 0) {
       const childIds = statement.children.flat();
       const childStatements = script.getIds(childIds);
       statementsToCompile = [...statementsToCompile, ...childStatements];
     }
-    
+
     // Compile using JIT
     const block = this._wrapped.jit.compile(
-      statementsToCompile as CodeStatement[], 
+      statementsToCompile as CodeStatement[],
       this._wrapped
     );
-    
+
     if (!block) {
       console.warn(`pushStatementById: Failed to compile statement ID ${statementId}`);
       return undefined;
     }
-    
+
     // Push to stack
     this.stack.push(block);
-    
+
     // Optionally mount
     if (mountAfterPush) {
       const mountActions = block.mount(this);
@@ -577,10 +577,10 @@ export class TestableRuntime implements IScriptRuntime {
         action.do(this);
       }
     }
-    
+
     return block;
   }
-  
+
   /**
    * Compile and push a statement from a parsed script by array index.
    * The index is 0-based position in the statements array.
@@ -596,36 +596,36 @@ export class TestableRuntime implements IScriptRuntime {
     options: { includeChildren?: boolean; mountAfterPush?: boolean } = {}
   ): IRuntimeBlock | undefined {
     const { includeChildren = false, mountAfterPush = true } = options;
-    
+
     const statement = script.getAt(index);
     if (!statement) {
       console.warn(`pushStatementByIndex: No statement at index ${index}`);
       return undefined;
     }
-    
+
     // Gather statements to compile
     let statementsToCompile = [statement];
-    
+
     if (includeChildren && statement.children && statement.children.length > 0) {
       const childIds = statement.children.flat();
       const childStatements = script.getIds(childIds);
       statementsToCompile = [...statementsToCompile, ...childStatements];
     }
-    
+
     // Compile using JIT
     const block = this._wrapped.jit.compile(
-      statementsToCompile as CodeStatement[], 
+      statementsToCompile as CodeStatement[],
       this._wrapped
     );
-    
+
     if (!block) {
       console.warn(`pushStatementByIndex: Failed to compile statement at index ${index}`);
       return undefined;
     }
-    
+
     // Push to stack
     this.stack.push(block);
-    
+
     // Optionally mount
     if (mountAfterPush) {
       const mountActions = block.mount(this);
@@ -634,10 +634,10 @@ export class TestableRuntime implements IScriptRuntime {
         action.do(this);
       }
     }
-    
+
     return block;
   }
-  
+
   /**
    * Get all block keys currently on the stack.
    * Useful for selecting targets for test setup actions.
@@ -645,20 +645,20 @@ export class TestableRuntime implements IScriptRuntime {
   getStackBlockKeys(): string[] {
     return this._wrapped.stack.blocks.map(b => b.key.toString());
   }
-  
+
   /**
    * Get the current block key (top of stack).
    */
   getCurrentBlockKey(): string | undefined {
     return this._wrapped.stack.current?.key.toString();
   }
-  
+
   // ========== Private Helpers ==========
-  
+
   private _createWrappedMemory(): IRuntimeMemory {
     const self = this;
     const original = this._wrapped.memory;
-    
+
     return {
       allocate<T>(type: string, ownerId: string, initialValue?: T, visibility?: 'public' | 'private') {
         const ref = original.allocate(type, ownerId, initialValue, visibility);
@@ -672,7 +672,7 @@ export class TestableRuntime implements IScriptRuntime {
         });
         return ref;
       },
-      
+
       get<T>(reference: TypedMemoryReference<T>) {
         const value = original.get(reference);
         self._memoryOps.push({
@@ -685,7 +685,7 @@ export class TestableRuntime implements IScriptRuntime {
         });
         return value;
       },
-      
+
       set<T>(reference: TypedMemoryReference<T>, value: T) {
         self._memoryOps.push({
           operation: 'set',
@@ -697,7 +697,7 @@ export class TestableRuntime implements IScriptRuntime {
         });
         original.set(reference, value);
       },
-      
+
       release(reference: IMemoryReference) {
         self._memoryOps.push({
           operation: 'release',
@@ -708,7 +708,7 @@ export class TestableRuntime implements IScriptRuntime {
         });
         original.release(reference);
       },
-      
+
       search(criteria: Nullable<IMemoryReference>) {
         const refs = original.search(criteria);
         self._memoryOps.push({
@@ -719,22 +719,22 @@ export class TestableRuntime implements IScriptRuntime {
         });
         return refs;
       },
-      
+
       subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void) {
         return original.subscribe(callback);
       }
     };
   }
-  
+
   private _createWrappedStack(): RuntimeStack {
     const self = this;
     const original = this._wrapped.stack;
-    
+
     // Create a proxy for the stack that records operations
     return new Proxy(original, {
       get(target, prop) {
         if (prop === 'push') {
-          return function(block: IRuntimeBlock) {
+          return function (block: IRuntimeBlock) {
             self._stackOps.push({
               operation: 'push',
               blockKey: block.key.toString(),
@@ -744,9 +744,9 @@ export class TestableRuntime implements IScriptRuntime {
             return target.push(block);
           };
         }
-        
+
         if (prop === 'pop') {
-          return function() {
+          return function () {
             const block = target.pop();
             if (block) {
               self._stackOps.push({
@@ -759,7 +759,7 @@ export class TestableRuntime implements IScriptRuntime {
             return block;
           };
         }
-        
+
         const value = (target as any)[prop];
         if (typeof value === 'function') {
           return value.bind(target);

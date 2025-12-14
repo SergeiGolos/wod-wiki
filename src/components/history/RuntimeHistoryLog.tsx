@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { UnifiedItemList, spansToDisplayItems } from '@/components/unified';
 import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/ExecutionSpan';
+import { useExecutionSpans } from '@/clock/hooks/useExecutionSpans';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -25,34 +26,27 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   showActive = true,
   compact = false
 }) => {
+  const { active, completed, byId } = useExecutionSpans(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
 
-  // Subscribe to runtime updates
+  // Interval for timestamp updates (10Hz)
   useEffect(() => {
     if (!runtime) return;
-    const unsubscribe = runtime.memory.subscribe(() => setUpdateVersion(v => v + 1));
-    const intervalId = setInterval(() => setUpdateVersion(v => v + 1), 100); // 10Hz update for timestamps
+    const intervalId = setInterval(() => setUpdateVersion(v => v + 1), 100);
     return () => {
-      unsubscribe();
       clearInterval(intervalId);
     };
   }, [runtime]);
 
   const { items, activeItemId } = useMemo(() => {
     if (!runtime) return { items: [], activeItemId: null };
-    void updateVersion; // Dependency
+    void updateVersion; // Dependency to force re-calc for timers
 
     // 1. Gather all spans (completed + active)
-    const allSpans = [
-      ...runtime.executionLog,
-      ...Array.from(runtime.activeSpans.values())
-    ];
+    const allSpans = [...completed, ...active];
 
     // Sort by startTime
     allSpans.sort((a, b) => a.startTime - b.startTime);
-
-    // Create span map for metric inheritance
-    const spanMap = new Map(allSpans.map(s => [s.id, s]));
 
     // Inherit metrics from parent spans
     const enrichedSpans = allSpans.map(span => {
@@ -67,7 +61,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         if (visited.has(currentParentId)) break;
         visited.add(currentParentId);
 
-        const parent = spanMap.get(currentParentId);
+        const parent = byId.get(currentParentId);
         if (parent?.metrics) {
           const pm = parent.metrics;
           if (pm.reps && !combinedMetrics.reps) combinedMetrics.reps = pm.reps;
@@ -101,7 +95,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     }
 
     return { items: displayItems, activeItemId };
-  }, [runtime, updateVersion, showActive]);
+  }, [runtime, active, completed, byId, updateVersion, showActive]);
 
   return (
     <UnifiedItemList

@@ -14,8 +14,10 @@ describe('AnalyticsTransformer', () => {
 
     it('returns empty result when runtime has no logs or blocks', () => {
       const runtime = {
-        executionLog: [],
-        stack: { blocks: [] }
+        tracker: {
+          getCompletedSpans: () => [],
+          getActiveSpansMap: () => new Map()
+        }
       } as unknown as ScriptRuntime;
 
       const result = transformRuntimeToAnalytics(runtime);
@@ -26,22 +28,26 @@ describe('AnalyticsTransformer', () => {
 
     it('transforms execution logs into segments', () => {
       const startTime = Date.now();
+      const spans = [
+        {
+          id: 'block-1',
+          blockId: 'block-1',
+          label: 'Warmup',
+          type: 'group',
+          startTime: startTime,
+          endTime: startTime + 60000,
+          parentSpanId: null,
+          status: 'completed',
+          metrics: {},
+          segments: []
+        } as ExecutionSpan
+      ];
+
       const runtime = {
-        executionLog: [
-          {
-            id: 'block-1',
-            blockId: 'block-1',
-            label: 'Warmup',
-            type: 'group',
-            startTime: startTime,
-            endTime: startTime + 60000,
-            parentSpanId: null,
-            status: 'completed',
-            metrics: {},
-            segments: []
-          } as ExecutionSpan
-        ],
-        stack: { blocks: [] }
+        tracker: {
+          getCompletedSpans: () => spans,
+          getActiveSpansMap: () => new Map()
+        }
       } as unknown as ScriptRuntime;
 
       const result = transformRuntimeToAnalytics(runtime);
@@ -68,7 +74,7 @@ describe('AnalyticsTransformer', () => {
           ['amrap', 'time_bound'],
           { strategyUsed: 'TimeBoundRoundsStrategy' }
         );
-        
+
         const spans: ExecutionSpan[] = [
           {
             id: `${startTime}-amrap-block`,
