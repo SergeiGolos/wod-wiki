@@ -1,8 +1,7 @@
 import { IScriptRuntime } from '../runtime/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { ExecutionSpan } from '../runtime/models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../runtime/ExecutionTracker';
+import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/ExecutionSpan';
 import { v4 as uuidv4 } from 'uuid';
 import { IMemoryReference } from '../runtime/IMemoryReference';
 
@@ -13,19 +12,19 @@ import { IMemoryReference } from '../runtime/IMemoryReference';
 export class ExecutionLogService {
   private currentResult: WodResult | null = null;
   private unsubscribe: (() => void) | null = null;
-  
+
   // Map for O(1) span lookup by id
   private spanMap: Map<string, ExecutionSpan> = new Map();
-  
+
   // Incremental duration tracking for performance
   private earliestStart: number = Infinity;
   private latestEnd: number = 0;
-  
+
   // Debounce timer for localStorage writes
   private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly SAVE_DEBOUNCE_MS = 1000; // Save at most once per second
 
-  constructor(private storage: LocalStorageProvider) {}
+  constructor(private storage: LocalStorageProvider) { }
 
   /**
    * Initialize logging for a runtime session.
@@ -89,33 +88,33 @@ export class ExecutionLogService {
     // Since we are persisting the *entire* log history, we can just update our local copy.
 
     if (this.currentResult) {
-       // Use Map for O(1) lookup instead of array search
-       this.spanMap.set(span.id, span);
-       
-       // Update logs array from map (maintains insertion order)
-       this.currentResult.logs = Array.from(this.spanMap.values());
+      // Use Map for O(1) lookup instead of array search
+      this.spanMap.set(span.id, span);
 
-       // Update min/max incrementally for O(1) duration calculation
-       this.earliestStart = Math.min(this.earliestStart, span.startTime);
-       const endTime = span.endTime ?? Date.now();
-       this.latestEnd = Math.max(this.latestEnd, endTime);
-       
-       // Calculate duration from cached values
-       if (this.earliestStart !== Infinity) {
-         this.currentResult.duration = this.latestEnd - this.earliestStart;
-       }
+      // Update logs array from map (maintains insertion order)
+      this.currentResult.logs = Array.from(this.spanMap.values());
 
-       // Debounce persistence to avoid excessive localStorage writes
-       if (this.saveDebounceTimer) {
-         clearTimeout(this.saveDebounceTimer);
-       }
-       
-       this.saveDebounceTimer = setTimeout(() => {
-         if (this.currentResult) {
-           this.storage.saveResult(this.currentResult);
-         }
-         this.saveDebounceTimer = null;
-       }, this.SAVE_DEBOUNCE_MS);
+      // Update min/max incrementally for O(1) duration calculation
+      this.earliestStart = Math.min(this.earliestStart, span.startTime);
+      const endTime = span.endTime ?? Date.now();
+      this.latestEnd = Math.max(this.latestEnd, endTime);
+
+      // Calculate duration from cached values
+      if (this.earliestStart !== Infinity) {
+        this.currentResult.duration = this.latestEnd - this.earliestStart;
+      }
+
+      // Debounce persistence to avoid excessive localStorage writes
+      if (this.saveDebounceTimer) {
+        clearTimeout(this.saveDebounceTimer);
+      }
+
+      this.saveDebounceTimer = setTimeout(() => {
+        if (this.currentResult) {
+          this.storage.saveResult(this.currentResult);
+        }
+        this.saveDebounceTimer = null;
+      }, this.SAVE_DEBOUNCE_MS);
     }
   }
 
@@ -126,13 +125,13 @@ export class ExecutionLogService {
   finishSession() {
     if (this.currentResult) {
       this.currentResult.timestamp = Date.now();
-      
+
       // Flush any pending debounced save immediately
       if (this.saveDebounceTimer) {
         clearTimeout(this.saveDebounceTimer);
         this.saveDebounceTimer = null;
       }
-      
+
       this.storage.saveResult(this.currentResult);
       console.log('[ExecutionLogService] Finished session', this.currentResult.id);
     }
@@ -147,12 +146,12 @@ export class ExecutionLogService {
       }
       this.saveDebounceTimer = null;
     }
-    
+
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
     }
-    
+
     // Reset state
     this.currentResult = null;
     this.spanMap.clear();

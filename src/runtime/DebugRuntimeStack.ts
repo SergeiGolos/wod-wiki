@@ -1,5 +1,5 @@
 import { RuntimeStack, RuntimeStackOptions } from './RuntimeStack';
-import { ExecutionTracker } from './ExecutionTracker';
+import { ExecutionTracker } from '../tracker/ExecutionTracker';
 import { IScriptRuntime } from './IScriptRuntime';
 
 /**

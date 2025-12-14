@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { ExecutionSpan, isActiveSpan } from '../../runtime/models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/ExecutionTracker';
+import { ExecutionSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 /**
@@ -72,11 +71,11 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
         ownerId: null,
         visibility: null
       });
-      
+
       const fetchedSpans = refs
         .map(ref => runtime.memory.get(ref as TypedMemoryReference<ExecutionSpan>))
         .filter((s): s is ExecutionSpan => s !== null);
-      
+
       setSpans(fetchedSpans);
     };
 
@@ -107,7 +106,7 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
       // Index by ID
       byId.set(span.id, span);
       byBlockId.set(span.blockId, span);
-      
+
       // Categorize by status
       if (isActiveSpan(span)) {
         active.push(span);
@@ -141,11 +140,11 @@ export function useExecutionSpan(
   byBlockId: boolean = false
 ): ExecutionSpan | null {
   const { byId, byBlockId: byBlock } = useExecutionSpans(runtime);
-  
+
   if (!id) return null;
-  
-  return byBlockId 
-    ? byBlock.get(id) ?? null 
+
+  return byBlockId
+    ? byBlock.get(id) ?? null
     : byId.get(id) ?? null;
 }
 
@@ -154,13 +153,13 @@ export function useExecutionSpan(
  */
 export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number> {
   const { active, completed, byId } = useExecutionSpans(runtime);
-  
+
   return useMemo(() => {
     const depthMap = new Map<string, number>();
-    
+
     // Combine and sort by start time
     const allSpans = [...active, ...completed].sort((a, b) => a.startTime - b.startTime);
-    
+
     for (const span of allSpans) {
       if (!span.parentSpanId) {
         // Root span
@@ -171,7 +170,7 @@ export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, nu
         depthMap.set(span.id, parentDepth + 1);
       }
     }
-    
+
     return depthMap;
   }, [active, completed, byId]);
 }

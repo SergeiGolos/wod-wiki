@@ -9,7 +9,7 @@ import type { RuntimeError } from './actions/ErrorAction';
 import { ExecutionSpan } from './models/ExecutionSpan';
 import { MemoryAwareRuntimeStack } from './MemoryAwareRuntimeStack';
 import { DebugRuntimeStack } from './DebugRuntimeStack';
-import { ExecutionTracker } from './ExecutionTracker';
+import { ExecutionTracker } from '../tracker/ExecutionTracker';
 import { EventBus } from './EventBus';
 import { DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
 import { TestableBlock } from './testing/TestableBlock';
@@ -20,39 +20,39 @@ import { NextEventHandler } from './NextEventHandler';
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
 export class ScriptRuntime implements IScriptRuntime {
-    
+
     public readonly eventBus: EventBus;
     public readonly stack: RuntimeStack;
-    public readonly memory: IRuntimeMemory;    
+    public readonly memory: IRuntimeMemory;
 
     public readonly clock: RuntimeClock;
-    public readonly jit: JitCompiler;    
+    public readonly jit: JitCompiler;
 
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
-    
+
     private readonly executionTracker: ExecutionTracker;
-    
+
     private _lastUpdatedBlocks: Set<string> = new Set();
-    
+
     constructor(
-        public readonly script: WodScript, 
+        public readonly script: WodScript,
         compiler: JitCompiler,
         options: RuntimeStackOptions = {}
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
-        
+
         this.memory = new RuntimeMemory();
         this.executionTracker = new ExecutionTracker(this.memory);
         this.eventBus = new EventBus();
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
-        
+
         const unregisterHook = this.options.hooks?.unregisterByOwner;
         const stackOptions: RuntimeStackOptions = {
             ...this.options,
-            tracker: this.options.tracker ?? this.executionTracker,
+            tracker: this.executionTracker,
             logger: this.options.logger ?? this.createStackLogger(),
             hooks: {
                 ...this.options.hooks,
@@ -70,7 +70,7 @@ export class ScriptRuntime implements IScriptRuntime {
         } else {
             this.stack = new MemoryAwareRuntimeStack(this, this.executionTracker, stackOptions);
         }
-        
+
         this.clock = new RuntimeClock();
         this.jit = compiler;
 
@@ -88,15 +88,6 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Gets the execution history from memory.
-     * Note: This returns a copy of the records.
-     * @deprecated DebugRuntimeStack now delegates to the unified RuntimeStack with debugMode enabled.
-     */
-    public get executionLog(): ExecutionSpan[] {
-        return this.executionTracker.getCompletedSpans();
-    }
-
-    /**
      * Gets the ExecutionTracker for direct metric recording.
      * Used by actions and behaviors to record metrics to active spans.
      */
@@ -107,7 +98,7 @@ export class ScriptRuntime implements IScriptRuntime {
     handle(event: IEvent): void {
         this.eventBus.dispatch(event, this);
     }
-    
+
     /**
      * Gets the blocks that were updated during the last event processing.
      * This allows consumers to make decisions about what state needs to be updated in the UI.
@@ -148,19 +139,19 @@ export class ScriptRuntime implements IScriptRuntime {
             this.stack.pop();
         }
     }
-    
+
     // ========== Debug API ==========
-    
+
     /**
      * Whether the runtime is in debug mode.
      * When true, blocks are wrapped with TestableBlock for inspection.
      * @deprecated
      */
-    
+
     public get isDebugMode(): boolean {
         return this.options.debugMode ?? false;
     }
-    
+
     /**
      * Get the debug stack (only available in debug mode).
      * Returns undefined if debug mode is not enabled.
@@ -172,7 +163,7 @@ export class ScriptRuntime implements IScriptRuntime {
         }
         return undefined;
     }
-    
+
     /**
      * Get all wrapped TestableBlock instances (debug mode only).
      * Returns empty map if debug mode is not enabled.
@@ -181,7 +172,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public getWrappedBlocks(): ReadonlyMap<string, TestableBlock> {
         return this.debugStack?.wrappedBlocks ?? new Map();
     }
-    
+
     /**
      * Get a specific wrapped block by its key (debug mode only).
      * @deprecated
@@ -205,7 +196,7 @@ export class ScriptRuntime implements IScriptRuntime {
             },
         };
     }
-    
+
     /**
      * Get all method calls from all wrapped blocks (debug mode only).
      * Useful for inspecting the complete lifecycle history.
@@ -216,7 +207,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public getAllBlockCalls(): Array<{ blockKey: string; calls: ReadonlyArray<any> }> {
         return this.debugStack?.getAllCalls() ?? [];
     }
-    
+
     /**
      * Clear all recorded calls from wrapped blocks (debug mode only).
      */
@@ -226,5 +217,5 @@ export class ScriptRuntime implements IScriptRuntime {
     public clearAllBlockCalls(): void {
         this.debugStack?.clearAllCalls();
     }
-    
+
 }

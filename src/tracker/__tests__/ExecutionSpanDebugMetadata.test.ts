@@ -4,13 +4,13 @@ import {
   createDebugMetadata,
   DebugMetadata,
   ExecutionSpan
-} from '../models/ExecutionSpan';
+} from '../../runtime/models/ExecutionSpan';
 
 describe('ExecutionSpan DebugMetadata', () => {
   describe('createDebugMetadata', () => {
     it('should create empty debug metadata with defaults', () => {
       const metadata = createDebugMetadata();
-      
+
       expect(metadata.tags).toEqual([]);
       expect(metadata.context).toEqual({});
       expect(metadata.logs).toEqual([]);
@@ -19,7 +19,7 @@ describe('ExecutionSpan DebugMetadata', () => {
     it('should create debug metadata with provided tags', () => {
       const tags = ['amrap', 'time_bound', 'max_rounds'];
       const metadata = createDebugMetadata(tags);
-      
+
       expect(metadata.tags).toEqual(tags);
       expect(metadata.context).toEqual({});
       expect(metadata.logs).toEqual([]);
@@ -32,7 +32,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         targetRounds: Infinity
       };
       const metadata = createDebugMetadata([], context);
-      
+
       expect(metadata.tags).toEqual([]);
       expect(metadata.context).toEqual(context);
     });
@@ -45,7 +45,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         totalRounds: 10
       };
       const metadata = createDebugMetadata(tags, context);
-      
+
       expect(metadata.tags).toEqual(tags);
       expect(metadata.context).toEqual(context);
     });
@@ -59,7 +59,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         'Countdown',
         null
       );
-      
+
       expect(span.debugMetadata).toBeUndefined();
     });
 
@@ -68,7 +68,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         ['amrap', 'time_bound'],
         { strategyUsed: 'TimeBoundRoundsStrategy' }
       );
-      
+
       const span = createExecutionSpan(
         'block-1',
         'amrap',
@@ -77,7 +77,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         [1, 2, 3],
         debugMetadata
       );
-      
+
       expect(span.debugMetadata).toBeDefined();
       expect(span.debugMetadata?.tags).toContain('amrap');
       expect(span.debugMetadata?.tags).toContain('time_bound');
@@ -87,7 +87,7 @@ describe('ExecutionSpan DebugMetadata', () => {
     it('should preserve all span properties when debug metadata is included', () => {
       const debugMetadata = createDebugMetadata(['effort'], { exerciseId: 'pushups' });
       const sourceIds = [1, 2];
-      
+
       const span = createExecutionSpan(
         'effort-block',
         'effort',
@@ -96,7 +96,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         sourceIds,
         debugMetadata
       );
-      
+
       expect(span.id).toContain('effort-block');
       expect(span.blockId).toBe('effort-block');
       expect(span.parentSpanId).toBe('parent-span-id');
@@ -118,11 +118,11 @@ describe('ExecutionSpan DebugMetadata', () => {
           repScheme: [21, 15, 9]
         }
       );
-      
+
       // Simulate JSON serialization (like localStorage or network transfer)
       const serialized = JSON.stringify(original);
       const deserialized: DebugMetadata = JSON.parse(serialized);
-      
+
       expect(deserialized.tags).toEqual(original.tags);
       expect(deserialized.context).toEqual(original.context);
     });
@@ -132,7 +132,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         ['timer', 'countdown'],
         { timerDuration: 300000 }
       );
-      
+
       const span = createExecutionSpan(
         'timer-block',
         'timer',
@@ -141,11 +141,11 @@ describe('ExecutionSpan DebugMetadata', () => {
         [1],
         debugMetadata
       );
-      
+
       // Simulate full span serialization
       const serialized = JSON.stringify(span);
       const deserialized: ExecutionSpan = JSON.parse(serialized);
-      
+
       expect(deserialized.debugMetadata).toBeDefined();
       expect(deserialized.debugMetadata?.tags).toEqual(['timer', 'countdown']);
       expect(deserialized.debugMetadata?.context.timerDuration).toBe(300000);
@@ -163,7 +163,7 @@ describe('ExecutionSpan DebugMetadata', () => {
           targetRounds: Infinity
         }
       );
-      
+
       // Analytics can now directly read the workout type
       expect(metadata.tags.includes('amrap')).toBe(true);
       expect(metadata.context.strategyUsed).toBe('TimeBoundRoundsStrategy');
@@ -180,7 +180,7 @@ describe('ExecutionSpan DebugMetadata', () => {
           loopType: 'interval'
         }
       );
-      
+
       expect(metadata.tags.includes('emom')).toBe(true);
       expect(metadata.tags.includes('interval')).toBe(true);
       expect(metadata.context.totalRounds).toBe(10);
@@ -194,19 +194,19 @@ describe('ExecutionSpan DebugMetadata', () => {
           exerciseId: 'burpees'
         }
       );
-      
+
       expect(metadata.tags.includes('effort')).toBe(true);
       expect(metadata.context.exerciseId).toBe('burpees');
     });
 
     it('should allow adding logs to debug metadata', () => {
       const metadata = createDebugMetadata(['test'], {});
-      
+
       // Add logs as they would be during execution
       metadata.logs = metadata.logs || [];
       metadata.logs.push('[2024-01-01T00:00:00.000Z] Block started');
       metadata.logs.push('[2024-01-01T00:00:05.000Z] Timer tick at 5000ms');
-      
+
       expect(metadata.logs).toHaveLength(2);
       expect(metadata.logs[0]).toContain('Block started');
     });

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/ExecutionTracker';
+import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 // Re-export ExecutionSpan as ExecutionRecord for backward compatibility
@@ -60,7 +59,7 @@ export function useExecutionLog(runtime: IScriptRuntime | null): ExecutionLogDat
         ownerId: null,
         visibility: null
       });
-      
+
       const allSpans = refs
         .map(ref => runtime.memory.get(ref as TypedMemoryReference<ExecutionSpan>))
         .filter((s): s is ExecutionSpan => s !== null);

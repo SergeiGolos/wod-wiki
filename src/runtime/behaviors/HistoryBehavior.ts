@@ -3,8 +3,7 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType } from "../models/ExecutionSpan";
-import { EXECUTION_SPAN_TYPE } from "../ExecutionTracker";
+import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/ExecutionSpan";
 import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**
@@ -45,7 +44,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
 
     onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         this.startTime = Date.now();
-        
+
         // Allocate start time in metrics
         const metricsRef = runtime.memory.allocate<any>(
             MemoryTypeEnum.METRICS_CURRENT,
@@ -60,7 +59,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
             sourceId: block.key.toString()
         };
         metricsRef.set({ ...metrics });
-        
+
         // Determine parent span ID from stack
         // The block is already on the stack, so parent is at index length - 2
         const stack = runtime.stack.blocks;
@@ -77,7 +76,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
 
         // Create initial metrics from block fragments
         const initialMetrics = this.extractMetricsFromBlock(block);
-        
+
         // Create execution span with debug metadata stamped at creation time
         // This eliminates the need to infer context during analytics
         const span: ExecutionSpan = {
@@ -93,7 +92,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
             fragments: this.buildFragments(block),
             ...(this.debugMetadata && { debugMetadata: this.debugMetadata })
         };
-        
+
         runtime.memory.allocate(EXECUTION_SPAN_TYPE, block.key.toString(), span, 'public');
 
         return [];
@@ -108,7 +107,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
 
     onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         const endTime = Date.now();
-        
+
         // Update execution span to completed
         const refs = runtime.memory.search({
             type: EXECUTION_SPAN_TYPE,
@@ -116,14 +115,14 @@ export class HistoryBehavior implements IRuntimeBehavior {
             ownerId: block.key.toString(),
             visibility: null
         });
-        
+
         if (refs.length > 0) {
             const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
             if (span) {
                 // Collect any metrics associated with this block
                 // For now, we just close the span. 
                 // Metrics might be collected by other behaviors or passed in.
-                
+
                 const updatedSpan: ExecutionSpan = {
                     ...span,
                     endTime: endTime,
@@ -134,7 +133,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
         }
         return [];
     }
-    
+
     /**
      * Extract initial metrics from block fragments.
      */

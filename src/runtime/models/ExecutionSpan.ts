@@ -14,6 +14,9 @@
 import { MetricValue as LegacyMetricValue, RuntimeMetric } from '../RuntimeMetric';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
+/** Memory type identifier for execution spans */
+export const EXECUTION_SPAN_TYPE = 'execution-span';
+
 // ============================================================================
 // Span Types & Status
 // ============================================================================
@@ -22,7 +25,7 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
  * Classification of execution span types.
  * Determines how the span is displayed and what metrics are expected.
  */
-export type SpanType = 
+export type SpanType =
   | 'timer'     // Time-based block (countdown, count-up)
   | 'rounds'    // Multi-round block
   | 'effort'    // Single exercise effort
@@ -35,7 +38,7 @@ export type SpanType =
 /**
  * Lifecycle status of an execution span.
  */
-export type SpanStatus = 
+export type SpanStatus =
   | 'active'    // Currently executing
   | 'completed' // Successfully finished
   | 'failed'    // Error occurred
@@ -44,7 +47,7 @@ export type SpanStatus =
 /**
  * Classification of time segments within a span.
  */
-export type SegmentType = 
+export type SegmentType =
   | 'work'       // Active work period
   | 'rest'       // Rest period
   | 'round'      // Individual round in a rounds-based workout
@@ -136,21 +139,21 @@ export interface SpanMetrics {
   exerciseId?: string;
   /** Thumbnail image URL for UI display */
   exerciseImage?: string;
-  
+
   // === Repetition Metrics ===
   /** Completed repetitions */
   reps?: MetricValueWithTimestamp<number>;
   /** Target repetitions (goal) */
   targetReps?: number;
-  
+
   // === Resistance Metrics ===
   /** Weight used */
   weight?: MetricValueWithTimestamp<number>;
-  
+
   // === Distance Metrics ===
   /** Distance covered */
   distance?: MetricValueWithTimestamp<number>;
-  
+
   // === Time Metrics ===
   /** Total duration of the span */
   duration?: MetricValueWithTimestamp<number>;
@@ -158,7 +161,7 @@ export interface SpanMetrics {
   elapsed?: MetricValueWithTimestamp<number>;
   /** Remaining time (for countdown timers) */
   remaining?: MetricValueWithTimestamp<number>;
-  
+
   // === Round Metrics ===
   /** Current round number (1-indexed) */
   currentRound?: number;
@@ -166,11 +169,11 @@ export interface SpanMetrics {
   totalRounds?: number;
   /** Rep scheme array (e.g., [21, 15, 9]) */
   repScheme?: number[];
-  
+
   // === Calories ===
   /** Calories burned */
   calories?: MetricValueWithTimestamp<number>;
-  
+
   // === Biometrics (future) ===
   /** Heart rate */
   heartRate?: MetricValueWithTimestamp<number>;
@@ -178,7 +181,7 @@ export interface SpanMetrics {
   power?: MetricValueWithTimestamp<number>;
   /** Cadence (RPM) */
   cadence?: MetricValueWithTimestamp<number>;
-  
+
   // === Legacy Metrics ===
   /** 
    * Legacy RuntimeMetric array for backward compatibility.
@@ -191,7 +194,7 @@ export interface SpanMetrics {
    * Each group represents a metrics[][] collection for a span or segment.
    */
   metricGroups?: MetricGroup[];
-  
+
   // === Extensible Metrics ===
   /** Custom metrics not covered by typed properties */
   custom?: Map<string, MetricValueWithTimestamp<unknown>>;
@@ -216,13 +219,13 @@ export interface TimeSegment {
   id: string;
   /** Parent span ID this segment belongs to */
   parentSpanId: string;
-  
+
   // === Time Bounds ===
   /** Unix timestamp (ms) when segment started */
   startTime: number;
   /** Unix timestamp (ms) when segment ended (undefined while active) */
   endTime?: number;
-  
+
   // === Classification ===
   /** Type of segment */
   type: SegmentType;
@@ -230,7 +233,7 @@ export interface TimeSegment {
   label: string;
   /** Position in sequence (0-indexed) */
   index?: number;
-  
+
   // === Metrics Recorded During This Segment ===
   /** Metrics captured specifically during this time window */
   metrics?: Partial<SpanMetrics>;
@@ -257,13 +260,13 @@ export interface ExecutionSpan {
   blockId: string;
   /** Links to parent ExecutionSpan.id (NOT parent block ID) */
   parentSpanId: string | null;
-  
+
   // === Classification ===
   /** Type of span (determines display and expected metrics) */
   type: SpanType;
   /** Human-readable label (e.g., "21-15-9", "10 Burpees", "5:00") */
   label: string;
-  
+
   // === Lifecycle ===
   /** Current status */
   status: SpanStatus;
@@ -271,22 +274,22 @@ export interface ExecutionSpan {
   startTime: number;
   /** Unix timestamp (ms) when span ended (undefined while active) */
   endTime?: number;
-  
+
   // === Metrics ===
   /** All metrics for this span */
   metrics: SpanMetrics;
 
   /** Fragments carried forward from the originating statements */
   fragments?: ICodeFragment[];
-  
+
   // === Time Segments ===
   /** Sub-spans for detailed tracking (rounds, minutes, etc.) */
   segments: TimeSegment[];
-  
+
   // === Source Info ===
   /** Source line IDs from the workout script */
   sourceIds?: number[];
-  
+
   // === Debug & Context ===
   /** 
    * Debug metadata captured at span creation time.

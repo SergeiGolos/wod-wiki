@@ -1,6 +1,6 @@
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { BlockKey } from '../core/models/BlockKey';
-import { ExecutionTracker } from './ExecutionTracker';
+import { ExecutionTracker } from '../tracker/ExecutionTracker';
 import { IScriptRuntime } from './IScriptRuntime';
 import { BlockWrapperFactory, DebugLogEvent, IRuntimeOptions } from './IRuntimeOptions';
 import { TestableBlock, TestableBlockConfig } from './testing/TestableBlock';
@@ -170,9 +170,9 @@ export class RuntimeStack {
   get wrappedBlocks(): ReadonlyMap<string, TestableBlock> {
     return this._wrappedBlocks;
   }
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   getWrappedBlock(blockKey: string): TestableBlock | undefined {
     return this._wrappedBlocks.get(blockKey);
   }
@@ -447,9 +447,9 @@ export class RuntimeStack {
     return fallback();
   }
 
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   private resolveOwnerKey(block: IRuntimeBlock): string {
     if (block instanceof TestableBlock) {
       return block.wrapped.key.toString();
@@ -500,23 +500,23 @@ export class RuntimeStack {
       },
     };
   }
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   private popRaw(): IRuntimeBlock | undefined {
     return this._blocks.pop();
   }
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   private runActions(actions: IRuntimeAction[], stage: string, context: Record<string, unknown>): void {
     for (const action of actions) {
       this.safeCall(() => action.do(this.runtime), stage, context);
     }
   }
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   private safeCall<T>(fn: () => T, stage: string, details?: Record<string, unknown>): T | undefined {
     try {
       return fn();
@@ -525,12 +525,12 @@ export class RuntimeStack {
       return undefined;
     }
   }
-/**     
-     * @deprecated
-     */
+  /**     
+       * @deprecated
+       */
   private _logDebugEvent(event: DebugLogEvent): void {
     if (this._onDebugLog) {
       this._onDebugLog(event);
-    }   
+    }
   }
 }
