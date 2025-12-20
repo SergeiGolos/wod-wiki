@@ -203,21 +203,406 @@ const timerBlockBehavior = composeBehaviors([
 // Execute all behaviors for a push operation
 const actions = timerBlockBehavior.do('push', context);
 ```
-      return [displayAction('pop', context.block.id)];
-    default:
-      return [];
-  }
-};
 
-/**
- * Composed block behavior
- */
-const timerBlockBehavior = createBehavior(
-  timerBehavior,
-  displayBehavior,
-  trackBehavior
-);
+---
+
+## Old-to-New Behavior Mapping
+
+This section maps existing behaviors to the new IBehavior pattern, identifying the **core intent** of each behavior and how it decomposes into focused, composable units that follow the "7 things" rule.
+
+### Design Principles for New Behaviors
+
+1. **Single Responsibility**: Each behavior does ONE thing well
+2. **Max 7 Operations**: No more than 7 logical operations per class/method
+3. **Memory-Focused**: Behaviors read/write memory locations, actions handle side effects
+4. **Composable**: Complex behaviors = composition of simple behaviors
+5. **Testable**: Pure functions where possible, minimal state
+
+---
+
+### TimerBehavior (484 LOC) → 3 Composable Behaviors
+
+**Current Intent**: Manage timer lifecycle, state, display, and tick handling
+
+**Problem**: Does too many things - state management, display coordination, tick handling, pause/resume, sound coordination, memory management
+
+**Decomposition**:
+
+| New Behavior             | Interface       | Responsibilities (≤7)                                                                                   |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------- |
+| `TimerLifecycleBehavior` | `IPush`, `IPop` | 1. Register with clock on push, 2. Unregister on pop, 3. Allocate timer memory, 4. Release timer memory |
+| `TimerDisplayBehavior`   | `IPush`, `IPop` | 1. Push timer display on push, 2. Pop timer display on pop, 3. Push card display, 4. Pop card display   |
+| `TimerTickHandler`       | Event Handler   | 1. Calculate elapsed time, 2. Check completion, 3. Update memory, 4. Emit tick event                    |
+
+**Memory Locations**:
+- `timer:{blockId}` → `TimerState { spans, isRunning, direction, duration }`
+
+```typescript
+class TimerLifecycleBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {
+  onPush(ctx: IBehaviorContext): IRuntimeAction[] {
+    // 1. Allocate timer state memory
+    // 2. Register with unified clock
+    // 3. Emit timer:started event
+    return [
+      new AllocateMemoryAction('timer', ctx.block.id, initialState),
+      new RegisterClockAction(ctx.block.id),
+      new EmitEventAction('timer:started', { blockId: ctx.block.id })
+    ];
+  }
+
+  onPop(ctx: IBehaviorContext): IRuntimeAction[] {
+    // 1. Unregister from clock
+    // 2. Emit timer:stopped event
+    return [
+      new UnregisterClockAction(ctx.block.id),
+      new EmitEventAction('timer:stopped', { blockId: ctx.block.id })
+    ];
+  }
+}
 ```
+
+---
+
+### LoopCoordinatorBehavior (525 LOC) → 3 Composable Behaviors
+
+**Current Intent**: Manage round iteration, child compilation, and loop completion
+
+**Problem**: Handles too many loop types (FIXED, REP_SCHEME, TIME_BOUND, INTERVAL) with complex state machine
+
+**Decomposition**:
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `LoopStateBehavior` | `IPush` | 1. Initialize loop state in memory, 2. Set total rounds, 3. Set current position |
+| `LoopAdvanceBehavior` | `INext` | 1. Increment index, 2. Check completion, 3. Compile next child, 4. Push child block, 5. Update round display |
+| `LoopCompletionBehavior` | `INext` | 1. Check loop type completion, 2. Return empty if complete |
+
+**Memory Locations**:
+- `loop:{blockId}` → `LoopState { index, position, rounds, totalRounds, loopType }`
+
+```typescript
+class LoopAdvanceBehavior extends BaseBehavior implements INextBehavior {
+  onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+    const loopState = ctx.runtime.memory.get<LoopState>(`loop:${ctx.block.id}`);
+    
+    // 1. Check if complete
+    if (this.isComplete(loopState)) return [];
+    
+    // 2. Increment index
+    const newState = this.advance(loopState);
+    
+    // 3. Compile next child group
+    const childBlock = ctx.runtime.jit.compile(this.getChildGroup(newState));
+    
+    return [
+      new UpdateMemoryAction(`loop:${ctx.block.id}`, newState),
+      new DisplayAction('update', 'rounds', { current: newState.rounds + 1 }),
+      new PushBlockAction(childBlock)
+    ];
+  }
+}
+```
+
+---
+
+### RootLifecycleBehavior (339 LOC) → 2 Composable Behaviors
+
+**Current Intent**: Manage workout start/end states with idle blocks
+
+**Problem**: Complex state machine mixing loop coordination with UI state
+
+**Decomposition**:
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `WorkoutStateBehavior` | `IPush`, `INext`, `IPop` | 1. Set workout state to 'running' on push, 2. Transition through phases on next, 3. Set to 'complete' on pop |
+| `IdleBlockInjector` | `IPush`, `INext` | 1. Inject initial idle block on push, 2. Inject final idle block when children complete |
+
+**Memory Locations**:
+- `workout:state` → `WorkoutState { phase: 'idle' | 'running' | 'cooldown' | 'complete' }`
+
+```typescript
+class WorkoutStateBehavior extends BaseBehavior implements IPushBehavior, INextBehavior, IPopBehavior {
+  onPush(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [new DisplayAction('update', 'state', 'running')];
+  }
+  
+  onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+    const state = ctx.runtime.memory.get<WorkoutPhase>('workout:phase');
+    // Transition based on current phase
+    return this.transitionActions(state);
+  }
+  
+  onPop(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [new DisplayAction('update', 'state', 'complete')];
+  }
+}
+```
+
+---
+
+### HistoryBehavior (162 LOC) → 1 Behavior (Already Focused)
+
+**Current Intent**: Track execution spans for analytics
+
+**Assessment**: Already well-scoped, just needs interface alignment
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `SpanTrackingBehavior` | `IPush`, `IPop` | 1. Create execution span on push, 2. Set parent span ID, 3. Initialize metrics, 4. Close span on pop, 5. Update end time |
+
+**Memory Locations**:
+- `span:{blockId}` → `ExecutionSpan { id, blockId, parentSpanId, startTime, endTime, metrics }`
+
+```typescript
+class SpanTrackingBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {
+  onPush(ctx: IBehaviorContext): IRuntimeAction[] {
+    const parentId = ctx.runtime.stack.blocks.length >= 2 
+      ? ctx.runtime.stack.blocks.at(-2)?.key.toString() 
+      : null;
+    
+    return [new TrackAction('start', 'span', {
+      blockId: ctx.block.id,
+      parentSpanId: parentId,
+      label: ctx.block.label
+    })];
+  }
+  
+  onPop(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [new TrackAction('end', 'span', { blockId: ctx.block.id })];
+  }
+}
+```
+
+---
+
+### CompletionBehavior (152 LOC) → 1 Behavior (Already Focused)
+
+**Current Intent**: Detect block completion and trigger pop
+
+**Assessment**: Well-scoped but could be simplified to pure function
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `CompletionCheckBehavior` | `INext` | 1. Evaluate condition, 2. Emit block:complete if true, 3. Return PopBlockAction if complete |
+
+```typescript
+class CompletionCheckBehavior extends BaseBehavior implements INextBehavior {
+  constructor(private condition: (ctx: IBehaviorContext) => boolean) {
+    super();
+  }
+  
+  onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+    if (!this.condition(ctx)) return [];
+    
+    return [
+      new EmitEventAction('block:complete', { blockId: ctx.block.id }),
+      new PopBlockAction()
+    ];
+  }
+}
+```
+
+---
+
+### SoundBehavior (330 LOC) → 2 Composable Behaviors
+
+**Current Intent**: Trigger audio cues at timer thresholds
+
+**Problem**: Mixes event handling with state management
+
+**Decomposition**:
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `SoundStateBehavior` | `IPush`, `IPop` | 1. Initialize cue state in memory, 2. Register tick handler on push, 3. Unregister on pop |
+| `SoundTriggerHandler` | Event Handler | 1. Check thresholds, 2. Mark cue triggered, 3. Return PlaySoundAction |
+
+**Memory Locations**:
+- `sound:{blockId}` → `SoundState { cues: CueState[] }`
+
+```typescript
+class SoundStateBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {
+  onPush(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [
+      new AllocateMemoryAction(`sound:${ctx.block.id}`, this.initialCueState()),
+      new RegisterEventHandlerAction('timer:tick', this.tickHandler)
+    ];
+  }
+  
+  onPop(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [new UnregisterEventHandlerAction('timer:tick', this.handlerId)];
+  }
+}
+```
+
+---
+
+### IdleBehavior (131 LOC) → 1 Behavior (Already Focused)
+
+**Current Intent**: Wait for user action before proceeding
+
+**Assessment**: Well-scoped, needs minor interface alignment
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `IdleBehavior` | `IPush`, `INext` | 1. Allocate controls memory on push, 2. Register button, 3. Pop on next if configured |
+
+```typescript
+class IdleBehavior extends BaseBehavior implements IPushBehavior, INextBehavior {
+  onPush(ctx: IBehaviorContext): IRuntimeAction[] {
+    return [new RegisterAction('control', 'button', this.buttonConfig)];
+  }
+  
+  onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+    return this.popOnNext ? [new PopBlockAction()] : [];
+  }
+}
+```
+
+---
+
+### ActionLayerBehavior (100 LOC) → 1 Behavior (Already Focused)
+
+**Current Intent**: Manage UI action buttons for a block
+
+**Assessment**: Clean, just needs interface alignment
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `ActionLayerBehavior` | `IPush`, `IPop` | 1. Build action descriptors from fragments, 2. Push action layer on push, 3. Pop action layer on pop |
+
+---
+
+### RuntimeControlsBehavior (55 LOC) → 1 Behavior (Already Focused)
+
+**Current Intent**: Manage runtime control buttons (play/pause/stop)
+
+**Assessment**: Simple, just allocates and updates memory
+
+| New Behavior | Interface | Responsibilities (≤7) |
+|--------------|-----------|----------------------|
+| `ControlsBehavior` | `IPush` | 1. Allocate controls memory, 2. Update buttons via methods |
+
+---
+
+### TimerStateManager (150 LOC) → Merged into TimerDisplayBehavior
+
+**Current Intent**: Coordinate timer memory state with display actions
+
+**Assessment**: This is a helper class, not a behavior. Its responsibilities should be:
+- State management → Part of `TimerLifecycleBehavior`
+- Display coordination → Part of `TimerDisplayBehavior`
+
+---
+
+### PrimaryClockBehavior (40 LOC) → ELIMINATED
+
+**Current Intent**: Register block as primary clock source
+
+**Assessment**: This should be a property on `TimerDisplayBehavior` with role = 'primary', not a separate behavior.
+
+---
+
+## Summary: Old vs New Behavior Count
+
+| Current | New | Notes |
+|---------|-----|-------|
+| `TimerBehavior` (484 LOC) | `TimerLifecycleBehavior` + `TimerDisplayBehavior` (~80 LOC) | Tick handling moves to event handler |
+| `LoopCoordinatorBehavior` (525 LOC) | `LoopStateBehavior` + `LoopAdvanceBehavior` (~100 LOC) | Simpler state machine |
+| `RootLifecycleBehavior` (339 LOC) | `WorkoutStateBehavior` + `IdleBlockInjector` (~60 LOC) | Clearer phase transitions |
+| `CompletionBehavior` (152 LOC) | `CompletionCheckBehavior` (~30 LOC) | Same, just aligned |
+| `HistoryBehavior` (162 LOC) | `SpanTrackingBehavior` (~40 LOC) | Same, just aligned |
+| `SoundBehavior` (330 LOC) | `SoundStateBehavior` (~40 LOC) | Handler is event-based |
+| `IdleBehavior` (131 LOC) | `IdleBehavior` (~30 LOC) | Same, just aligned |
+| `ActionLayerBehavior` (100 LOC) | `ActionLayerBehavior` (~30 LOC) | Same, just aligned |
+| `RuntimeControlsBehavior` (55 LOC) | `ControlsBehavior` (~20 LOC) | Same, just aligned |
+| `TimerStateManager` (150 LOC) | *Merged* | Into display behavior |
+| `PrimaryClockBehavior` (40 LOC) | *Eliminated* | Role property instead |
+
+**Total Reduction**: ~2,468 LOC → ~430 LOC (83% reduction)
+
+---
+
+## Block Type Compositions
+
+This section shows how the new behaviors compose to create runtime blocks. Each block type is a composition of focused behaviors.
+
+### Timer Block (For Time / AMRAP)
+
+```typescript
+const timerBlock = composeBehaviors([
+  new TimerLifecycleBehavior({ direction: 'down', durationMs: 600000 }),
+  new TimerDisplayBehavior({ role: 'primary', label: 'AMRAP' }),
+  new SpanTrackingBehavior({ label: 'AMRAP' }),
+  new SoundStateBehavior({ cues: countdownCues }),
+  new ActionLayerBehavior({ actions: ['next'] }),
+  new CompletionCheckBehavior(ctx => ctx.block.timerComplete)
+]);
+```
+
+### Rounds Block (3 Rounds of...)
+
+```typescript
+const roundsBlock = composeBehaviors([
+  new LoopStateBehavior({ totalRounds: 3, type: 'FIXED' }),
+  new LoopAdvanceBehavior({ childGroups: [[1, 2]] }),
+  new SpanTrackingBehavior({ label: '3 Rounds' }),
+  new ActionLayerBehavior({ actions: ['next'] })
+]);
+```
+
+### EMOM Block (Interval Timer)
+
+```typescript
+const emomBlock = composeBehaviors([
+  new TimerLifecycleBehavior({ direction: 'down', durationMs: 60000 }),
+  new TimerDisplayBehavior({ role: 'primary', label: 'EMOM' }),
+  new LoopStateBehavior({ totalRounds: 10, type: 'INTERVAL' }),
+  new LoopAdvanceBehavior({ childGroups: [[1]], waitForTimer: true }),
+  new SpanTrackingBehavior({ label: 'EMOM 10' }),
+  new SoundStateBehavior({ cues: intervalCues })
+]);
+```
+
+### Effort Block (Simple Exercise)
+
+```typescript
+const effortBlock = composeBehaviors([
+  new SpanTrackingBehavior({ label: '10 Pullups' }),
+  new ActionLayerBehavior({ actions: ['next'] })
+]);
+```
+
+### Root Block (Workout Container)
+
+```typescript
+const rootBlock = composeBehaviors([
+  new WorkoutStateBehavior(),
+  new IdleBlockInjector({ initialIdle: true, finalIdle: true }),
+  new TimerLifecycleBehavior({ direction: 'up' }),  // Total workout timer
+  new TimerDisplayBehavior({ role: 'secondary' }),
+  new LoopAdvanceBehavior({ childGroups: topLevelChildren }),
+  new ControlsBehavior({ buttons: ['start', 'pause', 'stop'] })
+]);
+```
+
+---
+
+## Memory Access Patterns
+
+Each behavior reads/writes specific memory locations. This creates a clear data flow:
+
+| Behavior | Reads | Writes |
+|----------|-------|--------|
+| `TimerLifecycleBehavior` | - | `timer:{blockId}` |
+| `TimerDisplayBehavior` | `timer:{blockId}` | `display:timer-stack` |
+| `LoopStateBehavior` | - | `loop:{blockId}` |
+| `LoopAdvanceBehavior` | `loop:{blockId}` | `loop:{blockId}`, `display:rounds` |
+| `SpanTrackingBehavior` | stack (parent lookup) | `span:{blockId}` |
+| `SoundStateBehavior` | `timer:{blockId}` | `sound:{blockId}` |
+| `WorkoutStateBehavior` | `workout:phase` | `workout:phase`, `workout:state` |
+| `CompletionCheckBehavior` | varies (condition fn) | - |
 
 ---
 

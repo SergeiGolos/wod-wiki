@@ -3,6 +3,22 @@ export * from './RuntimeBuilder';
 export * from './IRuntimeOptions';
 export * from './DebugRuntimeStack';
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
+export { 
+  BaseBehavior,
+  composeBehaviors,
+  createBehavior,
+  isPushBehavior,
+  isNextBehavior,
+  isPopBehavior
+} from './behaviors/IBehavior';
+export type {
+  IBehavior,
+  IBehaviorContext,
+  IPushBehavior,
+  INextBehavior,
+  IPopBehavior,
+  BehaviorOperation
+} from './behaviors/IBehavior';
 export { PlaySoundAction } from './actions/PlaySoundAction';
 export type { 
   SoundBehaviorConfig, 

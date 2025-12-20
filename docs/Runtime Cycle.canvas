@@ -1,19 +1,20 @@
 {
 	"nodes":[
-		{"id":"70ad2e3548a090a3","x":-960,"y":-880,"width":360,"height":280,"type":"group","label":"Tracker Screen"},
-		{"id":"7803b1cb6e1614e1","x":-180,"y":-220,"width":340,"height":280,"type":"group","label":"Events"},
-		{"id":"3384c53635653ace","type":"text","text":"###  Memory\n\n- block-id\n- access-modifier\n- type\n- data","x":-140,"y":-480,"width":250,"height":190,"color":"2"},
-		{"id":"8dcf84d836d7fc5d","x":-140,"y":-1180,"width":250,"height":60,"color":"2","type":"text","text":"### Tracker"},
-		{"id":"58b348b38b4c7c61","x":-140,"y":-1060,"width":250,"height":60,"color":"2","type":"text","text":"### Stack"},
+		{"id":"7803b1cb6e1614e1","type":"group","x":-180,"y":-120,"width":380,"height":300,"label":"Events"},
+		{"id":"70ad2e3548a090a3","type":"group","x":-960,"y":-880,"width":360,"height":280,"label":"Tracker Screen"},
+		{"id":"8dcf84d836d7fc5d","type":"text","text":"### Tracker","x":-140,"y":-1180,"width":250,"height":60,"color":"2"},
+		{"id":"58b348b38b4c7c61","type":"text","text":"### Stack","x":-140,"y":-1060,"width":250,"height":60,"color":"2"},
 		{"id":"902a4c1e08aaca56","type":"text","text":"# RuntimeAction[]\n- Start Timer\n- Stop Timer\n- Track : write a trackable execution event\n- Display : send data for main display\n- PlaySoundAction\n- ErrorAction\n- UnregisterEventHandlerAction\n- RegisterEventHandlerAction\n- RegisterAction\n- UnregisterAction","x":400,"y":-845,"width":320,"height":410,"color":"2"},
-		{"id":"d1298ae9bb2b59f4","x":-931,"y":-1180,"width":281,"height":69,"type":"text","text":"# Results"},
-		{"id":"a1ae7feb56a5f568","x":-915,"y":-845,"width":250,"height":60,"type":"text","text":"# History Panel"},
-		{"id":"e2735068b5b397a6","x":-915,"y":-700,"width":250,"height":60,"type":"text","text":"# Clock Panel\n"},
-		{"id":"d9e466db03f669ec","type":"text","text":"# Event Handlers\n- Start Timer\n- Stop Timer\n- \n- ","x":435,"y":-340,"width":250,"height":200,"color":"2"},
-		{"id":"383357ef51465d42","x":-140,"y":-160,"width":250,"height":60,"color":"6","type":"text","text":"# User Event"},
-		{"id":"479cfc20c33fa77b","x":-140,"y":-60,"width":250,"height":60,"color":"6","type":"text","text":"# Tick Event"},
+		{"id":"d1298ae9bb2b59f4","type":"text","text":"# Results","x":-931,"y":-1180,"width":281,"height":69},
+		{"id":"a1ae7feb56a5f568","type":"text","text":"# History Panel","x":-915,"y":-845,"width":250,"height":60},
+		{"id":"e2735068b5b397a6","type":"text","text":"# Clock Panel\n","x":-915,"y":-700,"width":250,"height":60},
 		{"id":"3f7c7eeae5d951c8","type":"text","text":"### Block Functions\nCompose from IBehaviors\n\n- push\n- pop\n- next","x":-140,"y":-960,"width":250,"height":195,"color":"2"},
-		{"id":"186b35e9dedac5fb","type":"text","text":"# Fn IBehavior","x":-140,"y":-670,"width":250,"height":50,"color":"2"}
+		{"id":"186b35e9dedac5fb","type":"text","text":"# Fn IBehavior","x":-140,"y":-670,"width":250,"height":50,"color":"2"},
+		{"id":"d9e466db03f669ec","type":"text","text":"# Event Handlers\n- Start Timer\n- Stop Timer\n- \n- ","x":435,"y":-340,"width":250,"height":200,"color":"2"},
+		{"id":"3384c53635653ace","type":"text","text":"###  Memory\n\n- block-id\n- access-modifier\n- type\n- data","x":-140,"y":-480,"width":250,"height":190,"color":"2"},
+		{"id":"383357ef51465d42","type":"text","text":"# User Event","x":-140,"y":-60,"width":250,"height":60,"color":"6"},
+		{"id":"479cfc20c33fa77b","type":"text","text":"# Tick Event","x":-140,"y":40,"width":250,"height":60,"color":"6"},
+		{"id":"414a2759c53e4362","x":1070,"y":-924,"width":690,"height":784,"type":"text","text":"## Looping Behavior\n- SingleRepeater\n- BoundRepeater\n- UnboundRepeater\n\n## Rounds Behavior\n- RoundPerBlock\n- RoundPerLoop\n\n## Timer Behaviors\n- UnboundTimedBehavior\n- BoundTimeBehavior\n\n## Reporting Behaviors\n- Report Rounds Behavior\n- Report Metrics Behavior\n## Display Behaviors\n- Display Timer Behaviors\n- Display Stopwatch Behavior\n- Display Current Time Behavior\n- Display Empty Timer Behavior\n\n## Sound Behaviors\n- PlaySoundAtEllapsedTime\n- PlaySoundAtRemainingTime\n- PlaySoundsOnStart\n- PlaySoundsOnNext\n- PlaySoundsOnStop\n\n\n"}
 	],
 	"edges":[
 		{"id":"0ad5027adf2d8965","fromNode":"3f7c7eeae5d951c8","fromSide":"bottom","toNode":"186b35e9dedac5fb","toSide":"top","label":"Run"},
