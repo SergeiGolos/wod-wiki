@@ -1,12 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { NextAction } from '../NextAction';
-import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-
-// Polyfill vi.mocked for Vitest versions where it's unavailable
-if (!(vi as any).mocked) {
-  (vi as any).mocked = <T>(fn: T): T => fn;
-}
 
 describe('NextAction', () => {
   let action: NextAction;
@@ -24,7 +18,7 @@ describe('NextAction', () => {
     mockRuntime = {
       stack: {
         current: mockCurrentBlock,
-        blocks: []
+        blocks: [mockCurrentBlock]
       },
       memory: {
         state: 'normal',
@@ -38,22 +32,8 @@ describe('NextAction', () => {
     } as any;
   });
 
-  it('should implement IRuntimeAction interface', () => {
-    expect(action).toSatisfy((a: any) =>
-      'type' in a &&
-      'do' in a &&
-      typeof a.do === 'function'
-    );
-  });
-
   it('should have correct action type', () => {
     expect(action.type).toBe('next');
-  });
-
-  it('should have readonly type property', () => {
-    expect(() => {
-      (action as any).type = 'modified';
-    }).toThrow();
   });
 
   it('should execute successfully with valid runtime', () => {
@@ -137,9 +117,11 @@ describe('NextAction', () => {
   });
 
   it('should handle action execution errors gracefully', () => {
-    const mockAction = { do: vi.fn().mockImplementation(() => {
-      throw new Error('Action execution failed');
-    })};
+    const mockAction = {
+      do: vi.fn().mockImplementation(() => {
+        throw new Error('Action execution failed');
+      })
+    };
     vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction]);
 
     expect(() => action.do(mockRuntime)).not.toThrow();

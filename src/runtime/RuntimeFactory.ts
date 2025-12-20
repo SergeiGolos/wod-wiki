@@ -44,7 +44,7 @@ export interface IRuntimeFactory {
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
   createRuntime(block: WodBlock, options?: IRuntimeOptions): ScriptRuntime | null;
-  
+
   /**
    * Disposes of a runtime and cleans up resources
    * @param runtime - The runtime to dispose
@@ -56,7 +56,7 @@ export interface IRuntimeFactory {
  * Default implementation of IRuntimeFactory
  */
 export class RuntimeFactory implements IRuntimeFactory {
-  constructor(private readonly compiler: JitCompiler) {}
+  constructor(private readonly compiler: JitCompiler) { }
 
   /**
    * Creates a new ScriptRuntime from a WodBlock
@@ -79,51 +79,51 @@ export class RuntimeFactory implements IRuntimeFactory {
     }
 
 
-    
+
     // Create WodScript from block content and statements
     const script = new WodScript(block.content, block.statements);
-    
+
     // Create runtime with JIT compiler and optional debug options
     const runtime = new ScriptRuntime(script, this.compiler, options);
-    
+
     // Create Root Block manually
     // This ensures we always have a root grouping node that walks all children once
-    
+
     const statementIds = block.statements.map(s => s.id);
     // Map each top-level statement to a group so they execute in sequence
-    const childGroups = statementIds.map(id => [id]); 
-    
+    const childGroups = statementIds.map(id => [id]);
+
     const blockKey = new BlockKey('root');
     // Use 'root' as blockId and exerciseId for the root context
     const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
-    
+
     const behaviors: IRuntimeBehavior[] = [];
-    
+
     // Root uses RootLifecycleBehavior to manage the full workout lifecycle
     // (Initial Idle -> Execution -> Final Idle)
     const rootBehavior = new RootLifecycleBehavior({
-        childGroups: childGroups,
-        loopType: LoopType.FIXED,
-        totalRounds: 1
+      childGroups: childGroups,
+      loopType: LoopType.FIXED,
+      totalRounds: 1
     });
     behaviors.push(rootBehavior);
-    
+
     // Add TimerBehavior to root block and start it immediately for the overall runtime clock
     // Use 'up' direction (count up) for the main workout timer; mark as primary for the UI
     behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'primary', true));
-    
+
     // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
-    
+
     const rootBlock = new RuntimeBlock(
-        runtime,
-        statementIds,
-        behaviors,
-        context,
-        blockKey,
-        "Root",
-        "Workout"
+      runtime,
+      statementIds,
+      behaviors,
+      context,
+      blockKey,
+      "Root",
+      "Workout"
     );
-    
+
     if (!rootBlock) {
       console.warn('[RuntimeFactory] Failed to create root block for:', block.id);
       return runtime; // Return runtime even without root block for debugging
@@ -132,10 +132,10 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Push and mount root block with a shared start timestamp for deterministic timing
     const rootStartTime = captureRuntimeTimestamp(runtime.clock);
     const lifecycle = { startTime: rootStartTime };
-    runtime.stack.push(rootBlock, lifecycle);
-    const actions = rootBlock.mount(runtime, lifecycle);
+    const pushedRoot = runtime.pushBlock(rootBlock, lifecycle);
+    const actions = pushedRoot.mount(runtime, lifecycle);
     actions.forEach(action => action.do(runtime));
-    
+
 
     return runtime;
   }

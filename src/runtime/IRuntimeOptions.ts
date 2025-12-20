@@ -12,32 +12,32 @@ export type BlockWrapperFactory = (block: IRuntimeBlock, config?: TestableBlockC
  * These options control debugging, logging, and testing capabilities.
  */
 export interface IRuntimeOptions {
-     /**
-      * Enable debug mode for the runtime.
-      * When true:
-      * - All blocks pushed to the stack are automatically wrapped with TestableBlock
-      * - Additional lifecycle events are logged
-      */
+    /**
+     * Enable debug mode for the runtime.
+     * When true:
+     * - All blocks pushed to the stack are automatically wrapped with TestableBlock
+     * - Additional lifecycle events are logged
+     */
     debugMode?: boolean;
-    
+
     /**
      * Custom factory for wrapping blocks when debugMode is true.
      * If not provided, uses the default TestableBlock wrapper with spy mode.
      */
     blockWrapperFactory?: BlockWrapperFactory;
-    
+
     /**
      * Default configuration for TestableBlock wrappers.
      * Applied to all blocks wrapped in debug mode unless overridden.
      */
     defaultTestableConfig?: Partial<TestableBlockConfig>;
-    
-     /**
-      * Enable console logging for runtime debug output.
-      * Automatically set to true when debugMode is true.
-      */
-     enableLogging?: boolean;
-     
+
+    /**
+     * Enable console logging for runtime debug output.
+     * Automatically set to true when debugMode is true.
+     */
+    enableLogging?: boolean;
+
     /**
      * Custom log handler for debug events.
      * If provided, called in addition to console logging.
@@ -48,7 +48,7 @@ export interface IRuntimeOptions {
 /**
  * Types of debug log events
  */
-export type DebugLogEventType = 
+export type DebugLogEventType =
     | 'block-wrapped'
     | 'block-mount'
     | 'block-next'
@@ -78,3 +78,35 @@ export const DEFAULT_RUNTIME_OPTIONS: Required<Omit<IRuntimeOptions, 'blockWrapp
     debugMode: false,
     enableLogging: false,
 };
+
+export interface RuntimeStackTracker {
+    getActiveSpanId?: (blockKey: string) => string | null | undefined;
+    startSpan?: (block: IRuntimeBlock, parentSpanId: string | null) => void;
+    endSpan?: (blockKey: string) => void;
+
+}
+
+export interface RuntimeStackWrapper {
+    wrap?: (block: IRuntimeBlock, parent?: IRuntimeBlock) => IRuntimeBlock;
+    cleanup?: (block: IRuntimeBlock) => void;
+}
+
+export interface RuntimeStackLogger {
+    debug?: (message: string, details?: Record<string, unknown>) => void;
+    error?: (message: string, error: unknown, details?: Record<string, unknown>) => void;
+}
+
+export interface RuntimeStackHooks {
+    onBeforePush?: (block: IRuntimeBlock, parent?: IRuntimeBlock) => void;
+    onAfterPush?: (block: IRuntimeBlock, parent?: IRuntimeBlock) => void;
+    onBeforePop?: (block: IRuntimeBlock | undefined) => void;
+    onAfterPop?: (block: IRuntimeBlock | undefined) => void;
+    unregisterByOwner?: (ownerKey: string) => void;
+}
+
+export interface RuntimeStackOptions extends IRuntimeOptions {
+    tracker?: RuntimeStackTracker;
+    wrapper?: RuntimeStackWrapper;
+    logger?: RuntimeStackLogger;
+    hooks?: RuntimeStackHooks;
+}

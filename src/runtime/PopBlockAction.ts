@@ -4,7 +4,7 @@ import { BlockLifecycleOptions } from './IRuntimeBlock';
 
 /**
  * Action that pops the current block from the runtime stack.
- * RuntimeStack.pop() now orchestrates unmount → dispose → context.release → unregister → parent.next.
+ * Delegated to runtime.popBlock().
  */
 export class PopBlockAction implements IRuntimeAction {
     private _type = 'pop-block';
@@ -30,11 +30,11 @@ export class PopBlockAction implements IRuntimeAction {
         try {
             const capture = (runtime as any)?.clock?.captureTimestamp;
             const completedAt = typeof capture === 'function'
-                ? capture.call(runtime.clock)  // Fix: bind 'this' context
+                ? capture.call(runtime.clock)
                 : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
             const lifecycle: BlockLifecycleOptions = { completedAt };
 
-            runtime.stack.pop(lifecycle);
+            runtime.popBlock(lifecycle);
         } catch (error) {
             if (typeof (runtime as any).setError === 'function') {
                 (runtime as any).setError(error);

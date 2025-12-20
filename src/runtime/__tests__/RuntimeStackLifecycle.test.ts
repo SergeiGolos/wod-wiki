@@ -1,20 +1,16 @@
 import { describe, expect, it, vi } from 'bun:test';
-import { RuntimeStack } from '../RuntimeStack';
+import { ScriptRuntime } from '../ScriptRuntime';
 import { ExecutionTracker } from '../../tracker/ExecutionTracker';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IRuntimeBlock } from '../IRuntimeBlock';
-
-const createRuntimeStub = () => ({
-  errors: [],
-  eventBus: { unregisterByOwner: vi.fn() },
-  memory: new RuntimeMemory(),
-  clock: { now: 0, register: vi.fn(), unregister: vi.fn() },
-  handle: vi.fn(),
-});
+import { WodScript } from '../../parser/WodScript';
+import { JitCompiler } from '../JitCompiler';
+import { IRuntimeOptions } from '../IRuntimeOptions';
 
 const createAction = (name: string, callOrder: string[]): IRuntimeAction => ({
+  type: 'test-action',
   do: vi.fn(() => callOrder.push(name)),
 });
 
@@ -56,10 +52,14 @@ const createBlock = (
   };
 };
 
-describe('RuntimeStack instrumentation', () => {
+describe('ScriptRuntime Lifecycle', () => {
+  // Mock dependencies
+  const script = new WodScript('test', []);
+  const compiler = {} as JitCompiler; // Mock compiler
+
   it('sequences push hooks, tracker, wrapper, and logger in order', () => {
     const callOrder: string[] = [];
-    const runtime = createRuntimeStub();
+
     const tracker = {
       getActiveSpanId: vi.fn().mockReturnValue(null),
       startSpan: vi.fn(() => callOrder.push('tracker.startSpan')),
@@ -81,15 +81,17 @@ describe('RuntimeStack instrumentation', () => {
       onAfterPush: vi.fn(() => callOrder.push('hooks.afterPush')),
     };
 
-    const stack = new RuntimeStack(runtime as any, new ExecutionTracker(runtime.memory), {
+    const options: IRuntimeOptions = {
       tracker,
       wrapper,
       logger,
       hooks,
-    });
+    } as any;
+
+    const runtime = new ScriptRuntime(script, compiler, options);
 
     const block = createBlock('child', callOrder);
-    stack.push(block);
+    runtime.pushBlock(block);
 
     expect(callOrder).toEqual([
       'hooks.beforePush',
@@ -102,12 +104,11 @@ describe('RuntimeStack instrumentation', () => {
 
   it('runs pop lifecycle sequencing and continues after errors', () => {
     const callOrder: string[] = [];
-    const runtime = createRuntimeStub();
+
     const tracker = {
       getActiveSpanId: vi.fn(),
       startSpan: vi.fn(),
       endSpan: vi.fn(() => callOrder.push('tracker.endSpan')),
-
     };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => block),
@@ -123,6 +124,15 @@ describe('RuntimeStack instrumentation', () => {
       unregisterByOwner: vi.fn(() => callOrder.push('hooks.unregister')),
     };
 
+    const options: IRuntimeOptions = {
+      tracker,
+      wrapper,
+      logger,
+      hooks,
+    } as any;
+
+    const runtime = new ScriptRuntime(script, compiler, options);
+
     const parent = createBlock('parent', callOrder, [createAction('parent.next.action', callOrder)]);
     const child = createBlock('child', callOrder);
     child.unmount = vi.fn(() => {
@@ -130,23 +140,16 @@ describe('RuntimeStack instrumentation', () => {
       throw new Error('Unmount failure');
     });
 
-    const stack = new RuntimeStack(runtime as any, new ExecutionTracker(runtime.memory), {
-      tracker,
-      wrapper,
-      logger,
-      hooks,
-    });
-
-    stack.push(parent);
-    stack.push(child);
+    runtime.pushBlock(parent);
+    runtime.pushBlock(child);
     callOrder.length = 0;
 
-    stack.pop();
+    runtime.popBlock();
 
     expect(callOrder).toEqual([
       'hooks.beforePop',
       'child.unmount',
-      'logger.error',
+      'logger.error', // Error caught inside safeCall or runActions
       'tracker.endSpan',
       'child.dispose',
       'child.context.release',

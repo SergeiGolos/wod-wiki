@@ -1,9 +1,9 @@
 export * from './ScriptRuntime';
 export * from './RuntimeBuilder';
 export * from './IRuntimeOptions';
-export * from './DebugRuntimeStack';
+// export * from './DebugRuntimeStack'; // Removed
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
-export { 
+export {
   BaseBehavior,
   composeBehaviors,
   createBehavior,
@@ -20,11 +20,11 @@ export type {
   BehaviorOperation
 } from './behaviors/IBehavior';
 export { PlaySoundAction } from './actions/PlaySoundAction';
-export type { 
-  SoundBehaviorConfig, 
-  SoundCue, 
-  SoundState, 
-  SoundCueState 
+export type {
+  SoundBehaviorConfig,
+  SoundCue,
+  SoundState,
+  SoundCueState
 } from './models/SoundModels';
 export { PREDEFINED_SOUNDS } from './models/SoundModels';
 // Export other runtime components

@@ -9,6 +9,7 @@ import { ExecutionTracker } from '../tracker/ExecutionTracker';
 
 import { RuntimeClock } from './RuntimeClock';
 import { EventBus } from './EventBus';
+import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 
 export interface IScriptRuntime {
     readonly script: WodScript;
@@ -29,8 +30,16 @@ export interface IScriptRuntime {
      */
     readonly tracker: ExecutionTracker;
 
+    /**
+     * Pushes a block onto the runtime stack, handling all lifecycle operations.
+     * Returns the actual block pushed onto the stack (potentially wrapped).
+     */
+    pushBlock(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeBlock;
 
-
+    /**
+     * Pops a block from the runtime stack, handling all lifecycle operations.
+     */
+    popBlock(options?: BlockLifecycleOptions): IRuntimeBlock | undefined;
 
     /**
      * Checks if the runtime execution has completed.

@@ -9,7 +9,7 @@ import { IScriptRuntime } from './IScriptRuntime';
 export class PushBlockAction implements IRuntimeAction {
     private _type = 'push-block';
 
-    constructor(public readonly block: IRuntimeBlock, private readonly options: BlockLifecycleOptions = {}) {}
+    constructor(public readonly block: IRuntimeBlock, private readonly options: BlockLifecycleOptions = {}) { }
 
     get type(): string {
         return this._type;
@@ -25,28 +25,25 @@ export class PushBlockAction implements IRuntimeAction {
         }
 
         try {
-            const blockKey = this.block.key.toString();
-            const depthBefore = runtime.stack.blocks.length;
-
             // Block push timing rules:
-            // If startTime is explicitly provided in options, use it (preserves existing behavior)
+            // If startTime is explicitly provided in options, use it
             // Otherwise apply new timing rules:
             // 1. If clock running → create start time automatically
             // 2. If clock not running AND block has startTime → start clock
             // 3. If clock not running AND no startTime → leave clock stopped, no startTime
-            
+
             const capture = (runtime as any)?.clock?.captureTimestamp;
             let startTime: any;
-            
+
             if (this.options.startTime) {
-                // Explicit startTime provided - use it as-is (backward compatibility)
+                // Explicit startTime provided
                 startTime = typeof capture === 'function'
                     ? capture.call(runtime.clock, this.options.startTime)
                     : this.options.startTime;
             } else {
                 // No explicit startTime - apply timing rules
                 const isClockRunning = runtime.clock?.isRunning ?? false;
-                
+
                 if (isClockRunning) {
                     // Clock running → create startTime automatically
                     startTime = typeof capture === 'function'
@@ -57,7 +54,7 @@ export class PushBlockAction implements IRuntimeAction {
                     startTime = undefined;
                 }
             }
-            
+
             const lifecycle: BlockLifecycleOptions = startTime ? { ...this.options, startTime } : { ...this.options };
 
             const target = this.block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
@@ -65,18 +62,19 @@ export class PushBlockAction implements IRuntimeAction {
                 target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
             }
 
-            // Push the block onto the stack
-            runtime.stack.push(this.block, lifecycle);
-            
+            // Push the block onto the stack via runtime
+            // This handles wrapping, hooks, tracking, and stack updates
+            const pushedBlock = runtime.pushBlock(this.block, lifecycle);
+
             // Call the block's mount() method to get any initial actions
-            const mountActions = this.block.mount(runtime, lifecycle);
-            
+            // Use the pushedBlock to ensure we interact with any wrappers (e.g. spies)
+            const mountActions = pushedBlock.mount(runtime, lifecycle);
+
             // Execute any returned actions
             for (const action of mountActions) {
                 action.do(runtime);
             }
-            
-            const depthAfter = runtime.stack.blocks.length;
+
         } catch (error) {
             if (typeof (runtime as any).setError === 'function') {
                 (runtime as any).setError(error);
