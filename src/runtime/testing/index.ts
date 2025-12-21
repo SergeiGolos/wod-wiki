@@ -5,23 +5,33 @@
  * by wrapping them with testable wrappers that track method calls,
  * memory operations, and stack changes.
  * 
- * ## Debug Mode Usage
+ * ## Custom Wrapper for Debug Tracking
  * 
- * Enable debug mode to automatically wrap all blocks with TestableBlock:
+ * Provide a custom wrapper via options to track wrapped blocks:
  * 
  * ```typescript
- * import { RuntimeBuilder } from '@/runtime';
+ * import { ScriptRuntime, RuntimeStackWrapper } from '@/runtime';
+ * import { TestableBlock } from '@/runtime/testing';
  * 
- * // Enable debug mode via RuntimeBuilder
- * const runtime = new RuntimeBuilder(script, compiler)
- *   .withDebugMode(true)
- *   .build();
+ * const wrappedBlocks = new Map<string, TestableBlock>();
+ * 
+ * const wrapper: RuntimeStackWrapper = {
+ *   wrap: (block) => {
+ *     const wrapped = new TestableBlock(block, { testId: `debug-${block.key}` });
+ *     wrappedBlocks.set(block.key.toString(), wrapped);
+ *     return wrapped;
+ *   },
+ *   cleanup: (block) => wrappedBlocks.delete(block.key.toString()),
+ * };
+ * 
+ * const runtime = new ScriptRuntime(script, compiler, { wrapper });
  * 
  * // Execute workout...
  * 
  * // Inspect wrapped blocks
- * const wrapped = runtime.getWrappedBlocks();
- * console.log('All block calls:', runtime.getAllBlockCalls());
+ * for (const [key, block] of wrappedBlocks) {
+ *   console.log(`${key}: mount called ${block.callCount('mount')} times`);
+ * }
  * ```
  * 
  * ## Manual Testing

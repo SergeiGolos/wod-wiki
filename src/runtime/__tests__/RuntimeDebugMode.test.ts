@@ -3,13 +3,11 @@ import { RuntimeBuilder } from '../RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { JitCompiler } from '../JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { DebugRuntimeStack } from '../DebugRuntimeStack';
 import { TestableBlock } from '../testing/TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IBlockContext } from '../IBlockContext';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { RuntimeStackWrapper } from '../IRuntimeOptions';
 
 // Helper to create a minimal mock block for testing
 function createMockBlock(id: string): IRuntimeBlock {
@@ -50,6 +48,40 @@ function createMockBlock(id: string): IRuntimeBlock {
     };
 }
 
+/**
+ * Creates a debug wrapper that tracks wrapped blocks in a Map.
+ * This is the pattern tests should use to inspect wrapped blocks.
+ */
+function createDebugWrapper(): { wrapper: RuntimeStackWrapper; wrappedBlocks: Map<string, TestableBlock> } {
+    const wrappedBlocks = new Map<string, TestableBlock>();
+    
+    const wrapper: RuntimeStackWrapper = {
+        wrap: (block: IRuntimeBlock) => {
+            if (block instanceof TestableBlock) {
+                wrappedBlocks.set(block.key.toString(), block);
+                return block;
+            }
+            const wrapped = new TestableBlock(block, { 
+                testId: `debug-${block.key.toString()}`,
+                mountMode: 'spy',
+                nextMode: 'spy',
+                unmountMode: 'spy',
+                disposeMode: 'spy',
+            });
+            wrappedBlocks.set(block.key.toString(), wrapped);
+            return wrapped;
+        },
+        cleanup: (block: IRuntimeBlock) => {
+            const key = block instanceof TestableBlock 
+                ? block.wrapped.key.toString() 
+                : block.key.toString();
+            wrappedBlocks.delete(key);
+        },
+    };
+    
+    return { wrapper, wrappedBlocks };
+}
+
 describe('Runtime Debugging and Testing Architecture', () => {
     let compiler: JitCompiler;
     let script: WodScript;
@@ -60,21 +92,11 @@ describe('Runtime Debugging and Testing Architecture', () => {
     });
 
     describe('RuntimeBuilder', () => {
-        test('should create runtime without debug mode by default', () => {
+        test('should create runtime with default options', () => {
             const runtime = new RuntimeBuilder(script, compiler).build();
             
             expect(runtime).toBeInstanceOf(ScriptRuntime);
-            expect(runtime.isDebugMode).toBe(false);
-            expect(runtime.debugStack).toBeUndefined();
-        });
-
-        test('should create runtime with debug mode enabled', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
-            
-            expect(runtime.isDebugMode).toBe(true);
-            expect(runtime.debugStack).toBeInstanceOf(DebugRuntimeStack);
+            expect(runtime.options.debugMode).toBeFalsy();
         });
 
         test('should auto-enable logging when debug mode is enabled', () => {
@@ -90,7 +112,7 @@ describe('Runtime Debugging and Testing Architecture', () => {
                 .withLogging(true)
                 .build();
             
-            expect(runtime.isDebugMode).toBe(false);
+            expect(runtime.options.debugMode).toBeFalsy();
             expect(runtime.options.enableLogging).toBe(true);
         });
 
@@ -115,47 +137,48 @@ describe('Runtime Debugging and Testing Architecture', () => {
         });
     });
 
-    describe('DebugRuntimeStack', () => {
-        test('should wrap blocks with TestableBlock when debug mode is active', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
+    describe('Custom Wrapper Integration', () => {
+        test('should wrap blocks when custom wrapper is provided', () => {
+            const { wrapper, wrappedBlocks } = createDebugWrapper();
+            
+            const runtime = new ScriptRuntime(script, compiler, { wrapper });
             
             const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
+            runtime.pushBlock(mockBlock);
             
             // The current block should be a TestableBlock wrapper
             const current = runtime.stack.current;
             expect(current).toBeDefined();
+            expect(current).toBeInstanceOf(TestableBlock);
             
-            // Get the wrapped blocks map
-            const wrapped = runtime.getWrappedBlocks();
-            expect(wrapped.size).toBe(1);
-            expect(wrapped.has('test-block')).toBe(true);
+            // Verify wrapper tracked the block
+            expect(wrappedBlocks.size).toBe(1);
+            expect(wrappedBlocks.has('test-block')).toBe(true);
         });
 
         test('should not double-wrap TestableBlocks', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
+            const { wrapper, wrappedBlocks } = createDebugWrapper();
+            
+            const runtime = new ScriptRuntime(script, compiler, { wrapper });
             
             const mockBlock = createMockBlock('test-block');
             const alreadyWrapped = new TestableBlock(mockBlock, { testId: 'already-wrapped' });
             
-            runtime.stack.push(alreadyWrapped);
+            runtime.pushBlock(alreadyWrapped);
             
-            // Should not create another wrapper
+            // Should use the existing wrapper
             const current = runtime.stack.current;
             expect(current).toBe(alreadyWrapped);
+            expect(wrappedBlocks.size).toBe(1);
         });
 
         test('should record method calls on wrapped blocks', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
+            const { wrapper, wrappedBlocks } = createDebugWrapper();
+            
+            const runtime = new ScriptRuntime(script, compiler, { wrapper });
             
             const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
+            runtime.pushBlock(mockBlock);
             
             const current = runtime.stack.current!;
             
@@ -163,110 +186,86 @@ describe('Runtime Debugging and Testing Architecture', () => {
             current.mount(runtime);
             
             // Get the wrapped block and check calls
-            const wrapped = runtime.getWrappedBlock('test-block');
+            const wrapped = wrappedBlocks.get('test-block');
             expect(wrapped).toBeDefined();
             expect(wrapped!.wasCalled('mount')).toBe(true);
             expect(wrapped!.callCount('mount')).toBe(1);
         });
 
-        test('should provide getAllCalls() for inspection', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
+        test('should track multiple blocks and their calls', () => {
+            const { wrapper, wrappedBlocks } = createDebugWrapper();
+            
+            const runtime = new ScriptRuntime(script, compiler, { wrapper });
             
             const mockBlock1 = createMockBlock('block-1');
             const mockBlock2 = createMockBlock('block-2');
             
-            runtime.stack.push(mockBlock1);
+            runtime.pushBlock(mockBlock1);
             runtime.stack.current!.mount(runtime);
             
-            runtime.stack.push(mockBlock2);
+            runtime.pushBlock(mockBlock2);
             runtime.stack.current!.mount(runtime);
             runtime.stack.current!.next(runtime);
             
-            const allCalls = runtime.getAllBlockCalls();
-            expect(allCalls.length).toBe(2);
+            expect(wrappedBlocks.size).toBe(2);
             
-            const block1Calls = allCalls.find(c => c.blockKey === 'block-1');
-            const block2Calls = allCalls.find(c => c.blockKey === 'block-2');
+            const block1 = wrappedBlocks.get('block-1');
+            const block2 = wrappedBlocks.get('block-2');
             
-            expect(block1Calls?.calls.length).toBe(1);
-            expect(block2Calls?.calls.length).toBe(2);
+            expect(block1?.callCount('mount')).toBe(1);
+            expect(block2?.callCount('mount')).toBe(1);
+            expect(block2?.callCount('next')).toBe(1);
         });
 
-        test('should support clearAllCalls()', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .build();
+        test('should cleanup wrapped blocks on pop', () => {
+            const { wrapper, wrappedBlocks } = createDebugWrapper();
+            
+            const runtime = new ScriptRuntime(script, compiler, { wrapper });
             
             const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
-            runtime.stack.current!.mount(runtime);
+            runtime.pushBlock(mockBlock);
             
-            expect(runtime.getAllBlockCalls()[0].calls.length).toBe(1);
+            expect(wrappedBlocks.size).toBe(1);
             
-            runtime.clearAllBlockCalls();
+            runtime.popBlock();
             
-            expect(runtime.getAllBlockCalls()[0].calls.length).toBe(0);
+            expect(wrappedBlocks.size).toBe(0);
         });
     });
 
-    describe('Custom Debug Log Handler', () => {
-        test('should call custom handler for debug events', () => {
-            const customHandler = vi.fn();
-            
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .withDebugLogHandler(customHandler)
-                .build();
+    describe('TestableBlock Direct Usage', () => {
+        test('should allow direct TestableBlock creation for testing', () => {
+            const runtime = new ScriptRuntime(script, compiler);
             
             const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
-            
-            // Custom handler should have been called for the wrap and push events
-            expect(customHandler).toHaveBeenCalled();
-            
-            const calls = customHandler.mock.calls;
-            const eventTypes = calls.map(c => c[0].type);
-            expect(eventTypes).toContain('block-wrapped');
-            expect(eventTypes).toContain('stack-push');
-        });
-    });
-
-    describe('TestableBlock Configuration', () => {
-        test('should apply default TestableBlock config', () => {
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .withDefaultTestableConfig({
-                    mountMode: 'spy',
-                    nextMode: 'override',
-                    nextOverride: () => [],
-                })
-                .build();
-            
-            const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
-            
-            const wrapped = runtime.getWrappedBlock('test-block');
-            expect(wrapped).toBeDefined();
-            // The wrapped block should have the config applied
-            // (verified by calling methods)
-        });
-
-        test('should support custom block wrapper factory', () => {
-            const customWrapper = vi.fn((block: IRuntimeBlock) => {
-                return new TestableBlock(block, { testId: 'custom-wrapped' });
+            const testable = new TestableBlock(mockBlock, {
+                testId: 'test-wrapper',
+                mountMode: 'spy',
+                nextMode: 'spy',
             });
             
-            const runtime = new RuntimeBuilder(script, compiler)
-                .withDebugMode(true)
-                .withBlockWrapperFactory(customWrapper)
-                .build();
+            runtime.pushBlock(testable);
             
+            testable.mount(runtime);
+            testable.next(runtime);
+            
+            expect(testable.wasCalled('mount')).toBe(true);
+            expect(testable.wasCalled('next')).toBe(true);
+            expect(testable.callCount('mount')).toBe(1);
+            expect(testable.callCount('next')).toBe(1);
+        });
+
+        test('should support clearCalls() on TestableBlock', () => {
             const mockBlock = createMockBlock('test-block');
-            runtime.stack.push(mockBlock);
+            const testable = new TestableBlock(mockBlock, { testId: 'test' });
             
-            expect(customWrapper).toHaveBeenCalled();
+            const runtime = new ScriptRuntime(script, compiler);
+            
+            testable.mount(runtime);
+            expect(testable.callCount('mount')).toBe(1);
+            
+            testable.clearCalls();
+            expect(testable.callCount('mount')).toBe(0);
         });
     });
 });

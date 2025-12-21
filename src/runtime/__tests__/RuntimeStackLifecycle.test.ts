@@ -102,7 +102,7 @@ describe('ScriptRuntime Lifecycle', () => {
     ]);
   });
 
-  it('runs pop lifecycle sequencing and continues after errors', () => {
+  it('propagates errors from unmount instead of swallowing them', () => {
     const callOrder: string[] = [];
 
     const tracker = {
@@ -144,21 +144,13 @@ describe('ScriptRuntime Lifecycle', () => {
     runtime.pushBlock(child);
     callOrder.length = 0;
 
-    runtime.popBlock();
+    // Errors now propagate rather than being silently swallowed
+    expect(() => runtime.popBlock()).toThrow('Unmount failure');
 
+    // Only the calls before the error should have happened
     expect(callOrder).toEqual([
       'hooks.beforePop',
       'child.unmount',
-      'logger.error', // Error caught inside safeCall or runActions
-      'tracker.endSpan',
-      'child.dispose',
-      'child.context.release',
-      'hooks.unregister',
-      'wrapper.cleanup',
-      'logger.debug',
-      'parent.next',
-      'parent.next.action',
-      'hooks.afterPop',
     ]);
   });
 });

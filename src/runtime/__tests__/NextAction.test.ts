@@ -46,7 +46,7 @@ describe('NextAction', () => {
   });
 
   it('should handle empty next actions array', () => {
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
+    mockCurrentBlock.next.mockReturnValue([]);
     action.do(mockRuntime);
     expect(mockCurrentBlock.next).toHaveBeenCalled();
   });
@@ -54,7 +54,7 @@ describe('NextAction', () => {
   it('should execute multiple actions returned by block.next(runtime)', () => {
     const mockAction1 = { do: vi.fn() };
     const mockAction2 = { do: vi.fn() };
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction1, mockAction2]);
+    mockCurrentBlock.next.mockReturnValue([mockAction1, mockAction2]);
 
     action.do(mockRuntime);
 
@@ -64,7 +64,7 @@ describe('NextAction', () => {
 
   it('should handle single action returned by block.next(runtime)', () => {
     const mockAction = { do: vi.fn() };
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction]);
+    mockCurrentBlock.next.mockReturnValue([mockAction]);
 
     action.do(mockRuntime);
 
@@ -92,7 +92,7 @@ describe('NextAction', () => {
 
   it('should add to errors array when block.next(runtime) throws exception', () => {
     const error = new Error('Block execution failed');
-    vi.mocked(mockCurrentBlock.next).mockImplementation(() => {
+    mockCurrentBlock.next.mockImplementation(() => {
       throw error;
     });
 
@@ -122,14 +122,14 @@ describe('NextAction', () => {
         throw new Error('Action execution failed');
       })
     };
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([mockAction]);
+    mockCurrentBlock.next.mockReturnValue([mockAction]);
 
     expect(() => action.do(mockRuntime)).not.toThrow();
     expect(mockAction.do).toHaveBeenCalled();
   });
 
   it('should execute within performance targets', () => {
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([]);
+    mockCurrentBlock.next.mockReturnValue([]);
 
     const start = performance.now();
     for (let i = 0; i < 100; i++) {
@@ -143,7 +143,7 @@ describe('NextAction', () => {
 
   it('should handle nested action execution', () => {
     const nestedAction = new NextAction();
-    vi.mocked(mockCurrentBlock.next).mockReturnValue([nestedAction]);
+    mockCurrentBlock.next.mockReturnValue([nestedAction]);
 
     // Create a second mock block for nested action
     const nestedBlock = {

@@ -16,14 +16,11 @@ import {
     RuntimeStackTracker,
     RuntimeStackWrapper,
     RuntimeStackHooks,
-    BlockWrapperFactory,
-    DebugLogEvent
 } from './IRuntimeOptions';
-import { TestableBlock, TestableBlockConfig } from './testing/TestableBlock';
+import { TestableBlock } from './testing/TestableBlock';
 import { RuntimeClock, RuntimeTimestamp } from './RuntimeClock';
 import { NextEventHandler } from './NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
-import { IRuntimeAction } from './IRuntimeAction';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -38,11 +35,6 @@ const noopWrapper: RuntimeStackWrapper = {
     cleanup: () => { },
 };
 
-const noopLogger: RuntimeStackLogger = {
-    debug: () => { },
-    error: () => { },
-};
-
 const noopHooks: RuntimeStackHooks = {
     onBeforePush: () => { },
     onAfterPush: () => { },
@@ -51,26 +43,7 @@ const noopHooks: RuntimeStackHooks = {
     unregisterByOwner: () => { },
 };
 
-/**
- * Default block wrapper factory that uses TestableBlock in spy mode.
- */
-const defaultBlockWrapperFactory: BlockWrapperFactory = (
-    block: IRuntimeBlock,
-    config?: TestableBlockConfig
-): IRuntimeBlock => {
-    return new TestableBlock(block, {
-        testId: config?.testId ?? `debug-${block.key.toString()}`,
-        labelOverride: config?.labelOverride,
-        mountMode: config?.mountMode ?? 'spy',
-        nextMode: config?.nextMode ?? 'spy',
-        unmountMode: config?.unmountMode ?? 'spy',
-        disposeMode: config?.disposeMode ?? 'spy',
-        mountOverride: config?.mountOverride,
-        nextOverride: config?.nextOverride,
-        unmountOverride: config?.unmountOverride,
-        disposeOverride: config?.disposeOverride,
-    });
-};
+
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -88,13 +61,6 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private readonly executionTracker: ExecutionTracker;
 
-    private _lastUpdatedBlocks: Set<string> = new Set();
-
-    // Internal state for stack orchestration not exposed on IScriptRuntime
-    private readonly _wrappedBlocks: Map<string, TestableBlock> = new Map();
-    private readonly _wrapperFactory: BlockWrapperFactory;
-    private readonly _defaultConfig: Partial<TestableBlockConfig>;
-    private readonly _onDebugLog?: (event: DebugLogEvent) => void;
     private readonly _tracker: RuntimeStackTracker;
     private readonly _wrapper: RuntimeStackWrapper;
     private readonly _logger: RuntimeStackLogger;
@@ -114,11 +80,6 @@ export class ScriptRuntime implements IScriptRuntime {
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
 
-        // Setup stack helpers
-        this._wrapperFactory = this.options.blockWrapperFactory ?? defaultBlockWrapperFactory;
-        this._defaultConfig = this.options.defaultTestableConfig ?? {};
-        this._onDebugLog = this.options.onDebugLog;
-
         this._tracker = this.options.tracker ?? this.executionTracker ?? noopTracker;
 
         // Hooks setup
@@ -133,16 +94,10 @@ export class ScriptRuntime implements IScriptRuntime {
         };
 
         this._logger = this.options.logger ?? this.createStackLogger();
-
-        // Setup wrapper based on debug mode
-        this._wrapper = this.options.wrapper ?? this.createDefaultWrapper();
+        this._wrapper = this.options.wrapper ?? noopWrapper;
 
         // Initialize empty lightweight stack
         this.stack = new RuntimeStack();
-
-        if (this.options.debugMode) {
-            console.log('🔍 ScriptRuntime: Debug mode enabled - blocks will be wrapped with TestableBlock');
-        }
 
         this.clock = new RuntimeClock();
         this.jit = compiler;
@@ -185,22 +140,14 @@ export class ScriptRuntime implements IScriptRuntime {
         this.validateBlock(block);
 
         const parentBlock = this.stack.current;
-        this.safeCall(() => this._hooks.onBeforePush?.(block, parentBlock), 'hooks.onBeforePush', {
-            blockKey: block.key.toString(),
-            parentKey: parentBlock?.key.toString(),
-        });
+        this._hooks.onBeforePush?.(block, parentBlock);
 
         const parentSpanId = parentBlock
             ? this._tracker.getActiveSpanId?.(parentBlock.key.toString()) ?? null
             : null;
+        this._tracker.startSpan?.(block, parentSpanId);
 
-        this.safeCall(() => this._tracker.startSpan?.(block, parentSpanId), 'tracker.startSpan', {
-            blockKey: block.key.toString(),
-            parentKey: parentBlock?.key.toString(),
-            parentSpanId,
-        });
-
-        const wrappedBlock = this.wrapBlock(block, parentBlock);
+        const wrappedBlock = this._wrapper.wrap?.(block, parentBlock) ?? block;
 
         const startTime = this.getTimestamp(options.startTime);
         this.setStartTime(wrappedBlock, startTime);
@@ -209,53 +156,15 @@ export class ScriptRuntime implements IScriptRuntime {
             (wrappedBlock as any).setRuntime(this);
         }
 
-        // Push to lightweight stack
         this.stack.push(wrappedBlock);
-        const stackDepth = this.stack.count;
 
-        this._logDebugEvent({
-            type: 'stack-push',
-            timestamp: Date.now(),
-            blockKey: block.key.toString(),
-            blockType: block.blockType,
-            details: {
-                stackDepth,
-                isWrapped: this.isDebugMode && !(block instanceof TestableBlock),
-            },
-        });
-
-        this.safeCall(() => this._logger.debug?.('runtime.pushBlock', {
+        this._logger.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),
             parentKey: parentBlock?.key.toString(),
-            stackDepth,
-        }), 'logger.debug', {
-            blockKey: block.key.toString(),
+            stackDepth: this.stack.count,
         });
 
-        this.safeCall(() => this._hooks.onAfterPush?.(wrappedBlock, parentBlock), 'hooks.onAfterPush', {
-            blockKey: block.key.toString(),
-            parentKey: parentBlock?.key.toString(),
-        });
-
-        // Note: Mount Logic is usually called by the caller of pushBlock (like PushBlockAction), 
-        // to check actions. RuntimeStack.push didn't call mount. PushBlockAction did.
-        // We stick to the pattern where this method only handles stack mechanism and lifecycle hooks.
-        // The action executing/mounting is separate. 
-        // Wait, user said "operations on the nodes... should be done in the runtime".
-        // But mount returns actions. A return void method can't return them.
-        // If we want mount here, we might need to queue them or execute them.
-        // PushBlockAction executes them.
-
-        // For now, I assume PushBlockAction continues to call mount() after pushing, 
-        // or uses the returned block (which might be wrapped!)
-        // Wait, PushBlockAction holds `this.block`. If I wrapped it, `this.block` is stale?
-        // Ah. `RuntimeStack.push` used to wrap it and put it on stack.
-        // `PushBlockAction` then called `this.block.mount()`. Uses the ORIGINAL block.
-        // This works if wrapper delegates or if mount is on original. TestableBlock calls inner.
-        // However, if we want to spy on mount, we should call it on the wrapped block on the stack.
-
-        // This complexity suggests PushBlockAction should delegate more to runtime,
-        // OR PushBlockAction should get the current block from stack after push.
+        this._hooks.onAfterPush?.(wrappedBlock, parentBlock);
 
         return wrappedBlock;
     }
@@ -270,83 +179,41 @@ export class ScriptRuntime implements IScriptRuntime {
         const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt };
         this.setCompletedTime(currentBlock, completedAt);
 
-        this.safeCall(() => this._hooks.onBeforePop?.(currentBlock), 'hooks.onBeforePop', {
-            blockKey: currentBlock.key.toString(),
-        });
+        this._hooks.onBeforePop?.(currentBlock);
 
-        const unmountActions =
-            this.safeCall(() => currentBlock.unmount(this, lifecycleOptions) ?? [], 'block.unmount', {
-                blockKey: currentBlock.key.toString(),
-            }) ?? [];
+        const unmountActions = currentBlock.unmount(this, lifecycleOptions) ?? [];
 
-        // Pop from lightweight stack
         const popped = this.stack.pop();
         if (!popped) {
             return undefined;
         }
 
         const ownerKey = this.resolveOwnerKey(popped);
-        const wasWrapped = this._wrappedBlocks.has(ownerKey) || this._wrappedBlocks.has(popped.key.toString());
 
-        this.safeCall(() => this._tracker.endSpan?.(ownerKey), 'tracker.endSpan', {
-            blockKey: ownerKey,
-        });
+        this._tracker.endSpan?.(ownerKey);
+        popped.dispose(this);
+        popped.context?.release?.();
+        this._hooks.unregisterByOwner?.(ownerKey);
+        this._wrapper.cleanup?.(popped);
 
-        this.safeCall(() => popped.dispose(this), 'block.dispose', {
-            blockKey: ownerKey,
-        });
-
-        this.safeCall(() => popped.context?.release?.(), 'context.release', {
-            blockKey: ownerKey,
-        });
-
-        this.safeCall(() => this._hooks.unregisterByOwner?.(ownerKey), 'hooks.unregisterByOwner', {
-            blockKey: ownerKey,
-        });
-
-        this.safeCall(() => this._wrapper.cleanup?.(popped), 'wrapper.cleanup', {
-            blockKey: ownerKey,
-        });
-
-        this._logDebugEvent({
-            type: 'stack-pop',
-            timestamp: Date.now(),
-            blockKey: popped.key.toString(),
-            blockType: popped.blockType,
-            details: {
-                stackDepth: this.stack.count,
-                wasWrapped,
-            },
-        });
-
-        this.safeCall(() => this._logger.debug?.('runtime.popBlock', {
+        this._logger.debug?.('runtime.popBlock', {
             blockKey: ownerKey,
             stackDepth: this.stack.count,
-        }), 'logger.debug', {
-            blockKey: ownerKey,
         });
 
-        this.runActions(unmountActions, 'block.unmount.actions', {
-            blockKey: ownerKey,
-        });
+        for (const action of unmountActions) {
+            action.do(this);
+        }
 
         const parent = this.stack.current;
         if (parent) {
-            const nextActions =
-                this.safeCall(() => parent.next(this, lifecycleOptions) ?? [], 'parent.next', {
-                    parentKey: parent.key.toString(),
-                    childKey: ownerKey,
-                }) ?? [];
-
-            this.runActions(nextActions, 'parent.next.actions', {
-                parentKey: parent.key.toString(),
-                childKey: ownerKey,
-            });
+            const nextActions = parent.next(this, lifecycleOptions) ?? [];
+            for (const action of nextActions) {
+                action.do(this);
+            }
         }
 
-        this.safeCall(() => this._hooks.onAfterPop?.(popped), 'hooks.onAfterPop', {
-            blockKey: ownerKey,
-        });
+        this._hooks.onAfterPop?.(popped);
 
         return popped;
     }
@@ -367,46 +234,6 @@ export class ScriptRuntime implements IScriptRuntime {
 
         while (this.stack.count > 0) {
             this.popBlock();
-        }
-    }
-
-    // ========== Debug API ==========
-
-    public get isDebugMode(): boolean {
-        return this.options.debugMode ?? false;
-    }
-
-    /**
-     * Get all wrapped TestableBlock instances (debug mode only).
-     */
-    public getWrappedBlocks(): ReadonlyMap<string, TestableBlock> {
-        return this._wrappedBlocks;
-    }
-
-    /**
-     * Get a specific wrapped block by its key (debug mode only).
-     */
-    public getWrappedBlock(blockKey: string): TestableBlock | undefined {
-        return this._wrappedBlocks.get(blockKey);
-    }
-
-    /**
-     * Get all method calls from all wrapped blocks (debug mode only).
-     */
-    public getAllBlockCalls(): Array<{ blockKey: string; calls: ReadonlyArray<any> }> {
-        const result: Array<{ blockKey: string; calls: ReadonlyArray<any> }> = [];
-        for (const [key, block] of this._wrappedBlocks) {
-            result.push({ blockKey: key, calls: block.calls });
-        }
-        return result;
-    }
-
-    /**
-     * Clear all recorded calls from wrapped blocks (debug mode only).
-     */
-    public clearAllBlockCalls(): void {
-        for (const block of this._wrappedBlocks.values()) {
-            block.clearCalls();
         }
     }
 
@@ -440,14 +267,6 @@ export class ScriptRuntime implements IScriptRuntime {
                 `Stack overflow: maximum depth (${MAX_STACK_DEPTH}) exceeded (current depth: ${this.stack.count}, block: ${block.key})`
             );
         }
-    }
-
-    private wrapBlock(block: IRuntimeBlock, parentBlock: IRuntimeBlock | undefined): IRuntimeBlock {
-        const wrapped = this.safeCall(() => this._wrapper.wrap?.(block, parentBlock), 'wrapper.wrap', {
-            blockKey: block.key.toString(),
-            parentKey: parentBlock?.key.toString(),
-        });
-        return wrapped ?? block;
     }
 
     private setStartTime(block: IRuntimeBlock, startTime: RuntimeTimestamp): void {
@@ -486,70 +305,5 @@ export class ScriptRuntime implements IScriptRuntime {
         return block.key.toString();
     }
 
-    private cleanupWrappedBlock(blockKey: string): void {
-        this._wrappedBlocks.delete(blockKey);
-        this._wrappedBlocks.delete(blockKey.replace('debug-', ''));
-    }
 
-    private createDefaultWrapper(): RuntimeStackWrapper {
-        if (!this.options.debugMode) {
-            return noopWrapper;
-        }
-
-        return {
-            wrap: (block: IRuntimeBlock) => {
-                if (block instanceof TestableBlock) {
-                    this._wrappedBlocks.set(block.key.toString(), block);
-                    return block;
-                }
-
-                const config: TestableBlockConfig = {
-                    ...this._defaultConfig,
-                    testId: this._defaultConfig.testId ?? `debug-${block.key.toString()}`,
-                };
-
-                const wrapped = this._wrapperFactory(block, config);
-                this._wrappedBlocks.set(block.key.toString(), wrapped as TestableBlock);
-
-                this._logDebugEvent({
-                    type: 'block-wrapped',
-                    timestamp: Date.now(),
-                    blockKey: block.key.toString(),
-                    blockType: block.blockType,
-                    details: {
-                        wrapperTestId: (wrapped as TestableBlock).testId,
-                        config,
-                    },
-                });
-
-                return wrapped;
-            },
-            cleanup: (block: IRuntimeBlock) => {
-                const ownerKey = this.resolveOwnerKey(block);
-                this.cleanupWrappedBlock(ownerKey);
-                this.cleanupWrappedBlock(block.key.toString());
-            },
-        };
-    }
-
-    private runActions(actions: IRuntimeAction[], stage: string, context: Record<string, unknown>): void {
-        for (const action of actions) {
-            this.safeCall(() => action.do(this), stage, context);
-        }
-    }
-
-    private safeCall<T>(fn: () => T, stage: string, details?: Record<string, unknown>): T | undefined {
-        try {
-            return fn();
-        } catch (error) {
-            this._logger.error?.(stage, error, details);
-            return undefined;
-        }
-    }
-
-    private _logDebugEvent(event: DebugLogEvent): void {
-        if (this._onDebugLog) {
-            this._onDebugLog(event);
-        }
-    }
 }

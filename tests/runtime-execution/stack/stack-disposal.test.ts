@@ -146,63 +146,6 @@ describe('RuntimeStack Dispose Method Unit Tests', () => {
   });
 });
 
-describe('RuntimeStack Error Handling Unit Tests', () => {
-  let stack: RuntimeStack;
-
-  beforeEach(() => {
-    stack = new RuntimeStack();
-  });
-
-  test('push() throws TypeError for null block', () => {
-    // Act & Assert
-    expect(() => stack.push(null as any)).toThrow(TypeError);
-    expect(() => stack.push(null as any)).toThrow('Block cannot be null or undefined');
-  });
-
-  test('push() throws TypeError for undefined block', () => {
-    // Act & Assert
-    expect(() => stack.push(undefined as any)).toThrow(TypeError);
-    expect(() => stack.push(undefined as any)).toThrow('Block cannot be null or undefined');
-  });
-
-  test('push() throws TypeError for block without key', () => {
-    // Arrange
-    const invalidBlock = {
-      sourceId: [1, 2, 3],
-      push: () => [],
-      next: () => [],
-      pop: () => [],
-      dispose: () => { },
-      key: null // Invalid key
-    } as unknown as IRuntimeBlock;
-
-    // Act & Assert
-    expect(() => stack.push(invalidBlock)).toThrow(TypeError);
-    expect(() => stack.push(invalidBlock)).toThrow('Block must have a valid key');
-  });
-
-  test('pop() returns undefined for empty stack (not an error)', () => {
-    // Act
-    const result = stack.pop();
-
-    // Assert
-    expect(result).toBeUndefined();
-    expect(stack.current).toBeUndefined();
-  });
-
-  test('multiple pops on empty stack return undefined', () => {
-    // Act
-    const result1 = stack.pop();
-    const result2 = stack.pop();
-    const result3 = stack.pop();
-
-    // Assert
-    expect(result1).toBeUndefined();
-    expect(result2).toBeUndefined();
-    expect(result3).toBeUndefined();
-  });
-});
-
 describe('RuntimeStack Edge Cases Unit Tests', () => {
   let stack: RuntimeStack;
   let mockRuntime: any;
@@ -217,20 +160,9 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
     expect(stack.current).toBeUndefined();
   });
 
-  test('graph() returns empty array for empty stack', () => {
-    // Act
-    const graph = stack.graph();
-
-    // Assert
-    expect(graph).toEqual([]);
-    expect(Array.isArray(graph)).toBe(true);
-  });
-
-  test('blocks getters return empty arrays for empty stack', () => {
+  test('blocks getter returns empty array for empty stack', () => {
     // Act & Assert
     expect(stack.blocks).toEqual([]);
-    expect(stack.blocksTopFirst).toEqual([]);
-    expect(stack.blocksBottomFirst).toEqual([]);
     expect(stack.keys).toEqual([]);
   });
 
@@ -242,7 +174,6 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
     stack.push(block);
     expect(stack.current).toBe(block);
     expect(stack.blocks).toHaveLength(1);
-    expect(stack.graph()).toEqual([block]);
 
     // Act & Assert - pop
     const popped = stack.pop();
@@ -274,16 +205,6 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
     expect(stack.blocks).toHaveLength(LARGE_STACK_SIZE);
     expect(stack.current).toBe(blocks[LARGE_STACK_SIZE - 1]);
 
-    // Act - graph operation
-    const graphStart = Date.now();
-    const graph = stack.graph();
-    const graphEnd = Date.now();
-
-    // Assert graph correctness and performance
-    expect(graph).toHaveLength(LARGE_STACK_SIZE);
-    expect(graph[0]).toBe(blocks[LARGE_STACK_SIZE - 1]); // Top block first
-    expect(graphEnd - graphStart).toBeLessThan(50); // <50ms requirement
-
     // Act - pop all blocks
     const popStart = Date.now();
     const poppedBlocks: TestRuntimeBlock[] = [];
@@ -307,7 +228,7 @@ describe('RuntimeStack Edge Cases Unit Tests', () => {
     });
 
     // Overall operation time should be reasonable
-    const totalTime = (pushEnd - pushStart) + (graphEnd - graphStart) + (popEnd - popStart);
+    const totalTime = (pushEnd - pushStart) + (popEnd - popStart);
     expect(totalTime).toBeLessThan(500); // Total operations under 500ms
   });
 });

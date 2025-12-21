@@ -1,33 +1,12 @@
 import { describe, expect, it, vi } from 'bun:test';
-import { RuntimeStack } from '../RuntimeStack';
-import { ExecutionTracker } from '../../tracker/ExecutionTracker';
+import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../IRuntimeBlock';
-
-const createRuntimeStub = (captureReturn: { wallTimeMs: number; monotonicTimeMs: number }) => {
-  const memory = new RuntimeMemory();
-  const captureTimestamp = vi.fn((seed?: { wallTimeMs: number; monotonicTimeMs: number }) => seed ?? captureReturn);
-
-  const runtime: any = {
-    errors: [],
-    eventBus: { unregisterByOwner: vi.fn() },
-    memory,
-    clock: {
-      now: captureReturn.monotonicTimeMs,
-      register: vi.fn(),
-      unregister: vi.fn(),
-      captureTimestamp,
-    },
-    handle: vi.fn(),
-  };
-
-  const stack = new RuntimeStack(runtime as any, new ExecutionTracker(memory));
-  runtime.stack = stack;
-  return runtime as any;
-};
+import { WodScript } from '../../parser/WodScript';
+import { JitCompiler } from '../JitCompiler';
 
 const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOptions) => void): IRuntimeBlock => {
   const key = new BlockKey();
@@ -41,7 +20,7 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     } as any,
     executionTiming: {},
     mount: vi.fn().mockReturnValue([]),
-    next: vi.fn((runtime, options?: BlockLifecycleOptions) => {
+    next: vi.fn((_runtime, options?: BlockLifecycleOptions) => {
       nextImpl?.(options);
       return [];
     }),
@@ -52,11 +31,12 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
 };
 
 describe('Lifecycle timestamps', () => {
+  const script = new WodScript('test', []);
+  const compiler = {} as JitCompiler;
+
   it('passes completedAt from pop to parent.next', () => {
     const completedAt = { wallTimeMs: 1234, monotonicTimeMs: 50 };
-    const runtime = createRuntimeStub(completedAt);
-    const tracker = new ExecutionTracker(runtime.memory);
-    const stack = new RuntimeStack(runtime as any, tracker);
+    const runtime = new ScriptRuntime(script, compiler);
 
     let receivedOptions: BlockLifecycleOptions | undefined;
     const parent = createBlockStub('parent', options => {
@@ -64,24 +44,22 @@ describe('Lifecycle timestamps', () => {
     });
     const child = createBlockStub('child');
 
-    stack.push(parent);
-    stack.push(child);
+    runtime.pushBlock(parent);
+    runtime.pushBlock(child);
 
-    stack.pop();
+    runtime.popBlock({ completedAt });
 
     expect(receivedOptions?.completedAt).toEqual(completedAt);
   });
 
   it('uses provided startTime when pushing children and calls mount with it', () => {
     const startTime = { wallTimeMs: 1111, monotonicTimeMs: 11 };
-    const runtime = createRuntimeStub(startTime);
-    const tracker = new ExecutionTracker(runtime.memory);
-    const stack = new RuntimeStack(runtime as any, tracker);
+    const runtime = new ScriptRuntime(script, compiler);
 
     const child = createBlockStub('child');
     const action = new PushBlockAction(child, { startTime });
 
-    action.do(runtime as any);
+    action.do(runtime);
 
     expect(child.executionTiming?.startTime).toEqual(startTime);
     expect(child.mount).toHaveBeenCalledWith(runtime, expect.objectContaining({ startTime }));
@@ -101,7 +79,7 @@ describe('Lifecycle timestamps', () => {
       return seeds.shift() ?? { wallTimeMs: Date.now(), monotonicTimeMs: startSeed.monotonicTimeMs };
     });
 
-    const runtime = {
+    const runtimeStub = {
       errors: [],
       eventBus: { unregisterByOwner: vi.fn() },
       memory,
@@ -129,7 +107,7 @@ describe('Lifecycle timestamps', () => {
       getBehavior: vi.fn(),
     } as any;
 
-    behavior.onPush(runtime, block, { startTime: startSeed });
+    behavior.onPush(runtimeStub, block, { startTime: startSeed });
     behavior.onTick(600, 100);
     behavior.pause();
     behavior.resume();

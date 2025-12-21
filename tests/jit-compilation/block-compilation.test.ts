@@ -10,6 +10,7 @@ import {
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
+import { CrossFitDialect } from '../../src/dialects/crossfit/CrossFitDialect';
 
 describe('Block Compilation Contract', () => {
   let mockRuntime: IScriptRuntime;
@@ -206,6 +207,13 @@ describe('Block Compilation Contract', () => {
       const workoutText = '20:00 AMRAP\n  5 Pullups';
       const statements = parseWorkout(workoutText);
 
+      // Apply CrossFitDialect to add semantic hints
+      const dialect = new CrossFitDialect();
+      for (const stmt of statements) {
+        const { hints } = dialect.analyze(stmt);
+        stmt.hints = new Set(hints);
+      }
+
       // WHEN: Checking if strategy matches
       const strategy = new TimeBoundRoundsStrategy();
       const matches = strategy.match(statements, mockRuntime);
@@ -235,6 +243,13 @@ describe('Block Compilation Contract', () => {
       // GIVEN: A workout with timer and EMOM action
       const workoutText = '(20) :60 EMOM\n  + 4 KB Swings 106lb';
       const statements = parseWorkout(workoutText);
+
+      // Apply CrossFitDialect to add semantic hints
+      const dialect = new CrossFitDialect();
+      for (const stmt of statements) {
+        const { hints } = dialect.analyze(stmt);
+        stmt.hints = new Set(hints);
+      }
 
       // WHEN: Checking if strategy matches
       const strategy = new IntervalStrategy();

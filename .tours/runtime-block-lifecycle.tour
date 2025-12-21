@@ -11,10 +11,10 @@
       "line": 26
     },
     {
-      "title": "Stack push + mount",
-      "description": "RuntimeStack.push timestamps startTime, wraps blocks (debug), and immediately calls block.mount. This is where lifecycle begins.",
-      "file": "src/runtime/RuntimeStack.ts",
-      "line": 120
+      "title": "Stack push",
+      "description": "ScriptRuntime.pushBlock timestamps startTime, wraps blocks (debug), and triggers hooks. Note: block.mount is usually called immediately after by the action pushing the block.",
+      "file": "src/runtime/ScriptRuntime.ts",
+      "line": 139
     },
     {
       "title": "Block mount",
@@ -60,9 +60,9 @@
     },
     {
       "title": "Unmount + dispose",
-      "description": "RuntimeStack.pop calls block.unmount (behaviors.onPop) then dispose, releasing memory/handlers and popping displays/timers.",
-      "file": "src/runtime/RuntimeStack.ts",
-      "line": 220
+      "description": "ScriptRuntime.popBlock calls block.unmount (behaviors.onPop) then dispose, releasing memory/handlers and popping displays/timers.",
+      "file": "src/runtime/ScriptRuntime.ts",
+      "line": 172
     }
   ]
 }

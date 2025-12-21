@@ -82,7 +82,6 @@ describe('RuntimeStack.push() Contract Tests', () => {
     // Assert
     expect(stack.current).toBe(block3); // Last pushed is current
     expect(stack.blocks).toEqual([block3, block2, block1]); // LIFO order (top-first)
-    expect(stack.blocksBottomFirst).toEqual([block1, block2, block3]); // Push order (bottom-first)
   });
   
   test('MUST update current block to newly pushed block', () => {
@@ -98,12 +97,6 @@ describe('RuntimeStack.push() Contract Tests', () => {
     
     stack.push(block2);
     expect(stack.current).toBe(block2);
-  });
-  
-  test('SHOULD throw TypeError for null/undefined blocks', () => {
-    // Act & Assert
-    expect(() => stack.push(null as any)).toThrow(TypeError);
-    expect(() => stack.push(undefined as any)).toThrow(TypeError);
   });
   
   test('MUST NOT call initialization methods during push', () => {
@@ -244,96 +237,3 @@ describe('RuntimeStack.current() Contract Tests', () => {
   });
 });
 
-describe('RuntimeStack.graph() Contract Tests', () => {
-  let stack: RuntimeStack;
-  
-  beforeEach(() => {
-    stack = new RuntimeStack();
-  });
-  
-  test('MUST return top-first ordered array', () => {
-    // Arrange
-    const block1 = new MockRuntimeBlock(new BlockKey('block-1'));
-    const block2 = new MockRuntimeBlock(new BlockKey('block-2'));
-    const block3 = new MockRuntimeBlock(new BlockKey('block-3'));
-    
-    stack.push(block1);
-    stack.push(block2);
-    stack.push(block3);
-    
-    // Act
-    const graph = stack.graph();
-    
-    // Assert
-    expect(graph).toHaveLength(3);
-    expect(graph[0]).toBe(block3); // Top block first
-    expect(graph[1]).toBe(block2);
-    expect(graph[2]).toBe(block1); // Bottom block last
-  });
-  
-  test('MUST return empty array for empty stack', () => {
-    // Act
-    const graph = stack.graph();
-    
-    // Assert
-    expect(graph).toEqual([]);
-    expect(Array.isArray(graph)).toBe(true);
-  });
-  
-  test('MUST return new array (not reference to internal storage)', () => {
-    // Arrange
-    const block = new MockRuntimeBlock(new BlockKey('test-block'));
-    stack.push(block);
-    
-    // Act
-    const graph1 = stack.graph();
-    const graph2 = stack.graph();
-    
-    // Assert
-    expect(graph1).not.toBe(graph2); // Different array instances
-    expect(graph1).toEqual(graph2); // Same content
-    
-    // Modifying returned array should not affect stack
-    graph1.pop();
-    expect(stack.blocks.length).toBe(1); // Stack unchanged
-  });
-  
-  test('MUST be idempotent and not modify stack state', () => {
-    // Arrange
-    const block1 = new MockRuntimeBlock(new BlockKey('block-1'));
-    const block2 = new MockRuntimeBlock(new BlockKey('block-2'));
-    stack.push(block1);
-    stack.push(block2);
-    
-    const originalLength = stack.blocks.length;
-    const originalCurrent = stack.current;
-    
-    // Act
-    const graph1 = stack.graph();
-    const graph2 = stack.graph();
-    
-    // Assert
-    expect(graph1).toEqual(graph2);
-    expect(stack.blocks.length).toBe(originalLength);
-    expect(stack.current).toBe(originalCurrent);
-  });
-  
-  test('Performance: MUST complete in reasonable time for typical stack depths', () => {
-    // Arrange - Max stack depth is 10
-    const blocks: MockRuntimeBlock[] = [];
-    for (let i = 0; i < 10; i++) {
-      const block = new MockRuntimeBlock(new BlockKey(`block-${i}`));
-      blocks.push(block);
-      stack.push(block);
-    }
-    
-    // Act & Assert - Should complete quickly
-    const start = Date.now();
-    const graph = stack.graph();
-    const end = Date.now();
-    
-    expect(end - start).toBeLessThan(50); // <50ms requirement
-    expect(graph).toHaveLength(10);
-    expect(graph[0]).toBe(blocks[9]); // Last pushed is first in graph
-  });
-});

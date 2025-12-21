@@ -30,12 +30,8 @@ vi.mock('./ExerciseHoverProvider', () => ({
   }))
 }));
 
-// Mock MdTimerRuntime
-vi.mock('../parser/md-timer', () => ({
-  MdTimerRuntime: vi.fn().mockImplementation(() => ({
-    read: vi.fn()
-  }))
-}));
+// NOTE: We intentionally do NOT mock MdTimerRuntime as it causes test isolation issues
+// with other parser tests. The real parser is lightweight enough for this test.
 
 describe('WodWikiSyntaxInitializer', () => {
   it('should have correct default editor options', () => {

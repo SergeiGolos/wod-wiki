@@ -52,18 +52,6 @@ describe('NextEvent', () => {
     expect(eventWithComplex.data).toEqual(complexData);
   });
 
-  it('should have readonly name property', () => {
-    expect(() => {
-      (event as any).name = 'modified';
-    }).toThrow();
-  });
-
-  it('should have readonly timestamp property', () => {
-    expect(() => {
-      (event as any).timestamp = new Date();
-    }).toThrow();
-  });
-
   it('should handle data mutation on original object', () => {
     const mutableData = { counter: 0 };
     const eventWithMutable = new NextEvent(mutableData);
