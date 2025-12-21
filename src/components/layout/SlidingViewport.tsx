@@ -147,13 +147,13 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             {planPanel}
           </div>
 
-          {/* Track View - 50/50 vertical */}
+          {/* Track View - Index on top (40%), Timer below (60%) - same as mobile */}
           <div className="w-1/3 h-full flex-shrink-0 flex flex-col">
-            <div className="h-1/2 border-b border-border overflow-hidden">
-              {trackPrimaryPanel}
-            </div>
-            <div className="h-1/2 overflow-hidden">
+            <div className="h-[40%] border-b border-border overflow-hidden">
               {trackIndexPanel}
+            </div>
+            <div className="h-[60%] overflow-hidden">
+              {trackPrimaryPanel}
             </div>
           </div>
 

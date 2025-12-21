@@ -140,7 +140,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       <div className="flex-1 flex flex-col bg-background min-w-0 overflow-y-auto">
           
           {/* Chart Section */}
-          <div className="p-4 min-h-[450px] h-[450px] flex-shrink-0 border-b border-border">
+          <div className="p-4 min-h-[280px] h-[min(450px,55vh)] sm:h-[min(450px,60vh)] lg:h-[450px] flex-shrink-0 border-b border-border">
              <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                    <button 
@@ -222,15 +222,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
              </h3>
              <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <table className="w-full text-left text-sm">
-                   <thead className="bg-muted text-muted-foreground text-xs uppercase font-semibold">
+                   <thead className="bg-muted/50 dark:bg-muted/30 text-muted-foreground text-xs uppercase font-semibold border-b border-border">
                       <tr>
-                         <th className="p-3">Segment Name</th>
-                         <th className="p-3">Start</th>
-                         <th className="p-3">Duration</th>
+                         <th className="p-3 text-muted-foreground">Segment Name</th>
+                         <th className="p-3 text-muted-foreground">Start</th>
+                         <th className="p-3 text-muted-foreground">Duration</th>
                          {Object.values(allGraphs).map(g => (
-                           <th key={g.id} className="p-3 text-right">{g.label}</th>
+                           <th key={g.id} className="p-3 text-right text-muted-foreground">{g.label}</th>
                          ))}
-                         <th className="p-3 text-right">Intensity</th>
+                         <th className="p-3 text-right text-muted-foreground">Intensity</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-border">

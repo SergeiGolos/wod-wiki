@@ -5,13 +5,9 @@
  * script runtime, blocks, actions, memory, and compilation strategies.
  */
 
-import { IScript, IBlockKey } from './core';
-import { JitCompiler } from '../runtime/JitCompiler';
-import { RuntimeStack } from '../runtime/RuntimeStack';
-import { IRuntimeMemory } from '../runtime/IRuntimeMemory';
-import { IEvent } from '../runtime/IEvent';
-import { RuntimeError } from '../runtime/actions/ErrorAction';
-import { IMetricCollector } from '../runtime/MetricCollector';
+import { IRuntimeMemory, RuntimeError, IMetricCollector, IEvent } from '@/core-entry'; import { RuntimeStack, JitCompiler } from '.';
+import { IScript, IBlockKey, ICodeStatement } from './core';
+
 
 /**
  * Main runtime execution context for workout scripts
@@ -21,14 +17,16 @@ export interface IScriptRuntime {
   readonly memory: IRuntimeMemory;
   readonly stack: RuntimeStack;
   readonly jit: JitCompiler;
-  
+
   /** Errors collected during runtime execution */
   readonly errors?: RuntimeError[];
-  
+
   /** Metrics collection subsystem for workout analytics */
   readonly metrics?: IMetricCollector;
-  
+
   handle(event: IEvent): void;
+
+  dispose(): void;
 }
 
 /**
@@ -63,7 +61,7 @@ export interface IRuntimeBlock {
 export interface IRuntimeAction {
   /** Type of action to perform */
   type: string;
-  
+
   /** Target of the action (optional) */
   target?: string;
 
@@ -107,7 +105,7 @@ export interface TypedMemoryReference<T> extends IMemoryReference {
 export interface IRuntimeBlockStrategy {
   /** Check if this strategy can handle the given statements */
   match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean;
-  
+
   /** Compile statements into a runtime block */
   compile(statements: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
 }

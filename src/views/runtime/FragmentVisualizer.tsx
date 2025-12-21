@@ -8,10 +8,10 @@ import type { ParseError } from './types';
 export interface FragmentVisualizerProps {
   /** Array of fragments to visualize, grouped by type */
   fragments: ICodeFragment[];
-  
+
   /** Optional error state to display instead of fragments */
   error?: ParseError | null;
-  
+
   /** Optional className for container styling */
   className?: string;
 
@@ -33,20 +33,20 @@ export function getFragmentIcon(type: string): string | null {
     'timer': '⏱️',
     'duration': '⏱️',
     'rounds': '🔄',
-    'rep': '×',
-    'reps': '×',
+    // 'rep': '×',
+    // 'reps': '×',
     'resistance': '💪',
     'weight': '💪',
     'distance': '📏',
     'action': '▶️',
     'rest': '⏸️',
     'effort': '🏃',
-    'lap': '+',
+    // 'lap': '+',
     'increment': '↕️',
     'text': '📝',
     'ellapsed': '⏱️', // Add missing icon for 'ellapsed' if needed, though type might be different
   };
-  
+
   return iconMap[type.toLowerCase()] || null;
 }
 
@@ -54,9 +54,9 @@ export function getFragmentIcon(type: string): string | null {
  * FragmentVisualizer component displays parsed code fragments grouped by type
  * with color-coded visualization and icons.
  */
-export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({ 
-  fragments, 
-  error, 
+export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
+  fragments,
+  error,
   className = '',
   size: sizeProp = 'normal',
   filter,
@@ -78,16 +78,16 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
       // User said: "overrides by name by specific fragment type 'rep' 'ellapsed-time'"
       // Assuming 'ellapsed-time' is a value or specific type? 
       // Let's check both value and type against nameOverrides for flexibility.
-      
+
       const typeKey = (fragment.fragmentType || fragment.type).toLowerCase();
-      
+
       if (filter.nameOverrides) {
         if (valueKey in filter.nameOverrides) {
-           return filter.nameOverrides[valueKey]; 
+          return filter.nameOverrides[valueKey];
         }
         // Special case: if the user considers the type name as the "name" for overrides
         if (typeKey in filter.nameOverrides) {
-           return filter.nameOverrides[typeKey];
+          return filter.nameOverrides[typeKey];
         }
       }
 

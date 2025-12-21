@@ -349,7 +349,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
       {/* Slide-out Panel */}
       <div
         className={`
-          fixed right-0 top-0 bottom-0 w-[480px] bg-background border-l border-border z-50
+          fixed right-0 top-0 bottom-0 w-full sm:w-[480px] max-w-full bg-background border-l border-border z-50
           shadow-2xl flex flex-col
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}

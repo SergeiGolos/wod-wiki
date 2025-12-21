@@ -31,6 +31,7 @@ import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';
 import { IRuntimeOptions } from './IRuntimeOptions';
 import { captureRuntimeTimestamp } from './RuntimeClock';
+import { IScriptRuntime } from '@/core';
 
 /**
  * Interface for runtime factory implementations
@@ -43,13 +44,13 @@ export interface IRuntimeFactory {
    * @param options - Optional runtime options (debug mode, logging, etc.)
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
-  createRuntime(block: WodBlock, options?: IRuntimeOptions): ScriptRuntime | null;
+  createRuntime(block: WodBlock, options?: IRuntimeOptions): IScriptRuntime | null;
 
   /**
    * Disposes of a runtime and cleans up resources
    * @param runtime - The runtime to dispose
    */
-  disposeRuntime(runtime: ScriptRuntime): void;
+  disposeRuntime(runtime: IScriptRuntime): void;
 }
 
 /**
@@ -72,7 +73,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * @param options - Optional runtime options (debug mode, logging, etc.)
    * @returns Initialized ScriptRuntime or null if invalid block
    */
-  createRuntime(block: WodBlock, options?: IRuntimeOptions): ScriptRuntime | null {
+  createRuntime(block: WodBlock, options?: IRuntimeOptions): IScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
       console.warn('[RuntimeFactory] Cannot create runtime: block has no statements');
       return null;
@@ -145,9 +146,9 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 
    * @param runtime - The runtime to dispose
    */
-  disposeRuntime(runtime: ScriptRuntime): void {
+  disposeRuntime(runtime: IScriptRuntime): void {
 
-    runtime.disposeAllBlocks();
+    runtime.dispose();
   }
 }
 
