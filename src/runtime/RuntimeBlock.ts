@@ -10,16 +10,15 @@ import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
 import { IEvent } from './IEvent';
-import { captureRuntimeTimestamp } from './RuntimeClock';
 
 
-export type AllocateRequest<T> = { 
-    type: string; 
-    visibility?: 'public' | 'private'; 
-    initialValue?: T 
+export type AllocateRequest<T> = {
+    type: string;
+    visibility?: 'public' | 'private';
+    initialValue?: T
 };
 
-export class RuntimeBlock implements IRuntimeBlock{
+export class RuntimeBlock implements IRuntimeBlock {
     protected readonly behaviors: IRuntimeBehavior[] = []
     public readonly key: BlockKey;
     public readonly blockType?: string;
@@ -58,12 +57,12 @@ export class RuntimeBlock implements IRuntimeBlock{
             this.label = label || blockTypeParam || 'Block';
             this.fragments = fragments ?? [];
         }
-        
+
         this.behaviors = behaviors;
 
         // Register default 'next' handler to bridge explicit next events to block.next()
         this.registerDefaultHandler();
-        
+
         // Register event dispatcher to route events to behaviors
         this.registerEventDispatcher();
     }
@@ -75,10 +74,10 @@ export class RuntimeBlock implements IRuntimeBlock{
             handler: (event: IEvent, runtime: IScriptRuntime) => {
                 // Only handle explicit next events
                 if (event.name !== 'next') return [];
-                
+
                 // Only handle if this is the current block
                 if (runtime.stack.current !== this) return [];
-                
+
                 // Delegate to next() method for state updates
                 return this.next(runtime);
             }
@@ -115,7 +114,7 @@ export class RuntimeBlock implements IRuntimeBlock{
         }
     }
 
-    
+
     /**
      * Allocates memory for this block's state.
      * The memory will be automatically cleaned up when the block is popped from the stack.
@@ -134,13 +133,14 @@ export class RuntimeBlock implements IRuntimeBlock{
     /**
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
-     */    
+     */
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const startTime = options?.startTime ?? runtime.clock.now;
         const mountOptions: BlockLifecycleOptions = {
             ...options,
-            startTime: captureRuntimeTimestamp(runtime.clock, options?.startTime),
+            startTime,
         };
-        this.executionTiming.startTime = mountOptions.startTime;
+        this.executionTiming.startTime = startTime;
 
         // Call behaviors
         const actions: IRuntimeAction[] = [];
@@ -174,18 +174,19 @@ export class RuntimeBlock implements IRuntimeBlock{
      * Handles completion logic, manages result spans, and cleans up resources.
      */
     unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const completedAt = options?.completedAt ?? runtime.clock.now;
         const unmountOptions: BlockLifecycleOptions = {
             ...options,
-            completedAt: captureRuntimeTimestamp(runtime.clock, options?.completedAt),
+            completedAt,
         };
-        this.executionTiming.completedAt = unmountOptions.completedAt;
+        this.executionTiming.completedAt = completedAt;
 
         // Attach an elapsed-time fragment and metric when completion timing is available.
         this.recordElapsedTimeArtifact();
 
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
-         for (const behavior of this.behaviors) {
+        for (const behavior of this.behaviors) {
             const result = behavior?.onPop?.(runtime, this, unmountOptions);
             if (result) { actions.push(...result); }
         }
@@ -200,7 +201,7 @@ export class RuntimeBlock implements IRuntimeBlock{
                 (behavior as any).onDispose(runtime, this);
             }
         }
-        
+
         // Clean up legacy memory references (for backward compatibility)
         for (const memRef of this._memory) {
             runtime.memory.release(memRef);
@@ -210,7 +211,7 @@ export class RuntimeBlock implements IRuntimeBlock{
             try { unsub(); } catch (error) { console.error('Error unsubscribing handler', error); }
         }
         this._unsubscribers = [];
-        
+
         // NOTE: context.release() is NOT called here - it is the caller's responsibility
         // This allows behaviors to access memory during unmount() and disposal
         // Consumer MUST call block.context.release() after block.dispose()
@@ -248,8 +249,8 @@ export class RuntimeBlock implements IRuntimeBlock{
             return;
         }
 
-        const startMs = this.executionTiming.startTime?.wallTimeMs;
-        const endMs = this.executionTiming.completedAt?.wallTimeMs;
+        const startMs = this.executionTiming.startTime?.getTime();
+        const endMs = this.executionTiming.completedAt?.getTime();
         if (startMs === undefined || endMs === undefined) {
             return;
         }

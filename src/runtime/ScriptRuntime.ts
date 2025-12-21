@@ -17,7 +17,7 @@ import {
     RuntimeStackHooks,
 } from './IRuntimeOptions';
 import { TestableBlock } from './testing/TestableBlock';
-import { IRuntimeClock, RuntimeTimestamp } from './IRuntimeClock';
+import { IRuntimeClock } from './IRuntimeClock';
 import { NextEventHandler } from './NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 
@@ -154,7 +154,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         const wrappedBlock = this._wrapper.wrap?.(block, parentBlock) ?? block;
 
-        const startTime = this.getTimestamp(options.startTime);
+        const startTime = options.startTime ?? this.clock.now;
         this.setStartTime(wrappedBlock, startTime);
 
         if (typeof (wrappedBlock as any).setRuntime === 'function') {
@@ -180,7 +180,7 @@ export class ScriptRuntime implements IScriptRuntime {
             return undefined;
         }
 
-        const completedAt = this.getTimestamp(options.completedAt);
+        const completedAt = options.completedAt ?? this.clock.now;
         const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt };
         this.setCompletedTime(currentBlock, completedAt);
 
@@ -274,33 +274,14 @@ export class ScriptRuntime implements IScriptRuntime {
         }
     }
 
-    private setStartTime(block: IRuntimeBlock, startTime: RuntimeTimestamp): void {
+    private setStartTime(block: IRuntimeBlock, startTime: Date): void {
         const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
         target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
     }
 
-    private setCompletedTime(block: IRuntimeBlock, completedAt: RuntimeTimestamp): void {
+    private setCompletedTime(block: IRuntimeBlock, completedAt: Date): void {
         const target = block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
         target.executionTiming = { ...(target.executionTiming ?? {}), completedAt };
-    }
-
-    private getTimestamp(seed?: RuntimeTimestamp): RuntimeTimestamp {
-        const fallback = (): RuntimeTimestamp => ({
-            wallTimeMs: seed?.wallTimeMs ?? Date.now(),
-            monotonicTimeMs: seed?.monotonicTimeMs ?? (typeof performance !== 'undefined' ? performance.now() : Date.now()),
-        });
-
-        const capture = this.clock?.captureTimestamp;
-        if (typeof capture === 'function') {
-            try {
-                // bind clock context
-                return capture.call(this.clock, seed) ?? fallback();
-            } catch {
-                return fallback();
-            }
-        }
-
-        return fallback();
     }
 
     private resolveOwnerKey(block: IRuntimeBlock): string {

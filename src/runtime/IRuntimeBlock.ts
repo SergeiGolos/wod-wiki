@@ -4,14 +4,13 @@ import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IBlockContext } from "./IBlockContext";
 import { RuntimeMetric } from "./RuntimeMetric";
-import { RuntimeTimestamp } from "./RuntimeClock";
 import { ICodeFragment } from "../core/models/CodeFragment";
 
 export interface BlockLifecycleOptions {
-    /** Shared start timestamp (wall + monotonic) captured once and propagated to children. */
-    startTime?: RuntimeTimestamp;
-    /** Completion timestamp that can be passed to parents/children to avoid drift. */
-    completedAt?: RuntimeTimestamp;
+    /** Start timestamp when the block was pushed onto the stack. */
+    startTime?: Date;
+    /** Completion timestamp when the block was popped from the stack. */
+    completedAt?: Date;
 }
 
 /**

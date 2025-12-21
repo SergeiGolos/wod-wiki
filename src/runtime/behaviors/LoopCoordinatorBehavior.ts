@@ -11,7 +11,6 @@ import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 import { ExecutionSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
 import { IEvent } from '../IEvent';
-import { captureRuntimeTimestamp } from '../RuntimeClock';
 
 /**
  * Loop type determines completion logic.
@@ -246,7 +245,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         return actions;
       }
 
-      const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+      const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? runtime.clock.now;
 
       // Return PushBlockAction to push the compiled child onto the stack
       actions.push(new PushBlockAction(compiledBlock, { startTime }));

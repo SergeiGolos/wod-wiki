@@ -27,35 +27,18 @@ export class PushBlockAction implements IRuntimeAction {
         try {
             // Block push timing rules:
             // If startTime is explicitly provided in options, use it
-            // Otherwise apply new timing rules:
-            // 1. If clock running → create start time automatically
-            // 2. If clock not running AND block has startTime → start clock
-            // 3. If clock not running AND no startTime → leave clock stopped, no startTime
+            // Otherwise: if clock running → create start time automatically
 
-            const capture = (runtime as any)?.clock?.captureTimestamp;
-            let startTime: any;
+            let startTime: Date | undefined = this.options.startTime;
 
-            if (this.options.startTime) {
-                // Explicit startTime provided
-                startTime = typeof capture === 'function'
-                    ? capture.call(runtime.clock, this.options.startTime)
-                    : this.options.startTime;
-            } else {
-                // No explicit startTime - apply timing rules
-                const isClockRunning = runtime.clock?.isRunning ?? false;
-
-                if (isClockRunning) {
-                    // Clock running → create startTime automatically
-                    startTime = typeof capture === 'function'
-                        ? capture.call(runtime.clock)
-                        : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
-                } else {
-                    // Clock not running, no startTime provided → don't create startTime
-                    startTime = undefined;
-                }
+            if (!startTime && runtime.clock?.isRunning) {
+                // Clock running → create startTime automatically
+                startTime = runtime.clock.now;
             }
 
-            const lifecycle: BlockLifecycleOptions = startTime ? { ...this.options, startTime } : { ...this.options };
+            const lifecycle: BlockLifecycleOptions = startTime
+                ? { ...this.options, startTime }
+                : { ...this.options };
 
             const target = this.block as IRuntimeBlock & { executionTiming?: BlockLifecycleOptions };
             if (startTime) {

@@ -1,139 +1,142 @@
-import { ITickable } from './ITickable';
-
-import { IRuntimeClock, RuntimeTimestamp } from './IRuntimeClock';
-export type { RuntimeTimestamp };
+import { IRuntimeClock, ClockSpan } from './IRuntimeClock';
 
 /**
- * Safely capture a runtime timestamp even if a full RuntimeClock instance is not available.
- * Falls back to Date.now/performance.now when running in tests with partial runtime stubs.
+ * RuntimeClock tracks time using spans created by start/stop calls.
+ * 
+ * Provides:
+ * - `now`: Current wall-clock time as a Date
+ * - `elapsed`: Total milliseconds of running time (sum of all spans)
+ * - `start()`/`stop()`: Control methods that return timestamps for event creation
  */
-export function captureRuntimeTimestamp(
-    clock?: { captureTimestamp?: (seed?: Partial<RuntimeTimestamp>) => RuntimeTimestamp },
-    seed?: Partial<RuntimeTimestamp>
-): RuntimeTimestamp {
-    const capture = clock?.captureTimestamp;
-    if (capture) {
-        return capture.call(clock, seed);
+export class RuntimeClock implements IRuntimeClock {
+    private _spans: ClockSpan[] = [];
+
+    /**
+     * Current wall-clock time as a Date.
+     */
+    public get now(): Date {
+        return new Date();
     }
 
-    const wallTimeMs = seed?.wallTimeMs ?? Date.now();
-    const monotonicTimeMs = seed?.monotonicTimeMs ?? (typeof performance !== 'undefined' && performance.now ? performance.now() : wallTimeMs);
-    return { wallTimeMs, monotonicTimeMs };
+    /**
+     * Whether the clock is currently running (has an open span without a stop time).
+     */
+    public get isRunning(): boolean {
+        if (this._spans.length === 0) return false;
+        return this._spans[this._spans.length - 1].stop === undefined;
+    }
+
+    /**
+     * All time spans tracked by this clock.
+     */
+    public get spans(): ReadonlyArray<ClockSpan> {
+        return this._spans;
+    }
+
+    /**
+     * Total elapsed milliseconds while running.
+     * Sums all completed spans plus the current running span (if any).
+     */
+    public get elapsed(): number {
+        const now = Date.now();
+        return this._spans.reduce((total, span) => {
+            const start = span.start.getTime();
+            const stop = span.stop?.getTime() ?? now;
+            return total + (stop - start);
+        }, 0);
+    }
+
+    /**
+     * Start the clock. Creates a new span with the current time.
+     * Returns the start timestamp for event creation.
+     * 
+     * If the clock is already running, returns the current span's start time.
+     */
+    public start(): Date {
+        // If already running, return the current span's start
+        if (this.isRunning) {
+            return this._spans[this._spans.length - 1].start;
+        }
+
+        const timestamp = new Date();
+        this._spans.push({ start: timestamp });
+        return timestamp;
+    }
+
+    /**
+     * Stop the clock. Closes the current span with the current time.
+     * Returns the stop timestamp for event creation.
+     * 
+     * If the clock is not running, returns the current time.
+     */
+    public stop(): Date {
+        const timestamp = new Date();
+
+        // If not running, just return current time
+        if (!this.isRunning) {
+            return timestamp;
+        }
+
+        // Close the current span
+        this._spans[this._spans.length - 1].stop = timestamp;
+        return timestamp;
+    }
+
+    /**
+     * Reset the clock. Clears all spans.
+     */
+    public reset(): void {
+        this._spans = [];
+    }
 }
 
 /**
- * RuntimeClock manages the central execution loop for the runtime.
- * It replaces individual setInterval/setTimeout calls scattered across behaviors.
+ * Creates a mock clock for testing with controllable time.
  */
-export class RuntimeClock implements IRuntimeClock {
-    private _isRunning = false;
-    private _tickables: Set<ITickable> = new Set();
-    private _animationFrameId?: number;
-    private _lastTickTime = 0;
+export function createMockClock(initialTime: Date = new Date()): IRuntimeClock & {
+    /** Advance the mock time by the specified milliseconds */
+    advance: (ms: number) => void;
+    /** Set the mock time to a specific Date */
+    setTime: (time: Date) => void;
+} {
+    let currentTime = initialTime;
+    const spans: ClockSpan[] = [];
 
-    /**
-     * Current timestamp (performance.now())
-     */
-    public get now(): number {
-        return performance.now();
-    }
-
-    /**
-     * Capture a timestamp with both wall-clock and monotonic sources using a shared sampling point.
-     * Allows callers to seed one or both values (e.g., from a parent block) while ensuring the
-     * other component is captured from the current clock to keep the pair consistent.
-     */
-    public captureTimestamp(seed?: Partial<RuntimeTimestamp>): RuntimeTimestamp {
-        return {
-            wallTimeMs: seed?.wallTimeMs ?? Date.now(),
-            monotonicTimeMs: seed?.monotonicTimeMs ?? this.now,
-        };
-    }
-
-    /**
-     * Whether the clock is currently running
-     */
-    public get isRunning(): boolean {
-        return this._isRunning;
-    }
-
-    /**
-     * Start the clock loop.
-     */
-    public start(): void {
-        if (this._isRunning) return;
-
-        this._isRunning = true;
-        this._lastTickTime = this.now;
-        this._tick();
-    }
-
-    /**
-     * Stop the clock loop.
-     */
-    public stop(): void {
-        this._isRunning = false;
-        if (this._animationFrameId !== undefined) {
-            if (typeof cancelAnimationFrame !== 'undefined') {
-                cancelAnimationFrame(this._animationFrameId);
-            } else {
-                clearTimeout(this._animationFrameId);
+    return {
+        get now() { return currentTime; },
+        get elapsed() {
+            const nowMs = currentTime.getTime();
+            return spans.reduce((total, span) => {
+                const start = span.start.getTime();
+                const stop = span.stop?.getTime() ?? nowMs;
+                return total + (stop - start);
+            }, 0);
+        },
+        get isRunning() {
+            if (spans.length === 0) return false;
+            return spans[spans.length - 1].stop === undefined;
+        },
+        get spans() { return spans; },
+        start() {
+            if (spans.length > 0 && spans[spans.length - 1].stop === undefined) {
+                return spans[spans.length - 1].start;
             }
-            this._animationFrameId = undefined;
-        }
-    }
-
-    /**
-     * Register a tickable object to receive updates.
-     */
-    public register(tickable: ITickable): void {
-        this._tickables.add(tickable);
-    }
-
-    /**
-     * Unregister a tickable object.
-     */
-    public unregister(tickable: ITickable): void {
-        this._tickables.delete(tickable);
-    }
-
-    /**
-     * Main loop tick.
-     */
-    private _tick = (): void => {
-        if (!this._isRunning) return;
-
-        const now = this.now;
-        const elapsed = now - this._lastTickTime;
-        this._lastTickTime = now;
-
-        // Notify all listeners
-        for (const tickable of this._tickables) {
-            try {
-                tickable.onTick(now, elapsed);
-            } catch (error) {
-                console.error('Error in RuntimeClock tick listener:', error);
+            const timestamp = new Date(currentTime);
+            spans.push({ start: timestamp });
+            return timestamp;
+        },
+        stop() {
+            const timestamp = new Date(currentTime);
+            if (spans.length > 0 && spans[spans.length - 1].stop === undefined) {
+                spans[spans.length - 1].stop = timestamp;
             }
-        }
-
-        // Schedule next frame
-        if (typeof requestAnimationFrame !== 'undefined') {
-            this._animationFrameId = requestAnimationFrame(this._tick);
-        } else {
-            // Fallback for Node.js/Test environments
-            this._animationFrameId = setTimeout(this._tick, 16) as any;
-        }
+            return timestamp;
+        },
+        advance(ms: number) {
+            currentTime = new Date(currentTime.getTime() + ms);
+        },
+        setTime(time: Date) {
+            currentTime = time;
+        },
     };
-
-    /**
-     * Manually trigger a tick (useful for testing).
-     */
-    public manualTick(timestamp: number): void {
-        const elapsed = timestamp - this._lastTickTime;
-        this._lastTickTime = timestamp;
-
-        for (const tickable of this._tickables) {
-            tickable.onTick(timestamp, elapsed);
-        }
-    }
 }

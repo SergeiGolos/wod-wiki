@@ -34,7 +34,6 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';
 import { IRuntimeOptions } from './IRuntimeOptions';
-import { captureRuntimeTimestamp } from './RuntimeClock';
 import { IScriptRuntime } from '@/core';
 
 /**
@@ -148,7 +147,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     }
 
     // Push and mount root block with a shared start timestamp for deterministic timing
-    const rootStartTime = captureRuntimeTimestamp(runtime.clock);
+    const rootStartTime = runtime.clock.now;
     const lifecycle = { startTime: rootStartTime };
     const pushedRoot = runtime.pushBlock(rootBlock, lifecycle);
     const actions = pushedRoot.mount(runtime, lifecycle);

@@ -28,10 +28,7 @@ export class PopBlockAction implements IRuntimeAction {
         }
 
         try {
-            const capture = (runtime as any)?.clock?.captureTimestamp;
-            const completedAt = typeof capture === 'function'
-                ? capture.call(runtime.clock)
-                : { wallTimeMs: Date.now(), monotonicTimeMs: typeof performance !== 'undefined' ? performance.now() : Date.now() };
+            const completedAt = runtime.clock.now;
             const lifecycle: BlockLifecycleOptions = { completedAt };
 
             runtime.popBlock(lifecycle);

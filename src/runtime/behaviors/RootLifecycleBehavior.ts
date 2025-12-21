@@ -13,7 +13,6 @@ import { PopBlockAction } from '../PopBlockAction';
 import { IEvent } from '../IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
 import { IEventHandler } from '../IEventHandler';
-import { captureRuntimeTimestamp } from '../RuntimeClock';
 import { SetWorkoutStateAction } from '../actions/WorkoutStateActions';
 
 enum RootState {
@@ -38,19 +37,19 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     onPush(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         // Start with Initial Idle Block
         this.state = RootState.INITIAL_IDLE;
-        
+
         const idleBlock = this.createIdleBlock(
-            runtime, 
-            'idle-start', 
-            'Ready', 
-            { 
-                popOnNext: true, 
+            runtime,
+            'idle-start',
+            'Ready',
+            {
+                popOnNext: true,
                 popOnEvents: [],
                 buttonLabel: 'Start Workout',
                 buttonAction: 'timer:start'
             }
         );
-        
+
         // We do NOT call loopCoordinator.onPush here because we want to delay execution
         // until the initial idle block is popped.
         // LoopCoordinator.onPush would advance the index to 0 immediately.
@@ -64,14 +63,14 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         // Initialize controls (for Root level)
         this.controls.onPush(runtime, block);
         this.controls.setDisplayMode('clock');
-        
+
         // NOTE: We no longer register "Start" button here.
         // The IdleBehavior of the initial idle block will register it.
 
         // Register global event handler for controls
         this.registerControlHandler(runtime, block);
 
-        const startTime = options?.startTime ?? captureRuntimeTimestamp(runtime.clock);
+        const startTime = options?.startTime ?? runtime.clock.now;
         return [
             new SetWorkoutStateAction('running'),
             new PushBlockAction(idleBlock, { startTime })
@@ -116,7 +115,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         runtime,
                         'idle-end',
                         'Cooldown, checkout the Analytics',
-                        { 
+                        {
                             popOnNext: false,
                             popOnEvents: ['stop', 'view-results'],
                             buttonLabel: 'View Analytics',
@@ -126,7 +125,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
                     this.controls.clearButtons();
 
-                    const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+                    const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? runtime.clock.now;
                     return [
                         ...actions,
                         new SetWorkoutStateAction('complete'),
@@ -228,17 +227,17 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 // For now, we'll just stop the timer and push the final idle block
                 // effectively "covering" the rest of the workout
                 if (timer) timer.stop();
-                
+
                 this.state = RootState.FINAL_IDLE;
-                
+
                 // NOTE: "Completed" section record is no longer created here.
 
                 const finalIdleBlock = this.createIdleBlock(
                     runtime,
                     'idle-end',
                     'Cooldown, checkout the Analytics',
-                    { 
-                        popOnNext: false, 
+                    {
+                        popOnNext: false,
                         popOnEvents: ['stop', 'view-results'],
                         buttonLabel: 'View Analytics',
                         buttonAction: 'view:analytics'
@@ -247,11 +246,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
                 // Update controls
                 this.controls.clearButtons();
-                
+
                 // NOTE: We no longer register "View Analytics" button here.
                 // The IdleBehavior of the final idle block will register it.
 
-                const startTime = block.executionTiming?.completedAt ?? captureRuntimeTimestamp(runtime.clock);
+                const startTime = block.executionTiming?.completedAt ?? runtime.clock.now;
                 return [
                     new SetWorkoutStateAction('complete'),
                     new PushBlockAction(finalIdleBlock, { startTime })
@@ -263,7 +262,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
     private updateExecutionControls() {
         this.controls.clearButtons();
-        
+
         // Pause/Play
         this.controls.registerButton({
             id: 'btn-pause',
@@ -296,11 +295,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     }
 
     private createIdleBlock(
-        runtime: IScriptRuntime, 
-        id: string, 
-        label: string, 
-        config: { 
-            popOnNext?: boolean, 
+        runtime: IScriptRuntime,
+        id: string,
+        label: string,
+        config: {
+            popOnNext?: boolean,
             popOnEvents?: string[],
             buttonLabel?: string,
             buttonAction?: string
@@ -308,7 +307,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     ): RuntimeBlock {
         const blockKey = new BlockKey(id);
         const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
-        
+
         const behaviors = [
             new IdleBehavior({
                 label: label,
