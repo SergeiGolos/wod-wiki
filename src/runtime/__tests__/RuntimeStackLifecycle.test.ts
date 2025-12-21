@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { ScriptRuntime } from '../ScriptRuntime';
-import { ExecutionTracker } from '../../tracker/ExecutionTracker';
+
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../IRuntimeAction';
@@ -8,6 +8,9 @@ import { IRuntimeBlock } from '../IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../JitCompiler';
 import { IRuntimeOptions } from '../IRuntimeOptions';
+import { RuntimeStack } from '../RuntimeStack';
+import { RuntimeClock } from '../RuntimeClock';
+import { EventBus } from '../EventBus';
 
 const createAction = (name: string, callOrder: string[]): IRuntimeAction => ({
   type: 'test-action',
@@ -88,7 +91,14 @@ describe('ScriptRuntime Lifecycle', () => {
       hooks,
     } as any;
 
-    const runtime = new ScriptRuntime(script, compiler, options);
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+
+    const runtime = new ScriptRuntime(script, compiler, dependencies, options);
 
     const block = createBlock('child', callOrder);
     runtime.pushBlock(block);
@@ -131,7 +141,14 @@ describe('ScriptRuntime Lifecycle', () => {
       hooks,
     } as any;
 
-    const runtime = new ScriptRuntime(script, compiler, options);
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+
+    const runtime = new ScriptRuntime(script, compiler, dependencies, options);
 
     const parent = createBlock('parent', callOrder, [createAction('parent.next.action', callOrder)]);
     const child = createBlock('child', callOrder);

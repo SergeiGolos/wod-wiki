@@ -60,7 +60,7 @@ const LinkedGroup: React.FC<{ children: React.ReactNode; size: VisualizerSize }>
   const spacing = size === 'compact' ? 'space-y-0.5' : size === 'focused' ? 'space-y-1.5' : 'space-y-1';
   
   return (
-    <div className={cn("border-l-2 border-orange-400/50 ml-2 pl-1 my-1 bg-orange-500/5 rounded-r", spacing)}>
+    <div className={cn("border-l-2 border-orange-400/50 ml-2 pl-1 my-1 rounded-r", spacing)}>
       {children}
     </div>
   );

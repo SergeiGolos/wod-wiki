@@ -1,22 +1,20 @@
 import { IScriptRuntime } from '../IScriptRuntime';
-import { RuntimeStack } from '../RuntimeStack';
+import { IRuntimeStack } from '../IRuntimeStack';
 import { IRuntimeMemory, Nullable } from '../IRuntimeMemory';
 import { IMemoryReference, TypedMemoryReference } from '../IMemoryReference';
 import { JitCompiler } from '../JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
-import { IMetricCollector } from '../MetricCollector';
 import { ExecutionSpan } from '../models/ExecutionSpan';
 import { ExecutionTracker } from '../../tracker/ExecutionTracker';
-import { EventBus } from '../EventBus';
+import { IEventBus } from '../IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
 import { ITestSetupAction } from './actions/ITestSetupAction';
 import { CodeStatement } from '../../core/models/CodeStatement';
-import { FragmentCompilationManager } from '../FragmentCompilationManager';
-import { RuntimeClock } from '../RuntimeClock';
+import { IRuntimeClock } from '../IRuntimeClock';
 import { IBlockContext } from '../IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
@@ -191,7 +189,7 @@ export class TestableRuntime implements IScriptRuntime {
   private _stackOps: StackOperation[] = [];
   private _snapshots: RuntimeSnapshot[] = [];
   private _wrappedMemory: IRuntimeMemory;
-  private _wrappedStack: RuntimeStack;
+  private _wrappedStack: IRuntimeStack;
 
   constructor(
     private readonly _wrapped: IScriptRuntime,
@@ -232,7 +230,7 @@ export class TestableRuntime implements IScriptRuntime {
     return this._wrappedMemory;
   }
 
-  get stack(): RuntimeStack {
+  get stack(): IRuntimeStack {
     return this._wrappedStack;
   }
 
@@ -240,7 +238,7 @@ export class TestableRuntime implements IScriptRuntime {
     return this._wrapped.jit;
   }
 
-  get clock(): RuntimeClock {
+  get clock(): IRuntimeClock {
     return this._wrapped.clock;
   }
 
@@ -254,7 +252,7 @@ export class TestableRuntime implements IScriptRuntime {
     return this._wrapped.tracker;
   }
 
-  get eventBus(): EventBus {
+  get eventBus(): IEventBus {
     return this._wrapped.eventBus;
   }
 
@@ -266,6 +264,14 @@ export class TestableRuntime implements IScriptRuntime {
 
   handle(event: IEvent): void {
     this._wrapped.handle(event);
+  }
+
+  pushBlock(block: IRuntimeBlock, options?: any): IRuntimeBlock {
+    return this._wrapped.pushBlock(block, options);
+  }
+
+  popBlock(options?: any): IRuntimeBlock | undefined {
+    return this._wrapped.popBlock(options);
   }
 
   // ========== Testing API ==========
@@ -726,7 +732,7 @@ export class TestableRuntime implements IScriptRuntime {
     };
   }
 
-  private _createWrappedStack(): RuntimeStack {
+  private _createWrappedStack(): IRuntimeStack {
     const self = this;
     const original = this._wrapped.stack;
 
@@ -766,7 +772,7 @@ export class TestableRuntime implements IScriptRuntime {
         }
         return value;
       }
-    }) as RuntimeStack;
+    }) as IRuntimeStack;
   }
 }
 

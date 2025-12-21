@@ -1,6 +1,80 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
-import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { createMockRuntime, mockPerformanceNow, createEventCapture } from '../../helpers/test-utils';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TimerBehavior } from '../TimerBehavior';
+import { IScriptRuntime } from '../../IScriptRuntime';
+import { IEvent } from '../../IEvent';
+
+// Inline mock utilities to match existing pattern in this folder
+function createMockRuntime(): IScriptRuntime {
+  const mockRuntime = {
+    stack: {
+      push: vi.fn(),
+      pop: vi.fn(),
+      peek: vi.fn(() => null),
+      isEmpty: vi.fn(() => true),
+      graph: vi.fn(() => []),
+      dispose: vi.fn(),
+    },
+    memory: {
+      allocate: vi.fn((type: string, ownerId: string, value: any) => {
+        const id = `ref-${Math.random()}`;
+        const store = new Map();
+        store.set(id, value);
+        return {
+          id,
+          type,
+          ownerId,
+          get: () => store.get(id) ?? value,
+          set: (newValue: any) => store.set(id, newValue),
+        };
+      }),
+      get: vi.fn(),
+      set: vi.fn(),
+      release: vi.fn(),
+      search: vi.fn(() => []),
+      subscribe: vi.fn(() => () => {}),
+      dispose: vi.fn(),
+    },
+    clock: {
+      register: vi.fn(),
+      unregister: vi.fn(),
+      now: 0,
+      isRunning: true,
+      captureTimestamp: vi.fn(() => ({ wallTimeMs: Date.now(), monotonicTimeMs: performance.now() })),
+      start: vi.fn(),
+      stop: vi.fn(),
+      manualTick: vi.fn(),
+    },
+    handle: vi.fn((event: IEvent) => []),
+    compile: vi.fn(),
+    errors: [],
+  };
+  return mockRuntime as any;
+}
+
+function mockPerformanceNow() {
+  let currentTime = 0;
+  const originalNow = performance.now;
+  const timer = {
+    advance: (ms: number) => { currentTime += ms; },
+    set: (ms: number) => { currentTime = ms; },
+    get current() { return currentTime; },
+  };
+  performance.now = vi.fn(() => currentTime);
+  return {
+    timer,
+    cleanup: () => { performance.now = originalNow; },
+  };
+}
+
+function createEventCapture() {
+  const events: IEvent[] = [];
+  return {
+    capture: (event: IEvent) => { events.push(event); },
+    get events() { return [...events]; },
+    findByName: (name: string) => events.filter(e => e.name === name),
+    clear: () => { events.length = 0; },
+  };
+}
 
 /**
  * Contract tests for TimerBehavior

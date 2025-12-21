@@ -16,14 +16,18 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { TestableRuntime, RuntimeSnapshot, SnapshotDiff } from '../TestableRuntime';
 import { ScriptRuntime } from '../../ScriptRuntime';
+import { RuntimeMemory } from '../../RuntimeMemory';
+import { RuntimeStack } from '../../RuntimeStack';
+import { RuntimeClock } from '../../RuntimeClock';
+import { EventBus } from '../../EventBus';
 import { JitCompiler } from '../../JitCompiler';
 import { WodScript, IScript } from '../../../parser/WodScript';
 import { MdTimerRuntime } from '../../../parser/md-timer';
 import { IRuntimeBlock } from '../../IRuntimeBlock';
-import { 
+import {
   EffortStrategy,
-  TimerStrategy, 
-  RoundsStrategy, 
+  TimerStrategy,
+  RoundsStrategy,
   GroupStrategy,
   TimeBoundRoundsStrategy,
   IntervalStrategy
@@ -180,35 +184,35 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
   // Script state
   const [wodScript, setWodScript] = useState(initialTemplate?.wodScript ?? initialScript);
   const [parsedScript, setParsedScript] = useState<IScript | null>(null);
-  
+
   // Queue state
-  const [queue, setQueue] = useState<QueueAction[]>(() => 
+  const [queue, setQueue] = useState<QueueAction[]>(() =>
     initialTemplate?.queue.map(q => ({ ...q, id: generateId(), status: 'pending' as const })) ?? []
   );
   const [currentStep, setCurrentStep] = useState(-1);
-  
+
   // Runtime state
   const [testRuntime, setTestRuntime] = useState<TestableRuntime | null>(null);
   const [currentBlock, setCurrentBlock] = useState<IRuntimeBlock | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionError, setExecutionError] = useState<Error | null>(null);
-  
+
   // Snapshots for diff display
   const [snapshots, setSnapshots] = useState<RuntimeSnapshot[]>([]);
   const [selectedDiffIndices, setSelectedDiffIndices] = useState<[number, number] | null>(null);
-  
+
   // All available templates
-  const allTemplates = useMemo(() => 
+  const allTemplates = useMemo(() =>
     [...DEFAULT_TEMPLATES, ...customTemplates],
     [customTemplates]
   );
-  
+
   // Parse script when it changes
   useEffect(() => {
     const script = parseScript(wodScript);
     setParsedScript(script);
   }, [wodScript]);
-  
+
   // Parsed statements for display
   const statements = useMemo(() => {
     if (!parsedScript) return [];
@@ -219,21 +223,29 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       fragments: stmt.fragments?.map(f => f.type).join(', ') || 'unknown'
     }));
   }, [parsedScript]);
-  
+
   // Reset runtime for new execution
   const resetRuntime = useCallback(() => {
     const compiler = createStandardCompiler();
     const emptyScript = new WodScript('', [], []);
-    const baseRuntime = new ScriptRuntime(emptyScript, compiler);
+
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+
+    const baseRuntime = new ScriptRuntime(emptyScript, compiler, dependencies);
     const newTestRuntime = new TestableRuntime(baseRuntime);
-    
+
     setTestRuntime(newTestRuntime);
     setCurrentBlock(null);
     setCurrentStep(-1);
     setExecutionError(null);
     setSnapshots([]);
     setSelectedDiffIndices(null);
-    
+
     // Reset queue status
     setQueue(prev => prev.map(action => ({
       ...action,
@@ -241,14 +253,14 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       snapshot: undefined,
       error: undefined
     })));
-    
+
     // Take initial snapshot
     const initialSnapshot = newTestRuntime.snapshot('Initial State');
     setSnapshots([initialSnapshot]);
-    
+
     return newTestRuntime;
   }, []);
-  
+
   // Execute a single queue action
   const executeAction = useCallback(async (
     action: QueueAction,
@@ -258,7 +270,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
   ): Promise<{ block: IRuntimeBlock | null; error?: Error }> => {
     try {
       let resultBlock = block;
-      
+
       switch (action.type) {
         case 'push': {
           if (!script || action.statementIndex === undefined) {
@@ -275,7 +287,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           resultBlock = newBlock;
           break;
         }
-        
+
         case 'mount': {
           if (!block) throw new Error('No block to mount');
           const actions = block.mount(runtime);
@@ -284,7 +296,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           }
           break;
         }
-        
+
         case 'next': {
           if (!block) throw new Error('No block for next');
           const actions = block.next(runtime);
@@ -293,7 +305,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           }
           break;
         }
-        
+
         case 'unmount': {
           if (!block) throw new Error('No block to unmount');
           const actions = block.unmount(runtime);
@@ -302,60 +314,60 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           }
           break;
         }
-        
+
         case 'pop': {
           runtime.stack.pop();
           resultBlock = runtime.stack.current ?? null;
           break;
         }
-        
+
         case 'tick': {
           runtime.simulateTick();
           break;
         }
-        
+
         case 'simulate-next': {
           runtime.simulateNext();
           break;
         }
-        
+
         case 'simulate-reps': {
           const reps = (action.params?.reps as number) ?? 1;
           const blockId = block?.key.toString() ?? 'unknown';
           runtime.simulateReps(blockId, reps);
           break;
         }
-        
+
         case 'custom': {
           // Custom actions can be extended by consumers
           console.log('Custom action:', action.params);
           break;
         }
       }
-      
+
       return { block: resultBlock };
     } catch (error) {
       return { block, error: error as Error };
     }
   }, []);
-  
+
   // Execute next step in queue
   const executeNextStep = useCallback(async () => {
     const nextIndex = currentStep + 1;
     if (nextIndex >= queue.length) return;
-    
+
     let runtime = testRuntime;
     if (!runtime) {
       runtime = resetRuntime();
     }
-    
+
     setIsExecuting(true);
-    
+
     // Mark action as running
-    setQueue(prev => prev.map((action, i) => 
+    setQueue(prev => prev.map((action, i) =>
       i === nextIndex ? { ...action, status: 'running' } : action
     ));
-    
+
     const action = queue[nextIndex];
     const { block: resultBlock, error } = await executeAction(
       action,
@@ -363,44 +375,44 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       parsedScript,
       currentBlock
     );
-    
+
     // Take snapshot after action
     const snapshot = runtime.snapshot(`After: ${action.label}`);
     setSnapshots(prev => [...prev, snapshot]);
-    
+
     // Update action status
-    setQueue(prev => prev.map((a, i) => 
-      i === nextIndex 
+    setQueue(prev => prev.map((a, i) =>
+      i === nextIndex
         ? { ...a, status: error ? 'error' : 'completed', snapshot, error }
         : a
     ));
-    
+
     setCurrentBlock(resultBlock);
     setCurrentStep(nextIndex);
     setIsExecuting(false);
-    
+
     if (error) {
       setExecutionError(error);
     }
   }, [currentStep, queue, testRuntime, parsedScript, currentBlock, executeAction, resetRuntime]);
-  
+
   // Execute all remaining steps
   const executeAll = useCallback(async () => {
     let runtime = testRuntime;
     if (!runtime || currentStep === -1) {
       runtime = resetRuntime();
     }
-    
+
     setIsExecuting(true);
     let block = currentBlock;
     const newSnapshots: RuntimeSnapshot[] = [];
-    
+
     for (let i = currentStep + 1; i < queue.length; i++) {
       // Mark action as running
-      setQueue(prev => prev.map((action, idx) => 
+      setQueue(prev => prev.map((action, idx) =>
         idx === i ? { ...action, status: 'running' } : action
       ));
-      
+
       const action = queue[i];
       const { block: resultBlock, error } = await executeAction(
         action,
@@ -408,36 +420,36 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
         parsedScript,
         block
       );
-      
+
       // Take snapshot
       const snapshot = runtime.snapshot(`After: ${action.label}`);
       newSnapshots.push(snapshot);
-      
+
       // Update action status
-      setQueue(prev => prev.map((a, idx) => 
-        idx === i 
+      setQueue(prev => prev.map((a, idx) =>
+        idx === i
           ? { ...a, status: error ? 'error' : 'completed', snapshot, error }
           : a
       ));
-      
+
       block = resultBlock;
       setCurrentStep(i);
-      
+
       if (error) {
         setExecutionError(error);
         setIsExecuting(false);
         setCurrentBlock(block);
         return;
       }
-      
+
       // Small delay for visual feedback
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-    
+
     setSnapshots(prev => [...prev, ...newSnapshots]);
     setCurrentBlock(block);
     setIsExecuting(false);
-    
+
     // Calculate diffs and call callback
     if (onExecutionComplete) {
       const allSnapshots = [...snapshots, ...newSnapshots];
@@ -448,19 +460,19 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       onExecutionComplete(allSnapshots, diffs);
     }
   }, [currentStep, queue, testRuntime, parsedScript, currentBlock, executeAction, resetRuntime, snapshots, onExecutionComplete]);
-  
+
   // Reset everything
   const handleReset = useCallback(() => {
     resetRuntime();
   }, [resetRuntime]);
-  
+
   // Load template
   const loadTemplate = useCallback((template: TestTemplate) => {
     setWodScript(template.wodScript);
-    setQueue(template.queue.map(q => ({ 
-      ...q, 
-      id: generateId(), 
-      status: 'pending' as const 
+    setQueue(template.queue.map(q => ({
+      ...q,
+      id: generateId(),
+      status: 'pending' as const
     })));
     setCurrentStep(-1);
     setSnapshots([]);
@@ -468,7 +480,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
     setCurrentBlock(null);
     setExecutionError(null);
   }, []);
-  
+
   // Add action to queue
   const addAction = useCallback((type: QueueAction['type'], params?: Partial<QueueAction>) => {
     const newAction: QueueAction = {
@@ -483,12 +495,12 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
     };
     setQueue(prev => [...prev, newAction]);
   }, []);
-  
+
   // Remove action from queue
   const removeAction = useCallback((id: string) => {
     setQueue(prev => prev.filter(a => a.id !== id));
   }, []);
-  
+
   // Calculate current diff for display
   const currentDiff = useMemo(() => {
     if (!testRuntime || snapshots.length < 2) return null;
@@ -516,7 +528,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       data: payload || {},
     });
   }, [testRuntime]);
-  
+
   // Build the test controls panel (left side or top)
   const TestControlsPanel = () => (
     <div className="space-y-4">
@@ -536,7 +548,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           ))}
         </div>
       </div>
-      
+
       {/* Main Controls Grid */}
       <div className="grid grid-cols-2 gap-4">
         {/* Left: Script & Statement Selection */}
@@ -551,11 +563,11 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
               placeholder="Enter WOD script..."
             />
           </div>
-          
+
           {/* Parsed Statements */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Parsed Statements 
+              Parsed Statements
               <span className="text-gray-500 font-normal ml-2">(click to add push action)</span>
             </label>
             <div className="border rounded p-2 bg-white max-h-48 overflow-y-auto">
@@ -581,7 +593,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
               )}
             </div>
           </div>
-          
+
           {/* Quick Action Buttons */}
           <div>
             <label className="block text-sm font-medium mb-2">Add Action</label>
@@ -598,7 +610,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
             </div>
           </div>
         </div>
-        
+
         {/* Right: Execution Queue */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
@@ -626,7 +638,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
               </button>
             </div>
           </div>
-          
+
           {/* Queue List */}
           <div className="border rounded p-2 bg-white max-h-72 overflow-y-auto">
             {queue.length === 0 ? (
@@ -638,21 +650,19 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
                 {queue.map((action, index) => (
                   <div
                     key={action.id}
-                    className={`flex items-center justify-between p-2 rounded text-sm ${
-                      action.status === 'completed' ? 'bg-green-50 border border-green-200' :
+                    className={`flex items-center justify-between p-2 rounded text-sm ${action.status === 'completed' ? 'bg-green-50 border border-green-200' :
                       action.status === 'running' ? 'bg-blue-50 border border-blue-200' :
-                      action.status === 'error' ? 'bg-red-50 border border-red-200' :
-                      index === currentStep + 1 ? 'bg-yellow-50 border border-yellow-200' :
-                      'bg-gray-50'
-                    }`}
+                        action.status === 'error' ? 'bg-red-50 border border-red-200' :
+                          index === currentStep + 1 ? 'bg-yellow-50 border border-yellow-200' :
+                            'bg-gray-50'
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 text-xs w-6">{index + 1}</span>
-                      <span className={`font-medium ${
-                        action.status === 'completed' ? 'text-green-700' :
+                      <span className={`font-medium ${action.status === 'completed' ? 'text-green-700' :
                         action.status === 'error' ? 'text-red-700' :
-                        'text-gray-700'
-                      }`}>
+                          'text-gray-700'
+                        }`}>
                         {action.status === 'completed' && '✓ '}
                         {action.status === 'error' && '✗ '}
                         {action.status === 'running' && '⟳ '}
@@ -675,7 +685,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
               </div>
             )}
           </div>
-          
+
           {/* Error Display */}
           {executionError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700">
@@ -685,12 +695,12 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           )}
         </div>
       </div>
-      
+
       {/* Results Section */}
       {snapshots.length > 1 && (
         <div className="mt-6 space-y-4">
           <h3 className="text-lg font-semibold">Execution Results</h3>
-          
+
           {/* Snapshot Timeline */}
           <div className="p-3 bg-gray-50 rounded">
             <label className="block text-sm font-medium mb-2">Snapshot Timeline</label>
@@ -703,18 +713,17 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
                       setSelectedDiffIndices([index - 1, index]);
                     }
                   }}
-                  className={`px-2 py-1 text-xs rounded ${
-                    selectedDiffIndices?.[1] === index
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-white border hover:bg-blue-50'
-                  }`}
+                  className={`px-2 py-1 text-xs rounded ${selectedDiffIndices?.[1] === index
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white border hover:bg-blue-50'
+                    }`}
                 >
                   {snap.label || `Snapshot ${index}`}
                 </button>
               ))}
             </div>
           </div>
-          
+
           {/* Diff Display */}
           {currentDiff && (
             <div className="border rounded p-3">
@@ -724,7 +733,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Current State */}
           <div className="p-3 bg-gray-50 rounded">
             <h4 className="font-medium mb-2">Current State</h4>
@@ -768,7 +777,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
           <div className={`w-2 h-2 rounded-full ${testRuntime ? 'bg-green-500' : 'bg-gray-500'}`} />
         </div>
       </div>
-      
+
       {underlyingRuntime ? (
         <RuntimeProvider runtime={underlyingRuntime}>
           <StackedClockDisplay
@@ -788,7 +797,7 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       )}
     </div>
   );
-  
+
   // Render based on layout and showRuntimeView
   if (!showRuntimeView) {
     // Original behavior - just test controls

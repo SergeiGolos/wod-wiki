@@ -7,7 +7,9 @@ import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../JitCompiler';
-
+import { RuntimeStack } from '../RuntimeStack';
+import { RuntimeClock } from '../RuntimeClock';
+import { EventBus } from '../EventBus';
 const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOptions) => void): IRuntimeBlock => {
   const key = new BlockKey();
   return {
@@ -36,7 +38,13 @@ describe('Lifecycle timestamps', () => {
 
   it('passes completedAt from pop to parent.next', () => {
     const completedAt = { wallTimeMs: 1234, monotonicTimeMs: 50 };
-    const runtime = new ScriptRuntime(script, compiler);
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+    const runtime = new ScriptRuntime(script, compiler, dependencies);
 
     let receivedOptions: BlockLifecycleOptions | undefined;
     const parent = createBlockStub('parent', options => {
@@ -54,7 +62,13 @@ describe('Lifecycle timestamps', () => {
 
   it('uses provided startTime when pushing children and calls mount with it', () => {
     const startTime = { wallTimeMs: 1111, monotonicTimeMs: 11 };
-    const runtime = new ScriptRuntime(script, compiler);
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+    const runtime = new ScriptRuntime(script, compiler, dependencies);
 
     const child = createBlockStub('child');
     const action = new PushBlockAction(child, { startTime });

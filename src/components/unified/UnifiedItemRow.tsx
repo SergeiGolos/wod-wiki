@@ -214,13 +214,6 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       {/* Status indicator dot */}
       <StatusDot status={item.status} size={size} />
       
-      {/* Linked indicator */}
-      {item.isLinked && (
-        <span className="text-orange-500 text-xs font-bold" title="Linked item">
-          +
-        </span>
-      )}
-      
       {/* Main content: fragments */}
       <div className="flex-1 min-w-0">
         {item.fragments.length > 0 ? (

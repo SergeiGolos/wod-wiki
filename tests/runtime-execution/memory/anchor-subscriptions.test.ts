@@ -4,6 +4,13 @@ import { BlockContext } from '../../../src/runtime/BlockContext';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
 import { IAnchorValue } from '../../../src/runtime/IAnchorValue';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
+import { EventBus } from '../../../src/runtime/EventBus';
+
+import { WodScript } from '../../../src/parser/WodScript';
+import { JitCompiler } from '../../../src/runtime/JitCompiler';
 
 /**
  * Unit tests for the Anchor-Based Subscription Model.
@@ -19,7 +26,15 @@ describe('Anchor-Based Subscription Model', () => {
   let context: BlockContext;
 
   beforeEach(() => {
-    runtime = new ScriptRuntime();
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+    const script = new WodScript('', [], []);
+    const compiler = new JitCompiler();
+    runtime = new ScriptRuntime(script, compiler, dependencies);
     context = new BlockContext(runtime, 'test-block-1', 'test-exercise');
   });
 
@@ -85,7 +100,7 @@ describe('Anchor-Based Subscription Model', () => {
       const anchorValue: IAnchorValue = {
         searchCriteria: {
           ownerId: 'timer-block-123',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -96,7 +111,7 @@ describe('Anchor-Based Subscription Model', () => {
 
       expect(retrieved).toEqual(anchorValue);
       expect(retrieved?.searchCriteria.ownerId).toBe('timer-block-123');
-      expect(retrieved?.searchCriteria.type).toBe(MemoryTypeEnum.TIMER_TIME_SPANS);
+      expect(retrieved?.searchCriteria.type).toBe('timer:time-spans');
     });
 
     it('should allow updating anchor value dynamically', () => {
@@ -107,7 +122,7 @@ describe('Anchor-Based Subscription Model', () => {
       anchor.set({
         searchCriteria: {
           ownerId: 'timer-1',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -119,7 +134,7 @@ describe('Anchor-Based Subscription Model', () => {
       anchor.set({
         searchCriteria: {
           ownerId: 'timer-2',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -135,12 +150,12 @@ describe('Anchor-Based Subscription Model', () => {
       // Only specify type, leave ownerId flexible
       anchor.set({
         searchCriteria: {
-          type: MemoryTypeEnum.TIMER_IS_RUNNING
+          type: 'timer:is-running' as any
         }
       });
 
       const value = anchor.get();
-      expect(value?.searchCriteria.type).toBe(MemoryTypeEnum.TIMER_IS_RUNNING);
+      expect(value?.searchCriteria.type).toBe('timer:is-running');
       expect(value?.searchCriteria.ownerId).toBeUndefined();
     });
   });
@@ -149,7 +164,7 @@ describe('Anchor-Based Subscription Model', () => {
     it('should resolve anchor to target memory reference', () => {
       // Create target data
       const dataRef = context.allocate<number>(
-        MemoryTypeEnum.METRIC_VALUES,
+        'metric:values',
         42,
         'public'
       );
@@ -159,7 +174,7 @@ describe('Anchor-Based Subscription Model', () => {
       anchor.set({
         searchCriteria: {
           ownerId: context.ownerId,
-          type: MemoryTypeEnum.METRIC_VALUES,
+          type: 'metric:values' as any,
           id: null,
           visibility: null
         }
@@ -187,7 +202,7 @@ describe('Anchor-Based Subscription Model', () => {
       anchor.set({
         searchCriteria: {
           ownerId: 'non-existent-block',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -208,14 +223,14 @@ describe('Anchor-Based Subscription Model', () => {
 
     it('should resolve to multiple references if search matches multiple', () => {
       // Create multiple data references with same type
-      const ref1 = context.allocate<number>(MemoryTypeEnum.METRIC_VALUES, 10, 'public');
-      const ref2 = context.allocate<number>(MemoryTypeEnum.METRIC_VALUES, 20, 'public');
+      const ref1 = context.allocate<number>('metric:values', 10, 'public');
+      const ref2 = context.allocate<number>('metric:values', 20, 'public');
 
       const anchor = context.getOrCreateAnchor('anchor-multi');
       anchor.set({
         searchCriteria: {
           ownerId: context.ownerId,
-          type: MemoryTypeEnum.METRIC_VALUES,
+          type: 'metric:values' as any,
           id: null,
           visibility: null
         }
@@ -252,7 +267,7 @@ describe('Anchor-Based Subscription Model', () => {
       const value1: IAnchorValue = {
         searchCriteria: {
           ownerId: 'block-1',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -266,7 +281,7 @@ describe('Anchor-Based Subscription Model', () => {
       const value2: IAnchorValue = {
         searchCriteria: {
           ownerId: 'block-2',
-          type: MemoryTypeEnum.TIMER_TIME_SPANS,
+          type: 'timer:time-spans' as any,
           id: null,
           visibility: null
         }
@@ -288,7 +303,7 @@ describe('Anchor-Based Subscription Model', () => {
       const unsub2 = anchor.subscribe(() => count2++);
 
       anchor.set({
-        searchCriteria: { type: MemoryTypeEnum.TIMER_TIME_SPANS }
+        searchCriteria: { type: 'timer:time-spans' as any }
       });
 
       expect(count1).toBe(1);
@@ -305,14 +320,14 @@ describe('Anchor-Based Subscription Model', () => {
       const unsubscribe = anchor.subscribe(() => count++);
 
       anchor.set({
-        searchCriteria: { type: MemoryTypeEnum.TIMER_TIME_SPANS }
+        searchCriteria: { type: 'timer:time-spans' as any }
       });
       expect(count).toBe(1);
 
       unsubscribe();
 
       anchor.set({
-        searchCriteria: { type: MemoryTypeEnum.TIMER_IS_RUNNING }
+        searchCriteria: { type: 'timer:is-running' as any }
       });
       expect(count).toBe(1); // No new notification
     });
@@ -417,7 +432,7 @@ describe('Anchor-Based Subscription Model', () => {
       // Create anchor in first context
       const anchor1 = context.getOrCreateAnchor(anchorId);
       anchor1.set({
-        searchCriteria: { type: MemoryTypeEnum.TIMER_TIME_SPANS }
+        searchCriteria: { type: 'timer:time-spans' as any }
       });
 
       // Access same anchor in second context
@@ -425,7 +440,7 @@ describe('Anchor-Based Subscription Model', () => {
       const value = anchor2.get();
 
       // Both contexts reference the same anchor instance
-      expect(value?.searchCriteria.type).toBe(MemoryTypeEnum.TIMER_TIME_SPANS);
+      expect(value?.searchCriteria.type).toBe('timer:time-spans');
       expect(anchor1).toBe(anchor2);
 
       // Note: When a context is released, it releases all its references

@@ -1,6 +1,45 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { createMockRuntime } from '../../helpers/test-utils';
-import { CompletionBehavior } from '../../../src/runtime/behaviors/CompletionBehavior';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { CompletionBehavior } from '../CompletionBehavior';
+import { IScriptRuntime } from '../../IScriptRuntime';
+import { IEvent } from '../../IEvent';
+
+// Inline mock utilities to match existing pattern in this folder
+function createMockRuntime(): IScriptRuntime {
+  const mockRuntime = {
+    stack: {
+      push: vi.fn(),
+      pop: vi.fn(),
+      peek: vi.fn(() => null),
+      isEmpty: vi.fn(() => true),
+      graph: vi.fn(() => []),
+      dispose: vi.fn(),
+    },
+    memory: {
+      allocate: vi.fn((type: string, ownerId: string, value: any) => {
+        const id = `ref-${Math.random()}`;
+        const store = new Map();
+        store.set(id, value);
+        return {
+          id,
+          type,
+          ownerId,
+          get: () => store.get(id) ?? value,
+          set: (newValue: any) => store.set(id, newValue),
+        };
+      }),
+      get: vi.fn(),
+      set: vi.fn(),
+      release: vi.fn(),
+      search: vi.fn(() => []),
+      subscribe: vi.fn(() => () => {}),
+      dispose: vi.fn(),
+    },
+    handle: vi.fn((event: IEvent) => []),
+    compile: vi.fn(),
+    errors: [],
+  };
+  return mockRuntime as any;
+}
 
 /**
  * Contract tests for CompletionBehavior

@@ -3,8 +3,12 @@ import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { TimeBoundRoundsStrategy, RoundsStrategy, EffortStrategy } from '../../../src/runtime/strategies';
 import { MdTimerRuntime } from '../../../src/parser/md-timer';
-import { WodScript } from '../../../src/WodScript';
+import { WodScript } from '../../../src/parser/WodScript';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
+import { EventBus } from '../../../src/runtime/EventBus';
 
 /**
  * Integration test for metric inheritance via public memory system.
@@ -39,7 +43,7 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
     // 1. Parse workout script
     const parser = new MdTimerRuntime();
     const script = parser.read('(21-15-9) Push-ups') as WodScript;
-    
+
     expect(script.statements).toHaveLength(1);
     console.log('📋 Statement:', JSON.stringify(script.statements[0], null, 2));
 
@@ -49,11 +53,17 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
     jitCompiler.registerStrategy(new EffortStrategy());
 
     // 3. Create runtime
-    runtime = new ScriptRuntime(script, jitCompiler);
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+    runtime = new ScriptRuntime(script, jitCompiler, dependencies);
 
     // 4. Compile the root block
     const rootBlock = jitCompiler.compile(script.statements, runtime);
-    
+
     expect(rootBlock).toBeDefined();
     expect(rootBlock!.blockType).toBe('Rounds');
 
@@ -68,7 +78,7 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
       id: null,
       ownerId: null
     });
-    
+
     expect(publicRepsRefs.length).toBeGreaterThan(0);
 
     const repsRef = publicRepsRefs[0];
@@ -81,13 +91,13 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
     }
 
     // 8. Check console logs for metric allocation
-    const allocateLog = consoleLogs.find(msg => 
+    const allocateLog = consoleLogs.find(msg =>
       msg.includes('RoundsBlock allocated public reps metric') && msg.includes('21')
     );
     expect(allocateLog, 'RoundsBlock should log allocation of public reps metric').toBeTruthy();
 
     // 9. Verify first child (Push-ups) inherited reps
-    const round1InheritLog = consoleLogs.find(msg => 
+    const round1InheritLog = consoleLogs.find(msg =>
       msg.includes('EffortStrategy: Inherited reps from parent: 21')
     );
     expect(round1InheritLog, 'EffortStrategy should inherit 21 reps in Round 1').toBeTruthy();
@@ -102,46 +112,46 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
       // 11. Verify reps were updated to 15
       const updatedReps = runtime.memory.get(repsRef as any);
       expect(updatedReps).toBe(15);
-  
+
       // 12. Check console log for update
-      const updateLog = consoleLogs.find(msg => 
+      const updateLog = consoleLogs.find(msg =>
         msg.includes('RoundsBlock updated public reps metric: 15')
       );
       expect(updateLog, 'RoundsBlock should log reps update to 15').toBeTruthy();
-  
+
       // 13. Execute next actions to compile Round 2 child
       for (const action of nextActions) {
         action.do(runtime);
       }
 
       // 14. Verify Round 2 child inherited 15 reps
-      const round2InheritLog = consoleLogs.find(msg => 
+      const round2InheritLog = consoleLogs.find(msg =>
         msg.includes('EffortStrategy: Inherited reps from parent: 15')
       );
       expect(round2InheritLog, 'EffortStrategy should inherit 15 reps in Round 2').toBeTruthy();
-  
+
       // 15. Advance to Round 3
       runtime.stack.pop(); // Pop Round 2 child
       const round3Actions = rootBlock!.next(runtime);
-  
+
       // 16. Verify reps were updated to 9
       const round3Reps = runtime.memory.get(repsRef as any);
       expect(round3Reps).toBe(9);
-  
+
       // 17. Execute Round 3 actions
       for (const action of round3Actions) {
         action.do(runtime);
       }
 
       // 18. Verify Round 3 child inherited 9 reps
-      const round3InheritLog = consoleLogs.find(msg => 
+      const round3InheritLog = consoleLogs.find(msg =>
         msg.includes('EffortStrategy: Inherited reps from parent: 9')
       );
       expect(round3InheritLog, 'EffortStrategy should inherit 9 reps in Round 3').toBeTruthy();
-      }
+    }
 
     // 19. Verify no "no reps specified" warnings
-    const noRepsWarnings = consoleLogs.filter(msg => 
+    const noRepsWarnings = consoleLogs.filter(msg =>
       msg.includes('Created EffortBlock with no reps specified')
     );
     expect(noRepsWarnings.length).toBe(0);
@@ -153,13 +163,19 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
     // Parse and setup
     const parser = new MdTimerRuntime();
     const script = parser.read('(21-15-9) Squats') as WodScript;
-    
+
     const jitCompiler = new JitCompiler([]);
     jitCompiler.registerStrategy(new RoundsStrategy());
     jitCompiler.registerStrategy(new EffortStrategy());
-    
-    runtime = new ScriptRuntime(script, jitCompiler);
-    
+
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus(),
+    };
+    runtime = new ScriptRuntime(script, jitCompiler, dependencies);
+
     // Compile and mount
     const rootBlock = jitCompiler.compile(script.statements, runtime);
     runtime.stack.push(rootBlock!);
@@ -174,11 +190,11 @@ describe('Metric Inheritance - Rep Scheme Integration', () => {
     });
 
     expect(publicMetrics.length).toBeGreaterThan(0);
-    
+
     const metric = publicMetrics[0];
     expect(metric.visibility).toBe('public');
     expect(metric.type).toBe(MemoryTypeEnum.METRIC_REPS);
-    
+
     console.log(`✅ Found public METRIC_REPS: ${JSON.stringify({
       type: metric.type,
       visibility: metric.visibility,

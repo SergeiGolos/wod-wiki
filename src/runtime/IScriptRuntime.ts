@@ -1,5 +1,4 @@
 import { JitCompiler } from './JitCompiler';
-import { RuntimeStack } from './RuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
@@ -7,19 +6,20 @@ import { RuntimeError } from './actions/ErrorAction';
 import { ExecutionSpan } from './models/ExecutionSpan';
 import { ExecutionTracker } from '../tracker/ExecutionTracker';
 
-import { RuntimeClock } from './RuntimeClock';
-import { EventBus } from './EventBus';
+import { IEventBus } from './IEventBus';
+import { IRuntimeStack } from './IRuntimeStack';
+import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 
 export interface IScriptRuntime {
     readonly script: WodScript;
 
-    readonly eventBus: EventBus;
+    readonly eventBus: IEventBus;
     readonly memory: IRuntimeMemory;
-    readonly stack: RuntimeStack;
+    readonly stack: IRuntimeStack;
 
     readonly jit: JitCompiler;
-    readonly clock: RuntimeClock;
+    readonly clock: IRuntimeClock;
 
     /** Errors collected during runtime execution */
     readonly errors?: RuntimeError[];

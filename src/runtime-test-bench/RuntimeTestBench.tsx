@@ -8,6 +8,10 @@ import { globalParser, globalCompiler } from './services/testbench-services';
 import { WodScript } from '../parser/WodScript';
 import { TestBenchProvider, useTestBenchContext } from './context/TestBenchContext';
 import { TestBenchLayout } from './components/TestBenchLayout';
+import { RuntimeMemory } from '../runtime/RuntimeMemory';
+import { RuntimeStack } from '../runtime/RuntimeStack';
+import { RuntimeClock } from '../runtime/RuntimeClock';
+import { EventBus } from '../runtime/EventBus';
 
 /**
  * Inner component to consume context and hooks
@@ -21,19 +25,19 @@ const RuntimeTestBenchInner: React.FC<{
 
   const parser = globalParser;
   const compiler = globalCompiler;
-  
+
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
   const adapter = new RuntimeAdapter();
-  
+
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const execution = useRuntimeExecution(runtime);
   const { status, elapsedTime } = execution;
 
   const handleCodeChange = (newCode: string) => {
     dispatch({ type: 'SET_CODE', payload: newCode });
     onCodeChange?.(newCode);
-    
+
     if (parseTimerRef.current) {
       clearTimeout(parseTimerRef.current);
     }
@@ -46,36 +50,40 @@ const RuntimeTestBenchInner: React.FC<{
         const script = parser.read(newCode);
         const parseTime = performance.now() - startTime;
 
-        dispatch({ type: 'SET_PARSE_RESULTS', payload: {
-          statements: script.statements,
-          errors: (script.errors || []).map((err: any) => ({
-            line: err.token?.startLine || 0,
-            column: err.token?.startColumn || 0,
-            message: err.message || 'Parse error',
-            severity: 'error' as const
-          })),
-          warnings: [],
-          status: (script.errors && script.errors.length > 0) ? 'error' : 'success',
-          metadata: {
-            parseTime,
-            statementCount: script.statements.length,
-            tokenCount: 0
+        dispatch({
+          type: 'SET_PARSE_RESULTS', payload: {
+            statements: script.statements,
+            errors: (script.errors || []).map((err: any) => ({
+              line: err.token?.startLine || 0,
+              column: err.token?.startColumn || 0,
+              message: err.message || 'Parse error',
+              severity: 'error' as const
+            })),
+            warnings: [],
+            status: (script.errors && script.errors.length > 0) ? 'error' : 'success',
+            metadata: {
+              parseTime,
+              statementCount: script.statements.length,
+              tokenCount: 0
+            }
           }
-        }});
+        });
       } catch (error: any) {
-        dispatch({ type: 'SET_PARSE_RESULTS', payload: {
-          ...parseResults,
-          status: 'error',
-          errors: [{
-            line: 0,
-            column: 0,
-            message: error?.message || 'Unknown parse error',
-            severity: 'error'
-          }]
-        }});
+        dispatch({
+          type: 'SET_PARSE_RESULTS', payload: {
+            ...parseResults,
+            status: 'error',
+            errors: [{
+              line: 0,
+              column: 0,
+              message: error?.message || 'Unknown parse error',
+              severity: 'error'
+            }]
+          }
+        });
       }
     }, 500);
-    
+
     if (runtime) {
       updateSnapshot();
     }
@@ -106,100 +114,126 @@ const RuntimeTestBenchInner: React.FC<{
   const handleCompile = useCallback(() => {
     try {
       if (parseResults.statements.length === 0) {
-        dispatch({ type: 'ADD_LOG', payload: {
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-          message: 'No statements to compile',
-          level: 'warning'
-        }});
+        dispatch({
+          type: 'ADD_LOG', payload: {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            message: 'No statements to compile',
+            level: 'warning'
+          }
+        });
         return;
       }
 
+      const dependencies = {
+        memory: new RuntimeMemory(),
+        stack: new RuntimeStack(),
+        clock: new RuntimeClock(),
+        eventBus: new EventBus(),
+      };
+
       const tempRuntime = new ScriptRuntime(
         new WodScript(code, parseResults.statements as any, parseResults.errors as any),
-        compiler
+        compiler,
+        dependencies
       );
 
       const block = compiler.compile(parseResults.statements as any, tempRuntime);
-      
+
       if (!block) {
-        dispatch({ type: 'ADD_LOG', payload: {
-          id: Date.now().toString(),
-          timestamp: Date.now(),
-          message: 'Compilation failed - no matching strategy found',
-          level: 'error'
-        }});
+        dispatch({
+          type: 'ADD_LOG', payload: {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            message: 'Compilation failed - no matching strategy found',
+            level: 'error'
+          }
+        });
         return;
       }
 
       setRuntime(tempRuntime);
 
-      dispatch({ type: 'ADD_LOG', payload: {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        message: `Compilation successful. Block type: ${block.blockType}`,
-        level: 'success'
-      }});
-      
+      dispatch({
+        type: 'ADD_LOG', payload: {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: `Compilation successful. Block type: ${block.blockType}`,
+          level: 'success'
+        }
+      });
+
       updateSnapshot();
     } catch (error: any) {
-      dispatch({ type: 'ADD_LOG', payload: {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        message: `Compilation error: ${error.message || 'Unknown error'}`,
-        level: 'error'
-      }});
+      dispatch({
+        type: 'ADD_LOG', payload: {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: `Compilation error: ${error.message || 'Unknown error'}`,
+          level: 'error'
+        }
+      });
     }
   }, [parseResults, code, compiler]);
 
+  // Only re-compile when the parse timestamp changes
   useEffect(() => {
     if (parseResults.status === 'success' && parseResults.statements.length > 0) {
       handleCompile();
     }
-  }, [parseResults.status, parseResults.statements.length, handleCompile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parseResults.metadata?.parseTime]);
 
   const handleExecute = useCallback(() => {
     if (!runtime) {
-      dispatch({ type: 'ADD_LOG', payload: {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        message: 'No runtime available. Compile first.',
-        level: 'error'
-      }});
+      dispatch({
+        type: 'ADD_LOG', payload: {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: 'No runtime available. Compile first.',
+          level: 'error'
+        }
+      });
       return;
     }
 
     execution.start();
     updateSnapshot();
 
-    dispatch({ type: 'ADD_LOG', payload: {
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-      message: 'Execution started',
-      level: 'info'
-    }});
+    dispatch({
+      type: 'ADD_LOG', payload: {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'Execution started',
+        level: 'info'
+      }
+    });
   }, [runtime, execution.start]);
 
   const handlePause = useCallback(() => {
     execution.pause();
     updateSnapshot();
 
-    dispatch({ type: 'ADD_LOG', payload: {
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-      message: 'Execution paused',
-      level: 'info'
-    }});
+    dispatch({
+      type: 'ADD_LOG', payload: {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'Execution paused',
+        level: 'info'
+      }
+    });
   }, [execution.pause]);
 
   const handleStep = useCallback(() => {
     if (!runtime) {
-      dispatch({ type: 'ADD_LOG', payload: {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        message: 'No runtime available. Compile first.',
-        level: 'error'
-      }});
+      dispatch({
+        type: 'ADD_LOG', payload: {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          message: 'No runtime available. Compile first.',
+          level: 'error'
+        }
+      });
       return;
     }
 
@@ -211,12 +245,14 @@ const RuntimeTestBenchInner: React.FC<{
     execution.stop();
     updateSnapshot();
 
-    dispatch({ type: 'ADD_LOG', payload: {
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-      message: 'Execution stopped',
-      level: 'info'
-    }});
+    dispatch({
+      type: 'ADD_LOG', payload: {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'Execution stopped',
+        level: 'info'
+      }
+    });
   }, [execution.stop]);
 
   const handleReset = useCallback(() => {
@@ -224,12 +260,14 @@ const RuntimeTestBenchInner: React.FC<{
     setRuntime(null);
     dispatch({ type: 'SET_SNAPSHOT', payload: null });
 
-    dispatch({ type: 'ADD_LOG', payload: {
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-      message: 'Runtime reset - ready for new compilation',
-      level: 'info'
-    }});
+    dispatch({
+      type: 'ADD_LOG', payload: {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        message: 'Runtime reset - ready for new compilation',
+        level: 'info'
+      }
+    });
   }, [execution.reset]);
 
   useTestBenchShortcuts({

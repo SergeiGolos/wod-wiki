@@ -2,11 +2,13 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import { StackObservable } from './StackObservable';
 import { BlockKey } from '../core/models/BlockKey';
 
+import { IRuntimeStack } from './IRuntimeStack';
+
 /**
  * Lightweight runtime stack that only maintains state and notifies subscribers.
  * All complex logic (lifecycles, wrapping, hooks) has been moved to ScriptRuntime.
  */
-export class RuntimeStack {
+export class RuntimeStack implements IRuntimeStack {
   private readonly _blocks: IRuntimeBlock[] = [];
   public readonly updates: StackObservable = new StackObservable();
 

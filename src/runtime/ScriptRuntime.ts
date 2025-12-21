@@ -1,14 +1,13 @@
 import { IScriptRuntime } from './IScriptRuntime';
 import { JitCompiler } from './JitCompiler';
-import { RuntimeStack } from './RuntimeStack';
+import { IRuntimeStack } from './IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
-import { RuntimeMemory } from './RuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { ExecutionSpan } from './models/ExecutionSpan';
 import { ExecutionTracker } from '../tracker/ExecutionTracker';
-import { EventBus } from './EventBus';
+import { IEventBus } from './IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
     RuntimeStackOptions,
@@ -18,7 +17,7 @@ import {
     RuntimeStackHooks,
 } from './IRuntimeOptions';
 import { TestableBlock } from './testing/TestableBlock';
-import { RuntimeClock, RuntimeTimestamp } from './RuntimeClock';
+import { IRuntimeClock, RuntimeTimestamp } from './IRuntimeClock';
 import { NextEventHandler } from './NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 
@@ -43,17 +42,22 @@ const noopHooks: RuntimeStackHooks = {
     unregisterByOwner: () => { },
 };
 
-
-
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
+
+export interface ScriptRuntimeDependencies {
+    memory: IRuntimeMemory;
+    stack: IRuntimeStack;
+    clock: IRuntimeClock;
+    eventBus: IEventBus;
+}
 
 export class ScriptRuntime implements IScriptRuntime {
 
-    public readonly eventBus: EventBus;
-    public readonly stack: RuntimeStack;
+    public readonly eventBus: IEventBus;
+    public readonly stack: IRuntimeStack;
     public readonly memory: IRuntimeMemory;
 
-    public readonly clock: RuntimeClock;
+    public readonly clock: IRuntimeClock;
     public readonly jit: JitCompiler;
 
     public readonly errors: RuntimeError[] = [];
@@ -69,14 +73,19 @@ export class ScriptRuntime implements IScriptRuntime {
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
+        dependencies: ScriptRuntimeDependencies,
         options: RuntimeStackOptions = {}
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
 
-        this.memory = new RuntimeMemory();
+        this.memory = dependencies.memory;
+        this.stack = dependencies.stack;
+        this.clock = dependencies.clock;
+        this.eventBus = dependencies.eventBus;
+
         this.executionTracker = new ExecutionTracker(this.memory);
-        this.eventBus = new EventBus();
+
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
 
@@ -96,10 +105,6 @@ export class ScriptRuntime implements IScriptRuntime {
         this._logger = this.options.logger ?? this.createStackLogger();
         this._wrapper = this.options.wrapper ?? noopWrapper;
 
-        // Initialize empty lightweight stack
-        this.stack = new RuntimeStack();
-
-        this.clock = new RuntimeClock();
         this.jit = compiler;
 
         // Start the clock
@@ -228,7 +233,7 @@ export class ScriptRuntime implements IScriptRuntime {
     /**
      * Emergency cleanup method that disposes all blocks in the stack.
      */
-    public disposeAllBlocks(): void {
+    public dispose(): void {
         // Stop the clock
         this.clock.stop();
 

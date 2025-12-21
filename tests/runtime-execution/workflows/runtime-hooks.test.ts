@@ -4,6 +4,12 @@ import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
 import { TimerState } from '../../../src/runtime/models/MemoryModels';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
+import { EventBus } from '../../../src/runtime/EventBus';
+import { WodScript } from '../../../src/parser/WodScript';
+import { JitCompiler } from '../../../src/runtime/JitCompiler';
 
 /**
  * Integration tests for runtime hooks.
@@ -15,7 +21,15 @@ describe('Runtime Hooks Integration', () => {
     let runtime: ScriptRuntime;
 
     beforeEach(() => {
-        runtime = new ScriptRuntime();
+        const dependencies = {
+            memory: new RuntimeMemory(),
+            stack: new RuntimeStack(),
+            clock: new RuntimeClock(),
+            eventBus: new EventBus(),
+        };
+        const script = new WodScript('', [], []);
+        const compiler = new JitCompiler();
+        runtime = new ScriptRuntime(script, compiler, dependencies);
     });
 
     describe('Timer References', () => {
@@ -34,7 +48,7 @@ describe('Runtime Hooks Integration', () => {
             });
 
             expect(timerStateRefs.length).toBe(1);
-            
+
             // Verify the state structure
             const state = (timerStateRefs[0] as any).get() as TimerState;
             expect(state).toBeDefined();
@@ -95,7 +109,7 @@ describe('Runtime Hooks Integration', () => {
 
             // Simulate time passing
             const startTime = Date.now() - 1000;
-            
+
             const timerStateRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
@@ -105,7 +119,7 @@ describe('Runtime Hooks Integration', () => {
 
             const ref = timerStateRefs[0] as any;
             const state = ref.get() as TimerState;
-            
+
             // Update the span's start time
             const updatedSpans = [...state.spans];
             updatedSpans[0] = { ...updatedSpans[0], start: startTime };

@@ -8,13 +8,15 @@ export type EventHandlerRegistration = {
   priority: number;
 };
 
+import { IEventBus } from './IEventBus';
+
 /**
  * Simple in-memory event bus for runtime events.
  * - Handlers are registered per event name with optional priority.
  * - Dispatch does not depend on stack state; handlers self-filter as needed.
  * - Supports owner-based cleanup and unregister by handler id.
  */
-export class EventBus {
+export class EventBus implements IEventBus {
   private handlersByEvent: Map<string, EventHandlerRegistration[]> = new Map();
 
   register(

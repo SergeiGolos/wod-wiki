@@ -1,9 +1,7 @@
 import { ITickable } from './ITickable';
 
-export interface RuntimeTimestamp {
-    wallTimeMs: number;
-    monotonicTimeMs: number;
-}
+import { IRuntimeClock, RuntimeTimestamp } from './IRuntimeClock';
+export type { RuntimeTimestamp };
 
 /**
  * Safely capture a runtime timestamp even if a full RuntimeClock instance is not available.
@@ -27,7 +25,7 @@ export function captureRuntimeTimestamp(
  * RuntimeClock manages the central execution loop for the runtime.
  * It replaces individual setInterval/setTimeout calls scattered across behaviors.
  */
-export class RuntimeClock {
+export class RuntimeClock implements IRuntimeClock {
     private _isRunning = false;
     private _tickables: Set<ITickable> = new Set();
     private _animationFrameId?: number;

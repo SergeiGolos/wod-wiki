@@ -19,6 +19,10 @@
  */
 
 import { ScriptRuntime } from './ScriptRuntime';
+import { RuntimeMemory } from './RuntimeMemory';
+import { RuntimeStack } from './RuntimeStack';
+import { RuntimeClock } from './RuntimeClock';
+import { EventBus } from './EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
 import type { WodBlock } from '../markdown-editor/types';
@@ -84,8 +88,21 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create WodScript from block content and statements
     const script = new WodScript(block.content, block.statements);
 
+    // Instantiate dependencies
+    const memory = new RuntimeMemory();
+    const stack = new RuntimeStack();
+    const clock = new RuntimeClock();
+    const eventBus = new EventBus();
+
+    const dependencies = {
+      memory,
+      stack,
+      clock,
+      eventBus
+    };
+
     // Create runtime with JIT compiler and optional debug options
-    const runtime = new ScriptRuntime(script, this.compiler, options);
+    const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
 
     // Create Root Block manually
     // This ensures we always have a root grouping node that walks all children once

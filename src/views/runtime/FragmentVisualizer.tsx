@@ -168,7 +168,17 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
 
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
-      {visibleFragments.map((fragment, index) => {
+      {visibleFragments
+        // Filter out '+' lap tokens - only '-' lap tokens should be rendered
+        .filter(fragment => {
+          const type = (fragment.type || '').toLowerCase();
+          if (type === 'lap') {
+            // Only render lap fragments with '-' (decrement), hide '+' (increment)
+            return fragment.image === '-';
+          }
+          return true;
+        })
+        .map((fragment, index) => {
         const type = fragment.type || 'unknown';
         const colorClasses = getFragmentColorClasses(type);
         const tokenValue = fragment.image || (typeof fragment.value === 'object' ? JSON.stringify(fragment.value) : String(fragment.value));
