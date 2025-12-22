@@ -4,10 +4,8 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { TimerSpan } from '../models/MemoryModels';
 export type TimeSpan = TimerSpan;
-import { ITickable } from '../ITickable';
 import { calculateDuration } from '../../lib/timeUtils';
 import { TimerStateManager } from './TimerStateManager';
-import { RuntimeTimestamp } from '../RuntimeClock';
 
 /**
  * TimerBehavior manages time tracking for workout blocks.
@@ -25,14 +23,10 @@ import { RuntimeTimestamp } from '../RuntimeClock';
  * 
  * API Contract: contracts/runtime-blocks-api.md
  */
-export class TimerBehavior implements IRuntimeBehavior, ITickable {
-  private startTime = 0; // monotonic baseline
-  private startTimestamp?: RuntimeTimestamp;
+export class TimerBehavior implements IRuntimeBehavior {
+  private startTime: Date = new Date(); // Wall-clock start time
   private elapsedMs = 0;
   private _isPaused = false;
-  private pauseTime = 0;
-  private readonly tickIntervalMs = 100; // ~10 ticks per second
-  private lastTickTime = 0;
   private _runtime?: IScriptRuntime;
   private stateManager: TimerStateManager;
 
@@ -62,124 +56,32 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    */
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     this._runtime = runtime;
-    const startTimestamp = this.captureTimestamp(options?.startTime);
-    this.startTimestamp = startTimestamp;
-    this.startTime = startTimestamp.monotonicTimeMs;
+    const now = options?.startTime ?? runtime.clock.now;
+    this.startTime = now;
     this.elapsedMs = 0;
-    this._isPaused = !this.autoStart; // Initialize paused state based on autoStart
-    this.lastTickTime = 0;
+    this._isPaused = !this.autoStart;
 
-    // Register with unified clock
-    runtime.clock.register(this);
-
-    // Emit timer:started event with deterministic wall time
+    // Emit timer:started event
     runtime.handle({
       name: 'timer:started',
-      timestamp: new Date(startTimestamp.wallTimeMs),
+      timestamp: now,
       data: {
         blockId: block.key.toString(),
         direction: this.direction,
-        startTime: startTimestamp.wallTimeMs,
+        startTime: now.getTime(),
       },
     });
-    
+
     console.log(`⏱️ TimerBehavior: onPush for ${this.label}, autoStart=${this.autoStart}`);
 
-    // Determine role based on stack depth if auto, otherwise use configured role
-    let finalRole = this.role;
-    if (finalRole === 'auto') {
-    
-        // Root is secondary by default if auto (but we passed explicit secondary for root)
-        // Actually, if we pass 'secondary' for root, this logic is skipped.
-        // But for other blocks, we might want auto logic.
-        // The old logic was:
-        // const role = stackDepth === 1 ? 'root' : block.children && block.children.length > 0 ? 'segment' : 'leaf';
-        // We can map that to primary/secondary/auto if needed, but TimerStateManager handles 'auto' now.
-        // However, TimerStateManager's 'auto' logic is based on direction (countdown=primary).
-        // We might want to preserve the hierarchy logic here if needed.
-        // But for now, let's trust TimerStateManager's auto logic or pass explicit roles.
-    }
-
-    return this.stateManager.initialize(runtime, block, startTimestamp.wallTimeMs, this.role, this.autoStart);
+    return this.stateManager.initialize(runtime, block, now.getTime(), this.role, this.autoStart);
   }
 
   /**
    * Called right before the owning block is popped from the stack.
    */
-  onPop(runtime: IScriptRuntime, block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
-    // Unregister from clock
-    runtime.clock.unregister(this);
-
+  onPop(_runtime: IScriptRuntime, block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
     return this.stateManager.cleanup(block);
-  }
-
-  /**
-   * Called by RuntimeClock on every tick.
-   */
-  onTick(timestamp: number, _elapsed: number): void {
-    if (this._isPaused || !this._runtime) return;
-
-    // Throttle updates to ~100ms
-    if (timestamp - this.lastTickTime < this.tickIntervalMs) {
-        return;
-    }
-    this.lastTickTime = timestamp;
-
-    // We need the block to emit events with the block ID.
-    // Since onTick doesn't provide the block, we rely on the memory reference or stored ID.
-    // However, IRuntimeBehavior doesn't store the block by default.
-    // We can get the block ID from the timerRef if initialized.
-    const timerRef = this.stateManager.getTimerRef();
-    if (!timerRef) return;
-    
-    const blockId = timerRef.ownerId;
-    
-    // Calculate elapsed time
-    this.elapsedMs = timestamp - this.startTime;
-
-    const wallTimestamp = this.toWallTime(timestamp);
-
-    // Check for countdown completion
-    if (this.direction === 'down' && this.durationMs !== undefined) {
-      const remainingMs = this.durationMs - this.elapsedMs;
-      
-      if (remainingMs <= 0) {
-        // Timer complete!
-        this.elapsedMs = this.durationMs;
-        
-        // Stop receiving ticks
-        this._runtime.clock.unregister(this);
-        
-        this._runtime.handle({
-          name: 'timer:complete',
-          timestamp: new Date(wallTimestamp),
-          data: {
-            blockId: blockId,
-            finalTime: this.durationMs,
-          },
-        });
-        return;
-      }
-    }
-
-    // Emit tick event
-    const tickData: any = {
-      blockId: blockId,
-      elapsedMs: this.elapsedMs,
-      displayTime: this.getDisplayTime(),
-      direction: this.direction,
-    };
-    
-    // Include remaining time for countdown timers
-    if (this.direction === 'down' && this.durationMs !== undefined) {
-      tickData.remainingMs = this.durationMs - this.elapsedMs;
-    }
-    
-    this._runtime.handle({
-      name: 'timer:tick',
-      timestamp: new Date(wallTimestamp),
-      data: tickData,
-    });
   }
 
   /**
@@ -190,16 +92,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
       return this.elapsedMs;
     }
 
-    if (this._runtime) {
-      return this._runtime.clock.now - this.startTime;
-    }
-
-    if (this.startTimestamp) {
-      const now = this.captureTimestamp();
-      return now.monotonicTimeMs - this.startTimestamp.monotonicTimeMs;
-    }
-
-    return this.elapsedMs;
+    const now = this._runtime?.clock.now ?? new Date();
+    return now.getTime() - this.startTime.getTime();
   }
 
   /**
@@ -254,6 +148,24 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
   }
 
   /**
+   * Get remaining time in milliseconds (for countdown timers).
+   * Returns 0 for count-up timers.
+   */
+  getRemainingMs(): number {
+    if (this.direction !== 'down' || this.durationMs === undefined) {
+      return 0;
+    }
+    return Math.max(0, this.durationMs - this.getElapsedMs());
+  }
+
+  /**
+   * Dispose the timer (public alias for onDispose).
+   */
+  dispose(): void {
+    this.stop();
+  }
+
+  /**
    * Start the timer. Creates a new time span.
    */
   start(): void {
@@ -265,20 +177,19 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
 
     const state = timerRef.get();
     if (!state) return;
-    
+
     const spans = [...state.spans];
-    
+
     // If already running, don't start again
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
       return;
     }
 
     // Add new span
-    const ts = this.captureTimestamp();
-    spans.push({ start: ts.wallTimeMs, state: 'new' });
-    this.startTimestamp = ts;
-    this.startTime = ts.monotonicTimeMs;
-    
+    const now = this._runtime.clock.now;
+    spans.push({ start: now.getTime(), state: 'new' });
+    this.startTime = now;
+
     this.stateManager.updateState(this._runtime, spans, true);
   }
 
@@ -297,10 +208,12 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
 
     const spans = [...state.spans];
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
-      spans[spans.length - 1].stop = this.captureTimestamp().wallTimeMs;
-      
-      this.stateManager.updateState(this._runtime, spans, false);
+      const now = this._runtime?.clock.now ?? new Date();
+      spans[spans.length - 1].stop = now.getTime();
     }
+
+    // Always update state to mark as not running
+    this.stateManager.updateState(this._runtime, spans, false);
   }
 
   /**
@@ -310,11 +223,10 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     this._isPaused = true;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
-      // Fallback to old behavior if memory not initialized
+      // Fallback: just store current elapsed
       if (this._runtime) {
-        const ts = this.captureTimestamp();
-        this.pauseTime = ts.monotonicTimeMs;
-        this.elapsedMs = this.pauseTime - this.startTime;
+        const now = this._runtime.clock.now;
+        this.elapsedMs = now.getTime() - this.startTime.getTime();
       }
       return;
     }
@@ -323,15 +235,16 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     if (!state) return;
 
     const spans = [...state.spans];
-    
+
     // If not running, nothing to pause
     if (spans.length === 0 || spans[spans.length - 1].stop) {
       return;
     }
 
     // Close the current span
-    spans[spans.length - 1].stop = this.captureTimestamp().wallTimeMs;
-    
+    const now = this._runtime?.clock.now ?? new Date();
+    spans[spans.length - 1].stop = now.getTime();
+
     this.stateManager.updateState(this._runtime, spans, false);
   }
 
@@ -344,11 +257,10 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
       console.warn(`⚠️ TimerBehavior: No timerRef for ${this.label}`);
-      // Fallback to old behavior if memory not initialized
+      // Fallback: adjust start time to preserve elapsed
       if (this._runtime) {
-        const ts = this.captureTimestamp();
-        this.startTime = ts.monotonicTimeMs - this.elapsedMs;
-        this.startTimestamp = ts;
+        const now = this._runtime.clock.now;
+        this.startTime = new Date(now.getTime() - this.elapsedMs);
       }
       return;
     }
@@ -357,7 +269,7 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     if (!state) return;
 
     const spans = [...state.spans];
-    
+
     // If already running, don't resume
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
       console.log(`ℹ️ TimerBehavior: Already running`);
@@ -366,11 +278,10 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
 
     // Add new span
     console.log(`✅ TimerBehavior: Adding new span to ${this.label}`);
-    const ts = this.captureTimestamp();
-    spans.push({ start: ts.wallTimeMs, state: 'new' });
-    this.startTimestamp = ts;
-    this.startTime = ts.monotonicTimeMs - this.elapsedMs;
-    
+    const now = this._runtime?.clock.now ?? new Date();
+    spans.push({ start: now.getTime(), state: 'new' });
+    this.startTime = new Date(now.getTime() - this.elapsedMs);
+
     this.stateManager.updateState(this._runtime, spans, true);
   }
 
@@ -378,9 +289,8 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    * Cleanup: clear interval and remove event listeners.
    * Must complete in <50ms per performance contract.
    */
-  onDispose(runtime: IScriptRuntime, _block: IRuntimeBlock): void {
+  onDispose(_runtime: IScriptRuntime, _block: IRuntimeBlock): void {
     this.stop();
-    runtime.clock.unregister(this);
   }
 
   /**
@@ -391,10 +301,10 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     if (timerRef) {
       return timerRef.get()?.spans || [];
     }
-    
+
     // Fallback for tests that don't use memory
     const elapsedMs = this.getElapsedMs();
-    const now = this.captureTimestamp().wallTimeMs;
+    const now = (this._runtime?.clock.now ?? new Date()).getTime();
     return [{
       start: now - elapsedMs,
       stop: this.isRunning() ? undefined : now,
@@ -407,57 +317,26 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
    */
   getTotalElapsed(): number {
     const spans = this.getTimeSpans();
-    
+
     if (spans.length === 0) {
       return 0;
     }
 
     // Use calculateDuration utility
-    // Note: TimerSpan uses numbers for timestamps (from MemoryModels) or fallback logic in getTimeSpans()
+    const now = (this._runtime?.clock.now ?? new Date()).getTime();
     return calculateDuration(
-        spans.map(s => ({ start: s.start, stop: s.stop })),
-        this.captureTimestamp().wallTimeMs
+      spans.map(s => ({ start: s.start, stop: s.stop })),
+      now
     );
   }
 
-  private toWallTime(monotonicNow: number): number {
-    if (this.startTimestamp) {
-      const wallBase = this.startTimestamp.wallTimeMs - (this.startTimestamp.monotonicTimeMs - this.startTime);
-      return wallBase + (monotonicNow - this.startTime);
-    }
-
-    return this.captureTimestamp().wallTimeMs;
-  }
-
-  private captureTimestamp(seed?: RuntimeTimestamp): RuntimeTimestamp {
-    if (seed) {
-      return seed;
-    }
-
-    const capture = (this._runtime as any)?.clock?.captureTimestamp;
-    if (typeof capture === 'function') {
-      try {
-        return capture();
-      } catch {
-        // fall through to fallback
-      }
-    }
-
-    const wallTimeMs = Date.now();
-    const monotonicTimeMs = typeof performance !== 'undefined' ? performance.now() : wallTimeMs;
-    return { wallTimeMs, monotonicTimeMs };
-  }
   /**
    * Reset the timer. Clears all time spans and stops the timer.
    */
   reset(): void {
-    if (this._runtime) {
-        this._runtime.clock.unregister(this);
-    }
-    
     this._isPaused = false;
     this.elapsedMs = 0;
-    this.startTime = 0;
+    this.startTime = new Date();
 
     this.stateManager.resetState();
   }
@@ -470,14 +349,11 @@ export class TimerBehavior implements IRuntimeBehavior, ITickable {
     // 1. Reset internal state
     this._isPaused = false;
     this.elapsedMs = 0;
-    
-    if (this._runtime) {
-        this.startTime = this._runtime.clock.now;
-        // Ensure registered
-        this._runtime.clock.register(this);
-    }
+
+    const now = this._runtime?.clock.now ?? new Date();
+    this.startTime = now;
 
     // 2. Reset memory state and start new span
-    this.stateManager.updateState(this._runtime, [{ start: Date.now(), state: 'new' }], true);
+    this.stateManager.updateState(this._runtime, [{ start: now.getTime(), state: 'new' }], true);
   }
 }
