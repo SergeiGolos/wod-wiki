@@ -11,6 +11,7 @@ import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';
 import { EventBus } from '../../src/runtime/EventBus';
+import { EffortStrategy } from '../../src/runtime/strategies/EffortStrategy';
 
 describe('RoundsBlock - Metric Inheritance', () => {
   let runtime: ScriptRuntime;
@@ -29,7 +30,11 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
     // Create mock script with proper ID resolution
     mockScript = new WodScript('mock source', [childStatement], []);
+
+    // Create JitCompiler with EffortStrategy so it can compile child statements
     const jitCompiler = new JitCompiler([]);
+    jitCompiler.registerStrategy(new EffortStrategy());
+
     const dependencies = {
       memory: new RuntimeMemory(),
       stack: new RuntimeStack(),
@@ -51,12 +56,12 @@ describe('RoundsBlock - Metric Inheritance', () => {
     // Mount to trigger metric allocation
     roundsBlock.mount(runtime);
 
-    // Search for public METRICS_CURRENT in memory
+    // Search for public METRICS_CURRENT owned by the RoundsBlock
     const metricsRefs = runtime.memory.search({
       type: MemoryTypeEnum.METRICS_CURRENT,
       visibility: 'public',
       id: null,
-      ownerId: null
+      ownerId: roundsBlock.key.toString()
     });
 
     // Verify metric was allocated
@@ -87,11 +92,12 @@ describe('RoundsBlock - Metric Inheritance', () => {
       action.do(runtime);
     }
 
+    // Search for the RoundsBlock's specific METRICS_CURRENT
     const metricsRefs = runtime.memory.search({
       type: MemoryTypeEnum.METRICS_CURRENT,
       visibility: 'public',
       id: null,
-      ownerId: null
+      ownerId: roundsBlock.key.toString()
     });
 
     expect(metricsRefs.length).toBe(1);

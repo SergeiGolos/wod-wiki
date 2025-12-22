@@ -197,7 +197,13 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Stop the timer. Closes the current time span.
    */
   stop(): void {
+    // Capture elapsed time BEFORE setting paused flag
+    // so getElapsedMs() still works correctly
+    if (!this._isPaused) {
+      this.elapsedMs = this.getElapsedMs();
+    }
     this._isPaused = true;
+
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
       return;
@@ -220,14 +226,14 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Pause the timer. Closes the current time span.
    */
   pause(): void {
+    // Capture elapsed time BEFORE setting paused flag
+    if (!this._isPaused) {
+      this.elapsedMs = this.getElapsedMs();
+    }
     this._isPaused = true;
+
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
-      // Fallback: just store current elapsed
-      if (this._runtime) {
-        const now = this._runtime.clock.now;
-        this.elapsedMs = now.getTime() - this.startTime.getTime();
-      }
       return;
     }
 

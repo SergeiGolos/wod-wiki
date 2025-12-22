@@ -1,0 +1,515 @@
+﻿bun test v1.3.4 (5eb2145b)
+bun : 
+At 
+line:1 
+char:1
++ bun 
+test src
+/runtime
+/behavio
+rs/__tes
+ts__/Tim
+erBehavi
+or.test.
+ts 2>&1 
+| ...
++ ~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~~~~
+~~~~~
+    + C 
+   ate  
+  gor   
+ yIn    
+fo      
+        
+        
+    : N 
+   otS  
+  pec   
+ ifi    
+ed:     
+(:    
+Str    
+ing    
+) [    
+],     
+Rem    
+ote    
+Exc    
+ept    
+ion
+    + F 
+   ull  
+  yQu   
+ ali    
+fie    
+dEr    
+ror    
+Id     
+: N    
+ati    
+veC    
+omm    
+and    
+Err    
+or
+ 
+src\runt
+ime\beha
+viors\__
+tests__\
+TimerBeh
+avior.te
+st.ts:
+(pass) T
+imerBeha
+vior Con
+tract > 
+Construc
+tor > 
+should 
+accept 
+valid di
+rection 
+"up"
+(pass) T
+imerBeha
+vior Con
+tract > 
+Construc
+tor > 
+should 
+accept 
+valid di
+rection 
+"down"
+(pass) T
+imerBeha
+vior Con
+tract > 
+Construc
+tor > 
+should 
+reject 
+invalid 
+directio
+n
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+onPush()
+ > 
+should 
+start 
+timer
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+onPush()
+ > 
+should 
+emit tim
+er:start
+ed 
+event 
+via runt
+ime.hand
+le()
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+onPush()
+ > 
+should 
+use prov
+ided sta
+rtTime 
+from 
+options
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+155 |   
+    expe
+ct(elaps
+edBefore
+).toBeGr
+eaterTha
+nOrEqual
+(5000);
+156 | 
+157 |   
+    // 
+Pop 
+doesn't 
+change 
+running 
+state 
+in new 
+design 
+- 
+stop() 
+does
+158 |   
+    beha
+vior.sto
+p();
+159 |   
+    expe
+ct(behav
+ior.isRu
+nning())
+.toBe(fa
+lse);
+160 |   
+    expe
+ct(behav
+ior.getE
+lapsedMs
+()).toBe
+GreaterT
+hanOrEqu
+al(5000)
+;
+        
+        
+        
+        
+        
+    ^
+error: e
+xpect(re
+ceived).
+toBeGrea
+terThanO
+rEqual(e
+xpected)
+
+Expected
+: >= 
+5000
+Received
+: 0
+
+      
+at <anon
+ymous> (
+X:\wod-w
+iki\src\
+runtime\
+behavior
+s\__test
+s__\Time
+rBehavio
+r.test.t
+s:160:39
+)
+(fail) T
+imerBeha
+vior Con
+tract > 
+onPop() 
+> 
+should p
+reserve 
+elapsed 
+time 
+state 
+after 
+pop
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+Elapsed 
+Time > 
+should 
+track 
+elapsed 
+time cor
+rectly
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+Elapsed 
+Time > 
+should 
+return 
+display 
+time in 
+seconds
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+Countdow
+n Timer 
+> 
+should c
+alculate
+ remaini
+ng time 
+for coun
+tdown
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+Countdow
+n Timer 
+> 
+should 
+detect c
+ompletio
+n when c
+ountdown
+ 
+reaches 
+zero
+(pass) T
+imerBeha
+vior Con
+tract > 
+Countdow
+n Timer 
+> 
+should 
+NOT 
+mark cou
+nt-up 
+timers 
+as 
+complete
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Pause/Re
+sume > 
+should 
+stop tra
+cking 
+elapsed 
+when 
+paused
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+ΓÅ▒∩╕Å TimerBehavior: Resume called for Timer
+Γ£à TimerBehavior: Adding new span to Timer
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Pause/Re
+sume > 
+should 
+resume t
+racking 
+elapsed 
+when 
+resumed
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Start/St
+op > 
+should 
+be 
+running 
+after 
+start()
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Start/St
+op > 
+should 
+not be 
+running 
+after 
+stop()
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+(pass) T
+imerBeha
+vior Con
+tract > 
+Reset/Re
+start > 
+should 
+reset 
+elapsed 
+time on 
+reset()
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Reset/Re
+start > 
+should 
+restart 
+timer 
+on resta
+rt()
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Disposal
+ > 
+should 
+not 
+throw 
+when dis
+posing 
+active 
+timer
+(pass) T
+imerBeha
+vior Con
+tract > 
+Disposal
+ > 
+should 
+not 
+throw 
+when dis
+posing i
+nactive 
+timer
+ΓÅ▒∩╕Å TimerBehavior: onPush for Timer, autoStart=true
+ΓÜá∩╕Å U
+pdateTim
+erDispla
+yAction:
+ No 
+display 
+stack 
+state 
+found
+(pass) T
+imerBeha
+vior Con
+tract > 
+Disposal
+ > 
+should 
+stop 
+timer 
+on 
+dispose
+
+ 20 pass
+ 1 fail
+ 33 expe
+ct() 
+calls
+Ran 21 
+tests 
+across 
+1 file. 
+[45.00ms
+]

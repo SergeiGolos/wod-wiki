@@ -11,6 +11,8 @@ import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions
 import { CurrentMetrics } from '../models/MemoryModels';
 import { BlockLifecycleOptions } from '../IRuntimeBlock';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
+import { TypedMemoryReference } from '../IMemoryReference';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * RoundsBlock Configuration
@@ -38,6 +40,7 @@ export interface RoundsBlockConfig {
  */
 export class RoundsBlock extends RuntimeBlock {
   private loopCoordinator: LoopCoordinatorBehavior;
+  private metricsRef?: TypedMemoryReference<CurrentMetrics>;
 
 
   constructor(
@@ -76,7 +79,7 @@ export class RoundsBlock extends RuntimeBlock {
       totalRounds: config.totalRounds,
       repScheme: config.repScheme,
     });
-    
+
     const behaviors: IRuntimeBehavior[] = [
       loopCoordinator,
       // Completion behavior delegates to loop coordinator
@@ -201,25 +204,26 @@ export class RoundsBlock extends RuntimeBlock {
   }
 
   private updateMetrics(runtime: IScriptRuntime): void {
-      if (this.config.repScheme) {
-          const currentReps = this.getRepsForCurrentRound();
-          if (currentReps !== undefined) {
-              const metricsRef = runtime.memory.allocate<CurrentMetrics>(
-                  MemoryTypeEnum.METRICS_CURRENT,
-                  'runtime',
-                  {},
-                  'public'
-              );
-              const metrics = metricsRef.get() || {};
-              metrics['reps'] = {
-                  value: currentReps,
-                  unit: 'reps',
-                  sourceId: this.key.toString()
-              };
-              metricsRef.set({ ...metrics });
-          }
+    if (this.config.repScheme) {
+      const currentReps = this.getRepsForCurrentRound();
+      if (currentReps !== undefined) {
+        // Reuse existing ref or create new one
+        if (!this.metricsRef) {
+          this.metricsRef = runtime.memory.allocate<CurrentMetrics>(
+            MemoryTypeEnum.METRICS_CURRENT,
+            this.key.toString(),
+            {},
+            'public'
+          );
+        }
+        const metrics = this.metricsRef.get() || {};
+        metrics['reps'] = {
+          value: currentReps,
+          unit: 'reps',
+          sourceId: this.key.toString()
+        };
+        this.metricsRef.set({ ...metrics });
       }
-
-
+    }
   }
 }
