@@ -17,7 +17,7 @@ describe('detectWodBlocks', () => {
 Some text after`;
 
     const blocks = detectWodBlocks(content);
-    
+
     expect(blocks).toHaveLength(1);
     expect(blocks[0].startLine).toBe(2);
     expect(blocks[0].endLine).toBe(5);
@@ -40,7 +40,7 @@ Some text
 \`\`\``;
 
     const blocks = detectWodBlocks(content);
-    
+
     expect(blocks).toHaveLength(2);
     expect(blocks[0].content).toBe('(21-15-9)\n  Thrusters');
     expect(blocks[1].content).toBe('10:00\n  Run');
@@ -68,7 +68,7 @@ Some text here
   + 5 Pullups`;
 
     const blocks = detectWodBlocks(content);
-    
+
     expect(blocks).toHaveLength(1);
     expect(blocks[0].startLine).toBe(0);
     expect(blocks[0].endLine).toBe(2);
