@@ -14,6 +14,17 @@ export type MemorySearchCriteria = {
 };
 
 /**
+ * Callback type for memory event dispatch.
+ * Used to connect RuntimeMemory to the EventBus without circular dependencies.
+ */
+export type MemoryEventDispatcher = (
+    eventType: 'allocate' | 'set' | 'release',
+    ref: IMemoryReference,
+    value: unknown,
+    oldValue?: unknown
+) => void;
+
+/**
  * The main runtime memory interface that manages separate memory from the execution stack.
  * This enables debugging and state inspection independently of program execution flow.
  */
@@ -50,7 +61,14 @@ export interface IRuntimeMemory {
     release(reference: IMemoryReference): void;
 
     /**
+     * Sets the event dispatcher for memory events.
+     * This connects the memory system to the EventBus.
+     */
+    setEventDispatcher(dispatcher: MemoryEventDispatcher | null): void;
+
+    /**
      * Subscribe to all memory changes.
+     * @deprecated Use EventBus handlers instead. This will be removed in a future version.
      * Returns a function to unsubscribe.
      */
     subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void): () => void;

@@ -1,6 +1,8 @@
 export * from './ScriptRuntime';
 export * from './RuntimeBuilder';
 export * from './IRuntimeOptions';
+export * from './StackEvents';
+export * from './MemoryEvents';
 // export * from './DebugRuntimeStack'; // Removed
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
 export {

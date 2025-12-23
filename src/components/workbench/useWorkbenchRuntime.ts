@@ -64,18 +64,20 @@ export const useWorkbenchRuntime = (
   const handleStop = () => {
     execution.stop();
     completeWorkout({
-        startTime: execution.startTime || Date.now(),
-        endTime: Date.now(),
-        duration: execution.elapsedTime,
-        metrics: [],
-        completed: true
+      startTime: execution.startTime || Date.now(),
+      endTime: Date.now(),
+      duration: execution.elapsedTime,
+      metrics: [],
+      completed: true
     });
   };
 
   const handleNext = () => {
     if (runtime) {
       runtime.handle(new NextEvent());
-      execution.step();
+      if (execution.status !== 'running') {
+        execution.step();
+      }
     }
   };
 
@@ -102,7 +104,9 @@ export const useWorkbenchRuntime = (
       case 'next-segment':
         if (runtime) {
           runtime.handle(new NextEvent());
-          execution.step();
+          if (execution.status !== 'running') {
+            execution.step();
+          }
         }
         break;
     }

@@ -1,16 +1,15 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { StackObservable } from './StackObservable';
 import { BlockKey } from '../core/models/BlockKey';
 
 import { IRuntimeStack } from './IRuntimeStack';
 
 /**
- * Lightweight runtime stack that only maintains state and notifies subscribers.
+ * Lightweight runtime stack that only maintains state.
  * All complex logic (lifecycles, wrapping, hooks) has been moved to ScriptRuntime.
+ * Stack events are dispatched via the EventBus in ScriptRuntime.
  */
 export class RuntimeStack implements IRuntimeStack {
   private readonly _blocks: IRuntimeBlock[] = [];
-  public readonly updates: StackObservable = new StackObservable();
 
   /** Top-first view of blocks (copy) */
   public get blocks(): readonly IRuntimeBlock[] {
@@ -34,33 +33,13 @@ export class RuntimeStack implements IRuntimeStack {
 
   public push(block: IRuntimeBlock): void {
     this._blocks.push(block);
-    this.updates.notify({
-      type: 'push',
-      block,
-      stackDepth: this._blocks.length,
-      timestamp: Date.now()
-    });
   }
 
   public pop(): IRuntimeBlock | undefined {
-    const block = this._blocks.pop();
-    if (block) {
-      this.updates.notify({
-        type: 'pop',
-        block,
-        stackDepth: this._blocks.length,
-        timestamp: Date.now()
-      });
-    }
-    return block;
+    return this._blocks.pop();
   }
 
   public clear(): void {
     this._blocks.length = 0;
-    this.updates.notify({
-      type: 'clear',
-      stackDepth: 0,
-      timestamp: Date.now()
-    });
   }
 }

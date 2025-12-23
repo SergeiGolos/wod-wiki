@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
 import { ExecutionSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { IEvent } from '../../runtime/IEvent';
 
 /**
  * Data structure returned by useExecutionSpans hook
@@ -20,48 +21,26 @@ export interface ExecutionSpansData {
 /**
  * React hook that subscribes to execution span updates from a runtime.
  * 
- * This hook replaces the polling-based useExecutionLog with a reactive
- * subscription-based approach using RuntimeMemory subscriptions.
+ * This hook uses the EventBus to receive memory change notifications,
+ * providing a unified event-driven approach.
  * 
  * Returns both active (currently executing) and completed execution spans,
  * along with indexed maps for quick lookup.
  * 
  * @param runtime The runtime instance to monitor (can be null)
  * @returns ExecutionSpansData containing active, completed spans and index maps
- * 
- * @example
- * ```tsx
- * function WorkoutHistory({ runtime }: { runtime: IScriptRuntime | null }) {
- *   const { active, completed, byId } = useExecutionSpans(runtime);
- *   
- *   return (
- *     <div>
- *       <h2>Active ({active.length})</h2>
- *       {active.map(span => (
- *         <div key={span.id} className="animate-pulse">
- *           {span.label} - {span.type}
- *         </div>
- *       ))}
- *       
- *       <h2>Completed ({completed.length})</h2>
- *       {completed.map(span => (
- *         <div key={span.id}>
- *           {span.label} - {span.endTime! - span.startTime}ms
- *         </div>
- *       ))}
- *     </div>
- *   );
- * }
- * ```
  */
 export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpansData {
   const [spans, setSpans] = useState<ExecutionSpan[]>([]);
+  const ownerIdRef = useRef(`useExecutionSpans-${crypto.randomUUID()}`);
 
   useEffect(() => {
-    if (!runtime?.memory) {
+    if (!runtime?.memory || !runtime?.eventBus) {
       setSpans([]);
       return;
     }
+
+    const ownerId = ownerIdRef.current;
 
     // Fetch all execution spans from memory
     const fetchSpans = () => {
@@ -82,16 +61,20 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
     // Initial load
     fetchSpans();
 
-    // Subscribe to memory changes (reactive, no polling!)
-    const unsubscribe = runtime.memory.subscribe((ref, _value, _oldValue) => {
-      // Only update if the changed memory is an execution span
-      if (ref.type === EXECUTION_SPAN_TYPE) {
+    // Subscribe to memory events via EventBus
+    const handleMemoryEvent = (event: IEvent) => {
+      const data = event.data as { ref: { type: string } };
+      if (data?.ref?.type === EXECUTION_SPAN_TYPE) {
         fetchSpans();
       }
-    });
+    };
+
+    runtime.eventBus.on('memory:set', handleMemoryEvent, ownerId);
+    runtime.eventBus.on('memory:allocate', handleMemoryEvent, ownerId);
+    runtime.eventBus.on('memory:release', handleMemoryEvent, ownerId);
 
     return () => {
-      unsubscribe();
+      runtime.eventBus.unregisterByOwner(ownerId);
     };
   }, [runtime]);
 

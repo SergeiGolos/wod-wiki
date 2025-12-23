@@ -3,15 +3,16 @@ import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
 import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/ExecutionSpan';
 import { v4 as uuidv4 } from 'uuid';
-import { IMemoryReference } from '../runtime/IMemoryReference';
+import { IEvent } from '../runtime/IEvent';
 
 /**
  * Service to manage execution logging and persistence.
- * Connects the RuntimeMemory to LocalStorage.
+ * Connects to the EventBus for memory change notifications.
  */
 export class ExecutionLogService {
   private currentResult: WodResult | null = null;
-  private unsubscribe: (() => void) | null = null;
+  private currentRuntime: IScriptRuntime | null = null;
+  private readonly ownerId = 'execution-log-service';
 
   // Map for O(1) span lookup by id
   private spanMap: Map<string, ExecutionSpan> = new Map();
@@ -28,8 +29,8 @@ export class ExecutionLogService {
 
   /**
    * Initialize logging for a runtime session.
-   * Creates a new result container and subscribes to memory changes
-   * to track execution spans in real-time.
+   * Creates a new result container and subscribes to memory events
+   * via the EventBus to track execution spans in real-time.
    *
    * @param runtime - The runtime instance to track
    * @param documentId - ID of the workout document (defaults to 'scratchpad')
@@ -55,10 +56,18 @@ export class ExecutionLogService {
       schemaVersion: 1
     };
 
-    // Subscribe to memory changes
-    this.unsubscribe = runtime.memory.subscribe((ref, value, oldValue) => {
-      this.handleMemoryChange(ref, value, oldValue);
-    });
+    this.currentRuntime = runtime;
+
+    // Subscribe to memory events via EventBus
+    const handleMemoryEvent = (event: IEvent) => {
+      const data = event.data as { ref: { type: string }; value: unknown; oldValue?: unknown };
+      if (data?.ref?.type === EXECUTION_SPAN_TYPE) {
+        this.handleSpanUpdate(data.value as ExecutionSpan);
+      }
+    };
+
+    runtime.eventBus.on('memory:set', handleMemoryEvent, this.ownerId);
+    runtime.eventBus.on('memory:allocate', handleMemoryEvent, this.ownerId);
 
     console.log('[ExecutionLogService] Started session', this.currentResult.id);
   }
@@ -78,10 +87,7 @@ export class ExecutionLogService {
     return [];
   }
 
-  private handleMemoryChange(ref: IMemoryReference, value: any, _oldValue: any) {
-    if (ref.type !== EXECUTION_SPAN_TYPE) return;
-
-    const span = value as ExecutionSpan;
+  private handleSpanUpdate(span: ExecutionSpan | null) {
     if (!span) return;
 
     // We only care about persisting the span when it's updated or finished.
@@ -147,13 +153,14 @@ export class ExecutionLogService {
       this.saveDebounceTimer = null;
     }
 
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+    // Unregister from EventBus
+    if (this.currentRuntime?.eventBus) {
+      this.currentRuntime.eventBus.unregisterByOwner(this.ownerId);
     }
 
     // Reset state
     this.currentResult = null;
+    this.currentRuntime = null;
     this.spanMap.clear();
     this.earliestStart = Infinity;
     this.latestEnd = 0;

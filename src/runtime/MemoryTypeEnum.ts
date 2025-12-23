@@ -4,12 +4,6 @@
  */
 export enum MemoryTypeEnum {
   /**
-   * Display stack - List of Block IDs (string[])
-   * @deprecated Use DISPLAY_STACK_STATE for the full display state
-   */
-  DISPLAY_STACK = 'displaystack',
-
-  /**
    * Display stack state - Full UI display hierarchy state
    * Type: IDisplayStackState (timer stack, card stack, workout state)
    */
@@ -44,7 +38,7 @@ export enum MemoryTypeEnum {
    * Type: number
    */
   METRIC_REPS = 'metric:reps',
-  
+
   /**
    * Anchor for cross-block references
    * Type: IAnchorValue

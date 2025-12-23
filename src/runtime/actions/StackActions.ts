@@ -5,11 +5,11 @@ import { MemoryTypeEnum } from '../MemoryTypeEnum';
 export class PushStackItemAction implements IRuntimeAction {
     readonly type = 'push-stack-item';
 
-    constructor(private readonly blockId: string) {}
+    constructor(private readonly blockId: string) { }
 
     do(runtime: IScriptRuntime): void {
         const stackRef = runtime.memory.allocate<string[]>(
-            MemoryTypeEnum.DISPLAY_STACK,
+            MemoryTypeEnum.DISPLAY_STACK_STATE,
             'runtime',
             [],
             'public'
@@ -27,11 +27,11 @@ export class PushStackItemAction implements IRuntimeAction {
 export class PopStackItemAction implements IRuntimeAction {
     readonly type = 'pop-stack-item';
 
-    constructor(private readonly blockId: string) {}
+    constructor(private readonly blockId: string) { }
 
     do(runtime: IScriptRuntime): void {
         const stackRef = runtime.memory.allocate<string[]>(
-            MemoryTypeEnum.DISPLAY_STACK,
+            MemoryTypeEnum.DISPLAY_STACK_STATE,
             'runtime',
             [],
             'public'

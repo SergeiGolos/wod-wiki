@@ -20,6 +20,8 @@ import { TestableBlock } from './testing/TestableBlock';
 import { IRuntimeClock } from './IRuntimeClock';
 import { NextEventHandler } from './NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
+import { StackPushEvent, StackPopEvent } from './StackEvents';
+import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './MemoryEvents';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -83,6 +85,21 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
+
+        // Connect memory events to EventBus
+        this.memory.setEventDispatcher((eventType, ref, value, oldValue) => {
+            switch (eventType) {
+                case 'allocate':
+                    this.eventBus.dispatch(new MemoryAllocateEvent(ref, value), this);
+                    break;
+                case 'set':
+                    this.eventBus.dispatch(new MemorySetEvent(ref, value, oldValue), this);
+                    break;
+                case 'release':
+                    this.eventBus.dispatch(new MemoryReleaseEvent(ref, value), this);
+                    break;
+            }
+        });
 
         this.executionTracker = new ExecutionTracker(this.memory);
 
@@ -162,6 +179,7 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         this.stack.push(wrappedBlock);
+        this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
 
         this._logger.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),
@@ -192,6 +210,8 @@ export class ScriptRuntime implements IScriptRuntime {
         if (!popped) {
             return undefined;
         }
+
+        this.eventBus.dispatch(new StackPopEvent(this.stack.blocks), this);
 
         const ownerKey = this.resolveOwnerKey(popped);
 
@@ -240,6 +260,9 @@ export class ScriptRuntime implements IScriptRuntime {
         while (this.stack.count > 0) {
             this.popBlock();
         }
+        
+        // Disconnect memory event dispatcher
+        this.memory.setEventDispatcher(null);
     }
 
     // ========== Private Helpers ==========

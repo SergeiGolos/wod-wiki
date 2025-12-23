@@ -136,15 +136,25 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   } = useWorkbenchRuntime(viewMode, selectedBlock, completeWorkout, startWorkout);
 
   // Initialize runtime when entering track view with selected block
+  // Use a ref to prevent re-initialization loops if selectedBlock reference changes but ID is same
+  const lastInitializedBlockIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (selectedBlock && selectedBlock.statements && viewMode === 'track') {
-      console.log('[UnifiedWorkbench] Initializing runtime for block:', selectedBlock.id);
-      initializeRuntime(selectedBlock);
+    if (viewMode === 'track' && selectedBlock && selectedBlock.statements) {
+      // Only initialize if we haven't initialized this block ID yet
+      // OR if we are switching back to track mode
+      if (lastInitializedBlockIdRef.current !== selectedBlock.id) {
+        console.log('[UnifiedWorkbench] Initializing runtime for block:', selectedBlock.id);
+        initializeRuntime(selectedBlock);
+        lastInitializedBlockIdRef.current = selectedBlock.id;
+      }
     } else if (viewMode !== 'track') {
-      // Dispose runtime when leaving track view
-      disposeRuntime();
+      if (lastInitializedBlockIdRef.current !== null) {
+        disposeRuntime();
+        lastInitializedBlockIdRef.current = null;
+      }
     }
-  }, [selectedBlockId, viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
+  }, [viewMode, selectedBlockId, selectedBlock, initializeRuntime, disposeRuntime]);
 
   // Screen Wake Lock - keep screen awake when in track mode and workout is running
   // This prevents the phone screen from dimming/locking during active workouts

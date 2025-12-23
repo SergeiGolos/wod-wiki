@@ -34,7 +34,7 @@ export { useRuntime } from './useRuntime';
 interface RuntimeProviderProps {
   /** Factory for creating runtime instances */
   factory: IRuntimeFactory;
-  
+
   /** Child components */
   children: React.ReactNode;
 }
@@ -47,14 +47,14 @@ interface RuntimeProviderProps {
  * - Automatically disposes old runtime when new one is created
  * - Cleans up on unmount
  */
-export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({ 
-  factory, 
-  children 
+export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
+  factory,
+  children
 }) => {
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   // Keep factory ref to avoid recreating callbacks
   const factoryRef = useRef(factory);
   factoryRef.current = factory;
@@ -85,41 +85,41 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
    * Automatically disposes existing runtime first
    */
   const initializeRuntime = useCallback((block: WodBlock) => {
+    // Guard against duplicate initialization
+    if (isInitializing) {
+      console.log('[RuntimeProvider] Already initializing, skipping duplicate call');
+      return;
+    }
+
     console.log('[RuntimeProvider] Initializing runtime for block:', block.id);
     setIsInitializing(true);
     setError(null);
 
-    // Dispose existing runtime first AND clean up log service
-    setRuntime(currentRuntime => {
-      if (currentRuntime) {
-        console.log('[RuntimeProvider] Disposing existing runtime before creating new one');
-        try {
-          executionLogService.cleanup(); // Clean up subscription FIRST
-          factoryRef.current.disposeRuntime(currentRuntime);
-        } catch (err) {
-          console.error('[RuntimeProvider] Error disposing existing runtime:', err);
-        }
-      }
-      return null;
-    });
-
     try {
-      const newRuntime = factoryRef.current.createRuntime(block);
-      
+      // Create new runtime FIRST before disposing old one
+      const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
+
+      // Now do a single atomic state update that disposes old and sets new
+      setRuntime(currentRuntime => {
+        if (currentRuntime) {
+          console.log('[RuntimeProvider] Disposing existing runtime before setting new one');
+          try {
+            executionLogService.cleanup();
+            factoryRef.current.disposeRuntime(currentRuntime);
+          } catch (err) {
+            console.error('[RuntimeProvider] Error disposing existing runtime:', err);
+          }
+        }
+        return newRuntime;
+      });
+
       if (newRuntime) {
-        // Start logging session for new execution
-        // Note: Historical logs are accessed via executionLogService.getHistoricalLogs()
-        // and should NOT be hydrated into runtime memory to avoid duplicate allocations
         executionLogService.startSession(newRuntime);
-        
-        // Update runtime ref for cleanup
         currentRuntimeRef.current = newRuntime;
       } else {
         console.warn('[RuntimeProvider] Factory returned null runtime for block:', block.id);
         currentRuntimeRef.current = null;
       }
-
-      setRuntime(newRuntime);
     } catch (err) {
       console.error('[RuntimeProvider] Error creating runtime:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -127,7 +127,7 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
     } finally {
       setIsInitializing(false);
     }
-  }, []);
+  }, [isInitializing]);
 
   // Cleanup on unmount - use ref to avoid stale closure
   useEffect(() => {

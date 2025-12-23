@@ -728,6 +728,10 @@ export class TestableRuntime implements IScriptRuntime {
 
       subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void) {
         return original.subscribe(callback);
+      },
+
+      setEventDispatcher(dispatcher: import('../IRuntimeMemory').MemoryEventDispatcher | null) {
+        original.setEventDispatcher(dispatcher);
       }
     };
   }

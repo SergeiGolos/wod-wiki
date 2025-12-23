@@ -8,7 +8,13 @@ export type EventHandlerRegistration = {
   priority: number;
 };
 
-import { IEventBus } from './IEventBus';
+import { IEventBus, EventCallback } from './IEventBus';
+
+type CallbackRegistration = {
+  id: string;
+  callback: EventCallback;
+  ownerId: string;
+};
 
 /**
  * Simple in-memory event bus for runtime events.
@@ -18,6 +24,7 @@ import { IEventBus } from './IEventBus';
  */
 export class EventBus implements IEventBus {
   private handlersByEvent: Map<string, EventHandlerRegistration[]> = new Map();
+  private callbacksByEvent: Map<string, CallbackRegistration[]> = new Map();
 
   register(
     eventName: string,
@@ -34,7 +41,17 @@ export class EventBus implements IEventBus {
     return () => this.unregisterById(handler.id);
   }
 
+  on(eventName: string, callback: EventCallback, ownerId: string): () => void {
+    const id = crypto.randomUUID();
+    const list = this.callbacksByEvent.get(eventName) ?? [];
+    list.push({ id, callback, ownerId });
+    this.callbacksByEvent.set(eventName, list);
+
+    return () => this.unregisterById(id);
+  }
+
   unregisterById(handlerId: string): void {
+    // Unregister from handlers
     for (const [eventName, list] of this.handlersByEvent.entries()) {
       const filtered = list.filter(entry => entry.handler.id !== handlerId);
       if (filtered.length === 0) {
@@ -43,9 +60,20 @@ export class EventBus implements IEventBus {
         this.handlersByEvent.set(eventName, filtered);
       }
     }
+    
+    // Unregister from callbacks
+    for (const [eventName, list] of this.callbacksByEvent.entries()) {
+      const filtered = list.filter(entry => entry.id !== handlerId);
+      if (filtered.length === 0) {
+        this.callbacksByEvent.delete(eventName);
+      } else {
+        this.callbacksByEvent.set(eventName, filtered);
+      }
+    }
   }
 
   unregisterByOwner(ownerId: string): void {
+    // Unregister handlers by owner
     for (const [eventName, list] of this.handlersByEvent.entries()) {
       const filtered = list.filter(entry => entry.ownerId !== ownerId);
       if (filtered.length === 0) {
@@ -54,9 +82,34 @@ export class EventBus implements IEventBus {
         this.handlersByEvent.set(eventName, filtered);
       }
     }
+    
+    // Unregister callbacks by owner
+    for (const [eventName, list] of this.callbacksByEvent.entries()) {
+      const filtered = list.filter(entry => entry.ownerId !== ownerId);
+      if (filtered.length === 0) {
+        this.callbacksByEvent.delete(eventName);
+      } else {
+        this.callbacksByEvent.set(eventName, filtered);
+      }
+    }
   }
 
   dispatch(event: IEvent, runtime: IScriptRuntime): void {
+    // First, invoke simple callbacks (no actions)
+    const callbacks = [
+      ...(this.callbacksByEvent.get('*') ?? []),
+      ...(this.callbacksByEvent.get(event.name) ?? [])
+    ];
+    
+    for (const entry of callbacks) {
+      try {
+        entry.callback(event, runtime);
+      } catch (error) {
+        console.error(`EventBus callback error for ${event.name}:`, error);
+      }
+    }
+    
+    // Then, invoke action-producing handlers
     const list = [
       ...(this.handlersByEvent.get('*') ?? []),
       ...(this.handlersByEvent.get(event.name) ?? [])

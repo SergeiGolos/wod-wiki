@@ -1,4 +1,4 @@
-import { IRuntimeMemory, Nullable } from './IRuntimeMemory';
+import { IRuntimeMemory, Nullable, MemoryEventDispatcher } from './IRuntimeMemory';
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 
 export type MemoryLocation = {
@@ -10,11 +10,24 @@ export class RuntimeMemory implements IRuntimeMemory {
     // Linear storage for memory locations
     private _references: MemoryLocation[] = [];
     private _globalSubscribers: Set<(ref: IMemoryReference, value: any, oldValue: any) => void> = new Set();
+    private _eventDispatcher: MemoryEventDispatcher | null = null;
+
+    /**
+     * Sets the event dispatcher for memory events.
+     * This connects the memory system to the EventBus.
+     */
+    setEventDispatcher(dispatcher: MemoryEventDispatcher | null): void {
+        this._eventDispatcher = dispatcher;
+    }
 
     // Allocates a new memory location and returns a reference to it.
     allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' | 'inherited' = 'private'): TypedMemoryReference<T> {
         const ref = new TypedMemoryReference<T>(this, ownerId, type, visibility);        
         this._references.push({ ref, data: initialValue });
+        
+        // Dispatch allocate event
+        this._eventDispatcher?.('allocate', ref, initialValue);
+        
         return ref;
     }
 
@@ -39,11 +52,15 @@ export class RuntimeMemory implements IRuntimeMemory {
             reference.notifySubscribers(value, oldValue);
         }
 
-        // Notify global subscribers
+        // Notify global subscribers (deprecated)
         this._globalSubscribers.forEach(callback => callback(reference, value, oldValue));
+        
+        // Dispatch set event
+        this._eventDispatcher?.('set', reference, value, oldValue);
     }
 
     // Subscribe to all memory changes
+    // @deprecated Use EventBus handlers instead
     subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void): () => void {
         this._globalSubscribers.add(callback);
         return () => {
@@ -68,13 +85,20 @@ export class RuntimeMemory implements IRuntimeMemory {
     release(reference: IMemoryReference): void {
         const idx = this._references.findIndex(l => l.ref.id === reference.id);
         if (idx >= 0) {
+            const loc = this._references[idx];
+            const lastValue = loc.data;
+            
             // If this is a TypedMemoryReference with subscribers, notify them before releasing
-            const ref = this._references[idx].ref;
+            const ref = loc.ref;
             if (ref instanceof TypedMemoryReference && ref.hasSubscribers()) {
                 // Notify subscribers that the reference is being released
-                ref.notifySubscribers(undefined, this.get(ref as any));
+                ref.notifySubscribers(undefined, lastValue);
             }
+            
             this._references.splice(idx, 1);
+            
+            // Dispatch release event
+            this._eventDispatcher?.('release', reference, lastValue);
         }
     }
 }
