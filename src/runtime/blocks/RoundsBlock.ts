@@ -116,7 +116,7 @@ export class RoundsBlock extends RuntimeBlock {
     // Allocate public reps metric for child blocks to inherit
     // Initialize with first round's reps (from rep scheme if available)
     if (config.repScheme && config.repScheme.length > 0) {
-      const initialReps = config.repScheme[0];
+      //const initialReps = config.repScheme[0];
       // We'll update the global metrics object instead of a specific ref
 
     }

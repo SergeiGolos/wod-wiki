@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { RoundsBlock } from '../../src/runtime/blocks/RoundsBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { JitCompiler } from '../../src/runtime/JitCompiler';
 import { WodScript } from '../../src/parser/WodScript';
-import { BlockKey } from '../../src/core/models/BlockKey';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
@@ -68,7 +67,7 @@ describe('RoundsBlock - Metric Inheritance', () => {
     expect(metricsRefs.length).toBeGreaterThan(0);
 
     // Verify initial value is 21 (first round)
-    const metrics = runtime.memory.get(metricsRefs[0] as any);
+    const metrics = runtime.memory.get(metricsRefs[0] as any) as any;
     expect(metrics).toBeDefined();
     expect(metrics['reps']).toBeDefined();
     expect(metrics['reps'].value).toBe(21);
@@ -124,7 +123,7 @@ describe('RoundsBlock - Metric Inheritance', () => {
     runtime.stack.pop();
 
     // Call next() to advance to round 3
-    const round3Actions = roundsBlock.next(runtime);
+    roundsBlock.next(runtime);
 
     // Verify reps updated to 9
     expect((runtime.memory.get(metricsRef as any) as any).reps.value).toBe(9);

@@ -37,7 +37,7 @@ function createMockRuntime(clockTime: Date = new Date()) {
       dispose: vi.fn(),
     },
     clock: mockClock,
-    handle: vi.fn((event: IEvent) => []),
+    handle: vi.fn((_event: IEvent) => []),
     compile: vi.fn(),
     errors: [],
   };

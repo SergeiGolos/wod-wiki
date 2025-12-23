@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
-import { TimeBoundRoundsStrategy, RoundsStrategy, EffortStrategy } from '../../../src/runtime/strategies';
+import { RoundsStrategy, EffortStrategy } from '../../../src/runtime/strategies';
 import { MdTimerRuntime } from '../../../src/parser/md-timer';
 import { WodScript } from '../../../src/parser/WodScript';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';

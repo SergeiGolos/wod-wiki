@@ -3,7 +3,6 @@ import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { BlockContext } from '../../../src/runtime/BlockContext';
 import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
 import { IAnchorValue } from '../../../src/runtime/IAnchorValue';
-import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
@@ -40,7 +39,7 @@ describe('Anchor-Based Subscription Model', () => {
 
   describe('MemoryTypeEnum.ANCHOR', () => {
     it('should include ANCHOR type in MemoryTypeEnum', () => {
-      expect(MemoryTypeEnum.ANCHOR).toBe('anchor');
+      expect(MemoryTypeEnum.ANCHOR.toString()).toBe('anchor');
     });
   });
 
