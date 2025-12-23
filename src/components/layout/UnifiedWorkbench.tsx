@@ -397,6 +397,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
                   setIsOpen(true);
                 }}
                 className="text-muted-foreground hover:text-foreground"
+                aria-label="Open command palette"
+                title="Open command palette"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -410,6 +412,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
               size={isMobile ? 'icon' : 'sm'}
               onClick={() => setViewMode('plan')}
               className={cn('gap-2', viewMode !== 'plan' && 'text-muted-foreground hover:text-foreground')}
+              aria-label={isMobile ? "Switch to Plan view" : undefined}
+              title={isMobile ? "Switch to Plan view" : undefined}
             >
               <Edit className="h-4 w-4" />
               {!isMobile && 'Plan'}
@@ -419,6 +423,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
               size={isMobile ? 'icon' : 'sm'}
               onClick={() => setViewMode('track')}
               className={cn('gap-2', viewMode !== 'track' && 'text-muted-foreground hover:text-foreground')}
+              aria-label={isMobile ? "Switch to Track view" : undefined}
+              title={isMobile ? "Switch to Track view" : undefined}
             >
               <Timer className="h-4 w-4" />
               {!isMobile && 'Track'}
@@ -428,6 +434,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
               size={isMobile ? 'icon' : 'sm'}
               onClick={() => setViewMode('analyze')}
               className={cn('gap-2', viewMode !== 'analyze' && 'text-muted-foreground hover:text-foreground')}
+              aria-label={isMobile ? "Switch to Analyze view" : undefined}
+              title={isMobile ? "Switch to Analyze view" : undefined}
             >
               <BarChart2 className="h-4 w-4" />
               {!isMobile && 'Analyze'}
@@ -444,6 +452,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors ml-2"
                 title="Check us out on GitHub"
+                aria-label="Visit WOD Wiki on GitHub"
               >
                 <Github className="h-5 w-5" />
               </a>
