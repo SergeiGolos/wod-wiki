@@ -12,6 +12,7 @@ import { CurrentMetrics } from '../models/MemoryModels';
 import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
+import { TypedMemoryReference } from '../IMemoryReference';
 
 /**
  * EffortBlock Configuration
@@ -54,6 +55,7 @@ export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
   private _forceComplete = false;
+  private metricsRef?: TypedMemoryReference<CurrentMetrics>;
 
   constructor(
     runtime: IScriptRuntime,
@@ -242,20 +244,21 @@ export class EffortBlock extends RuntimeBlock {
   private updateMetrics(runtime: IScriptRuntime): void {
     const blockId = this.key.toString();
 
-    // 1. Update METRICS_CURRENT for live UI
-    const metricsRef = runtime.memory.allocate<CurrentMetrics>(
-      MemoryTypeEnum.METRICS_CURRENT,
-      'runtime',
-      {},
-      'public'
-    );
-    const metrics = metricsRef.get() || {};
+    // 1. Update METRICS_CURRENT for live UI - use cached reference via context
+    if (!this.metricsRef) {
+      this.metricsRef = this.context.allocate<CurrentMetrics>(
+        MemoryTypeEnum.METRICS_CURRENT,
+        {},
+        'public'
+      );
+    }
+    const metrics = this.metricsRef.get() || {};
     metrics['reps'] = {
       value: this.currentReps,
       unit: 'reps',
       sourceId: blockId
     };
-    metricsRef.set({ ...metrics });
+    this.metricsRef.set({ ...metrics });
 
     // 2. Sync to ExecutionSpan for history/analytics
     // This ensures live updates are reflected in the execution log

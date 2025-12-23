@@ -1,4 +1,4 @@
-import { ICodeStatement } from "@/CodeStatement";
+import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 

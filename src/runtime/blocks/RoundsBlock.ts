@@ -203,15 +203,14 @@ export class RoundsBlock extends RuntimeBlock {
     return actions;
   }
 
-  private updateMetrics(runtime: IScriptRuntime): void {
+  private updateMetrics(_runtime: IScriptRuntime): void {
     if (this.config.repScheme) {
       const currentReps = this.getRepsForCurrentRound();
       if (currentReps !== undefined) {
-        // Reuse existing ref or create new one
+        // Reuse existing ref or create new one via context
         if (!this.metricsRef) {
-          this.metricsRef = runtime.memory.allocate<CurrentMetrics>(
+          this.metricsRef = this.context.allocate<CurrentMetrics>(
             MemoryTypeEnum.METRICS_CURRENT,
-            this.key.toString(),
             {},
             'public'
           );

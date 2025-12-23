@@ -4,19 +4,11 @@ import { MetricBehavior } from '../types/MetricBehavior';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IBlockContext } from './IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './IEventHandler';
 import { IEvent } from './IEvent';
-
-
-export type AllocateRequest<T> = {
-    type: string;
-    visibility?: 'public' | 'private';
-    initialValue?: T
-};
 
 export class RuntimeBlock implements IRuntimeBlock {
     protected readonly behaviors: IRuntimeBehavior[] = []
@@ -26,7 +18,6 @@ export class RuntimeBlock implements IRuntimeBlock {
     public readonly fragments: ICodeFragment[][];
     public readonly context: IBlockContext;
     public executionTiming: BlockLifecycleOptions = {};
-    private _memory: IMemoryReference[] = [];
     private _unsubscribers: Array<() => void> = [];
     private elapsedFragmentRecorded = false;
 
@@ -116,21 +107,6 @@ export class RuntimeBlock implements IRuntimeBlock {
 
 
     /**
-     * Allocates memory for this block's state.
-     * The memory will be automatically cleaned up when the block is popped from the stack.
-     */
-    protected allocate<T>(request: AllocateRequest<T>): TypedMemoryReference<T> {
-        if (!this._runtime) {
-            throw new Error(`Cannot allocate memory: runtime not set for block ${this.key.toString()}`);
-        }
-
-        const ref = this._runtime.memory.allocate<T>(request.type, this.key.toString(), request.initialValue, request.visibility || 'private');
-        this._memory.push(ref);
-        return ref;
-    }
-
-
-    /**
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      */
@@ -202,10 +178,6 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
 
-        // Clean up legacy memory references (for backward compatibility)
-        for (const memRef of this._memory) {
-            runtime.memory.release(memRef);
-        }
         // Unsubscribe from event bus
         for (const unsub of this._unsubscribers) {
             try { unsub(); } catch (error) { console.error('Error unsubscribing handler', error); }

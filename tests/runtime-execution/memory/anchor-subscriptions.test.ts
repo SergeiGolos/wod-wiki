@@ -7,7 +7,6 @@ import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
 import { EventBus } from '../../../src/runtime/EventBus';
-
 import { WodScript } from '../../../src/parser/WodScript';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 
