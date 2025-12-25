@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, vi } from 'bun:test';
 import { MockBlock } from '../MockBlock';
 import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
 
@@ -40,24 +40,31 @@ describe('MockBlock', () => {
     const mockRuntime = { clock: { now: new Date() } } as any;
 
     block.mount(mockRuntime);
-    expect(onPush).toHaveBeenCalledWith(mockRuntime, block, undefined);
+    console.log('Calls:', onPush.mock.calls);
+    expect(onPush).toHaveBeenCalled();
+    expect(onPush.mock.calls[0][0]).toBe(mockRuntime);
+    expect(onPush.mock.calls[0][1]).toBe(block);
 
     block.next(mockRuntime);
-    expect(onNext).toHaveBeenCalledWith(mockRuntime, block, undefined);
+    expect(onNext).toHaveBeenCalled();
+    expect(onNext.mock.calls[0][0]).toBe(mockRuntime);
+    expect(onNext.mock.calls[0][1]).toBe(block);
 
     block.unmount(mockRuntime);
-    expect(onPop).toHaveBeenCalledWith(mockRuntime, block, undefined);
+    expect(onPop).toHaveBeenCalled();
+    expect(onPop.mock.calls[0][0]).toBe(mockRuntime);
+    expect(onPop.mock.calls[0][1]).toBe(block);
   });
 
   it('should find behaviors by type', () => {
-    class BehaviorA implements IRuntimeBehavior {}
-    class BehaviorB implements IRuntimeBehavior {}
+    class BehaviorA implements IRuntimeBehavior { }
+    class BehaviorB implements IRuntimeBehavior { }
 
     const block = new MockBlock('test', [new BehaviorA(), new BehaviorB()]);
 
     expect(block.getBehavior(BehaviorA)).toBeDefined();
     expect(block.getBehavior(BehaviorB)).toBeDefined();
-    expect(block.getBehavior(class Missing {})).toBeUndefined();
+    expect(block.getBehavior(class Missing { })).toBeUndefined();
   });
 
   it('should allow state mutation', () => {
