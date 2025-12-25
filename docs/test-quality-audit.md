@@ -10,6 +10,10 @@
 
 This audit identified **7 test files** with significant quality issues that reduce test reliability, maintainability, and coverage effectiveness. The issues range from structural problems (truncated files, missing imports) to design problems (code duplication, weak assertions, missing edge cases).
 
+**Status Update (Current):**
+- ✅ `TimerBehavior.test.ts` has been migrated to use `BehaviorTestHarness`, removing inline mocks and duplication.
+- 🚧 Other files remain pending refactoring.
+
 ---
 
 ## Issues by Severity
@@ -45,22 +49,11 @@ describe.each([
 
 ---
 
-#### 2. TimerBehavior Tests
+#### 2. TimerBehavior Tests (✅ RESOLVED)
 **File:** `src/runtime/behaviors/__tests__/TimerBehavior.test.ts`
 
-**Issues:**
-| Issue | Description | Impact |
-|-------|-------------|--------|
-| Missing imports | File starts with comment, no imports visible | Won't compile |
-| Undefined helpers | `createMockRuntime`, `createEventCapture` not imported | Runtime errors |
-| Weak assertions | Uses `toBeGreaterThanOrEqual(1)` instead of exact counts | False positives |
-| Timing fragility | `expect(remaining).toBeGreaterThanOrEqual(6900)` depends on execution speed | Flaky tests |
-
-**Proposed Test Types:**
-- [ ] **Mock clock injection** - Use deterministic time control, not real timing
-- [ ] **Exact assertions** - Assert specific call counts and values
-- [ ] **Contract tests** - Verify API contract with strict expectations
-- [ ] **State machine tests** - Test all valid state transitions explicitly
+**Resolution:**
+Migrated to `BehaviorTestHarness` in `tests/harness`. Inline mocks removed.
 
 ---
 
@@ -253,15 +246,15 @@ afterEach(() => {
 
 ## Implementation Priority
 
-| Priority | File | Effort | Impact |
-|----------|------|--------|--------|
-| 1 | `strategy-matching.test.ts` | Medium | High - Core JIT functionality |
-| 2 | `TimerBehavior.test.ts` | Medium | High - Timer is critical path |
-| 3 | `next-button-workflow.test.ts` | High | High - User interaction flow |
-| 4 | `*-fragment.parser.test.ts` | Low | Medium - Parser edge cases |
-| 5 | `stack-disposal.test.ts` | Low | Medium - Memory management |
-| 6 | `EffortStrategy.test.ts` | Low | Low - Working but messy |
-| 7 | `timeUtils.test.ts` | Low | Low - Minor improvements |
+| Priority | File | Effort | Impact | Status |
+|----------|------|--------|--------|--------|
+| 1 | `strategy-matching.test.ts` | Medium | High | Pending |
+| 2 | `TimerBehavior.test.ts` | Medium | High | ✅ Done |
+| 3 | `next-button-workflow.test.ts` | High | High | Pending |
+| 4 | `*-fragment.parser.test.ts` | Low | Medium | Pending |
+| 5 | `stack-disposal.test.ts` | Low | Medium | Pending |
+| 6 | `EffortStrategy.test.ts` | Low | Low | Pending |
+| 7 | `timeUtils.test.ts` | Low | Low | Pending |
 
 ---
 
