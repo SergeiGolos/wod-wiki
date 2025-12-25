@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { BehaviorTestHarness } from '../BehaviorTestHarness';
 import { MockBlock } from '../MockBlock';
 import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';

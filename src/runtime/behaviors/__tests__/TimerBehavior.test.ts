@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '../../../../tests/harness/BehaviorTestHarness';
 import { MockBlock } from '../../../../tests/harness/MockBlock';
 import { TimerBehavior } from '../TimerBehavior';
@@ -260,7 +260,6 @@ describe('TimerBehavior Contract (Migrated)', () => {
       harness.push(block);
       harness.mount();
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(() => {
         block.dispose(harness.runtime);
       }).not.toThrow();
@@ -268,7 +267,6 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
     it('should not throw when disposing inactive timer', () => {
       const block = new MockBlock('test-block', [new TimerBehavior('up')]);
-      const behavior = block.getBehavior(TimerBehavior)!;
 
       expect(() => {
         block.dispose(harness.runtime);

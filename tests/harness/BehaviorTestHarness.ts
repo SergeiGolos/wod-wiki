@@ -82,9 +82,9 @@ export class BehaviorTestHarness {
       stack: this._stack,
       eventBus: this._eventBus,
       clock: this._clock,
-      jit: {} as any, // Not used in behavior tests
-      script: {} as any, // Not used in behavior tests
-      tracker: {} as any, // Not used in behavior tests
+      jit: {} as unknown as IScriptRuntime['jit'], // Not used in behavior tests
+      script: {} as unknown as IScriptRuntime['script'], // Not used in behavior tests
+      tracker: {} as unknown as IScriptRuntime['tracker'], // Not used in behavior tests
       errors: [],
 
       handle(event: IEvent) {
