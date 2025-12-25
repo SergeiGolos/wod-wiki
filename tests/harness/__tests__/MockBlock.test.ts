@@ -1,9 +1,6 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { MockBlock } from '../MockBlock';
 import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
-import { IRuntimeAction } from '@/runtime/IRuntimeAction';
-import { IScriptRuntime } from '@/runtime/IScriptRuntime';
-import { IRuntimeBlock } from '@/runtime/IRuntimeBlock';
 
 describe('MockBlock', () => {
   it('should initialize with minimal configuration', () => {

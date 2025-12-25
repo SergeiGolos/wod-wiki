@@ -7,7 +7,8 @@
  *
  * ### Unit Testing (Behaviors)
  * ```typescript
- * import { BehaviorTestHarness, MockBlock } from 'tests/harness';
+ * // From src/runtime/behaviors/__tests__/
+ * import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
  *
  * const harness = new BehaviorTestHarness().withClock(new Date());
  * const block = new MockBlock('test', [new TimerBehavior('up')]);
@@ -16,7 +17,8 @@
  *
  * ### Integration Testing (Blocks)
  * ```typescript
- * import { RuntimeTestBuilder } from 'tests/harness';
+ * // From tests/integration/
+ * import { RuntimeTestBuilder } from '../harness';
  *
  * const harness = new RuntimeTestBuilder()
  *   .withScript('3 Rounds\n  10 Pushups')

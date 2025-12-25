@@ -21,22 +21,26 @@ class MockBlockContext implements IBlockContext {
     this.exerciseId = blockId;
   }
 
-  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): any {
+  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): IMemoryReference {
+    let currentValue = _initialValue;
     return {
       id: `mock-ref-${Math.random().toString(36).slice(2)}`,
       type: _type ?? 'mock',
       ownerId: this.ownerId,
-      visibility: _visibility ?? 'private',
-      get: () => _initialValue,
-      set: () => {}
-    };
+      visibility: (_visibility ?? 'private') as 'public' | 'private' | 'inherited',
+      value: () => currentValue,
+      subscriptions: [],
+      // Extended TypedMemoryReference-like methods for compatibility
+      get: () => currentValue,
+      set: (value: T) => { currentValue = value; }
+    } as any;
   }
 
   get<T>(_type?: string): T | undefined { return undefined; }
   getAll<T>(_type?: string): T[] { return []; }
   release(): void { this._released = true; }
   isReleased(): boolean { return this._released; }
-  getOrCreateAnchor(): any { return this.allocate('anchor'); }
+  getOrCreateAnchor(): IMemoryReference { return this.allocate('anchor'); }
 }
 
 /**
