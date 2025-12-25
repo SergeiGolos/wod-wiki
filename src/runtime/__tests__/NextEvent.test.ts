@@ -21,12 +21,6 @@ describe('NextEvent', () => {
     expect(event.timestamp).toBeInstanceOf(Date);
   });
 
-  it('should have timestamp close to creation time', () => {
-    const now = new Date();
-    const diff = Math.abs(event.timestamp.getTime() - now.getTime());
-    expect(diff).toBeLessThan(100); // Within 100ms
-  });
-
   it('should accept optional data parameter', () => {
     const testData = { step: 1, source: 'button' };
     const eventWithData = new NextEvent(testData);

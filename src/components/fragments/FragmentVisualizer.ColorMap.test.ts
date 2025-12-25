@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { getFragmentColorClasses, fragmentColorMap } from '../../views/runtime/fragmentColorMap';
 
-describe('fragmentColorMap', () => {
+describe('Visual Fragment Colors Test Suite', () => {
   describe('fragmentColorMap constant', () => {
     it('should have color classes for all 10 fragment types', () => {
       const expectedTypes = [
