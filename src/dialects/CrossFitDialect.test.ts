@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { CrossFitDialect } from '../CrossFitDialect';
-import { MdTimerRuntime } from '../../parser/md-timer';
-import { ICodeStatement } from '../../core/models/CodeStatement';
+import { CrossFitDialect } from './CrossFitDialect';
+import { MdTimerRuntime } from '../parser/md-timer';
+import { ICodeStatement } from '../core/models/CodeStatement';
 
 describe('CrossFitDialect', () => {
   const dialect = new CrossFitDialect();
