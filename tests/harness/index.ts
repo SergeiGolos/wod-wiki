@@ -35,6 +35,13 @@ export {
   type CapturedAction,
   type CapturedEvent
 } from './BehaviorTestHarness';
+export {
+  RuntimeTestBuilder,
+  RuntimeTestHarness,
+  type RuntimeSnapshot,
+  type MemoryEntry,
+  type SnapshotDiff
+} from './RuntimeTestBuilder';
 
 // Assertion helpers
 // export * from './assertions'; // Will be enabled in Phase 4
