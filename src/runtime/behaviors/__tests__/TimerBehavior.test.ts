@@ -32,12 +32,12 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('onPush()', () => {
     it('should start timer', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.isRunning()).toBe(true);
     });
 
@@ -69,7 +69,8 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('onPop()', () => {
     it('should preserve elapsed time state after pop', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
@@ -77,7 +78,6 @@ describe('TimerBehavior Contract (Migrated)', () => {
       // Advance clock
       harness.advanceClock(5000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       const elapsedBefore = behavior.getElapsedMs();
       expect(elapsedBefore).toBeGreaterThanOrEqual(5000);
 
@@ -91,13 +91,13 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('Elapsed Time', () => {
     it('should track elapsed time correctly', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
       harness.advanceClock(1000);
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.getElapsedMs()).toBeGreaterThanOrEqual(1000);
 
       harness.advanceClock(500);
@@ -105,14 +105,14 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should return display time in seconds', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(1500);
 
       // Display time is in seconds, rounded to 0.1s
-      const behavior = block.getBehavior(TimerBehavior)!;
       const displayTime = behavior.getDisplayTime();
       expect(displayTime).toBeGreaterThanOrEqual(1.5);
     });
@@ -120,13 +120,13 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('Countdown Timer', () => {
     it('should calculate remaining time for countdown', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('down', 10000)]);
+      const behavior = new TimerBehavior('down', 10000);
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
       harness.advanceClock(3000);
-      const behavior = block.getBehavior(TimerBehavior)!;
       const remaining = behavior.getRemainingMs();
 
       expect(remaining).toBeLessThanOrEqual(7000);
@@ -134,38 +134,38 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should detect completion when countdown reaches zero', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('down', 1000)]);
+      const behavior = new TimerBehavior('down', 1000);
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
       harness.advanceClock(1500);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.isComplete()).toBe(true);
     });
 
     it('should NOT mark count-up timers as complete', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(60000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.isComplete()).toBe(false);
     });
   });
 
   describe('Pause/Resume', () => {
     it('should stop tracking elapsed when paused', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(1000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       behavior.pause();
       const elapsedAtPause = behavior.getElapsedMs();
 
@@ -177,13 +177,13 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should resume tracking elapsed when resumed', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(1000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       behavior.pause();
       harness.advanceClock(5000);
 
@@ -195,12 +195,12 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('Start/Stop', () => {
     it('should be running after start()', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       behavior.stop();
       expect(behavior.isRunning()).toBe(false);
 
@@ -209,12 +209,12 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should not be running after stop()', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.isRunning()).toBe(true);
 
       behavior.stop();
@@ -224,13 +224,13 @@ describe('TimerBehavior Contract (Migrated)', () => {
 
   describe('Reset/Restart', () => {
     it('should reset elapsed time on reset()', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(5000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.getElapsedMs()).toBeGreaterThanOrEqual(5000);
 
       behavior.reset();
@@ -238,13 +238,13 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should restart timer on restart()', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
       harness.advanceClock(5000);
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       behavior.restart();
 
       // After restart, timer should be running with fresh state
@@ -274,12 +274,12 @@ describe('TimerBehavior Contract (Migrated)', () => {
     });
 
     it('should stop timer on dispose', () => {
-      const block = new MockBlock('test-block', [new TimerBehavior('up')]);
+      const behavior = new TimerBehavior('up');
+      const block = new MockBlock('test-block', [behavior]);
 
       harness.push(block);
       harness.mount();
 
-      const behavior = block.getBehavior(TimerBehavior)!;
       expect(behavior.isRunning()).toBe(true);
 
       block.dispose(harness.runtime);
