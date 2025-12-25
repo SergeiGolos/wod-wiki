@@ -22,14 +22,18 @@ class MockBlockContext implements IBlockContext {
   }
 
   allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): IMemoryReference {
+    let currentValue = _initialValue;
     return {
       id: `mock-ref-${Math.random().toString(36).slice(2)}`,
       type: _type ?? 'mock',
       ownerId: this.ownerId,
       visibility: (_visibility ?? 'private') as 'public' | 'private' | 'inherited',
-      value: () => _initialValue,
-      subscriptions: []
-    };
+      value: () => currentValue,
+      subscriptions: [],
+      // Extended TypedMemoryReference-like methods for compatibility
+      get: () => currentValue,
+      set: (value: T) => { currentValue = value; }
+    } as any;
   }
 
   get<T>(_type?: string): T | undefined { return undefined; }
