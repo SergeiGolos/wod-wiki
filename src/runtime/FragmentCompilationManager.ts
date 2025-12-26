@@ -1,4 +1,6 @@
 import { ICodeFragment } from "../CodeFragment";
+import { EffortFragment } from "../fragments/EffortFragment";
+import { TextFragment } from "../fragments/TextFragment";
 import { MetricBehavior } from "../types/MetricBehavior";
 import { RuntimeMetric, MetricValue } from "./RuntimeMetric";
 import { IScriptRuntime } from "./IScriptRuntime";
@@ -9,7 +11,15 @@ export interface IFragmentCompiler {
     compile(fragment: ICodeFragment, runtime: IScriptRuntime): MetricValue[];
 }
 
-// Note: Text fragments are handled by type guard checks without a local interface.
+// Type guard for effort fragments
+function isEffortFragment(fragment: ICodeFragment): fragment is EffortFragment {
+    return fragment.type === 'effort';
+}
+
+// Type guard for text fragments
+function isTextFragment(fragment: ICodeFragment): fragment is TextFragment {
+    return fragment.type === 'text';
+}
 
 export class FragmentCompilationManager {
     private readonly compilers: Map<string, IFragmentCompiler> = new Map();
@@ -29,16 +39,16 @@ export class FragmentCompilationManager {
                 allValues.push(...compiler.compile(fragment, context));
             }
 
-            if (fragment.type === 'effort') {
+            if (isEffortFragment(fragment)) {
                 if (effort.length > 0) {
                     effort += ', ';
                 }
-                effort += (fragment as any).value;
-            } else if (fragment.type === 'text') {
+                effort += fragment.value;
+            } else if (isTextFragment(fragment)) {
                 if (effort.length > 0) {
                     effort += ', ';
                 }
-                effort += (fragment as any).value.text;
+                effort += fragment.value.text;
             }
         }
 

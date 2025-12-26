@@ -8,5 +8,5 @@ export interface IEvent {
   /** Timestamp when the event occurred */
   timestamp: Date;
   /** Additional event data */
-  data?: any;
+  data?: unknown;
 }

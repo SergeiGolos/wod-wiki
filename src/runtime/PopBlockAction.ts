@@ -33,8 +33,10 @@ export class PopBlockAction implements IRuntimeAction {
 
             runtime.popBlock(lifecycle);
         } catch (error) {
-            if (typeof (runtime as any).setError === 'function') {
-                (runtime as any).setError(error);
+            // Check if runtime has optional setError method
+            const runtimeWithSetError = runtime as IScriptRuntime & { setError?: (error: unknown) => void };
+            if (typeof runtimeWithSetError.setError === 'function') {
+                runtimeWithSetError.setError(error);
             }
         }
     }

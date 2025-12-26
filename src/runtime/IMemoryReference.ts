@@ -16,13 +16,13 @@ export interface IMemoryReference {
      * Useful for debugging and generic operations.
      * @returns The current value or undefined
      */
-    value(): any | undefined;
+    value(): unknown;
     
     /**
      * List of active subscriptions for this memory reference.
      * Readonly access for debugging and inspection.
      */
-    readonly subscriptions: ReadonlyArray<IMemorySubscription<any>>;
+    readonly subscriptions: ReadonlyArray<IMemorySubscription<unknown>>;
 }
 
 export interface IMemorySubscription<T> {
@@ -54,7 +54,7 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
      * Get the current value in an untyped manner.
      * Implements IMemoryReference.value() for debugging and inspection.
      */
-    value(): any | undefined {
+    value(): unknown {
         return this.get();
     }
     
@@ -62,7 +62,7 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
      * Readonly access to subscriptions list.
      * Implements IMemoryReference.subscriptions for debugging and inspection.
      */
-    get subscriptions(): ReadonlyArray<IMemorySubscription<any>> {
+    get subscriptions(): ReadonlyArray<IMemorySubscription<unknown>> {
         return this._subscriptions;
     }
             

@@ -1,3 +1,4 @@
+import { IEvent } from './IEvent';
 import { IEventHandler } from './IEventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { NextAction } from './NextAction';
@@ -29,7 +30,7 @@ export class NextEventHandler implements IEventHandler {
     throw new Error('Cannot modify readonly property name');
   }
 
-  handler(event: any, runtime: IScriptRuntime): IRuntimeAction[] {
+  handler(event: IEvent, runtime: IScriptRuntime): IRuntimeAction[] {
     // Event filtering
     if (event.name !== 'next') {
       return [];

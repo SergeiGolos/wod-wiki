@@ -55,7 +55,7 @@ export class NextAction implements IRuntimeAction {
     }
 
     // Check for corrupted memory state
-    if ((runtime.memory as any).state === 'corrupted') {
+    if ('state' in runtime.memory && runtime.memory.state === 'corrupted') {
       return false;
     }
 
