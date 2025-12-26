@@ -391,14 +391,15 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     });
 
     if (refs.length > 0) {
-      const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
+      const ref = refs[0] as TypedMemoryReference<TrackedSpan>;
+      const span = runtime.memory.get(ref);
       if (span && span.status === 'active') {
         const updatedSpan: TrackedSpan = {
           ...span,
           endTime: Date.now(),
           status: 'completed'
         };
-        runtime.memory.set(refs[0] as any, updatedSpan);
+        runtime.memory.set(ref, updatedSpan);
       }
     }
 
@@ -433,14 +434,15 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       });
 
       if (refs.length > 0) {
-        const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
+        const ref = refs[0] as TypedMemoryReference<TrackedSpan>;
+        const span = runtime.memory.get(ref);
         if (span && span.status === 'active') {
           const updatedSpan: TrackedSpan = {
             ...span,
             endTime: Date.now(),
             status: 'completed'
           };
-          runtime.memory.set(refs[0] as any, updatedSpan);
+          runtime.memory.set(ref, updatedSpan);
         }
       }
     }
@@ -449,7 +451,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Only if we are not complete
     if (rounds < (this.config.totalRounds || Infinity)) {
       const newRoundOwnerId = `${blockId}-round-${nextRound}`;
-      const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'round';
+      const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'rounds';
       const label = this.config.loopType === LoopType.INTERVAL
         ? `Interval ${nextRound}`
         : `Round ${nextRound}`;
@@ -474,7 +476,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         id: `${startTime}-${newRoundOwnerId}`,
         blockId: newRoundOwnerId,
         parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock
-        type: spanType as any,
+        type: spanType,
         label: label,
         startTime: startTime,
         status: 'active',

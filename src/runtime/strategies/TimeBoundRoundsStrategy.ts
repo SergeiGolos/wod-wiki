@@ -18,6 +18,14 @@ import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
+ * Helper to extract optional exerciseId from code statement.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
+
+/**
  * Strategy that creates time-bound rounds blocks for AMRAP workouts.
  * Matches statements with Timer + (Rounds OR behavior.time_bound hint from dialect).
  *
@@ -92,7 +100,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (stmt as any)?.exerciseId || '';
+        const exerciseId = getExerciseId(stmt);
         const context = new BlockContext(runtime, blockId, exerciseId);
 
         // Create Behaviors

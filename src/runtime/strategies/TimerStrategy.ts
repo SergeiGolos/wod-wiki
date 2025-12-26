@@ -18,6 +18,14 @@ import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**
+ * Helper to extract optional exerciseId from code statement.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
+
+/**
  * Creates default countdown sound cues for a timer with specified duration.
  * Includes: 3-2-1 tick countdown and final buzzer.
  *
@@ -110,7 +118,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const blockId = blockKey.toString();
 
         // 2. Extract exerciseId from compiled metric or statement
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = getExerciseId(code[0]);
 
         // 3. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);

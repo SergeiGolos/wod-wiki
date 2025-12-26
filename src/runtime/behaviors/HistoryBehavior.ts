@@ -3,12 +3,20 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { TypedMemoryReference } from "../IMemoryReference";
 import { TrackedSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/TrackedSpan";
 import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**
- * Configuration for HistoryBehavior
+ * Type for current metrics storage
  */
+interface CurrentMetrics {
+    [key: string]: {
+        value: unknown;
+        unit?: string;
+        sourceId?: string;
+    };
+}
 export interface HistoryBehaviorConfig {
     /** Human-readable label for the span */
     label?: string;
@@ -46,7 +54,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
         this.startTime = Date.now();
 
         // Allocate start time in metrics
-        const metricsRef = runtime.memory.allocate<any>(
+        const metricsRef = runtime.memory.allocate<CurrentMetrics>(
             MemoryTypeEnum.METRICS_CURRENT,
             'runtime',
             {},
@@ -117,7 +125,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
         });
 
         if (refs.length > 0) {
-            const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
+            const ref = refs[0] as TypedMemoryReference<TrackedSpan>;
+            const span = runtime.memory.get(ref);
             if (span) {
                 // Collect any metrics associated with this block
                 // For now, we just close the span. 
@@ -128,7 +137,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
                     endTime: endTime,
                     status: 'completed'
                 };
-                runtime.memory.set(refs[0] as any, updatedSpan);
+                runtime.memory.set(ref, updatedSpan);
             }
         }
         return [];
