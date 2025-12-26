@@ -8,7 +8,7 @@ import {
   fragmentsToDisplayMetrics,
   getCollectedDisplayMetrics,
 } from '../fragmentsToDisplayMetrics';
-import { ICodeFragment, FragmentType, FragmentCollectionState } from '../../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 import { MetricBehavior } from '../../../types/MetricBehavior';
 
 describe('fragmentToDisplayMetric', () => {
