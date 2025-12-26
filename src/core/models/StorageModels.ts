@@ -1,4 +1,3 @@
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 
 /**
@@ -10,7 +9,7 @@ export interface WodResult {
   documentTitle: string;   // Snapshot of title in case doc is deleted
   timestamp: number;       // When the workout session finished (set by finishSession)
   duration: number;        // Total milliseconds
-  logs: (TrackedSpan | RuntimeSpan)[];   // The detailed runtime logs (splits, reps)
+  logs: RuntimeSpan[];   // The detailed runtime logs (splits, reps)
   metadata: {
     user?: string;
     notes?: string;

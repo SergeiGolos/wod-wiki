@@ -11,10 +11,9 @@
 import { ICodeStatement } from '../models/CodeStatement';
 import { FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import { spanMetricsToFragments, createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
+import { createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
 // ============================================================================
 // Constants
@@ -102,79 +101,7 @@ export function statementsToDisplayItems(
   });
 }
 
-// ============================================================================
-// TrackedSpan Adapter
-// ============================================================================
 
-/**
- * Convert an TrackedSpan to IDisplayItem
- * 
- * @param span The execution span
- * @param allSpans Map of all spans for depth calculation
- */
-export function spanToDisplayItem(
-  span: TrackedSpan,
-  allSpans: Map<string, TrackedSpan>
-): IDisplayItem {
-  // Calculate depth by traversing parent chain
-  let depth = 0;
-  let currentParentId = span.parentSpanId;
-  const visited = new Set<string>();
-  visited.add(span.id);
-
-  while (currentParentId && !visited.has(currentParentId)) {
-    visited.add(currentParentId);
-    const parent = allSpans.get(currentParentId);
-    if (parent) {
-      depth++;
-      currentParentId = parent.parentSpanId;
-    } else {
-      break;
-    }
-    if (depth > 20) break; // Safety limit
-  }
-
-  // Convert span metrics to fragments; prefer precomputed fragments if present
-  const fragments = (span.fragments && span.fragments.length > 0)
-    ? span.fragments
-    : spanMetricsToFragments(
-      span.metrics || {},
-      span.label,
-      span.type
-    );
-
-  // Map span status to display status
-  const status: DisplayStatus = span.status as DisplayStatus;
-
-  // Determine if header based on type
-  const isHeader = HEADER_TYPES.has(span.type.toLowerCase());
-
-  // Calculate duration if available
-  let duration: number | undefined;
-  if (span.startTime && span.endTime) {
-    duration = span.endTime - span.startTime;
-  }
-
-  return {
-    id: span.id,
-    parentId: span.parentSpanId,
-    fragments,
-    depth,
-    isHeader,
-    status,
-    sourceType: 'span',
-    sourceId: span.id,
-    startTime: span.startTime,
-    endTime: span.endTime,
-    duration,
-    label: span.label
-  };
-}
-
-export function spansToDisplayItems(spans: TrackedSpan[]): IDisplayItem[] {
-  const spanMap = new Map(spans.map(s => [s.id, s]));
-  return spans.map(span => spanToDisplayItem(span, spanMap));
-}
 
 // ============================================================================
 // RuntimeSpan Adapter

@@ -6,7 +6,7 @@ import { JitCompiler } from '../JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
-import { TrackedSpan } from '../models/TrackedSpan';
+import { RuntimeSpan } from '../models/RuntimeSpan';
 import { RuntimeReporter } from '../../tracker/ExecutionTracker';
 import { IEventBus } from '../IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
@@ -19,7 +19,7 @@ import { IBlockContext } from '../IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // Re-export for backward compatibility
-export type ExecutionRecord = TrackedSpan;
+export type ExecutionRecord = RuntimeSpan;
 
 /**
  * Snapshot of runtime state at a point in time

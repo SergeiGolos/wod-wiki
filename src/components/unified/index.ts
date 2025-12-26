@@ -18,8 +18,6 @@ export { UnifiedItemList, type UnifiedItemListProps } from './UnifiedItemList';
 export {
   statementToDisplayItem,
   statementsToDisplayItems,
-  spanToDisplayItem,
-  spansToDisplayItems,
   runtimeSpanToDisplayItem,
   runtimeSpansToDisplayItems,
   blockToDisplayItem,

@@ -1,7 +1,6 @@
 import { IScriptRuntime } from '../runtime/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/TrackedSpan';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../runtime/models/RuntimeSpan';
 import { v4 as uuidv4 } from 'uuid';
 import { IEvent } from '../runtime/IEvent';
@@ -16,7 +15,7 @@ export class ExecutionLogService {
   private readonly ownerId = 'execution-log-service';
 
   // Map for O(1) span lookup by id
-  private spanMap: Map<string, TrackedSpan | RuntimeSpan> = new Map();
+  private spanMap: Map<string, RuntimeSpan> = new Map();
 
   // Incremental duration tracking for performance
   private earliestStart: number = Infinity;
@@ -62,8 +61,8 @@ export class ExecutionLogService {
     // Subscribe to memory events via EventBus
     const handleMemoryEvent = (event: IEvent) => {
       const data = event.data as { ref: { type: string }; value: unknown; oldValue?: unknown };
-      if (data?.ref?.type === EXECUTION_SPAN_TYPE || data?.ref?.type === RUNTIME_SPAN_TYPE) {
-        this.handleSpanUpdate(data.value as TrackedSpan | RuntimeSpan);
+      if (data?.ref?.type === RUNTIME_SPAN_TYPE) {
+        this.handleSpanUpdate(data.value as RuntimeSpan);
       }
     };
 
@@ -79,7 +78,7 @@ export class ExecutionLogService {
    * duplicate allocations and memory ownership violations.
    * @returns Array of historical spans (both models)
    */
-  async getHistoricalLogs(): Promise<(TrackedSpan | RuntimeSpan)[]> {
+  async getHistoricalLogs(): Promise<RuntimeSpan[]> {
     const latest = await this.storage.getLatestResult();
     if (latest && latest.logs.length > 0) {
       console.log('[ExecutionLogService] Retrieved historical logs from', latest.timestamp);
@@ -88,7 +87,7 @@ export class ExecutionLogService {
     return [];
   }
 
-  private handleSpanUpdate(span: TrackedSpan | RuntimeSpan | null) {
+  private handleSpanUpdate(span: RuntimeSpan | null) {
     if (!span) return;
 
     // We only care about persisting the span when it's updated or finished.

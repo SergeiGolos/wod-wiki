@@ -41,7 +41,7 @@ export class TimerSpan {
 /**
  * RuntimeSpan - Simplified tracking model for block execution.
  * 
- * Replaces the complex TrackedSpan/ExecutionSpan with a focus on:
+ * Replaces the legacy tracking models with a focus on:
  * - Direct mapping to block execution
  * - Pause/resume support via TimerSpan array
  * - Fragment-based metric collection (per-statement grouping)
@@ -86,6 +86,23 @@ export class RuntimeSpan {
      */
     elapsed(): number {
         return this.total();
+    }
+
+    /**
+     * Remaining time in ms, or undefined if span is unbounded.
+     */
+    remaining(): number | undefined {
+        // Find timer fragment in fragments array
+        const timerFragment = this.fragments
+            .flat()
+            .find(f => f.fragmentType === 'timer');
+
+        if (!timerFragment?.value || typeof timerFragment.value !== 'number') {
+            return undefined;
+        }
+
+        const durationMs = timerFragment.value;
+        return Math.max(0, durationMs - this.total());
     }
 
     /**

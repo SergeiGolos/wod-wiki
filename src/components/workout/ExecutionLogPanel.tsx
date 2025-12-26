@@ -9,7 +9,6 @@
 import React from 'react';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
@@ -39,15 +38,23 @@ export interface ExecutionLogPanelProps {
  * Helper to convert TrackedSpan to Segment for display
  */
 function recordToSegment(
-  record: TrackedSpan | RuntimeSpan,
+  record: RuntimeSpan,
   hashCode: (str: string) => number,
   depthMap: Map<string, number>
 ): Segment {
   const depth = depthMap.get(record.id) || 0;
-  const label = 'label' in record ? record.label : fragmentsToLabel(record.fragments);
-  const type = 'type' in record ? record.type.toLowerCase() : 'group';
-  const parentId = 'parentSpanId' in record ? record.parentSpanId : null;
-  const duration = 'total' in record ? record.total() / 1000 : ((record.endTime ?? Date.now()) - record.startTime) / 1000;
+  const label = fragmentsToLabel(record.fragments);
+
+  const nameFragment = record.fragments.flat().find(f =>
+    f.fragmentType === 'effort' ||
+    f.fragmentType === 'action' ||
+    f.fragmentType === 'timer' ||
+    f.fragmentType === 'rounds'
+  );
+  const type = nameFragment?.type || 'group';
+
+  const parentId = record.parentSpanId;
+  const duration = record.total() / 1000;
 
   return {
     id: hashCode(record.blockId),
@@ -101,7 +108,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
       return [];
     }
 
-    const allSpans = runtimeSpans.length > 0 ? runtimeSpans : [...completed, ...active];
+    const allSpans = runtimeSpans;
 
     // Convert all spans (completed + active) to Segments
     const allSegments = allSpans.map(span =>
