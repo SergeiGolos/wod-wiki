@@ -15,8 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
-import { WodBlock } from '../../markdown-editor/types';
+import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
@@ -32,10 +31,6 @@ import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { MetricsProvider } from '../../services/MetricsContext';
 import { SlidingViewport } from './SlidingViewport';
-import { TimerIndexPanel } from './TimerIndexPanel';
-import { WodIndexPanel } from './WodIndexPanel';
-import { AnalyticsIndexPanel } from './AnalyticsIndexPanel';
-import { TimelineView } from '../../timeline/TimelineView';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
@@ -43,7 +38,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { AnalyticsTransformer, SegmentWithMetadata, transformRuntimeToAnalytics } from '../../services/AnalyticsTransformer';
+import { AnalyticsTransformer, transformRuntimeToAnalytics } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';

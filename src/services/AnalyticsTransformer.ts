@@ -1,7 +1,7 @@
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
-import { TrackedSpan, SpanMetrics, DebugMetadata } from '../runtime/models/TrackedSpan';
+import { TrackedSpan, SpanMetrics, DebugMetadata } from '../runtime/models/ExecutionSpan';
 import { spanMetricsToFragments } from '../runtime/utils/metricsToFragments';
 
 /**

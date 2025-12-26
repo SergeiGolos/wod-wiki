@@ -3,7 +3,7 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { TrackedSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/TrackedSpan";
+import { TrackedSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/ExecutionSpan";
 import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**

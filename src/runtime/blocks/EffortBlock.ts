@@ -9,7 +9,7 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
-import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 import { TypedMemoryReference } from '../IMemoryReference';

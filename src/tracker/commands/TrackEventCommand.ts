@@ -2,7 +2,7 @@ import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
     TrackedSpan,
     EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+} from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 export type TrackEventAction = 'log' | 'tag' | 'context';

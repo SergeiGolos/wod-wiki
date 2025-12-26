@@ -11,7 +11,7 @@
 import { ICodeStatement } from '../models/CodeStatement';
 import { ICodeFragment, FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
+import { TrackedSpan } from '../../runtime/models/ExecutionSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { spanMetricsToFragments, createLabelFragment } from '../../runtime/utils/metricsToFragments';
 

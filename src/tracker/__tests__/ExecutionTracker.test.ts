@@ -1,12 +1,12 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { RuntimeReporter } from '../RuntimeReporter';
+import { RuntimeReporter } from '../ExecutionTracker';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { IBlockContext } from '../../runtime/IBlockContext';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
+import { EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
+import { TrackedSpan } from '../../runtime/models/ExecutionSpan';
 
 // Mock Block
 const createMockBlock = (key: string, type: string = 'effort'): IRuntimeBlock => ({

@@ -10,7 +10,7 @@ import {
     createEmptyMetrics,
     legacyTypeToSpanType,
     EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+} from '../../runtime/models/ExecutionSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { createLabelFragment } from '../../runtime/utils/metricsToFragments';

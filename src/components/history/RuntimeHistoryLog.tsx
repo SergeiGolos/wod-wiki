@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { UnifiedItemList, spansToDisplayItems } from '@/components/unified';
-import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/TrackedSpan';
-import { useTrackedSpans } from '@/clock/hooks/useTrackedSpans';
+import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/ExecutionSpan';
+import { useTrackedSpans } from '@/clock/hooks/useExecutionSpans';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;

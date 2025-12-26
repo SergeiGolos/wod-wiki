@@ -3,8 +3,8 @@ import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
-import { TrackedSpan } from './models/TrackedSpan';
-import { RuntimeReporter } from '../tracker/RuntimeReporter';
+import { TrackedSpan } from './models/ExecutionSpan';
+import { RuntimeReporter } from '../tracker/ExecutionTracker';
 
 import { IEventBus } from './IEventBus';
 import { IRuntimeStack } from './IRuntimeStack';

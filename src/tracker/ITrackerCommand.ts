@@ -1,5 +1,5 @@
 
-import { TrackedSpan } from '../runtime/models/TrackedSpan';
+import { TrackedSpan } from '../runtime/models/ExecutionSpan';
 import { IRuntimeMemory } from '../runtime/IRuntimeMemory';
 
 export interface TrackerContext {

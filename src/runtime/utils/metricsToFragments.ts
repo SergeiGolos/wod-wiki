@@ -16,7 +16,7 @@
 
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../RuntimeMetric';
-import { RecordedMetricValue, SpanMetrics } from '../models/TrackedSpan';
+import { RecordedMetricValue, SpanMetrics } from '../models/ExecutionSpan';
 
 /**
  * Mapping from MetricValue type to FragmentType for display

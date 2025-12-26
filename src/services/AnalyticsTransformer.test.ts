@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { transformRuntimeToAnalytics, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { TrackedSpan, createDebugMetadata, createTrackedSpan } from '../runtime/models/TrackedSpan';
+import { TrackedSpan, createDebugMetadata, createTrackedSpan } from '../runtime/models/ExecutionSpan';
 
 describe('AnalyticsTransformer', () => {
   describe('Legacy Function', () => {

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 // Re-export TrackedSpan as ExecutionRecord for backward compatibility
-export type { TrackedSpan as ExecutionRecord } from '../../runtime/models/TrackedSpan';
+export type { TrackedSpan as ExecutionRecord } from '../../runtime/models/ExecutionSpan';
 
 export interface ExecutionLogData {
   /** Completed execution spans (history) */

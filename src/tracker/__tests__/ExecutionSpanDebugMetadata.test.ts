@@ -4,7 +4,7 @@ import {
   createDebugMetadata,
   DebugMetadata,
   TrackedSpan
-} from '../../runtime/models/TrackedSpan';
+} from '../../runtime/models/ExecutionSpan';
 
 describe('TrackedSpan DebugMetadata', () => {
   describe('createDebugMetadata', () => {

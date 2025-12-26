@@ -5,7 +5,7 @@ import {
     TimeSegment,
     createTimeSegment,
     EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+} from '../../runtime/models/ExecutionSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 export type TrackSectionAction = 'start' | 'end' | 'end-all';
