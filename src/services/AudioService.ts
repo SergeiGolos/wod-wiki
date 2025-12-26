@@ -27,8 +27,10 @@ export class AudioService {
      * Initialize AudioContext on user interaction
      */
     private initContext() {
-        if (!this.context && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        // Safari still uses webkitAudioContext prefix
+        const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
+        if (!this.context && typeof window !== 'undefined' && (window.AudioContext || windowWithWebkit.webkitAudioContext)) {
+            const AudioContextClass = window.AudioContext || windowWithWebkit.webkitAudioContext!;
             this.context = new AudioContextClass();
             this.masterGain = this.context.createGain();
             this.masterGain.connect(this.context.destination);

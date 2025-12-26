@@ -5,6 +5,15 @@ import { TrackedSpan, SpanMetrics, DebugMetadata } from '../runtime/models/Track
 import { spanMetricsToFragments } from '../runtime/utils/metricsToFragments';
 
 /**
+ * Time-series data point for analytics visualization.
+ * Contains time and dynamic metric values.
+ */
+export interface AnalyticsDataPoint {
+  time: number;
+  [key: string]: number;
+}
+
+/**
  * Format a metric key into a human-readable label.
  * Capitalizes the first letter and replaces underscores with spaces.
  * 
@@ -268,11 +277,11 @@ export class AnalyticsTransformer {
 // ============================================================================
 
 // --- Analytics Data Transformation ---
-export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: any[], segments: Segment[], groups: AnalyticsGroup[] } => {
+export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[] } => {
   if (!runtime) return { data: [], segments: [], groups: [] };
 
   const segments: Segment[] = [];
-  const data: any[] = [];
+  const data: AnalyticsDataPoint[] = [];
 
   // 1. Convert ExecutionRecords to Segments
   // We need to establish a timeline.
@@ -330,8 +339,8 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
 
     // Extract metrics from SpanMetrics object
     const metrics = extractMetricsFromSpanMetrics(record.metrics);
-    const fragments = (record as any).fragments && (record as any).fragments.length > 0
-      ? (record as any).fragments
+    const fragments = record.fragments && record.fragments.length > 0
+      ? record.fragments
       : spanMetricsToFragments(record.metrics || ({} as SpanMetrics), record.label || record.type, record.type || 'group');
 
     segments.push({
@@ -370,7 +379,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
     // Find active segments at this second
     const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
 
-    const dataPoint: any = { time: t };
+    const dataPoint: AnalyticsDataPoint = { time: t };
 
     // For each available metric, calculate a value for this time point
     availableMetricKeys.forEach(key => {
