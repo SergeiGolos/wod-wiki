@@ -89,6 +89,7 @@ export type SegmentType =
 
 // === Interfaces ===
 
+
 export interface DebugMetadata {
   tags: string[];
   context: Record<string, unknown>;
