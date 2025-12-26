@@ -34,8 +34,8 @@ export const useWorkbenchRuntime = (
                     if (event.name === 'sound:play' && event.data) {
                         const { sound, volume } = event.data as { sound: string, volume?: number };
                         if (sound) {
-                            audioService.playSound(sound, volume).catch(err => {
-                                console.warn('Failed to play sound:', err);
+                            audioService.playSound(sound, volume).catch(() => {
+                                // Sound playback failed silently
                             });
                         }
                     }
@@ -82,12 +82,10 @@ export const useWorkbenchRuntime = (
     };
 
     const handleStartWorkoutAction = useCallback((block: WodBlock) => {
-        console.log('[useWorkbenchRuntime] handleStartWorkoutAction called for block:', block.id);
         startWorkout(block);
     }, [startWorkout]);
 
     const handleWorkoutEvent = useCallback((event: WorkoutEvent) => {
-        console.log('[useWorkbenchRuntime] Received workout event:', event.type);
         switch (event.type) {
             case 'start-workout':
                 handleStartWorkoutAction(event.block);

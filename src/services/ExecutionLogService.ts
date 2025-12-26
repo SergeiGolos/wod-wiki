@@ -68,8 +68,6 @@ export class ExecutionLogService {
 
     runtime.eventBus.on('memory:set', handleMemoryEvent, this.ownerId);
     runtime.eventBus.on('memory:allocate', handleMemoryEvent, this.ownerId);
-
-    console.log('[ExecutionLogService] Started session', this.currentResult.id);
   }
 
   /**
@@ -81,7 +79,6 @@ export class ExecutionLogService {
   async getHistoricalLogs(): Promise<RuntimeSpan[]> {
     const latest = await this.storage.getLatestResult();
     if (latest && latest.logs.length > 0) {
-      console.log('[ExecutionLogService] Retrieved historical logs from', latest.timestamp);
       return latest.logs;
     }
     return [];
@@ -139,7 +136,6 @@ export class ExecutionLogService {
       }
 
       this.storage.saveResult(this.currentResult);
-      console.log('[ExecutionLogService] Finished session', this.currentResult.id);
     }
   }
 

@@ -30,7 +30,7 @@ export class ExerciseHoverProvider {
       
       // Check if provider is configured
       if (!this.indexManager.hasProvider()) {
-        console.warn('[ExerciseHoverProvider] No exercise provider configured, hover will be disabled');
+        // No provider configured, hover will be disabled
       }
     })();
 
@@ -83,9 +83,8 @@ export class ExerciseHoverProvider {
     let exercise: Exercise | null = null;
     try {
       exercise = await this.indexManager.loadExerciseData(firstResult.path);
-    } catch (error) {
+    } catch {
       // If loading fails, show basic info from index
-      console.warn('[ExerciseHoverProvider] Failed to load exercise data:', error);
     }
 
     // Build hover content

@@ -82,21 +82,9 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     let previewContentHeight;
     if (measuredHeight !== undefined && measuredHeight > 0) {
       previewContentHeight = measuredHeight;
-      console.log('[WodBlockRuleGenerator] Using measured height:', {
-        measuredHeight,
-        startLine,
-        isEditing,
-      });
     } else {
        const statementsHeight = Math.max(60, statementCount * statementItemHeight);
        previewContentHeight = previewHeaderHeight + statementsHeight + bodyPadding + previewFooterHeight;
-       console.log('[WodBlockRuleGenerator] Using estimated height:', {
-         previewContentHeight,
-         statementsHeight,
-         statementCount,
-         startLine,
-         isEditing,
-       });
     }
     
     // Calculate available height from visible lines:
@@ -117,16 +105,6 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
-    
-    console.log('[WodBlockRuleGenerator] Calculated zone heights:', {
-      startLine,
-      headerZoneHeight,
-      footerZoneHeight,
-      totalCardHeight,
-      previewContentHeight,
-      visibleLinesHeight,
-      contentLineCount,
-    });
 
     // Calculate content line range (excluding fences)
     const firstContentLine = startLine + 1;
@@ -360,7 +338,6 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         key: 'run-button',
         onMouseDown: (e: React.MouseEvent) => {
           e.stopPropagation(); // Prevent Monaco from stealing focus/selection
-          console.log('[WodPreviewPanel] Run button clicked');
           onStartWorkout();
         },
         className: 'flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm cursor-pointer',

@@ -38,12 +38,10 @@ import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('TimeBoundRoundsStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('TimeBoundRoundsStrategy: Statement missing fragments array');
             return false;
         }
 

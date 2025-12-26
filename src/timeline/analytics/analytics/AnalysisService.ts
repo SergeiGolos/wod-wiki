@@ -42,7 +42,6 @@ export class AnalysisService {
    */
   public runAllProjections(metrics: RuntimeMetric[]): ProjectionResult[] {
     if (!this.exerciseService) {
-      console.warn('AnalysisService: No exercise service configured');
       return [];
     }
 
@@ -56,7 +55,6 @@ export class AnalysisService {
       const definition = this.exerciseService.findById(exerciseId);
       
       if (!definition) {
-        console.warn(`AnalysisService: No definition found for exercise: ${exerciseId}`);
         continue;
       }
 

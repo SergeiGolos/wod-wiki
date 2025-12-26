@@ -118,8 +118,6 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
 
   // Handle button clicks - emit to runtime if handler provided
   const handleButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {
-    console.log(`🖱️ StackedClockDisplay: Button click - ${eventName}`, payload);
-    
     // Call the provided handler
     onButtonClick?.(eventName, payload);
     

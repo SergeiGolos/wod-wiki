@@ -48,7 +48,6 @@ export function useContextOverlay(
     if (!editor || !enabled) {
       // Clean up existing overlay
       if (overlayRef.current) {
-        console.log('[ContextOverlay] Removing overlay - editor or enabled false');
         editor?.removeOverlayWidget(overlayRef.current);
         overlayRef.current.dispose();
         overlayRef.current = null;
@@ -63,19 +62,16 @@ export function useContextOverlay(
       // Only create new overlay if block ID changed
       if (overlayRef.current && currentBlockIdRef.current === blockId) {
         // Update existing overlay for same block
-        console.log('[ContextOverlay] Updating existing overlay', blockId);
         overlayRef.current.update(enrichedBlock, callbacks);
         editor.layoutOverlayWidget(overlayRef.current);
       } else {
         // Clean up old overlay if exists
         if (overlayRef.current) {
-          console.log('[ContextOverlay] Removing old overlay', currentBlockIdRef.current);
           editor.removeOverlayWidget(overlayRef.current);
           overlayRef.current.dispose();
         }
         
         // Create new overlay for different block
-        console.log('[ContextOverlay] Creating new overlay', blockId);
         overlayRef.current = new ContextOverlay(editor, enrichedBlock, callbacks);
         editor.addOverlayWidget(overlayRef.current);
         currentBlockIdRef.current = blockId;
@@ -86,12 +82,10 @@ export function useContextOverlay(
         if (domNode.parentNode) {
           document.body.appendChild(domNode);
         }
-        console.log('[ContextOverlay] Overlay added to editor and moved to body');
       }
     } else {
       // No active block, remove overlay
       if (overlayRef.current) {
-        console.log('[ContextOverlay] Removing overlay - no active block');
         editor.removeOverlayWidget(overlayRef.current);
         overlayRef.current.dispose();
         overlayRef.current = null;
@@ -104,7 +98,6 @@ export function useContextOverlay(
   useEffect(() => {
     return () => {
       if (overlayRef.current && editor) {
-        console.log('[ContextOverlay] Cleanup on unmount');
         editor.removeOverlayWidget(overlayRef.current);
         overlayRef.current.dispose();
         overlayRef.current = null;

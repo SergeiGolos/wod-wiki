@@ -8,17 +8,17 @@
 
 ## Summary Table
 
-| # | Issue | Ease | Impact | Risk | Description |
-|---|-------|------|--------|------|-------------|
-| 1 | TypeScript Errors | 3 | 🔴 High | 🔴 High | 508 type errors prevent strict compilation |
-| 2 | Console Statements | 1 | 🟡 Medium | 🟡 Medium | 198 console.log/warn/error in production code |
-| 3 | TODO/FIXME Markers | 2 | 🟡 Medium | 🟡 Medium | 26+ incomplete implementations tracked |
-| 4 | Test Coverage Gap | 3 | 🔴 High | �� Medium | ~13% test ratio (6,331 test LOC / 46,246 source) |
-| 5 | `any` Type Usage | 2 | 🟡 Medium | 🟡 Medium | 101 files contain `any` type annotations |
-| 6 | Large File Complexity | 3 | 🟡 Medium | 🟢 Low | 8 files exceed 500 lines |
-| 7 | Missing Chore Template | 1 | 🟢 Low | 🟢 Low | No `chore_request.yml` issue template |
-| 8 | Class Components | 2 | 🟢 Low | 🟢 Low | 3 legacy class components remain |
-| 9 | Broken Doc Links | 2 | 🟡 Medium | 🟢 Low | 17 broken links in /docs directory |
+| #   | Issue                  | Ease | Impact    | Risk      | Description                                      |
+| --- | ---------------------- | ---- | --------- | --------- | ------------------------------------------------ |
+| 1   | TypeScript Errors      | 3    | 🔴 High   | 🔴 High   | 508 type errors prevent strict compilation       |
+| 2   | Console Statements     | 1    | 🟡 Medium | 🟡 Medium | 198 console.log/warn/error in production code    |
+| 3   | TODO/FIXME Markers     | 2    | 🟡 Medium | 🟡 Medium | 26+ incomplete implementations tracked           |
+| 4   | Test Coverage Gap      | 3    | 🔴 High   | �� Medium | ~13% test ratio (6,331 test LOC / 46,246 source) |
+| 5   | `any` Type Usage       | 2    | 🟡 Medium | 🟡 Medium | 101 files contain `any` type annotations         |
+| 6   | Large File Complexity  | 3    | 🟡 Medium | 🟢 Low    | 8 files exceed 500 lines                         |
+| 7   | Missing Chore Template | 1    | 🟢 Low    | 🟢 Low    | No `chore_request.yml` issue template            |
+| 8   | Class Components       | 2    | 🟢 Low    | 🟢 Low    | 3 legacy class components remain                 |
+| 9   | Broken Doc Links       | 2    | 🟡 Medium | 🟢 Low    | 17 broken links in /docs directory               |
 
 ---
 

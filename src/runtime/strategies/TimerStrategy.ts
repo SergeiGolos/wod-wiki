@@ -76,12 +76,10 @@ export function createCountUpSoundCues(): SoundCue[] {
 export class TimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('TimerStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('TimerStrategy: Statement missing fragments array');
             return false;
         }
 

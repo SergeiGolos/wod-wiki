@@ -35,12 +35,10 @@ import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 export class IntervalStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('IntervalStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('IntervalStrategy: Statement missing fragments array');
             return false;
         }
 

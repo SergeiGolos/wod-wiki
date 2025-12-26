@@ -65,8 +65,6 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 
   // Create block, push it, and set memory all in one useMemo
   const { block, blockKey, timerStateRef, behavior } = useMemo(() => {
-    console.log('[EnhancedTimerHarness] Creating and initializing block');
-
     const direction = timerType === 'countdown' ? 'down' : 'up';
     const timerBehavior = new TimerBehavior(direction, durationMs, 'Timer');
     const newBlock = new RuntimeBlock(runtime, [1], [timerBehavior], 'Timer');
@@ -81,11 +79,6 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
       ownerId: newBlock.key.toString(),
       type: `${MemoryTypeEnum.TIMER_PREFIX}${newBlock.key.toString()}`,
       visibility: null
-    });
-
-    console.log('[EnhancedTimerHarness] Found timer state refs:', {
-      blockKey: newBlock.key.toString(),
-      timerStateRefs: timerStateRefs.length
     });
 
     let timerRef: TypedMemoryReference<TimerState> | undefined;
@@ -117,21 +110,12 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
           }];
         }
 
-        console.log('[EnhancedTimerHarness] Setting timer state:', {
-          timerType,
-          durationMs,
-          autoStart,
-          spans
-        });
-
         timerRef.set({
           ...currentState,
           spans,
           isRunning: autoStart
         });
       }
-    } else {
-      console.warn('[EnhancedTimerHarness] Could not find timer state reference - timer may not display correctly');
     }
 
     return {
@@ -149,31 +133,26 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 
   // Control functions
   const handleStart = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Starting timer');
     behavior.start();
     setRecalcTrigger(prev => prev + 1);
   }, [behavior]);
 
   const handleStop = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Stopping timer');
     behavior.stop();
     setRecalcTrigger(prev => prev + 1);
   }, [behavior]);
 
   const handlePause = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Pausing timer');
     behavior.pause();
     setRecalcTrigger(prev => prev + 1);
   }, [behavior]);
 
   const handleResume = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Resuming timer');
     behavior.resume();
     setRecalcTrigger(prev => prev + 1);
   }, [behavior]);
 
   const handleReset = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Resetting timer');
     behavior.reset();
 
     // Reset memory based on timer type using unified TimerState
@@ -206,14 +185,12 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   }, [behavior, timerType, timerStateRef]);
 
   const recalculateElapsed = useCallback(() => {
-    console.log('[EnhancedTimerHarness] Recalculating elapsed time');
     setRecalcTrigger(prev => prev + 1);
   }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('[EnhancedTimerHarness] Cleaning up block:', blockKey);
       block.dispose(runtime);
     };
   }, [block, blockKey, runtime]);

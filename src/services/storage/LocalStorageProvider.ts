@@ -69,7 +69,6 @@ export class LocalStorageProvider {
             const parsed = JSON.parse(item);
             // Validate the result structure
             if (!this.validateWodResult(parsed)) {
-              console.warn(`Invalid WodResult structure at key ${key}`);
               continue;
             }
             const result = parsed as WodResult;
@@ -81,8 +80,8 @@ export class LocalStorageProvider {
             const { logs, ...metadata } = result;
             results.push(metadata);
           }
-        } catch (e) {
-          console.warn(`Failed to parse result at key ${key}`, e);
+        } catch {
+          // Failed to parse result, skip
         }
       }
     }

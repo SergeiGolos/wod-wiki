@@ -80,15 +80,13 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     onNext(runtime: IScriptRuntime, block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         switch (this.state) {
             case RootState.INITIAL_IDLE: {
-                console.log('🚀 RootLifecycleBehavior: Transitioning from INITIAL_IDLE to EXECUTING');
                 this.state = RootState.EXECUTING;
 
                 const timer = block.getBehavior(TimerBehavior);
                 if (timer) {
-                    console.log('⏱️ RootLifecycleBehavior: Resuming root timer');
                     timer.resume();
                 } else {
-                    console.error('❌ RootLifecycleBehavior: Root timer not found!');
+                    console.error('RootLifecycleBehavior: Root timer not found!');
                 }
 
                 this.updateExecutionControls();
@@ -167,7 +165,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
     onPop(): IRuntimeAction[] {
         if (this.controlUnsub) {
-            try { this.controlUnsub(); } catch (error) { console.error('Error unsubscribing root control handler', error); }
+            try { this.controlUnsub(); } catch { /* Unsubscribe failed silently */ }
             this.controlUnsub = undefined;
         }
         return [];

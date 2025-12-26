@@ -161,17 +161,12 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   // Use shared theme hook
   useMonacoTheme(editorInstance, theme);
 
-  // Log theme prop changes
-  useEffect(() => {
-    console.log('[MarkdownEditor] Theme prop received:', theme);
-  }, [theme]);
-
   // Register default commands
   const saveCommand = useMemo(() => ({
     id: 'editor.save',
     label: 'Save',
     action: () => {
-      console.log('Save command triggered');
+      // Save command triggered
     },
     shortcut: ['Meta', 'S'],
     group: 'Editor',

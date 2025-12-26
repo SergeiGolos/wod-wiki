@@ -1,6 +1,6 @@
 import { IProjectionEngine } from '../IProjectionEngine';
-import { RuntimeMetric } from '../../runtime/RuntimeMetric';
-import { Exercise } from '../../exercise';
+import { RuntimeMetric } from '../../../../runtime/RuntimeMetric';
+import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
 
 /**
@@ -23,7 +23,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
 
     let totalVolume = 0;
     let hasValidData = false;
-    
+
     // Collect all time spans
     const allSpans = metrics.flatMap(m => m.timeSpans);
     if (allSpans.length === 0) return [];
@@ -32,7 +32,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
     for (const metric of metrics) {
       const reps = metric.values.find(v => v.type === 'repetitions')?.value;
       const resistance = metric.values.find(v => v.type === 'resistance')?.value;
-      
+
       // Only include if both reps and resistance are present
       if (typeof reps === 'number' && typeof resistance === 'number') {
         totalVolume += reps * resistance;

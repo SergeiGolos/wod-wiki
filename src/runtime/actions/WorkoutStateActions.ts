@@ -135,7 +135,6 @@ export class SetRoundsDisplayAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ SetRoundsDisplayAction: No display stack state found');
       return;
     }
 
@@ -143,7 +142,6 @@ export class SetRoundsDisplayAction implements IRuntimeAction {
     const state = stateRef.get();
 
     if (!state) {
-      console.warn('⚠️ SetRoundsDisplayAction: Display state is null');
       return;
     }
 
@@ -186,7 +184,6 @@ export class ResetDisplayStackAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ ResetDisplayStackAction: No display stack state found');
       return;
     }
 

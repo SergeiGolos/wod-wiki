@@ -172,7 +172,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       if (this.index >= 0) {
         const timerBehavior = block.getBehavior(TimerBehavior);
         if (timerBehavior && timerBehavior.isRunning() && !timerBehavior.isComplete()) {
-          console.log(`LoopCoordinator: Work complete, waiting for interval timer...`);
           this.isWaitingForInterval = true;
           return [];
         }
@@ -224,14 +223,12 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Get the child group IDs at current position
     const childGroupIds = this.config.childGroups[state.position];
     if (!childGroupIds || childGroupIds.length === 0) {
-      console.warn(`LoopCoordinatorBehavior: No children at position ${state.position}`);
       return actions;
     }
 
     // Resolve child IDs to statements (lazy JIT resolution)
     const childStatements = runtime.script.getIds(childGroupIds);
     if (childStatements.length === 0) {
-      console.warn(`LoopCoordinatorBehavior: Failed to resolve child IDs at position ${state.position}`);
       return actions;
     }
 
@@ -241,7 +238,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       const compiledBlock = runtime.jit.compile(childStatements, runtime);
 
       if (!compiledBlock) {
-        console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);
         return actions;
       }
 
@@ -265,7 +261,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       // Verify the event comes from OUR block
       if (event.data?.blockId === block.key.toString()) {
         if (this.isWaitingForInterval) {
-          console.log(`LoopCoordinator: Interval timer complete, advancing to next round.`);
           this.isWaitingForInterval = false;
           return this.advance(runtime, block);
         } else {

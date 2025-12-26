@@ -72,8 +72,6 @@ export class TimerBehavior implements IRuntimeBehavior {
       },
     });
 
-    console.log(`⏱️ TimerBehavior: onPush for ${this.label}, autoStart=${this.autoStart}`);
-
     return this.stateManager.initialize(runtime, block, now.getTime(), this.role, this.autoStart);
   }
 
@@ -258,11 +256,9 @@ export class TimerBehavior implements IRuntimeBehavior {
    * Resume the timer. Creates a new time span.
    */
   resume(): void {
-    console.log(`⏱️ TimerBehavior: Resume called for ${this.label}`);
     this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
     if (!timerRef) {
-      console.warn(`⚠️ TimerBehavior: No timerRef for ${this.label}`);
       // Fallback: adjust start time to preserve elapsed
       if (this._runtime) {
         const now = this._runtime.clock.now;
@@ -278,12 +274,10 @@ export class TimerBehavior implements IRuntimeBehavior {
 
     // If already running, don't resume
     if (spans.length > 0 && !spans[spans.length - 1].stop) {
-      console.log(`ℹ️ TimerBehavior: Already running`);
       return;
     }
 
     // Add new span
-    console.log(`✅ TimerBehavior: Adding new span to ${this.label}`);
     const now = this._runtime?.clock.now ?? new Date();
     spans.push({ start: now.getTime(), state: 'new' });
     this.startTime = new Date(now.getTime() - this.elapsedMs);
