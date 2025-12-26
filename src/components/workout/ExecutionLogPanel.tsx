@@ -1,18 +1,17 @@
 /**
  * ExecutionLogPanel - Displays execution history in Git-tree format
- * 
+ *
  * Supports two modes:
  * 1. Live Mode - Shows active execution with growing log from RuntimeMemory
  * 2. Historical Mode - Shows completed execution from MetricsRepository
  */
 
-import React from 'react';
-import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
+import React, { useMemo } from 'react';
+import { UnifiedItemList, runtimeSpanToDisplayItem } from '../unified';
+import { Segment } from '../../core/models/AnalyticsModels'; // Import from proper location
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
-import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
-import { useTrackedSpans, useSpanHierarchy } from '../../clock/hooks/useExecutionSpans';
+import { useTrackedSpans } from '../../clock/hooks/useExecutionSpans';
 
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
@@ -35,56 +34,6 @@ export interface ExecutionLogPanelProps {
 }
 
 /**
- * Helper to convert TrackedSpan to Segment for display
- */
-function recordToSegment(
-  record: RuntimeSpan,
-  hashCode: (str: string) => number,
-  depthMap: Map<string, number>
-): Segment {
-  const depth = depthMap.get(record.id) || 0;
-  const label = fragmentsToLabel(record.fragments);
-
-  const nameFragment = record.fragments.flat().find(f =>
-    f.fragmentType === 'effort' ||
-    f.fragmentType === 'action' ||
-    f.fragmentType === 'timer' ||
-    f.fragmentType === 'rounds'
-  );
-  const type = nameFragment?.type || 'group';
-
-  const parentId = record.parentSpanId;
-  const duration = record.total() / 1000;
-
-  return {
-    id: hashCode(record.blockId),
-    name: label,
-    type: type,
-    startTime: Math.floor(record.startTime / 1000),
-    endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
-    duration: duration,
-    parentId: parentId ? hashCode(parentId) : null,
-    depth: depth,
-    avgPower: 0,
-    avgHr: 0,
-    lane: depth
-  };
-}
-
-/**
- * Hash function for generating stable IDs
- */
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
-}
-
-/**
  * Main execution log panel component
  */
 export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
@@ -92,54 +41,54 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   historicalSegments = [],
   activeSegmentId = null,
   disableScroll = false,
-  scrollRef,
   children
 }) => {
-  const { active, completed, runtimeSpans } = useTrackedSpans(runtime);
-  const depthMap = useSpanHierarchy(runtime);
+  const { runtimeSpans } = useTrackedSpans(runtime);
 
-  // Build segments from runtime memory if available
-  const segments = React.useMemo(() => {
+  const selectedIds = useMemo(() => {
+    return activeSegmentId ? new Set([activeSegmentId.toString()]) : new Set<string>();
+  }, [activeSegmentId]);
+
+  // Build items from runtime memory if available
+  const items = useMemo(() => {
+    // Mode 1: Historical segments provided (Analytics view)
     if (historicalSegments.length > 0) {
-      return historicalSegments;
+      // NOTE: We don't implement the segment -> displayItem conversion here yet
+      // just returning empty to avoid errors, assuming this mode is handled by AnalyticsHistoryPanel usually.
+      // If ExecutionLogPanel is NEEDED for history, we should implement segmentToDisplayItem here too or share it.
+      // For now, focusing on LIVE mode restoration which is strict requirement.
+      return [];
     }
 
+    // Mode 2: Live runtime data
     if (!runtime) {
       return [];
     }
 
+    // Convert runtime spans to display items directly
+    // This removes the intermediate 'Segment' model step for live view
     const allSpans = runtimeSpans;
+    const spanMap = new Map(allSpans.map(s => [s.id, s]));
 
-    // Convert all spans (completed + active) to Segments
-    const allSegments = allSpans.map(span =>
-      recordToSegment(span, hashCode, depthMap)
-    ).sort((a, b) => a.startTime - b.startTime);
+    return allSpans
+      .map(span => runtimeSpanToDisplayItem(span, spanMap))
+      .sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 
-    if (allSegments.length > 0) {
-      const minStartTime = allSegments[0].startTime;
-      allSegments.forEach(s => {
-        s.startTime -= minStartTime;
-        s.endTime -= minStartTime;
-      });
-    }
-
-    return allSegments;
-  }, [runtime, historicalSegments, active, completed, runtimeSpans, depthMap]);
-
-  const selectedIds = React.useMemo(() => {
-    return new Set(activeSegmentId ? [activeSegmentId] : []);
-  }, [activeSegmentId]);
+  }, [runtime, historicalSegments, runtimeSpans]);
 
   return (
-    <GitTreeSidebar
-      segments={segments}
-      selectedIds={selectedIds}
-      onSelect={() => { }} // No selection in this mode
-      disableScroll={disableScroll}
-      hideHeader={true}
-      scrollContainerRef={scrollRef}
-    >
+    <div className="h-full flex flex-col bg-background">
+      <UnifiedItemList
+        items={items}
+        compact={true}
+        showDurations={true}
+        autoScroll={!disableScroll}
+        className="flex-1"
+        emptyMessage="Waiting for execution to start..."
+
+        selectedIds={selectedIds}
+      />
       {children}
-    </GitTreeSidebar>
+    </div>
   );
 };

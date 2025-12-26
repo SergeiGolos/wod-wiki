@@ -22,10 +22,15 @@ export interface ExecutionLogData {
  * @returns ExecutionLogData containing history and active spans
  */
 export function useExecutionLog(runtime: IScriptRuntime | null): ExecutionLogData {
-  const { active, completed } = useTrackedSpans(runtime);
+  const { runtimeSpans } = useTrackedSpans(runtime);
 
-  return useMemo(() => ({
-    history: completed,
-    active
-  }), [active, completed]);
+  return useMemo(() => {
+    const active = runtimeSpans.filter(s => s.isActive());
+    const completed = runtimeSpans.filter(s => !s.isActive());
+
+    return {
+      history: completed,
+      active
+    };
+  }, [runtimeSpans]);
 }
