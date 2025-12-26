@@ -10,7 +10,7 @@ import { metricsToFragments } from '../utils/metricsToFragments';
  * instead of directly manipulating a collector, maintaining declarative patterns.
  * 
  * Metrics are recorded to:
- * 1. The active ExecutionSpan via ExecutionTracker (primary)
+ * 1. The active TrackedSpan via ExecutionTracker (primary)
  * 2. The global MetricCollector for aggregate stats (secondary)
  * 
  * @example
@@ -26,18 +26,18 @@ import { metricsToFragments } from '../utils/metricsToFragments';
  */
 export class EmitMetricAction implements IRuntimeAction {
   readonly type = 'emit-metric';
-  
+
   constructor(
     /** The metric to emit */
     public readonly metric: RuntimeMetric
-  ) {}
+  ) { }
 
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     // Primary: convert to fragments and append to execution tracker
     if (runtime.tracker) {
       const fragments = metricsToFragments([this.metric]);

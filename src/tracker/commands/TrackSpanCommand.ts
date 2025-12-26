@@ -1,16 +1,16 @@
 
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
-    ExecutionSpan,
+    TrackedSpan,
     SpanStatus,
     SpanMetrics,
     TimeSegment,
     DebugMetadata,
-    createExecutionSpan,
+    createTrackedSpan,
     createEmptyMetrics,
     legacyTypeToSpanType,
     EXECUTION_SPAN_TYPE
-} from '../../runtime/models/ExecutionSpan';
+} from '../../runtime/models/TrackedSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { createLabelFragment } from '../../runtime/utils/metricsToFragments';
@@ -38,7 +38,7 @@ export interface TrackSpanPayload {
 export class TrackSpanCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSpanPayload) { }
 
-    write(context: TrackerContext): ExecutionSpan[] {
+    write(context: TrackerContext): TrackedSpan[] {
         const { memory } = context;
         const { action, blockId } = this.payload;
 
@@ -73,7 +73,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         return [updatedSpan];
     }
 
-    private handleStart(context: TrackerContext): ExecutionSpan[] {
+    private handleStart(context: TrackerContext): TrackedSpan[] {
         const { memory } = context;
         const { block, blockId, parentSpanId, debugMetadata } = this.payload;
 
@@ -92,7 +92,7 @@ export class TrackSpanCommand implements ITrackerCommand {
             ...(this.payload.metrics || {})
         };
 
-        const span = createExecutionSpan(
+        const span = createTrackedSpan(
             blockId,
             type,
             block.label || blockId,
@@ -106,7 +106,7 @@ export class TrackSpanCommand implements ITrackerCommand {
             }
         );
 
-        memory.allocate<ExecutionSpan>(
+        memory.allocate<TrackedSpan>(
             EXECUTION_SPAN_TYPE,
             blockId,
             span,
@@ -116,7 +116,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         return [span];
     }
 
-    private handleEnd(span: ExecutionSpan, action: TrackSpanAction): ExecutionSpan {
+    private handleEnd(span: TrackedSpan, action: TrackSpanAction): TrackedSpan {
         if (span.status !== 'active') return span;
 
         const status: SpanStatus = action === 'fail' ? 'failed' :
@@ -146,7 +146,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         };
     }
 
-    private handleUpdate(span: ExecutionSpan): ExecutionSpan {
+    private handleUpdate(span: TrackedSpan): TrackedSpan {
         const { metrics, segments, debugMetadata, fragments } = this.payload;
 
         let updatedSpan = { ...span };
@@ -184,7 +184,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         return updatedSpan;
     }
 
-    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<ExecutionSpan> | null {
+    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<TrackedSpan> | null {
         const refs = context.memory.search({
             type: EXECUTION_SPAN_TYPE,
             ownerId: blockId,
@@ -193,7 +193,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<ExecutionSpan>
+            ? refs[0] as TypedMemoryReference<TrackedSpan>
             : null;
     }
 }

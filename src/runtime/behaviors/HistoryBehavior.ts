@@ -3,7 +3,7 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { ExecutionSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/ExecutionSpan";
+import { TrackedSpan, SpanMetrics, DebugMetadata, createEmptyMetrics, legacyTypeToSpanType, EXECUTION_SPAN_TYPE } from "../models/TrackedSpan";
 import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**
@@ -20,7 +20,7 @@ export interface HistoryBehaviorConfig {
  * Behavior that tracks the execution history of a block.
  * Records start time, end time, parent ID, and metrics, then logs to runtime.executionLog.
  * 
- * Supports debug metadata stamping per the ExecutionSpan consolidation plan.
+ * Supports debug metadata stamping per the TrackedSpan consolidation plan.
  * @see docs/plans/jit-01-execution-span-consolidation.md
  */
 export class HistoryBehavior implements IRuntimeBehavior {
@@ -79,7 +79,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
 
         // Create execution span with debug metadata stamped at creation time
         // This eliminates the need to infer context during analytics
-        const span: ExecutionSpan = {
+        const span: TrackedSpan = {
             id: `${this.startTime}-${block.key.toString()}`,
             blockId: block.key.toString(),
             parentSpanId: this.parentSpanId,
@@ -117,13 +117,13 @@ export class HistoryBehavior implements IRuntimeBehavior {
         });
 
         if (refs.length > 0) {
-            const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+            const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
             if (span) {
                 // Collect any metrics associated with this block
                 // For now, we just close the span. 
                 // Metrics might be collected by other behaviors or passed in.
 
-                const updatedSpan: ExecutionSpan = {
+                const updatedSpan: TrackedSpan = {
                     ...span,
                     endTime: endTime,
                     status: 'completed'

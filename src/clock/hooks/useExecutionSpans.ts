@@ -1,21 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { ExecutionSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { IEvent } from '../../runtime/IEvent';
 
 /**
- * Data structure returned by useExecutionSpans hook
+ * Data structure returned by useTrackedSpans hook
  */
-export interface ExecutionSpansData {
+export interface TrackedSpansData {
   /** Currently active execution spans (status === 'active') */
-  active: ExecutionSpan[];
+  active: TrackedSpan[];
   /** Completed execution spans (any non-active status) */
-  completed: ExecutionSpan[];
+  completed: TrackedSpan[];
   /** All spans indexed by ID for quick lookup */
-  byId: Map<string, ExecutionSpan>;
+  byId: Map<string, TrackedSpan>;
   /** All spans indexed by blockId */
-  byBlockId: Map<string, ExecutionSpan>;
+  byBlockId: Map<string, TrackedSpan>;
 }
 
 /**
@@ -28,11 +28,11 @@ export interface ExecutionSpansData {
  * along with indexed maps for quick lookup.
  * 
  * @param runtime The runtime instance to monitor (can be null)
- * @returns ExecutionSpansData containing active, completed spans and index maps
+ * @returns TrackedSpansData containing active, completed spans and index maps
  */
-export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpansData {
-  const [spans, setSpans] = useState<ExecutionSpan[]>([]);
-  const ownerIdRef = useRef(`useExecutionSpans-${crypto.randomUUID()}`);
+export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData {
+  const [spans, setSpans] = useState<TrackedSpan[]>([]);
+  const ownerIdRef = useRef(`useTrackedSpans-${crypto.randomUUID()}`);
 
   useEffect(() => {
     if (!runtime?.memory || !runtime?.eventBus) {
@@ -52,8 +52,8 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
       });
 
       const fetchedSpans = refs
-        .map(ref => runtime.memory.get(ref as TypedMemoryReference<ExecutionSpan>))
-        .filter((s): s is ExecutionSpan => s !== null);
+        .map(ref => runtime.memory.get(ref as TypedMemoryReference<TrackedSpan>))
+        .filter((s): s is TrackedSpan => s !== null);
 
       setSpans(fetchedSpans);
     };
@@ -79,11 +79,11 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
   }, [runtime]);
 
   // Compute derived data (memoized for performance)
-  const data = useMemo<ExecutionSpansData>(() => {
-    const active: ExecutionSpan[] = [];
-    const completed: ExecutionSpan[] = [];
-    const byId = new Map<string, ExecutionSpan>();
-    const byBlockId = new Map<string, ExecutionSpan>();
+  const data = useMemo<TrackedSpansData>(() => {
+    const active: TrackedSpan[] = [];
+    const completed: TrackedSpan[] = [];
+    const byId = new Map<string, TrackedSpan>();
+    const byBlockId = new Map<string, TrackedSpan>();
 
     for (const span of spans) {
       // Index by ID
@@ -105,24 +105,24 @@ export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpan
 }
 
 /**
- * Legacy compatibility hook - wraps useExecutionSpans to match useExecutionLog interface
+ * Legacy compatibility hook - wraps useTrackedSpans to match useExecutionLog interface
  * 
- * @deprecated Use useExecutionSpans instead
+ * @deprecated Use useTrackedSpans instead
  */
-export function useExecutionLog(runtime: IScriptRuntime | null): { history: ExecutionSpan[]; active: ExecutionSpan[] } {
-  const { active, completed } = useExecutionSpans(runtime);
+export function useExecutionLog(runtime: IScriptRuntime | null): { history: TrackedSpan[]; active: TrackedSpan[] } {
+  const { active, completed } = useTrackedSpans(runtime);
   return { history: completed, active };
 }
 
 /**
  * Hook to get a specific span by ID or block ID
  */
-export function useExecutionSpan(
+export function useTrackedSpan(
   runtime: IScriptRuntime | null,
   id: string | null,
   byBlockId: boolean = false
-): ExecutionSpan | null {
-  const { byId, byBlockId: byBlock } = useExecutionSpans(runtime);
+): TrackedSpan | null {
+  const { byId, byBlockId: byBlock } = useTrackedSpans(runtime);
 
   if (!id) return null;
 
@@ -135,7 +135,7 @@ export function useExecutionSpan(
  * Hook to compute span hierarchy (parent-child relationships)
  */
 export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number> {
-  const { active, completed, byId } = useExecutionSpans(runtime);
+  const { active, completed, byId } = useTrackedSpans(runtime);
 
   return useMemo(() => {
     const depthMap = new Map<string, number>();

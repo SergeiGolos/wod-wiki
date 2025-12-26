@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
-// Re-export ExecutionSpan as ExecutionRecord for backward compatibility
-export type { ExecutionSpan as ExecutionRecord } from '../../runtime/models/ExecutionSpan';
+// Re-export TrackedSpan as ExecutionRecord for backward compatibility
+export type { TrackedSpan as ExecutionRecord } from '../../runtime/models/TrackedSpan';
 
 export interface ExecutionLogData {
   /** Completed execution spans (history) */
-  history: ExecutionSpan[];
+  history: TrackedSpan[];
   /** Currently active execution spans */
-  active: ExecutionSpan[];
+  active: TrackedSpan[];
 }
 
 /**
@@ -61,8 +61,8 @@ export function useExecutionLog(runtime: IScriptRuntime | null): ExecutionLogDat
       });
 
       const allSpans = refs
-        .map(ref => runtime.memory.get(ref as TypedMemoryReference<ExecutionSpan>))
-        .filter((s): s is ExecutionSpan => s !== null);
+        .map(ref => runtime.memory.get(ref as TypedMemoryReference<TrackedSpan>))
+        .filter((s): s is TrackedSpan => s !== null);
 
       setLogData({
         history: allSpans.filter(s => s.status !== 'active'),

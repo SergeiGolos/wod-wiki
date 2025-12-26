@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -54,7 +54,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         const hasAmrapAction = fragments.some(
             f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'amrap'
         );
-        
+
         // Check for behavior.time_bound hint from dialect (e.g., AMRAP detected)
         const isTimeBound = statement.hints?.has('behavior.time_bound') ?? false;
 
@@ -102,7 +102,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // 1. Timer Behavior (Countdown) - keep secondary so global clock stays primary
         const timerBehavior = new TimerBehavior('down', durationMs, 'AMRAP', 'secondary');
         behaviors.push(timerBehavior);
-        
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify this as an AMRAP workout
         behaviors.push(new HistoryBehavior({

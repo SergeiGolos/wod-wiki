@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -50,7 +50,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         const hasEmomAction = fragments.some(
             f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'emom'
         );
-        
+
         // Check for behavior.repeating_interval hint from dialect (e.g., EMOM detected)
         const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
 
@@ -83,13 +83,13 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
 
         // If no rounds fragment, check if there's a second timer (Total Duration)
         if (totalRounds === undefined) {
-             const timers = fragments.filter(f => f.fragmentType === FragmentType.Timer);
-             if (timers.length > 1) {
-                 const totalDurationMs = timers[1].value as number;
-                 if (totalDurationMs > intervalDurationMs) {
-                     totalRounds = Math.floor(totalDurationMs / intervalDurationMs);
-                 }
-             }
+            const timers = fragments.filter(f => f.fragmentType === FragmentType.Timer);
+            if (timers.length > 1) {
+                const totalDurationMs = timers[1].value as number;
+                if (totalDurationMs > intervalDurationMs) {
+                    totalRounds = Math.floor(totalDurationMs / intervalDurationMs);
+                }
+            }
         }
 
         // If still undefined, fallback to 10 if standard EMOM format implies 10 rounds?
@@ -100,9 +100,9 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         // Actually, if totalRounds is undefined, LoopCoordinator defaults to 0 (immediate complete).
         // We should set it to something reasonable or Infinity.
         if (totalRounds === undefined) {
-             // Check if action text has number? Dangerous.
-             // Default to 10 minutes (10 rounds) as standard EMOM behavior if unspecified
-             totalRounds = 10;
+            // Check if action text has number? Dangerous.
+            // Default to 10 minutes (10 rounds) as standard EMOM behavior if unspecified
+            totalRounds = 10;
         }
 
         const children = code[0]?.children || [];
@@ -133,7 +133,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             intervalDurationMs
         });
         behaviors.push(loopCoordinator);
-        
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify this as an EMOM workout
         behaviors.push(new HistoryBehavior({

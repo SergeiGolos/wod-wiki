@@ -11,7 +11,7 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -39,13 +39,13 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
 
         const statement = statements[0];
         const fragments = statement.fragments;
-        
+
         // Check for behavior.fixed_rounds hint from dialect
         const isFixedRounds = statement.hints?.has('behavior.fixed_rounds') ?? false;
-        
+
         // Structural fallback: Has rounds fragment
         const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
-        
+
         // Exclusion: Timer presence means higher-precedence strategy should handle
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
 
@@ -64,8 +64,8 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
 
         if (!roundsFragment) {
-          console.error('RoundsStrategy: No Rounds fragment found');
-          throw new Error('RoundsStrategy requires Rounds fragment');
+            console.error('RoundsStrategy: No Rounds fragment found');
+            throw new Error('RoundsStrategy requires Rounds fragment');
         }
 
         // Extract rep scheme from fragments
@@ -76,30 +76,30 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         let repScheme: number[] | undefined = undefined;
 
         if (Array.isArray(roundsFragment.value)) {
-          // Legacy pattern: RoundsFragment contains full rep scheme
-          repScheme = roundsFragment.value as number[];
-          totalRounds = repScheme.length;
+            // Legacy pattern: RoundsFragment contains full rep scheme
+            repScheme = roundsFragment.value as number[];
+            totalRounds = repScheme.length;
         } else if (typeof roundsFragment.value === 'number') {
-          totalRounds = roundsFragment.value;
-          
-          // Check for separate RepFragments (modern parser pattern)
-          const repFragments = fragments.filter(f => f.fragmentType === FragmentType.Reps);
-          if (repFragments.length > 0) {
-            // Build rep scheme from RepFragments
-            repScheme = repFragments.map(f => f.value as number);
-            // totalRounds stays as specified in RoundsFragment
-            // Rep scheme cycles via modulo if totalRounds > repScheme.length
-          }
+            totalRounds = roundsFragment.value;
+
+            // Check for separate RepFragments (modern parser pattern)
+            const repFragments = fragments.filter(f => f.fragmentType === FragmentType.Reps);
+            if (repFragments.length > 0) {
+                // Build rep scheme from RepFragments
+                repScheme = repFragments.map(f => f.value as number);
+                // totalRounds stays as specified in RoundsFragment
+                // Rep scheme cycles via modulo if totalRounds > repScheme.length
+            }
         }
 
         // Get children IDs
         let children = code[0]?.children || [];
 
         if (children.length === 0 && code.length > 1) {
-          const siblingIds = code.slice(1).map(s => s.id as number);
-          children = [siblingIds];
+            const siblingIds = code.slice(1).map(s => s.id as number);
+            children = [siblingIds];
         } else if (children.length === 0) {
-          throw new Error(`RoundsStrategy requires child statements to execute.`);
+            throw new Error(`RoundsStrategy requires child statements to execute.`);
         }
 
         // Create BlockContext
@@ -119,24 +119,24 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             repScheme,
             onRoundStart: (rt, roundIndex) => {
                 if (repScheme && repScheme.length > 0) {
-                     // Use modulo to cycle through rep scheme
-                     // E.g., 21-15-9 with 5 rounds: round 0→21, round 1→15, round 2→9, round 3→21, round 4→15
-                     const schemeIndex = roundIndex % repScheme.length;
-                     const currentReps = repScheme[schemeIndex];
-                     const refs = rt.memory.search({
-                         type: MemoryTypeEnum.METRIC_REPS,
-                         ownerId: blockId,
-                         id: null,
-                         visibility: 'inherited'
-                     });
-                     if (refs.length > 0) {
-                         rt.memory.set(refs[0] as any, currentReps);
-                     }
+                    // Use modulo to cycle through rep scheme
+                    // E.g., 21-15-9 with 5 rounds: round 0→21, round 1→15, round 2→9, round 3→21, round 4→15
+                    const schemeIndex = roundIndex % repScheme.length;
+                    const currentReps = repScheme[schemeIndex];
+                    const refs = rt.memory.search({
+                        type: MemoryTypeEnum.METRIC_REPS,
+                        ownerId: blockId,
+                        id: null,
+                        visibility: 'inherited'
+                    });
+                    if (refs.length > 0) {
+                        rt.memory.set(refs[0] as any, currentReps);
+                    }
                 }
             }
         });
         behaviors.push(loopCoordinator);
-        
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify the workout structure
         behaviors.push(new HistoryBehavior({
@@ -160,7 +160,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
 
         // Allocate public reps metric if rep scheme
         if (repScheme && repScheme.length > 0) {
-             context.allocate(
+            context.allocate(
                 MemoryTypeEnum.METRIC_REPS,
                 repScheme[0],
                 'inherited'

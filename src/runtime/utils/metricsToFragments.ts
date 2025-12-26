@@ -16,7 +16,7 @@
 
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricValue, RuntimeMetric } from '../RuntimeMetric';
-import { RecordedMetricValue, SpanMetrics } from '../models/ExecutionSpan';
+import { RecordedMetricValue, SpanMetrics } from '../models/TrackedSpan';
 
 /**
  * Mapping from MetricValue type to FragmentType for display
@@ -44,7 +44,7 @@ const METRIC_TO_FRAGMENT_TYPE: Record<string, FragmentType> = {
  */
 export function metricToFragment(metric: MetricValue): ICodeFragment {
   const fragmentType = METRIC_TO_FRAGMENT_TYPE[metric.type] || FragmentType.Text;
-  
+
   // Strip 'effort:' or 'action:' prefix from unit if present
   let unit = metric.unit || '';
   if (unit.startsWith('effort:')) {
@@ -52,15 +52,15 @@ export function metricToFragment(metric: MetricValue): ICodeFragment {
   } else if (unit.startsWith('action:')) {
     unit = unit.substring(7); // Remove 'action:' prefix
   }
-  
+
   // For repetitions, if value is 0, just show the unit (e.g. "Pushups" instead of "0 Pushups")
   // This is cleaner for initial states where the count starts at 0.
   const shouldHideValue = metric.value === 0 && metric.type === 'repetitions';
-  
+
   const displayValue = (metric.value !== undefined && !shouldHideValue)
     ? `${metric.value}${unit ? ' ' + unit : ''}`
     : unit;
-  
+
   return {
     type: metric.type,
     fragmentType,
@@ -101,7 +101,7 @@ function recordedMetricToFragment(metric: RecordedMetricValue): ICodeFragment {
  */
 export function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
   const fragments: ICodeFragment[] = [];
-  
+
   for (const metric of metrics) {
     // Add exercise name as effort fragment
     if (metric.exerciseId) {
@@ -112,13 +112,13 @@ export function metricsToFragments(metrics: RuntimeMetric[]): ICodeFragment[] {
         image: metric.exerciseId,
       });
     }
-    
+
     // Add each metric value as a fragment
     for (const value of metric.values) {
       fragments.push(metricToFragment(value));
     }
   }
-  
+
   return fragments;
 }
 
@@ -140,7 +140,7 @@ export function createLabelFragment(label: string, type: string): ICodeFragment 
     'amrap': FragmentType.Timer,
     'emom': FragmentType.Timer,
   };
-  
+
   return {
     type: type.toLowerCase(),
     fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
@@ -171,10 +171,10 @@ export function getFragmentsFromRecord(
 /**
  * Convert SpanMetrics to ICodeFragment array.
  * 
- * This handles the unified SpanMetrics format from ExecutionSpan,
+ * This handles the unified SpanMetrics format from TrackedSpan,
  * supporting both typed metric properties and legacy RuntimeMetric arrays.
  * 
- * @param metrics SpanMetrics object from ExecutionSpan
+ * @param metrics SpanMetrics object from TrackedSpan
  * @param label Fallback label if no metrics
  * @param type Block type for fallback fragment
  * @returns Array of ICodeFragment for display
@@ -185,7 +185,7 @@ export function spanMetricsToFragments(
   type: string
 ): ICodeFragment[] {
   const fragments: ICodeFragment[] = [];
-  
+
   // Target Reps - show FIRST (before exercise name) for formats like "21x Pushup"
   // Only show if this is an effort-type entry with targetReps
   if (metrics.targetReps !== undefined && metrics.exerciseId) {
@@ -197,7 +197,7 @@ export function spanMetricsToFragments(
       image: `${metrics.targetReps}x`
     });
   }
-  
+
   // Exercise name - primary identifier for effort blocks
   if (metrics.exerciseId) {
     fragments.push({
@@ -207,7 +207,7 @@ export function spanMetricsToFragments(
       image: metrics.exerciseId
     });
   }
-  
+
   // Type indicator (Timer, Rounds, etc.) - only if no exercise
   if (!metrics.exerciseId && type) {
     const typeStr = type.charAt(0).toUpperCase() + type.slice(1);
@@ -217,7 +217,7 @@ export function spanMetricsToFragments(
       value: typeStr,
       image: typeStr
     });
-    
+
     // Show targetReps for non-exercise types (rounds container showing rep scheme)
     if (metrics.targetReps !== undefined) {
       fragments.push({
@@ -237,7 +237,7 @@ export function spanMetricsToFragments(
       }
     }
   }
-  
+
   // Current Reps - show current/target format if tracking progress
   if (metrics.reps && metrics.reps.value !== undefined) {
     let repsImage = `${metrics.reps.value}${metrics.reps.unit || ' reps'}`;
@@ -251,7 +251,7 @@ export function spanMetricsToFragments(
       image: repsImage
     });
   }
-  
+
   // Weight
   if (metrics.weight && metrics.weight.value !== undefined) {
     fragments.push({
@@ -261,7 +261,7 @@ export function spanMetricsToFragments(
       image: `${metrics.weight.value} ${metrics.weight.unit || 'lb'}`
     });
   }
-  
+
   // Distance
   if (metrics.distance && metrics.distance.value !== undefined) {
     fragments.push({
@@ -271,13 +271,13 @@ export function spanMetricsToFragments(
       image: `${metrics.distance.value} ${metrics.distance.unit || 'm'}`
     });
   }
-  
+
   // Duration (for completed spans)
   if (metrics.duration && metrics.duration.value !== undefined) {
     const seconds = Math.floor(metrics.duration.value / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    const timeStr = minutes > 0 
+    const timeStr = minutes > 0
       ? `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
       : `${seconds}s`;
     fragments.push({
@@ -287,10 +287,10 @@ export function spanMetricsToFragments(
       image: timeStr
     });
   }
-  
+
   // Rounds info
   if (metrics.currentRound !== undefined) {
-    const roundText = metrics.totalRounds 
+    const roundText = metrics.totalRounds
       ? `${metrics.currentRound}/${metrics.totalRounds}`
       : `Round ${metrics.currentRound}`;
     fragments.push({
@@ -300,7 +300,7 @@ export function spanMetricsToFragments(
       image: roundText
     });
   }
-  
+
   // Rep scheme
   if (metrics.repScheme && metrics.repScheme.length > 0) {
     fragments.push({
@@ -310,7 +310,7 @@ export function spanMetricsToFragments(
       image: metrics.repScheme.join('-')
     });
   }
-  
+
   // Calories
   if (metrics.calories && metrics.calories.value !== undefined) {
     fragments.push({

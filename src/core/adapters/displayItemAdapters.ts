@@ -11,7 +11,7 @@
 import { ICodeStatement } from '../models/CodeStatement';
 import { ICodeFragment, FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
-import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { spanMetricsToFragments, createLabelFragment } from '../../runtime/utils/metricsToFragments';
 
@@ -23,7 +23,7 @@ import { spanMetricsToFragments, createLabelFragment } from '../../runtime/utils
  * Header types that should render with header styling
  */
 const HEADER_TYPES = new Set([
-  'root', 'round', 'interval', 'warmup', 'cooldown', 
+  'root', 'round', 'interval', 'warmup', 'cooldown',
   'amrap', 'emom', 'tabata', 'group', 'start', 'timer', 'rounds'
 ]);
 
@@ -47,7 +47,7 @@ export function statementToDisplayItem(
   let depth = 0;
   let currentId = statement.parent;
   const visited = new Set<number>();
-  
+
   while (currentId !== undefined && !visited.has(currentId)) {
     visited.add(currentId);
     const parent = allStatements.get(currentId);
@@ -59,19 +59,19 @@ export function statementToDisplayItem(
     }
     if (depth > 10) break; // Safety limit
   }
-  
+
   // Check if this is a linked statement (has lap fragment with '+')
   const isLinked = statement.fragments.some(
     f => f.fragmentType === FragmentType.Lap && f.image === '+'
   );
-  
+
   // Determine if this is a header (has children and certain fragment types)
   const hasChildren = statement.children && statement.children.length > 0;
   const hasTimerOrRounds = statement.fragments.some(
     f => f.fragmentType === FragmentType.Timer || f.fragmentType === FragmentType.Rounds
   );
   const isHeader = hasChildren && hasTimerOrRounds;
-  
+
   return {
     id: statement.id.toString(),
     parentId: statement.parent?.toString() ?? null,
@@ -94,7 +94,7 @@ export function statementsToDisplayItems(
   activeIds?: Set<number>
 ): IDisplayItem[] {
   const statementMap = new Map(statements.map(s => [s.id, s]));
-  
+
   return statements.map(statement => {
     const status: DisplayStatus = activeIds?.has(statement.id) ? 'active' : 'pending';
     return statementToDisplayItem(statement, statementMap, status);
@@ -102,25 +102,25 @@ export function statementsToDisplayItems(
 }
 
 // ============================================================================
-// ExecutionSpan Adapter
+// TrackedSpan Adapter
 // ============================================================================
 
 /**
- * Convert an ExecutionSpan to IDisplayItem
+ * Convert an TrackedSpan to IDisplayItem
  * 
  * @param span The execution span
  * @param allSpans Map of all spans for depth calculation
  */
 export function spanToDisplayItem(
-  span: ExecutionSpan,
-  allSpans: Map<string, ExecutionSpan>
+  span: TrackedSpan,
+  allSpans: Map<string, TrackedSpan>
 ): IDisplayItem {
   // Calculate depth by traversing parent chain
   let depth = 0;
   let currentParentId = span.parentSpanId;
   const visited = new Set<string>();
   visited.add(span.id);
-  
+
   while (currentParentId && !visited.has(currentParentId)) {
     visited.add(currentParentId);
     const parent = allSpans.get(currentParentId);
@@ -132,28 +132,28 @@ export function spanToDisplayItem(
     }
     if (depth > 20) break; // Safety limit
   }
-  
+
   // Convert span metrics to fragments; prefer precomputed fragments if present
   const fragments = (span.fragments && span.fragments.length > 0)
     ? span.fragments
     : spanMetricsToFragments(
-        span.metrics || {},
-        span.label,
-        span.type
-      );
-  
+      span.metrics || {},
+      span.label,
+      span.type
+    );
+
   // Map span status to display status
   const status: DisplayStatus = span.status as DisplayStatus;
-  
+
   // Determine if header based on type
   const isHeader = HEADER_TYPES.has(span.type.toLowerCase());
-  
+
   // Calculate duration if available
   let duration: number | undefined;
   if (span.startTime && span.endTime) {
     duration = span.endTime - span.startTime;
   }
-  
+
   return {
     id: span.id,
     parentId: span.parentSpanId,
@@ -171,9 +171,9 @@ export function spanToDisplayItem(
 }
 
 /**
- * Convert an array of ExecutionSpans to IDisplayItem array
+ * Convert an array of TrackedSpans to IDisplayItem array
  */
-export function spansToDisplayItems(spans: ExecutionSpan[]): IDisplayItem[] {
+export function spansToDisplayItems(spans: TrackedSpan[]): IDisplayItem[] {
   const spanMap = new Map(spans.map(s => [s.id, s]));
   return spans.map(span => spanToDisplayItem(span, spanMap));
 }
@@ -195,9 +195,9 @@ export function blockToDisplayItem(
   startTime?: number
 ): IDisplayItem {
   const fragments = block.fragments?.flat() ?? [createLabelFragment(block.label, block.blockType || 'group')];
-  
+
   const isHeader = HEADER_TYPES.has((block.blockType || '').toLowerCase());
-  
+
   return {
     id: block.key.toString(),
     parentId: null, // Stack blocks don't have parent relationships in this context
@@ -239,7 +239,7 @@ export function sortByStartTimeDesc(items: IDisplayItem[]): IDisplayItem[] {
 export function groupLinkedItems(items: IDisplayItem[]): (IDisplayItem | IDisplayItem[])[] {
   const result: (IDisplayItem | IDisplayItem[])[] = [];
   let currentGroup: IDisplayItem[] = [];
-  
+
   for (const item of items) {
     if (item.isLinked) {
       // Add to current linked group
@@ -259,7 +259,7 @@ export function groupLinkedItems(items: IDisplayItem[]): (IDisplayItem | IDispla
       result.push(item);
     }
   }
-  
+
   // Flush remaining group
   if (currentGroup.length > 0) {
     if (currentGroup.length === 1) {
@@ -268,7 +268,7 @@ export function groupLinkedItems(items: IDisplayItem[]): (IDisplayItem | IDispla
       result.push(currentGroup);
     }
   }
-  
+
   return result;
 }
 
@@ -304,12 +304,12 @@ export interface DisplayItemNode extends IDisplayItem {
 export function buildDisplayTree(items: IDisplayItem[]): DisplayItemNode[] {
   const itemMap = new Map<string, DisplayItemNode>();
   const roots: DisplayItemNode[] = [];
-  
+
   // First pass: create nodes with empty children
   for (const item of items) {
     itemMap.set(item.id, { ...item, children: [] });
   }
-  
+
   // Second pass: link children to parents
   for (const item of items) {
     const node = itemMap.get(item.id)!;
@@ -319,6 +319,6 @@ export function buildDisplayTree(items: IDisplayItem[]): DisplayItemNode[] {
       roots.push(node);
     }
   }
-  
+
   return roots;
 }

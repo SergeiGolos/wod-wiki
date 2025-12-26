@@ -9,7 +9,7 @@
 
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { SegmentType } from '../models/ExecutionSpan';
+import { SegmentType } from '../models/TrackedSpan';
 
 /**
  * Action to start a new time segment within the current block's execution span.
@@ -27,7 +27,7 @@ import { SegmentType } from '../models/ExecutionSpan';
  */
 export class StartSegmentAction implements IRuntimeAction {
   readonly type = 'start-segment';
-  
+
   constructor(
     /** Type of segment to start */
     public readonly segmentType: SegmentType,
@@ -35,14 +35,14 @@ export class StartSegmentAction implements IRuntimeAction {
     public readonly label: string,
     /** Optional index/position in sequence (0-based) */
     public readonly index?: number
-  ) {}
+  ) { }
 
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     if (runtime.tracker) {
       runtime.tracker.startSegment(blockId, this.segmentType, this.label, this.index);
     }
@@ -63,18 +63,18 @@ export class StartSegmentAction implements IRuntimeAction {
  */
 export class EndSegmentAction implements IRuntimeAction {
   readonly type = 'end-segment';
-  
+
   constructor(
     /** Optional specific segment ID to end (ends active segment if not provided) */
     public readonly segmentId?: string
-  ) {}
+  ) { }
 
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     if (runtime.tracker) {
       runtime.tracker.endSegment(blockId, this.segmentId);
     }
@@ -97,9 +97,9 @@ export class EndAllSegmentsAction implements IRuntimeAction {
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     if (runtime.tracker) {
       runtime.tracker.endAllSegments(blockId);
     }
@@ -123,7 +123,7 @@ export class EndAllSegmentsAction implements IRuntimeAction {
  */
 export class RecordMetricAction implements IRuntimeAction {
   readonly type = 'record-metric';
-  
+
   constructor(
     /** Metric key (e.g., 'reps', 'weight', 'distance') */
     public readonly metricKey: string,
@@ -133,14 +133,14 @@ export class RecordMetricAction implements IRuntimeAction {
     public readonly unit: string,
     /** Optional source identifier */
     public readonly source?: string
-  ) {}
+  ) { }
 
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     if (runtime.tracker) {
       runtime.tracker.recordMetric(blockId, this.metricKey, this.value, this.unit, this.source);
     }
@@ -161,7 +161,7 @@ export class RecordMetricAction implements IRuntimeAction {
  */
 export class RecordRoundAction implements IRuntimeAction {
   readonly type = 'record-round';
-  
+
   constructor(
     /** Current round number (1-indexed) */
     public readonly currentRound: number,
@@ -169,14 +169,14 @@ export class RecordRoundAction implements IRuntimeAction {
     public readonly totalRounds?: number,
     /** Rep scheme array (e.g., [21, 15, 9]) */
     public readonly repScheme?: number[]
-  ) {}
+  ) { }
 
   do(runtime: IScriptRuntime): void {
     const currentBlock = runtime.stack.current;
     if (!currentBlock) return;
-    
+
     const blockId = currentBlock.key.toString();
-    
+
     if (runtime.tracker) {
       runtime.tracker.recordRound(blockId, this.currentRound, this.totalRounds, this.repScheme);
     }

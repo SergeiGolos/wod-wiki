@@ -12,7 +12,7 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -33,7 +33,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         if (!statements[0].fragments) return false;
 
         const statement = statements[0];
-        
+
         // Explicit effort hint takes priority
         // Allows forcing effort behavior even on complex lines
         if (statement.hints?.has('behavior.effort')) {
@@ -73,21 +73,21 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
         // If no explicit reps, check for inherited reps from parent blocks
         if (reps === undefined) {
-          const inheritedRepsRefs = runtime.memory.search({
-            type: MemoryTypeEnum.METRIC_REPS,
-            visibility: 'inherited',
-            id: null,
-            ownerId: null
-          });
+            const inheritedRepsRefs = runtime.memory.search({
+                type: MemoryTypeEnum.METRIC_REPS,
+                visibility: 'inherited',
+                id: null,
+                ownerId: null
+            });
 
-          if (inheritedRepsRefs.length > 0) {
-            // Use the most recent inherited reps metric (last in array)
-            const latestRepsRef = inheritedRepsRefs[inheritedRepsRefs.length - 1];
-            const inheritedReps = runtime.memory.get(latestRepsRef as any);
-            if (inheritedReps !== undefined) {
-              reps = inheritedReps as number;
+            if (inheritedRepsRefs.length > 0) {
+                // Use the most recent inherited reps metric (last in array)
+                const latestRepsRef = inheritedRepsRefs[inheritedRepsRefs.length - 1];
+                const inheritedReps = runtime.memory.get(latestRepsRef as any);
+                if (inheritedReps !== undefined) {
+                    reps = inheritedReps as number;
+                }
             }
-          }
         }
 
         // 6. Create behaviors
@@ -132,7 +132,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Add TimerBehavior for generic effort blocks (count up)
         // Segment timers should not override the main workout clock; mark as secondary
         behaviors.push(new TimerBehavior('up', undefined, 'Segment Timer', 'secondary'));
-        
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify effort blocks
         behaviors.push(new HistoryBehavior({

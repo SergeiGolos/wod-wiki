@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'bun:test';
 import {
-  createExecutionSpan,
+  createTrackedSpan,
   createDebugMetadata,
   DebugMetadata,
-  ExecutionSpan
-} from '../../runtime/models/ExecutionSpan';
+  TrackedSpan
+} from '../../runtime/models/TrackedSpan';
 
-describe('ExecutionSpan DebugMetadata', () => {
+describe('TrackedSpan DebugMetadata', () => {
   describe('createDebugMetadata', () => {
     it('should create empty debug metadata with defaults', () => {
       const metadata = createDebugMetadata();
@@ -51,9 +51,9 @@ describe('ExecutionSpan DebugMetadata', () => {
     });
   });
 
-  describe('createExecutionSpan with debugMetadata', () => {
+  describe('createTrackedSpan with debugMetadata', () => {
     it('should create span without debug metadata', () => {
-      const span = createExecutionSpan(
+      const span = createTrackedSpan(
         'block-1',
         'timer',
         'Countdown',
@@ -69,7 +69,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         { strategyUsed: 'TimeBoundRoundsStrategy' }
       );
 
-      const span = createExecutionSpan(
+      const span = createTrackedSpan(
         'block-1',
         'amrap',
         '20:00 AMRAP',
@@ -88,7 +88,7 @@ describe('ExecutionSpan DebugMetadata', () => {
       const debugMetadata = createDebugMetadata(['effort'], { exerciseId: 'pushups' });
       const sourceIds = [1, 2];
 
-      const span = createExecutionSpan(
+      const span = createTrackedSpan(
         'effort-block',
         'effort',
         '10 Pushups',
@@ -133,7 +133,7 @@ describe('ExecutionSpan DebugMetadata', () => {
         { timerDuration: 300000 }
       );
 
-      const span = createExecutionSpan(
+      const span = createTrackedSpan(
         'timer-block',
         'timer',
         '5:00 Countdown',
@@ -144,7 +144,7 @@ describe('ExecutionSpan DebugMetadata', () => {
 
       // Simulate full span serialization
       const serialized = JSON.stringify(span);
-      const deserialized: ExecutionSpan = JSON.parse(serialized);
+      const deserialized: TrackedSpan = JSON.parse(serialized);
 
       expect(deserialized.debugMetadata).toBeDefined();
       expect(deserialized.debugMetadata?.tags).toEqual(['timer', 'countdown']);

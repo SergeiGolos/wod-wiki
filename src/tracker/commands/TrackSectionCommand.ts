@@ -1,11 +1,11 @@
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
-    ExecutionSpan,
+    TrackedSpan,
     SegmentType,
     TimeSegment,
     createTimeSegment,
     EXECUTION_SPAN_TYPE
-} from '../../runtime/models/ExecutionSpan';
+} from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 export type TrackSectionAction = 'start' | 'end' | 'end-all';
@@ -26,7 +26,7 @@ export interface TrackSectionPayload {
 export class TrackSectionCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSectionPayload) { }
 
-    write(context: TrackerContext): ExecutionSpan[] {
+    write(context: TrackerContext): TrackedSpan[] {
         const { memory } = context;
         const { blockId, action } = this.payload;
 
@@ -67,7 +67,7 @@ export class TrackSectionCommand implements ITrackerCommand {
         return [updatedSpan];
     }
 
-    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<ExecutionSpan> | null {
+    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<TrackedSpan> | null {
         const refs = context.memory.search({
             type: EXECUTION_SPAN_TYPE,
             ownerId: blockId,
@@ -76,7 +76,7 @@ export class TrackSectionCommand implements ITrackerCommand {
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<ExecutionSpan>
+            ? refs[0] as TypedMemoryReference<TrackedSpan>
             : null;
     }
 }
