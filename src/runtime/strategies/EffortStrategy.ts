@@ -12,7 +12,7 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -137,7 +137,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // This ensures analytics can identify effort blocks
         behaviors.push(new HistoryBehavior({
             label: "Effort",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['effort', 'leaf_node'],
                 {
                     strategyUsed: 'EffortStrategy',

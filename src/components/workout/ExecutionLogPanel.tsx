@@ -10,8 +10,10 @@ import React from 'react';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { TrackedSpan } from '../../runtime/models/TrackedSpan';
+import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
+import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
-import { useTrackedSpans, useSpanHierarchy } from '../../clock/hooks/useTrackedSpans';
+import { useTrackedSpans, useSpanHierarchy } from '../../clock/hooks/useExecutionSpans';
 
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
@@ -37,19 +39,24 @@ export interface ExecutionLogPanelProps {
  * Helper to convert TrackedSpan to Segment for display
  */
 function recordToSegment(
-  record: TrackedSpan,
+  record: TrackedSpan | RuntimeSpan,
   hashCode: (str: string) => number,
   depthMap: Map<string, number>
 ): Segment {
   const depth = depthMap.get(record.id) || 0;
+  const label = 'label' in record ? record.label : fragmentsToLabel(record.fragments);
+  const type = 'type' in record ? record.type.toLowerCase() : 'group';
+  const parentId = 'parentSpanId' in record ? record.parentSpanId : null;
+  const duration = 'total' in record ? record.total() / 1000 : ((record.endTime ?? Date.now()) - record.startTime) / 1000;
+
   return {
     id: hashCode(record.blockId),
-    name: record.label,
-    type: record.type.toLowerCase(),
+    name: label,
+    type: type,
     startTime: Math.floor(record.startTime / 1000),
     endTime: Math.floor((record.endTime ?? Date.now()) / 1000),
-    duration: ((record.endTime ?? Date.now()) - record.startTime) / 1000,
-    parentId: record.parentSpanId ? hashCode(record.parentSpanId) : null,
+    duration: duration,
+    parentId: parentId ? hashCode(parentId) : null,
     depth: depth,
     avgPower: 0,
     avgHr: 0,
@@ -81,7 +88,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   scrollRef,
   children
 }) => {
-  const { active, completed } = useTrackedSpans(runtime);
+  const { active, completed, runtimeSpans } = useTrackedSpans(runtime);
   const depthMap = useSpanHierarchy(runtime);
 
   // Build segments from runtime memory if available
@@ -94,7 +101,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
       return [];
     }
 
-    const allSpans = [...completed, ...active];
+    const allSpans = runtimeSpans.length > 0 ? runtimeSpans : [...completed, ...active];
 
     // Convert all spans (completed + active) to Segments
     const allSegments = allSpans.map(span =>
@@ -110,7 +117,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
     }
 
     return allSegments;
-  }, [runtime, historicalSegments, active, completed, depthMap]);
+  }, [runtime, historicalSegments, active, completed, runtimeSpans, depthMap]);
 
   const selectedIds = React.useMemo(() => {
     return new Set(activeSegmentId ? [activeSegmentId] : []);

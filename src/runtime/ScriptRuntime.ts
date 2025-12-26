@@ -5,7 +5,7 @@ import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
-import { TrackedSpan } from './models/TrackedSpan';
+import { RuntimeSpan } from './models/RuntimeSpan';
 import { RuntimeReporter } from '../tracker/ExecutionTracker';
 import { IEventBus } from './IEventBus';
 import {
@@ -132,7 +132,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * Gets the currently active execution spans from memory.
      * Used by UI to display ongoing execution state.     
      */
-    public get activeSpans(): ReadonlyMap<string, TrackedSpan> {
+    public get activeSpans(): ReadonlyMap<string, RuntimeSpan> {
         return this.RuntimeReporter.getActiveSpansMap();
     }
 
@@ -313,6 +313,4 @@ export class ScriptRuntime implements IScriptRuntime {
         }
         return block.key.toString();
     }
-
-
 }

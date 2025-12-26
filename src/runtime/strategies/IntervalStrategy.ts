@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -138,7 +138,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         // This ensures analytics can identify this as an EMOM workout
         behaviors.push(new HistoryBehavior({
             label: "EMOM",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['emom', 'interval', 'fixed_rounds'],
                 {
                     strategyUsed: 'IntervalStrategy',

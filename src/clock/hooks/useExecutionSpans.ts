@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
 import { TrackedSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { IEvent } from '../../runtime/IEvent';
 
@@ -16,6 +17,8 @@ export interface TrackedSpansData {
   byId: Map<string, TrackedSpan>;
   /** All spans indexed by blockId */
   byBlockId: Map<string, TrackedSpan>;
+  /** All runtime spans (new model) */
+  runtimeSpans: RuntimeSpan[];
 }
 
 /**
@@ -32,11 +35,13 @@ export interface TrackedSpansData {
  */
 export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData {
   const [spans, setSpans] = useState<TrackedSpan[]>([]);
+  const [runtimeSpans, setRuntimeSpans] = useState<RuntimeSpan[]>([]);
   const ownerIdRef = useRef(`useTrackedSpans-${crypto.randomUUID()}`);
 
   useEffect(() => {
     if (!runtime?.memory || !runtime?.eventBus) {
       setSpans([]);
+      setRuntimeSpans([]);
       return;
     }
 
@@ -44,6 +49,7 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
 
     // Fetch all execution spans from memory
     const fetchSpans = () => {
+      // Legacy spans
       const refs = runtime.memory.search({
         type: EXECUTION_SPAN_TYPE,
         id: null,
@@ -56,6 +62,20 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
         .filter((s): s is TrackedSpan => s !== null);
 
       setSpans(fetchedSpans);
+
+      // New runtime spans
+      const runtimeRefs = runtime.memory.search({
+        type: RUNTIME_SPAN_TYPE,
+        id: null,
+        ownerId: null,
+        visibility: null
+      });
+
+      const fetchedRuntimeSpans = runtimeRefs
+        .map(ref => runtime.memory.get(ref as TypedMemoryReference<RuntimeSpan>))
+        .filter((s): s is RuntimeSpan => s !== null);
+
+      setRuntimeSpans(fetchedRuntimeSpans);
     };
 
     // Initial load
@@ -64,7 +84,7 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
     // Subscribe to memory events via EventBus
     const handleMemoryEvent = (event: IEvent) => {
       const data = event.data as { ref: { type: string } };
-      if (data?.ref?.type === EXECUTION_SPAN_TYPE) {
+      if (data?.ref?.type === EXECUTION_SPAN_TYPE || data?.ref?.type === RUNTIME_SPAN_TYPE) {
         fetchSpans();
       }
     };
@@ -98,8 +118,8 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
       }
     }
 
-    return { active, completed, byId, byBlockId };
-  }, [spans]);
+    return { active, completed, byId, byBlockId, runtimeSpans };
+  }, [spans, runtimeSpans]);
 
   return data;
 }
@@ -135,13 +155,16 @@ export function useTrackedSpan(
  * Hook to compute span hierarchy (parent-child relationships)
  */
 export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number> {
-  const { active, completed, byId } = useTrackedSpans(runtime);
+  const { active, completed, runtimeSpans } = useTrackedSpans(runtime);
 
   return useMemo(() => {
     const depthMap = new Map<string, number>();
 
-    // Combine and sort by start time
-    const allSpans = [...active, ...completed].sort((a, b) => a.startTime - b.startTime);
+    // Combine all spans and sort by start time
+    // If runtimeSpans are present, prefer them as they represent the new unified model
+    const allSpans = runtimeSpans.length > 0
+      ? [...runtimeSpans].sort((a, b) => a.startTime - b.startTime)
+      : [...active, ...completed].sort((a, b) => a.startTime - b.startTime);
 
     for (const span of allSpans) {
       if (!span.parentSpanId) {
@@ -155,5 +178,5 @@ export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, nu
     }
 
     return depthMap;
-  }, [active, completed, byId]);
+  }, [active, completed, runtimeSpans]);
 }

@@ -20,6 +20,8 @@ export {
   statementsToDisplayItems,
   spanToDisplayItem,
   spansToDisplayItems,
+  runtimeSpanToDisplayItem,
+  runtimeSpansToDisplayItems,
   blockToDisplayItem,
   sortByStartTime,
   sortByStartTimeDesc,

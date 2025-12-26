@@ -17,16 +17,16 @@ import { FragmentType, ICodeFragment } from '../../core/models/CodeFragment';
 export interface AnalyticsHistoryPanelProps {
   /** Historical segments to display */
   segments: Segment[];
-  
+
   /** Currently selected segment IDs for filtering */
   selectedSegmentIds?: Set<number>;
-  
+
   /** Callback when segment is clicked */
   onSelectSegment?: (segmentId: number) => void;
-  
+
   /** Compact display mode */
   compact?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -40,7 +40,7 @@ function segmentToDisplayItem(segment: Segment, allSegments: Map<number, Segment
   let currentParentId = segment.parentId;
   const visited = new Set<number>();
   visited.add(segment.id);
-  
+
   while (currentParentId !== null && !visited.has(currentParentId)) {
     visited.add(currentParentId);
     const parent = allSegments.get(currentParentId);
@@ -52,14 +52,16 @@ function segmentToDisplayItem(segment: Segment, allSegments: Map<number, Segment
     }
     if (depth > 20) break; // Safety limit
   }
-  
-  // Convert segment to fragments
-  const fragments = segmentToFragments(segment);
-  
+
+  // Convert segment to fragments; prefer precomputed fragments if present
+  const fragments = (segment.fragments && segment.fragments.length > 0)
+    ? segment.fragments
+    : segmentToFragments(segment);
+
   // Determine if this is a header (container types)
   const type = segment.type.toLowerCase();
   const isHeader = ['root', 'warmup', 'cooldown', 'main', 'work', 'rest'].includes(type) && depth < 2;
-  
+
   return {
     id: segment.id.toString(),
     parentId: segment.parentId?.toString() ?? null,
@@ -82,25 +84,25 @@ function segmentToDisplayItem(segment: Segment, allSegments: Map<number, Segment
 function segmentToFragments(segment: Segment): ICodeFragment[] {
   const fragments: ICodeFragment[] = [];
   const type = segment.type.toLowerCase();
-  
+
   // Segment name as action/effort fragment
   const fragmentType = type === 'work' ? FragmentType.Effort :
-                       type === 'rest' ? FragmentType.Action :
-                       FragmentType.Action;
-  
+    type === 'rest' ? FragmentType.Action :
+      FragmentType.Action;
+
   fragments.push({
     type: type,
     fragmentType,
     value: segment.name,
     image: segment.name
   });
-  
+
   // Duration
   if (segment.duration > 0) {
     const mins = Math.floor(segment.duration / 60);
     const secs = Math.floor(segment.duration % 60);
     const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
-    
+
     fragments.push({
       type: 'time',
       fragmentType: FragmentType.Timer,
@@ -108,7 +110,7 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
       image: timeStr
     });
   }
-  
+
   // Power metric
   if (segment.avgPower > 0) {
     fragments.push({
@@ -118,7 +120,7 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
       image: `${Math.round(segment.avgPower)}W`
     });
   }
-  
+
   // Heart rate metric
   if (segment.avgHr > 0) {
     fragments.push({
@@ -128,7 +130,7 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
       image: `${Math.round(segment.avgHr)}♥`
     });
   }
-  
+
   return fragments;
 }
 
@@ -146,12 +148,12 @@ export const AnalyticsHistoryPanel: React.FC<AnalyticsHistoryPanelProps> = ({
   const items = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
     const segmentMap = new Map(segments.map(s => [s.id, s]));
-    
+
     return sorted.map(segment => segmentToDisplayItem(segment, segmentMap));
   }, [segments]);
 
   // Convert selected IDs to string set for UnifiedItemList
-  const selectedIds = useMemo(() => 
+  const selectedIds = useMemo(() =>
     new Set(Array.from(selectedSegmentIds).map(String)),
     [selectedSegmentIds]
   );
@@ -176,7 +178,7 @@ export const AnalyticsHistoryPanel: React.FC<AnalyticsHistoryPanelProps> = ({
         className="flex-1"
         emptyMessage="No historical data available"
       />
-      
+
       {/* Selection Info */}
       {selectedSegmentIds.size > 0 && (
         <div className="p-2 border-t border-border text-xs text-muted-foreground bg-muted/10">

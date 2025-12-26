@@ -103,7 +103,7 @@ export interface MetricValueWithTimestamp<T = number> {
  * Rich metric value with type information for grouped emission.
  * This is the unified shape for metrics derived from fragments (replacing legacy MetricValue).
  */
-export interface RecordedMetricValue<T = number> extends MetricValueWithTimestamp<T> {
+export interface RecordedMetricValue<T = number | undefined> extends MetricValueWithTimestamp<T> {
   /** Metric type discriminator (matches legacy MetricValue types) */
   type: LegacyMetricValue['type'] | string;
   /** Optional display label if different from type/unit */

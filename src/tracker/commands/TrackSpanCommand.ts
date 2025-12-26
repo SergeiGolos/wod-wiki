@@ -1,21 +1,16 @@
 
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
-    TrackedSpan,
+    RuntimeSpan,
+    TimerSpan,
     SpanStatus,
-    SpanMetrics,
-    TimeSegment,
-    DebugMetadata,
-    createTrackedSpan,
-    createEmptyMetrics,
-    legacyTypeToSpanType,
-    EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+    RUNTIME_SPAN_TYPE
+} from '../../runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { createLabelFragment } from '../../runtime/utils/metricsToFragments';
 
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 export type TrackSpanAction = 'start' | 'end' | 'fail' | 'skip' | 'update';
 
@@ -29,16 +24,14 @@ export interface TrackSpanPayload {
 
     // For update/end
     status?: SpanStatus;
-    metrics?: Partial<SpanMetrics>;
-    segments?: TimeSegment[];
-    debugMetadata?: Partial<DebugMetadata>;
+    metrics?: Record<string, any>;
     fragments?: ICodeFragment[];
 }
 
 export class TrackSpanCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSpanPayload) { }
 
-    write(context: TrackerContext): TrackedSpan[] {
+    write(context: TrackerContext): RuntimeSpan[] {
         const { memory } = context;
         const { action, blockId } = this.payload;
 
@@ -48,24 +41,24 @@ export class TrackSpanCommand implements ITrackerCommand {
 
         const ref = this.findSpanRef(context, blockId);
         if (!ref) {
-            // If we try to update/end a non-existent span, we might want to log or ignore.
-            // For now, ignore to be safe.
             return [];
         }
 
         const span = memory.get(ref);
         if (!span) return [];
 
-        let updatedSpan = { ...span };
+        // No need to shallow copy if we mutate and call set, 
+        // but RuntimeSpan is a class, so we should be careful.
+        const updatedSpan = span;
 
         switch (action) {
             case 'end':
             case 'fail':
             case 'skip':
-                updatedSpan = this.handleEnd(span, action);
+                this.handleEnd(updatedSpan, action);
                 break;
             case 'update':
-                updatedSpan = this.handleUpdate(span);
+                this.handleUpdate(updatedSpan);
                 break;
         }
 
@@ -73,41 +66,31 @@ export class TrackSpanCommand implements ITrackerCommand {
         return [updatedSpan];
     }
 
-    private handleStart(context: TrackerContext): TrackedSpan[] {
+    private handleStart(context: TrackerContext): RuntimeSpan[] {
         const { memory } = context;
-        const { block, blockId, parentSpanId, debugMetadata } = this.payload;
+        const { block, blockId } = this.payload;
 
         if (!block) {
             throw new Error('Block is required for starting a span');
         }
 
-        const type = legacyTypeToSpanType(block.blockType || 'group');
         const fragments = block.fragments?.length
-            ? block.fragments.flat()
-            : [createLabelFragment(block.label, block.blockType || 'group')];
+            ? [...block.fragments]
+            : [[createLabelFragment(block.label, block.blockType || 'group')]];
 
-        const initialMetrics: SpanMetrics = {
-            ...createEmptyMetrics(),
-            ...(block.context?.exerciseId ? { exerciseId: block.context.exerciseId } : {}),
-            ...(this.payload.metrics || {})
-        };
-
-        const span = createTrackedSpan(
+        const startTime = Date.now();
+        const span = new RuntimeSpan(
             blockId,
-            type,
-            block.label || blockId,
-            parentSpanId,
-            block.sourceIds,
-            // We can pass debugMetadata if provided, or empty
-            debugMetadata as DebugMetadata,
-            {
-                metrics: initialMetrics,
-                fragments
-            }
+            [...block.sourceIds],
+            [new TimerSpan(startTime)],
+            fragments,
+            undefined,
+            undefined, // metadata
+            this.payload.parentSpanId ?? undefined
         );
 
-        memory.allocate<TrackedSpan>(
-            EXECUTION_SPAN_TYPE,
+        memory.allocate<RuntimeSpan>(
+            RUNTIME_SPAN_TYPE,
             blockId,
             span,
             'public'
@@ -116,84 +99,81 @@ export class TrackSpanCommand implements ITrackerCommand {
         return [span];
     }
 
-    private handleEnd(span: TrackedSpan, action: TrackSpanAction): TrackedSpan {
-        if (span.status !== 'active') return span;
+    private handleEnd(span: RuntimeSpan, action: TrackSpanAction): void {
+        const status: SpanStatus | undefined = action === 'fail' ? 'failed' :
+            action === 'skip' ? 'skipped' : undefined;
 
-        const status: SpanStatus = action === 'fail' ? 'failed' :
-            action === 'skip' ? 'skipped' : 'completed';
-
-        // End any open segments
-        const updatedSegments = span.segments.map(seg =>
-            seg.endTime ? seg : { ...seg, endTime: Date.now() }
-        );
-
-        const endTime = Date.now();
-        const updatedMetrics = { ...span.metrics };
-        if (!updatedMetrics.duration) {
-            updatedMetrics.duration = {
-                value: endTime - span.startTime,
-                unit: 'ms',
-                recorded: endTime
-            };
+        if (status) {
+            span.status = status;
         }
 
-        return {
-            ...span,
-            endTime,
-            status,
-            segments: updatedSegments,
-            metrics: updatedMetrics
-        };
+        // End any open timers
+        if (span.spans.length > 0) {
+            const lastTimer = span.spans[span.spans.length - 1];
+            if (lastTimer.ended === undefined) {
+                lastTimer.ended = Date.now();
+            }
+        }
     }
 
-    private handleUpdate(span: TrackedSpan): TrackedSpan {
-        const { metrics, segments, debugMetadata, fragments } = this.payload;
-
-        let updatedSpan = { ...span };
-
-        if (metrics) {
-            updatedSpan.metrics = {
-                ...updatedSpan.metrics,
-                ...metrics,
-                // If custom map is present in both, we might want to merge, but 
-                // for now shallow merge of top properties is standard.
-                // Deep merge of custom would require more logic.
-                custom: metrics.custom ? metrics.custom : updatedSpan.metrics.custom
-            };
-        }
-
-        if (segments) {
-            updatedSpan.segments = segments;
-        }
+    private handleUpdate(span: RuntimeSpan): void {
+        const { metrics, fragments } = this.payload;
 
         if (fragments) {
-            updatedSpan.fragments = [...(updatedSpan.fragments || []), ...fragments];
+            // If fragments are passed as ICodeFragment[], we should probably 
+            // append them to the last group or start a new group?
+            // For now, let's assume we append to the last group.
+            if (span.fragments.length === 0) {
+                span.fragments.push([]);
+            }
+            span.fragments[span.fragments.length - 1].push(...fragments);
         }
 
-        if (debugMetadata) {
-            updatedSpan.debugMetadata = {
-                ...(updatedSpan.debugMetadata || { tags: [], context: {}, logs: [] }),
-                ...debugMetadata,
-                // Merge arrays if needed? The types say string[].
-                // If payload has tags, it replaces? Or appends?
-                // Let's assume replace for now or simple merge if convenient.
-                // The payload is Partial<DebugMetadata>, so if tags are passed, they replace.
-            };
-        }
+        if (metrics) {
+            // Convert metrics to fragments
+            if (span.fragments.length === 0) {
+                span.fragments.push([]);
+            }
+            const currentGroup = span.fragments[span.fragments.length - 1];
 
-        return updatedSpan;
+            for (const [key, value] of Object.entries(metrics)) {
+                // Simplified metric to fragment conversion
+                currentGroup.push({
+                    type: key,
+                    fragmentType: this.mapMetricToFragmentType(key),
+                    value: typeof value === 'object' && value !== null && 'value' in value ? (value as any).value : value,
+                    image: `${value}`
+                });
+            }
+        }
     }
 
-    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<TrackedSpan> | null {
+    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<RuntimeSpan> | null {
         const refs = context.memory.search({
-            type: EXECUTION_SPAN_TYPE,
+            type: RUNTIME_SPAN_TYPE,
             ownerId: blockId,
             id: null,
             visibility: null
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<TrackedSpan>
+            ? refs[0] as TypedMemoryReference<RuntimeSpan>
             : null;
+    }
+
+    private mapMetricToFragmentType(key: string): FragmentType {
+        const mapping: Record<string, FragmentType> = {
+            'reps': FragmentType.Rep,
+            'repetitions': FragmentType.Rep,
+            'weight': FragmentType.Resistance,
+            'resistance': FragmentType.Resistance,
+            'distance': FragmentType.Distance,
+            'duration': FragmentType.Timer,
+            'elapsed': FragmentType.Timer,
+            'time': FragmentType.Timer,
+            'rounds': FragmentType.Rounds,
+            'effort': FragmentType.Effort,
+        };
+        return mapping[key] || FragmentType.Text;
     }
 }

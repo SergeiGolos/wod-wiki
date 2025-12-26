@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -132,11 +132,12 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const timerBehavior = new TimerBehavior(direction, durationMs, label);
         behaviors.push(timerBehavior);
 
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify the timer configuration
         behaviors.push(new HistoryBehavior({
             label: "Timer",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['timer', direction === 'down' ? 'countdown' : 'count_up'],
                 {
                     strategyUsed: 'TimerStrategy',
