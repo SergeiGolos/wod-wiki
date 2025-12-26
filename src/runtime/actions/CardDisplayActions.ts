@@ -124,7 +124,6 @@ export class PopCardDisplayAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ PopCardDisplayAction: No display stack state found');
       return;
     }
 
@@ -132,7 +131,6 @@ export class PopCardDisplayAction implements IRuntimeAction {
     const state = stateRef.get();
 
     if (!state || state.cardStack.length === 0) {
-      console.warn('⚠️ PopCardDisplayAction: Card stack is empty');
       return;
     }
 
@@ -144,7 +142,6 @@ export class PopCardDisplayAction implements IRuntimeAction {
       if (index >= 0) {
         removedEntry = state.cardStack.splice(index, 1)[0];
       } else {
-        console.warn(`⚠️ PopCardDisplayAction: Card with ID "${this.entryId}" not found`);
         return;
       }
     } else {
@@ -190,7 +187,6 @@ export class UpdateCardDisplayAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ UpdateCardDisplayAction: No display stack state found');
       return;
     }
 
@@ -198,13 +194,11 @@ export class UpdateCardDisplayAction implements IRuntimeAction {
     const state = stateRef.get();
 
     if (!state) {
-      console.warn('⚠️ UpdateCardDisplayAction: Display state is null');
       return;
     }
 
     const index = state.cardStack.findIndex(c => c.id === this.entryId);
     if (index < 0) {
-      console.warn(`⚠️ UpdateCardDisplayAction: Card with ID "${this.entryId}" not found`);
       return;
     }
 

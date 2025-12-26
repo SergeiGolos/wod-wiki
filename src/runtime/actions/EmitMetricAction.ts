@@ -10,7 +10,7 @@ import { metricsToFragments } from '../utils/metricsToFragments';
  * instead of directly manipulating a collector, maintaining declarative patterns.
  * 
  * Metrics are recorded to:
- * 1. The active TrackedSpan via RuntimeReporter (primary)
+ * 1. The active RuntimeSpan via RuntimeReporter (primary)
  * 2. The global MetricCollector for aggregate stats (secondary)
  * 
  * @example
@@ -45,9 +45,6 @@ export class EmitMetricAction implements IRuntimeAction {
 
     }
 
-    // Secondary: Deprecated metric collector remains for compatibility
-    if (runtime.metrics && typeof runtime.metrics.collect === 'function') {
-      runtime.metrics.collect(this.metric);
-    }
+
   }
 }

@@ -78,7 +78,6 @@ export class RuntimeFactory implements IRuntimeFactory {
    */
   createRuntime(block: WodBlock, options?: IRuntimeOptions): IScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
-      console.warn('[RuntimeFactory] Cannot create runtime: block has no statements');
       return null;
     }
 
@@ -142,7 +141,6 @@ export class RuntimeFactory implements IRuntimeFactory {
     );
 
     if (!rootBlock) {
-      console.warn('[RuntimeFactory] Failed to create root block for:', block.id);
       return runtime; // Return runtime even without root block for debugging
     }
 

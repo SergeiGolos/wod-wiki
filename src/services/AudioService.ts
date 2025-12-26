@@ -16,8 +16,7 @@ export class AudioService {
             try {
                 const stored = localStorage.getItem('wod-wiki-audio-enabled');
                 this.enabled = stored === 'true';
-            } catch (e) {
-                console.warn('Failed to read audio preference from localStorage:', e);
+            } catch {
                 this.enabled = false;
             }
         }
@@ -47,8 +46,8 @@ export class AudioService {
         if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem('wod-wiki-audio-enabled', String(enabled));
-            } catch (e) {
-                console.warn('Failed to save audio preference to localStorage:', e);
+            } catch {
+                // Failed to save preference
             }
         }
 
@@ -76,7 +75,6 @@ export class AudioService {
 
         // Validate volume parameter
         if (volume < 0 || volume > 1.0) {
-            console.warn(`Invalid volume ${volume}, clamping to range [0, 1]`);
             volume = Math.max(0, Math.min(1.0, volume));
         }
 

@@ -25,8 +25,6 @@ export function registerDefaultCards(): void {
   CardComponentRegistry.register('idle-complete', IdleCompleteCard);
   CardComponentRegistry.register('active-block', ActiveBlockCard);
   CardComponentRegistry.register('rest-period', RestPeriodCard);
-  
-  console.log('📝 Registered default card components');
 }
 
 export { CardComponentRegistry } from './CardComponentRegistry';

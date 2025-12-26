@@ -126,7 +126,6 @@ export class PopTimerDisplayAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ PopTimerDisplayAction: No display stack state found');
       return;
     }
 
@@ -134,7 +133,6 @@ export class PopTimerDisplayAction implements IRuntimeAction {
     const state = stateRef.get();
 
     if (!state || state.timerStack.length === 0) {
-      console.warn('⚠️ PopTimerDisplayAction: Timer stack is empty');
       return;
     }
 
@@ -146,7 +144,6 @@ export class PopTimerDisplayAction implements IRuntimeAction {
       if (index >= 0) {
         removedEntry = state.timerStack.splice(index, 1)[0];
       } else {
-        console.warn(`⚠️ PopTimerDisplayAction: Timer with ID "${this.entryId}" not found`);
         return;
       }
     } else {
@@ -192,7 +189,6 @@ export class UpdateTimerDisplayAction implements IRuntimeAction {
     });
 
     if (stateRefs.length === 0) {
-      console.warn('⚠️ UpdateTimerDisplayAction: No display stack state found');
       return;
     }
 
@@ -200,13 +196,11 @@ export class UpdateTimerDisplayAction implements IRuntimeAction {
     const state = stateRef.get();
 
     if (!state) {
-      console.warn('⚠️ UpdateTimerDisplayAction: Display state is null');
       return;
     }
 
     const index = state.timerStack.findIndex(t => t.id === this.entryId);
     if (index < 0) {
-      console.warn(`⚠️ UpdateTimerDisplayAction: Timer with ID "${this.entryId}" not found`);
       return;
     }
 

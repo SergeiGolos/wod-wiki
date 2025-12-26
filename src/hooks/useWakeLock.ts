@@ -96,7 +96,6 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
    */
   const request = useCallback(async (): Promise<boolean> => {
     if (!isSupported) {
-      console.log('[useWakeLock] Wake Lock API not supported');
       return false;
     }
 
@@ -109,23 +108,19 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
       const nav = navigator as NavigatorWithWakeLock;
       wakeLockRef.current = await nav.wakeLock!.request('screen');
       setIsActive(true);
-      
-      console.log('[useWakeLock] Wake lock acquired');
 
       // Listen for the wake lock being released (e.g., when tab becomes hidden)
       wakeLockRef.current.addEventListener('release', () => {
-        console.log('[useWakeLock] Wake lock released by system');
         wakeLockRef.current = null;
         setIsActive(false);
       });
 
       return true;
-    } catch (err) {
+    } catch {
       // Wake lock request can fail if:
       // - Document is not visible
       // - Permission denied
       // - Low battery mode (on some devices)
-      console.warn('[useWakeLock] Failed to acquire wake lock:', err);
       wakeLockRef.current = null;
       setIsActive(false);
       return false;
@@ -139,9 +134,8 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
     if (wakeLockRef.current) {
       try {
         await wakeLockRef.current.release();
-        console.log('[useWakeLock] Wake lock released');
-      } catch (err) {
-        console.warn('[useWakeLock] Error releasing wake lock:', err);
+      } catch {
+        // Wake lock release failed silently
       }
       wakeLockRef.current = null;
       setIsActive(false);

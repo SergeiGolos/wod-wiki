@@ -12,7 +12,7 @@ import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { TypedMemoryReference } from "../IMemoryReference";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -37,12 +37,10 @@ function getExerciseId(statement: ICodeStatement): string {
 export class RoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('RoundsStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('RoundsStrategy: Statement missing fragments array');
             return false;
         }
 
@@ -147,11 +145,12 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         });
         behaviors.push(loopCoordinator);
 
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify the workout structure
         behaviors.push(new HistoryBehavior({
             label: "Rounds",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['rounds', repScheme ? 'rep_scheme' : 'fixed_rounds'],
                 {
                     strategyUsed: 'RoundsStrategy',

@@ -148,8 +148,6 @@ export function createHeadingFoldingProvider(): languages.FoldingRangeProvider {
 export function registerHeadingFolding(monaco: Monaco): void {
   // Register for markdown language
   monaco.languages.registerFoldingRangeProvider('markdown', createHeadingFoldingProvider());
-  
-  console.log('[HeadingSectionFolding] Registered folding provider for markdown');
 }
 
 /**
@@ -181,8 +179,6 @@ export class HeadingSectionFoldingManager {
 
     // Add click handler for folding on heading lines
     this.setupClickToFold(monaco);
-
-    console.log('[HeadingSectionFoldingManager] Initialized');
   }
 
   private setupClickToFold(monaco: Monaco): void {
@@ -277,6 +273,5 @@ export class HeadingSectionFoldingManager {
     this.disposables.forEach(d => d.dispose());
     this.disposables = [];
     this.onFoldStateChangeCallbacks = [];
-    console.log('[HeadingSectionFoldingManager] Disposed');
   }
 }

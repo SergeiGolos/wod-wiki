@@ -38,7 +38,7 @@ export class RichMarkdownManager {
                 }
                 // Default handling for common actions
                 if (action === 'start-workout') {
-                    console.log('[RichMarkdownManager] Start workout requested for:', cardId);
+                    // Start workout requested
                 }
             },
             hiddenAreasCoordinator

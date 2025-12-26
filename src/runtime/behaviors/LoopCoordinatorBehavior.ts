@@ -9,7 +9,7 @@ import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { TrackedSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
+import { RuntimeSpan, TimerSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 import { IEvent } from '../IEvent';
 
 /**
@@ -172,7 +172,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       if (this.index >= 0) {
         const timerBehavior = block.getBehavior(TimerBehavior);
         if (timerBehavior && timerBehavior.isRunning() && !timerBehavior.isComplete()) {
-          console.log(`LoopCoordinator: Work complete, waiting for interval timer...`);
           this.isWaitingForInterval = true;
           return [];
         }
@@ -224,14 +223,12 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Get the child group IDs at current position
     const childGroupIds = this.config.childGroups[state.position];
     if (!childGroupIds || childGroupIds.length === 0) {
-      console.warn(`LoopCoordinatorBehavior: No children at position ${state.position}`);
       return actions;
     }
 
     // Resolve child IDs to statements (lazy JIT resolution)
     const childStatements = runtime.script.getIds(childGroupIds);
     if (childStatements.length === 0) {
-      console.warn(`LoopCoordinatorBehavior: Failed to resolve child IDs at position ${state.position}`);
       return actions;
     }
 
@@ -241,7 +238,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       const compiledBlock = runtime.jit.compile(childStatements, runtime);
 
       if (!compiledBlock) {
-        console.warn(`LoopCoordinatorBehavior: JIT compiler returned undefined for position ${state.position}`);
         return actions;
       }
 
@@ -265,7 +261,6 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       // Verify the event comes from OUR block
       if (event.data?.blockId === block.key.toString()) {
         if (this.isWaitingForInterval) {
-          console.log(`LoopCoordinator: Interval timer complete, advancing to next round.`);
           this.isWaitingForInterval = false;
           return this.advance(runtime, block);
         } else {
@@ -377,6 +372,10 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when the block is popped from the stack.
    * Cleanup any state if needed.
    */
+  /**
+   * Called when the block is popped from the stack.
+   * Cleanup any state if needed.
+   */
   onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     // Close the current round span if it exists
     const state = this.getState();
@@ -384,22 +383,20 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     const roundOwnerId = `${block.key.toString()}-round-${currentRound}`;
 
     const refs = runtime.memory.search({
-      type: EXECUTION_SPAN_TYPE,
+      type: RUNTIME_SPAN_TYPE,
       id: null,
       ownerId: roundOwnerId,
       visibility: null
     });
 
     if (refs.length > 0) {
-      const ref = refs[0] as TypedMemoryReference<TrackedSpan>;
-      const span = runtime.memory.get(ref);
-      if (span && span.status === 'active') {
-        const updatedSpan: TrackedSpan = {
-          ...span,
-          endTime: Date.now(),
-          status: 'completed'
-        };
-        runtime.memory.set(ref, updatedSpan);
+      const span = runtime.memory.get(refs[0] as any) as RuntimeSpan;
+      if (span && span.isActive()) {
+        const lastTimer = span.spans[span.spans.length - 1];
+        if (lastTimer) {
+          lastTimer.ended = Date.now();
+        }
+        runtime.memory.set(refs[0] as any, span);
       }
     }
 
@@ -427,22 +424,20 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     if (prevRound > 0) {
       const prevRoundOwnerId = `${blockId}-round-${prevRound}`;
       const refs = runtime.memory.search({
-        type: EXECUTION_SPAN_TYPE,
+        type: RUNTIME_SPAN_TYPE,
         id: null,
         ownerId: prevRoundOwnerId,
         visibility: null
       });
 
       if (refs.length > 0) {
-        const ref = refs[0] as TypedMemoryReference<TrackedSpan>;
-        const span = runtime.memory.get(ref);
-        if (span && span.status === 'active') {
-          const updatedSpan: TrackedSpan = {
-            ...span,
-            endTime: Date.now(),
-            status: 'completed'
-          };
-          runtime.memory.set(ref, updatedSpan);
+        const span = runtime.memory.get(refs[0] as any) as RuntimeSpan;
+        if (span && span.isActive()) {
+          const lastTimer = span.spans[span.spans.length - 1];
+          if (lastTimer) {
+            lastTimer.ended = Date.now();
+          }
+          runtime.memory.set(refs[0] as any, span);
         }
       }
     }
@@ -451,40 +446,43 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     // Only if we are not complete
     if (rounds < (this.config.totalRounds || Infinity)) {
       const newRoundOwnerId = `${blockId}-round-${nextRound}`;
-      const spanType = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'rounds';
+      const type = this.config.loopType === LoopType.INTERVAL ? 'interval' : 'rounds';
       const label = this.config.loopType === LoopType.INTERVAL
         ? `Interval ${nextRound}`
         : `Round ${nextRound}`;
 
       const startTime = Date.now();
 
-      // Create metrics with round info
-      const metrics = createEmptyMetrics();
-      metrics.currentRound = nextRound;
-      if (this.config.totalRounds) {
-        metrics.totalRounds = this.config.totalRounds;
-      }
+      // Create fragments with round info
+      const fragments: any[] = [{
+        type: type,
+        fragmentType: 'rounds',
+        value: nextRound,
+        image: label
+      }];
+
       if (this.config.repScheme) {
-        metrics.repScheme = this.config.repScheme;
-        // Set target reps for this specific round using modulo to cycle
-        // E.g., 21-15-9: round 0 → 21, round 1 → 15, round 2 → 9, round 3 → 21, etc.
         const schemeIndex = rounds % this.config.repScheme.length;
-        metrics.targetReps = this.config.repScheme[schemeIndex];
+        const targetReps = this.config.repScheme[schemeIndex];
+        fragments.push({
+          type: 'reps',
+          fragmentType: 'reps',
+          value: targetReps,
+          image: `${targetReps}`
+        });
       }
 
-      const span: TrackedSpan = {
-        id: `${startTime}-${newRoundOwnerId}`,
-        blockId: newRoundOwnerId,
-        parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock
-        type: spanType,
-        label: label,
-        startTime: startTime,
-        status: 'active',
-        metrics: metrics,
-        segments: []
-      };
+      const span = new RuntimeSpan(
+        newRoundOwnerId,
+        [...block.sourceIds],
+        [new TimerSpan(startTime)],
+        [fragments],
+        undefined,
+        { tags: [type], context: { round: nextRound, totalRounds: this.config.totalRounds }, logs: [] },
+        blockId // Parent is the RoundsBlock/TimerBlock
+      );
 
-      runtime.memory.allocate(EXECUTION_SPAN_TYPE, newRoundOwnerId, span, 'public');
+      runtime.memory.allocate(RUNTIME_SPAN_TYPE, newRoundOwnerId, span, 'public');
 
       // Create lap timer for this round
       const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(

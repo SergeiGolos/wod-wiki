@@ -9,11 +9,11 @@
  */
 
 import { ICodeStatement } from '../models/CodeStatement';
-import { ICodeFragment, FragmentType } from '../models/CodeFragment';
+import { FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
-import { TrackedSpan } from '../../runtime/models/TrackedSpan';
+import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import { spanMetricsToFragments, createLabelFragment } from '../../runtime/utils/metricsToFragments';
+import { createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
 // ============================================================================
 // Constants
@@ -101,62 +101,61 @@ export function statementsToDisplayItems(
   });
 }
 
+
+
 // ============================================================================
-// TrackedSpan Adapter
+// RuntimeSpan Adapter
 // ============================================================================
 
 /**
- * Convert an TrackedSpan to IDisplayItem
+ * Convert a RuntimeSpan to IDisplayItem
  * 
- * @param span The execution span
- * @param allSpans Map of all spans for depth calculation
+ * @param span The runtime span
  */
-export function spanToDisplayItem(
-  span: TrackedSpan,
-  allSpans: Map<string, TrackedSpan>
+export function runtimeSpanToDisplayItem(
+  span: RuntimeSpan,
+  allSpans?: Map<string, RuntimeSpan>
 ): IDisplayItem {
-  // Calculate depth by traversing parent chain
-  let depth = 0;
-  let currentParentId = span.parentSpanId;
-  const visited = new Set<string>();
-  visited.add(span.id);
+  const fragments = span.fragments.flat();
 
-  while (currentParentId && !visited.has(currentParentId)) {
-    visited.add(currentParentId);
-    const parent = allSpans.get(currentParentId);
-    if (parent) {
-      depth++;
-      currentParentId = parent.parentSpanId;
-    } else {
-      break;
-    }
-    if (depth > 20) break; // Safety limit
+  // Map status
+  let status: DisplayStatus = 'completed';
+  if (span.isActive()) {
+    status = 'active';
+  } else if (span.status) {
+    status = span.status as DisplayStatus;
   }
 
-  // Convert span metrics to fragments; prefer precomputed fragments if present
-  const fragments = (span.fragments && span.fragments.length > 0)
-    ? span.fragments
-    : spanMetricsToFragments(
-      span.metrics || {},
-      span.label,
-      span.type
-    );
+  // Determine if header based on fragments
+  const isHeader = fragments.some(f =>
+    f.fragmentType === FragmentType.Timer ||
+    f.fragmentType === FragmentType.Rounds ||
+    HEADER_TYPES.has(f.type.toLowerCase())
+  );
 
-  // Map span status to display status
-  const status: DisplayStatus = span.status as DisplayStatus;
+  // Calculate depth
+  let depth = 0;
+  if (allSpans) {
+    let currentParentId = span.parentSpanId;
+    const visited = new Set<string>();
+    visited.add(span.id);
 
-  // Determine if header based on type
-  const isHeader = HEADER_TYPES.has(span.type.toLowerCase());
-
-  // Calculate duration if available
-  let duration: number | undefined;
-  if (span.startTime && span.endTime) {
-    duration = span.endTime - span.startTime;
+    while (currentParentId && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
+      const parent = allSpans.get(currentParentId);
+      if (parent) {
+        depth++;
+        currentParentId = parent.parentSpanId;
+      } else {
+        break;
+      }
+      if (depth > 20) break;
+    }
   }
 
   return {
     id: span.id,
-    parentId: span.parentSpanId,
+    parentId: span.parentSpanId || null,
     fragments,
     depth,
     isHeader,
@@ -165,17 +164,17 @@ export function spanToDisplayItem(
     sourceId: span.id,
     startTime: span.startTime,
     endTime: span.endTime,
-    duration,
-    label: span.label
+    duration: span.total(),
+    label: fragmentsToLabel(span.fragments)
   };
 }
 
 /**
- * Convert an array of TrackedSpans to IDisplayItem array
+ * Convert an array of RuntimeSpans to IDisplayItem array
  */
-export function spansToDisplayItems(spans: TrackedSpan[]): IDisplayItem[] {
+export function runtimeSpansToDisplayItems(spans: RuntimeSpan[]): IDisplayItem[] {
   const spanMap = new Map(spans.map(s => [s.id, s]));
-  return spans.map(span => spanToDisplayItem(span, spanMap));
+  return spans.map(span => runtimeSpanToDisplayItem(span, spanMap));
 }
 
 // ============================================================================

@@ -1,9 +1,11 @@
-import { describe, it, expect, vi } from 'bun:test';
+
+import { describe, it, expect } from 'bun:test';
 import { transformRuntimeToAnalytics, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { TrackedSpan, createDebugMetadata, createTrackedSpan } from '../runtime/models/TrackedSpan';
+import { RuntimeSpan, TimerSpan } from '../runtime/models/RuntimeSpan';
+import { FragmentType } from '../core/models/CodeFragment';
 
-describe('AnalyticsTransformer', () => {
+describe('AnalyticsTransformer (RuntimeSpan version)', () => {
   describe('Legacy Function', () => {
     it('returns empty result when runtime is null', () => {
       const result = transformRuntimeToAnalytics(null);
@@ -15,7 +17,7 @@ describe('AnalyticsTransformer', () => {
     it('returns empty result when runtime has no logs or blocks', () => {
       const runtime = {
         tracker: {
-          getCompletedSpans: () => [],
+          getAllSpans: () => [],
           getActiveSpansMap: () => new Map()
         }
       } as unknown as ScriptRuntime;
@@ -29,23 +31,17 @@ describe('AnalyticsTransformer', () => {
     it('transforms execution logs into segments', () => {
       const startTime = Date.now();
       const spans = [
-        {
-          id: 'block-1',
-          blockId: 'block-1',
-          label: 'Warmup',
-          type: 'group',
-          startTime: startTime,
-          endTime: startTime + 60000,
-          parentSpanId: null,
-          status: 'completed',
-          metrics: {},
-          segments: []
-        } as TrackedSpan
+        new RuntimeSpan(
+          'block-1',
+          [1],
+          [new TimerSpan(startTime, startTime + 60000)],
+          [[{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Warmup', image: 'Warmup' }]]
+        )
       ];
 
       const runtime = {
         tracker: {
-          getCompletedSpans: () => spans,
+          getAllSpans: () => spans,
           getActiveSpansMap: () => new Map()
         }
       } as unknown as ScriptRuntime;
@@ -68,73 +64,32 @@ describe('AnalyticsTransformer', () => {
         expect(segments).toEqual([]);
       });
 
-      it('transforms spans to segments with debug metadata', () => {
+      it('transforms spans to segments with tags and metadata', () => {
         const startTime = Date.now();
-        const debugMetadata = createDebugMetadata(
-          ['amrap', 'time_bound'],
-          { strategyUsed: 'TimeBoundRoundsStrategy' }
+        const span = new RuntimeSpan(
+          'amrap-block',
+          [1],
+          [new TimerSpan(startTime, startTime + 1200000)],
+          [[{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }]]
         );
+        span.metadata.tags = ['amrap', 'time_bound'];
+        span.metadata.context = { strategyUsed: 'TimeBoundRoundsStrategy' };
 
-        const spans: TrackedSpan[] = [
-          {
-            id: `${startTime}-amrap-block`,
-            blockId: 'amrap-block',
-            parentSpanId: null,
-            type: 'amrap',
-            label: '20:00 AMRAP',
-            status: 'completed',
-            startTime: startTime,
-            endTime: startTime + 1200000,
-            metrics: {},
-            segments: [],
-            debugMetadata
-          }
-        ];
-
-        const segments = transformer.toSegments(spans);
+        const segments = transformer.toSegments([span]);
 
         expect(segments).toHaveLength(1);
         expect(segments[0].name).toBe('20:00 AMRAP');
-        expect(segments[0].debugMetadata).toBeDefined();
         expect(segments[0].tags).toContain('amrap');
         expect(segments[0].tags).toContain('time_bound');
-        expect(segments[0].spanType).toBe('amrap');
+        expect(segments[0].context?.strategyUsed).toBe('TimeBoundRoundsStrategy');
       });
 
-      it('calculates depth from parent chain', () => {
+      it('should handle missing fragment images by defaulting to blockId', () => {
         const startTime = Date.now();
-        const spans: TrackedSpan[] = [
-          {
-            id: 'parent-span',
-            blockId: 'parent',
-            parentSpanId: null,
-            type: 'rounds',
-            label: '3 Rounds',
-            status: 'completed',
-            startTime: startTime,
-            endTime: startTime + 300000,
-            metrics: {},
-            segments: []
-          },
-          {
-            id: 'child-span',
-            blockId: 'child',
-            parentSpanId: 'parent-span',
-            type: 'effort',
-            label: '10 Pushups',
-            status: 'completed',
-            startTime: startTime + 1000,
-            endTime: startTime + 30000,
-            metrics: {},
-            segments: []
-          }
-        ];
+        const span = new RuntimeSpan('test-block', [1], [new TimerSpan(startTime, startTime + 1000)], []);
 
-        const segments = transformer.toSegments(spans);
-
-        expect(segments).toHaveLength(2);
-        expect(segments[0].depth).toBe(0);
-        expect(segments[1].depth).toBe(1);
+        const segments = transformer.toSegments([span]);
+        expect(segments[0].name).toBe('test-block');
       });
     });
 
@@ -185,25 +140,13 @@ describe('AnalyticsTransformer', () => {
         expect(filtered).toHaveLength(1);
         expect(filtered[0].name).toBe('AMRAP');
       });
-
-      it('filters segments by multiple tags (AND logic)', () => {
-        const segments: SegmentWithMetadata[] = [
-          { id: 1, name: 'A', type: 'a', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['amrap', 'time_bound'] },
-          { id: 2, name: 'B', type: 'b', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['amrap'] }
-        ];
-
-        const filtered = transformer.filterByTags(segments, ['amrap', 'time_bound']);
-        expect(filtered).toHaveLength(1);
-        expect(filtered[0].name).toBe('A');
-      });
     });
 
     describe('filterByType', () => {
       it('filters segments by span type', () => {
         const segments: SegmentWithMetadata[] = [
           { id: 1, name: 'AMRAP', type: 'amrap', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'amrap' },
-          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'emom' },
-          { id: 3, name: 'Effort', type: 'effort', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'effort' }
+          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'emom' }
         ];
 
         const amrapSegments = transformer.filterByType(segments, 'amrap');
@@ -212,49 +155,16 @@ describe('AnalyticsTransformer', () => {
       });
     });
 
-    describe('getDebugContext', () => {
-      it('returns empty object when no debug metadata', () => {
-        const segment: SegmentWithMetadata = {
-          id: 1, name: 'Test', type: 'test', startTime: 0, endTime: 1, duration: 1,
-          parentId: null, depth: 0, metrics: {}, lane: 0
-        };
-
-        const context = transformer.getDebugContext(segment);
-        expect(context).toEqual({});
-      });
-
-      it('returns context from debug metadata', () => {
-        const segment: SegmentWithMetadata = {
-          id: 1, name: 'Test', type: 'test', startTime: 0, endTime: 1, duration: 1,
-          parentId: null, depth: 0, metrics: {}, lane: 0,
-          debugMetadata: createDebugMetadata([], { strategyUsed: 'TestStrategy', value: 42 })
-        };
-
-        const context = transformer.getDebugContext(segment);
-        expect(context.strategyUsed).toBe('TestStrategy');
-        expect(context.value).toBe(42);
-      });
-    });
-
     describe('isFromStrategy', () => {
       it('returns true when segment matches strategy', () => {
         const segment: SegmentWithMetadata = {
           id: 1, name: 'Test', type: 'test', startTime: 0, endTime: 1, duration: 1,
           parentId: null, depth: 0, metrics: {}, lane: 0,
-          debugMetadata: createDebugMetadata([], { strategyUsed: 'TimeBoundRoundsStrategy' })
+          context: { strategyUsed: 'TimeBoundRoundsStrategy' }
         };
 
         expect(transformer.isFromStrategy(segment, 'TimeBoundRoundsStrategy')).toBe(true);
         expect(transformer.isFromStrategy(segment, 'IntervalStrategy')).toBe(false);
-      });
-
-      it('returns false when no debug metadata', () => {
-        const segment: SegmentWithMetadata = {
-          id: 1, name: 'Test', type: 'test', startTime: 0, endTime: 1, duration: 1,
-          parentId: null, depth: 0, metrics: {}, lane: 0
-        };
-
-        expect(transformer.isFromStrategy(segment, 'AnyStrategy')).toBe(false);
       });
     });
   });

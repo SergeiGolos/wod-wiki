@@ -55,7 +55,6 @@ export class JitCompiler {
    */
   compile(nodes: CodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
     if (nodes.length === 0) {
-      console.warn('JitCompiler: No nodes to compile.');
       return undefined;
     }
 
@@ -67,7 +66,6 @@ export class JitCompiler {
         return strategy.compile(nodes, runtime);
       }
     }
-    console.warn('JitCompiler: No suitable strategy found.');
     return undefined;
 
   }

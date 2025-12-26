@@ -31,7 +31,7 @@ export class ExerciseSuggestionProvider {
       
       // Check if provider is configured
       if (!indexManager.hasProvider()) {
-        console.warn('[ExerciseSuggestionProvider] No exercise provider configured, suggestions will be disabled');
+        // No provider configured, suggestions will be disabled
         return;
       }
       

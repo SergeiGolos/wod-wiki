@@ -78,7 +78,6 @@ export class ExerciseIndexManager {
   private async loadIndex(): Promise<void> {
     // Check if provider is configured
     if (!this.provider) {
-      console.warn('[ExerciseIndexManager] No provider configured, using empty index');
       this.index = {
         groups: [],
         groupsByName: {},
@@ -93,20 +92,12 @@ export class ExerciseIndexManager {
       const cachedIndex = this.loadFromCache();
       if (cachedIndex) {
         this.index = cachedIndex;
-        console.log('[ExerciseIndexManager] Loaded index from cache');
         return;
       }
 
       // Load from provider
-      console.log('[ExerciseIndexManager] Loading index from provider...');
-      const startTime = performance.now();
-      
       const loadedIndex = await this.provider.loadIndex();
       this.index = loadedIndex;
-      const loadTime = performance.now() - startTime;
-      
-      console.log(`[ExerciseIndexManager] Loaded index in ${loadTime.toFixed(0)}ms`);
-      console.log(`[ExerciseIndexManager] ${loadedIndex.totalExercises} exercises, ${loadedIndex.groups.length} groups`);
 
       // Save to cache
       this.saveToCache(loadedIndex);
@@ -131,7 +122,6 @@ export class ExerciseIndexManager {
     try {
       const cachedVersion = localStorage.getItem(this.CACHE_VERSION_KEY);
       if (cachedVersion !== this.CACHE_VERSION) {
-        console.log('[ExerciseIndexManager] Cache version mismatch, invalidating');
         return null;
       }
 
@@ -144,7 +134,6 @@ export class ExerciseIndexManager {
       
       // Validate structure
       if (!index.groups || !index.allEntries || !index.groupsByName) {
-        console.warn('[ExerciseIndexManager] Invalid cached index structure');
         return null;
       }
 
@@ -163,7 +152,6 @@ export class ExerciseIndexManager {
     try {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify(index));
       localStorage.setItem(this.CACHE_VERSION_KEY, this.CACHE_VERSION);
-      console.log('[ExerciseIndexManager] Saved index to cache');
     } catch (error) {
       console.error('[ExerciseIndexManager] Error saving to cache:', error);
     }
@@ -358,7 +346,6 @@ export class ExerciseIndexManager {
         
         // Exponential backoff: 1s, 2s, 4s...
         const delayMs = initialDelayMs * Math.pow(2, attempt);
-        console.log(`[ExerciseIndexManager] Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
@@ -398,7 +385,6 @@ export class ExerciseIndexManager {
    */
   clearCache(): void {
     this.exerciseCache.clear();
-    console.log('[ExerciseIndexManager] Cache cleared');
   }
 
   /**

@@ -52,7 +52,6 @@ function getExerciseId(statement: ICodeStatement): string {
 export class GroupStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('GroupStrategy: No statements provided');
             return false;
         }
 

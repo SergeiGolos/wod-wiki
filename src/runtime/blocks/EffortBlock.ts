@@ -9,7 +9,7 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
-import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
+
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 import { TypedMemoryReference } from '../IMemoryReference';
@@ -260,37 +260,9 @@ export class EffortBlock extends RuntimeBlock {
     };
     this.metricsRef.set({ ...metrics });
 
-    // 2. Sync to TrackedSpan for history/analytics
-    // This ensures live updates are reflected in the execution log
-    const spanRefs = runtime.memory.search({
-      type: EXECUTION_SPAN_TYPE,
-      ownerId: blockId,
-      id: null,
-      visibility: null
-    });
-
-    if (spanRefs.length > 0) {
-      const spanRef = spanRefs[0] as TypedMemoryReference<TrackedSpan>;
-      const span = runtime.memory.get(spanRef);
-
-      if (span && span.metrics) {
-        // Update the span metrics with current reps and exercise info
-        const updatedMetrics = {
-          ...span.metrics,
-          exerciseId: this.config.exerciseName,
-          reps: {
-            value: this.currentReps,
-            unit: 'reps',
-            recorded: Date.now()
-          },
-          targetReps: this.config.targetReps
-        };
-
-        runtime.memory.set(spanRef, {
-          ...span,
-          metrics: updatedMetrics
-        });
-      }
+    // 2. Sync to RuntimeSpan via tracker for history/analytics
+    if (runtime.tracker) {
+      runtime.tracker.recordMetric(blockId, 'reps', this.currentReps, 'reps');
     }
 
     // 3. Emit reps:updated event

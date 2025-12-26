@@ -9,7 +9,16 @@
 
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { SegmentType } from '../models/TrackedSpan';
+/**
+ * Classification of time segments within a span.
+ */
+export type SegmentType =
+  | 'work'       // Active work period
+  | 'rest'       // Rest period
+  | 'round'      // Individual round in a rounds-based workout
+  | 'minute'     // Individual minute in EMOM
+  | 'pause'      // User-initiated pause
+  | 'transition'; // Between exercises/rounds
 
 /**
  * Action to start a new time segment within the current block's execution span.

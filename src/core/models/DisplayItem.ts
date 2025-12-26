@@ -50,7 +50,7 @@ export interface IDisplayItem {
   id: string;
   /** Parent item ID for hierarchy (null for root items) */
   parentId: string | null;
-  
+
   // === Visual Content ===
   /** 
    * Fragments to display - THE KEY FIELD
@@ -58,13 +58,13 @@ export interface IDisplayItem {
    * All workout data ultimately becomes fragment arrays:
   * - Statements: already have fragments[]
   * - Blocks: carry fragments directly
-  * - Spans: SpanMetrics → spanMetricsToFragments()
+  * - Spans: span.fragments.flat()
    */
   fragments: ICodeFragment[];
-  
+
   /** Calculated duration (ms) */
   duration?: number;
-  
+
   // === Layout ===
   /** Nesting depth for indentation (0 = root level) */
   depth: number;
@@ -72,23 +72,23 @@ export interface IDisplayItem {
   isHeader: boolean;
   /** Whether this item is part of a linked group (+ statements) */
   isLinked?: boolean;
-  
+
   // === State ===
   /** Current execution status */
   status: DisplayStatus;
-  
+
   // === Metadata ===
   /** Original data source type */
   sourceType: DisplaySourceType;
   /** Original source ID for linking back to source data */
   sourceId: string | number;
-  
+
   // === Optional Timing ===
   /** Start timestamp (ms) */
   startTime?: number;
   /** End timestamp (ms) */
   endTime?: number;
-  
+
   // === Optional Label ===
   /** Display label (fallback if fragments empty) */
   label?: string;

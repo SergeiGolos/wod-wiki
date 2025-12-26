@@ -1,8 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { UnifiedItemList, spansToDisplayItems } from '@/components/unified';
-import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/TrackedSpan';
 import { useTrackedSpans } from '@/clock/hooks/useExecutionSpans';
+import { UnifiedItemList, runtimeSpansToDisplayItems } from '@/components/unified';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -26,7 +25,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   showActive = true,
   compact = false
 }) => {
-  const { active, completed, byId } = useTrackedSpans(runtime);
+  const { runtimeSpans } = useTrackedSpans(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
 
   // Interval for timestamp updates (10Hz)
@@ -42,42 +41,11 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     if (!runtime) return { items: [], activeItemId: null };
     void updateVersion; // Dependency to force re-calc for timers
 
-    // 1. Gather all spans (completed + active)
-    const allSpans = [...completed, ...active];
-
     // Sort by startTime
-    allSpans.sort((a, b) => a.startTime - b.startTime);
-
-    // Inherit metrics from parent spans
-    const enrichedSpans = allSpans.map(span => {
-      const combinedMetrics: SpanMetrics = { ...(span.metrics || createEmptyMetrics()) };
-
-      // Simple metric inheritance from parents
-      let currentParentId = span.parentSpanId;
-      const visited = new Set<string>();
-      visited.add(span.id);
-
-      while (currentParentId) {
-        if (visited.has(currentParentId)) break;
-        visited.add(currentParentId);
-
-        const parent = byId.get(currentParentId);
-        if (parent?.metrics) {
-          const pm = parent.metrics;
-          if (pm.reps && !combinedMetrics.reps) combinedMetrics.reps = pm.reps;
-          if (pm.weight && !combinedMetrics.weight) combinedMetrics.weight = pm.weight;
-          if (pm.distance && !combinedMetrics.distance) combinedMetrics.distance = pm.distance;
-          currentParentId = parent.parentSpanId;
-        } else {
-          break;
-        }
-      }
-
-      return { ...span, metrics: combinedMetrics };
-    });
+    const sortedSpans = [...runtimeSpans].sort((a, b) => a.startTime - b.startTime);
 
     // Convert to IDisplayItem array using adapter
-    let displayItems = spansToDisplayItems(enrichedSpans);
+    let displayItems = runtimeSpansToDisplayItems(sortedSpans);
 
     // Filter out active items if showActive is false
     if (!showActive) {
@@ -95,7 +63,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     }
 
     return { items: displayItems, activeItemId };
-  }, [runtime, active, completed, byId, updateVersion, showActive]);
+  }, [runtime, runtimeSpans, updateVersion, showActive]);
 
   return (
     <UnifiedItemList

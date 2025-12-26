@@ -105,7 +105,6 @@ export function useBlockEditor({
     
     const statement = block.statements[index];
     if (!statement) {
-      console.warn('Statement not found at index', index);
       return;
     }
     
@@ -118,12 +117,6 @@ export function useBlockEditor({
     // block.startLine + 1 is the line with ```wod (1-based)
     // block.endLine + 1 is the line with ``` (1-based)
     if (absoluteLine <= block.startLine + 1 || absoluteLine >= block.endLine + 1) {
-      console.warn('Statement line out of range', { 
-        absoluteLine, 
-        startLine: block.startLine, 
-        endLine: block.endLine,
-        metaLine: statement.meta.line 
-      });
       return;
     }
     
@@ -159,7 +152,6 @@ export function useBlockEditor({
     
     const statement = block.statements[index];
     if (!statement) {
-      console.warn('Statement not found at index', index);
       return;
     }
     
@@ -169,12 +161,6 @@ export function useBlockEditor({
     const absoluteLine = block.startLine + 1 + statement.meta.line;
     
     if (absoluteLine <= block.startLine + 1 || absoluteLine >= block.endLine + 1) {
-      console.warn('Statement line out of range', { 
-        absoluteLine, 
-        startLine: block.startLine, 
-        endLine: block.endLine,
-        metaLine: statement.meta.line 
-      });
       return;
     }
     

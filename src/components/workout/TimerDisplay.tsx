@@ -15,7 +15,7 @@ import {
   useTimerStack,
   useCardStack
 } from '../../clock/hooks/useDisplayStack';
-import { spanMetricsToFragments } from '../../runtime/utils/metricsToFragments';
+
 import { IDisplayItem } from '../../core/models/DisplayItem';
 
 import { RefinedTimerDisplay } from './RefinedTimerDisplay';
@@ -97,11 +97,13 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   // Subscribe to primary-clock registry
   const primaryClockRef = useMemo(() => {
-      const refs = runtime.memory.search({
-          type: 'registry',
-          id: 'primary-clock',
-      });
-      return refs.length > 0 ? (refs[0] as TypedMemoryReference<string>) : undefined;
+    const refs = runtime.memory.search({
+      type: 'registry',
+      id: 'primary-clock',
+      ownerId: null,
+      visibility: null
+    });
+    return refs.length > 0 ? (refs[0] as TypedMemoryReference<string>) : undefined;
   }, [runtime]);
 
   const primaryClockValue = useMemorySubscription(primaryClockRef);
@@ -119,31 +121,31 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   // Calculate timer states for ALL timers in the stack
   // We want to give every card its accurate running time.
   const timerStates = useMemo(() => {
-      const map = new Map<string, { elapsed: number; duration?: number; format: 'countdown' | 'countup' }>();
-      
-      timerStack.forEach(t => {
-          // Calculate elapsed time based on timer state
-          const { accumulatedMs = 0, startTime, isRunning } = t;
-          let elapsed = accumulatedMs;
+    const map = new Map<string, { elapsed: number; duration?: number; format: 'countdown' | 'countup' }>();
 
-          // If this timer matches the currently active primary timer, use the LIVE elapsedMs prop
-          // This ensures smooth 60fps animation for the active block.
-          if (primaryTimer && t.id === primaryTimer.id) {
-              elapsed = props.elapsedMs;
-          } else if (isRunning && startTime !== undefined) {
-              // For other running timers (parents), calculate live time
-              // Note: This assumes the component re-renders frequently (driven by primary timer updates)
-              elapsed += Math.max(0, Date.now() - startTime);
-          }
+    timerStack.forEach(t => {
+      // Calculate elapsed time based on timer state
+      const { accumulatedMs = 0, startTime, isRunning } = t;
+      let elapsed = accumulatedMs;
 
-          map.set(t.ownerId, {
-              elapsed,
-              duration: t.durationMs,
-              format: t.format
-          });
+      // If this timer matches the currently active primary timer, use the LIVE elapsedMs prop
+      // This ensures smooth 60fps animation for the active block.
+      if (primaryTimer && t.id === primaryTimer.id) {
+        elapsed = props.elapsedMs;
+      } else if (isRunning && startTime !== undefined) {
+        // For other running timers (parents), calculate live time
+        // Note: This assumes the component re-renders frequently (driven by primary timer updates)
+        elapsed += Math.max(0, Date.now() - startTime);
+      }
+
+      map.set(t.ownerId, {
+        elapsed,
+        duration: t.durationMs,
+        format: t.format
       });
+    });
 
-      return map;
+    return map;
   }, [timerStack, primaryTimer, props.elapsedMs]);
 
 
@@ -174,12 +176,8 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
       const isLeaf = timerEntry === timerStack[timerStack.length - 1];
 
-      // Generate fragments from metrics using the utility
-      const fragments = spanMetricsToFragments(
-          span.metrics || {}, 
-          span.label || (span.type === 'group' ? 'Group' : 'Block'), 
-          span.type
-      );
+      // Use fragments already present on the span (flattened for display)
+      const fragments = span.fragments.flat();
 
       const item: IDisplayItem = {
         id: span.id,
@@ -222,7 +220,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       controls={controls}
       stackItems={stackItems}
       compact={props.compact}
-      
+
       focusedBlockId={focusedBlockId}
       timerStates={timerStates}
     />

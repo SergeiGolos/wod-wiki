@@ -80,7 +80,6 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
       if (exerciseProvider) {
         const manager = ExerciseIndexManager.getInstance();
         manager.setProvider(exerciseProvider);
-        console.log('[WodWiki] Exercise provider configured');
       }
     }, [exerciseProvider]);
     function handleMount(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {

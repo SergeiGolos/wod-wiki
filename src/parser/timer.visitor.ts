@@ -236,7 +236,6 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       const val = ctx.Number[0].image * 1;
       return [new RepFragment(val, meta)];
     } catch (e: any) {
-      console.log(`[VISITOR] Caught Rep error: ${e.message}`);
       this.addError(e.message, meta);
       return [];
     }

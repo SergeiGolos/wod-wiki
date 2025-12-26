@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
-import { TrackedSpan, SpanMetrics } from '../../runtime/models/TrackedSpan';
+import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
+import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
 interface ResultsTableProps {
   snapshot: ExecutionSnapshot | null;
@@ -15,21 +16,23 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
   // Filter for execution spans (mapped to 'span' type by RuntimeAdapter)
   const spans = snapshot.memory.entries
     .filter(entry => entry.type === 'span')
-    .map(entry => entry.value as TrackedSpan)
+    .map(entry => entry.value as RuntimeSpan)
     .sort((a, b) => a.startTime - b.startTime);
 
   if (spans.length === 0) {
     return <div className="p-4 text-gray-500">No execution history recorded</div>;
   }
 
-  // Helper to format metrics
-  const formatMetric = (metrics: SpanMetrics) => {
+  // Helper to format metrics from fragments
+  const formatMetric = (span: RuntimeSpan) => {
+    const flat = span.fragments.flat();
     const parts = [];
-    if (metrics.reps) parts.push(`${metrics.reps.value} reps`);
-    if (metrics.weight) parts.push(`${metrics.weight.value} ${metrics.weight.unit}`);
-    if (metrics.distance) parts.push(`${metrics.distance.value} ${metrics.distance.unit}`);
-    if (metrics.calories) parts.push(`${metrics.calories.value} cal`);
-    if (metrics.time) parts.push(`${(metrics.time.value / 1000).toFixed(1)}s`);
+
+    for (const f of flat) {
+      if (f.value !== undefined && f.image && f.fragmentType !== 'effort' && f.fragmentType !== 'action' && f.fragmentType !== 'rounds' && f.fragmentType !== 'timer') {
+        parts.push(f.image);
+      }
+    }
 
     return parts.join(', ') || '-';
   };
@@ -64,24 +67,27 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
                 block.key === span.blockId && block.lineNumber === highlightedLine
               );
 
+            const label = fragmentsToLabel(span.fragments);
+            const type = span.fragments.flat().find(f => f.fragmentType === 'rounds' || f.fragmentType === 'timer' || f.fragmentType === 'effort')?.type || 'group';
+
             return (
               <tr key={span.id} className={`
-              ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : span.status === 'active' ? 'bg-blue-50' : ''}
+              ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : span.isActive() ? 'bg-blue-50' : ''}
             `}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                   {span.blockId.substring(0, 8)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {span.type}
+                  {type}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {span.label}
+                  {label}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatMetric(span.metrics)}
+                  {formatMetric(span)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {span.endTime ? `${((span.endTime - span.startTime) / 1000).toFixed(2)}s` : 'Running...'}
+                  {span.endTime ? `${(span.total() / 1000).toFixed(2)}s` : 'Running...'}
                 </td>
               </tr>
             );

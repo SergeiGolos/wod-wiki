@@ -51,7 +51,6 @@ class CardComponentRegistryClass {
    */
   register(id: string, component: CardComponent): void {
     this.components.set(id, component);
-    console.log(`📝 CardComponentRegistry: Registered component "${id}"`);
   }
 
   /**

@@ -98,7 +98,6 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
       computedTheme = theme === 'dark' ? 'vs-dark' : 'vs';
     }
 
-    console.log('[WodWorkbench] Theme computed - global:', theme, '→ monaco:', computedTheme);
     return computedTheme;
   }, [theme]);
 
