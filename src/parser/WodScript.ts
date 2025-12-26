@@ -1,14 +1,4 @@
-import { ICodeStatement } from "@/core";
-
-/**
- * Parser error information from either Chevrotain or the visitor
- */
-export interface ParseError {
-  message: string;
-  line?: number;
-  column?: number;
-  token?: unknown;
-}
+import { ICodeStatement, ParseError } from "@/core";
 
 export interface IScript {
   source: string;

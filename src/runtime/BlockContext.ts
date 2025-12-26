@@ -135,12 +135,10 @@ export class BlockContext implements IBlockContext {
         
         // Ensure the ID matches the requested anchorId for consistent lookup
         // This relies on the memory implementation allowing ID mutation or pre-allocation
-        // Since TypedMemoryReference is the class, we can override the ID here if needed
-        // but cleaner if allocate accepted an ID.
         // For now, we manually override to maintain contract with getOrCreateAnchor semantics
-        // TypedMemoryReference has a mutable id property
+        // TypedMemoryReference has a mutable public id property
         // TODO: Consider adding a proper setter method or allocate parameter for ID
-        (anchorRef as TypedMemoryReference<IAnchorValue>).id = anchorId;
+        anchorRef.id = anchorId;
         
         this._references.push(anchorRef);
         return anchorRef;

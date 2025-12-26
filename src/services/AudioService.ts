@@ -29,11 +29,13 @@ export class AudioService {
     private initContext() {
         // Safari still uses webkitAudioContext prefix
         const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
-        if (!this.context && typeof window !== 'undefined' && (window.AudioContext || windowWithWebkit.webkitAudioContext)) {
-            const AudioContextClass = window.AudioContext || windowWithWebkit.webkitAudioContext!;
-            this.context = new AudioContextClass();
-            this.masterGain = this.context.createGain();
-            this.masterGain.connect(this.context.destination);
+        if (!this.context && typeof window !== 'undefined') {
+            const AudioContextClass = window.AudioContext ?? windowWithWebkit.webkitAudioContext;
+            if (AudioContextClass) {
+                this.context = new AudioContextClass();
+                this.masterGain = this.context.createGain();
+                this.masterGain.connect(this.context.destination);
+            }
         }
     }
 
