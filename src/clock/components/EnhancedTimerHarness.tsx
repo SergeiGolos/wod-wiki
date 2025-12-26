@@ -6,14 +6,17 @@ import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { TimerState, TimerSpan } from '../../../src/runtime/models/MemoryModels';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan } from '../../../src/runtime/models/RuntimeSpan';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
+import { EventBus } from '../../../src/runtime/EventBus';
 
 export interface EnhancedTimerHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
   block: RuntimeBlock;
-  timerStateRef: TypedMemoryReference<TimerState> | undefined;
+  timerStateRef: TypedMemoryReference<RuntimeSpan> | undefined;
   controls: {
     start: () => void;
     stop: () => void;
@@ -56,11 +59,24 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 }) => {
   const [recalcTrigger, setRecalcTrigger] = useState(0);
 
+
   // Create minimal runtime with empty script for testing
   const runtime = useMemo(() => {
     const emptyScript = new WodScript('', []);
     const jitCompiler = new JitCompiler([]);
-    return new ScriptRuntime(emptyScript, jitCompiler);
+
+    // Create dependencies
+    const memory = new RuntimeMemory();
+    const stack = new RuntimeStack();
+    const clock = new RuntimeClock();
+    const eventBus = new EventBus();
+
+    return new ScriptRuntime(emptyScript, jitCompiler, {
+      memory,
+      stack,
+      clock,
+      eventBus
+    });
   }, []);
 
   // Create block, push it, and set memory all in one useMemo
@@ -72,19 +88,18 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     // Mount block immediately to trigger behavior initialization
     newBlock.mount(runtime);
 
-    // Find unified TimerState reference using the new memory model
-    // The 'type' field in memory allocation is `timer:${blockId}`
+    // Find unified RuntimeSpan reference using the new memory model
     const timerStateRefs = runtime.memory.search({
       id: null,
       ownerId: newBlock.key.toString(),
-      type: `${MemoryTypeEnum.TIMER_PREFIX}${newBlock.key.toString()}`,
+      type: RUNTIME_SPAN_TYPE,
       visibility: null
     });
 
-    let timerRef: TypedMemoryReference<TimerState> | undefined;
+    let timerRef: TypedMemoryReference<RuntimeSpan> | undefined;
 
     if (timerStateRefs.length > 0) {
-      timerRef = timerStateRefs[0] as TypedMemoryReference<TimerState>;
+      timerRef = timerStateRefs[0] as TypedMemoryReference<RuntimeSpan>;
       const currentState = timerRef.get();
 
       if (currentState) {
@@ -96,25 +111,23 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
           spans = timeSpans;
         } else if (autoStart) {
           // Running timer: start time in the past, no stop time
-          spans = [{
-            start: Date.now() - durationMs,
-            stop: undefined,
-            state: 'new'
-          }];
+          spans = [new TimerSpan(Date.now() - durationMs)];
         } else {
           // Stopped timer: start and stop time
-          spans = [{
-            start: Date.now() - durationMs,
-            stop: Date.now(),
-            state: 'new'
-          }];
+          // Assuming stopped immediately after duration? Or just a sample.
+          // Let's create a span that ran for `durationMs` and ended now.
+          const now = Date.now();
+          spans = [new TimerSpan(now - durationMs, now)];
         }
 
-        timerRef.set({
-          ...currentState,
-          spans,
-          isRunning: autoStart
-        });
+        currentState.spans = spans;
+        // isRunning is derived from spans in RuntimeSpan, but we can't set it directly?
+        // RuntimeSpan.isActive() checks last span.
+        // If autoStart, last span is open -> isRunning true.
+        // If !autoStart, last span closed -> isRunning false.
+
+        // We set the modified object back
+        timerRef.set(currentState);
       }
     }
 
@@ -128,7 +141,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 
   // Subscribe to running state
   const isRunning = useMemo(() => {
-    return timerStateRef?.get()?.isRunning ?? false;
+    return timerStateRef?.get()?.isActive() ?? false;
   }, [timerStateRef, recalcTrigger]);
 
   // Control functions
@@ -155,29 +168,28 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   const handleReset = useCallback(() => {
     behavior.reset();
 
-    // Reset memory based on timer type using unified TimerState
+    // Reset memory based on timer type using unified RuntimeSpan
     if (timerStateRef) {
       const currentState = timerStateRef.get();
       if (currentState) {
         if (timerType === 'countdown') {
-          // For countdown, set up initial duration
-          timerStateRef.set({
-            ...currentState,
-            spans: [{
-              start: Date.now(),
-              stop: undefined,
-              state: 'new'
-            }],
-            isRunning: false
-          });
+          // For countdown, set up initial open span? 
+          // Usually reset stops it.
+          // If we want it to reset and be ready...
+          currentState.reset(); // This clears spans
+          // The old logic initialized a new span on reset for countdown?
+          // "For countdown, set up initial duration" -> { start: now, stop: undefined } ??
+          // That means it starts running immediately? 
+          // The old code had `isRunning: false` but an open span? That's contradictory in new model.
+          // In new model, open span = running.
+          // If it's effectively paused at start? 
+          // Pause logic: open span, but... no.
+          // Reset usually implies 0/Duration.
+          // Let's just call reset() which empties spans.
         } else {
-          // For count up, reset to zero
-          timerStateRef.set({
-            ...currentState,
-            spans: [],
-            isRunning: false
-          });
+          currentState.reset();
         }
+        timerStateRef.set(currentState);
       }
     }
 
@@ -252,9 +264,9 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
     if (timeSpans.length === 0) return 0;
 
     return timeSpans.reduce((total, span) => {
-      if (!span.start) return total;
-      const stop = span.stop || Date.now();
-      return total + (stop - span.start);
+      // span is TimerSpan class
+      const end = span.ended || Date.now();
+      return total + Math.max(0, end - span.started);
     }, 0);
   };
 
@@ -328,20 +340,20 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
               </thead>
               <tbody>
                 {timeSpans.map((span, index) => {
-                  const duration = span.start
-                    ? span.stop
-                      ? Math.round((span.stop - span.start) / 1000)
-                      : Math.round((Date.now() - span.start) / 1000)
+                  const duration = span.started
+                    ? span.ended
+                      ? Math.round((span.ended - span.started) / 1000)
+                      : Math.round((Date.now() - span.started) / 1000)
                     : 0;
 
                   return (
                     <tr key={index} className="border-b border-gray-100">
                       <td className="py-2 px-2 font-medium">{index + 1}</td>
                       <td className="py-2 px-2 font-mono text-xs">
-                        {formatTimestamp(span.start)}
+                        {formatTimestamp(span.started)}
                       </td>
                       <td className="py-2 px-2 font-mono text-xs">
-                        {formatTimestamp(span.stop)}
+                        {formatTimestamp(span.ended)}
                       </td>
                       <td className="py-2 px-2 font-mono text-xs">
                         {duration}s

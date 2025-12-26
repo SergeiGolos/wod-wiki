@@ -1,4 +1,4 @@
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 /** Memory type identifier for runtime spans */
 export const RUNTIME_SPAN_TYPE = 'runtime-span';
@@ -36,6 +36,30 @@ export class TimerSpan {
         const end = this.ended ?? Date.now();
         return Math.max(0, end - this.started);
     }
+
+    get isOpen(): boolean {
+        return this.ended === undefined;
+    }
+}
+
+/**
+ * Timer-specific display configuration.
+ * Attached to spans that should show a timer UI.
+ */
+export interface TimerDisplayConfig {
+    /** Timer direction */
+    format: 'up' | 'down';
+    /** Duration in ms (for countdown timers) */
+    durationMs?: number;
+    /** Display label for the timer */
+    label: string;
+    /** Card configuration for UI display */
+    card?: {
+        title: string;
+        subtitle: string;
+    };
+    /** Timer role for display prioritization */
+    role?: 'primary' | 'secondary' | 'auto';
 }
 
 /**
@@ -55,7 +79,9 @@ export class RuntimeSpan {
         public fragments: ICodeFragment[][] = [],
         public status?: SpanStatus,
         public metadata: SpanMetadata = { tags: [], context: {}, logs: [] },
-        public parentSpanId?: string
+        public parentSpanId?: string,
+        /** Optional timer display configuration */
+        public timerConfig?: TimerDisplayConfig
     ) { }
 
     /**
@@ -72,6 +98,13 @@ export class RuntimeSpan {
      */
     isActive(): boolean {
         return this.spans.length > 0 && this.spans[this.spans.length - 1].ended === undefined;
+    }
+
+    /**
+     * Alias for isActive() for timer-specific contexts.
+     */
+    get isRunning(): boolean {
+        return this.isActive();
     }
 
     /**
@@ -96,6 +129,11 @@ export class RuntimeSpan {
         const timerFragment = this.fragments
             .flat()
             .find(f => f.fragmentType === 'timer');
+
+        // Check timer config first
+        if (this.timerConfig?.durationMs) {
+            return Math.max(0, this.timerConfig.durationMs - this.total());
+        }
 
         if (!timerFragment?.value || typeof timerFragment.value !== 'number') {
             return undefined;
@@ -131,7 +169,8 @@ export class RuntimeSpan {
             json.fragments || [],
             json.status,
             json.metadata || { tags: [], context: {}, logs: [] },
-            json.parentSpanId
+            json.parentSpanId,
+            json.timerConfig
         );
     }
 
@@ -144,7 +183,66 @@ export class RuntimeSpan {
             status: this.status,
             metadata: this.metadata,
             parentSpanId: this.parentSpanId,
+            timerConfig: this.timerConfig,
             _model: RUNTIME_SPAN_TYPE // Add discriminator for deserialization
         };
+    }
+
+    /**
+     * Start tracking time (add new open span).
+     */
+    start(timestamp: number = Date.now()): void {
+        // Don't start if already running
+        if (this.isActive()) return;
+        this.spans.push(new TimerSpan(timestamp));
+    }
+
+    /**
+     * Stop tracking time (close current span).
+     */
+    stop(timestamp: number = Date.now()): void {
+        if (!this.isActive()) return;
+        const lastSpan = this.spans[this.spans.length - 1];
+        if (lastSpan) {
+            lastSpan.ended = timestamp;
+        }
+    }
+
+    /**
+     * Pause is an alias for stop (creates gap in tracking).
+     */
+    pause(timestamp: number = Date.now()): void {
+        this.stop(timestamp);
+    }
+
+    /**
+     * Resume is an alias for start (begins new span).
+     */
+    resume(timestamp: number = Date.now()): void {
+        this.start(timestamp);
+    }
+
+    /**
+     * Reset all time spans.
+     */
+    reset(): void {
+        this.spans = [];
+    }
+
+    /**
+     * Derive a display label from fragments or config.
+     */
+    get label(): string {
+        // Use timer config label if available
+        if (this.timerConfig?.label) {
+            return this.timerConfig.label;
+        }
+
+        // Derive from fragments
+        const labelFragment = this.fragments
+            .flat()
+            .find(f => f.fragmentType === FragmentType.Text || f.fragmentType === FragmentType.Effort);
+
+        return labelFragment?.image?.toString() ?? this.blockId;
     }
 }

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
-import { TimerState } from '../../../src/runtime/models/MemoryModels';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan } from '../../../src/runtime/models/RuntimeSpan';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
@@ -38,35 +38,37 @@ describe('Runtime Hooks Integration', () => {
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
             block.mount(runtime);
 
-            // Search for unified TimerState using the new memory model
-            // The 'type' parameter is the timer prefix + block key
-            const timerStateRefs = runtime.memory.search({
+            // Search for unified RuntimeSpan using the new memory model
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            expect(timerStateRefs.length).toBe(1);
+            expect(runtimeSpanRefs.length).toBe(1);
 
             // Verify the state structure
-            const state = (timerStateRefs[0] as any).get() as TimerState;
-            expect(state).toBeDefined();
-            expect(state.blockId).toBe(block.key.toString());
-            expect(state.isRunning).toBeDefined();
-            expect(Array.isArray(state.spans)).toBe(true);
+            const span = (runtimeSpanRefs[0] as any).get() as RuntimeSpan;
+            expect(span).toBeDefined();
+            expect(span.blockId).toBe(block.key.toString());
+            // RuntimeSpan has isActive() method and spans array
+            expect(typeof span.isActive).toBe('function');
+            expect(Array.isArray(span.spans)).toBe(true);
+            // It should have timerConfig
+            expect(span.timerConfig).toBeDefined();
         });
 
         it('should return undefined for non-existent block keys', () => {
             // Simulate searching for a block that doesn't exist
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: 'non-existent-block',
-                type: `${MemoryTypeEnum.TIMER_PREFIX}non-existent-block`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            expect(timerStateRefs.length).toBe(0);
+            expect(runtimeSpanRefs.length).toBe(0);
         });
     });
 
@@ -76,14 +78,14 @@ describe('Runtime Hooks Integration', () => {
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
             block.mount(runtime);
 
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            const ref = timerStateRefs[0] as any;
+            const ref = runtimeSpanRefs[0] as any;
             let notificationCount = 0;
 
             // Simulate subscription
@@ -107,32 +109,37 @@ describe('Runtime Hooks Integration', () => {
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
             block.mount(runtime);
 
-            // Simulate time passing
+            // Simulate time passing by manually updating memory
             const startTime = Date.now() - 1000;
 
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            const ref = timerStateRefs[0] as any;
-            const state = ref.get() as TimerState;
+            const ref = runtimeSpanRefs[0] as any;
+            const span = ref.get() as RuntimeSpan;
 
             // Update the span's start time
-            const updatedSpans = [...state.spans];
-            updatedSpans[0] = { ...updatedSpans[0], start: startTime };
-            ref.set({ ...state, spans: updatedSpans });
+            // Since RuntimeSpan is a class, we need to preserve the instance or properties
+            // We can mutate the spans array if we are careful, or create new TimerSpan
+            const updatedSpans = [...span.spans];
+            if (updatedSpans.length > 0) {
+                updatedSpans[0] = new TimerSpan(startTime, updatedSpans[0].ended);
+            }
+
+            // Set updated span back to memory (triggers notification)
+            span.spans = updatedSpans;
+            ref.set(span);
 
             // Calculate elapsed (simulating what useTimerElapsed does)
-            const currentState = ref.get() as TimerState;
-            const elapsed = currentState.spans.reduce((total: number, span) => {
-                if (!span.start) return total;
-                // TimerSpan uses number timestamps (not Date objects)
-                const stop = span.stop || Date.now();
-                const start = span.start;
-                return total + (stop - start);
+            const currentSpan = ref.get() as RuntimeSpan;
+            // Use result of .total() or manual calculation simulation
+            const elapsed = currentSpan.spans.reduce((total: number, s: TimerSpan) => {
+                const end = s.ended ?? Date.now();
+                return total + Math.max(0, end - s.started);
             }, 0);
 
             expect(elapsed).toBeGreaterThanOrEqual(1000);
@@ -147,20 +154,20 @@ describe('Runtime Hooks Integration', () => {
             behavior.pause();
             behavior.resume();
 
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            const ref = timerStateRefs[0] as any;
-            const state = ref.get() as TimerState;
+            const ref = runtimeSpanRefs[0] as any;
+            const span = ref.get() as RuntimeSpan;
 
-            expect(state.spans.length).toBe(2);
-            expect(state.spans[0].stop).toBeDefined();
-            expect(state.spans[1].start).toBeDefined();
-            expect(state.spans[1].stop).toBeUndefined();
+            expect(span.spans.length).toBe(2);
+            expect(span.spans[0].ended).toBeDefined();
+            expect(span.spans[1].started).toBeDefined();
+            expect(span.spans[1].ended).toBeUndefined();
         });
     });
 
@@ -194,34 +201,36 @@ describe('Runtime Hooks Integration', () => {
                 behavior.resume();
             }
 
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            const ref = timerStateRefs[0] as any;
-            const state = ref.get() as TimerState;
+            const ref = runtimeSpanRefs[0] as any;
+            const span = ref.get() as RuntimeSpan;
 
-            // Should have multiple spans from pause/resume cycles
-            expect(state.spans.length).toBeGreaterThan(1);
+            // Should have multiple spans from pause/resume cycles (original + 5 cycles -> 1 initial + 5*2 changes? No, pause closes one, resume opens one.
+            // Initial: 1 open.
+            // Loop 1: Pause (1 closed), Resume (2 open).
+            // Loop 5: Ends with (6 open).
+            expect(span.spans.length).toBeGreaterThan(1);
         });
 
-        it.todo('should handle block disposal gracefully', () => {
-            // TODO: Block disposal workflow needs review - timerRef subscription count
+        it('should handle block disposal gracefully', () => {
             const behavior = new TimerBehavior('up', undefined, 'Timer');
             const block = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
             block.mount(runtime);
 
-            const timerStateRefs = runtime.memory.search({
+            const runtimeSpanRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            const ref = timerStateRefs[0] as any;
+            const ref = runtimeSpanRefs[0] as any;
             let notificationCount = 0;
 
             ref.subscribe(() => {
@@ -231,18 +240,20 @@ describe('Runtime Hooks Integration', () => {
             // Dispose the block
             block.dispose(runtime);
 
-            // Should notify subscribers on release
-            expect(notificationCount).toBe(1);
+            // Should notify subscribers on change (stop called)
+            expect(notificationCount).toBeGreaterThanOrEqual(1);
 
-            // References should be released
+            // References should NOT be released (persisted as history)
             const afterRefs = runtime.memory.search({
                 id: null,
                 ownerId: block.key.toString(),
-                type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
+                type: RUNTIME_SPAN_TYPE,
                 visibility: null
             });
 
-            expect(afterRefs.length).toBe(0);
+            expect(afterRefs.length).toBe(1);
+            const endSpan = (afterRefs[0] as any).get() as RuntimeSpan;
+            expect(endSpan.isActive()).toBe(false);
         });
     });
 });

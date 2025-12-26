@@ -163,8 +163,20 @@ describe('CompletionBehavior Contract', () => {
       expect(harness.wasEventEmitted('block:complete')).toBe(true);
     });
 
-    it.todo('should work with timer-based completion', () => {
-      // TODO: Mock runtime.handle spy not capturing event correctly
+    it('should work with timer-based completion', () => {
+      let timerDone = false;
+      const condition = () => timerDone;
+      const behavior = new CompletionBehavior(condition, ['timer:complete']);
+      const block = new MockBlock('test-block', [behavior]);
+
+      harness.push(block);
+      harness.mount();
+
+      // Trigger completion via event
+      timerDone = true;
+      behavior.onEvent?.({ name: 'timer:complete', timestamp: new Date() }, harness.runtime, block);
+
+      expect(harness.wasEventEmitted('block:complete')).toBe(true);
     });
 
     it('should work with rounds-based completion', () => {

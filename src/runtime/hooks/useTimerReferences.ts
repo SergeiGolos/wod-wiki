@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { useRuntimeContext } from '../context/RuntimeContext';
 import { TypedMemoryReference } from '../IMemoryReference';
-import { TimerState, TimerSpan } from '../models/MemoryModels';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 
 /**
  * Timer memory references for a specific block.
@@ -10,11 +9,11 @@ import { MemoryTypeEnum } from '../MemoryTypeEnum';
  */
 export interface TimerReferences {
   /** @deprecated Use timerState.spans instead */
-  timeSpans: TypedMemoryReference<TimerSpan[]> | undefined;
+  timeSpans: undefined;
   /** @deprecated Use timerState.isRunning instead */
-  isRunning: TypedMemoryReference<boolean> | undefined;
+  isRunning: undefined;
   /** The unified timer state reference */
-  timerState: TypedMemoryReference<TimerState> | undefined;
+  timerState: TypedMemoryReference<RuntimeSpan> | undefined;
 }
 
 /**
@@ -22,7 +21,7 @@ export interface TimerReferences {
  * 
  * This hook searches the runtime memory for the TimerState reference
  * associated with the given blockKey. The TimerState contains:
- * - spans: TimerSpan[] (start/stop times)
+        [new TimerSpan(Date.now())], (start/stop times)
  * - isRunning: boolean
  * - format: 'up' | 'down' | 'time'
  * - durationMs: number (for countdown)
@@ -44,16 +43,17 @@ export function useTimerReferences(blockKey: string): TimerReferences {
   const runtime = useRuntimeContext();
 
   return useMemo(() => {
-    // Search for the unified TimerState using the timer type prefix
-    // The 'type' field in memory allocation is `timer:${blockId}`
+    // Search for the unified RuntimeSpan using the constant type
+    // The 'type' field in memory allocation is `runtime-span`
+    // We filter by ownerId which is the blockKey
     const timerStateRefs = runtime.memory.search({
       id: null,
       ownerId: blockKey,
-      type: `${MemoryTypeEnum.TIMER_PREFIX}${blockKey}`,
+      type: RUNTIME_SPAN_TYPE,
       visibility: null
     });
 
-    const timerStateRef = timerStateRefs[0] as TypedMemoryReference<TimerState> | undefined;
+    const timerStateRef = timerStateRefs[0] as TypedMemoryReference<RuntimeSpan> | undefined;
 
     return {
       // Legacy fields - no longer supported, return undefined

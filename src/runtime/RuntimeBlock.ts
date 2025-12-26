@@ -194,7 +194,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * @param behaviorType Constructor/class of the behavior to find
      * @returns The behavior instance or undefined if not found
      */
-    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined {
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
     }
 

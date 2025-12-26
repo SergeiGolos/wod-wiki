@@ -488,7 +488,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
         `timer:lap:${block.key}:${rounds}`,
         block.key.toString(),
-        [{ start: Date.now(), state: 'new' }],
+        [new TimerSpan(Date.now())],
         'public'
       );
 

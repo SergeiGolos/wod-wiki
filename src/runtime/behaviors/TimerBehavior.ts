@@ -2,9 +2,8 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
-import { TimerSpan } from '../models/MemoryModels';
+import { TimerSpan } from '../models/RuntimeSpan';
 export type TimeSpan = TimerSpan;
-import { calculateDuration } from '../../lib/timeUtils';
 import { TimerStateManager } from './TimerStateManager';
 
 /**
@@ -40,7 +39,7 @@ export class TimerBehavior implements IRuntimeBehavior {
   constructor(
     private readonly direction: 'up' | 'down' = 'up',
     private readonly durationMs?: number,
-    private readonly label: string = 'Timer',
+    label: string = 'Timer',
     private readonly role: 'primary' | 'secondary' | 'auto' = 'auto',
     private readonly autoStart: boolean = true
   ) {
@@ -134,11 +133,17 @@ export class TimerBehavior implements IRuntimeBehavior {
     if (timerRef) {
       const state = timerRef.get();
       if (state) {
-        const spans = state.spans;
-        // Paused means: we have spans, the last span is closed, and memory says not running
-        if (spans.length > 0 && spans[spans.length - 1].stop && !state.isRunning) {
-          return true;
-        }
+        // Paused means: timer not running, and we have recorded time
+        // With RuntimeSpan: isActive() tells us if running.
+        // If not active, but total > 0, it is paused (or stopped/finished).
+        // A timer is "paused" if it hasn't completed its duration (if countdown).
+        // For countup, "stopped" and "paused" are semantically similar.
+        // We relied on 'isRunning' flag before.
+        // TimerStateManager uses RuntimeSpan, which has isActive().
+
+        // RuntimeSpan.isActive() checks if last span is open.
+        // If !isActive() and spans.length > 0, it is paused/stopped.
+        return !state.isActive() && state.spans.length > 0;
       }
       return false;
     }
@@ -176,19 +181,19 @@ export class TimerBehavior implements IRuntimeBehavior {
     const state = timerRef.get();
     if (!state) return;
 
-    const spans = [...state.spans];
+
 
     // If already running, don't start again
-    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+    if (state.isActive()) {
       return;
     }
 
     // Add new span
     const now = this._runtime.clock.now;
-    spans.push({ start: now.getTime(), state: 'new' });
+    state.start(now.getTime());
     this.startTime = now;
 
-    this.stateManager.updateState(this._runtime, spans, true);
+    this.stateManager.updateState(this._runtime, state.spans, true);
   }
 
   /**
@@ -210,14 +215,13 @@ export class TimerBehavior implements IRuntimeBehavior {
     const state = timerRef.get();
     if (!state) return;
 
-    const spans = [...state.spans];
-    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+    if (state.isActive()) {
       const now = this._runtime?.clock.now ?? new Date();
-      spans[spans.length - 1].stop = now.getTime();
+      state.stop(now.getTime());
     }
 
-    // Always update state to mark as not running
-    this.stateManager.updateState(this._runtime, spans, false);
+    // Always update state via manager to notify listeners
+    this.stateManager.updateState(this._runtime, state.spans, false);
   }
 
   /**
@@ -238,18 +242,30 @@ export class TimerBehavior implements IRuntimeBehavior {
     const state = timerRef.get();
     if (!state) return;
 
-    const spans = [...state.spans];
-
     // If not running, nothing to pause
-    if (spans.length === 0 || spans[spans.length - 1].stop) {
+    if (!state.isActive()) {
       return;
     }
 
     // Close the current span
     const now = this._runtime?.clock.now ?? new Date();
-    spans[spans.length - 1].stop = now.getTime();
+    state.pause(now.getTime());
 
-    this.stateManager.updateState(this._runtime, spans, false);
+    this.stateManager.updateState(this._runtime, state.spans, false);
+  }
+
+  /**
+   * Resets the timer state in memory.
+   */
+  resetState(): void {
+    const timerRef = this.stateManager.getTimerRef();
+    if (!timerRef) return;
+
+    const span = timerRef.get();
+    if (span) {
+      span.reset();
+      timerRef.set(span); // Assuming timerRef.set updates the stored state
+    }
   }
 
   /**
@@ -270,19 +286,17 @@ export class TimerBehavior implements IRuntimeBehavior {
     const state = timerRef.get();
     if (!state) return;
 
-    const spans = [...state.spans];
-
     // If already running, don't resume
-    if (spans.length > 0 && !spans[spans.length - 1].stop) {
+    if (state.isActive()) {
       return;
     }
 
     // Add new span
     const now = this._runtime?.clock.now ?? new Date();
-    spans.push({ start: now.getTime(), state: 'new' });
+    state.resume(now.getTime());
     this.startTime = new Date(now.getTime() - this.elapsedMs);
 
-    this.stateManager.updateState(this._runtime, spans, true);
+    this.stateManager.updateState(this._runtime, state.spans, true);
   }
 
   /**
@@ -305,11 +319,7 @@ export class TimerBehavior implements IRuntimeBehavior {
     // Fallback for tests that don't use memory
     const elapsedMs = this.getElapsedMs();
     const now = (this._runtime?.clock.now ?? new Date()).getTime();
-    return [{
-      start: now - elapsedMs,
-      stop: this.isRunning() ? undefined : now,
-      state: 'new'
-    }];
+    return [new TimerSpan(now - elapsedMs, this.isRunning() ? undefined : now)];
   }
 
   /**
@@ -322,12 +332,10 @@ export class TimerBehavior implements IRuntimeBehavior {
       return 0;
     }
 
-    // Use calculateDuration utility
-    const now = (this._runtime?.clock.now ?? new Date()).getTime();
-    return calculateDuration(
-      spans.map(s => ({ start: s.start, stop: s.stop })),
-      now
-    );
+    // Use RuntimeSpan total() logic if we had the object, but we have spans array.
+    // We can map constructs or just sum duration.
+    // TimerSpan class has duration property.
+    return spans.reduce((acc, s) => acc + s.duration, 0);
   }
 
   /**
@@ -354,6 +362,11 @@ export class TimerBehavior implements IRuntimeBehavior {
     this.startTime = now;
 
     // 2. Reset memory state and start new span
-    this.stateManager.updateState(this._runtime, [{ start: now.getTime(), state: 'new' }], true);
+    const span = this.stateManager.getTimerRef()?.get();
+    if (span) {
+      span.reset();
+      span.start(now.getTime());
+      this.stateManager.updateState(this._runtime, span.spans, true);
+    }
   }
 }

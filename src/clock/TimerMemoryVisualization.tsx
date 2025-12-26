@@ -45,9 +45,8 @@ export const TimerMemoryVisualization: React.FC<TimerMemoryVisualizationProps> =
   if (!timeSpans || isRunning === undefined) {
     return (
       <div
-        className={`p-4 border border-gray-200 rounded-lg ${
-          isHighlighted ? 'bg-blue-100' : 'bg-gray-50'
-        }`}
+        className={`p-4 border border-gray-200 rounded-lg ${isHighlighted ? 'bg-blue-100' : 'bg-gray-50'
+          }`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -71,9 +70,8 @@ export const TimerMemoryVisualization: React.FC<TimerMemoryVisualizationProps> =
 
   return (
     <div
-      className={`p-4 border border-gray-200 rounded-lg transition-colors duration-150 ${
-        isHighlighted ? 'bg-blue-100 border-blue-300' : 'bg-white'
-      }`}
+      className={`p-4 border border-gray-200 rounded-lg transition-colors duration-150 ${isHighlighted ? 'bg-blue-100 border-blue-300' : 'bg-white'
+        }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -90,9 +88,8 @@ export const TimerMemoryVisualization: React.FC<TimerMemoryVisualizationProps> =
         <div className="text-sm font-semibold text-gray-600 mb-1">Running State</div>
         <div className="flex items-center gap-2">
           <div
-            className={`w-3 h-3 rounded-full ${
-              isRunning ? 'bg-green-500' : 'bg-gray-400'
-            }`}
+            className={`w-3 h-3 rounded-full ${isRunning ? 'bg-green-500' : 'bg-gray-400'
+              }`}
           />
           <span className="text-sm font-medium">
             {isRunning ? 'Running' : 'Stopped'}
@@ -118,22 +115,22 @@ export const TimerMemoryVisualization: React.FC<TimerMemoryVisualizationProps> =
                   <div>
                     <span className="text-gray-500">Start: </span>
                     <span className="font-mono">
-                      {formatTimestamp(span.start)}
+                      {formatTimestamp(span.started)}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Stop: </span>
                     <span className="font-mono">
-                      {formatTimestamp(span.stop)}
+                      {formatTimestamp(span.ended)}
                     </span>
                   </div>
                 </div>
                 {/* Calculate duration for this span */}
-                {span.start && (
+                {span.started && (
                   <div className="mt-1 text-xs text-gray-600">
-                    Duration: {span.stop
-                      ? Math.round((span.stop.getTime() - span.start.getTime()) / 1000)
-                      : Math.round((Date.now() - span.start.getTime()) / 1000)
+                    Duration: {span.ended
+                      ? Math.round((span.ended - span.started) / 1000)
+                      : Math.round((Date.now() - span.started) / 1000)
                     }s
                   </div>
                 )}

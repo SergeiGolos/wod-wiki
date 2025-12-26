@@ -1,24 +1,22 @@
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IRuntimeAction } from '../IRuntimeAction';
-import { TimerState, TimerSpan } from '../models/MemoryModels';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan, TimerDisplayConfig } from '../models/RuntimeSpan';
 import { TypedMemoryReference } from '../IMemoryReference';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/TimerDisplayActions';
 import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
-import { calculateDuration } from '../../lib/timeUtils';
 
 /**
  * TimerStateManager handles the memory state and display actions for a timer.
  */
 export class TimerStateManager {
-    private timerRef?: TypedMemoryReference<TimerState>;
+    private timerRef?: TypedMemoryReference<RuntimeSpan>;
 
     constructor(
         private readonly direction: 'up' | 'down',
         private readonly durationMs: number | undefined,
         private readonly label: string
-    ) {}
+    ) { }
 
     /**
      * Initializes the timer state in memory and creates display actions.
@@ -29,32 +27,41 @@ export class TimerStateManager {
      * @returns Array of runtime actions to push timer and card display entries
      */
     initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto', autoStart: boolean = true): IRuntimeAction[] {
-        const initialState: TimerState = {
-            blockId: block.key.toString(),
-            label: this.label,
-            format: this.direction === 'down' ? 'down' : 'up',
-            durationMs: this.durationMs,
-            spans: autoStart ? [{ start: startTime, state: 'new' }] : [],
-            isRunning: autoStart,
-            card: {
-                title: this.direction === 'down' ? 'AMRAP' : 'For Time',
-                subtitle: this.label
-            }
-        };
-
-        this.timerRef = runtime.memory.allocate<TimerState>(
-            `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
-            block.key.toString(),
-            initialState,
-            'public'
-        );
-
         // Determine default role if 'auto'
         let finalRole = role;
         if (role === 'auto') {
             // Default: Countdown = Primary (lock view), Countup = Auto (stack based)
             finalRole = this.direction === 'down' ? 'primary' : 'auto';
         }
+
+        const timerConfig: TimerDisplayConfig = {
+            format: this.direction === 'down' ? 'down' : 'up',
+            durationMs: this.durationMs,
+            label: this.label,
+            card: {
+                title: this.direction === 'down' ? 'AMRAP' : 'For Time',
+                subtitle: this.label
+            },
+            role: finalRole
+        };
+
+        const span = new RuntimeSpan(
+            block.key.toString(),
+            block.sourceIds || [],
+            autoStart ? [new TimerSpan(startTime)] : [],
+            block.fragments || [],
+            undefined,
+            undefined,
+            undefined,
+            timerConfig
+        );
+
+        this.timerRef = runtime.memory.allocate<RuntimeSpan>(
+            RUNTIME_SPAN_TYPE,
+            block.key.toString(),
+            span,
+            'public'
+        );
 
         const timerAction = new PushTimerDisplayAction({
             id: `timer-${block.key}`,
@@ -102,39 +109,43 @@ export class TimerStateManager {
     /**
      * Gets the memory reference for the timer state.
      */
-    getTimerRef(): TypedMemoryReference<TimerState> | undefined {
+    getTimerRef(): TypedMemoryReference<RuntimeSpan> | undefined {
         return this.timerRef;
     }
 
     /**
      * Updates the timer state with new spans and running status.
      */
-    updateState(runtime: IScriptRuntime | undefined, spans: TimerSpan[], isRunning: boolean): void {
+    updateState(runtime: IScriptRuntime | undefined, spans: TimerSpan[], _isRunning: boolean): void {
         if (!this.timerRef) return;
 
-        const state = this.timerRef.get();
-        if (!state) return;
+        const span = this.timerRef.get();
+        if (!span) return;
 
-        this.timerRef.set({
-            ...state,
-            spans,
-            isRunning
-        });
+        // Create new instance to ensure reactivity if needed, or just mutate and set
+        // RuntimeSpan is a class, so we should probably clone or just set the properties if we want to trigger updates
+        // memory.set triggers the event.
+
+        // We assume 'spans' passed in are the updated list (references to TimerSpan objects)
+        span.spans = spans;
+
+        this.timerRef.set(span);
 
         if (runtime) {
-            // Re-calculate safely
-            // Filter to only closed spans for accumulated
-            const closedSpans = spans.filter(s => s.stop !== undefined);
-            const acc = calculateDuration(closedSpans.map(s => ({ start: s.start, stop: s.stop! })), 0);
-            
-            // Find current running span start
-            const runningSpan = spans.find(s => !s.stop);
-            const currentStartTime = runningSpan ? runningSpan.start : undefined;
+            // Calculate accumulated time from CLOSED spans for UI interpolation
+            // If active, the last span is open and handled by the UI using startTime
+            const active = span.isActive();
+            const spans = span.spans;
+            const closedSpans = active ? spans.slice(0, -1) : spans;
+            const accumulated = closedSpans.reduce((acc, s) => acc + s.duration, 0);
 
-            new UpdateTimerDisplayAction(`timer-${state.blockId}`, {
-                accumulatedMs: acc,
-                startTime: currentStartTime,
-                isRunning: isRunning
+            const lastSpan = spans.length > 0 ? spans[spans.length - 1] : undefined;
+            const currentStart = active ? lastSpan?.started : undefined;
+
+            new UpdateTimerDisplayAction(`timer-${span.blockId}`, {
+                accumulatedMs: accumulated,
+                startTime: currentStart,
+                isRunning: active
             }).do(runtime);
         }
     }
@@ -145,13 +156,10 @@ export class TimerStateManager {
     resetState(): void {
         if (!this.timerRef) return;
 
-        const state = this.timerRef.get();
-        if (state) {
-            this.timerRef.set({
-                ...state,
-                spans: [],
-                isRunning: false
-            });
+        const span = this.timerRef.get();
+        if (span) {
+            span.reset();
+            this.timerRef.set(span);
         }
     }
 }

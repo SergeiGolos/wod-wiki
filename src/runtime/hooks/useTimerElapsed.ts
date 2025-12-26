@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useTimerReferences } from './useTimerReferences';
 import { useMemorySubscription } from './useMemorySubscription';
-import { TimerSpan } from '../models/MemoryModels';
+import { TimerSpan } from '../models/RuntimeSpan';
 
 /**
  * Result from useTimerElapsed hook.
@@ -38,13 +38,16 @@ export interface UseTimerElapsedResult {
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   const { timerState: timerStateRef } = useTimerReferences(blockKey);
-  
+
   // Subscribe to unified TimerState changes
   const timerState = useMemorySubscription(timerStateRef);
-  
-  // Extract spans and running state from unified state
+
+  // Extract spans from unified state
+  // Even if class type is lost (serialization), the shape { started, ended? } remains
   const timeSpans = timerState?.spans || [];
-  const isRunning = timerState?.isRunning || false;
+
+  // Robustly derive isRunning locally just in case prototype methods (getters) are lost
+  const isRunning = timeSpans.length > 0 && timeSpans[timeSpans.length - 1].ended === undefined;
 
   const [now, setNow] = useState(Date.now());
 
@@ -53,13 +56,13 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     if (timeSpans.length === 0) return 0;
 
     return timeSpans.reduce((total, span) => {
-      if (!span.start) return total;
-      
-      // TimerSpan uses number timestamps (epoch ms)
-      // If no stop time, timer is running - use current time
-      const stop = span.stop || now;
-      const start = span.start;
-      return total + (stop - start);
+      // span.started should be present. TimerSpan uses number timestamps (epoch ms)
+      if (typeof span.started !== 'number') return total;
+
+      // If no end time, timer is running - use current time
+      const end = span.ended ?? now;
+      const start = span.started;
+      return total + Math.max(0, end - start);
     }, 0);
   }, [timeSpans, now]);
 
@@ -74,7 +77,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
       animationFrameId = requestAnimationFrame(update);
     };
 
-    animationFrameId = requestAnimationFrame(update);
+    update(); // Initial update
 
     return () => cancelAnimationFrame(animationFrameId);
   }, [isRunning]);
