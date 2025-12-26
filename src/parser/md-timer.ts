@@ -1,9 +1,17 @@
-import { Lexer } from "chevrotain";
+import { Lexer, IRecognitionException } from "chevrotain";
 import { MdTimerInterpreter } from "./timer.visitor";
 import { MdTimerParse } from "./timer.parser";
 import { allTokens } from "./timer.tokens";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { IScript, WodScript } from "./WodScript";
+import { IScript, WodScript, ParseError } from "./WodScript";
+
+/**
+ * Extended parser type for Chevrotain runtime-generated methods
+ */
+interface ExtendedParser extends MdTimerParse {
+  wodMarkdown(): unknown;
+  errors: IRecognitionException[];
+}
 
 export class MdTimerRuntime {
   lexer: Lexer;
@@ -15,13 +23,22 @@ export class MdTimerRuntime {
 
   read(inputText: string): IScript {
     const { tokens } = this.lexer.tokenize(inputText);
-    const parser = new MdTimerParse(tokens) as any;
+    const parser = new MdTimerParse(tokens) as ExtendedParser;
 
     this.visitor.clearErrors();
     const cst = parser.wodMarkdown();
     const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);
-    const errors = [...(parser.errors || []), ...(this.visitor.getErrors() || [])];
-    return new WodScript(inputText, raw, errors) as IScript;
+    
+    // Convert Chevrotain errors to ParseError format
+    const parserErrors: ParseError[] = (parser.errors || []).map(err => ({
+      message: err.message,
+      line: err.token?.startLine,
+      column: err.token?.startColumn,
+      token: err.token
+    }));
+    
+    const errors = [...parserErrors, ...this.visitor.getErrors()];
+    return new WodScript(inputText, raw, errors);
   }
 }
 
