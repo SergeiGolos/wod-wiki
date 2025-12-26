@@ -6,13 +6,13 @@ Successfully generated comprehensive documentation for the WOD Wiki codebase.
 
 ## Files Created
 
-1. **[index.md](./docs/generated/index.md)** - Main documentation index with overview and quick start
-2. **[runtime-system.md](./docs/generated/runtime-system.md)** - Runtime execution engine, JIT compiler, stack management
-3. **[fragment-types.md](./docs/generated/fragment-types.md)** - All fragment types (Timer, Rep, Effort, etc.)
-4. **[parser-system.md](./docs/generated/parser-system.md)** - Workout script parsing with Chevrotain
-5. **[editor-integration.md](./docs/generated/editor-integration.md)** - Monaco Editor integration and features
-6. **[services.md](./docs/generated/services.md)** - Shared services (DialectRegistry, EventBus, AudioService)
-7. **[clock-timer.md](./docs/generated/clock-timer.md)** - Timer components and clock utilities
+1. **[index.md](./index.md)** - Main documentation index with overview and quick start
+2. **[runtime-system.md](./runtime-system.md)** - Runtime execution engine, JIT compiler, stack management
+3. **[fragment-types.md](./fragment-types.md)** - All fragment types (Timer, Rep, Effort, etc.)
+4. **[parser-system.md](./parser-system.md)** - Workout script parsing with Chevrotain
+5. **[editor-integration.md](./editor-integration.md)** - Monaco Editor integration and features
+6. **[services.md](./services.md)** - Shared services (DialectRegistry, EventBus, AudioService)
+7. **[clock-timer.md](./clock-timer.md)** - Timer components and clock utilities
 
 ## Project Analysis
 
