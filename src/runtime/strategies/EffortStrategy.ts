@@ -9,12 +9,31 @@ import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { TypedMemoryReference } from "../IMemoryReference";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
+
+/**
+ * Helper to extract optional exerciseId from code statement.
+ * Some dialect processors may attach exerciseId to statements.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
+
+/**
+ * Helper to extract optional exerciseName from code statement.
+ * Some dialect processors may attach exerciseName to statements.
+ */
+function getExerciseName(statement: ICodeStatement, defaultName: string): string {
+    const stmt = statement as ICodeStatement & { exerciseName?: string };
+    return stmt.exerciseName ?? defaultName;
+}
 
 /**
  * Strategy that creates effort blocks for simple exercises.
@@ -57,7 +76,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         const blockId = blockKey.toString();
 
         // 3. Extract exerciseId from compiled metric or statement
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = getExerciseId(code[0]);
 
         // 4. Create BlockContext
         const context = new BlockContext(runtime, blockId, exerciseId);
@@ -82,10 +101,10 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
 
             if (inheritedRepsRefs.length > 0) {
                 // Use the most recent inherited reps metric (last in array)
-                const latestRepsRef = inheritedRepsRefs[inheritedRepsRefs.length - 1];
-                const inheritedReps = runtime.memory.get(latestRepsRef as any);
+                const latestRepsRef = inheritedRepsRefs[inheritedRepsRefs.length - 1] as TypedMemoryReference<number>;
+                const inheritedReps = runtime.memory.get(latestRepsRef);
                 if (inheritedReps !== undefined) {
-                    reps = inheritedReps as number;
+                    reps = inheritedReps;
                 }
             }
         }
@@ -116,7 +135,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
             const exerciseName = (typeof effortFragment?.value === 'string' && effortFragment.value.trim().length > 0)
                 ? effortFragment.value
-                : (code[0] as any)?.exerciseName || "Exercise";
+                : getExerciseName(code[0], "Exercise");
 
             return new EffortBlock(
                 runtime,

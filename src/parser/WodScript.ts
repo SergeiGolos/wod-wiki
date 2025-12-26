@@ -1,9 +1,9 @@
-import { ICodeStatement } from "@/core";
+import { ICodeStatement, ParseError } from "@/core";
 
 export interface IScript {
   source: string;
   statements: ICodeStatement[];
-  errors?: any[] | undefined;
+  errors?: ParseError[] | undefined;
   getIds(ids: number[]) : ICodeStatement[];
   getId(id: number): ICodeStatement | undefined;
   getAt(index: number): ICodeStatement | undefined;
@@ -12,12 +12,12 @@ export interface IScript {
 export class WodScript implements IScript {
   source: string;
   statements: ICodeStatement[];
-  errors: any[] | undefined;
+  errors: ParseError[] | undefined;
   
   // Lazy-initialized Map for O(1) ID lookups
   private _idMap?: Map<number, ICodeStatement>;
 
-  constructor(source: string, statements: ICodeStatement[], errors: any[] = []) {
+  constructor(source: string, statements: ICodeStatement[], errors: ParseError[] = []) {
     this.source = source;
     this.statements = statements;
     this.errors = errors;

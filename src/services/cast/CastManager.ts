@@ -12,7 +12,7 @@ import {
     TargetDiscoveredMessage
 } from '@/types/cast/messages';
 
-type Listener = (...args: any[]) => void;
+type Listener = (...args: unknown[]) => void;
 
 export class CastManager {
   private listeners: Map<string, Listener[]> = new Map();
@@ -21,7 +21,7 @@ export class CastManager {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
   private reconnectTimeout: number | null = null;
-  private eventBuffer: any[] = [];
+  private eventBuffer: unknown[] = [];
 
   // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
   private getReconnectDelay(): number {
@@ -48,7 +48,7 @@ export class CastManager {
       }
   }
 
-  emit(event: string, ...args: any[]) {
+  emit(event: string, ...args: unknown[]) {
       this.listeners.get(event)?.forEach(l => l(...args));
   }
 

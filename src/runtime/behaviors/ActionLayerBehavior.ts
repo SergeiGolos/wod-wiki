@@ -1,3 +1,4 @@
+import { IEvent } from '../IEvent';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -59,7 +60,7 @@ export class ActionLayerBehavior implements IRuntimeBehavior {
   // Fallback: if a custom action event is received and the block has no other
   // handlers for it, advance to next. We avoid 'next' to prevent double-handling
   // because RuntimeBlock already registers a next handler.
-  onEvent(event: any, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onEvent(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     if (!event?.name) return [];
     if (event.name === 'next') return [];
     const matchesDescriptor = this.descriptors.some(d => d.eventName === event.name);

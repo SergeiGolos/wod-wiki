@@ -26,7 +26,7 @@ export interface WodWikiProps {
   onValueChange?: (classObject?: IScript) => void;
   
   /** Optional callback when editor is mounted */
-  onMount?: (editor: any) => void;
+  onMount?: (editor: monacoEditor.IStandaloneCodeEditor) => void;
   
   /** Whether the editor is read-only */
   readonly?: boolean;

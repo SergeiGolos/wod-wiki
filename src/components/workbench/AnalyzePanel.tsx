@@ -2,6 +2,7 @@ import React from 'react';
 import { AnalyticsIndexPanel } from '../layout/AnalyticsIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
+import { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 
 export interface AnalyzePanelProps {
   segments: Segment[];
@@ -9,7 +10,7 @@ export interface AnalyzePanelProps {
   onSelectSegment: (id: number) => void;
   mobile: boolean;
   groups: AnalyticsGroup[];
-  rawData: any[];
+  rawData: AnalyticsDataPoint[];
 }
 
 export const AnalyzePanelIndex: React.FC<Pick<AnalyzePanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'mobile' | 'groups'>> = ({

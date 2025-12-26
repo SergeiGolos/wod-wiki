@@ -3,13 +3,13 @@ import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 
 export type MemoryLocation = {
     ref: IMemoryReference;
-    data: any;
+    data: unknown;
 }
 
 export class RuntimeMemory implements IRuntimeMemory {
     // Linear storage for memory locations
     private _references: MemoryLocation[] = [];
-    private _globalSubscribers: Set<(ref: IMemoryReference, value: any, oldValue: any) => void> = new Set();
+    private _globalSubscribers: Set<(ref: IMemoryReference, value: unknown, oldValue: unknown) => void> = new Set();
     private _eventDispatcher: MemoryEventDispatcher | null = null;
 
     /**
@@ -61,7 +61,7 @@ export class RuntimeMemory implements IRuntimeMemory {
 
     // Subscribe to all memory changes
     // @deprecated Use EventBus handlers instead
-    subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void): () => void {
+    subscribe(callback: (ref: IMemoryReference, value: unknown, oldValue: unknown) => void): () => void {
         this._globalSubscribers.add(callback);
         return () => {
             this._globalSubscribers.delete(callback);

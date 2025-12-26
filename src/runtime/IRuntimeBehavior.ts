@@ -1,3 +1,4 @@
+import { IEvent } from "./IEvent";
 import { IRuntimeAction } from "./IRuntimeAction";
 import { BlockLifecycleOptions, IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
@@ -27,5 +28,5 @@ export interface IRuntimeBehavior {
   onDispose?(runtime: IScriptRuntime, block: IRuntimeBlock): void;
 
   /** Called when an event is dispatched to the block. */
-  onEvent?(event: any, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
+  onEvent?(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[];
 }

@@ -27,7 +27,7 @@ export class EmitEventAction implements IRuntimeAction {
     /** Name of the event to emit */
     public readonly eventName: string,
     /** Optional data to include with the event */
-    public readonly data?: any,
+    public readonly data?: unknown,
     /** Optional timestamp (defaults to now) */
     public readonly timestamp: Date = new Date()
   ) {}

@@ -144,5 +144,5 @@ export interface IRuntimeBlock {
      * @param behaviorType Constructor/class of the behavior to find
      * @returns The behavior instance or undefined if not found
      */
-    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined;
 }

@@ -10,6 +10,14 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 
 /**
+ * Helper to extract optional exerciseId from code statement.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
+
+/**
  * Strategy that creates group blocks for nested/grouped exercises.
  * Matches statements that have child statements (nested structure).
  *
@@ -66,7 +74,7 @@ export class GroupStrategy implements IRuntimeBlockStrategy {
 
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = getExerciseId(code[0]);
 
         const context = new BlockContext(runtime, blockId, exerciseId);
 

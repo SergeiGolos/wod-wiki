@@ -126,6 +126,7 @@ class WorkoutEventBus {
 export const workoutEventBus = new WorkoutEventBus();
 
 // Enable debug mode in development
-if (typeof window !== 'undefined' && (window as any).__WOD_WIKI_DEBUG__) {
+const windowWithDebug = typeof window !== 'undefined' ? window as Window & { __WOD_WIKI_DEBUG__?: boolean } : null;
+if (windowWithDebug?.__WOD_WIKI_DEBUG__) {
   workoutEventBus.setDebugMode(true);
 }

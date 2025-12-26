@@ -1,4 +1,5 @@
 import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
+import { CodeMetadata } from "../core/models/CodeMetadata";
 
 import { EffortFragment } from "../fragments/EffortFragment";
 import { ActionFragment } from "../fragments/ActionFragment";
@@ -14,11 +15,38 @@ import { ICodeStatement } from "@/core";
 
 export type GroupType = 'round' | 'compose' | 'repeat';
 
-const parser = new MdTimerParse() as any;
+/**
+ * CST context type for Chevrotain visitor methods.
+ * This is a generic type for CST nodes - Chevrotain generates these dynamically.
+ */
+type CstContext = Record<string, unknown>;
+
+/**
+ * Token metadata from Chevrotain
+ */
+interface TokenMeta {
+  line?: number;
+  columnStart?: number;
+  columnEnd?: number;
+  startOffset?: number;
+  endOffset?: number;
+}
+
+/**
+ * Parser error information
+ */
+interface SemanticError {
+  message: string;
+  line?: number;
+  column?: number;
+  token?: { startOffset?: number; endOffset?: number };
+}
+
+const parser = new MdTimerParse() as { getBaseCstVisitorConstructor: () => new () => object };
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
 
 export class MdTimerInterpreter extends BaseCstVisitor {
-  private semanticErrors: any[] = [];
+  private semanticErrors: SemanticError[] = [];
 
   constructor() {
     super();
@@ -26,7 +54,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     this.validateVisitor();
   }
 
-  getErrors() {
+  getErrors(): SemanticError[] {
     return this.semanticErrors;
   }
 
@@ -34,7 +62,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     this.semanticErrors = [];
   }
 
-  private addError(message: string, meta: any) {
+  private addError(message: string, meta: TokenMeta | undefined) {
     this.semanticErrors.push({
       message,
       line: meta?.line,
@@ -131,7 +159,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     // Lap fragment logic  
     // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment
     if (lapFragments?.length === 0 && statement.parent !== undefined) {
-      const meta = {
+      const meta: CodeMetadata = {
         line: statement.meta.line,
         startOffset: statement.meta.startOffset,
         endOffset: statement.meta.startOffset,
@@ -139,7 +167,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         columnEnd: statement.meta.columnStart,
         length: 1,
       };
-      statement.fragments.push(new LapFragment('repeat', "", meta as any));
+      statement.fragments.push(new LapFragment('repeat', "", meta));
     }
 
     statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Lap).length > 0;

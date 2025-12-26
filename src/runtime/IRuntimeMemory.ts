@@ -71,5 +71,5 @@ export interface IRuntimeMemory {
      * @deprecated Use EventBus handlers instead. This will be removed in a future version.
      * Returns a function to unsubscribe.
      */
-    subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void): () => void;
+    subscribe(callback: (ref: IMemoryReference, value: unknown, oldValue: unknown) => void): () => void;
 }

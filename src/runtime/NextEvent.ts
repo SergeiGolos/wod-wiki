@@ -3,10 +3,10 @@ import { IEvent } from './IEvent';
 export class TickEvent implements IEvent {
   readonly name: string = 'tick';
   readonly timestamp: Date;
-  readonly data?: any;
+  readonly data?: unknown;
   private static _counter = 0;
 
-  constructor(data?: any) {
+  constructor(data?: unknown) {
     const now = Date.now();
     TickEvent._counter++;
     this.timestamp = new Date(now + TickEvent._counter);
@@ -17,10 +17,10 @@ export class TickEvent implements IEvent {
 export class NextEvent implements IEvent {
   readonly name: string = 'next';
   readonly timestamp: Date;
-  private _data?: any;
+  private _data?: unknown;
   private static _counter = 0;
 
-  constructor(data?: any) {
+  constructor(data?: unknown) {
     // Ensure unique timestamp by using current time plus counter offset
     const now = Date.now();
     NextEvent._counter++;
@@ -28,11 +28,11 @@ export class NextEvent implements IEvent {
     this._data = data;
   }
 
-  get data(): any {
+  get data(): unknown {
     return this._data;
   }
 
-  set data(value: any) {
+  set data(value: unknown) {
     this._data = value;
   }
 

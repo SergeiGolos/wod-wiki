@@ -9,11 +9,20 @@ import { FragmentType } from "../../core/models/CodeFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { TypedMemoryReference } from "../IMemoryReference";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
+
+/**
+ * Helper to extract optional exerciseId from code statement.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
@@ -55,7 +64,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Rounds");
 
-        const exerciseId = (code[0] as any)?.exerciseId || '';
+        const exerciseId = getExerciseId(code[0]);
 
         // Extract rounds configuration from fragments
         const fragments = code[0]?.fragments || [];
@@ -128,7 +137,8 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                         visibility: 'inherited'
                     });
                     if (refs.length > 0) {
-                        rt.memory.set(refs[0] as any, currentReps);
+                        const ref = refs[0] as TypedMemoryReference<number>;
+                        rt.memory.set(ref, currentReps);
                     }
                 }
             }

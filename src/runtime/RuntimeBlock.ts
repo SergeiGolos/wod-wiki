@@ -173,8 +173,8 @@ export class RuntimeBlock implements IRuntimeBlock {
     dispose(runtime: IScriptRuntime): void {
         // Call behavior disposal hooks
         for (const behavior of this.behaviors) {
-            if (typeof (behavior as any).onDispose === 'function') {
-                (behavior as any).onDispose(runtime, this);
+            if (behavior.onDispose) {
+                behavior.onDispose(runtime, this);
             }
         }
 
@@ -194,7 +194,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * @param behaviorType Constructor/class of the behavior to find
      * @returns The behavior instance or undefined if not found
      */
-    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
     }
 

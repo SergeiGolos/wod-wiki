@@ -6,6 +6,15 @@ import { RuntimeSpan } from '../runtime/models/RuntimeSpan';
 import { ICodeFragment } from '../core/models/CodeFragment';
 
 /**
+ * Time-series data point for analytics visualization.
+ * Contains time and dynamic metric values.
+ */
+export interface AnalyticsDataPoint {
+  time: number;
+  [key: string]: number;
+}
+
+/**
  * Format a metric key into a human-readable label.
  * Capitalizes the first letter and replaces underscores with spaces.
  */

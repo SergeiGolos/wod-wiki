@@ -38,7 +38,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { AnalyticsTransformer, transformRuntimeToAnalytics } from '../../services/AnalyticsTransformer';
+import { AnalyticsTransformer, transformRuntimeToAnalytics, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -158,7 +158,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
   // Real Analytics Data from Runtime
   // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
-  const [analyticsState, setAnalyticsState] = useState<{ data: any[], segments: Segment[], groups: AnalyticsGroup[] }>({ data: [], segments: [], groups: [] });
+  const [analyticsState, setAnalyticsState] = useState<{ data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[] }>({ data: [], segments: [], groups: [] });
 
   const lastAnalyticsUpdateRef = useRef(0);
   const lastStatusRef = useRef(execution.status);
