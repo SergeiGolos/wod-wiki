@@ -30,7 +30,7 @@ export class TimerFragment implements ICodeFragment {
     } else {
       const digits = this.image
         .split(":")
-        .map((segment: any) => 1 * (segment == "" ? 0 : segment))
+        .map((segment: string) => 1 * (segment == "" ? 0 : Number(segment)))
         .reverse();
 
       while (digits.length < 4) {
