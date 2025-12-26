@@ -339,7 +339,7 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
 
     // Extract metrics from SpanMetrics object
     const metrics = extractMetricsFromSpanMetrics(record.metrics);
-    const fragments = record.fragments && record.fragments.length > 0
+    const fragments = 'fragments' in record && record.fragments && record.fragments.length > 0
       ? record.fragments
       : spanMetricsToFragments(record.metrics || ({} as SpanMetrics), record.label || record.type, record.type || 'group');
 
