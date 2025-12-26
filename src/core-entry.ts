@@ -17,7 +17,9 @@ export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 export { CollectionSpan } from './core/models/CollectionSpan';
-export type { TimeSpan, Metric, MetricValue } from './core/models/CollectionSpan';
+export type { TimeSpan, Metric } from './core/models/CollectionSpan';
+// Note: MetricValue from CollectionSpan is deprecated. Import from RuntimeMetric instead.
+export type { MetricValue, MetricValueType } from './runtime/RuntimeMetric';
 
 // Parser
 export * from './parser/timer.parser';

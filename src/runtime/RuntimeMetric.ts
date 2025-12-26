@@ -1,13 +1,42 @@
 import { MetricBehavior } from "../types/MetricBehavior";
 
 /**
+ * Enum of all supported metric value types in the system.
+ * Provides type safety and autocompletion for metric type fields.
+ */
+export enum MetricValueType {
+  Repetitions = 'repetitions',
+  Resistance = 'resistance',
+  Distance = 'distance',
+  Timestamp = 'timestamp',
+  Rounds = 'rounds',
+  Time = 'time',
+  Calories = 'calories',
+  Action = 'action',
+  Effort = 'effort',
+  HeartRate = 'heart_rate',
+  Cadence = 'cadence',
+  Power = 'power',
+}
+
+/**
  * Represents a single measured value in the workout system.
  * Provides a standardized format for all metric data with type classification,
  * numeric value, and unit information.
  * 
+ * This is the canonical definition used throughout the codebase.
+ * 
+ * @example
+ * ```typescript
+ * const repMetric: MetricValue = {
+ *   type: MetricValueType.Repetitions,
+ *   value: 10,
+ *   unit: 'reps'
+ * };
+ * ```
  */
 export type MetricValue = {
-  type: "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort" | "heart_rate" | "cadence" | "power";
+  type: MetricValueType | "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort" | "heart_rate" | "cadence" | "power";
   value: number | undefined;
   unit: string;
 };

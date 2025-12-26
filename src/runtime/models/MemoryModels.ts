@@ -1,10 +1,17 @@
-
+/**
+ * Memory-specific metric value with source tracking.
+ * @deprecated Use ICodeFragment with MetricBehavior instead. Will be removed in Phase 3.
+ */
 export interface MetricValue {
     value: number;
     unit: string;
     sourceId: string;
 }
 
+/**
+ * Current metrics stored in memory slots for live UI updates.
+ * @deprecated Use block.fragments directly instead of memory allocation. Will be removed in Phase 3.
+ */
 export interface CurrentMetrics {
     [key: string]: MetricValue;
 }
