@@ -288,10 +288,10 @@ interface HeartRateDataPoint {
 
 ## Related Documentation
 
-- [Runtime Architecture](../Runtime_Engine_Deep_Dive.md) - Understanding the runtime system
-- [Display Types](../../../src/clock/types/DisplayTypes.ts) - Source for display state
-- [Metrics Collection](../Metrics_Collection.md) - How metrics are collected
-- [Unified Responsive Layout](../Unified_Responsive_Layout.md) - Track View layout
+- [Runtime System](../generated/runtime-system.md) - Understanding the runtime execution engine
+- [Display Types](../../src/clock/types/DisplayTypes.ts) - Source for display state types
+- [Block Types Reference](../block-types-behaviors-reference.md) - Detailed block and behavior documentation
+- [Runtime Lifecycle](../runtime-action-lifecycle.md) - Runtime lifecycle patterns
 
 ---
 

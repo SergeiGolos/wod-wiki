@@ -257,7 +257,7 @@ A 50/50 split gives too little vertical space to the timer on tablets, making th
 
 When `isUserScrolledUp` is true, auto-scroll is disabled but there's no visual indicator or way to re-enable without scrolling to bottom.
 
-**Location**: [TrackPanel.tsx#L65-85](../src/components/workbench/TrackPanel.tsx#L65-85)
+**Location**: [TrackPanel.tsx](../src/components/workbench/TrackPanel.tsx)
 
 **Recommendation**: Add a "scroll to bottom" floating button when auto-scroll is disabled.
 
