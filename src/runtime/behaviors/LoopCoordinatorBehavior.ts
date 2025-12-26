@@ -9,7 +9,7 @@ import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { TrackedSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
+import { TrackedSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
 import { IEvent } from '../IEvent';
 
 /**

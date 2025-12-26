@@ -9,7 +9,7 @@
 
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { SegmentType } from '../models/ExecutionSpan';
+import { SegmentType } from '../models/TrackedSpan';
 
 /**
  * Action to start a new time segment within the current block's execution span.

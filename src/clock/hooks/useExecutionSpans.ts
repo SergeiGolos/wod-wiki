@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
-import { TrackedSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan, isActiveSpan, EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { IEvent } from '../../runtime/IEvent';
 

@@ -11,7 +11,7 @@ import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 

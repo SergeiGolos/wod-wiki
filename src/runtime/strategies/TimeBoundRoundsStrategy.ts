@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 

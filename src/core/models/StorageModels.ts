@@ -1,4 +1,4 @@
-import { TrackedSpan } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 
 /**
  * Represents the outcome of running a workout.

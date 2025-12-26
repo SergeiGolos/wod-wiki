@@ -10,7 +10,7 @@ import {
     TimeSegment,
     DebugMetadata,
     EXECUTION_SPAN_TYPE
-} from '../runtime/models/ExecutionSpan';
+} from '../runtime/models/TrackedSpan';
 import { ICodeFragment } from '../core/models/CodeFragment';
 import { ITrackerCommand, TrackerContext } from './ITrackerCommand';
 import { TrackSpanCommand, TrackSpanPayload } from './commands/TrackSpanCommand';

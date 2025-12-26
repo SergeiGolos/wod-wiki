@@ -6,7 +6,7 @@ import { JitCompiler } from '../JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
-import { TrackedSpan } from '../models/ExecutionSpan';
+import { TrackedSpan } from '../models/TrackedSpan';
 import { RuntimeReporter } from '../../tracker/ExecutionTracker';
 import { IEventBus } from '../IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';

@@ -1,7 +1,7 @@
 import { IScriptRuntime } from '../runtime/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/ExecutionSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/TrackedSpan';
 import { v4 as uuidv4 } from 'uuid';
 import { IEvent } from '../runtime/IEvent';
 

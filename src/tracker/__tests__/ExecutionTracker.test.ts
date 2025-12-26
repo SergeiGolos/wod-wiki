@@ -4,9 +4,9 @@ import { RuntimeReporter } from '../ExecutionTracker';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { IBlockContext } from '../../runtime/IBlockContext';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
+import { EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
-import { TrackedSpan } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 
 // Mock Block
 const createMockBlock = (key: string, type: string = 'effort'): IRuntimeBlock => ({
