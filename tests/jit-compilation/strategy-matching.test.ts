@@ -1,368 +1,117 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
+import {
+  TimerStrategy,
+  RoundsStrategy,
+  EffortStrategy,
+  IntervalStrategy,
+  TimeBoundRoundsStrategy,
+  GroupStrategy
+} from '../../src/runtime/strategies';
 import { BlockKey } from '../../src/core/models/BlockKey';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 
+/**
+ * Strategy Matching Contract
+ * 
+ * Verifies that each JIT strategy correctly identifies the statements
+ * it is responsible for compiling based on fragment patterns.
+ */
 describe('Strategy Matching Contract', () => {
   let mockRuntime: IScriptRuntime;
 
   beforeEach(() => {
     mockRuntime = {
-      jit: {
-        compile: vi.fn(),
-        strategies: []
-      },
-      stack: {
-        push: vi.fn(),
-        pop: vi.fn(),
-        current: vi.fn(),
-        peek: vi.fn(),
-        dispose: vi.fn(),
-        clear: vi.fn()
-      },
-      start: vi.fn(),
-      stop: vi.fn(),
-      reset: vi.fn(),
-      isRunning: vi.fn(),
-      getCurrentTime: vi.fn()
+      jit: { compile: vi.fn(), strategies: [] },
+      stack: { push: vi.fn(), pop: vi.fn(), current: vi.fn() },
     } as any;
   });
 
-  describe('TSC-001: TimerStrategy matches statements with Timer fragments', () => {
-    it('should return true when statement contains Timer fragment', () => {
-      // GIVEN: A code statement with Timer fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-1'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
-        ],
-        children: [],
-        meta: undefined
-      };
+  // Helper to create concise test statements
+  function entry(fragments: any[], children: ICodeStatement[] = []): ICodeStatement {
+    return {
+      id: new BlockKey(`test-${Math.random().toString(36).slice(2, 7)}`),
+      fragments: fragments.map(f => ({ ...f, type: f.type || 'test' })),
+      children,
+      meta: undefined
+    };
+  }
 
-      // WHEN: TimerStrategy.match() is called
+  const f = {
+    timer: (val = 600) => ({ fragmentType: FragmentType.Timer, value: val, type: 'timer' }),
+    rounds: (val = 3) => ({ fragmentType: FragmentType.Rounds, value: val, type: 'rounds' }),
+    effort: (val = 'Push-ups') => ({ fragmentType: FragmentType.Effort, value: val, type: 'effort' }),
+    action: (val = 'EMOM') => ({ fragmentType: FragmentType.Action, value: val, type: 'action' }),
+    rep: (val = 10) => ({ fragmentType: FragmentType.Rep, value: val, type: 'rep' }),
+  };
+
+  describe.each([
+    {
+      name: 'TimerStrategy',
+      strategy: () => new TimerStrategy(),
+      cases: [
+        { label: 'Timer fragment', input: [entry([f.timer()])], expected: true },
+        { label: 'Only Effort', input: [entry([f.effort()])], expected: false },
+        { label: 'No statements', input: [], expected: false },
+      ]
+    },
+    {
+      name: 'RoundsStrategy',
+      strategy: () => new RoundsStrategy(),
+      cases: [
+        { label: 'Rounds fragment', input: [entry([f.rounds()])], expected: true },
+        { label: 'Timer (takes precedence)', input: [entry([f.timer(), f.rounds()])], expected: false },
+        { label: 'Only Effort', input: [entry([f.effort()])], expected: false },
+      ]
+    },
+    {
+      name: 'EffortStrategy',
+      strategy: () => new EffortStrategy(),
+      cases: [
+        { label: 'Effort + Rep', input: [entry([f.effort(), f.rep()])], expected: true },
+        { label: 'Timer conflict', input: [entry([f.timer()])], expected: false },
+        { label: 'Rounds conflict', input: [entry([f.rounds()])], expected: false },
+      ]
+    },
+    {
+      name: 'IntervalStrategy',
+      strategy: () => new IntervalStrategy(),
+      cases: [
+        { label: 'Timer + EMOM', input: [entry([f.timer(), f.action('EMOM')])], expected: true },
+        { label: 'Timer only', input: [entry([f.timer()])], expected: false },
+      ]
+    },
+    {
+      name: 'TimeBoundRoundsStrategy',
+      strategy: () => new TimeBoundRoundsStrategy(),
+      cases: [
+        { label: 'Timer + Rounds', input: [entry([f.timer(), f.rounds()])], expected: true },
+        { label: 'Timer + AMRAP', input: [entry([f.timer(), f.action('AMRAP')])], expected: true },
+        { label: 'Timer only', input: [entry([f.timer()])], expected: false },
+      ]
+    },
+    {
+      name: 'GroupStrategy',
+      strategy: () => new GroupStrategy(),
+      cases: [
+        { label: 'Has children', input: [entry([f.rounds()], [entry([f.effort()])])], expected: true },
+        { label: 'No children', input: [entry([f.rounds()])], expected: false },
+      ]
+    }
+  ])('$name Matching', ({ strategy: createStrategy, cases }) => {
+    it.each(cases)('should return $expected for $label', ({ input, expected }) => {
+      const strategy = createStrategy();
+      expect(strategy.match(input, mockRuntime)).toBe(expected);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle undefined fragments gracefully', () => {
+      const statement = entry([]);
+      (statement as any).fragments = undefined;
       const strategy = new TimerStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('TSC-002: TimerStrategy rejects statements without Timer fragments', () => {
-    it('should return false when statement contains only Effort fragment', () => {
-      // GIVEN: A code statement with only Effort fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-2'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Pull-ups', type: 'effort' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: TimerStrategy.match() is called
-      const strategy = new TimerStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-003: RoundsStrategy matches statements with Rounds fragments (no Timer)', () => {
-    it('should return true when statement contains Rounds fragment but no Timer', () => {
-      // GIVEN: A code statement with Rounds fragment but no Timer
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-3'),
-        fragments: [
-          { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: RoundsStrategy.match() is called
-      const strategy = new RoundsStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('TSC-004: RoundsStrategy rejects statements with Timer fragments', () => {
-    it('should return false when statement contains both Timer and Rounds fragments', () => {
-      // GIVEN: A code statement with both Timer and Rounds fragments
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-4'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
-          { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: RoundsStrategy.match() is called
-      const strategy = new RoundsStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false (Timer takes precedence)
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-005: EffortStrategy matches statements without Timer or Rounds', () => {
-    it('should return true when statement contains only Effort and Rep fragments', () => {
-      // GIVEN: A code statement with only Effort fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-5'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Push-ups', type: 'effort' },
-          { fragmentType: FragmentType.Rep, value: 20, type: 'rep' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: EffortStrategy.match() is called
-      const strategy = new EffortStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('TSC-006: EffortStrategy rejects statements with Timer fragments', () => {
-    it('should return false when statement contains Timer fragment', () => {
-      // GIVEN: A code statement with Timer fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-6'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: EffortStrategy.match() is called
-      const strategy = new EffortStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-007: EffortStrategy rejects statements with Rounds fragments', () => {
-    it('should return false when statement contains Rounds fragment', () => {
-      // GIVEN: A code statement with Rounds fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-7'),
-        fragments: [
-          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: EffortStrategy.match() is called
-      const strategy = new EffortStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-008: Strategy handles empty statements array', () => {
-    it('should return false for all strategies when statements array is empty', () => {
-      // GIVEN: Empty statements array
-      const statements: ICodeStatement[] = [];
-
-      // WHEN: Any strategy.match() is called
-      const timerStrategy = new TimerStrategy();
-      const roundsStrategy = new RoundsStrategy();
-      const effortStrategy = new EffortStrategy();
-
-      // THEN: All return false
-      expect(timerStrategy.match(statements, mockRuntime)).toBe(false);
-      expect(roundsStrategy.match(statements, mockRuntime)).toBe(false);
-      expect(effortStrategy.match(statements, mockRuntime)).toBe(false);
-    });
-  });
-
-  describe('TSC-009: Strategy handles missing fragments array', () => {
-    it('should return false when fragments array is undefined', () => {
-      // GIVEN: Statement with undefined fragments
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-9'),
-        fragments: undefined as any, // Invalid but defensive check needed
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: Any strategy.match() is called
-      const strategy = new TimerStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false (defensive programming)
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-010: IntervalStrategy matches Timer + Action with EMOM', () => {
-    it('should return true when statement contains Timer and EMOM action', () => {
-      // GIVEN: A code statement with Timer and EMOM action fragments
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-10'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' },
-          { fragmentType: FragmentType.Action, value: 'EMOM', type: 'action' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: IntervalStrategy.match() is called
-      const strategy = new IntervalStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-
-    it('should return false when statement has only Timer without EMOM action', () => {
-      // GIVEN: A code statement with only Timer fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-10b'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: IntervalStrategy.match() is called
-      const strategy = new IntervalStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-011: TimeBoundRoundsStrategy matches Timer + Rounds/AMRAP', () => {
-    it('should return true when statement contains Timer and Rounds', () => {
-      // GIVEN: A code statement with Timer and Rounds fragments
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-11a'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
-          { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: TimeBoundRoundsStrategy.match() is called
-      const strategy = new TimeBoundRoundsStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-
-    it('should return true when statement contains Timer and AMRAP action', () => {
-      // GIVEN: A code statement with Timer and AMRAP action
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-11b'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
-          { fragmentType: FragmentType.Action, value: 'AMRAP', type: 'action' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: TimeBoundRoundsStrategy.match() is called
-      const strategy = new TimeBoundRoundsStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-
-    it('should return false when statement has only Timer', () => {
-      // GIVEN: A code statement with only Timer fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-11c'),
-        fragments: [
-          { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: TimeBoundRoundsStrategy.match() is called
-      const strategy = new TimeBoundRoundsStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false (needs Rounds or AMRAP action)
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('TSC-012: GroupStrategy matches statements with children', () => {
-    it('should return true when statement has children', () => {
-      // GIVEN: A code statement with children
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-12'),
-        fragments: [
-          { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
-        ],
-        children: [
-          {
-            id: new BlockKey('child-1'),
-            fragments: [
-              { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
-            ],
-            children: [],
-            meta: undefined
-          }
-        ],
-        meta: undefined
-      };
-
-      // WHEN: GroupStrategy.match() is called
-      const strategy = new GroupStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns true
-      expect(result).toBe(true);
-    });
-
-    it('should return false when statement has no children', () => {
-      // GIVEN: A code statement without children
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-12b'),
-        fragments: [
-          { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
-        ],
-        children: [],
-        meta: undefined
-      };
-
-      // WHEN: GroupStrategy.match() is called
-      const strategy = new GroupStrategy();
-      const result = strategy.match([statement], mockRuntime);
-
-      // THEN: Returns false
-      expect(result).toBe(false);
+      expect(strategy.match([statement], mockRuntime)).toBe(false);
     });
   });
 });

@@ -1,7 +1,6 @@
-
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness } from '../../../../tests/harness';
 import { IntervalStrategy } from '../IntervalStrategy';
-import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
@@ -9,21 +8,18 @@ import { TimerBehavior } from '../../behaviors/TimerBehavior';
 import { SoundBehavior } from '../../behaviors/SoundBehavior';
 import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
-// Mock runtime
-const mockRuntime = {
-  fragmentCompiler: {
-    compileStatementFragments: vi.fn().mockReturnValue({}),
-  },
-  memory: {
-    allocate: vi.fn().mockReturnValue({ id: 'mem-1' }),
-  },
-  clock: {
-    register: vi.fn(),
-  }
-} as unknown as IScriptRuntime;
-
+/**
+ * IntervalStrategy Contract Tests (Migrated to Test Harness)
+ * 
+ * Tests matching and compilation of interval-based blocks (e.g., EMOM).
+ */
 describe('IntervalStrategy', () => {
+  let harness: BehaviorTestHarness;
   const strategy = new IntervalStrategy();
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness();
+  });
 
   it('should match statements with Timer and behavior.repeating_interval hint', () => {
     const validStatement: ICodeStatement = {
@@ -37,7 +33,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    expect(strategy.match([validStatement], mockRuntime)).toBe(true);
+    expect(strategy.match([validStatement], harness.runtime)).toBe(true);
   });
 
   it('should not match statements without Timer', () => {
@@ -50,7 +46,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    expect(strategy.match([invalidStatement], mockRuntime)).toBe(false);
+    expect(strategy.match([invalidStatement], harness.runtime)).toBe(false);
   });
 
   it('should not match statements without repeating_interval hint', () => {
@@ -64,7 +60,7 @@ describe('IntervalStrategy', () => {
       // No hints set
     } as any;
 
-    expect(strategy.match([noHintStatement], mockRuntime)).toBe(false);
+    expect(strategy.match([noHintStatement], harness.runtime)).toBe(false);
   });
 
   it('should compile into a RuntimeBlock with correct behaviors', () => {
@@ -80,7 +76,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    const block = strategy.compile([statement], mockRuntime);
+    const block = strategy.compile([statement], harness.runtime);
 
     expect(block).toBeDefined();
 
@@ -107,7 +103,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    const block = strategy.compile([statement], mockRuntime);
+    const block = strategy.compile([statement], harness.runtime);
     const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
     expect((loopCoordinator as any).config.totalRounds).toBe(10);
   });
@@ -124,7 +120,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    const block = strategy.compile([statement], mockRuntime);
+    const block = strategy.compile([statement], harness.runtime);
     const soundBehavior = block.getBehavior(SoundBehavior);
 
     expect(soundBehavior).toBeDefined();
@@ -147,7 +143,7 @@ describe('IntervalStrategy', () => {
       hints: new Set(['behavior.repeating_interval', 'workout.emom'])
     } as any;
 
-    const block = strategy.compile([statement], mockRuntime);
+    const block = strategy.compile([statement], harness.runtime);
     const historyBehavior = block.getBehavior(HistoryBehavior);
 
     expect(historyBehavior).toBeDefined();

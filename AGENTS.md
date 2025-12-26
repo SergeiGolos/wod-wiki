@@ -6,30 +6,135 @@ This document provides core development guidelines for AI assistants working on 
 
 WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using a specialized syntax. It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
 
-**Tech Stack**: TypeScript, React, Storybook, Vitest, Monaco Editor, Tailwind CSS, Chevrotain parser
-**Package Manager**: bun
+**Tech Stack**: TypeScript, React, Storybook, Bun Test, Monaco Editor, Tailwind CSS, Chevrotain parser
+**Package Manager**: bun (NOT npm/yarn)
 
 ## Essential Development Commands
 
 ### Environment Setup
-- `bun install` - Install dependencies (~15 seconds)
-- `bun run setup` - Install Playwright browsers (may fail with download errors - this is expected)
+```bash
+bun install              # Install dependencies (~15 seconds)
+bun run setup            # Install Playwright browsers (may fail - expected)
+```
 
 ### Development Workflow
-- `bun run storybook` - Start Storybook development server on http://localhost:6006 (~2 seconds startup)
-- `bun run build-storybook` - Build static Storybook (~30 seconds - NEVER CANCEL, set timeout to 60+ minutes)
-- `bun run docs:check` - Validate documentation links (<1 second)
+```bash
+bun run storybook        # Start Storybook on http://localhost:6006 (~2s)
+bun run build-storybook  # Build static Storybook (~30s - NEVER CANCEL)
+bun run docs:check       # Validate documentation links (<1 second)
+```
 
 ## Build/Lint/Test Commands
 
-- `bun run test` - Run all tests using Vitest (~2-3 seconds)
-- `bun run test:watch` - Run unit tests in watch mode
-- `bun run test:storybook` - Run Storybook component tests (requires Playwright)
-- `bun run test:e2e` - Run end-to-end tests with Playwright
-- `bun x vitest run src/path/to/test.test.ts` - Run single test file
-- `bun x tsc --noEmit` - Type check without emitting files
-- `bun run storybook` - Start Storybook development server
-- `bun run build-storybook` - Build static Storybook
+### Unit Tests (src/)
+```bash
+bun run test                          # Run all unit tests (~2-3 seconds)
+bun run test --watch                  # Watch mode
+bun run test:coverage                 # With coverage report
+```
+
+### Component/Integration Tests (tests/)
+```bash
+bun run test:components               # Run tests in tests/ directory
+bun run test:all                      # Run both unit + component tests
+```
+
+### Specific Test Execution
+```bash
+# Run single file
+bun test src/runtime/behaviors/__tests__/TimerBehavior.test.ts --preload ./tests/unit-setup.ts
+
+# Run harness tests
+bun test tests/harness --preload ./tests/unit-setup.ts
+
+# Run test category
+bun test tests/jit-compilation --preload ./tests/setup.ts
+```
+
+### Other Test Commands
+```bash
+bun run test:storybook                # Storybook tests (requires Playwright)
+bun run test:e2e                      # Playwright e2e tests
+bun run test:perf                     # Performance benchmarks
+bun x tsc --noEmit                    # Type check only
+```
+
+## Test Harness
+
+The project provides a unified test harness under `tests/harness/`. **Use this instead of inline mocks.**
+
+### Available Classes
+
+| Class | Purpose | Use For |
+|-------|---------|---------|
+| `BehaviorTestHarness` | Lightweight harness with real memory/stack | Unit testing behaviors |
+| `MockBlock` | Configurable IRuntimeBlock stub | Testing behaviors in isolation |
+| `RuntimeTestBuilder` | Builder for full ScriptRuntime | Integration testing strategies |
+
+### Example: Unit Testing Behaviors
+
+```typescript
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+import { TimerBehavior } from '../TimerBehavior';
+
+describe('TimerBehavior', () => {
+  let harness: BehaviorTestHarness;
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness()
+      .withClock(new Date('2024-01-01T12:00:00Z'));
+  });
+
+  it('should start timer on mount', () => {
+    const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+    harness.push(block);
+    harness.mount();
+    expect(block.getBehavior(TimerBehavior)!.isRunning()).toBe(true);
+  });
+});
+```
+
+### Example: Integration Testing Strategies
+
+```typescript
+import { describe, it, expect } from 'bun:test';
+import { RuntimeTestBuilder } from '../harness';
+import { TimerStrategy } from '@/runtime/strategies/TimerStrategy';
+
+describe('TimerStrategy', () => {
+  it('should compile timer block', () => {
+    const harness = new RuntimeTestBuilder()
+      .withScript('10:00 Run')
+      .withStrategy(new TimerStrategy())
+      .build();
+
+    const block = harness.pushStatement(0);
+    expect(block.blockType).toBe('Timer');
+  });
+});
+```
+
+### Key Harness APIs
+
+```typescript
+// BehaviorTestHarness
+harness.withClock(date)              // Set mock clock
+harness.withMemory(type, owner, val) // Pre-allocate memory
+harness.push(block)                  // Push block to stack
+harness.mount()                      // Mount current block
+harness.next()                       // Call next() on block
+harness.unmount()                    // Unmount and dispose
+harness.advanceClock(ms)             // Advance time
+harness.simulateEvent(name, data)    // Dispatch event
+harness.wasEventEmitted(name)        // Assert event emitted
+harness.stackDepth                   // Current stack size
+
+// MockBlock
+new MockBlock('id', [behaviors], { state: { custom: 'value' } })
+block.state.isComplete = true        // Mutable state for conditions
+block.getBehavior(BehaviorType)      // Get behavior instance
+```
 
 ## Code Style Guidelines
 

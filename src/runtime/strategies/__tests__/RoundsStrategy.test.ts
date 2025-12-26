@@ -1,26 +1,23 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness } from '../../../../tests/harness';
 import { RoundsStrategy } from '../RoundsStrategy';
-import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
-// Mock runtime
-const mockRuntime = {
-  fragmentCompiler: {
-    compileStatementFragments: vi.fn().mockReturnValue({ values: [] }),
-  },
-  memory: {
-    allocate: vi.fn().mockReturnValue({ id: 'mem-1' }),
-  },
-  clock: {
-    register: vi.fn(),
-  }
-} as unknown as IScriptRuntime;
-
+/**
+ * RoundsStrategy Contract Tests (Migrated to Test Harness)
+ * 
+ * Tests matching and compilation of rounds-based blocks (e.g., "3 Rounds").
+ */
 describe('RoundsStrategy', () => {
+  let harness: BehaviorTestHarness;
   const strategy = new RoundsStrategy();
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness();
+  });
 
   describe('match()', () => {
     it('should match statements with Rounds fragment and no Timer', () => {
@@ -33,7 +30,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with behavior.fixed_rounds hint (no Rounds fragment)', () => {
@@ -45,7 +42,7 @@ describe('RoundsStrategy', () => {
         hints: new Set(['behavior.fixed_rounds'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with both Rounds fragment and hint', () => {
@@ -59,7 +56,7 @@ describe('RoundsStrategy', () => {
         hints: new Set(['behavior.fixed_rounds'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should NOT match statements with Timer fragment (Timer takes precedence)', () => {
@@ -73,7 +70,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should NOT match statements with Timer even with fixed_rounds hint', () => {
@@ -87,7 +84,7 @@ describe('RoundsStrategy', () => {
         hints: new Set(['behavior.fixed_rounds'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should not match statements without Rounds fragment or hint', () => {
@@ -100,11 +97,11 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should not match empty statements array', () => {
-      expect(strategy.match([], mockRuntime)).toBe(false);
+      expect(strategy.match([], harness.runtime)).toBe(false);
     });
 
     it('should not match statement with missing fragments', () => {
@@ -114,7 +111,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
   });
 
@@ -129,7 +126,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
 
       expect(block).toBeDefined();
       expect(block.blockType).toBe('Rounds');
@@ -145,7 +142,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
 
       expect(loopCoordinator).toBeDefined();
@@ -163,7 +160,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
 
       expect(loopCoordinator).toBeDefined();
@@ -182,7 +179,7 @@ describe('RoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const historyBehavior = block.getBehavior(HistoryBehavior);
 
       expect(historyBehavior).toBeDefined();

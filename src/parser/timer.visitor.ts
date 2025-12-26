@@ -18,10 +18,29 @@ const parser = new MdTimerParse() as any;
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
 
 export class MdTimerInterpreter extends BaseCstVisitor {
+  private semanticErrors: any[] = [];
+
   constructor() {
     super();
     // This helper will detect any missing or redundant methods on this visitor
     this.validateVisitor();
+  }
+
+  getErrors() {
+    return this.semanticErrors;
+  }
+
+  clearErrors() {
+    this.semanticErrors = [];
+  }
+
+  private addError(message: string, meta: any) {
+    this.semanticErrors.push({
+      message,
+      line: meta?.line,
+      column: meta?.columnStart,
+      token: { startOffset: meta?.startOffset, endOffset: meta?.endOffset }
+    });
   }
 
   /// High level entry point, contains any number of simple of compound timers.
@@ -38,13 +57,13 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             return this.visit(block) || [];
           } catch (blockError) {
             throw new Error(`Error processing markdown block: ${blockError}`);
-            }
+          }
         }) as ICodeStatement[];
-     
+
       // Use temporary map to build parent-child relationships type-safely
       const parentChildMap = new Map<number, number[]>();
-      
-      let stack: { columnStart: number; block: ICodeStatement }[] = []; 
+
+      let stack: { columnStart: number; block: ICodeStatement }[] = [];
       for (let block of blocks) {
         stack = stack.filter(
           (item: any) => item.columnStart < block.meta.columnStart
@@ -54,9 +73,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
         if (stack.length > 0) {
           for (let parent of stack) {
-            const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);            
+            const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);
             parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
-            
+
             // Store parent-child relationships in temporary map (type-safe)
             if (!parentChildMap.has(parent.block.id)) {
               parentChildMap.set(parent.block.id, []);
@@ -65,7 +84,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
             block.parent = parent.block.id;
           }
         }
-                
+
         stack.push({ columnStart: block.meta.columnStart, block });
       }
 
@@ -77,9 +96,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
       return blocks;
     } catch (error) {
-      throw new Error(`Error in wodMarkdown: ${
-        error instanceof Error ? error.message : String(error)
-      }`);
+      throw new Error(`Error in wodMarkdown: ${error instanceof Error ? error.message : String(error)
+        }`);
     }
   }
 
@@ -109,7 +127,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       statement.fragments.map((fragment: any) => fragment.meta)
     );
     statement.id = statement.meta.line;
-        
+
     // Lap fragment logic  
     // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment
     if (lapFragments?.length === 0 && statement.parent !== undefined) {
@@ -127,7 +145,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Lap).length > 0;
     return [statement];
   }
- 
+
   action(ctx: any): ActionFragment[] {
     const meta = this.getMeta([ctx.ActionOpen[0], ctx.ActionClose[0]]);
 
@@ -169,7 +187,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     if (ctx.Minus) {
       const meta = this.getMeta([ctx.Minus[0]]);
-      return [new LapFragment("round" ,"-", meta)];
+      return [new LapFragment("round", "-", meta)];
     }
 
     return [];
@@ -186,26 +204,38 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       return [new RepFragment(undefined, meta)];
     }
     const meta = this.getMeta([ctx.Number[0]]);
-    return [new RepFragment(ctx.Number[0].image * 1, meta)];
+    try {
+      const val = ctx.Number[0].image * 1;
+      return [new RepFragment(val, meta)];
+    } catch (e: any) {
+      console.log(`[VISITOR] Caught Rep error: ${e.message}`);
+      this.addError(e.message, meta);
+      return [];
+    }
   }
 
   duration(ctx: any): TimerFragment[] {
     const forceCountUp = !!ctx.countUpModifier;
-    
+
     // Handle collectible timer (:?)
     if (ctx.CollectibleTimer) {
       const meta = this.getMeta([ctx.CollectibleTimer[0]]);
       return [new TimerFragment(':?', meta, forceCountUp)];
     }
-    
+
     // Handle regular timer
     const meta = this.getMeta([ctx.Timer[0]]);
-    return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
+    try {
+      return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
+    } catch (e: any) {
+      this.addError(e.message, meta);
+      return [];
+    }
   }
 
   distance(ctx: any): DistanceFragment[] {
     let load: number | undefined;
-    
+
     if (ctx.QuestionSymbol) {
       load = undefined;
     } else if (ctx.Number && ctx.Number.length > 0) {
@@ -213,7 +243,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     } else {
       load = 1; // default when no number specified (e.g., "m" = 1m)
     }
-    
+
     let units = (ctx.Distance && ctx.Distance[0].image) || "";
     let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Distance?.[0]].filter(Boolean);
     return [new DistanceFragment(load, units, this.getMeta(metaTokens))];
@@ -221,7 +251,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   resistance(ctx: any): ResistanceFragment[] {
     let load: number | undefined;
-    
+
     if (ctx.QuestionSymbol) {
       load = undefined;
     } else if (ctx.Number && ctx.Number.length > 0) {
@@ -229,7 +259,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     } else {
       load = 1; // default when no number specified
     }
-    
+
     let units = (ctx.Weight && ctx.Weight[0].image) || "";
     let metaTokens = [ctx.QuestionSymbol?.[0] ?? ctx.Number?.[0], ctx.Weight?.[0]].filter(Boolean);
     return [new ResistanceFragment(load, units, this.getMeta(metaTokens))];
@@ -262,7 +292,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         ...groups.map((group: any) => new RepFragment(group, meta)),
       ];
     }
-    
+
     if (ctx.label) {
       const label = ctx.label[0].image;
       return [new RoundsFragment(label, meta)];
@@ -329,12 +359,12 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     const groups: number[][] = [];
     let currentGroup: number[] = [];
-    
+
     for (let i = 0; i < childIds.length; i++) {
       const childId = childIds[i];
       const childBlock = blocksById.get(childId);
       const lapFragmentType = this.getChildLapFragmentType(childBlock);
-      
+
       if (lapFragmentType === 'compose') {
         // Add to current group (compose fragments group consecutively)
         currentGroup.push(childId);
@@ -348,12 +378,12 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         groups.push([childId]);
       }
     }
-    
+
     // Don't forget the last group if it's a compose group
     if (currentGroup.length > 0) {
       groups.push([...currentGroup]);
     }
-    
+
     return groups;
   }
 
@@ -364,12 +394,12 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     if (!childBlock || !childBlock.fragments) {
       return 'repeat'; // Default for blocks without lap fragments
     }
-    
+
     const lapFragment = childBlock.fragments.find(f => f.fragmentType === FragmentType.Lap) as LapFragment;
     if (!lapFragment) {
       return 'repeat'; // No lap fragment means repeat type
     }
-    
+
     return lapFragment.group || 'repeat';
   }
 }

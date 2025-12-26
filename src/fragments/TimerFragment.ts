@@ -13,7 +13,7 @@ export class TimerFragment implements ICodeFragment {
    * @param forceCountUp If true, timer counts up even with explicit duration (^ modifier)
    */
   constructor(
-    public image: string, 
+    public image: string,
     public meta: CodeMetadata,
     public readonly forceCountUp: boolean = false
   ) {
@@ -41,11 +41,23 @@ export class TimerFragment implements ICodeFragment {
       this.minutes = digits[1];
       this.seconds = digits[0];
 
+      if (this.seconds < 0 || this.minutes < 0 || this.hours < 0 || this.days < 0) {
+        throw new Error(`Timer components cannot be negative: ${this.image}`);
+      }
+
+      if (this.seconds > 59 && (this.minutes > 0 || this.hours > 0 || this.days > 0)) {
+        throw new Error(`Invalid seconds component: ${this.seconds} (must be < 60 if other components present)`);
+      }
+
+      if (this.minutes > 59 && (this.hours > 0 || this.days > 0)) {
+        throw new Error(`Invalid minutes component: ${this.minutes} (must be < 60 if hours/days present)`);
+      }
+
       this.original = (this.seconds +
         this.minutes * 60 +
         this.hours * 60 * 60 +
         this.days * 60 * 60 * 24) * 1000;
-      
+
       this.value = this.original;
       this.collectionState = FragmentCollectionState.Defined;
     }
@@ -58,7 +70,7 @@ export class TimerFragment implements ICodeFragment {
   readonly original: number | undefined; // in ms
   readonly type: string = "duration";
   readonly fragmentType = FragmentType.Timer;
-  
+
   /**
    * Determines the intended timer direction based on value and modifiers.
    * - If forceCountUp is true (^ modifier), always returns 'up'

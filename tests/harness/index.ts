@@ -2,31 +2,74 @@
  * Test Harness Namespace
  *
  * Unified testing infrastructure for WOD Wiki runtime tests.
+ * Use these utilities instead of inline mocks for consistent, maintainable tests.
  *
- * ## Usage
+ * ## Quick Start
  *
- * ### Unit Testing (Behaviors)
+ * ### Unit Testing Behaviors
  * ```typescript
- * // From src/runtime/behaviors/__tests__/
+ * import { describe, it, expect, beforeEach } from 'bun:test';
  * import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+ * import { TimerBehavior } from '../TimerBehavior';
  *
- * const harness = new BehaviorTestHarness().withClock(new Date());
- * const block = new MockBlock('test', [new TimerBehavior('up')]);
- * harness.push(block).mount();
+ * describe('TimerBehavior', () => {
+ *   let harness: BehaviorTestHarness;
+ *
+ *   beforeEach(() => {
+ *     harness = new BehaviorTestHarness()
+ *       .withClock(new Date('2024-01-01T12:00:00Z'));
+ *   });
+ *
+ *   it('should start timer on mount', () => {
+ *     const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+ *     harness.push(block);
+ *     harness.mount();
+ *     expect(block.getBehavior(TimerBehavior)!.isRunning()).toBe(true);
+ *   });
+ *
+ *   it('should track elapsed time', () => {
+ *     const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+ *     harness.push(block).mount();
+ *     harness.advanceClock(5000);
+ *     expect(block.getBehavior(TimerBehavior)!.getElapsedMs()).toBeGreaterThanOrEqual(5000);
+ *   });
+ *
+ *   it('should emit events', () => {
+ *     const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+ *     harness.push(block).mount();
+ *     expect(harness.wasEventEmitted('timer:started')).toBe(true);
+ *   });
+ * });
  * ```
  *
- * ### Integration Testing (Blocks)
+ * ### Integration Testing Strategies
  * ```typescript
- * // From tests/integration/
+ * import { describe, it, expect } from 'bun:test';
  * import { RuntimeTestBuilder } from '../harness';
+ * import { TimerStrategy } from '@/runtime/strategies/TimerStrategy';
  *
- * const harness = new RuntimeTestBuilder()
- *   .withScript('3 Rounds\n  10 Pushups')
- *   .withStrategy(new RoundsStrategy())
- *   .build();
+ * describe('TimerStrategy', () => {
+ *   it('should compile timer block from script', () => {
+ *     const harness = new RuntimeTestBuilder()
+ *       .withScript('10:00 Run')
+ *       .withStrategy(new TimerStrategy())
+ *       .build();
  *
- * harness.pushStatement(0);
+ *     const block = harness.pushStatement(0);
+ *     expect(block.blockType).toBe('Timer');
+ *     expect(harness.stackDepth).toBe(1);
+ *   });
+ * });
  * ```
+ *
+ * ## Running Harness Tests
+ * ```bash
+ * bun test tests/harness --preload ./tests/unit-setup.ts
+ * ```
+ *
+ * ## See Also
+ * - tests/NAMING_CONVENTIONS.md - Full API documentation
+ * - docs/plan/test-harness-implementation.md - Implementation status
  */
 
 // Core harness classes
@@ -45,5 +88,5 @@ export {
   type SnapshotDiff
 } from './RuntimeTestBuilder';
 
-// Assertion helpers
-// export * from './assertions'; // Will be enabled in Phase 4
+// Assertion helpers (Phase 4 - not yet implemented)
+// export * from './assertions';
