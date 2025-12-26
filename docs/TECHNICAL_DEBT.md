@@ -220,7 +220,7 @@ body:
 |--------|--------|
 | **React Class Components** | 0 found in codebase |
 | **Functional Components** | 100% coverage |
-| **Search Pattern** | `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.tsx"` |
+| **Search Pattern** | `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.ts" --include="*.tsx"` |
 
 **Explanation**: Modern React favors functional components with hooks for improved testability, optimization, and composition. 
 
@@ -232,22 +232,23 @@ body:
 **Search Results**:
 - Only TypeScript type utilities found:
   - `React.ComponentPropsWithoutRef` in `src/components/ui/progress.tsx` and `src/components/ui/label.tsx`
-  - These are type helpers for `React.forwardRef`, not class components
+  - `React.ComponentType` in `src/markdown-editor/widgets/ReactMonacoWidget.ts` and `src/clock/registry/CardComponentRegistry.ts`
+  - These are type helpers, not class components
 - No `extends Component`, `extends React.Component`, or `extends PureComponent` patterns found
 
 **Requirements**:
 - React hooks migration patterns
 
 **Implementation Steps** (Completed):
-1. ✅ Identify: `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.tsx"`
+1. ✅ Identify: `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.ts" --include="*.tsx"`
 2. ✅ Convert to functional components with hooks
 3. ✅ Replace lifecycle methods with useEffect
 4. ✅ Convert state to useState/useReducer
 
 **Verification**: 
-- Command: `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.tsx"`
-- Results: Only TypeScript type utilities found (`React.ComponentPropsWithoutRef` in `progress.tsx` and `label.tsx`)
-- All `.tsx` files in `./src` use functional component patterns
+- Command: `grep -rn "React.Component\|extends Component\|extends PureComponent" ./src --include="*.ts" --include="*.tsx"`
+- Results: Only TypeScript type utilities found (`React.ComponentPropsWithoutRef`, `React.ComponentType`)
+- All `.tsx` and `.ts` files in `./src` use functional component patterns
 - No class component patterns (`extends Component`, `extends React.Component`, `extends PureComponent`) found
 
 ---
