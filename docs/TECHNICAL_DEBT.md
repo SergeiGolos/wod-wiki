@@ -220,7 +220,7 @@ body:
 |--------|--------|
 | **React Class Components** | 0 found in codebase |
 | **Functional Components** | 100% coverage |
-| **Search Pattern** | `grep -rn "React.Component\|extends Component"` |
+| **Search Pattern** | `grep -rn "React.Component\|extends Component" ./src --include="*.tsx"` |
 
 **Explanation**: Modern React favors functional components with hooks for improved testability, optimization, and composition. 
 
