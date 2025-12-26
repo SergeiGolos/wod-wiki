@@ -59,8 +59,8 @@ const runtime = factory.createRuntime(wodBlock, {
 | `clock` | `IRuntimeClock` | Time tracking |
 | `eventBus` | `IEventBus` | Event dispatching |
 | `jit` | `JitCompiler` | Block compiler |
-| `activeSpans` | `ReadonlyMap<string, ExecutionSpan>` | Current execution spans |
-| `tracker` | `ExecutionTracker` | Metric recording |
+| `activeSpans` | `ReadonlyMap<string, TrackedSpan>` | Current execution spans |
+| `tracker` | `RuntimeReporter` | Metric recording |
 
 ### Methods
 

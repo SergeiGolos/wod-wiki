@@ -2,6 +2,25 @@
 
 > **Goal**: Design a test harness that enables standing up real runtime environments with controllable memory/stack states, pushing behaviors directly, and validating state after next/push/pop operations.
 
+## Implementation Status (2025-12-26)
+
+| Strategy | Status | Location |
+|----------|--------|----------|
+| Strategy 1: Builder Pattern | ✅ Implemented | `tests/harness/RuntimeTestBuilder.ts` |
+| Strategy 2: Behavior Injection | ✅ Implemented | `tests/harness/BehaviorTestHarness.ts`, `MockBlock.ts` |
+| Strategy 3: State Machine | 🔲 Not Implemented | N/A |
+| Strategy 4: Fixtures | 🔲 Not Implemented | N/A |
+
+**Hybrid Approach Adoption:**
+- `BehaviorTestHarness` used for unit tests (behaviors) - 1 file migrated
+- `RuntimeTestBuilder` used for integration tests (strategies) - 1 file migrated
+- 17 harness self-tests passing
+- 9 test files still using inline mocks (pending migration)
+
+See [Implementation Plan](./plan/test-harness-implementation.md) for detailed status.
+
+---
+
 ## Problem Statement
 
 Testing JIT-compiled runtime blocks requires:
@@ -43,6 +62,9 @@ Current testing approaches use inline mocks (see `TimerBehavior.test.ts`, `Effor
 | `TestableBlock`    | `src/runtime/testing/TestableBlock.ts`   | Wraps IRuntimeBlock, intercepts methods            |
 | `ITestSetupAction` | `src/runtime/testing/actions/`           | Actions to manipulate state before tests           |
 | `createMockClock`  | `src/runtime/RuntimeClock.ts`            | Controllable clock for time manipulation           |
+| **NEW: `BehaviorTestHarness`** | `tests/harness/BehaviorTestHarness.ts` | Unit test harness for behaviors |
+| **NEW: `MockBlock`** | `tests/harness/MockBlock.ts` | Configurable IRuntimeBlock for behavior testing |
+| **NEW: `RuntimeTestBuilder`** | `tests/harness/RuntimeTestBuilder.ts` | Builder for integration tests |
 
 ---
 
@@ -55,7 +77,7 @@ Create a `RuntimeTestBuilder` that constructs a real `ScriptRuntime` with a flue
 ### API Design
 
 ```typescript
-import { RuntimeTestBuilder } from '@/runtime/testing';
+import { RuntimeTestBuilder } from 'tests/harness';
 
 const harness = new RuntimeTestBuilder()
   // Configure memory

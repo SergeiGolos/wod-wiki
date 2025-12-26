@@ -5,7 +5,7 @@ Validate that the runtime block produced from the CrossFit “Chelsea” workout
 
 ## Scope
 - Vitest unit test (no browser/jsdom required).
-- Uses existing parser + JIT + runtime stack with `ExecutionTracker` enabled.
+- Uses existing parser + JIT + runtime stack with `RuntimeReporter` enabled.
 - Uses deterministic time to avoid flaky duration assertions.
 
 ## Proposed Test File
@@ -20,14 +20,14 @@ Validate that the runtime block produced from the CrossFit “Chelsea” workout
 1) **Arrange**
    - Parse the Chelsea script with the project parser to obtain `ICodeStatement[]`.
    - Compile via `JitCompiler` (or the runtime’s compile helper) to prepare/push the runtime block.
-   - Stand up `ScriptRuntime`/`TestableRuntime` with `ExecutionTracker` active.
+   - Stand up `ScriptRuntime`/`TestableRuntime` with `RuntimeReporter` active.
 
 2) **Act**
    - Start execution so the block mounts and the span is created.
    - Dispatch a `next` (or equivalent runtime hook) to mirror “push next to start it,” ensuring the block is active and spans/logging are populated.
 
 3) **Assert (metrics)**
-   - Fetch the active (or completed) `ExecutionSpan` via `runtime.tracker.getAllSpans()` or `getActiveSpansMap()`.
+   - Fetch the active (or completed) `TrackedSpan` via `runtime.tracker.getAllSpans()` or `getActiveSpansMap()`.
    - Verify `span.metrics.metricGroups` exists and contains three `RecordedMetricValue` entries (either in one group or across groups) corresponding to the three source statements. Check `type`/`unit`/`value` as per Chelsea’s statements.
    - Confirm `legacyMetrics` is *not* required for the pass (unified path only).
 

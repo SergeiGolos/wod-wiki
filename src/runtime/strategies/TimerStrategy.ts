@@ -12,9 +12,8 @@ import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorB
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
-import { TimerFragment } from "../fragments/TimerFragment";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { createDebugMetadata } from "../models/ExecutionSpan";
+import { createDebugMetadata } from "../models/TrackedSpan";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -88,10 +87,10 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
 
         const statement = statements[0];
         const fragments = statement.fragments;
-        
+
         // Structural check: Has timer fragment
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
-        
+
         // Check for explicit timer hint from dialect (optional)
         // Dialects can flag "Rest" or "Work" timers explicitly
         const isExplicitTimer = statement.hints?.has('behavior.timer') ?? false;
@@ -132,7 +131,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         // Add timer behavior with determined direction
         const timerBehavior = new TimerBehavior(direction, durationMs, label);
         behaviors.push(timerBehavior);
-        
+
         // Add HistoryBehavior with debug metadata stamped at creation time
         // This ensures analytics can identify the timer configuration
         behaviors.push(new HistoryBehavior({
@@ -172,7 +171,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         let loopCoordinator: LoopCoordinatorBehavior | undefined;
 
         if (children.length > 0) {
-             loopCoordinator = new LoopCoordinatorBehavior({
+            loopCoordinator = new LoopCoordinatorBehavior({
                 childGroups: children,
                 loopType: LoopType.FIXED,
                 totalRounds: 1

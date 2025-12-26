@@ -292,7 +292,7 @@ Captures execution spans, metrics, and events for:
 
 ### Methods
 
-#### `recordSpan(span: ExecutionSpan): void`
+#### `recordSpan(span: TrackedSpan): void`
 
 Records an execution span.
 
@@ -300,7 +300,7 @@ Records an execution span.
 
 Records a metric for a specific block.
 
-#### `getHistory(): ExecutionSpan[]`
+#### `getHistory(): TrackedSpan[]`
 
 Gets all recorded execution spans.
 

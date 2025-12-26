@@ -9,7 +9,7 @@ import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { ExecutionSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
+import { TrackedSpan, createEmptyMetrics, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
 import { IEvent } from '../IEvent';
 
 /**
@@ -391,9 +391,9 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
     });
 
     if (refs.length > 0) {
-      const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+      const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
       if (span && span.status === 'active') {
-        const updatedSpan: ExecutionSpan = {
+        const updatedSpan: TrackedSpan = {
           ...span,
           endTime: Date.now(),
           status: 'completed'
@@ -433,9 +433,9 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       });
 
       if (refs.length > 0) {
-        const span = runtime.memory.get(refs[0] as any) as ExecutionSpan;
+        const span = runtime.memory.get(refs[0] as any) as TrackedSpan;
         if (span && span.status === 'active') {
-          const updatedSpan: ExecutionSpan = {
+          const updatedSpan: TrackedSpan = {
             ...span,
             endTime: Date.now(),
             status: 'completed'
@@ -470,7 +470,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
         metrics.targetReps = this.config.repScheme[schemeIndex];
       }
 
-      const span: ExecutionSpan = {
+      const span: TrackedSpan = {
         id: `${startTime}-${newRoundOwnerId}`,
         blockId: newRoundOwnerId,
         parentSpanId: blockId, // Parent is the RoundsBlock/TimerBlock

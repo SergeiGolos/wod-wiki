@@ -13,6 +13,9 @@ This document defines naming conventions for test files in the WOD Wiki project.
 
 ```
 tests/
+├── harness/                  # Test harness infrastructure (see below)
+│   ├── __tests__/           # Harness self-tests
+│   └── assertions/          # Custom assertion helpers (planned)
 ├── language-compilation/     # Parser and AST generation tests
 ├── jit-compilation/          # Strategy and block compilation tests
 ├── runtime-execution/        # Runtime state management tests
@@ -24,7 +27,144 @@ tests/
 │   └── workflows/           # Integration workflows
 ├── metrics-recording/        # Metric collection and emission
 ├── performance/             # Performance benchmarks (deferred)
+├── integration/             # Cross-component integration tests
 └── e2e/                     # Playwright browser tests
+```
+
+## Test Harness
+
+The project provides a unified test harness under `tests/harness/` for consistent runtime testing.
+
+### Available Classes
+
+| Class | Purpose | Use Case |
+|-------|---------|----------|
+| `BehaviorTestHarness` | Lightweight harness with real memory/stack/eventbus | Unit testing behaviors |
+| `MockBlock` | Configurable IRuntimeBlock stub | Testing behaviors in isolation |
+| `RuntimeTestBuilder` | Builder for full ScriptRuntime | Integration testing strategies/blocks |
+
+### Usage: Unit Testing Behaviors
+
+```typescript
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+import { TimerBehavior } from '../TimerBehavior';
+
+describe('TimerBehavior', () => {
+  let harness: BehaviorTestHarness;
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness()
+      .withClock(new Date('2024-01-01T12:00:00Z'));
+  });
+
+  it('should start timer on mount', () => {
+    const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+    
+    harness.push(block);
+    harness.mount();
+    
+    expect(block.getBehavior(TimerBehavior)!.isRunning()).toBe(true);
+  });
+
+  it('should track elapsed time', () => {
+    const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+    
+    harness.push(block);
+    harness.mount();
+    harness.advanceClock(5000);
+    
+    expect(block.getBehavior(TimerBehavior)!.getElapsedMs()).toBeGreaterThanOrEqual(5000);
+  });
+
+  it('should emit timer:started event', () => {
+    const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+    
+    harness.push(block);
+    harness.mount();
+    
+    expect(harness.wasEventEmitted('timer:started')).toBe(true);
+  });
+});
+```
+
+### Usage: Integration Testing Strategies
+
+```typescript
+import { describe, it, expect } from 'bun:test';
+import { RuntimeTestBuilder } from '../harness';
+import { TimerStrategy } from '@/runtime/strategies/TimerStrategy';
+
+describe('TimerStrategy', () => {
+  it('should compile timer block from script', () => {
+    const harness = new RuntimeTestBuilder()
+      .withScript('10:00 Run')
+      .withStrategy(new TimerStrategy())
+      .build();
+
+    const block = harness.pushStatement(0);
+    
+    expect(block.blockType).toBe('Timer');
+    expect(harness.stackDepth).toBe(1);
+  });
+});
+```
+
+### BehaviorTestHarness API
+
+```typescript
+// Configuration
+harness.withClock(date: Date)           // Set mock clock time
+harness.withMemory(type, ownerId, value, visibility?)  // Pre-allocate memory
+
+// Stack Operations
+harness.push(block)                     // Push block (does not mount)
+harness.mount(options?)                 // Mount current block
+harness.next(options?)                  // Call next() on current block
+harness.unmount(options?)               // Unmount and dispose current block
+
+// Time Operations
+harness.advanceClock(ms)                // Advance mock clock
+harness.setClock(date)                  // Set clock to specific time
+
+// Event Operations
+harness.simulateEvent(name, data?)      // Dispatch event
+harness.simulateNext()                  // Simulate 'next' event
+harness.simulateTick()                  // Simulate 'tick' event
+
+// Memory Operations
+harness.getMemory<T>(type, ownerId)     // Get memory value
+harness.allocateMemory(type, ownerId, value, visibility?)
+
+// Assertions
+harness.currentBlock                    // Current block on stack
+harness.stackDepth                      // Number of blocks on stack
+harness.wasEventEmitted(name)           // Check if event was emitted
+harness.findEvents(name)                // Get events by name
+harness.findActions(ActionType)         // Get actions by type
+harness.capturedActions                 // All captured actions
+harness.capturedEvents                  // All captured events
+harness.handleSpy                       // vi.fn() spy for assertions
+```
+
+### MockBlock API
+
+```typescript
+// Constructor options
+new MockBlock('block-id', behaviors, {
+  blockType?: string,           // Default: 'MockBlock'
+  label?: string,               // Display label
+  sourceIds?: number[],         // Source statement IDs
+  fragments?: ICodeFragment[][], // Pre-configured fragments
+  state?: Record<string, any>   // Custom mutable state
+});
+
+// Mutable state for test conditions
+block.state.isComplete = true;  // Accessible in behavior conditions
+block.state.customValue = 42;
+
+// Behavior access
+block.getBehavior(TimerBehavior)  // Get specific behavior instance
 ```
 
 ## Naming Patterns
@@ -127,8 +267,53 @@ Legacy tests may include test IDs (e.g., `TSP-001`, `TSC-001`, `TBC-001`). These
 
 ## Running Tests
 
-- `npm test` - Run all unit tests (language, JIT, runtime, metrics)
-- `npm run test:watch` - Run unit tests in watch mode
-- `npm run test:ui` - Run Storybook and Playwright UI tests
-- `npm run test:perf` - Run performance benchmarks
-- `npm run test:e2e` - Run Playwright end-to-end tests
+### Unit Tests (src/)
+```bash
+# Run all unit tests (src/**/*.test.ts)
+bun run test
+
+# Run specific test file
+bun test src/runtime/behaviors/__tests__/TimerBehavior.test.ts --preload ./tests/unit-setup.ts
+
+# Run tests in watch mode
+bun run test --watch
+
+# Run tests with coverage
+bun run test:coverage
+```
+
+### Component/Integration Tests (tests/)
+```bash
+# Run all tests in tests/ directory
+bun run test:components
+
+# Run harness self-tests
+bun test tests/harness --preload ./tests/unit-setup.ts
+
+# Run specific test category
+bun test tests/jit-compilation --preload ./tests/setup.ts
+
+# Run all unit + component tests
+bun run test:all
+```
+
+### Storybook Tests
+```bash
+# Run Storybook component tests (requires Playwright)
+bun run test:storybook
+```
+
+### End-to-End Tests
+```bash
+# Run Playwright e2e tests
+bun run test:e2e
+
+# Run with Playwright UI
+bun x playwright test --ui
+```
+
+### Performance Tests
+```bash
+# Run performance benchmarks
+bun run test:perf
+```

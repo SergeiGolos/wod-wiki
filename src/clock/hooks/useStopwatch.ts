@@ -16,6 +16,8 @@ export const useTimespan = (timeSpans: TimeSpan[]) => {
                     return total;
                 }
                 const start = span.start.getTime();
+
+                // CLEANUP:  Date.now() is not a valid value for stop
                 const stop = span.stop?.getTime() || Date.now();
                 return total + (stop - start);
             }, 0);

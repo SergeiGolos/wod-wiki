@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
-import { ExecutionSpan, SpanMetrics } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan, SpanMetrics } from '../../runtime/models/TrackedSpan';
 
 interface ResultsTableProps {
   snapshot: ExecutionSnapshot | null;
@@ -15,7 +15,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
   // Filter for execution spans (mapped to 'span' type by RuntimeAdapter)
   const spans = snapshot.memory.entries
     .filter(entry => entry.type === 'span')
-    .map(entry => entry.value as ExecutionSpan)
+    .map(entry => entry.value as TrackedSpan)
     .sort((a, b) => a.startTime - b.startTime);
 
   if (spans.length === 0) {
@@ -30,7 +30,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
     if (metrics.distance) parts.push(`${metrics.distance.value} ${metrics.distance.unit}`);
     if (metrics.calories) parts.push(`${metrics.calories.value} cal`);
     if (metrics.time) parts.push(`${(metrics.time.value / 1000).toFixed(1)}s`);
-    
+
     return parts.join(', ') || '-';
   };
 
@@ -59,31 +59,31 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
         <tbody className="bg-white divide-y divide-gray-200">
           {spans.map((span) => {
             // Check if span's blockId matches a block with the highlighted line
-            const matchesLine = highlightedLine !== undefined && 
-              snapshot?.stack.blocks.some(block => 
+            const matchesLine = highlightedLine !== undefined &&
+              snapshot?.stack.blocks.some(block =>
                 block.key === span.blockId && block.lineNumber === highlightedLine
               );
-            
+
             return (
-            <tr key={span.id} className={`
+              <tr key={span.id} className={`
               ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : span.status === 'active' ? 'bg-blue-50' : ''}
             `}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                {span.blockId.substring(0, 8)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {span.type}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {span.label}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {formatMetric(span.metrics)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {span.endTime ? `${((span.endTime - span.startTime) / 1000).toFixed(2)}s` : 'Running...'}
-              </td>
-            </tr>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                  {span.blockId.substring(0, 8)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {span.type}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {span.label}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatMetric(span.metrics)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {span.endTime ? `${((span.endTime - span.startTime) / 1000).toFixed(2)}s` : 'Running...'}
+                </td>
+              </tr>
             );
           })}
         </tbody>

@@ -453,7 +453,7 @@ private emitRoundChanged(runtime: IScriptRuntime, rounds: number, block: IRuntim
   }
 
   // Create new round span
-  const span: ExecutionSpan = {
+  const span: TrackedSpan = {
     id: `${startTime}-${newRoundOwnerId}`,
     blockId: newRoundOwnerId,
     parentSpanId: blockId,

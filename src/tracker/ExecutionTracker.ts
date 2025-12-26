@@ -3,14 +3,14 @@ import { IRuntimeMemory } from '../runtime/IRuntimeMemory';
 import { IRuntimeBlock } from '../runtime/IRuntimeBlock';
 import { TypedMemoryReference } from '../runtime/IMemoryReference';
 import {
-    ExecutionSpan,
+    TrackedSpan,
     SpanStatus,
     SpanMetrics,
     SegmentType,
     TimeSegment,
     DebugMetadata,
     EXECUTION_SPAN_TYPE
-} from '../runtime/models/ExecutionSpan';
+} from '../runtime/models/TrackedSpan';
 import { ICodeFragment } from '../core/models/CodeFragment';
 import { ITrackerCommand, TrackerContext } from './ITrackerCommand';
 import { TrackSpanCommand, TrackSpanPayload } from './commands/TrackSpanCommand';
@@ -18,18 +18,18 @@ import { TrackSectionCommand, TrackSectionPayload } from './commands/TrackSectio
 import { TrackEventCommand, TrackEventPayload } from './commands/TrackEventCommand';
 
 /**
- * ExecutionTracker
+ * RuntimeReporter
  * 
  * Central service for tracking workout execution with unified metrics collection.
  * Uses Command Pattern to abstract write operations.
  */
-export class ExecutionTracker {
+export class RuntimeReporter {
     constructor(private readonly memory: IRuntimeMemory) { }
 
     /**
      * Ecexutes a tracker command.
      */
-    execute(command: ITrackerCommand): ExecutionSpan[] {
+    execute(command: ITrackerCommand): TrackedSpan[] {
         const context: TrackerContext = { memory: this.memory };
         return command.write(context);
     }
@@ -42,7 +42,7 @@ export class ExecutionTracker {
         block: IRuntimeBlock,
         parentSpanId: string | null,
         debugMetadata?: DebugMetadata
-    ): ExecutionSpan {
+    ): TrackedSpan {
         const payload: TrackSpanPayload = {
             action: 'start',
             blockId: block.key.toString(),
@@ -246,7 +246,7 @@ export class ExecutionTracker {
     // Queries (Read-only)
     // ============================================================================
 
-    getActiveSpan(blockId: string): ExecutionSpan | null {
+    getActiveSpan(blockId: string): TrackedSpan | null {
         const ref = this.findSpanRef(blockId);
         if (!ref) return null;
 
@@ -259,7 +259,7 @@ export class ExecutionTracker {
         return span?.id ?? null;
     }
 
-    getAllSpans(): ExecutionSpan[] {
+    getAllSpans(): TrackedSpan[] {
         const refs = this.memory.search({
             type: EXECUTION_SPAN_TYPE,
             id: null,
@@ -268,16 +268,16 @@ export class ExecutionTracker {
         });
 
         return refs
-            .map(ref => this.memory.get(ref as TypedMemoryReference<ExecutionSpan>))
-            .filter((s): s is ExecutionSpan => s !== null);
+            .map(ref => this.memory.get(ref as TypedMemoryReference<TrackedSpan>))
+            .filter((s): s is TrackedSpan => s !== null);
     }
 
-    getCompletedSpans(): ExecutionSpan[] {
+    getCompletedSpans(): TrackedSpan[] {
         return this.getAllSpans().filter(s => s.status === 'completed');
     }
 
-    getActiveSpansMap(): Map<string, ExecutionSpan> {
-        const map = new Map<string, ExecutionSpan>();
+    getActiveSpansMap(): Map<string, TrackedSpan> {
+        const map = new Map<string, TrackedSpan>();
 
         for (const span of this.getAllSpans()) {
             if (span.status === 'active') {
@@ -288,7 +288,7 @@ export class ExecutionTracker {
         return map;
     }
 
-    private findSpanRef(blockId: string): TypedMemoryReference<ExecutionSpan> | null {
+    private findSpanRef(blockId: string): TypedMemoryReference<TrackedSpan> | null {
         const refs = this.memory.search({
             type: EXECUTION_SPAN_TYPE,
             ownerId: blockId,
@@ -297,7 +297,7 @@ export class ExecutionTracker {
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<ExecutionSpan>
+            ? refs[0] as TypedMemoryReference<TrackedSpan>
             : null;
     }
 

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness } from '../../../../tests/harness';
 import { TimeBoundRoundsStrategy } from '../TimeBoundRoundsStrategy';
-import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
@@ -8,21 +8,18 @@ import { TimerBehavior } from '../../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../../behaviors/CompletionBehavior';
 import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
-// Mock runtime
-const mockRuntime = {
-  fragmentCompiler: {
-    compileStatementFragments: vi.fn().mockReturnValue({ values: [] }),
-  },
-  memory: {
-    allocate: vi.fn().mockReturnValue({ id: 'mem-1' }),
-  },
-  clock: {
-    register: vi.fn(),
-  }
-} as unknown as IScriptRuntime;
-
+/**
+ * TimeBoundRoundsStrategy Contract Tests (Migrated to Test Harness)
+ * 
+ * Tests matching and compilation of time-bound round blocks (e.g., AMRAP).
+ */
 describe('TimeBoundRoundsStrategy', () => {
+  let harness: BehaviorTestHarness;
   const strategy = new TimeBoundRoundsStrategy();
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness();
+  });
 
   describe('match()', () => {
     it('should match statements with Timer and behavior.time_bound hint', () => {
@@ -37,7 +34,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with Timer and Rounds fragment', () => {
@@ -51,7 +48,7 @@ describe('TimeBoundRoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should NOT match statements without Timer fragment', () => {
@@ -65,7 +62,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should NOT match Timer-only statements without hint or Rounds', () => {
@@ -78,11 +75,11 @@ describe('TimeBoundRoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should not match empty statements array', () => {
-      expect(strategy.match([], mockRuntime)).toBe(false);
+      expect(strategy.match([], harness.runtime)).toBe(false);
     });
 
     it('should not match statement with missing fragments', () => {
@@ -92,7 +89,7 @@ describe('TimeBoundRoundsStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
   });
 
@@ -109,7 +106,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
 
       expect(block).toBeDefined();
       expect(block.blockType).toBe('Timer');
@@ -127,7 +124,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const timerBehavior = block.getBehavior(TimerBehavior);
 
       expect(timerBehavior).toBeDefined();
@@ -146,7 +143,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
 
       expect(loopCoordinator).toBeDefined();
@@ -166,11 +163,11 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const completionBehavior = block.getBehavior(CompletionBehavior);
 
       expect(completionBehavior).toBeDefined();
-      // We can't easily test the internal predicate function without running it, 
+      // We can't easily test the internal predicate function without running it,
       // but we can check the events listened to.
       expect((completionBehavior as any).triggerEvents).toContain('timer:complete');
     });
@@ -187,7 +184,7 @@ describe('TimeBoundRoundsStrategy', () => {
         hints: new Set(['behavior.time_bound', 'workout.amrap'])
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
       const historyBehavior = block.getBehavior(HistoryBehavior);
 
       expect(historyBehavior).toBeDefined();

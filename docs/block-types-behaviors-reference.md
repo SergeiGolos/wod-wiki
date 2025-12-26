@@ -174,7 +174,7 @@ MOUNTING → INITIAL_IDLE → EXECUTING → FINAL_IDLE → COMPLETE
 
 **Runtime Impact**:
 - Updates `METRICS_CURRENT` on rep changes
-- Syncs metrics to `ExecutionSpan` for analytics
+- Syncs metrics to `TrackedSpan` for analytics
 - Emits `reps:updated` and `reps:complete` events
 - Supports incremental (`incrementRep()`) or bulk (`setReps()`) entry
 
@@ -356,7 +356,7 @@ interface HistoryBehaviorConfig {
 ```
 
 **Lifecycle Hooks**:
-- `onPush()`: Creates `ExecutionSpan` in memory, extracts compiled metrics
+- `onPush()`: Creates `TrackedSpan` in memory, extracts compiled metrics
 - `onPop()`: Updates span with `endTime`, sets `status: 'completed'`
 - `onDispose()`: Cleanup (currently no-op)
 
@@ -524,7 +524,7 @@ Strategies are evaluated in order. First match wins:
 |-------------|-------|------------|--------------|
 | `timer:{blockId}` | blockId | public | TimerBehavior |
 | `display-timer-state` | runtime | public | TimerBehavior |
-| `execution-span` | blockId | public | HistoryBehavior, ExecutionTracker |
+| `execution-span` | blockId | public | HistoryBehavior, RuntimeReporter |
 | `METRICS_CURRENT` | runtime | public | EffortBlock, RoundsBlock, HistoryBehavior |
 | `METRIC_REPS` | blockId | inherited | RoundsStrategy |
 | `runtime-controls` | blockId | public | IdleBehavior, RuntimeControlsBehavior |

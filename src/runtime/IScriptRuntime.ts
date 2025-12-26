@@ -3,8 +3,8 @@ import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from './actions/ErrorAction';
-import { ExecutionSpan } from './models/ExecutionSpan';
-import { ExecutionTracker } from '../tracker/ExecutionTracker';
+import { TrackedSpan } from './models/TrackedSpan';
+import { RuntimeReporter } from '../tracker/ExecutionTracker';
 
 import { IEventBus } from './IEventBus';
 import { IRuntimeStack } from './IRuntimeStack';
@@ -25,10 +25,10 @@ export interface IScriptRuntime {
     readonly errors?: RuntimeError[];
 
     /** 
-     * ExecutionTracker for recording metrics to active spans.
+     * RuntimeReporter for recording metrics to active spans.
      * Use this to record metrics, start/end segments, etc.
      */
-    readonly tracker: ExecutionTracker;
+    readonly tracker: RuntimeReporter;
 
     /**
      * Pushes a block onto the runtime stack, handling all lifecycle operations.

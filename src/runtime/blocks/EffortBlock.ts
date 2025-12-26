@@ -9,7 +9,7 @@ import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { CurrentMetrics } from '../models/MemoryModels';
-import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../models/ExecutionSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../models/TrackedSpan';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 import { TypedMemoryReference } from '../IMemoryReference';
@@ -260,7 +260,7 @@ export class EffortBlock extends RuntimeBlock {
     };
     this.metricsRef.set({ ...metrics });
 
-    // 2. Sync to ExecutionSpan for history/analytics
+    // 2. Sync to TrackedSpan for history/analytics
     // This ensures live updates are reflected in the execution log
     const spanRefs = runtime.memory.search({
       type: EXECUTION_SPAN_TYPE,
@@ -271,7 +271,7 @@ export class EffortBlock extends RuntimeBlock {
 
     if (spanRefs.length > 0) {
       const spanRef = spanRefs[0] as any;
-      const span = runtime.memory.get(spanRef) as ExecutionSpan;
+      const span = runtime.memory.get(spanRef) as TrackedSpan;
 
       if (span && span.metrics) {
         // Update the span metrics with current reps and exercise info

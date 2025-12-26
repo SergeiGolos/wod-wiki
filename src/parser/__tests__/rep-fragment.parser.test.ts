@@ -3,26 +3,57 @@ import { MdTimerRuntime } from '../md-timer';
 import { RepFragment } from '../../fragments/RepFragment';
 import { FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
 
+/**
+ * Rep Fragment Parser Contract
+ * 
+ * Verifies that the parser correctly identifies and classifies rep counts, 
+ * including defined values, user-collected placeholders.
+ */
+
 const parse = (source: string) => new MdTimerRuntime().read(source);
 
-describe('Rep fragment parsing', () => {
-  it('parses defined reps (10) with value and Defined state', () => {
-    const script = parse('10');
-    const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
+describe('Rep Fragment Parser Contract', () => {
+  describe('Valid Defined Reps', () => {
+    it.each([
+      ['10', 10],
+      ['0', 0],
+      ['999', 999],
+      ['1', 1],
+    ])('should parse "%s" as value %d', (input, expectedValue) => {
+      const script = parse(input);
+      const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
 
-    expect(rep).toBeDefined();
-    expect(rep.value).toBe(10);
-    expect(rep.image).toBe('10');
-    expect(rep.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(rep).toBeDefined();
+      expect(rep.value).toBe(expectedValue);
+      expect(rep.collectionState).toBe(FragmentCollectionState.Defined);
+    });
   });
 
-  it('parses collectible reps (?) with undefined value and UserCollected state', () => {
-    const script = parse('?');
-    const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
+  describe('Placeholders', () => {
+    it('should parse "?" as UserCollected placeholder', () => {
+      const script = parse('?');
+      const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
 
-    expect(rep).toBeDefined();
-    expect(rep.value).toBeUndefined();
-    expect(rep.image).toBe('?');
-    expect(rep.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(rep).toBeDefined();
+      expect(rep.value).toBeUndefined();
+      expect(rep.collectionState).toBe(FragmentCollectionState.UserCollected);
+    });
+  });
+
+  describe('Formatting', () => {
+    it('should ignore surrounding whitespace', () => {
+      const script = parse('  42  ');
+      const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
+      expect(rep.value).toBe(42);
+    });
+  });
+
+  describe('Semantic Validation (Errors)', () => {
+    it('should report error for non-integer reps', () => {
+      const script = parse('10.5');
+      expect(script.errors).toBeDefined();
+      expect(script.errors!.length).toBeGreaterThan(0);
+      expect(script.errors![0].message).toContain('must be an integer');
+    });
   });
 });

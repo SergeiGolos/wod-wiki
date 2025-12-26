@@ -410,12 +410,12 @@ Time:  0:00    1:00    2:00    3:00    4:00    5:00
 
 ---
 
-## Integration with ExecutionSpan
+## Integration with TrackedSpan
 
-The new categories extend the existing `ExecutionSpan` model:
+The new categories extend the existing `TrackedSpan` model:
 
 ```typescript
-interface ExecutionSpan {
+interface TrackedSpan {
   // Existing fields...
   id: string;
   blockId: string;
@@ -453,8 +453,8 @@ interface ExecutionSpan {
 ## Migration Path
 
 ### Phase 1: Add Category Field
-- Add `category` field to `ExecutionSpan` with default 'record'
-- Update `createExecutionSpan` to accept category parameter
+- Add `category` field to `TrackedSpan` with default 'record'
+- Update `createTrackedSpan` to accept category parameter
 - Add type guards for runtime category checks
 
 ### Phase 2: Categorization Logic
@@ -484,7 +484,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
   onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
     const category = this.determineCategory(block);
     
-    const span: ExecutionSpan = {
+    const span: TrackedSpan = {
       ...existingSpanCreation,
       category,
       ...(category === 'group' && {

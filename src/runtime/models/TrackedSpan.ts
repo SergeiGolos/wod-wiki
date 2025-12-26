@@ -1,5 +1,5 @@
 /**
- * ExecutionSpan - Unified execution and metrics tracking model
+ * TrackedSpan - Unified execution and metrics tracking model
  * 
  * Consolidates ExecutionRecord and RuntimeMetric collection into a single
  * cohesive model that supports:
@@ -128,7 +128,7 @@ export interface MetricGroup {
 // ============================================================================
 
 /**
- * SpanMetrics - All metric data for a single ExecutionSpan
+ * SpanMetrics - All metric data for a single TrackedSpan
  * 
  * Provides typed properties for common metrics while allowing
  * extensibility through the custom map.
@@ -205,7 +205,7 @@ export interface SpanMetrics {
 // ============================================================================
 
 /**
- * TimeSegment - A time-bounded subdivision of an ExecutionSpan
+ * TimeSegment - A time-bounded subdivision of an TrackedSpan
  * 
  * Use cases:
  * - EMOM: Each minute is a segment
@@ -244,7 +244,7 @@ export interface TimeSegment {
 // ============================================================================
 
 /**
- * ExecutionSpan - The single source of truth for a block's execution
+ * TrackedSpan - The single source of truth for a block's execution
  * 
  * Replaces ExecutionRecord with a unified model that includes:
  * - Full lifecycle tracking
@@ -252,13 +252,13 @@ export interface TimeSegment {
  * - Unified metrics collection
  * - Timestamp groupings via segments
  */
-export interface ExecutionSpan {
+export interface TrackedSpan {
   // === Identity ===
   /** Unique span identifier (timestamp-blockId format) */
   id: string;
   /** Block key as string */
   blockId: string;
-  /** Links to parent ExecutionSpan.id (NOT parent block ID) */
+  /** Links to parent TrackedSpan.id (NOT parent block ID) */
   parentSpanId: string | null;
 
   // === Classification ===
@@ -327,14 +327,14 @@ export function isEffortSpan(type: SpanType): boolean {
 /**
  * Check if a span is currently active
  */
-export function isActiveSpan(span: ExecutionSpan): boolean {
+export function isActiveSpan(span: TrackedSpan): boolean {
   return span.status === 'active';
 }
 
 /**
  * Check if a span has completed (successfully or not)
  */
-export function isFinishedSpan(span: ExecutionSpan): boolean {
+export function isFinishedSpan(span: TrackedSpan): boolean {
   return span.status === 'completed' || span.status === 'failed' || span.status === 'skipped';
 }
 
@@ -352,17 +352,17 @@ export function createEmptyMetrics(): SpanMetrics {
 }
 
 /**
- * Create a new ExecutionSpan
+ * Create a new TrackedSpan
  */
-export function createExecutionSpan(
+export function createTrackedSpan(
   blockId: string,
   type: SpanType,
   label: string,
   parentSpanId: string | null = null,
   sourceIds?: number[],
   debugMetadata?: DebugMetadata,
-  extra?: Partial<ExecutionSpan>
-): ExecutionSpan {
+  extra?: Partial<TrackedSpan>
+): TrackedSpan {
   return {
     id: `${Date.now()}-${blockId}`,
     blockId,

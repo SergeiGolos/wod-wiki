@@ -352,7 +352,7 @@ class WorkoutStateBehavior extends BaseBehavior implements IPushBehavior, INextB
 | `SpanTrackingBehavior` | `IPush`, `IPop` | 1. Create execution span on push, 2. Set parent span ID, 3. Initialize metrics, 4. Close span on pop, 5. Update end time |
 
 **Memory Locations**:
-- `span:{blockId}` → `ExecutionSpan { id, blockId, parentSpanId, startTime, endTime, metrics }`
+- `span:{blockId}` → `TrackedSpan { id, blockId, parentSpanId, startTime, endTime, metrics }`
 
 ```typescript
 class SpanTrackingBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {

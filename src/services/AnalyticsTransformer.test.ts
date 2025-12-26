@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { transformRuntimeToAnalytics, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { ExecutionSpan, createDebugMetadata, createExecutionSpan } from '../runtime/models/ExecutionSpan';
+import { TrackedSpan, createDebugMetadata, createTrackedSpan } from '../runtime/models/TrackedSpan';
 
 describe('AnalyticsTransformer', () => {
   describe('Legacy Function', () => {
@@ -40,7 +40,7 @@ describe('AnalyticsTransformer', () => {
           status: 'completed',
           metrics: {},
           segments: []
-        } as ExecutionSpan
+        } as TrackedSpan
       ];
 
       const runtime = {
@@ -75,7 +75,7 @@ describe('AnalyticsTransformer', () => {
           { strategyUsed: 'TimeBoundRoundsStrategy' }
         );
 
-        const spans: ExecutionSpan[] = [
+        const spans: TrackedSpan[] = [
           {
             id: `${startTime}-amrap-block`,
             blockId: 'amrap-block',
@@ -103,7 +103,7 @@ describe('AnalyticsTransformer', () => {
 
       it('calculates depth from parent chain', () => {
         const startTime = Date.now();
-        const spans: ExecutionSpan[] = [
+        const spans: TrackedSpan[] = [
           {
             id: 'parent-span',
             blockId: 'parent',

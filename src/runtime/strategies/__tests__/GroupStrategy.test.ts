@@ -1,24 +1,21 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness } from '../../../../tests/harness';
 import { GroupStrategy } from '../GroupStrategy';
-import { IScriptRuntime } from '../../IScriptRuntime';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 
-// Mock runtime
-const mockRuntime = {
-  fragmentCompiler: {
-    compileStatementFragments: vi.fn().mockReturnValue({ values: [] }),
-  },
-  memory: {
-    allocate: vi.fn().mockReturnValue({ id: 'mem-1' }),
-  },
-  clock: {
-    register: vi.fn(),
-  }
-} as unknown as IScriptRuntime;
-
+/**
+ * GroupStrategy Contract Tests (Migrated to Test Harness)
+ * 
+ * Tests matching and compilation of group/parent blocks.
+ */
 describe('GroupStrategy', () => {
+  let harness: BehaviorTestHarness;
   const strategy = new GroupStrategy();
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness();
+  });
 
   describe('match()', () => {
     it('should match statements with children (structural check)', () => {
@@ -29,7 +26,7 @@ describe('GroupStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with behavior.group hint (explicit group)', () => {
@@ -41,7 +38,7 @@ describe('GroupStrategy', () => {
         hints: new Set(['behavior.group'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with both children and hint', () => {
@@ -53,7 +50,7 @@ describe('GroupStrategy', () => {
         hints: new Set(['behavior.group'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should not match statements without children or hint', () => {
@@ -66,11 +63,11 @@ describe('GroupStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should not match empty statements array', () => {
-      expect(strategy.match([], mockRuntime)).toBe(false);
+      expect(strategy.match([], harness.runtime)).toBe(false);
     });
 
     it('should handle undefined children array', () => {
@@ -80,7 +77,7 @@ describe('GroupStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should handle empty children array without hint', () => {
@@ -91,7 +88,7 @@ describe('GroupStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(false);
+      expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should match with hint even when children is empty', () => {
@@ -103,7 +100,7 @@ describe('GroupStrategy', () => {
         hints: new Set(['behavior.group'])
       } as any;
 
-      expect(strategy.match([statement], mockRuntime)).toBe(true);
+      expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
   });
 
@@ -116,7 +113,7 @@ describe('GroupStrategy', () => {
         meta: { line: 1, offset: 0, column: 0 }
       } as any;
 
-      const block = strategy.compile([statement], mockRuntime);
+      const block = strategy.compile([statement], harness.runtime);
 
       expect(block).toBeDefined();
       expect(block.blockType).toBe('Group');

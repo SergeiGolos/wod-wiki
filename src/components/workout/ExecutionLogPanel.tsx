@@ -9,9 +9,9 @@
 import React from 'react';
 import { GitTreeSidebar, Segment } from '../../timeline/GitTreeSidebar';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 
-import { useExecutionSpans, useSpanHierarchy } from '../../clock/hooks/useExecutionSpans';
+import { useTrackedSpans, useSpanHierarchy } from '../../clock/hooks/useTrackedSpans';
 
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
@@ -34,10 +34,10 @@ export interface ExecutionLogPanelProps {
 }
 
 /**
- * Helper to convert ExecutionSpan to Segment for display
+ * Helper to convert TrackedSpan to Segment for display
  */
 function recordToSegment(
-  record: ExecutionSpan,
+  record: TrackedSpan,
   hashCode: (str: string) => number,
   depthMap: Map<string, number>
 ): Segment {
@@ -81,7 +81,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   scrollRef,
   children
 }) => {
-  const { active, completed } = useExecutionSpans(runtime);
+  const { active, completed } = useTrackedSpans(runtime);
   const depthMap = useSpanHierarchy(runtime);
 
   // Build segments from runtime memory if available

@@ -5,8 +5,8 @@ import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
-import { ExecutionSpan } from './models/ExecutionSpan';
-import { ExecutionTracker } from '../tracker/ExecutionTracker';
+import { TrackedSpan } from './models/TrackedSpan';
+import { RuntimeReporter } from '../tracker/ExecutionTracker';
 import { IEventBus } from './IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
@@ -65,7 +65,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
 
-    private readonly executionTracker: ExecutionTracker;
+    private readonly RuntimeReporter: RuntimeReporter;
 
     private readonly _tracker: RuntimeStackTracker;
     private readonly _wrapper: RuntimeStackWrapper;
@@ -101,12 +101,12 @@ export class ScriptRuntime implements IScriptRuntime {
             }
         });
 
-        this.executionTracker = new ExecutionTracker(this.memory);
+        this.RuntimeReporter = new RuntimeReporter(this.memory);
 
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
 
-        this._tracker = this.options.tracker ?? this.executionTracker ?? noopTracker;
+        this._tracker = this.options.tracker ?? this.RuntimeReporter ?? noopTracker;
 
         // Hooks setup
         const unregisterHook = this.options.hooks?.unregisterByOwner;
@@ -132,16 +132,16 @@ export class ScriptRuntime implements IScriptRuntime {
      * Gets the currently active execution spans from memory.
      * Used by UI to display ongoing execution state.     
      */
-    public get activeSpans(): ReadonlyMap<string, ExecutionSpan> {
-        return this.executionTracker.getActiveSpansMap();
+    public get activeSpans(): ReadonlyMap<string, TrackedSpan> {
+        return this.RuntimeReporter.getActiveSpansMap();
     }
 
     /**
-     * Gets the ExecutionTracker for direct metric recording.
+     * Gets the RuntimeReporter for direct metric recording.
      * Used by actions and behaviors to record metrics to active spans.
      */
-    public get tracker(): ExecutionTracker {
-        return this.executionTracker;
+    public get tracker(): RuntimeReporter {
+        return this.RuntimeReporter;
     }
 
     handle(event: IEvent): void {
@@ -260,7 +260,7 @@ export class ScriptRuntime implements IScriptRuntime {
         while (this.stack.count > 0) {
             this.popBlock();
         }
-        
+
         // Disconnect memory event dispatcher
         this.memory.setEventDispatcher(null);
     }

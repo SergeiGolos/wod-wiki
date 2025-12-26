@@ -21,7 +21,7 @@ const MemoryKeys = {
   DISPLAY_CARD: 'display:card',     // display:card → CardDisplayEntry[]
   
   // Metrics/Tracking
-  SPAN: 'span',                 // span:{blockId} → ExecutionSpan
+  SPAN: 'span',                 // span:{blockId} → TrackedSpan
   METRICS: 'metrics',           // metrics:{blockId} → BlockMetrics
   
   // Sound state

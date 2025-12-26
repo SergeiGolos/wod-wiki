@@ -6,8 +6,8 @@ import { JitCompiler } from '../JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
-import { ExecutionSpan } from '../models/ExecutionSpan';
-import { ExecutionTracker } from '../../tracker/ExecutionTracker';
+import { TrackedSpan } from '../models/TrackedSpan';
+import { RuntimeReporter } from '../../tracker/ExecutionTracker';
 import { IEventBus } from '../IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -19,7 +19,7 @@ import { IBlockContext } from '../IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // Re-export for backward compatibility
-export type ExecutionRecord = ExecutionSpan;
+export type ExecutionRecord = TrackedSpan;
 
 /**
  * Snapshot of runtime state at a point in time
@@ -248,7 +248,7 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
 
-  get tracker(): ExecutionTracker {
+  get tracker(): RuntimeReporter {
     return this._wrapped.tracker;
   }
 

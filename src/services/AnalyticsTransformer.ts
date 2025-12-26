@@ -1,7 +1,7 @@
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
-import { ExecutionSpan, SpanMetrics, DebugMetadata } from '../runtime/models/ExecutionSpan';
+import { TrackedSpan, SpanMetrics, DebugMetadata } from '../runtime/models/TrackedSpan';
 import { spanMetricsToFragments } from '../runtime/utils/metricsToFragments';
 
 /**
@@ -71,11 +71,11 @@ function extractMetricsFromSpanMetrics(spanMetrics: SpanMetrics | undefined): Re
 // ============================================================================
 
 /**
- * Extended Segment interface that includes debug metadata from ExecutionSpan.
+ * Extended Segment interface that includes debug metadata from TrackedSpan.
  * This is the UI-ready segment format that includes contextual information.
  */
 export interface SegmentWithMetadata extends Segment {
-  /** Debug metadata from the source ExecutionSpan */
+  /** Debug metadata from the source TrackedSpan */
   debugMetadata?: DebugMetadata;
   /** Tags extracted from debugMetadata for easy filtering */
   tags?: string[];
@@ -84,24 +84,24 @@ export interface SegmentWithMetadata extends Segment {
 }
 
 /**
- * AnalyticsTransformer - The single point of transformation from ExecutionSpan to UI-ready data.
+ * AnalyticsTransformer - The single point of transformation from TrackedSpan to UI-ready data.
  * 
- * Per the ExecutionSpan consolidation plan, this is the ONLY component that should
- * read raw ExecutionSpans. UI components should consume Segments produced by this class.
+ * Per the TrackedSpan consolidation plan, this is the ONLY component that should
+ * read raw TrackedSpans. UI components should consume Segments produced by this class.
  * 
  * @see docs/plans/jit-01-execution-span-consolidation.md
  */
 export class AnalyticsTransformer {
 
   /**
-   * Transform raw ExecutionSpans into UI-ready Segments.
+   * Transform raw TrackedSpans into UI-ready Segments.
    * This is the primary transformation method that UI components should use.
    * 
-   * @param spans Array of ExecutionSpans from runtime.executionLog
+   * @param spans Array of TrackedSpans from runtime.executionLog
    * @param workoutStartTime Optional start time for calculating relative timestamps
    * @returns Array of Segments ready for UI consumption
    */
-  toSegments(spans: ExecutionSpan[], workoutStartTime?: number): SegmentWithMetadata[] {
+  toSegments(spans: TrackedSpan[], workoutStartTime?: number): SegmentWithMetadata[] {
     if (!spans || spans.length === 0) {
       return [];
     }

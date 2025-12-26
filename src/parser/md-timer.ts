@@ -13,13 +13,15 @@ export class MdTimerRuntime {
     this.visitor = new MdTimerInterpreter();
   }
 
-  read(inputText: string): IScript {    
+  read(inputText: string): IScript {
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as any;
 
-    const cst = parser.wodMarkdown();    
-    const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);    
-    return new WodScript(inputText, raw, parser.errors) as IScript;    
+    this.visitor.clearErrors();
+    const cst = parser.wodMarkdown();
+    const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);
+    const errors = [...(parser.errors || []), ...(this.visitor.getErrors() || [])];
+    return new WodScript(inputText, raw, errors) as IScript;
   }
 }
 

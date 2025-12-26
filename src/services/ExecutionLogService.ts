@@ -1,7 +1,7 @@
 import { IScriptRuntime } from '../runtime/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { ExecutionSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/ExecutionSpan';
+import { TrackedSpan, EXECUTION_SPAN_TYPE } from '../runtime/models/TrackedSpan';
 import { v4 as uuidv4 } from 'uuid';
 import { IEvent } from '../runtime/IEvent';
 
@@ -15,7 +15,7 @@ export class ExecutionLogService {
   private readonly ownerId = 'execution-log-service';
 
   // Map for O(1) span lookup by id
-  private spanMap: Map<string, ExecutionSpan> = new Map();
+  private spanMap: Map<string, TrackedSpan> = new Map();
 
   // Incremental duration tracking for performance
   private earliestStart: number = Infinity;
@@ -62,7 +62,7 @@ export class ExecutionLogService {
     const handleMemoryEvent = (event: IEvent) => {
       const data = event.data as { ref: { type: string }; value: unknown; oldValue?: unknown };
       if (data?.ref?.type === EXECUTION_SPAN_TYPE) {
-        this.handleSpanUpdate(data.value as ExecutionSpan);
+        this.handleSpanUpdate(data.value as TrackedSpan);
       }
     };
 
@@ -78,7 +78,7 @@ export class ExecutionLogService {
    * duplicate allocations and memory ownership violations.
    * Use this method to access historical data directly.
    */
-  async getHistoricalLogs(): Promise<ExecutionSpan[]> {
+  async getHistoricalLogs(): Promise<TrackedSpan[]> {
     const latest = await this.storage.getLatestResult();
     if (latest && latest.logs.length > 0) {
       console.log('[ExecutionLogService] Retrieved historical logs from', latest.timestamp);
@@ -87,7 +87,7 @@ export class ExecutionLogService {
     return [];
   }
 
-  private handleSpanUpdate(span: ExecutionSpan | null) {
+  private handleSpanUpdate(span: TrackedSpan | null) {
     if (!span) return;
 
     // We only care about persisting the span when it's updated or finished.

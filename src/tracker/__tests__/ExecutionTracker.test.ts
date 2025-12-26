@@ -1,12 +1,12 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ExecutionTracker } from '../ExecutionTracker';
+import { RuntimeReporter } from '../ExecutionTracker';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { IBlockContext } from '../../runtime/IBlockContext';
-import { EXECUTION_SPAN_TYPE } from '../../runtime/models/ExecutionSpan';
+import { EXECUTION_SPAN_TYPE } from '../../runtime/models/TrackedSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
-import { ExecutionSpan } from '../../runtime/models/ExecutionSpan';
+import { TrackedSpan } from '../../runtime/models/TrackedSpan';
 
 // Mock Block
 const createMockBlock = (key: string, type: string = 'effort'): IRuntimeBlock => ({
@@ -24,13 +24,13 @@ const createMockBlock = (key: string, type: string = 'effort'): IRuntimeBlock =>
     getBehavior: () => undefined
 });
 
-describe('ExecutionTracker', () => {
+describe('RuntimeReporter', () => {
     let memory: RuntimeMemory;
-    let tracker: ExecutionTracker;
+    let tracker: RuntimeReporter;
 
     beforeEach(() => {
         memory = new RuntimeMemory();
-        tracker = new ExecutionTracker(memory);
+        tracker = new RuntimeReporter(memory);
     });
 
     describe('Span Lifecycle', () => {
@@ -55,7 +55,7 @@ describe('ExecutionTracker', () => {
             tracker.endSpan('block-1');
 
             const refs = memory.search({ type: EXECUTION_SPAN_TYPE, ownerId: 'block-1', id: null, visibility: null });
-            const stored = memory.get(refs[0] as TypedMemoryReference<ExecutionSpan>);
+            const stored = memory.get(refs[0] as TypedMemoryReference<TrackedSpan>);
 
             expect(stored?.status).toBe('completed');
             expect(stored?.endTime).toBeDefined();
