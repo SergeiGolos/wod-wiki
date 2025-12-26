@@ -9,12 +9,22 @@ import { CodeMetadata } from '../core/models/CodeMetadata';
 import { ICodeFragment } from '../core/models/CodeFragment';
 
 /**
+ * Parser error information
+ */
+export interface ParseError {
+  message: string;
+  line?: number;
+  column?: number;
+  token?: unknown;
+}
+
+/**
  * Represents a parsed workout script
  */
 export interface IScript {
   source: string;
   statements: ICodeStatement[];
-  errors?: any[] | undefined;
+  errors?: ParseError[] | undefined;
   getIds(ids: number[]): ICodeStatement[];
   getId(id: number): ICodeStatement | undefined;
   getAt(index: number): ICodeStatement | undefined;

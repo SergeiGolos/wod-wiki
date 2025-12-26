@@ -270,8 +270,8 @@ export class EffortBlock extends RuntimeBlock {
     });
 
     if (spanRefs.length > 0) {
-      const spanRef = spanRefs[0] as any;
-      const span = runtime.memory.get(spanRef) as TrackedSpan;
+      const spanRef = spanRefs[0] as TypedMemoryReference<TrackedSpan>;
+      const span = runtime.memory.get(spanRef);
 
       if (span && span.metrics) {
         // Update the span metrics with current reps and exercise info

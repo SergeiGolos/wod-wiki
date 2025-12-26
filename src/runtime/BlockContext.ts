@@ -138,7 +138,8 @@ export class BlockContext implements IBlockContext {
         // Since TypedMemoryReference is the class, we can override the ID here if needed
         // but cleaner if allocate accepted an ID.
         // For now, we manually override to maintain contract with getOrCreateAnchor semantics
-        (anchorRef as any).id = anchorId;
+        // TypedMemoryReference has a mutable id property
+        (anchorRef as TypedMemoryReference<IAnchorValue>).id = anchorId;
         
         this._references.push(anchorRef);
         return anchorRef;

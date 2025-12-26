@@ -174,8 +174,10 @@ export class ScriptRuntime implements IScriptRuntime {
         const startTime = options.startTime ?? this.clock.now;
         this.setStartTime(wrappedBlock, startTime);
 
-        if (typeof (wrappedBlock as any).setRuntime === 'function') {
-            (wrappedBlock as any).setRuntime(this);
+        // Check if wrapped block has optional setRuntime method
+        const blockWithRuntime = wrappedBlock as IRuntimeBlock & { setRuntime?: (runtime: IScriptRuntime) => void };
+        if (typeof blockWithRuntime.setRuntime === 'function') {
+            blockWithRuntime.setRuntime(this);
         }
 
         this.stack.push(wrappedBlock);

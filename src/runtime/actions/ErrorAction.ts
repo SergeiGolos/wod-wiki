@@ -13,7 +13,7 @@ export interface RuntimeError {
   /** When the error occurred */
   timestamp: Date;
   /** Additional context about the error */
-  context?: any;
+  context?: unknown;
 
   blockKey?: string;
 }
@@ -50,13 +50,15 @@ export class ErrorAction implements IRuntimeAction {
     /** Source of the error (block ID, handler ID, etc.) */
     public readonly source: string,
     /** Additional context about the error */
-    public readonly context?: any
+    public readonly context?: unknown
   ) { }
 
   do(runtime: IScriptRuntime): void {
     // Initialize errors array if it doesn't exist
-    if (!(runtime as any).errors) {
-      (runtime as any).errors = [];
+    // Use type assertion for runtime with mutable errors array
+    const runtimeWithErrors = runtime as IScriptRuntime & { errors: RuntimeError[] };
+    if (!runtimeWithErrors.errors) {
+      runtimeWithErrors.errors = [];
     }
 
     const runtimeError: RuntimeError = {
@@ -66,7 +68,7 @@ export class ErrorAction implements IRuntimeAction {
       context: this.context
     };
 
-    (runtime as any).errors.push(runtimeError);
+    runtimeWithErrors.errors.push(runtimeError);
 
     console.error(`❌ Runtime Error from ${this.source}:`, this.error.message);
     if (this.context) {
