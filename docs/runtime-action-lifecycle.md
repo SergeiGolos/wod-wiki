@@ -2,7 +2,7 @@
 
 ## How actions flow
 - Blocks return `IRuntimeAction[]` from lifecycle methods (`mount`, `next`, `unmount`). `RuntimeStack` executes these via `runActions`, passing the `IScriptRuntime` instance.
-- Actions mutate runtime state in three places: `RuntimeMemory` (display stacks, timers, action layers), `ExecutionTracker` (spans/segments/metrics), and `EventBus` (events/handlers). Some emit side-effects (console logs, sound events) handled by UI/event listeners.
+- Actions mutate runtime state in three places: `RuntimeMemory` (display stacks, timers, action layers), `RuntimeReporter` (spans/segments/metrics), and `EventBus` (events/handlers). Some emit side-effects (console logs, sound events) handled by UI/event listeners.
 
 ## Action catalog and impacted runtime elements
 | Action                                                                          | Purpose                                    | Runtime touch points                                                  | Data mutation                                                                     |
@@ -28,8 +28,8 @@
 | `ErrorAction`                                                                   | Push runtime error                         | `runtime.errors` array                                                | Appends `RuntimeError`, logs to console                                           |
 
 ## Runtime elements impacted
-- **RuntimeMemory**: `DISPLAY_STACK_STATE`, `DISPLAY_STACK`, `ACTION_STACK_STATE`, timer span arrays, global timer refs. UI hooks (`useExecutionSpans`, display stack consumers) subscribe to memory for updates.
-- **ExecutionTracker**: Holds spans/segments/metrics; actions calling tracker mutate `execution-span` entries that power history logs and analytics.
+- **RuntimeMemory**: `DISPLAY_STACK_STATE`, `DISPLAY_STACK`, `ACTION_STACK_STATE`, timer span arrays, global timer refs. UI hooks (`useTrackedSpans`, display stack consumers) subscribe to memory for updates.
+- **RuntimeReporter**: Holds spans/segments/metrics; actions calling tracker mutate `execution-span` entries that power history logs and analytics.
 - **EventBus**: Event emission and handler registration (`EmitEventAction`, `PlaySoundAction`, register/unregister) route side effects to UI/services.
 - **Legacy metric collector**: Only touched by `EmitMetricAction` if `runtime.metrics.collect` exists (compat).
 

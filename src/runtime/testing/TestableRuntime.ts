@@ -7,7 +7,7 @@ import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
 import { TrackedSpan } from '../models/TrackedSpan';
-import { ExecutionTracker } from '../../tracker/ExecutionTracker';
+import { RuntimeReporter } from '../../tracker/RuntimeReporter';
 import { IEventBus } from '../IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
 import { IRuntimeBlock } from '../IRuntimeBlock';
@@ -248,7 +248,7 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
 
-  get tracker(): ExecutionTracker {
+  get tracker(): RuntimeReporter {
     return this._wrapped.tracker;
   }
 

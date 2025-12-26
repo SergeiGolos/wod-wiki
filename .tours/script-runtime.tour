@@ -12,7 +12,7 @@
         },
         {
             "title": "Core Components",
-            "description": "The runtime initializes several key subsystems:\n\n*   **Memory**: Manages references and variables.\n*   **EventBus**: Handles async messaging (like `next` signals).\n*   **ExecutionTracker**: Tracks spans for performance/monitoring.\n*   **Stack**: A lightweight container for the block stack.",
+            "description": "The runtime initializes several key subsystems:\n\n*   **Memory**: Manages references and variables.\n*   **EventBus**: Handles async messaging (like `next` signals).\n*   **RuntimeReporter**: Tracks spans for performance/monitoring.\n*   **Stack**: A lightweight container for the block stack.",
             "file": "src/runtime/ScriptRuntime.ts",
             "line": 77
         },

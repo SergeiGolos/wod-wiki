@@ -1,6 +1,6 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ExecutionTracker } from '../ExecutionTracker';
+import { RuntimeReporter } from '../RuntimeReporter';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { IBlockContext } from '../../runtime/IBlockContext';
@@ -24,13 +24,13 @@ const createMockBlock = (key: string, type: string = 'effort'): IRuntimeBlock =>
     getBehavior: () => undefined
 });
 
-describe('ExecutionTracker', () => {
+describe('RuntimeReporter', () => {
     let memory: RuntimeMemory;
-    let tracker: ExecutionTracker;
+    let tracker: RuntimeReporter;
 
     beforeEach(() => {
         memory = new RuntimeMemory();
-        tracker = new ExecutionTracker(memory);
+        tracker = new RuntimeReporter(memory);
     });
 
     describe('Span Lifecycle', () => {

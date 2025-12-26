@@ -17,7 +17,7 @@ This document analyzes the `ScriptRuntime` class and its test coverage, identify
 - **Event Dispatching**: Routing events through the event bus (`IEventBus`)
 - **Clock/Timing**: Managing timestamps and execution timing (`IRuntimeClock`)
 - **JIT Compilation**: Interfacing with the just-in-time compiler (`JitCompiler`)
-- **Execution Tracking**: Monitoring spans and recording metrics (`ExecutionTracker`)
+- **Execution Tracking**: Monitoring spans and recording metrics (`RuntimeReporter`)
 
 ### 1.2 Dependencies (Injected via Constructor)
 
@@ -56,8 +56,8 @@ This document analyzes the `ScriptRuntime` class and its test coverage, identify
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `activeSpans` | `ReadonlyMap<string, ExecutionSpan>` | Active execution spans |
-| `tracker` | `ExecutionTracker` | Access to the execution tracker |
+| `activeSpans` | `ReadonlyMap<string, TrackedSpan>` | Active execution spans |
+| `tracker` | `RuntimeReporter` | Access to the execution tracker |
 
 ### 1.5 pushBlock() Execution Flow
 
@@ -230,7 +230,7 @@ describe('ScriptRuntime Constructor', () => {
   it('should merge options with defaults');
   it('should start the clock during construction');
   it('should register NextEventHandler on eventBus');
-  it('should create ExecutionTracker with memory');
+  it('should create RuntimeReporter with memory');
   it('should use provided tracker if specified in options');
   it('should use provided wrapper if specified in options');
   it('should use noopTracker/noopWrapper when not provided');

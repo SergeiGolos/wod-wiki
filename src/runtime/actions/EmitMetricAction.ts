@@ -10,7 +10,7 @@ import { metricsToFragments } from '../utils/metricsToFragments';
  * instead of directly manipulating a collector, maintaining declarative patterns.
  * 
  * Metrics are recorded to:
- * 1. The active TrackedSpan via ExecutionTracker (primary)
+ * 1. The active TrackedSpan via RuntimeReporter (primary)
  * 2. The global MetricCollector for aggregate stats (secondary)
  * 
  * @example

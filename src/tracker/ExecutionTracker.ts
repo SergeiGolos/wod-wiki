@@ -18,12 +18,12 @@ import { TrackSectionCommand, TrackSectionPayload } from './commands/TrackSectio
 import { TrackEventCommand, TrackEventPayload } from './commands/TrackEventCommand';
 
 /**
- * ExecutionTracker
+ * RuntimeReporter
  * 
  * Central service for tracking workout execution with unified metrics collection.
  * Uses Command Pattern to abstract write operations.
  */
-export class ExecutionTracker {
+export class RuntimeReporter {
     constructor(private readonly memory: IRuntimeMemory) { }
 
     /**

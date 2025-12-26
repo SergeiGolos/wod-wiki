@@ -23,7 +23,7 @@ graph TD
     Runtime -->|Requires| Options
     
     Runtime -->|Internally Creates| Memory[RuntimeMemory]
-    Runtime -->|Internally Creates| Tracker[ExecutionTracker]
+    Runtime -->|Internally Creates| Tracker[RuntimeReporter]
     Runtime -->|Internally Creates| EventBus[EventBus]
     Runtime -->|Internally Creates| Clock[RuntimeClock]
     Runtime -->|Internally Creates| Metrics[MetricCollector]
@@ -78,7 +78,7 @@ This is used when you need fine-grained control over configuration, especially f
 When `new ScriptRuntime()` is called, it initializes its internal services in a specific order:
 
 1.  **`RuntimeMemory`**: Created first. Acts as the data store.
-2.  **`ExecutionTracker`**: Created with reference to Memory. Tracks active spans.
+2.  **`RuntimeReporter`**: Created with reference to Memory. Tracks active spans.
 3.  **`EventBus`**: Created to handle system-wide messaging.
     *   Registers default `NextEventHandler`.
 4.  **`RuntimeStack`**: Created based on `options.debugMode`.

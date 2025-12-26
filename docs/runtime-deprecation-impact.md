@@ -9,7 +9,7 @@
 ### ScriptRuntime
 | API | Notes | Observed usage |
 | --- | --- | --- |
-| `activeSpans` | Previously exposed ExecutionTracker state | UI: `RuntimeHistoryLog` (spansToDisplayItems), `TimerDisplay` (stackItems), docs `docs/tv/*` | 
+| `activeSpans` | Previously exposed RuntimeReporter state | UI: `RuntimeHistoryLog` (spansToDisplayItems), `TimerDisplay` (stackItems), docs `docs/tv/*` | 
 | `executionLog` | Completed spans list | UI: `RuntimeHistoryLog`, `ExecutionLogPanel`, Analytics: `AnalyticsTransformer` (`transformRuntimeToAnalytics`), docs `docs/tv/*` |
 | `getLastUpdatedBlocks` | UI delta helper | No runtime references found (safe to remove after test updates) |
 | Debug helpers: `isDebugMode`, `debugStack`, `getWrappedBlocks`, `getWrappedBlock`, `getAllBlockCalls`, `clearAllBlockCalls` | Legacy debug stack access | Only runtime debug tests (`src/runtime/__tests__/RuntimeDebugMode.test.ts`) and testing docs (`src/runtime/testing/index.ts`) |

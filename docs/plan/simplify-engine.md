@@ -81,7 +81,7 @@ ScriptRuntime
 ├── JitCompiler (strategy-based compilation)
 ├── RuntimeStack / MemoryAwareRuntimeStack / DebugRuntimeStack
 ├── RuntimeMemory (typed references with visibility)
-├── ExecutionTracker (spans, segments, metrics)
+├── RuntimeReporter (spans, segments, metrics)
 ├── EventBus (priority-based handlers)
 ├── RuntimeClock (unified time source)
 ├── MetricCollector (aggregation)
@@ -114,7 +114,7 @@ User Input → EventBus.dispatch → IEventHandler[] → IRuntimeAction[]
                                        ↓
               IRuntimeAction.do(runtime) → Mutates:
                 - RuntimeMemory (multiple typed stores)
-                - ExecutionTracker (spans/segments/metrics)
+                - RuntimeReporter (spans/segments/metrics)
                 - EventBus (handler registration)
                 - RuntimeClock (timer state)
 ```
@@ -173,7 +173,7 @@ User Input → EventBus.dispatch → IEventHandler[] → IRuntimeAction[]
 
 | Aspect | Proposed | Current |
 |--------|----------|---------|
-| Tracker | Direct reads from Results | `ExecutionTracker` with Command Pattern |
+| Tracker | Direct reads from Results | `RuntimeReporter` with Command Pattern |
 | History | Subscribes to Tracker | Multiple hooks + memory subscriptions |
 | Clock | Subscribes to Stack/Memory | Complex display stack with priorities |
 | Display State | Simple | `IDisplayStackState` with timer/card stacks |
@@ -262,13 +262,13 @@ graph TD
     end
 
     subgraph TrackerSystem
-        ET[ExecutionTracker]
+        ET[RuntimeReporter]
         CMD[ITrackerCommand]
-        SPAN[ExecutionSpan]
+        SPAN[TrackedSpan]
     end
 
     subgraph UIHooks
-        UES[useExecutionSpans]
+        UES[useTrackedSpans]
         UDS[useDisplayStack]
         URC[useRuntimeClock]
     end

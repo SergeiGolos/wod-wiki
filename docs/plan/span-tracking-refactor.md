@@ -20,15 +20,15 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        ExecutionSpan (Model)                     │
+│                        TrackedSpan (Model)                     │
 │  - Core data structure for tracking block execution              │
-│  - Location: src/runtime/models/ExecutionSpan.ts                 │
+│  - Location: src/runtime/models/TrackedSpan.ts                 │
 └───────────────────────────────▲─────────────────────────────────┘
                                 │
         ┌───────────────────────┼───────────────────────┐
         │                       │                       │
 ┌───────┴────────┐    ┌─────────┴─────────┐    ┌───────┴────────┐
-│ExecutionTracker│    │ HistoryBehavior   │    │ExecutionLog    │
+│RuntimeReporter│    │ HistoryBehavior   │    │ExecutionLog    │
 │(Central API)   │    │(Block Lifecycle)  │    │Service         │
 │                │    │                   │    │(Persistence)   │
 │ src/tracker/   │    │ src/runtime/      │    │ src/services/  │
@@ -48,8 +48,8 @@
                     ┌─────────────────────────────────┐
                     │  React Hooks                    │
                     │  src/clock/hooks/               │
-                    │ - useExecutionSpans             │
-                    │ - useExecutionSpan              │
+                    │ - useTrackedSpans             │
+                    │ - useTrackedSpan              │
                     │ - useSpanHierarchy              │
                     └─────────────────────────────────┘
 ```
@@ -58,7 +58,7 @@
 
 ## Current Interfaces & Classes
 
-### Core Model (`src/runtime/models/ExecutionSpan.ts`)
+### Core Model (`src/runtime/models/TrackedSpan.ts`)
 
 ```typescript
 // === Types ===
@@ -163,7 +163,7 @@ export interface TimeSegment {
   metrics?: Partial<SpanMetrics>;
 }
 
-export interface ExecutionSpan {
+export interface TrackedSpan {
   // Identity
   id: string;
   blockId: string;
@@ -203,21 +203,21 @@ export interface TrackerContext {
 }
 
 export interface ITrackerCommand {
-    write(context: TrackerContext): ExecutionSpan[];
+    write(context: TrackerContext): TrackedSpan[];
 }
 ```
 
-### ExecutionTracker (`src/tracker/ExecutionTracker.ts`)
+### RuntimeReporter (`src/tracker/RuntimeReporter.ts`)
 
 ```typescript
-export class ExecutionTracker {
+export class RuntimeReporter {
     constructor(private readonly memory: IRuntimeMemory) { }
 
     // Command execution
-    execute(command: ITrackerCommand): ExecutionSpan[]
+    execute(command: ITrackerCommand): TrackedSpan[]
 
     // Span lifecycle
-    startSpan(block: IRuntimeBlock, parentSpanId: string | null, debugMetadata?: DebugMetadata): ExecutionSpan
+    startSpan(block: IRuntimeBlock, parentSpanId: string | null, debugMetadata?: DebugMetadata): TrackedSpan
     endSpan(blockId: string, status: SpanStatus = 'completed'): void
     failSpan(blockId: string): void
     skipSpan(blockId: string): void
@@ -240,12 +240,12 @@ export class ExecutionTracker {
     setDebugMetadata(blockId: string, debugMetadata: DebugMetadata): void
 
     // Queries
-    getActiveSpan(blockId: string): ExecutionSpan | null
+    getActiveSpan(blockId: string): TrackedSpan | null
     getActiveSpanId(blockId: string): string | null
-    getAllSpans(): ExecutionSpan[]
-    getCompletedSpans(): ExecutionSpan[]
-    getActiveSpansMap(): Map<string, ExecutionSpan>
-    findSpanRef(blockId: string): TypedMemoryReference<ExecutionSpan> | null
+    getAllSpans(): TrackedSpan[]
+    getCompletedSpans(): TrackedSpan[]
+    getActiveSpansMap(): Map<string, TrackedSpan>
+    findSpanRef(blockId: string): TypedMemoryReference<TrackedSpan> | null
     isKnownMetricKey(key: string): key is keyof SpanMetrics
 }
 ```
@@ -270,7 +270,7 @@ export interface TrackSpanPayload {
 
 export class TrackSpanCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSpanPayload) { }
-    write(context: TrackerContext): ExecutionSpan[]
+    write(context: TrackerContext): TrackedSpan[]
 }
 
 // TrackEventCommand.ts
@@ -286,7 +286,7 @@ export interface TrackEventPayload {
 
 export class TrackEventCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackEventPayload) { }
-    write(context: TrackerContext): ExecutionSpan[]
+    write(context: TrackerContext): TrackedSpan[]
 }
 
 // TrackSectionCommand.ts
@@ -303,7 +303,7 @@ export interface TrackSectionPayload {
 
 export class TrackSectionCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSectionPayload) { }
-    write(context: TrackerContext): ExecutionSpan[]
+    write(context: TrackerContext): TrackedSpan[]
 }
 ```
 
@@ -331,25 +331,25 @@ export class ExecutionLogService {
     constructor(private storage: LocalStorageProvider)
 
     startSession(runtime: IScriptRuntime, documentId?: string, documentTitle?: string): void
-    getHistoricalLogs(): Promise<ExecutionSpan[]>
+    getHistoricalLogs(): Promise<TrackedSpan[]>
     finishSession(): void
     cleanup(): void
 }
 ```
 
-### React Hooks (`src/clock/hooks/useExecutionSpans.ts`)
+### React Hooks (`src/clock/hooks/useTrackedSpans.ts`)
 
 ```typescript
-export interface ExecutionSpansData {
-  active: ExecutionSpan[];
-  completed: ExecutionSpan[];
-  byId: Map<string, ExecutionSpan>;
-  byBlockId: Map<string, ExecutionSpan>;
+export interface TrackedSpansData {
+  active: TrackedSpan[];
+  completed: TrackedSpan[];
+  byId: Map<string, TrackedSpan>;
+  byBlockId: Map<string, TrackedSpan>;
 }
 
-export function useExecutionSpans(runtime: IScriptRuntime | null): ExecutionSpansData
-export function useExecutionLog(runtime: IScriptRuntime | null): { history: ExecutionSpan[]; active: ExecutionSpan[] }  // @deprecated
-export function useExecutionSpan(runtime: IScriptRuntime | null, id: string | null, byBlockId?: boolean): ExecutionSpan | null
+export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData
+export function useExecutionLog(runtime: IScriptRuntime | null): { history: TrackedSpan[]; active: TrackedSpan[] }  // @deprecated
+export function useTrackedSpan(runtime: IScriptRuntime | null, id: string | null, byBlockId?: boolean): TrackedSpan | null
 export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number>
 ```
 

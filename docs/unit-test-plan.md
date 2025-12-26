@@ -87,7 +87,7 @@ Tests in this section use the `CustomTestRuntime` to verify state changes and be
     *   Assert: `PopBlockAction` returned/executed.
 
 ### 2.4. HistoryBehavior
-*   **Span Creation**: Should create ExecutionSpan on push.
+*   **Span Creation**: Should create TrackedSpan on push.
     *   Assert: `runtime.tracker.currentSpan` matches block.
 *   **Metrics**: Should capture final metrics on pop.
     *   Act: Block completes.

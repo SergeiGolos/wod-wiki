@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { UnifiedItemList, spansToDisplayItems } from '@/components/unified';
-import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/ExecutionSpan';
-import { useExecutionSpans } from '@/clock/hooks/useExecutionSpans';
+import { createEmptyMetrics, SpanMetrics } from '@/runtime/models/TrackedSpan';
+import { useTrackedSpans } from '@/clock/hooks/useTrackedSpans';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -26,7 +26,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   showActive = true,
   compact = false
 }) => {
-  const { active, completed, byId } = useExecutionSpans(runtime);
+  const { active, completed, byId } = useTrackedSpans(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
 
   // Interval for timestamp updates (10Hz)

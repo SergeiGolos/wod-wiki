@@ -5,7 +5,7 @@ This note maps how workout statements turn into fragments, metrics, and time spa
 ## Flow at a Glance
 - Parse: WOD script → `ICodeStatement.fragments` (parser emits typed fragments).
 - Compile: `FragmentCompilationManager` + compilers convert fragments → `RuntimeMetric.values` (legacy metric array) and label via `exerciseId`.
-- Execute: Blocks emit `ExecutionSpan` objects (`startTime`, `endTime`, `status`, `parentSpanId`, `SpanMetrics`, optional `segments`).
+- Execute: Blocks emit `TrackedSpan` objects (`startTime`, `endTime`, `status`, `parentSpanId`, `SpanMetrics`, optional `segments`).
 - Visualize: `spanMetricsToFragments` (or `metricsToFragments` for legacy) turns span metrics back into `ICodeFragment[]` for history and analytics segments.
 - Analyze: `AnalyticsTransformer` converts spans → analytics `Segment` objects and groups metrics for charts.
 
@@ -33,11 +33,11 @@ Notes:
 - `MetricValue`: discriminated by `type` (`repetitions`, `resistance`, `distance`, `timestamp`, `rounds`, `time`, `calories`, `action`, `effort`, `heart_rate`, `cadence`, `power`), with `value` and `unit`.
 - `RuntimeMetric`: `{ exerciseId, values: MetricValue[], timeSpans: TimeSpan[] }` produced by fragment compilers; carried on spans as `compiledMetrics` for adapters that still expect the legacy shape.
 
-### Unified runtime metrics (`SpanMetrics` on `ExecutionSpan`)
+### Unified runtime metrics (`SpanMetrics` on `TrackedSpan`)
 - Typed, timestamped fields (`MetricValueWithTimestamp`) for: `reps`, `weight`, `distance`, `duration`, `elapsed`, `remaining`, `calories`, `heartRate`, `power`, `cadence`.
 - Grouped metrics (`metricGroups: MetricGroup[]`) for metrics[][] semantics without flattening. `MetricGroup` = `{ id?, label?, metrics: RecordedMetricValue[] }`, where `RecordedMetricValue` adds `type` to `MetricValueWithTimestamp`.
 - Structural fields: `exerciseId`, `exerciseImage`, `targetReps`, `currentRound`, `totalRounds`, `repScheme`, `custom` map, plus `legacyMetrics` for back-compat.
-- Lives inside `ExecutionSpan.metrics`; spans may also carry `fragments` (if preserved) and `compiledMetrics` (legacy snapshot).
+- Lives inside `TrackedSpan.metrics`; spans may also carry `fragments` (if preserved) and `compiledMetrics` (legacy snapshot).
 
 ## Mapping Metrics ↔ Fragments
 - `spanMetricsToFragments` builds chips in priority order:
@@ -49,19 +49,19 @@ Notes:
 - `METRIC_TO_FRAGMENT_TYPE` (in `metricsToFragments`) maps metric types to fragment types for legacy arrays (e.g., `repetitions`→`Rep`, `resistance`→`Resistance`, `distance`→`Distance`, biometrics→`Text`).
 
 ## Time Spans and Segments
-- `ExecutionSpan` is the runtime truth for a block: `id`, `blockId`, `type` (`timer`, `rounds`, `effort`, `interval`, `emom`, `amrap`, `tabata`, `group`), `status`, `startTime`, `endTime`, `parentSpanId`, `metrics`, optional `fragments`/`compiledMetrics`, and `segments`.
+- `TrackedSpan` is the runtime truth for a block: `id`, `blockId`, `type` (`timer`, `rounds`, `effort`, `interval`, `emom`, `amrap`, `tabata`, `group`), `status`, `startTime`, `endTime`, `parentSpanId`, `metrics`, optional `fragments`/`compiledMetrics`, and `segments`.
 - `TimeSegment` provides finer-grained windows inside a span (`work`, `rest`, `round`, `minute`, `pause`, `transition`) with their own `startTime`, `endTime`, label, index, and optional `metrics` slice.
 - `AnalyticsTransformer` converts spans into analytics `Segment` objects, using relative timestamps from the earliest `startTime` to build timelines.
 - Duration math: spans compute `duration` as `(endTime - startTime)/1000`, while timer fragments store raw ms; adapters format human-readable mm:ss strings.
 
 ## How Collection and Time Interact
 - Collectible fragments (`:?` timers, `?` reps/weights/distances) yield placeholder values at parse/compile time; actual numbers are expected to be captured during execution and stored in `SpanMetrics` fields with timestamps.
-- Start/end times on `ExecutionSpan` anchor metrics to real wall-clock time; `TimeSegment` allows splitting a span so the same metric type can be recorded in multiple windows (e.g., EMOM minutes or rounds within AMRAP).
+- Start/end times on `TrackedSpan` anchor metrics to real wall-clock time; `TimeSegment` allows splitting a span so the same metric type can be recorded in multiple windows (e.g., EMOM minutes or rounds within AMRAP).
 - When spans are replayed in history/analytics, relative offsets are computed from the earliest span start so fragments and charts align on a consistent timeline.
 
 ## Reference Code
 - `src/core/models/CodeFragment.ts` (fragment types and collection states)
 - `src/fragments/*.ts` (concrete fragment classes)
 - `src/runtime/FragmentCompilers.ts` + `FragmentCompilationManager.ts` (fragment → metric compilation)
-- `src/runtime/models/ExecutionSpan.ts` (span, metrics, segments, debug metadata)
+- `src/runtime/models/TrackedSpan.ts` (span, metrics, segments, debug metadata)
 - `src/runtime/utils/metricsToFragments.ts` (metrics → fragments adapters)

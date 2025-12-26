@@ -41,7 +41,7 @@ Key shared pieces:
 
 ### 2) Track Timer screen (runtime execution history)
 - Entry: `TrackPanel` -> `TimerIndexPanel` -> `RuntimeHistoryLog`.
-- Source model: `ExecutionSpan` objects produced by `ScriptRuntime` (active + completed spans).
+- Source model: `TrackedSpan` objects produced by `ScriptRuntime` (active + completed spans).
 - Adapter path:
   - `spansToDisplayItems`/`spanToDisplayItem`: converts span metrics to fragments via `spanMetricsToFragments`, inherits metrics from parent spans, computes depth and status.
 - Rendering path: `UnifiedItemList` (auto-scroll, optional hide active) -> `UnifiedItemRow` -> `FragmentVisualizer` chips.
@@ -59,7 +59,7 @@ Key shared pieces:
 | Surface | Source model -> fragments | Status/depth rules | Extra adornments |
 |---------|--------------------------|--------------------|------------------|
 | Analytics Results | `Segment` -> `segmentToFragments` | Depth from parent chain in segments; headers for separators/root | Adds end marker; units per metric; selection highlights |
-| Track Timer | `ExecutionSpan` -> `spanMetricsToFragments` | Depth from parent spans; status reflects runtime (active/completed); can hide active in history mode | Auto-scroll to latest; grouping of linked items optional |
+| Track Timer | `TrackedSpan` -> `spanMetricsToFragments` | Depth from parent spans; status reflects runtime (active/completed); can hide active in history mode | Auto-scroll to latest; grouping of linked items optional |
 | Plan Overlay | `ICodeStatement` (parser) already has fragments | Depth from document/statement parent; no runtime status | Optional compact mode; click-to-navigate in overlays |
 
 ## Shared Visual Rules
