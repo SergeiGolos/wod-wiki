@@ -20,15 +20,15 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        TrackedSpan (Model)                     │
-│  - Core data structure for tracking block execution              │
-│  - Location: src/runtime/models/TrackedSpan.ts                 │
+│                        TrackedSpan (Model)                      │
+│  - Core data structure for tracking block execution             │
+│  - Location: src/runtime/models/TrackedSpan.ts                  │
 └───────────────────────────────▲─────────────────────────────────┘
                                 │
         ┌───────────────────────┼───────────────────────┐
         │                       │                       │
-┌───────┴────────┐    ┌─────────┴─────────┐    ┌───────┴────────┐
-│RuntimeReporter│    │ HistoryBehavior   │    │ExecutionLog    │
+┌───────┴────────┐    ┌─────────┴─────────┐    ┌────────┴───────┐
+│RuntimeReporter │    │ HistoryBehavior   │    │ExecutionLog    │
 │(Central API)   │    │(Block Lifecycle)  │    │Service         │
 │                │    │                   │    │(Persistence)   │
 │ src/tracker/   │    │ src/runtime/      │    │ src/services/  │
@@ -48,8 +48,8 @@
                     ┌─────────────────────────────────┐
                     │  React Hooks                    │
                     │  src/clock/hooks/               │
-                    │ - useTrackedSpans             │
-                    │ - useTrackedSpan              │
+                    │ - useTrackedSpans               │
+                    │ - useTrackedSpan                │
                     │ - useSpanHierarchy              │
                     └─────────────────────────────────┘
 ```
@@ -88,6 +88,7 @@ export type SegmentType =
   | 'transition'; // Between exercises/rounds
 
 // === Interfaces ===
+
 
 export interface DebugMetadata {
   tags: string[];

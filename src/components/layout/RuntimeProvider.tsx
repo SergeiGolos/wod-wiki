@@ -68,7 +68,6 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
   const disposeRuntime = useCallback(() => {
     setRuntime(currentRuntime => {
       if (currentRuntime) {
-        console.log('[RuntimeProvider] Disposing current runtime');
         try {
           factoryRef.current.disposeRuntime(currentRuntime);
         } catch (err) {
@@ -87,11 +86,9 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
   const initializeRuntime = useCallback((block: WodBlock) => {
     // Guard against duplicate initialization
     if (isInitializing) {
-      console.log('[RuntimeProvider] Already initializing, skipping duplicate call');
       return;
     }
 
-    console.log('[RuntimeProvider] Initializing runtime for block:', block.id);
     setIsInitializing(true);
     setError(null);
 
@@ -102,7 +99,6 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
       // Now do a single atomic state update that disposes old and sets new
       setRuntime(currentRuntime => {
         if (currentRuntime) {
-          console.log('[RuntimeProvider] Disposing existing runtime before setting new one');
           try {
             executionLogService.cleanup();
             factoryRef.current.disposeRuntime(currentRuntime);
@@ -117,7 +113,6 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
         executionLogService.startSession(newRuntime);
         currentRuntimeRef.current = newRuntime;
       } else {
-        console.warn('[RuntimeProvider] Factory returned null runtime for block:', block.id);
         currentRuntimeRef.current = null;
       }
     } catch (err) {
@@ -132,7 +127,6 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
   // Cleanup on unmount - use ref to avoid stale closure
   useEffect(() => {
     return () => {
-      console.log('[RuntimeProvider] Unmounting, disposing runtime');
       // Use ref to get current runtime value, avoiding stale closure
       if (currentRuntimeRef.current) {
         try {

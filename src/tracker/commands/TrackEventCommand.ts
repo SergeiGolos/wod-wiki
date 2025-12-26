@@ -1,8 +1,8 @@
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
-    TrackedSpan,
-    EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+    RuntimeSpan,
+    RUNTIME_SPAN_TYPE
+} from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 
 export type TrackEventAction = 'log' | 'tag' | 'context';
@@ -24,7 +24,7 @@ export interface TrackEventPayload {
 export class TrackEventCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackEventPayload) { }
 
-    write(context: TrackerContext): TrackedSpan[] {
+    write(context: TrackerContext): RuntimeSpan[] {
         const { memory } = context;
         const { blockId, action } = this.payload;
 
@@ -34,41 +34,33 @@ export class TrackEventCommand implements ITrackerCommand {
         const span = memory.get(ref);
         if (!span) return [];
 
-        const debugMetadata = span.debugMetadata || { tags: [], context: {}, logs: [] };
-
-        let updatedDebugMetadata = { ...debugMetadata };
-
         if (action === 'log' && this.payload.message) {
-            updatedDebugMetadata.logs = [
-                ...(updatedDebugMetadata.logs || []),
-                `[${new Date().toISOString()}] ${this.payload.message}`
-            ];
+            span.metadata.logs.push(`[${new Date().toISOString()}] ${this.payload.message}`);
         } else if (action === 'tag' && this.payload.tag) {
-            if (!updatedDebugMetadata.tags.includes(this.payload.tag)) {
-                updatedDebugMetadata.tags = [...updatedDebugMetadata.tags, this.payload.tag];
+            if (!span.metadata.tags.includes(this.payload.tag)) {
+                span.metadata.tags.push(this.payload.tag);
             }
         } else if (action === 'context' && this.payload.context) {
-            updatedDebugMetadata.context = {
-                ...updatedDebugMetadata.context,
+            span.metadata.context = {
+                ...span.metadata.context,
                 ...this.payload.context
             };
         }
 
-        const updatedSpan = { ...span, debugMetadata: updatedDebugMetadata };
-        memory.set(ref, updatedSpan);
-        return [updatedSpan];
+        memory.set(ref, span);
+        return [span];
     }
 
-    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<TrackedSpan> | null {
+    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<RuntimeSpan> | null {
         const refs = context.memory.search({
-            type: EXECUTION_SPAN_TYPE,
+            type: RUNTIME_SPAN_TYPE,
             ownerId: blockId,
             id: null,
             visibility: null
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<TrackedSpan>
+            ? refs[0] as TypedMemoryReference<RuntimeSpan>
             : null;
     }
 }

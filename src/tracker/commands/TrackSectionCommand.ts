@@ -1,12 +1,10 @@
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
-    TrackedSpan,
-    SegmentType,
-    TimeSegment,
-    createTimeSegment,
-    EXECUTION_SPAN_TYPE
-} from '../../runtime/models/TrackedSpan';
+    RuntimeSpan,
+    RUNTIME_SPAN_TYPE
+} from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { FragmentType } from '../../core/models/CodeFragment';
 
 export type TrackSectionAction = 'start' | 'end' | 'end-all';
 
@@ -15,7 +13,7 @@ export interface TrackSectionPayload {
     blockId: string;
 
     // For start
-    type?: SegmentType;
+    type?: string;
     label?: string;
     index?: number;
 
@@ -26,7 +24,7 @@ export interface TrackSectionPayload {
 export class TrackSectionCommand implements ITrackerCommand {
     constructor(private readonly payload: TrackSectionPayload) { }
 
-    write(context: TrackerContext): TrackedSpan[] {
+    write(context: TrackerContext): RuntimeSpan[] {
         const { memory } = context;
         const { blockId, action } = this.payload;
 
@@ -34,49 +32,39 @@ export class TrackSectionCommand implements ITrackerCommand {
         if (!ref) return [];
 
         const span = memory.get(ref);
-        if (!span || span.status !== 'active') return [];
-
-        let updatedSegments = [...span.segments];
+        if (!span || !span.isActive()) return [];
 
         if (action === 'start') {
-            const { type, label, index } = this.payload;
-            if (type && label) {
-                const segment = createTimeSegment(span.id, type, label, index);
-                updatedSegments.push(segment);
-            }
-        } else if (action === 'end') {
-            const { segmentId } = this.payload;
-            updatedSegments = updatedSegments.map(seg => {
-                const shouldEnd = segmentId
-                    ? seg.id === segmentId
-                    : !seg.endTime;
-
-                if (shouldEnd && !seg.endTime) {
-                    return { ...seg, endTime: Date.now() };
+            const { type, label } = this.payload;
+            if (label) {
+                // In new model, segments are just fragments marking transitions
+                if (span.fragments.length === 0) {
+                    span.fragments.push([]);
                 }
-                return seg;
-            });
-        } else if (action === 'end-all') {
-            updatedSegments = updatedSegments.map(seg =>
-                seg.endTime ? seg : { ...seg, endTime: Date.now() }
-            );
+                span.fragments[span.fragments.length - 1].push({
+                    type: type || 'effort',
+                    fragmentType: FragmentType.Effort,
+                    value: label,
+                    image: label
+                });
+            }
         }
+        // 'end' and 'end-all' are mostly no-ops now as fragments are discrete events
 
-        const updatedSpan = { ...span, segments: updatedSegments };
-        memory.set(ref, updatedSpan);
-        return [updatedSpan];
+        memory.set(ref, span);
+        return [span];
     }
 
-    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<TrackedSpan> | null {
+    private findSpanRef(context: TrackerContext, blockId: string): TypedMemoryReference<RuntimeSpan> | null {
         const refs = context.memory.search({
-            type: EXECUTION_SPAN_TYPE,
+            type: RUNTIME_SPAN_TYPE,
             ownerId: blockId,
             id: null,
             visibility: null
         });
 
         return refs.length > 0
-            ? refs[0] as TypedMemoryReference<TrackedSpan>
+            ? refs[0] as TypedMemoryReference<RuntimeSpan>
             : null;
     }
 }

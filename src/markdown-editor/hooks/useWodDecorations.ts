@@ -60,7 +60,6 @@ export function useWodDecorations(
       
       // Fire the emitter to notify Monaco that hints need updating
       if (oldLine !== newLine && inlayHintsEmitterRef.current) {
-        console.log('[useWodDecorations] Cursor moved from line', oldLine, 'to', newLine, '- firing hint refresh');
         inlayHintsEmitterRef.current.fire();
       }
     };
@@ -80,15 +79,12 @@ export function useWodDecorations(
   useEffect(() => {
     if (!editor || !enabled || !inlayHintsEmitterRef.current) return;
     
-    console.log('[useWodDecorations] Blocks or active block changed - firing hint refresh');
     inlayHintsEmitterRef.current.fire();
   }, [editor, enabled, blocks.length, activeBlock?.id]);
 
   // Register providers
   useEffect(() => {
     if (!editor || !monaco || !enabled) return;
-
-    console.log('[useWodDecorations] Registering providers for', blocks.length, 'blocks');
 
     // Clean up previous providers and emitter
     disposablesRef.current.forEach(d => d.dispose());
@@ -136,10 +132,7 @@ export function useWodDecorations(
     );
     disposablesRef.current.push(semanticDisposable);
 
-    console.log('[useWodDecorations] Providers registered');
-
     return () => {
-      console.log('[useWodDecorations] Cleaning up providers');
       disposablesRef.current.forEach(d => d.dispose());
       disposablesRef.current = [];
     };

@@ -89,10 +89,6 @@ export class RowBasedCardManager {
     
     // Initial parse
     this.parseContent();
-    
-    if (CONFIG.debug) {
-      console.log('[RowBasedCardManager] Initialized with HiddenAreasCoordinator:', !!hiddenAreasCoordinator);
-    }
   }
 
   /**
@@ -162,10 +158,6 @@ export class RowBasedCardManager {
     if (version === this.lastContentVersion) return;
     this.lastContentVersion = version;
 
-    if (CONFIG.debug) {
-      console.log('[RowBasedCardManager] Parsing content, version:', version);
-    }
-
     // Use existing parser to get raw cards
     const rawCards = this.parser.parseAllCards(model);
     
@@ -203,11 +195,6 @@ export class RowBasedCardManager {
 
     this.cards = newCards;
 
-    if (CONFIG.debug) {
-      console.log('[RowBasedCardManager] Parsed', this.cards.size, 'cards with', 
-        Array.from(this.cards.values()).reduce((sum, c) => sum + c.rules.length, 0), 'rules');
-    }
-
     // Render
     this.render();
   }
@@ -239,7 +226,6 @@ export class RowBasedCardManager {
         // If cursor is LEAVING the card, we need to ensure height is re-measured
         // The preview panel will resize and we need fresh measurements
         if (wasEditing && !isEditing) {
-          console.log('[RowBasedCardManager] Cursor left card, will re-measure:', card.id);
           cardsToRemeasure.push(card.id);
           // Clear cached height to force re-measurement on next resize event
           // This ensures we don't use stale values
@@ -250,13 +236,6 @@ export class RowBasedCardManager {
         const generator = this.ruleGenerators.get(card.cardType);
         if (generator) {
           const measuredHeight = this.cardHeights.get(card.id);
-          console.log('[RowBasedCardManager] Regenerating rules for card:', {
-            cardId: card.id,
-            isEditing,
-            wasEditing,
-            measuredHeight,
-            cursorLine: this.lastCursorLine,
-          });
           
           card.rules = generator.generateRules(
             card.content,
@@ -280,7 +259,6 @@ export class RowBasedCardManager {
       // that fire after the initial render when collapsing
       if (cardsToRemeasure.length > 0) {
         setTimeout(() => {
-          console.log('[RowBasedCardManager] Follow-up render for re-measured cards');
           // Re-render to pick up any height changes from resize events
           for (const cardId of cardsToRemeasure) {
             const card = this.cards.get(cardId);
@@ -320,14 +298,6 @@ export class RowBasedCardManager {
           const currentHeight = this.cardHeights.get(cardId);
           const heightDiff = currentHeight ? Math.abs(currentHeight - payload.height) : Infinity;
           
-          console.log('[RowBasedCardManager] Resize action received:', {
-              cardId,
-              newHeight: payload.height,
-              currentHeight,
-              heightDiff,
-              willUpdate: heightDiff > 2,
-          });
-          
           // Only update if height changed significantly to avoid loops
           if (heightDiff > 2) {
               this.cardHeights.set(cardId, payload.height);
@@ -337,12 +307,6 @@ export class RowBasedCardManager {
               if (card) {
                   const generator = this.ruleGenerators.get(card.cardType);
                   if (generator) {
-                      console.log('[RowBasedCardManager] Regenerating rules after resize:', {
-                          cardId,
-                          newHeight: payload.height,
-                          isEditing: card.isEditing,
-                      });
-                      
                       card.rules = generator.generateRules(
                           card.content,
                           card.sourceRange,
@@ -413,9 +377,5 @@ export class RowBasedCardManager {
     this.eventManagerDisposer?.dispose();
     this.cards.clear();
     this.hoverDecorationsCollection.clear();
-
-    if (CONFIG.debug) {
-      console.log('[RowBasedCardManager] Disposed');
-    }
   }
 }

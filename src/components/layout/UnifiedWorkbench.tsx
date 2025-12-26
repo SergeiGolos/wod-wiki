@@ -139,7 +139,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       // Only initialize if we haven't initialized this block ID yet
       // OR if we are switching back to track mode
       if (lastInitializedBlockIdRef.current !== selectedBlock.id) {
-        console.log('[UnifiedWorkbench] Initializing runtime for block:', selectedBlock.id);
         initializeRuntime(selectedBlock);
         lastInitializedBlockIdRef.current = selectedBlock.id;
       }

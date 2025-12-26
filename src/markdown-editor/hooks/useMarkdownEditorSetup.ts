@@ -21,8 +21,6 @@ import type { WodBlock } from '../types';
  * Define custom Monaco themes that match the application look and feel
  */
 export const defineCustomThemes = (monaco: Monaco): void => {
-  console.log('[MarkdownEditor] Defining custom themes');
-  
   monaco.editor.defineTheme('wod-dark', {
     base: 'vs-dark',
     inherit: true,
@@ -40,8 +38,6 @@ export const defineCustomThemes = (monaco: Monaco): void => {
       'editor.background': '#ffffff', // Matches --background in light mode
     }
   });
-  
-  console.log('[MarkdownEditor] Custom themes defined: wod-light, wod-dark');
 };
 
 export interface UseMarkdownEditorSetupOptions {
@@ -124,27 +120,21 @@ export const useMarkdownEditorSetup = (
    * Handle card actions from RichMarkdownManager
    */
   const handleCardAction = useCallback((card: any, action: string) => {
-    console.log('[MarkdownEditor] Card action received:', action, card.id);
-    
     if (action !== 'start-workout' || card.cardType !== 'wod-block') {
       return;
     }
 
     const currentBlocks = blocksRef.current;
-    console.log('[MarkdownEditor] Finding block for card:', card.id, 'StartLine:', card.sourceRange.startLineNumber);
-    console.log('[MarkdownEditor] Current blocks:', currentBlocks.length);
 
     // Find the block that matches this card's range
     let block = currentBlocks.find(b => b.startLine + 1 === card.sourceRange.startLineNumber);
 
     if (!block) {
-      console.warn('[MarkdownEditor] Could not find WOD block for card', card.id);
       // Fallback: try to find by fuzzy line match
       block = currentBlocks.find(b => Math.abs((b.startLine + 1) - card.sourceRange.startLineNumber) <= 1);
     }
 
     if (block) {
-      console.log('[MarkdownEditor] Block found, emitting start-workout event:', block.id);
       // Emit via event bus (primary mechanism)
       workoutEventBus.emit({ type: 'start-workout', block });
       // Also call callback for backward compatibility
@@ -188,10 +178,8 @@ export const useMarkdownEditorSetup = (
     foldingManagerRef.current.onFoldStateChange((folded) => {
       setIsAllFolded(folded);
     });
-    console.log('[MarkdownEditor] Heading section folding manager initialized');
 
     // Apply initial theme
-    console.log('[MarkdownEditor] Initial theme application:', theme);
     monaco.editor.setTheme(theme);
 
     // Enable glyph margin for icons and inlay hints
@@ -202,7 +190,7 @@ export const useMarkdownEditorSetup = (
 
     // Disable default Command Palette (F1)
     editor.addCommand(monaco.KeyCode.F1, () => {
-      console.log('Default Command Palette disabled. Use Ctrl+.');
+      // F1 disabled, use Ctrl+.
     });
 
     // Bind Ctrl+. to open our Command Palette

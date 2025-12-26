@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -35,12 +35,10 @@ import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 export class IntervalStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('IntervalStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('IntervalStrategy: Statement missing fragments array');
             return false;
         }
 
@@ -138,7 +136,7 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
         // This ensures analytics can identify this as an EMOM workout
         behaviors.push(new HistoryBehavior({
             label: "EMOM",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['emom', 'interval', 'fixed_rounds'],
                 {
                     strategyUsed: 'IntervalStrategy',

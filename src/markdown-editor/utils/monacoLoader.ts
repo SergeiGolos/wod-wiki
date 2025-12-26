@@ -33,6 +33,4 @@ self.MonacoEnvironment = {
 // Configure loader to use local Monaco instead of CDN
 loader.config({ monaco });
 
-console.log('[Monaco Loader] Configured to use local Monaco Editor from node_modules');
-
 export { loader };

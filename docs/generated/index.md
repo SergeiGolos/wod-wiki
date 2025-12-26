@@ -144,7 +144,7 @@ bun run test:e2e         # End-to-end tests
 
 ## See Also
 
-- [AGENTS.md](../../AGENTS.md) - Development guidelines
+- [AGENTS.md](../AGENTS.md) - Development guidelines
 - [Block Types Reference](../block-types-behaviors-reference.md) - Detailed block documentation
 - [Runtime Lifecycle](../runtime-action-lifecycle.md) - Lifecycle patterns
-- [README](../../README.md) - Project overview
+- [README](../README.md) - Project overview

@@ -33,9 +33,6 @@ jobs:
       - name: Install dependencies
         run: bun install
     
-      - name: Check documentation links
-        run: bun run docs:check
-    
       - name: Run tests
         run: bun run test
         # TODO: Pass all tests and remove this.

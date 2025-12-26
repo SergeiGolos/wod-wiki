@@ -14,7 +14,6 @@ export class HiddenAreasCoordinator {
     constructor(editor: editor.IStandaloneCodeEditor, monaco: Monaco) {
         this.editor = editor;
         this.monaco = monaco;
-        console.log('[HiddenAreasCoordinator] Initialized');
     }
 
     /**
@@ -23,11 +22,9 @@ export class HiddenAreasCoordinator {
      * @param ranges Array of ranges to hide
      */
     public updateHiddenAreas(sourceId: string, ranges: Range[]): void {
-        console.log(`[HiddenAreasCoordinator] updateHiddenAreas called for ${sourceId} with ${ranges.length} ranges`);
         // Check if ranges actually changed to avoid unnecessary updates
         const current = this.sources.get(sourceId);
         if (current && this.areRangesEqual(current, ranges)) {
-            console.log(`[HiddenAreasCoordinator] Ranges for ${sourceId} unchanged, skipping`);
             return;
         }
 
@@ -54,7 +51,6 @@ export class HiddenAreasCoordinator {
         // Sort ranges by start line number
         allRanges.sort((a, b) => a.startLineNumber - b.startLineNumber);
         
-        console.log('[HiddenAreasCoordinator] Applying hidden areas:', allRanges.length, 'ranges from', this.sources.size, 'sources');
         (this.editor as any).setHiddenAreas(allRanges);
     }
 

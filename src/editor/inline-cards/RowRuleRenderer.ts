@@ -11,11 +11,11 @@
 import { editor, Range } from 'monaco-editor';
 import ReactDOM from 'react-dom/client';
 import React from 'react';
-import { 
-  RowRule, 
-  HeaderRowRule, 
-  FooterRowRule, 
-  StyledRowRule, 
+import {
+  RowRule,
+  HeaderRowRule,
+  FooterRowRule,
+  StyledRowRule,
   OverlayRowRule,
   FullCardRowRule,
   HiddenAreaRule,
@@ -72,7 +72,7 @@ export class RowRuleRenderer {
   private hiddenAreas: Range[] = [];
   private hiddenAreasCoordinator?: HiddenAreasCoordinator;
   private onAction?: (cardId: string, action: string, payload?: unknown) => void;
-  
+
   constructor(
     editorInstance: editor.IStandaloneCodeEditor,
     onAction?: (cardId: string, action: string, payload?: unknown) => void,
@@ -95,9 +95,6 @@ export class RowRuleRenderer {
         allRules.push({ rule, card });
       }
     }
-
-    // Debug logging
-    console.log('[RowRuleRenderer] Rendering', cards.length, 'cards with', allRules.length, 'total rules');
 
     // Group rules by type for efficient processing
     const headerFooterRules: Array<{ rule: HeaderRowRule | FooterRowRule; card: InlineCard }> = [];
@@ -157,7 +154,7 @@ export class RowRuleRenderer {
     for (const { rule } of rules) {
       const startLine = rule.lineNumber;
       const endLine = rule.endLineNumber || rule.lineNumber;
-      
+
       // Create range for hidden area
       newHiddenAreas.push(new Range(startLine, 1, endLine, 1));
     }
@@ -166,7 +163,7 @@ export class RowRuleRenderer {
     const hasChanged = this.hiddenAreasChanged(newHiddenAreas);
     if (hasChanged) {
       this.hiddenAreas = newHiddenAreas;
-      
+
       // Use coordinator if available (prevents conflicts with other features)
       if (this.hiddenAreasCoordinator) {
         this.hiddenAreasCoordinator.updateHiddenAreas(HIDDEN_AREAS_SOURCE_ID, newHiddenAreas);
@@ -182,13 +179,13 @@ export class RowRuleRenderer {
    */
   private hiddenAreasChanged(newAreas: Range[]): boolean {
     if (newAreas.length !== this.hiddenAreas.length) return true;
-    
+
     for (let i = 0; i < newAreas.length; i++) {
       const oldRange = this.hiddenAreas[i];
       const newRange = newAreas[i];
       if (!oldRange.equalsRange(newRange)) return true;
     }
-    
+
     return false;
   }
 
@@ -205,30 +202,7 @@ export class RowRuleRenderer {
     // Collect roots to unmount after changeViewZones completes
     const rootsToUnmount: ReactDOM.Root[] = [];
 
-    console.log('[RowRuleRenderer] Applying view zones in single transaction:', {
-      viewZoneRules: viewZoneRules.length,
-      headerFooterRules: headerFooterRules.length,
-      fullCardRules: fullCardRules.length,
-    });
-    
     // Log all incoming rules for debugging
-    for (const { rule, card } of viewZoneRules) {
-      console.log('[RowRuleRenderer] ViewZone rule:', {
-        key: `viewzone-${rule.zonePosition}-${rule.lineNumber}`,
-        cardId: card.id,
-        heightInPx: rule.heightInPx,
-        zonePosition: rule.zonePosition,
-      });
-    }
-    
-    // Log current state of view zones
-    console.log('[RowRuleRenderer] Current zones before update:', 
-      Array.from(this.viewZones.entries()).map(([key, info]) => ({
-        key,
-        heightInPx: info.heightInPx,
-        afterLineNumber: info.afterLineNumber,
-      }))
-    );
 
     // Sort view zone rules to ensure consistent ordering:
     // 1. Sort by afterLineNumber (ascending)
@@ -240,7 +214,7 @@ export class RowRuleRenderer {
       const bAfterLine = b.rule.afterLineNumber !== undefined
         ? b.rule.afterLineNumber
         : (b.rule.zonePosition === 'header' ? Math.max(0, b.rule.lineNumber - 1) : b.rule.lineNumber);
-      
+
       if (aAfterLine !== bAfterLine) {
         return aAfterLine - bAfterLine;
       }
@@ -255,21 +229,21 @@ export class RowRuleRenderer {
       // IMPORTANT: First remove ALL old zones, then add new ones in sorted order
       // This ensures consistent zone ordering regardless of when zones were originally created
       const zonesToKeep = new Map<string, { rule: ViewZoneRule; card: InlineCard; afterLineNumber: number }>();
-      
+
       // 1. Identify which zones we need
       for (const { rule, card } of sortedViewZoneRules) {
         const key = `viewzone-${rule.zonePosition}-${rule.lineNumber}`;
         currentZoneKeys.add(key);
-        
+
         const afterLineNumber = rule.afterLineNumber !== undefined
           ? rule.afterLineNumber
-          : (rule.zonePosition === 'header' 
-            ? Math.max(0, rule.lineNumber - 1) 
+          : (rule.zonePosition === 'header'
+            ? Math.max(0, rule.lineNumber - 1)
             : rule.lineNumber);
-        
+
         zonesToKeep.set(key, { rule, card, afterLineNumber });
       }
-      
+
       // 2. Remove ALL existing view zones (we'll re-add them in correct order)
       const existingZonesToReuse = new Map<string, ViewZoneInfo>();
       for (const [key, zone] of this.viewZones) {
@@ -278,7 +252,7 @@ export class RowRuleRenderer {
           // Check if we can reuse this zone (same height and position)
           const heightSame = Math.abs(zone.heightInPx - keepInfo.rule.heightInPx) <= 1;
           const positionSame = zone.afterLineNumber === keepInfo.afterLineNumber;
-          
+
           if (heightSame && positionSame) {
             // Keep existing zone - don't remove
             existingZonesToReuse.set(key, zone);
@@ -292,36 +266,30 @@ export class RowRuleRenderer {
           this.viewZones.delete(key);
         }
       }
-      
+
       // 3. Add/update zones in sorted order
       for (const { rule, card } of sortedViewZoneRules) {
         const key = `viewzone-${rule.zonePosition}-${rule.lineNumber}`;
         const keepInfo = zonesToKeep.get(key)!;
         const existing = existingZonesToReuse.get(key);
-        
+
         if (existing) {
           // Zone already exists with correct height/position - skip
           continue;
         }
-        
+
         // Need to create or recreate this zone
         const oldZone = this.viewZones.get(key);
-        
+
         if (oldZone) {
           // Recreate with existing DOM node
-          console.log('[RowRuleRenderer] Recreating view zone:', {
-            key,
-            afterLineNumber: keepInfo.afterLineNumber,
-            heightInPx: rule.heightInPx,
-          });
-          
           const zoneId = accessor.addZone({
             afterLineNumber: keepInfo.afterLineNumber,
             heightInPx: rule.heightInPx,
             domNode: oldZone.domNode,
             suppressMouseDown: false,
           });
-          
+
           oldZone.zoneId = zoneId;
           oldZone.heightInPx = rule.heightInPx;
           oldZone.afterLineNumber = keepInfo.afterLineNumber;
@@ -329,9 +297,9 @@ export class RowRuleRenderer {
           // Create brand new zone
           const domNode = document.createElement('div');
           domNode.className = `row-rule-zone ${rule.zonePosition}-zone ${rule.className || ''} card-type-${rule.cardType}`;
-          
+
           const root = ReactDOM.createRoot(domNode);
-          
+
           // Render header or footer component, or custom content
           if (rule.renderContent) {
             root.render(rule.renderContent({
@@ -362,15 +330,6 @@ export class RowRuleRenderer {
             );
           }
 
-          console.log('[RowRuleRenderer] Creating new view zone:', {
-            key,
-            position: rule.zonePosition,
-            afterLineNumber: keepInfo.afterLineNumber,
-            heightInPx: rule.heightInPx,
-            cardType: rule.cardType,
-            title: rule.title,
-          });
-
           const zoneId = accessor.addZone({
             afterLineNumber: keepInfo.afterLineNumber,
             heightInPx: rule.heightInPx,
@@ -394,18 +353,18 @@ export class RowRuleRenderer {
       for (const { rule, card } of headerFooterRules) {
         const key = `${rule.overrideType}-${rule.lineNumber}`;
         currentZoneKeys.add(key);
-        
+
         const existing = this.viewZones.get(key);
         const heightInPx = 32; // Compact header/footer height (fixed)
         const afterLineNumber = rule.lineNumber - 1;
-        
+
         if (!existing) {
           // Create new view zone
           const domNode = document.createElement('div');
           domNode.className = `row-rule-zone ${rule.overrideType}-zone ${rule.className || ''}`;
-          
+
           const root = ReactDOM.createRoot(domNode);
-          
+
           // Render header or footer component
           if (rule.overrideType === 'header') {
             root.render(
@@ -450,11 +409,11 @@ export class RowRuleRenderer {
       for (const { rule, card } of fullCardRules) {
         const key = `full-card-${rule.lineNumber}`;
         currentZoneKeys.add(key);
-        
+
         const existing = this.viewZones.get(key);
         const model = this.editor.getModel();
         const afterLineNumber = rule.lineNumber - 1;
-        
+
         const renderProps: CardRenderProps = {
           sourceRange: card.sourceRange,
           sourceText: model?.getLineContent(rule.lineNumber) || '',
@@ -466,27 +425,21 @@ export class RowRuleRenderer {
 
         // Check if we need to update an existing zone (height changed)
         if (existing && existing.heightInPx !== rule.heightPx) {
-          console.log('[RowRuleRenderer] Updating full-card view zone height:', {
-            key,
-            oldHeight: existing.heightInPx,
-            newHeight: rule.heightPx,
-          });
-          
           // Remove old zone and create new one with updated height
           accessor.removeZone(existing.zoneId);
-          
+
           const zoneId = accessor.addZone({
             afterLineNumber,
             heightInPx: rule.heightPx,
             domNode: existing.domNode,
             suppressMouseDown: false,
           });
-          
+
           // Update the stored info with new zone ID and height
           existing.zoneId = zoneId;
           existing.heightInPx = rule.heightPx;
           existing.afterLineNumber = afterLineNumber;
-          
+
           // Also update content
           existing.root.render(rule.renderCard(renderProps));
           continue;
@@ -495,7 +448,7 @@ export class RowRuleRenderer {
         if (!existing) {
           const domNode = document.createElement('div');
           domNode.className = `full-card-zone card-type-${rule.cardType}`;
-          
+
           const root = ReactDOM.createRoot(domNode);
           root.render(rule.renderCard(renderProps));
 
@@ -599,7 +552,7 @@ export class RowRuleRenderer {
     // Get or create overlay container
     const editorDomNode = this.editor.getDomNode();
     if (!editorDomNode) return;
-    
+
     let overlayContainer = editorDomNode.querySelector('.row-overlay-container') as HTMLElement;
     if (!overlayContainer) {
       overlayContainer = document.createElement('div');
@@ -607,7 +560,7 @@ export class RowRuleRenderer {
       overlayContainer.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; z-index: 100;';
       editorDomNode.appendChild(overlayContainer);
     }
-    
+
     // Update CSS custom property for scrollbar/minimap offset (used by mobile CSS)
     const layout = this.editor.getLayoutInfo();
     const editorRightOffset = layout.verticalScrollbarWidth + layout.minimap.minimapWidth;
@@ -618,7 +571,7 @@ export class RowRuleRenderer {
       currentOverlayIds.add(overlayId);
 
       const existing = this.overlays.get(overlayId);
-      
+
       // Gather source lines
       const spanLines = rule.spanLines || { startLine: rule.lineNumber, endLine: rule.lineNumber };
       const sourceLines: string[] = [];
@@ -644,14 +597,14 @@ export class RowRuleRenderer {
         const domNode = document.createElement('div');
         domNode.className = `row-overlay ${rule.position}-overlay overlay-${card.cardType}`;
         domNode.style.cssText = 'position: absolute; pointer-events: auto;';
-        
+
         // Set width
         if (typeof rule.overlayWidth === 'number') {
           domNode.style.width = `${rule.overlayWidth}px`;
         } else {
           domNode.style.width = rule.overlayWidth || '300px';
         }
-        
+
         const root = ReactDOM.createRoot(domNode);
         root.render(rule.renderOverlay(renderProps));
 
@@ -670,10 +623,10 @@ export class RowRuleRenderer {
         const scrollDisposable = this.editor.onDidScrollChange(updatePosition);
         const layoutDisposable = this.editor.onDidLayoutChange(updatePosition);
 
-        this.overlays.set(overlayId, { 
+        this.overlays.set(overlayId, {
           widgetId: overlayId,
-          root, 
-          domNode, 
+          root,
+          domNode,
           overlayId,
           spanLines,
           rule,
@@ -714,29 +667,19 @@ export class RowRuleRenderer {
     const layout = this.editor.getLayoutInfo();
     const scrollTop = this.editor.getScrollTop();
     const lineHeight = this.editor.getOption(editor.EditorOption.lineHeight);
-    
+
     // Get the top position of the start line
     const startLineTop = this.editor.getTopForLineNumber(spanLines.startLine);
     const lineCount = spanLines.endLine - spanLines.startLine + 1;
     const lineBasedHeight = lineCount * lineHeight;
-    
+
     // Calculate position relative to viewport, with optional offset
     const topOffset = rule.topOffset || 0;
     const top = startLineTop - scrollTop + topOffset;
-    
-    console.log('[RowRuleRenderer] Positioning overlay:', {
-      overlayId: rule.overlayId,
-      spanLines,
-      startLineTop,
-      scrollTop,
-      topOffset,
-      calculatedTop: top,
-      fixedHeight: rule.fixedHeight,
-    });
-    
+
     // Position the overlay
     domNode.style.top = `${top}px`;
-    
+
     // Determine height based on mode
     if (rule.heightMode === 'fixed' && rule.fixedHeight) {
       domNode.style.height = `${rule.fixedHeight}px`;
@@ -745,7 +688,7 @@ export class RowRuleRenderer {
     } else {
       domNode.style.height = 'auto';
     }
-    
+
     if (rule.position === 'right') {
       // Position on the right 50% of the editor, accounting for scrollbar and minimap
       // Use calc() to properly compute width minus the scrollbar area
@@ -801,7 +744,7 @@ export class RowRuleRenderer {
       rootsToUnmount.push(overlay.root);
     }
     this.overlays.clear();
-    
+
     // Remove overlay container
     const editorDomNode = this.editor.getDomNode();
     if (editorDomNode) {

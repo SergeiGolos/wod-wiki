@@ -1,5 +1,4 @@
-
-import { TrackedSpan } from '../runtime/models/TrackedSpan';
+import { RuntimeSpan } from '../runtime/models/RuntimeSpan';
 import { IRuntimeMemory } from '../runtime/IRuntimeMemory';
 
 export interface TrackerContext {
@@ -8,8 +7,8 @@ export interface TrackerContext {
 
 export interface ITrackerCommand {
     /**
-     * Executes the command and returns the resulting TrackedSpans.
+     * Executes the command and returns the resulting RuntimeSpans.
      * The command is responsible for updating the memory directly.
      */
-    write(context: TrackerContext): TrackedSpan[];
+    write(context: TrackerContext): RuntimeSpan[];
 }

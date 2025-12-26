@@ -13,7 +13,7 @@ import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { createDebugMetadata } from "../models/TrackedSpan";
+import { createSpanMetadata } from "../utils/metadata";
 import { PassthroughFragmentDistributor } from "../IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
@@ -38,12 +38,10 @@ import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) {
-            console.warn('TimeBoundRoundsStrategy: No statements provided');
             return false;
         }
 
         if (!statements[0].fragments) {
-            console.warn('TimeBoundRoundsStrategy: Statement missing fragments array');
             return false;
         }
 
@@ -107,7 +105,7 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
         // This ensures analytics can identify this as an AMRAP workout
         behaviors.push(new HistoryBehavior({
             label: "AMRAP",
-            debugMetadata: createDebugMetadata(
+            debugMetadata: createSpanMetadata(
                 ['amrap', 'time_bound', 'max_rounds'],
                 {
                     strategyUsed: 'TimeBoundRoundsStrategy',

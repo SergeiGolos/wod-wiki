@@ -54,11 +54,9 @@ export class CastManager {
 
   async connect(serverUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log(`Connecting to ${serverUrl}`);
       this.ws = new WebSocket(serverUrl);
 
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
         this.reconnectAttempts = 0;
         this.registerDevice();
         this.flushEventBuffer();
@@ -67,7 +65,6 @@ export class CastManager {
       };
 
       this.ws.onclose = (event) => {
-        console.log('WebSocket closed', event);
         if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.scheduleReconnect(serverUrl);
         }
@@ -169,7 +166,7 @@ export class CastManager {
               this.emit('castStop');
               break;
           default:
-              console.log('Unhandled message', message.type);
+              // Unhandled message type
       }
   }
 

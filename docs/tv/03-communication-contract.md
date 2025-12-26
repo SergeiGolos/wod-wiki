@@ -781,7 +781,7 @@ export type MetricType =
   | 'cadence' 
   | 'power';
 
-// From src/runtime/models/TrackedSpan.ts
+// From src/runtime/models/ExecutionRecord.ts
 export interface ExecutionRecord {
   id: string;
   blockId: string;
@@ -1218,4 +1218,4 @@ This package can be:
 - [02-web-application-updates.md](02-web-application-updates.md) - Web app updates specification
 - [DisplayTypes.ts](../../src/clock/types/DisplayTypes.ts) - Display state types
 - [RuntimeMetric.ts](../../src/runtime/RuntimeMetric.ts) - Metric types
-- [TrackedSpan.ts](../../src/runtime/models/TrackedSpan.ts) - Execution tracking and metrics model
+- [ExecutionRecord.ts](../../src/runtime/models/ExecutionRecord.ts) - Execution log types
