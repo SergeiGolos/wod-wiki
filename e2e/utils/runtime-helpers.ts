@@ -256,9 +256,9 @@ function extractStackStateInBrowser(): RuntimeStackState {
   blockElements.forEach((blockEl, index) => {
     const element = blockEl as HTMLElement;
     const isActive = element.classList.contains('active') ||
-                    element.classList.contains('current') ||
-                    element.hasAttribute('data-active') ||
-                    element.querySelector('[data-active="true"]') !== null;
+      element.classList.contains('current') ||
+      element.hasAttribute('data-active') ||
+      element.querySelector('[data-active="true"]') !== null;
 
     if (isActive) {
       currentIndex = index;
@@ -267,11 +267,11 @@ function extractStackStateInBrowser(): RuntimeStackState {
     blocks.push({
       key: element.getAttribute('data-key') || element.id || `block-${index}`,
       displayName: element.querySelector('[data-display-name]')?.textContent ||
-                  element.querySelector('.display-name')?.textContent ||
-                  element.textContent?.split('\n')[0] || '',
+        element.querySelector('.display-name')?.textContent ||
+        element.textContent?.split('\n')[0] || '',
       blockType: element.getAttribute('data-block-type') ||
-                element.getAttribute('data-type') ||
-                element.className.split(' ').find(cls => cls.includes('block')) || '',
+        element.getAttribute('data-type') ||
+        element.className.split(' ').find(cls => cls.includes('block')) || '',
       depth: parseInt(element.getAttribute('data-depth') || element.style.marginLeft?.replace('px', '') || '0') / 12, // Assuming 12px indent per level
       metrics: extractBlockMetrics(element),
       isActive
@@ -292,15 +292,15 @@ function extractBlockMetrics(blockElement: HTMLElement): Metric[] {
   metricElements.forEach((metricEl) => {
     const element = metricEl as HTMLElement;
     const type = element.getAttribute('data-type') ||
-                element.getAttribute('data-metric-type') ||
-                element.className.split(' ').find(cls => cls.includes('metric')) || '';
+      element.getAttribute('data-metric-type') ||
+      element.className.split(' ').find(cls => cls.includes('metric')) || '';
 
     const value = element.getAttribute('data-value') ||
-                 element.getAttribute('data-metric-value') ||
-                 element.textContent || '';
+      element.getAttribute('data-metric-value') ||
+      element.textContent || '';
 
     const unit = element.getAttribute('data-unit') ||
-                element.getAttribute('data-metric-unit') || '';
+      element.getAttribute('data-metric-unit') || '';
 
     // Try to parse numeric values
     const numericValue = parseFloat(value);
@@ -328,8 +328,8 @@ function extractMemoryStateInBrowser(): MemoryState {
   entryElements.forEach((entryEl) => {
     const element = entryEl as HTMLElement;
     const rawValue = element.getAttribute('data-value') ||
-                    element.getAttribute('data-raw-value') ||
-                    element.textContent || '';
+      element.getAttribute('data-raw-value') ||
+      element.textContent || '';
 
     // Try to parse JSON values
     let parsedValue: any = rawValue;
@@ -384,8 +384,8 @@ function extractTimerStateInBrowser(): TimerState | undefined {
 
   return {
     isRunning: element.getAttribute('data-running') === 'true' ||
-              element.classList.contains('running') ||
-              displayText.includes('running'),
+      element.classList.contains('running') ||
+      displayText.includes('running'),
     elapsedMs: parseInt(element.getAttribute('data-elapsed') || '0'),
     totalMs: parseInt(element.getAttribute('data-total') || '0'),
     displayText
@@ -400,7 +400,7 @@ function extractScriptStateInBrowser(): ScriptState {
 
   // Try to extract script content
   const content = scriptContainer.querySelector('.view-lines')?.textContent ||
-                 scriptContainer.textContent || '';
+    scriptContainer.textContent || '';
 
   // Try to extract parsed fragments
   const fragmentContainer = document.querySelector('[data-testid="parsed-fragments"], .parsed-fragments, .fragments');

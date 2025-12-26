@@ -10,7 +10,8 @@ import {
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
-import { CrossFitDialect } from '../../src/dialects/crossfit/CrossFitDialect';
+import { CrossFitDialect } from '@/dialects';
+
 
 describe('Block Compilation Contract', () => {
   let mockRuntime: IScriptRuntime;
