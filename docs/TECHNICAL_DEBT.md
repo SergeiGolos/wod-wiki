@@ -9,17 +9,17 @@
 
 ## Summary Table
 
-| #   | Issue                  | Ease | Impact    | Risk      | Status | Description                                      |
-| --- | ---------------------- | ---- | --------- | --------- | ------ | ------------------------------------------------ |
-| 1   | TypeScript Errors      | 3    | 🔴 High   | 🔴 High   | Open   | 508 type errors prevent strict compilation       |
-| 2   | ~~Console Statements~~ | 1    | 🟡 Medium | 🟡 Medium | ✅ Done | ~~198~~ → 38 statements (31 console.error kept)  |
-| 3   | TODO/FIXME Markers     | 2    | 🟡 Medium | 🟡 Medium | Open   | 26+ incomplete implementations tracked           |
-| 4   | Test Coverage Gap      | 3    | 🔴 High   | 🟡 Medium | Open   | ~13% test ratio (6,331 test LOC / 46,246 source) |
-| 5   | `any` Type Usage       | 2    | 🟡 Medium | 🟡 Medium | Open   | 101 files contain `any` type annotations         |
-| 6   | Large File Complexity  | 3    | 🟡 Medium | 🟢 Low    | Open   | 8 files exceed 500 lines                         |
-| 7   | Missing Chore Template | 1    | 🟢 Low    | 🟢 Low    | Open   | No `chore_request.yml` issue template            |
-| 8   | ~~Class Components~~   | 2    | 🟢 Low    | 🟢 Low    | ✅ Done | ~~3 legacy class components remain~~ → 0 (all migrated) |
-| 9   | Broken Doc Links       | 2    | 🟡 Medium | 🟢 Low    | Open   | 17 broken links in /docs directory               |
+| #   | Issue                  | Ease | Impact    | Risk      | Status | Progress | Description                                     |
+| --- | ---------------------- | ---- | --------- | --------- | ------ | -------- | ----------------------------------------------- |
+| 1   | TypeScript Errors      | 3    | 🔴 High   | 🔴 High   | Open   | 🔴 -15%  | 584 errors (Regression from 508 baseline)       |
+| 2   | ~~Console Statements~~ | 1    | 🟡 Medium | 🟡 Medium | ✅ Done | ✅ 100%   | ~~198~~ → 38 statements (31 console.error kept) |
+| 3   | TODO/FIXME Markers     | 2    | 🟡 Medium | 🟡 Medium | Open   | 🟡 4%    | 25 items remain (Reduced from 26+)              |
+| 4   | Test Coverage Gap      | 3    | 🔴 High   | 🟡 Medium | Open   | 🟢 16%   | ~24% test ratio (11,397 LOC / 47,180 source)    |
+| 5   | `any` Type Usage       | 2    | 🟡 Medium | 🟡 Medium | Open   | 🟢 17%   | 84 files remain (Reduced from 101)              |
+| 6   | Large File Complexity  | 3    | 🟡 Medium | 🟢 Low    | Open   | ⚪ 0%     | 8 files exceed 500 lines                        |
+| 7   | Missing Chore Template | 1    | 🟢 Low    | 🟢 Low    | Open   | 🔴 0%    | No `chore_request.yml` issue template           |
+| 8   | ~~Class Components~~   | 2    | 🟢 Low    | 🟢 Low    | ✅ Done | ✅ 100%   | All components migrated to functional           |
+| 9   | Broken Doc Links       | 2    | 🟡 Medium | 🟢 Low    | Open   | 🟡 30%   | ~12 links remain (Reduced from 17)              |
 
 ---
 
@@ -33,6 +33,8 @@
 - Mock type incompatibilities in `tests/setup.ts` (ResizeObserver, IntersectionObserver)
 - Unused variable declarations (TS6133)
 - Type assignment errors (TS2322)
+
+**Update (2025-12-26)**: Count increased to **584** errors. Recent refactors in runtime orchestration and metrics legacy systems have introduced temporary regressions that need stabilization.
 
 **Requirements**:
 - TypeScript 5.x knowledge
@@ -82,6 +84,8 @@
 - `GroupStrategy.ts`: Full compile() implementation pending
 - `LoopCoordinatorBehavior.ts`: Effort block child support pending
 
+**Update (2025-12-26)**: Reduced to **25** items. Core runtime behaviors still hold the majority of debt.
+
 **Requirements**:
 - Domain knowledge of runtime execution model
 
@@ -103,6 +107,8 @@
 - 46 test files for 351 source files (~13% file coverage)
 - 7 `__tests__` directories exist but coverage is uneven
 - Runtime, parser, and editor modules have different coverage levels
+
+**Update (2025-12-26)**: Significant improvement. Test ratio increased to **24.16%** (11,397 LOC). Test file count increased from 46 to **164**. Focus shifted to integration testing.
 
 **Requirements**:
 - Test harness understanding (see `tests/harness/`)
@@ -137,6 +143,8 @@
 2. Replace with proper types, `unknown`, or generics
 3. Use type guards for narrowing `unknown`
 4. Add `no-explicit-any` ESLint rule when count reaches <10
+
+**Update (2025-12-26)**: Reduced from 101 to **84** files. Ongoing effort to type internal event systems.
 
 **Testing**: `bun x tsc --noEmit` should pass
 
@@ -267,9 +275,11 @@ body:
 2. Either create missing files or update references
 3. Key missing targets:
    - `runtime-action-lifecycle.md`
-   - `docs/generated/index.md`
+   - `docs/generated/index.md` (✅ Fixed)
    - Various `DOCUMENTATION_SUMMARY.md` references
 4. Add docs:check to CI pipeline
+
+**Update (2025-12-26)**: ~12 links remain broken. `docs/generated/index.md` was successfully created/restored. Remaining debt is in missing architectural diagrams.
 
 **Testing**: `bun run docs:check` should exit with code 0
 
