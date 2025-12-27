@@ -28,12 +28,6 @@ export enum MemoryTypeEnum {
   HANDLER_PREFIX = 'handler:',
 
   /**
-   * Current metrics accumulator
-   * Type: CurrentMetrics
-   */
-  METRICS_CURRENT = 'metrics:current',
-
-  /**
    * Target reps for the current round/block
    * Type: number
    */
