@@ -141,7 +141,10 @@ export class AnalysisService {
    * 
    * Exercise ID is extracted from Effort fragments. Fragments are grouped
    * based on the most recently encountered Effort fragment before them.
-   * Fragments without a preceding Effort fragment are skipped.
+   * 
+   * **Note:** Fragments without a preceding Effort fragment are silently skipped.
+   * This may lead to data loss if fragments are ordered incorrectly in the input.
+   * Ensure Effort fragments appear before their associated metric fragments.
    * 
    * @param fragments Array of code fragments
    * @returns Map of exercise ID to fragments
@@ -163,10 +166,9 @@ export class AnalysisService {
       
       // Add fragment to current exercise group
       if (currentExerciseId) {
-        const existing = grouped.get(currentExerciseId) || [];
-        existing.push(fragment);
-        grouped.set(currentExerciseId, existing);
+        grouped.get(currentExerciseId)!.push(fragment);
       }
+      // Note: Fragments before first Effort are silently dropped
     }
     
     return grouped;
