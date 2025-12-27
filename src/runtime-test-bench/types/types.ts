@@ -44,9 +44,10 @@ export interface ThemeColors {
 }
 
 /**
- * Performance metrics for runtime operations
+ * Benchmarking metrics for runtime operations.
+ * Renamed from PerformanceMetrics to avoid confusion with runtime performance metrics.
  */
-export interface PerformanceMetrics {
+export interface BenchmarkMetrics {
   snapshotCreationTime: number;    // ms
   renderTime: number;               // ms
   memoryUsage?: number;             // MB
@@ -301,7 +302,7 @@ export function getLayoutMode(width: number): LayoutMode {
 /**
  * Formats performance metrics for display
  */
-export function formatPerformanceMetrics(metrics: PerformanceMetrics): string {
+export function formatBenchmarkMetrics(metrics: BenchmarkMetrics): string {
   const parts = [];
   if (metrics.snapshotCreationTime) {
     parts.push(`Snapshot: ${metrics.snapshotCreationTime}ms`);

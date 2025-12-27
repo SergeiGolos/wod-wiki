@@ -17,8 +17,8 @@ export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 export { CollectionSpan } from './core/models/CollectionSpan';
-export type { TimeSpan, Metric } from './core/models/CollectionSpan';
-// Note: MetricValue from CollectionSpan is deprecated. Import from RuntimeMetric instead.
+export type { TimeSpan } from './core/models/CollectionSpan';
+// Note: Metric and MetricValue removed in Phase 3. Use ICodeFragment instead.
 export type { MetricValue, MetricValueType } from './runtime/RuntimeMetric';
 
 // Parser
