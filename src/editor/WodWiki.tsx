@@ -69,7 +69,6 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
     const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
     const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
     const [height, setHeight] = useState(50); // Initial height
-    const [_highlightedLineData, _setHighlightedLineData] = useState<number | null>(null);
 
     // Use shared hooks
     useMonacoTheme(editorRef.current, theme);
