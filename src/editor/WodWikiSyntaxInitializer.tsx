@@ -5,7 +5,7 @@ import { ExerciseSuggestionProvider } from './ExerciseSuggestionProvider';
 import { ExerciseHoverProvider } from './ExerciseHoverProvider';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
-import { IScript } from "../WodScript";
+import type { IScript } from "@/parser/WodScript";
 import { MdTimerRuntime } from '../parser/md-timer';
 
 // Global registry to track registered languages and themes
@@ -148,7 +148,7 @@ export class WodWikiSyntaxInitializer {
     }
 
     this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
-      provideCompletionItems: (model, position, token) => {
+      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position, _token: monaco.CancellationToken) => {
         const word = model.getWordUntilPosition(position);
         return this.suggestionEngine.suggest(word, model, position);
       },
@@ -156,21 +156,21 @@ export class WodWikiSyntaxInitializer {
 
     // Register exercise suggestion provider for intelligent exercise name completions
     this.contentChangeDisposable.push(monaco.languages.registerCompletionItemProvider(this.syntax, {
-      provideCompletionItems: (model, position, context, token) => {
+      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position, context: monaco.languages.CompletionContext, token: monaco.CancellationToken) => {
         return this.exerciseProvider.provideCompletionItems(model, position, context, token);
       },
     }));
 
     // Register exercise hover provider for rich exercise documentation on hover
     this.contentChangeDisposable.push(monaco.languages.registerHoverProvider(this.syntax, {
-      provideHover: (model, position, token) => {
+      provideHover: (model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken) => {
         return this.exerciseHoverProvider.provideHover(model, position, token);
       },
     }));
         
     this.contentChangeDisposable.push(monaco.languages.registerDocumentSemanticTokensProvider(this.syntax, {
       getLegend: () => this.tokenEngine,
-      provideDocumentSemanticTokens: (model, lastResultId, token) => {
+      provideDocumentSemanticTokens: (model: monaco.editor.ITextModel, _lastResultId: string | null, _token: monaco.CancellationToken) => {
         const code = model.getValue().trim();
         if (!this.objectCode) return undefined;
         
@@ -184,7 +184,7 @@ export class WodWikiSyntaxInitializer {
     }))
     
     this.contentChangeDisposable.push(monaco.languages.registerInlayHintsProvider(this.syntax, {
-      provideInlayHints: (model, range, token): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {
+      provideInlayHints: (model: monaco.editor.ITextModel, _range: monaco.Range, _token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.InlayHintList> => {
         // Only provide hints for this editor's model
         if (this.editorModel !== model) {
           return { hints: [], dispose: () => { } };
@@ -246,7 +246,7 @@ export class WodWikiSyntaxInitializer {
       updateCursorLine();
     }));
     
-    this.contentChangeDisposable.push(editor.onDidChangeModelContent((event) => {
+    this.contentChangeDisposable.push(editor.onDidChangeModelContent((_event) => {
       parse();
     }));        
     parse();    

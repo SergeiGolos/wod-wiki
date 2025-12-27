@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -95,7 +95,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
             <div className="text-6xl font-mono font-bold text-foreground">
               {duration ? formatTime(duration) : '--:--'}
             </div>
-            {showProgress && duration > 0 && (
+            {showProgress && (duration ?? 0) > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Progress</span>
@@ -170,7 +170,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               )}>
                 {formatTime(displayTime)}
               </div>
-              {showProgress && duration > 0 && (
+              {showProgress && (duration ?? 0) > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Progress</span>

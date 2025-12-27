@@ -5,7 +5,7 @@
  * including fragment color maps, visualizer props, and metadata.
  */
 
-import { CodeMetadata, ICodeFragment } from './core';
+import type { ICodeFragment } from './core';
 
 /**
  * Fragment type for color mapping

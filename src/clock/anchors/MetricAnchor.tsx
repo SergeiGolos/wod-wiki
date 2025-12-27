@@ -1,5 +1,6 @@
 import React from 'react';
-import { CollectionSpan, Metric } from '../../core/models/CollectionSpan';
+import { CollectionSpan } from '../../core/models/CollectionSpan';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 
 interface MetricAnchorProps {
   span?: CollectionSpan;
@@ -8,14 +9,31 @@ interface MetricAnchorProps {
   aggregator?: 'sum' | 'avg' | 'min' | 'max' | 'count';
 }
 
-const aggregateMetrics = (metrics: Metric[], sourceId?: number, metricType?: string, aggregator: 'sum' | 'avg' | 'min' | 'max' | 'count' = 'sum') => {
-  let filteredMetrics = metrics;
-
-  if (sourceId) {
-    filteredMetrics = filteredMetrics.filter(m => m.sourceId === sourceId);
+// Helper to extract numeric values from fragments
+const extractFragmentValue = (fragment: ICodeFragment): number | undefined => {
+  const value = fragment.value as { amount?: number; value?: number } | number | undefined;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'object' && value !== null) {
+    return value.amount ?? value.value;
   }
+  return undefined;
+};
 
-  const values = filteredMetrics.flatMap(m => m.values.filter(v => !metricType || v.type === metricType).map(v => v.value));
+const aggregateFragments = (
+  fragments: ICodeFragment[][] | undefined, 
+  metricType?: string, 
+  aggregator: 'sum' | 'avg' | 'min' | 'max' | 'count' = 'sum'
+) => {
+  if (!fragments || fragments.length === 0) return 0;
+  
+  const allFragments = fragments.flat();
+  const filtered = metricType 
+    ? allFragments.filter(f => f.type === metricType) 
+    : allFragments;
+  
+  const values = filtered
+    .map(f => extractFragmentValue(f))
+    .filter((v): v is number => v !== undefined);
 
   if (values.length === 0) {
     return 0;
@@ -37,12 +55,12 @@ const aggregateMetrics = (metrics: Metric[], sourceId?: number, metricType?: str
   }
 };
 
-export const MetricAnchor: React.FC<MetricAnchorProps> = ({ span, sourceId, metricType, aggregator }) => {
+export const MetricAnchor: React.FC<MetricAnchorProps> = ({ span, sourceId: _sourceId, metricType, aggregator }) => {
   if (!span) {
     return <div>-</div>;
   }
 
-  const aggregatedValue = aggregateMetrics(span.metrics, sourceId, metricType, aggregator);
+  const aggregatedValue = aggregateFragments(span.fragments, metricType, aggregator);
 
   return (
     <div>

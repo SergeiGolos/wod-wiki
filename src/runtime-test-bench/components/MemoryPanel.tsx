@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { MemoryPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
-import { MemoryValueDialog, MemoryValueCell, useMemoryValueDialog, MemoryValueData } from './MemoryValuePopover';
+import { MemoryValueDialog, MemoryValueCell, useMemoryValueDialog } from './MemoryValuePopover';
 
 /**
  * MemoryPanel component - displays memory entries with filtering and grouping
@@ -18,8 +18,8 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   highlightedLine,
   onEntryHover,
   onEntryClick,
-  showMetadata = false,
-  expandValues = false,
+  showMetadata: _showMetadata = false,
+  expandValues: _expandValues = false,
   className = '',
   testId = 'memory-panel'
 }) => {
@@ -88,9 +88,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   const renderEntryRow = (entry: typeof entries[0]) => {
     const isHighlightedById = highlightedMemoryId === entry.id;
     const isHighlightedByOwner = highlightedOwnerKey === entry.ownerId;
-    // Check if entry's owner has a lineNumber that matches highlightedLine
     const isHighlightedByLine = highlightedLine !== undefined && entry.lineNumber === highlightedLine;
-    const isHighlighted = isHighlightedById || isHighlightedByOwner || isHighlightedByLine;
 
     return (
       <tr

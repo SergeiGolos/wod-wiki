@@ -27,8 +27,8 @@ export * from './core-entry';
 export * from './editor-entry';
 export * from './clock-entry';
 
-// Export types
-export * from './types';
+// Note: Types are not re-exported here to avoid duplicate exports.
+// Use 'wod-wiki/types' or import types from specific modules.
 
 
 // Styles

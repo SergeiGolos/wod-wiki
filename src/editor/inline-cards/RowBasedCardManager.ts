@@ -6,17 +6,9 @@
  */
 
 import { editor, Range } from 'monaco-editor';
-import { 
+import type { 
   InlineCard, 
-  CardContent, 
-  RowRule, 
   CardRuleGenerator,
-  HeadingContent,
-  BlockquoteContent,
-  ImageContent,
-  YouTubeContent,
-  FrontMatterContent,
-  WodBlockContent,
 } from './row-types';
 import { RowRuleRenderer } from './RowRuleRenderer';
 import { CardParser } from './CardParser';

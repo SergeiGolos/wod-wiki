@@ -16,10 +16,10 @@ import { UnregisterEventHandlerAction } from '../../runtime/actions/UnregisterEv
  * Hook to encapsulate UnifiedWorkbench runtime logic.
  */
 export const useWorkbenchRuntime = (
-    viewMode: string,
-    selectedBlock: any | null,
-    completeWorkout: (results: any) => void,
-    startWorkout: (block: any) => void
+    _viewMode: string,
+    _selectedBlock: unknown | null,
+    completeWorkout: (results: unknown) => void,
+    startWorkout: (block: unknown) => void
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
     const execution = useRuntimeExecution(runtime);

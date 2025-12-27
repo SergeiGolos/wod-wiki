@@ -1,4 +1,4 @@
-import { IScript } from "../WodScript";
+import type { IScript } from "@/parser/WodScript";
 import { WodWikiToken } from "./WodWiki";
 
 
@@ -24,10 +24,23 @@ export class SemantcTokenEngine {
       return this.cache;
     }
 
+    // Fragment type with proper meta structure
+    interface FragmentMeta {
+      line: number;
+      columnStart: number;
+      length: number;
+    }
+    interface FragmentWithMeta {
+      meta?: FragmentMeta;
+      type: string;
+    }
+
     // Flatten and sort fragments
     const fragments = (objectCode?.statements || [])
-      .flatMap(row => row.fragments.sort((a: any, b: any) => a.meta!.columnStart - b.meta!.columnStart))
-      .filter(f => f.meta);
+      .flatMap((row: { fragments: FragmentWithMeta[] }) => 
+        row.fragments.sort((a: FragmentWithMeta, b: FragmentWithMeta) => (a.meta?.columnStart ?? 0) - (b.meta?.columnStart ?? 0))
+      )
+      .filter((f: FragmentWithMeta): f is FragmentWithMeta & { meta: FragmentMeta } => f.meta != null);
 
     // Track 'previous' positions for delta calculations
     let prevLine = 0;
@@ -36,8 +49,8 @@ export class SemantcTokenEngine {
 
     for (const fragment of fragments) {
 
-      const zeroBasedLine = fragment.meta!.line - 1;
-      const zeroBasedCol = fragment.meta!.columnStart - 1;
+      const zeroBasedLine = fragment.meta.line - 1;
+      const zeroBasedCol = fragment.meta.columnStart - 1;
 
       // Calculate deltas
       const deltaLine = zeroBasedLine - prevLine;
@@ -49,7 +62,7 @@ export class SemantcTokenEngine {
       data.push(
         deltaLine,
         deltaCol,
-        fragment.meta!.length + 1,
+        fragment.meta.length + 1,
         type,
         0
       );

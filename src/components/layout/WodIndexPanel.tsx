@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { Timer, Hash } from 'lucide-react';
 

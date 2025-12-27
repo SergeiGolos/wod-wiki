@@ -1,7 +1,7 @@
 import { LRUCache } from './LRUCache';
-import { ExercisePathIndex, ExercisePathEntry, ExercisePathGroup } from '../tools/ExercisePathIndexer';
-import { Exercise } from '../exercise';
-import { ExerciseDataProvider } from '../types/providers';
+import type { ExercisePathIndex, ExercisePathEntry, ExercisePathGroup } from '../tools/ExercisePathIndexer';
+import type { Exercise } from '../exercise';
+import type { ExerciseDataProvider } from '../core/types/providers';
 
 /**
  * Singleton manager for exercise index and data loading
@@ -17,7 +17,6 @@ import { ExerciseDataProvider } from '../types/providers';
  */
 export class ExerciseIndexManager {
   private static instance: ExerciseIndexManager | null = null;
-  private static initPromise: Promise<ExerciseIndexManager> | null = null;
 
   private index: ExercisePathIndex | null = null;
   private exerciseCache: LRUCache<string, Exercise>;

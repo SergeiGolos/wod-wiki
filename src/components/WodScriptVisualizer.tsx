@@ -28,7 +28,7 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   showDurations,
   autoScroll,
   selectedLine,
-  highlightedLine,
+  highlightedLine: _highlightedLine,
   size,
   filter,
   compact,

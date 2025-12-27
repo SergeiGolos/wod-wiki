@@ -48,8 +48,8 @@ export function useWodBlocks(
 ): UseWodBlocksResult {
   const {
     debounceMs = 300,
-    autoParse = true,
-    parseDelayMs = 500
+    autoParse: _autoParse = true,
+    parseDelayMs: _parseDelayMs = 500
   } = options;
 
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
@@ -57,7 +57,6 @@ export function useWodBlocks(
   const [detecting, setDetecting] = useState(false);
   
   const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect blocks from content
   const detectBlocks = useCallback(() => {

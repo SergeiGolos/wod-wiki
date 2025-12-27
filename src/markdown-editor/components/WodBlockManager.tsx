@@ -32,7 +32,7 @@ export const WodBlockManager: React.FC<WodBlockManagerProps> = ({
   monaco,
   blocks,
   activeBlock,
-  onBlocksParsed
+  onBlocksParsed: _onBlocksParsed
 }) => {
   const decorationsRef = useRef<monacoEditor.IEditorDecorationsCollection | null>(null);
 

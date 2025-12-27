@@ -1,5 +1,8 @@
 import { ICodeStatement, ParseError } from "@/core";
 
+// Re-export ParseError for consumers
+export type { ParseError } from "@/core";
+
 export interface IScript {
   source: string;
   statements: ICodeStatement[];

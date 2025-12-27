@@ -6,9 +6,9 @@
  */
 
 import { TypedMemoryReference } from './runtime';
-import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { RuntimeBlock } from '../runtime/RuntimeBlock';
-import { TimeSpan } from '../runtime/behaviors/TimerBehavior';
+import type { ScriptRuntime } from '@/runtime/ScriptRuntime';
+import type { RuntimeBlock } from '@/runtime/RuntimeBlock';
+import type { TimeSpan } from '@/runtime/behaviors/TimerBehavior';
 
 /**
  * Workout type constants
@@ -147,4 +147,4 @@ export interface EnhancedTimerHarnessProps {
 /**
  * Re-export TimeSpan from TimerBehavior
  */
-export type { TimeSpan } from '../runtime/behaviors/TimerBehavior';
+export type { TimeSpan } from '@/runtime/behaviors/TimerBehavior';

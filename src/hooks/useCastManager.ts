@@ -1,7 +1,6 @@
 // src/hooks/useCastManager.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CastManager } from '@/services/cast/CastManager';
-import { TargetDiscoveredMessage } from '@/types/cast/messages';
 
 // Use environment variable or default to local server
 const RELAY_SERVER_URL = import.meta.env?.VITE_RELAY_SERVER_URL || 'ws://localhost:8080';
@@ -41,7 +40,7 @@ export function useCastManager() {
       });
     });
 
-    manager.on('castAccepted', (message: any) => {
+    manager.on('castAccepted', (_message: unknown) => {
         // We need to know which request this is for, or we assume it's for the pending one.
         // For simplicity, we trust the flow for now.
         // Ideally CastManager keeps track of pending requests.

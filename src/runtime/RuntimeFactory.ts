@@ -34,7 +34,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';
 import { IRuntimeOptions } from './IRuntimeOptions';
-import { IScriptRuntime } from '@/core';
+import type { IScriptRuntime } from './IScriptRuntime';
 
 /**
  * Interface for runtime factory implementations

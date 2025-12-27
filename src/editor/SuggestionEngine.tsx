@@ -16,7 +16,7 @@ export class SuggestionEngine {
    */
   suggest(
     word: editor.IWordAtPosition, 
-    model: editor.ITextModel, 
+    _model: editor.ITextModel, 
     position: IPosition
   ): languages.ProviderResult<languages.CompletionList> {
     return {

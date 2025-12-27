@@ -112,22 +112,22 @@ function segmentToFragments(segment: Segment): ICodeFragment[] {
   }
 
   // Power metric
-  if (segment.avgPower > 0) {
+  if ((segment.avgPower ?? 0) > 0) {
     fragments.push({
       type: 'power',
       fragmentType: FragmentType.Resistance,
       value: segment.avgPower,
-      image: `${Math.round(segment.avgPower)}W`
+      image: `${Math.round(segment.avgPower ?? 0)}W`
     });
   }
 
   // Heart rate metric
-  if (segment.avgHr > 0) {
+  if ((segment.avgHr ?? 0) > 0) {
     fragments.push({
       type: 'heart_rate',
       fragmentType: FragmentType.Text,
       value: segment.avgHr,
-      image: `${Math.round(segment.avgHr)}♥`
+      image: `${Math.round(segment.avgHr ?? 0)}♥`
     });
   }
 

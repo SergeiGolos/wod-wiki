@@ -11,8 +11,8 @@
  */
 
 import { Range } from 'monaco-editor';
-import React, { useEffect, useRef, useLayoutEffect } from 'react';
-import { 
+import React, { useRef, useLayoutEffect } from 'react';
+import type { 
   CardRuleGenerator, 
   WodBlockContent, 
   RowRule, 
@@ -22,7 +22,6 @@ import {
   OverlayRenderProps,
   RuleGenerationContext,
 } from '../row-types';
-import { ICodeStatement } from '../../../core/types/core';
 import { WodScriptVisualizer } from '../../../components/WodScriptVisualizer';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
@@ -105,10 +104,6 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
-
-    // Calculate content line range (excluding fences)
-    const firstContentLine = startLine + 1;
-    const lastContentLine = endLine - 1;
     
     // Line before opening fence (where header will be positioned)
     const lineBeforeOpeningFence = Math.max(0, startLine - 1);
@@ -241,8 +236,8 @@ interface WodPreviewPanelProps {
 const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
   statements,
   parseState,
-  sourceLines,
-  isEditing,
+  sourceLines: _sourceLines,
+  isEditing: _isEditing,
   activeStatementIndex = -1,
   onStartWorkout,
   onHover,

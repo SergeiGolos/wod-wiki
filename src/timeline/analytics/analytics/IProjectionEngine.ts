@@ -1,7 +1,7 @@
-import { RuntimeMetric } from '../runtime/RuntimeMetric';
-import { Exercise } from '../exercise';
-import { ProjectionResult } from './ProjectionResult';
-import { ICodeFragment } from '../../../core/models/CodeFragment';
+import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import type { Exercise } from '../../../exercise';
+import type { ProjectionResult } from './ProjectionResult';
+import type { ICodeFragment } from '../../../core/models/CodeFragment';
 
 /**
  * Interface for projection engines that analyze runtime metrics.

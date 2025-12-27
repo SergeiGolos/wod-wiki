@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'bun:test';
 import { ExerciseSearchEngine } from './ExerciseSearchEngine';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
-import type { ExercisePathIndex, ExerciseDataProvider } from '../types/providers';
+import type { ExercisePathIndex, ExerciseDataProvider } from '../core/types/providers';
 
 // Mock data
 const mockIndex: ExercisePathIndex = {

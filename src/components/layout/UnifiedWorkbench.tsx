@@ -37,7 +37,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { AnalyticsTransformer, transformRuntimeToAnalytics, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
+import { transformRuntimeToAnalytics, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -76,8 +76,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     startWorkout,
     completeWorkout
   } = useWorkbench();
-
-  const analyticsTransformer = useMemo(() => new AnalyticsTransformer(), []);
 
   // Local UI state
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);

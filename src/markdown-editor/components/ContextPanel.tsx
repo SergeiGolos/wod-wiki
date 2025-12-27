@@ -7,7 +7,7 @@ import { WodBlock } from '../types';
 import { EditableStatementList } from './EditableStatementList';
 import { WorkoutTimerDialog } from './WorkoutTimerDialog';
 import { Button } from '@/components/ui/button';
-import { Play, BookOpen } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 export interface ContextPanelProps {
   /** Block data to display */
