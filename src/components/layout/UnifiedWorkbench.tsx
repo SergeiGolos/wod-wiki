@@ -77,9 +77,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     completeWorkout
   } = useWorkbench();
 
-  // Analytics transformer for future use
-  // const _analyticsTransformer = useMemo(() => new AnalyticsTransformer(), []);
-
   // Local UI state
   const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
