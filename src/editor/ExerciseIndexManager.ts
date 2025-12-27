@@ -17,8 +17,6 @@ import type { ExerciseDataProvider } from '../core/types/providers';
  */
 export class ExerciseIndexManager {
   private static instance: ExerciseIndexManager | null = null;
-  // Promise for initialization (may be used in future)
-  // private static _initPromise: Promise<ExerciseIndexManager> | null = null;
 
   private index: ExercisePathIndex | null = null;
   private exerciseCache: LRUCache<string, Exercise>;
