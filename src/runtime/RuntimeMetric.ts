@@ -54,6 +54,23 @@ export interface TimeSpan {
  * Represents a compiled metric for a workout segment, including effort, 
  * value, and source information. Used to aggregate and report performance 
  * data during and after execution.
+ * 
+ * @deprecated RuntimeMetric is being phased out in favor of ICodeFragment + MetricBehavior.
+ * Use FragmentMetricCollector and fragment-based analytics instead.
+ * 
+ * **Migration Path:**
+ * - Analytics: Use `AnalysisService.runAllProjectionsFromFragments()` instead of `runAllProjections()`
+ * - Collection: Use `FragmentMetricCollector` instead of `MetricCollector`
+ * - Display: Use `fragmentsToDisplayMetrics()` utility for UI rendering
+ * 
+ * **Timeline:**
+ * - Phase 2 (Current): Both paths supported, equivalence tests passing
+ * - Phase 3 (Now): RuntimeMetric marked deprecated but fully functional
+ * - Q2 2025: RuntimeMetric will be removed entirely
+ * 
+ * @see ICodeFragment for the replacement type
+ * @see FragmentMetricCollector for fragment-based collection
+ * @see MIGRATION_GUIDE.md for detailed migration instructions
  */
 export interface RuntimeMetric {
   /** The ID of the ExerciseDefinition this metric relates to. */
