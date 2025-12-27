@@ -36,7 +36,7 @@ export enum MetricValueType {
  * ```
  */
 export type MetricValue = {
-  type: MetricValueType | "repetitions" | "resistance" | "distance" | "timestamp" | "rounds" | "time" | "calories" | "action" | "effort" | "heart_rate" | "cadence" | "power";
+  type: MetricValueType;
   value: number | undefined;
   unit: string;
 };
@@ -64,8 +64,8 @@ export interface TimeSpan {
  * - Display: Use `fragmentsToDisplayMetrics()` utility for UI rendering
  * 
  * **Timeline:**
- * - Phase 2 (Current): Both paths supported, equivalence tests passing
- * - Phase 3 (Now): RuntimeMetric marked deprecated but fully functional
+ * - Phase 2: Both paths supported, equivalence tests passing
+ * - Phase 3 (Current): RuntimeMetric marked deprecated but fully functional
  * - Q2 2025: RuntimeMetric will be removed entirely
  * 
  * @see ICodeFragment for the replacement type

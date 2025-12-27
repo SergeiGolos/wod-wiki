@@ -76,6 +76,13 @@ export class VolumeProjectionEngine implements IProjectionEngine {
    * Extracts repetitions and resistance from fragments and calculates
    * total volume. This is the preferred method for Phase 2+.
    * 
+   * **Fragment Pairing:**
+   * Fragments are processed sequentially. A set is calculated when both
+   * Rep and Resistance fragments are encountered. If fragments end with
+   * an unpaired Rep or Resistance, that value is silently dropped.
+   * 
+   * **Expected Pattern:** Rep, Resistance, Rep, Resistance, ...
+   * 
    * @param fragments Array of code fragments for a single exercise
    * @param exerciseId Exercise identifier
    * @param definition Exercise definition
