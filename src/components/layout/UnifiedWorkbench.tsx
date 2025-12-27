@@ -29,7 +29,6 @@ import { AudioToggle } from '../audio/AudioToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
-import { MetricsProvider } from '../../services/MetricsContext';
 import { SlidingViewport } from './SlidingViewport';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
@@ -494,17 +493,15 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
 
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
-      <MetricsProvider>
-        <CommandProvider>
-          <WorkbenchProvider initialContent={props.initialContent}>
-            <AudioProvider>
-              <RuntimeProvider factory={runtimeFactory}>
-                <UnifiedWorkbenchContent {...props} />
-              </RuntimeProvider>
-            </AudioProvider>
-          </WorkbenchProvider>
-        </CommandProvider>
-      </MetricsProvider>
+      <CommandProvider>
+        <WorkbenchProvider initialContent={props.initialContent}>
+          <AudioProvider>
+            <RuntimeProvider factory={runtimeFactory}>
+              <UnifiedWorkbenchContent {...props} />
+            </RuntimeProvider>
+          </AudioProvider>
+        </WorkbenchProvider>
+      </CommandProvider>
     </ThemeProvider>
   );
 };

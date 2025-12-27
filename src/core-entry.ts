@@ -17,7 +17,9 @@ export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 export { CollectionSpan } from './core/models/CollectionSpan';
-export type { TimeSpan, Metric, MetricValue } from './core/models/CollectionSpan';
+export type { TimeSpan } from './core/models/CollectionSpan';
+// Note: Metric and MetricValue removed in Phase 3. Use ICodeFragment instead.
+export type { MetricValue, MetricValueType } from './runtime/RuntimeMetric';
 
 // Parser
 export * from './parser/timer.parser';
@@ -87,4 +89,6 @@ export type { ICodeFragment } from './core/models/CodeFragment';
 // Utility exports
 export { MetricCollector } from './runtime/MetricCollector';
 export type { IMetricCollector } from './runtime/MetricCollector';
+export { FragmentMetricCollector } from './runtime/FragmentMetricCollector';
+export type { IFragmentMetricCollector } from './runtime/FragmentMetricCollector';
 

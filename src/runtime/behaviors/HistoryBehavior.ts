@@ -26,21 +26,6 @@ export class HistoryBehavior implements IRuntimeBehavior {
     onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
         this.startTime = Date.now();
 
-        // Allocate start time in metrics for backward compatibility with some behaviors
-        const metricsRef = runtime.memory.allocate<any>(
-            MemoryTypeEnum.METRICS_CURRENT,
-            'runtime',
-            {},
-            'public'
-        );
-        const metrics = metricsRef.get() || {};
-        metrics['startTime'] = {
-            value: this.startTime,
-            unit: 'ms',
-            sourceId: block.key.toString()
-        };
-        metricsRef.set({ ...metrics });
-
         // Build metadata from config
         const metadata: any = {
             tags: [],

@@ -7,12 +7,9 @@ import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { IEvent } from '../IEvent';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { CurrentMetrics } from '../models/MemoryModels';
 
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
-import { TypedMemoryReference } from '../IMemoryReference';
 
 /**
  * EffortBlock Configuration
@@ -55,7 +52,6 @@ export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
   private _forceComplete = false;
-  private metricsRef?: TypedMemoryReference<CurrentMetrics>;
 
   constructor(
     runtime: IScriptRuntime,
@@ -233,39 +229,25 @@ export class EffortBlock extends RuntimeBlock {
   }
 
   /**
-   * Update memory and emit reps:updated event.
+   * Update metrics and emit reps:updated event.
    * Helper method for incrementRep() and setReps().
    * 
    * This method implements the unified metrics architecture:
-   * 1. Updates METRICS_CURRENT for live UI display
-   * 2. Syncs to ExecutionRecord for history/analytics
-   * 3. Emits events for reactive updates
+   * 1. Syncs to ExecutionRecord for history/analytics via tracker
+   * 2. Emits events for reactive UI updates (fragments available on block)
+   * 
+   * Note: METRICS_CURRENT memory slot removed in Phase 3.
+   * UI components now read directly from block.fragments or subscribe to events.
    */
   private updateMetrics(runtime: IScriptRuntime): void {
     const blockId = this.key.toString();
 
-    // 1. Update METRICS_CURRENT for live UI - use cached reference via context
-    if (!this.metricsRef) {
-      this.metricsRef = this.context.allocate<CurrentMetrics>(
-        MemoryTypeEnum.METRICS_CURRENT,
-        {},
-        'public'
-      );
-    }
-    const metrics = this.metricsRef.get() || {};
-    metrics['reps'] = {
-      value: this.currentReps,
-      unit: 'reps',
-      sourceId: blockId
-    };
-    this.metricsRef.set({ ...metrics });
-
-    // 2. Sync to RuntimeSpan via tracker for history/analytics
+    // 1. Sync to RuntimeSpan via tracker for history/analytics
     if (runtime.tracker) {
       runtime.tracker.recordMetric(blockId, 'reps', this.currentReps, 'reps');
     }
 
-    // 3. Emit reps:updated event
+    // 2. Emit reps:updated event for reactive UI updates
     this._runtime.handle({
       name: 'reps:updated',
       timestamp: new Date(),

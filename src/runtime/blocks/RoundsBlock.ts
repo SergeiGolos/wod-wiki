@@ -4,14 +4,11 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
 
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
-import { CurrentMetrics } from '../models/MemoryModels';
 import { BlockLifecycleOptions } from '../IRuntimeBlock';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
-import { TypedMemoryReference } from '../IMemoryReference';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
@@ -40,7 +37,6 @@ export interface RoundsBlockConfig {
  */
 export class RoundsBlock extends RuntimeBlock {
   private loopCoordinator: LoopCoordinatorBehavior;
-  private metricsRef?: TypedMemoryReference<CurrentMetrics>;
 
 
   constructor(
@@ -203,26 +199,16 @@ export class RoundsBlock extends RuntimeBlock {
     return actions;
   }
 
+  /**
+   * Update metrics for current round.
+   * 
+   * Note: METRICS_CURRENT memory slot removed in Phase 3.
+   * Rep scheme information is available via block.fragments and events.
+   * UI components now read directly from block state or subscribe to rounds:changed events.
+   */
   private updateMetrics(_runtime: IScriptRuntime): void {
-    if (this.config.repScheme) {
-      const currentReps = this.getRepsForCurrentRound();
-      if (currentReps !== undefined) {
-        // Reuse existing ref or create new one via context
-        if (!this.metricsRef) {
-          this.metricsRef = this.context.allocate<CurrentMetrics>(
-            MemoryTypeEnum.METRICS_CURRENT,
-            {},
-            'public'
-          );
-        }
-        const metrics = this.metricsRef.get() || {};
-        metrics['reps'] = {
-          value: currentReps,
-          unit: 'reps',
-          sourceId: this.key.toString()
-        };
-        this.metricsRef.set({ ...metrics });
-      }
-    }
+    // Rep scheme metrics now handled via fragments and events
+    // The current round reps are accessible via getRepsForCurrentRound()
+    // and emitted in rounds:changed events
   }
 }

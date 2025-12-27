@@ -5,6 +5,8 @@
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MdTimerRuntime } from '../../parser/md-timer';
+import { ICodeFragment } from '../../core/models/CodeFragment';
+import { MetricBehavior } from '../../types/MetricBehavior';
 
 /**
  * State of a WOD block
@@ -41,17 +43,23 @@ export interface ParseError {
 }
 
 /**
- * Workout metric collected during execution
+ * Workout metric fragment collected during execution.
+ * Uses unified ICodeFragment format with MetricBehavior for consistency.
+ * 
+ * Replaces legacy WorkoutMetric ad-hoc format in Phase 3.
  */
-export interface WorkoutMetric {
-  name: string;
-  value: number | string;
-  unit?: string;
+export interface WorkoutMetricFragment {
+  /** The code fragment representing this metric */
+  fragment: ICodeFragment;
+  /** Behavior classification (Collected, Recorded, etc.) */
+  behavior?: MetricBehavior;
+  /** Timestamp when collected */
   timestamp?: number;
 }
 
 /**
- * Results from a completed workout
+ * Results from a completed workout.
+ * Uses fragment-based metrics for unified representation.
  */
 export interface WorkoutResults {
   /** When workout started */
@@ -72,8 +80,8 @@ export interface WorkoutResults {
   /** Reps completed (for rep-based workouts) */
   repsCompleted?: number;
   
-  /** Metrics collected from runtime */
-  metrics: WorkoutMetric[];
+  /** Metrics collected from runtime (fragment-based format) */
+  metrics: WorkoutMetricFragment[];
   
   /** Whether workout was completed or stopped early */
   completed: boolean;

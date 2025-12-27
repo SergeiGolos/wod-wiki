@@ -1,14 +1,3 @@
-
-export interface MetricValue {
-    value: number;
-    unit: string;
-    sourceId: string;
-}
-
-export interface CurrentMetrics {
-    [key: string]: MetricValue;
-}
-
 export interface RuntimeButton {
     id: string;
     label?: string;

@@ -5,6 +5,7 @@ import { IProjectionEngine } from './IProjectionEngine';
 import { RuntimeMetric } from '../runtime/RuntimeMetric';
 import { Exercise, Level, Category } from '../../../exercise.d';
 import { ProjectionResult } from './ProjectionResult';
+import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 
 // Mock projection engine for testing
 class MockProjectionEngine implements IProjectionEngine {
@@ -150,4 +151,97 @@ describe('AnalysisService', () => {
       expect(service.getEngines()).toHaveLength(0);
     });
   });
+
+  describe('runAllProjectionsFromFragments()', () => {
+    test('should run fragment-based projections', () => {
+      const engine: IProjectionEngine = {
+        name: 'FragmentEngine',
+        calculate: () => [],
+        calculateFromFragments: (fragments, exerciseId, definition) => [{
+          name: 'Fragment Result',
+          value: 200,
+          unit: 'test',
+          timeSpan: { start: new Date(), stop: new Date() },
+        }],
+      };
+
+      service.registerEngine(engine);
+
+      const fragments: ICodeFragment[] = [
+        {
+          type: 'effort',
+          fragmentType: FragmentType.Effort,
+          value: 'Bench Press',
+          image: 'Bench Press',
+        },
+        {
+          type: 'rep',
+          fragmentType: FragmentType.Rep,
+          value: 10,
+        },
+      ];
+
+      const results = service.runAllProjectionsFromFragments(fragments);
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe('Fragment Result');
+      expect(results[0].value).toBe(200);
+    });
+
+    test('should group fragments by exercise', () => {
+      let capturedExerciseId: string | undefined;
+
+      const engine: IProjectionEngine = {
+        name: 'CaptureEngine',
+        calculate: () => [],
+        calculateFromFragments: (fragments, exerciseId) => {
+          capturedExerciseId = exerciseId;
+          return [];
+        },
+      };
+
+      service.registerEngine(engine);
+
+      const fragments: ICodeFragment[] = [
+        {
+          type: 'effort',
+          fragmentType: FragmentType.Effort,
+          value: 'Bench Press',
+        },
+        {
+          type: 'rep',
+          fragmentType: FragmentType.Rep,
+          value: 10,
+        },
+      ];
+
+      service.runAllProjectionsFromFragments(fragments);
+      expect(capturedExerciseId).toBe('Bench Press');
+    });
+
+    test('should skip engines without calculateFromFragments', () => {
+      const legacyEngine: IProjectionEngine = {
+        name: 'LegacyEngine',
+        calculate: () => [{
+          name: 'Should Not Appear',
+          value: 0,
+          unit: '',
+          timeSpan: { start: new Date(), stop: new Date() },
+        }],
+      };
+
+      service.registerEngine(legacyEngine);
+
+      const fragments: ICodeFragment[] = [
+        {
+          type: 'effort',
+          fragmentType: FragmentType.Effort,
+          value: 'Bench Press',
+        },
+      ];
+
+      const results = service.runAllProjectionsFromFragments(fragments);
+      expect(results).toHaveLength(0);
+    });
+  });
 });
+

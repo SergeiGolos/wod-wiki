@@ -141,7 +141,7 @@ export interface ExecutionSnapshot {
     elapsedTime: number;
     lastEvent?: string;
     lastEventTime?: number;
-    performanceMetrics?: PerformanceMetrics;
+    benchmarkMetrics?: BenchmarkMetrics;
   };
 
   // Timestamp
@@ -651,7 +651,11 @@ export interface ThemeColors {
   warning: string;
 }
 
-export interface PerformanceMetrics {
+/**
+ * Benchmarking metrics for runtime operations.
+ * Renamed from PerformanceMetrics to avoid confusion with runtime performance metrics.
+ */
+export interface BenchmarkMetrics {
   snapshotCreationTime: number;    // ms
   renderTime: number;               // ms
   memoryUsage?: number;             // MB

@@ -12,7 +12,6 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 import { DebugButton } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure, DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import { MetricsProvider } from '../../services/MetricsContext';
 import { RuntimeLayout } from '../../views/runtime/RuntimeLayout';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { WorkoutOverlay } from '../workout/WorkoutOverlay';
@@ -320,11 +319,9 @@ export const WodWorkbench: React.FC<WodWorkbenchProps> = (props) => {
 
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
-      <MetricsProvider>
-        <CommandProvider>
-          <WodWorkbenchContent {...props} />
-        </CommandProvider>
-      </MetricsProvider>
+      <CommandProvider>
+        <WodWorkbenchContent {...props} />
+      </CommandProvider>
     </ThemeProvider>
   );
 };
