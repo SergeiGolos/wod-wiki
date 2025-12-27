@@ -1,7 +1,7 @@
 # Technical Debt Remediation Plan
 
 **Generated**: 2025-12-26  
-**Updated**: 2025-12-26  
+**Updated**: 2025-12-27  
 **Project**: WOD Wiki v0.5.0  
 **Analysis Scope**: Full codebase (46,246 LOC across 351 source files)
 
@@ -11,7 +11,7 @@
 
 | #   | Issue                  | Ease | Impact    | Risk      | Status | Progress | Description                                     |
 | --- | ---------------------- | ---- | --------- | --------- | ------ | -------- | ----------------------------------------------- |
-| 1   | TypeScript Errors      | 3    | 🔴 High   | 🔴 High   | Open   | 🔴 -15%  | 584 errors (Regression from 508 baseline)       |
+| 1   | TypeScript Errors      | 3    | 🔴 High   | 🔴 High   | Open   | 🟢 30%   | 409 errors (Reduced from 584)                   |
 | 2   | ~~Console Statements~~ | 1    | 🟡 Medium | 🟡 Medium | ✅ Done | ✅ 100%   | ~~198~~ → 38 statements (31 console.error kept) |
 | 3   | TODO/FIXME Markers     | 2    | 🟡 Medium | 🟡 Medium | Open   | 🟡 4%    | 25 items remain (Reduced from 26+)              |
 | 4   | Test Coverage Gap      | 3    | 🔴 High   | 🟡 Medium | Open   | 🟢 16%   | ~24% test ratio (11,397 LOC / 47,180 source)    |
@@ -25,16 +25,21 @@
 
 ## Detailed Remediation Plans
 
-### 1. TypeScript Errors (508 errors)
+### 1. TypeScript Errors (409 errors remaining)
 
-**Overview**: Strict TypeScript compilation fails with 508 errors across the codebase.
+**Overview**: Strict TypeScript compilation fails with 409 errors across the codebase.
 
 **Explanation**: Type mismatches, missing type annotations, and incompatible mock types prevent `tsc --noEmit` from passing. Key issues include:
 - Mock type incompatibilities in `tests/setup.ts` (ResizeObserver, IntersectionObserver)
 - Unused variable declarations (TS6133)
 - Type assignment errors (TS2322)
 
-**Update (2025-12-26)**: Count increased to **584** errors. Recent refactors in runtime orchestration and metrics legacy systems have introduced temporary regressions that need stabilization.
+**Update (2025-12-27)**: Count reduced from **584** to **409** errors (30% reduction). Key fixes include:
+- Resolved duplicate export conflicts (TS2308) in index files
+- Added Monaco worker type declarations for Vite imports
+- Fixed Chevrotain visitor pattern types
+- Removed commented-out code and unused variables
+- Fixed ref forwarding in UI components
 
 **Requirements**:
 - TypeScript 5.x knowledge

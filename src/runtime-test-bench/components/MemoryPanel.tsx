@@ -88,9 +88,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({
   const renderEntryRow = (entry: typeof entries[0]) => {
     const isHighlightedById = highlightedMemoryId === entry.id;
     const isHighlightedByOwner = highlightedOwnerKey === entry.ownerId;
-    // Check if entry's owner has a lineNumber that matches highlightedLine
     const isHighlightedByLine = highlightedLine !== undefined && entry.lineNumber === highlightedLine;
-    const _isHighlighted = isHighlightedById || isHighlightedByOwner || isHighlightedByLine;
 
     return (
       <tr

@@ -39,8 +39,6 @@ export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterCo
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
-    // Property line count - may be used for future features
-    // const _propertyLineCount = endLine - startLine - 1;
 
     if (isEditing) {
       // Edit mode: Show all lines including --- delimiters with subtle styling

@@ -104,10 +104,6 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
-
-    // Content line range (excluding fences) - may be needed for future features
-    // const _firstContentLine = startLine + 1;
-    // const _lastContentLine = endLine - 1;
     
     // Line before opening fence (where header will be positioned)
     const lineBeforeOpeningFence = Math.max(0, startLine - 1);

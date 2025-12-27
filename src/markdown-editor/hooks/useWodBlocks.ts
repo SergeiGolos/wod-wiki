@@ -57,8 +57,6 @@ export function useWodBlocks(
   const [detecting, setDetecting] = useState(false);
   
   const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  // Parse timer reference for future use
-  // const _parseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect blocks from content
   const detectBlocks = useCallback(() => {
