@@ -24,7 +24,7 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
 };
 
 export const CardFooter: React.FC<CardFooterProps> = ({
-  cardType,
+  cardType: _cardType,
   actions = [],
   onAction,
   className = '',

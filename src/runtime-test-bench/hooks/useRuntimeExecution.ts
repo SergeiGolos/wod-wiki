@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { NextEvent, TickEvent } from '../../runtime/NextEvent';
+import { TickEvent } from '../../runtime/NextEvent';
 import { EXECUTION_TICK_RATE_MS } from '../config/constants';
 
 /**

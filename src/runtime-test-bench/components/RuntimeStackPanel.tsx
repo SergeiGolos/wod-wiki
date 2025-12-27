@@ -17,7 +17,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
   onBlockClick,
   showMetrics = true,
   showIcons = true,
-  expandAll = false,
+  expandAll: _expandAll = false,
   className = '',
   testId = 'runtime-stack-panel'
 }) => {

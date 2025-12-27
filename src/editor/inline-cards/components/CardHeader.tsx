@@ -45,7 +45,7 @@ const CARD_TITLES: Record<CardType, string> = {
 export const CardHeader: React.FC<CardHeaderProps> = ({
   cardType,
   title,
-  icon,
+  icon: _icon,
   className = '',
 }) => {
   const IconComponent = CARD_ICONS[cardType] || FileText;

@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import type * as monacoNS from 'monaco-editor';
 import { editor as monacoEditor, IDisposable, Emitter } from 'monaco-editor';
 import { Monaco } from '@monaco-editor/react';
 import { WodBlock } from '../types';
@@ -103,7 +104,7 @@ export function useWodDecorations(
       languageId,
       {
         onDidChangeInlayHints: emitter.event,
-        provideInlayHints: (model, range, token) => {
+        provideInlayHints: (model: monacoNS.editor.ITextModel, range: monacoNS.Range, token: monacoNS.CancellationToken) => {
           // Use current refs to get latest values
           const provider = createWodInlayHintsProvider(
             blocksRef.current,
@@ -122,10 +123,10 @@ export function useWodDecorations(
       languageId,
       {
         getLegend: () => semanticTokensProvider.getLegend(),
-        provideDocumentSemanticTokens: (model, lastResultId, token) => {
+        provideDocumentSemanticTokens: (model: monacoNS.editor.ITextModel, _lastResultId: string | null, token: monacoNS.CancellationToken) => {
           // Use current refs to get latest values
           const provider = createWodSemanticTokensProvider(blocksRef.current);
-          return provider.provideDocumentSemanticTokens(model, lastResultId, token);
+          return provider.provideDocumentSemanticTokens(model, _lastResultId, token);
         },
         releaseDocumentSemanticTokens: semanticTokensProvider.releaseDocumentSemanticTokens
       }

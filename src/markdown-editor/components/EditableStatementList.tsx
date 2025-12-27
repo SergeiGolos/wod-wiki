@@ -151,7 +151,7 @@ function isLinkStatement(statement: ICodeStatement): boolean {
  */
 export const EditableStatementList: React.FC<EditableStatementListProps> = ({
   statements,
-  onAddStatement,
+  onAddStatement: _onAddStatement,
   onEditStatement,
   onDeleteStatement,
   readonly = false,

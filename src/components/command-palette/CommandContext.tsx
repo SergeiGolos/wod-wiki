@@ -44,7 +44,7 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   // Handle command shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { isOpen, commands, activeContext, activeStrategy } = stateRef.current;
+      const { isOpen, commands, activeContext, activeStrategy: _activeStrategy } = stateRef.current;
       
       if (!isOpen) { 
          // Check shortcuts

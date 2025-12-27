@@ -1,5 +1,6 @@
 import React from 'react';
 import { CollectionSpan } from '../../core/models/CollectionSpan';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 
 interface LabelAnchorProps {
   span?: CollectionSpan;
@@ -11,9 +12,20 @@ interface LabelAnchorProps {
 const resolveTemplate = (template: string, data: CollectionSpan) => {
   if (!template) return '';
   return template.replace(/\{\{(.*?)\}\}/g, (match, key) => {
-    const value = (data as any)[key.trim()];
+    const value = (data as unknown as Record<string, unknown>)[key.trim()];
     return value !== undefined ? String(value) : match;
   });
+};
+
+// Helper to extract value from fragment
+const getFragmentValue = (fragments: ICodeFragment[], type: string): { value?: number; unit?: string } | undefined => {
+  const fragment = fragments.find(f => f.type === type);
+  if (!fragment) return undefined;
+  const value = fragment.value as { amount?: number; value?: number; units?: string } | undefined;
+  return {
+    value: value?.amount ?? value?.value,
+    unit: value?.units ?? ''
+  };
 };
 
 // Component for displaying metric information in a nice formatted way
@@ -31,8 +43,8 @@ export const LabelDisplay: React.FC<LabelAnchorProps> = ({
     'next-up': "text-emerald-600 text-lg font-medium leading-normal mb-12",
   };
 
-  // Check if there are any metrics to display
-  if (!span?.metrics || span.metrics.length === 0) {
+  // Check if there are any fragments to display
+  if (!span?.fragments || span.fragments.length === 0) {
     return (
       <div className={`mx-auto flex items-center justify-center ${variantClasses[variant]} ${className || ""}`}>
         <span className="text-2xl md:text-3xl text-gray-400">No exercise</span>
@@ -42,17 +54,17 @@ export const LabelDisplay: React.FC<LabelAnchorProps> = ({
 
   return (
     <div className={`mx-auto flex flex-col items-start space-y-3 ${variantClasses[variant]} ${className || ""}`}>
-      {span.metrics.map((metric, metricIndex) => {
+      {span.fragments.map((fragmentGroup: ICodeFragment[], metricIndex: number) => {
         const effortText = template ? resolveTemplate(template, span) : 
                           span.blockKey || `Exercise ${metricIndex + 1}`;
         
-        // Extract values by type
-        const reps = metric.values?.find(v => v.type === 'repetitions');
-        const resistance = metric.values?.find(v => v.type === 'resistance');
-        const distance = metric.values?.find(v => v.type === 'distance');
+        // Extract values by type from fragments
+        const reps = getFragmentValue(fragmentGroup, 'rep');
+        const resistance = getFragmentValue(fragmentGroup, 'resistance');
+        const distance = getFragmentValue(fragmentGroup, 'distance');
         
         return (
-          <div key={`${metric.sourceId}-${metricIndex}`} className="w-full">
+          <div key={`fragment-${metricIndex}`} className="w-full">
             <div className="flex flex-wrap items-center gap-2 text-lg md:text-xl">
               {/* Repetitions with icon and styling */}
               {reps && (

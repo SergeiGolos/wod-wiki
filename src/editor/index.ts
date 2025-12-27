@@ -1,2 +1,2 @@
-export * from './editor-entry';
+export * from '../editor-entry';
 // Export other editor components

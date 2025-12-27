@@ -1,8 +1,9 @@
-import { RuntimeMetric } from '../runtime/RuntimeMetric';
-import { ExerciseDefinitionService } from '../services/ExerciseDefinitionService';
+import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import { ExerciseDefinitionService } from '../../../services';
 import { IProjectionEngine } from './IProjectionEngine';
 import { ProjectionResult } from './ProjectionResult';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { FragmentType } from '../../../core/models/CodeFragment';
+import type { ICodeFragment } from '../../../core/models/CodeFragment';
 
 /**
  * Central service for running analytical projections on runtime metrics.

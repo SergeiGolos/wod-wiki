@@ -113,11 +113,11 @@ export interface IRuntimeBlockStrategy {
 /**
  * Re-export key runtime types
  */
-export type { IScriptRuntime as ScriptRuntime } from '../runtime/IScriptRuntime';
-export type { IRuntimeBlock as RuntimeBlock } from '../runtime/IRuntimeBlock';
-export type { IRuntimeAction as RuntimeAction } from '../runtime/IRuntimeAction';
-export type { IRuntimeMemory as RuntimeMemory } from '../runtime/IRuntimeMemory';
-export type { RuntimeStack } from '../runtime/RuntimeStack';
-export type { JitCompiler } from '../runtime/JitCompiler';
-export type { IRuntimeBlockStrategy as RuntimeBlockStrategy } from '../runtime/IRuntimeBlockStrategy';
+export type { IScriptRuntime as ScriptRuntime } from '@/runtime/IScriptRuntime';
+export type { IRuntimeBlock as RuntimeBlock } from '@/runtime/IRuntimeBlock';
+export type { IRuntimeAction as RuntimeAction } from '@/runtime/IRuntimeAction';
+export type { IRuntimeMemory as RuntimeMemory } from '@/runtime/IRuntimeMemory';
+export type { RuntimeStack } from '@/runtime/RuntimeStack';
+export type { JitCompiler } from '@/runtime/JitCompiler';
+export type { IRuntimeBlockStrategy as RuntimeBlockStrategy } from '@/runtime/IRuntimeBlockStrategy';
 export type { ICodeStatement } from './core';

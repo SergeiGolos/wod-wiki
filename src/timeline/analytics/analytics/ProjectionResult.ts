@@ -1,4 +1,4 @@
-import { TimeSpan } from '../runtime/RuntimeMetric';
+import type { TimeSpan } from '../../../core/models/CollectionSpan';
 
 /**
  * Generic result structure for projection engine calculations.

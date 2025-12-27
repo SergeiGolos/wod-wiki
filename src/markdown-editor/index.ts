@@ -11,7 +11,7 @@ export type {
   WodBlock,
   WodBlockState,
   ParseError,
-  WorkoutMetric,
+  WorkoutMetricFragment,
   WorkoutResults
 } from './types';
 

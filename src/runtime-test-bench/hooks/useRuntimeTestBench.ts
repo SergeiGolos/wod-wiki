@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { RuntimeTestBenchState, MemoryGrouping, Theme, CompilationTab, UseRuntimeTestBenchReturn } from '../types/interfaces';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import type { RuntimeTestBenchState, MemoryGrouping, Theme, CompilationTab, UseRuntimeTestBenchReturn } from '../types/interfaces';
+import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { useRuntimeSnapshot } from './useRuntimeSnapshot';
 import { useHighlighting } from './useHighlighting';
 

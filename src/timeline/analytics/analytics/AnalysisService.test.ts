@@ -1,17 +1,19 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { AnalysisService } from './AnalysisService';
 import { ExerciseDefinitionService } from '../../../repositories/workout/ExerciseDefinitionService';
-import { IProjectionEngine } from './IProjectionEngine';
-import { RuntimeMetric } from '../runtime/RuntimeMetric';
-import { Exercise, Level, Category } from '../../../exercise.d';
-import { ProjectionResult } from './ProjectionResult';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import type { IProjectionEngine } from './IProjectionEngine';
+import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import type { Exercise } from '../../../exercise.d';
+import { Level, Category } from '../../../exercise.d';
+import type { ProjectionResult } from './ProjectionResult';
+import { FragmentType } from '../../../core/models/CodeFragment';
+import type { ICodeFragment } from '../../../core/models/CodeFragment';
 
 // Mock projection engine for testing
 class MockProjectionEngine implements IProjectionEngine {
   readonly name = 'MockEngine';
   
-  calculate(metrics: RuntimeMetric[], definition: Exercise): ProjectionResult[] {
+  calculate(_metrics: RuntimeMetric[], _definition: Exercise): ProjectionResult[] {
     return [{
       name: 'Mock Result',
       value: 100,
@@ -112,7 +114,7 @@ describe('AnalysisService', () => {
       let callCount = 0;
       const countingEngine: IProjectionEngine = {
         name: 'CountingEngine',
-        calculate: (metrics: RuntimeMetric[]) => {
+        calculate: (_metrics: RuntimeMetric[]) => {
           callCount++;
           return [];
         },
@@ -157,7 +159,7 @@ describe('AnalysisService', () => {
       const engine: IProjectionEngine = {
         name: 'FragmentEngine',
         calculate: () => [],
-        calculateFromFragments: (fragments, exerciseId, definition) => [{
+        calculateFromFragments: (_fragments, _exerciseId, _definition) => [{
           name: 'Fragment Result',
           value: 200,
           unit: 'test',
@@ -193,7 +195,7 @@ describe('AnalysisService', () => {
       const engine: IProjectionEngine = {
         name: 'CaptureEngine',
         calculate: () => [],
-        calculateFromFragments: (fragments, exerciseId) => {
+        calculateFromFragments: (_fragments, exerciseId) => {
           capturedExerciseId = exerciseId;
           return [];
         },

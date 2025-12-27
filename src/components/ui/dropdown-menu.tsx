@@ -70,7 +70,7 @@ interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
-  ({ className, children, align = 'center', isOpen, setIsOpen, ...props }, ref) => {
+  ({ className, children, align = 'center', isOpen, setIsOpen, ...props }, _ref) => {
     const contentRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { RuntimeTestBenchState, ParseResults, ExecutionSnapshot } from '../types/interfaces';
+import type { ParseResults, ExecutionSnapshot } from '../types/interfaces';
 
 export interface TestBenchContextState {
   code: string;

@@ -1,30 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { WodWikiSyntaxInitializer } from './WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from './SemantcTokenEngine';
 import { SuggestionEngine } from './SuggestionEngine';
 import { editor } from 'monaco-editor';
-import Editor, { MonacoDiffEditor } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
 import { Monaco } from '@monaco-editor/react';
 
 import { DefaultSuggestionService } from './SuggestionService';
-import { IScript } from '../parser/WodScript';
-import { CodeMetadata } from '../core/models/CodeMetadata';
+import type { IScript } from '../parser/WodScript';
+import type { CodeMetadata } from '../core/models/CodeMetadata';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 import { RichMarkdownManager } from './RichMarkdownManager';
 import { HiddenAreasCoordinator } from './utils/HiddenAreasCoordinator';
 import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
 import { useEditorResize } from '@/hooks/editor/useEditorResize';
-import { ExerciseDataProvider } from '@/core/types/providers';
+import type { ExerciseDataProvider } from '@/core/types/providers';
 
-interface WodWikiProps {
+export interface WodWikiProps {
   id: string;
   code?: string;
   cursor?: CodeMetadata | undefined;  
   /** Optional value change handler */
   onValueChange?: (classObject?: IScript) => void;
   /** Optional callback when editor is mounted */
-  onMount?: (editor: any) => void;
+  onMount?: (editor: editor.IStandaloneCodeEditor) => void;
   /** Whether the editor is read-only */
   readonly?: boolean;
   /** Line number to highlight */
@@ -69,7 +69,7 @@ export const WodWiki = ({ id, code = "", cursor = undefined, onValueChange, onMo
     const richMarkdownManagerRef = useRef<RichMarkdownManager | null>(null);
     const hiddenAreasCoordinatorRef = useRef<HiddenAreasCoordinator | null>(null);
     const [height, setHeight] = useState(50); // Initial height
-    const [highlightedLineData, setHighlightedLineData] = useState<number | null>(null);
+    const [_highlightedLineData, _setHighlightedLineData] = useState<number | null>(null);
 
     // Use shared hooks
     useMonacoTheme(editorRef.current, theme);

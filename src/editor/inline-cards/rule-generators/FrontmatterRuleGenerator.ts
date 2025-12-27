@@ -31,7 +31,7 @@ export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterCo
   cardType = 'frontmatter' as const;
 
   generateRules(
-    content: FrontMatterContent,
+    _content: FrontMatterContent,
     sourceRange: Range,
     context: RuleGenerationContext
   ): RowRule[] {
@@ -39,7 +39,8 @@ export class FrontmatterRuleGenerator implements CardRuleGenerator<FrontMatterCo
     const rules: RowRule[] = [];
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
-    const propertyLineCount = endLine - startLine - 1; // Lines between --- markers
+    // Property line count - may be used for future features
+    // const _propertyLineCount = endLine - startLine - 1;
 
     if (isEditing) {
       // Edit mode: Show all lines including --- delimiters with subtle styling

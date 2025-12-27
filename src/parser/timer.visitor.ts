@@ -16,12 +16,6 @@ import { ICodeStatement } from "@/core";
 export type GroupType = 'round' | 'compose' | 'repeat';
 
 /**
- * CST context type for Chevrotain visitor methods.
- * This is a generic type for CST nodes - Chevrotain generates these dynamically.
- */
-type CstContext = Record<string, unknown>;
-
-/**
  * Token metadata from Chevrotain
  */
 interface TokenMeta {
@@ -43,7 +37,12 @@ interface SemanticError {
 }
 
 const parser = new MdTimerParse() as { getBaseCstVisitorConstructor: () => new () => object };
-const BaseCstVisitor = parser.getBaseCstVisitorConstructor();
+const BaseCstVisitor = parser.getBaseCstVisitorConstructor() as { 
+  new (): { 
+    validateVisitor(): void;
+    visit(ctx: unknown, ...args: unknown[]): unknown;
+  };
+};
 
 export class MdTimerInterpreter extends BaseCstVisitor {
   private semanticErrors: SemanticError[] = [];
@@ -147,7 +146,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     for (const producer of fragmentProducers) {
       if (producer) {
-        statement.fragments.push(...this.visit(producer));
+        const visited = this.visit(producer) as ICodeFragment[];
+        statement.fragments.push(...visited);
       }
     }
 
@@ -308,7 +308,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     const meta = this.getMeta([ctx.GroupOpen[0], ctx.GroupClose[0]]);
 
     if (ctx.sequence) {
-      const groups = this.visit(ctx.sequence[0]);
+      const groups = this.visit(ctx.sequence[0]) as number[];
 
       if (groups.length == 1) {
         return [new RoundsFragment(groups[0], meta)];
@@ -316,7 +316,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
       return [
         new RoundsFragment(groups.length, meta),
-        ...groups.map((group: any) => new RepFragment(group, meta)),
+        ...groups.map((group: number) => new RepFragment(group, meta)),
       ];
     }
 

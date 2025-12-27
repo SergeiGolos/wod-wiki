@@ -1,4 +1,4 @@
-import { Exercise } from '../exercise';
+import type { Exercise } from '../../exercise';
 
 /**
  * Centralized repository for exercise context and definitions.

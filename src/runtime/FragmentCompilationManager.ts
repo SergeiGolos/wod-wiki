@@ -1,10 +1,10 @@
-import { ICodeFragment } from "../CodeFragment";
-import { EffortFragment } from "../fragments/EffortFragment";
-import { TextFragment } from "../fragments/TextFragment";
-import { MetricBehavior } from "../types/MetricBehavior";
+import { ICodeFragment } from "@/core/models/CodeFragment";
+import { EffortFragment } from "@/fragments/EffortFragment";
+import { TextFragment } from "@/fragments/TextFragment";
+import { MetricBehavior } from "@/types/MetricBehavior";
 import { RuntimeMetric, MetricValue } from "./RuntimeMetric";
 import { IScriptRuntime } from "./IScriptRuntime";
-import { ICodeStatement } from "../CodeStatement";
+import type { ICodeStatement } from "@/core";
 
 export interface IFragmentCompiler {
     readonly type: string;

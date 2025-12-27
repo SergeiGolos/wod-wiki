@@ -1,4 +1,5 @@
-import { Range } from 'monaco-editor';
+// Range is used in type declarations but not imported directly
+// import { Range } from 'monaco-editor';
 
 export interface MediaBlock {
     line: number;

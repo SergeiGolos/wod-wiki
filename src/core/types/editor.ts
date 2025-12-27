@@ -5,8 +5,8 @@
  * and MarkdownEditor with their respective props and configurations.
  */
 
-import { IScript, CodeMetadata } from './core';
-import { ExerciseDataProvider, ExercisePathIndex, ExercisePathEntry } from './providers';
+import type { IScript, CodeMetadata } from './core';
+import type { ExerciseDataProvider } from './providers';
 import { editor as monacoEditor } from 'monaco-editor';
 
 /**

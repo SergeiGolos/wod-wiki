@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
-import { CodeStatement } from "@/CodeStatement";
+import type { CodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../services/DialectRegistry";
 
 /**

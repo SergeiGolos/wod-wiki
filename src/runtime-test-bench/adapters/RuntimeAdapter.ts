@@ -97,7 +97,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Extracts fragments from block's source statements for unified visualization
    */
-  private extractBlockFragments(runtime: ScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
+  private extractBlockFragments(_runtime: ScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
     // Try to get statements from runtime's compilation context
     if (!block.sourceIds || block.sourceIds.length === 0) {
       return undefined;
