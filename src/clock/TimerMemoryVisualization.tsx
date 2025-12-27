@@ -1,7 +1,7 @@
 import React from 'react';
 import { useMemorySubscription } from '../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../runtime/IMemoryReference';
-import { TimeSpan } from '../runtime/behaviors/TimerBehavior';
+import { TimeSpan } from '../runtime/models/TimeSpan';
 import { formatTimestamp } from '@/lib/timeUtils';
 
 interface TimerMemoryVisualizationProps {

@@ -1,10 +1,4 @@
-/**
- * A span of time tracked by the clock.
- */
-export interface ClockSpan {
-    start: Date;
-    stop?: Date;
-}
+import { TimeSpan } from './models/TimeSpan';
 
 /**
  * IRuntimeClock provides time tracking for the runtime.
@@ -26,7 +20,7 @@ export interface IRuntimeClock {
     readonly isRunning: boolean;
 
     /** All time spans tracked by this clock */
-    readonly spans: ReadonlyArray<ClockSpan>;
+    readonly spans: ReadonlyArray<TimeSpan>;
 
     /** Start the clock, returns the start timestamp for event creation */
     start(): Date;

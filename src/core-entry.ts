@@ -16,8 +16,6 @@ export { BlockKey } from './core/models/BlockKey';
 export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
-export { CollectionSpan } from './core/models/CollectionSpan';
-export type { TimeSpan } from './core/models/CollectionSpan';
 // Note: Metric and MetricValue removed in Phase 3. Use ICodeFragment instead.
 export type { MetricValue, MetricValueType } from './runtime/RuntimeMetric';
 
@@ -54,8 +52,6 @@ export * from './runtime/actions/EmitMetricAction';
 export * from './runtime/actions/EmitEventAction';
 export * from './runtime/actions/RegisterEventHandlerAction';
 export * from './runtime/actions/UnregisterEventHandlerAction';
-export * from './runtime/actions/StartTimerAction';
-export * from './runtime/actions/StopTimerAction';
 
 // Runtime behaviors
 export * from './runtime/behaviors/TimerBehavior';

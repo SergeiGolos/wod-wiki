@@ -2,7 +2,9 @@
 import { describe, it, expect } from 'bun:test';
 import { transformRuntimeToAnalytics, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
 import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { RuntimeSpan, TimerSpan } from '../runtime/models/RuntimeSpan';
+import { RuntimeSpan } from '../runtime/models/RuntimeSpan';
+import { TimeSpan } from '../runtime/models/TimeSpan';
+
 import { FragmentType } from '../core/models/CodeFragment';
 
 describe('AnalyticsTransformer (RuntimeSpan version)', () => {
@@ -34,7 +36,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
         new RuntimeSpan(
           'block-1',
           [1],
-          [new TimerSpan(startTime, startTime + 60000)],
+          [new TimeSpan(startTime, startTime + 60000)],
           [[{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Warmup', image: 'Warmup' }]]
         )
       ];
@@ -69,7 +71,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
         const span = new RuntimeSpan(
           'amrap-block',
           [1],
-          [new TimerSpan(startTime, startTime + 1200000)],
+          [new TimeSpan(startTime, startTime + 1200000)],
           [[{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }]]
         );
         span.metadata.tags = ['amrap', 'time_bound'];
@@ -86,7 +88,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
 
       it('should handle missing fragment images by defaulting to blockId', () => {
         const startTime = Date.now();
-        const span = new RuntimeSpan('test-block', [1], [new TimerSpan(startTime, startTime + 1000)], []);
+        const span = new RuntimeSpan('test-block', [1], [new TimeSpan(startTime, startTime + 1000)], []);
 
         const segments = transformer.toSegments([span]);
         expect(segments[0].name).toBe('test-block');

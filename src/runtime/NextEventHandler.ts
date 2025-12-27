@@ -3,7 +3,7 @@ import { IEventHandler } from './IEventHandler';
 import { IScriptRuntime } from './IScriptRuntime';
 import { NextAction } from './NextAction';
 import { IRuntimeAction } from './IRuntimeAction';
-import { ErrorAction } from './actions/ErrorAction';
+import { ThrowError } from './actions/ThrowError';
 
 export class NextEventHandler implements IEventHandler {
   private _id: string;
@@ -36,49 +36,12 @@ export class NextEventHandler implements IEventHandler {
       return [];
     }
 
-    // Runtime state validation
-    const validation = this.validateRuntimeState(runtime);
-    if (!validation.isValid) {
-      // If should abort, push an error
-      if (validation.shouldAbort && validation.error) {
-        return [new ErrorAction(validation.error, 'NextEventHandler')];
-      }
-      return [];
+    // Minimal validation: check runtime existence and stack size > 1
+    if (!runtime || !runtime.stack || runtime.stack.count <= 1) {
+      return [ThrowError(new Error('Invalid runtime state for next event'), 'NextEventHandler')];
     }
 
     // Generate next action
-    const action = new NextAction();
-    return [action];
-  }
-
-  private validateRuntimeState(runtime: IScriptRuntime): { 
-    isValid: boolean; 
-    shouldAbort: boolean;
-    error?: Error;
-  } {
-    // Check for null/undefined stack
-    if (!runtime.stack) {
-      return { 
-        isValid: false, 
-        shouldAbort: true,
-        error: new Error('Runtime stack is not available')
-      };
-    }
-
-    // Check for runtime errors
-    if (runtime.errors && runtime.errors.length > 0) {
-      return { 
-        isValid: false, 
-        shouldAbort: true,
-        error: new Error(`Runtime has ${runtime.errors.length} error(s)`)
-      };
-    }
-
-    // Check for missing current block (not an error condition)
-    if (!runtime.stack.current) {
-      return { isValid: false, shouldAbort: false };
-    }
-
-    return { isValid: true, shouldAbort: false };
+    return [new NextAction()];
   }
 }

@@ -2,10 +2,11 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
-import { TimeSpan, calculateDuration } from '../../lib/timeUtils';
-import { 
-  IDisplayStackState, 
-  createDefaultDisplayState 
+import { TimeSpan } from '../models/TimeSpan';
+import { calculateDuration } from '../../lib/timeUtils';
+import {
+  IDisplayStackState,
+  createDefaultDisplayState
 } from '../../clock/types/DisplayTypes';
 
 /**
@@ -27,8 +28,8 @@ export class SetWorkoutStateAction implements IRuntimeAction {
   private _type = 'set-workout-state';
 
   constructor(
-    private readonly workoutState: 'idle' | 'running' | 'paused' | 'complete'
-  ) {}
+    private readonly workoutState: 'idle' | 'running' | 'paused' | 'complete' | 'error'
+  ) { }
 
   get type(): string {
     return this._type;
@@ -72,7 +73,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
       const globalTimerRef = runtime.memory.allocate<TimeSpan[]>(
         'timer:global',
         'runtime',
-        [{ start: Date.now() }],
+        [new TimeSpan(Date.now())],
         'public'
       );
       state.globalTimerMemoryId = globalTimerRef.id;
@@ -116,7 +117,7 @@ export class SetRoundsDisplayAction implements IRuntimeAction {
   constructor(
     private readonly currentRound?: number,
     private readonly totalRounds?: number
-  ) {}
+  ) { }
 
   get type(): string {
     return this._type;

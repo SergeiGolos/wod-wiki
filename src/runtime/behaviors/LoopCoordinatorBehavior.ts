@@ -4,12 +4,13 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
-import { TimerBehavior, TimeSpan } from './TimerBehavior';
+import { TimerBehavior } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { RuntimeSpan, TimerSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
+import { TimeSpan } from '../models/TimeSpan';
 import { IEvent } from '../IEvent';
 
 /**
@@ -475,7 +476,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       const span = new RuntimeSpan(
         newRoundOwnerId,
         [...block.sourceIds],
-        [new TimerSpan(startTime)],
+        [new TimeSpan(startTime)],
         [fragments],
         undefined,
         { tags: [type], context: { round: nextRound, totalRounds: this.config.totalRounds }, logs: [] },
@@ -488,7 +489,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
       const lapTimerRef = runtime.memory.allocate<TimeSpan[]>(
         `timer:lap:${block.key}:${rounds}`,
         block.key.toString(),
-        [new TimerSpan(Date.now())],
+        [new TimeSpan(Date.now())],
         'public'
       );
 

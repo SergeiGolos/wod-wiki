@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useTimerReferences } from './useTimerReferences';
 import { useMemorySubscription } from './useMemorySubscription';
-import { TimerSpan } from '../models/RuntimeSpan';
+import { TimeSpan } from '../models/TimeSpan';
+
 
 /**
  * Result from useTimerElapsed hook.
@@ -9,7 +10,7 @@ import { TimerSpan } from '../models/RuntimeSpan';
 export interface UseTimerElapsedResult {
   elapsed: number;          // Total milliseconds across all spans
   isRunning: boolean;       // Current running state
-  timeSpans: TimerSpan[];   // Array of start/stop pairs (number timestamps)
+  timeSpans: TimeSpan[];   // Array of start/stop pairs (number timestamps)
 }
 
 /**
@@ -56,7 +57,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     if (timeSpans.length === 0) return 0;
 
     return timeSpans.reduce((total, span) => {
-      // span.started should be present. TimerSpan uses number timestamps (epoch ms)
+      // span.started should be present. TimeSpan uses number timestamps (epoch ms)
       if (typeof span.started !== 'number') return total;
 
       // If no end time, timer is running - use current time

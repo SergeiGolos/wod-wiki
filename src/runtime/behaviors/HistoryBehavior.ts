@@ -3,7 +3,9 @@ import { IRuntimeAction } from "../IRuntimeAction";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { RuntimeSpan, TimerSpan, RUNTIME_SPAN_TYPE } from "../models/RuntimeSpan";
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from "../models/RuntimeSpan";
+import { TimeSpan } from "../models/TimeSpan";
+
 import { createLabelFragment } from "../utils/metricsToFragments";
 
 /**
@@ -46,7 +48,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
         const runtimeSpan = new RuntimeSpan(
             block.key.toString(),
             [...block.sourceIds],
-            [new TimerSpan(this.startTime)],
+            [new TimeSpan(this.startTime)],
             fragments,
             undefined,
             metadata

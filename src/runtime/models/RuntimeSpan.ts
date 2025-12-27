@@ -1,4 +1,6 @@
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { TimeSpan } from './TimeSpan';
+
 
 /** Memory type identifier for runtime spans */
 export const RUNTIME_SPAN_TYPE = 'runtime-span';
@@ -18,29 +20,6 @@ export interface SpanMetadata {
     logs: string[];
 }
 
-/**
- * A discrete period of time within a span.
- * Multiple spans allow for pause/resume tracking.
- */
-export class TimerSpan {
-    constructor(
-        public started: number,
-        public ended?: number
-    ) { }
-
-    static fromJSON(json: any): TimerSpan {
-        return new TimerSpan(json.started, json.ended);
-    }
-
-    get duration(): number {
-        const end = this.ended ?? Date.now();
-        return Math.max(0, end - this.started);
-    }
-
-    get isOpen(): boolean {
-        return this.ended === undefined;
-    }
-}
 
 /**
  * Timer-specific display configuration.
@@ -75,7 +54,7 @@ export class RuntimeSpan {
     constructor(
         public blockId: string,
         public sourceIds: number[] = [],
-        public spans: TimerSpan[] = [],
+        public spans: TimeSpan[] = [],
         public fragments: ICodeFragment[][] = [],
         public status?: SpanStatus,
         public metadata: SpanMetadata = { tags: [], context: {}, logs: [] },
@@ -94,7 +73,7 @@ export class RuntimeSpan {
     }
 
     /**
-     * Whether the span is currently running (has an open TimerSpan).
+     * Whether the span is currently running (has an open TimeSpan).
      */
     isActive(): boolean {
         return this.spans.length > 0 && this.spans[this.spans.length - 1].ended === undefined;
@@ -108,7 +87,7 @@ export class RuntimeSpan {
     }
 
     /**
-     * Total elapsed time across all TimerSpans in milliseconds.
+     * Total elapsed time across all TimeSpans in milliseconds.
      */
     total(): number {
         return this.spans.reduce((acc, span) => acc + span.duration, 0);
@@ -165,7 +144,7 @@ export class RuntimeSpan {
         return new RuntimeSpan(
             json.blockId,
             json.sourceIds || [],
-            (json.spans || []).map((s: any) => TimerSpan.fromJSON(s)),
+            (json.spans || []).map((s: any) => TimeSpan.fromJSON(s)),
             json.fragments || [],
             json.status,
             json.metadata || { tags: [], context: {}, logs: [] },
@@ -194,7 +173,7 @@ export class RuntimeSpan {
     start(timestamp: number = Date.now()): void {
         // Don't start if already running
         if (this.isActive()) return;
-        this.spans.push(new TimerSpan(timestamp));
+        this.spans.push(new TimeSpan(timestamp));
     }
 
     /**

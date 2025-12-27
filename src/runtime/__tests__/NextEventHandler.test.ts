@@ -1,16 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { NextEventHandler } from '../NextEventHandler';
 import { NextEvent } from '../NextEvent';
-import { IEventHandler } from '../IEventHandler';
 import { IScriptRuntime } from '../IScriptRuntime';
-import { ErrorAction } from '../actions/ErrorAction';
 
 /**
  * NEW EVENT HANDLER PATTERN:
  * - handler() returns IRuntimeAction[] directly (not EventHandlerResponse)
  * - Empty array [] = "not handled" or "no error"
  * - [NextAction] = "successfully handled"
- * - [ErrorAction] = "handled with error/abort"
+ * - [ThrowErrorAction] = "handled with error/abort"
  */
 describe('NextEventHandler', () => {
   let handler: NextEventHandler;
@@ -25,7 +23,8 @@ describe('NextEventHandler', () => {
           key: { toString: () => 'test-block' },
           next: vi.fn().mockReturnValue([])
         },
-        blocks: []
+        blocks: [],
+        count: 2
       },
       eventBus: { register: vi.fn(), unregisterById: vi.fn(), unregisterByOwner: vi.fn(), dispatch: vi.fn() },
       memory: {
@@ -77,8 +76,8 @@ describe('NextEventHandler', () => {
   });
 
   it('should return error action when runtime has errors', () => {
-    mockRuntime.errors!.push({ 
-      error: new Error('Existing error'), 
+    mockRuntime.errors!.push({
+      error: new Error('Existing error'),
       source: 'test',
       timestamp: new Date()
     });
@@ -86,19 +85,20 @@ describe('NextEventHandler', () => {
 
     const actions = handler.handler(nextEvent, mockRuntime);
 
-    // Abort with error - returns ErrorAction
+    // With minimal validation, existing errors are ignored as long as stack is valid
     expect(actions).toHaveLength(1);
-    expect(actions[0]).toBeInstanceOf(ErrorAction);
+    expect(actions[0]).toHaveProperty('type', 'next');
   });
 
-  it('should return empty array when no current block', () => {
-    (mockRuntime.stack as any).current = null;
+  it('should return throw-error action when stack size is 1 or less', () => {
+    (mockRuntime.stack as any).count = 1;
     const nextEvent = new NextEvent();
 
     const actions = handler.handler(nextEvent, mockRuntime);
 
-    // No current block - returns empty array (no error)
-    expect(actions).toHaveLength(0);
+    // Stack size <= 1 - returns ThrowError
+    expect(actions).toHaveLength(1);
+    expect(actions[0].type).toBe('throw-error');
   });
 
   it('should return error action when stack is invalid', () => {
@@ -107,9 +107,9 @@ describe('NextEventHandler', () => {
 
     const actions = handler.handler(nextEvent, mockRuntime);
 
-    // Invalid stack - returns ErrorAction
+    // Invalid stack - returns ThrowError
     expect(actions).toHaveLength(1);
-    expect(actions[0]).toBeInstanceOf(ErrorAction);
+    expect(actions[0].type).toBe('throw-error');
   });
 
   it('should create NextAction for valid next events', () => {
@@ -171,9 +171,9 @@ describe('NextEventHandler', () => {
 
     const actions = handler.handler(nextEvent, incompleteRuntime);
 
-    // Invalid runtime - returns ErrorAction
+    // Invalid runtime - returns ThrowError
     expect(actions).toHaveLength(1);
-    expect(actions[0]).toBeInstanceOf(ErrorAction);
+    expect(actions[0].type).toBe('throw-error');
   });
 
   it('should execute within performance targets', () => {
