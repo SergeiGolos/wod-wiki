@@ -13,33 +13,34 @@ export { PlaySoundAction } from './PlaySoundAction';
 export { RegisterEventHandlerAction } from './RegisterEventHandlerAction';
 export { UnregisterEventHandlerAction } from './UnregisterEventHandlerAction';
 export { ErrorAction } from './ErrorAction';
+export { ThrowError, ThrowErrorAction } from './ThrowError';
 
 // Segment and Metric Actions
-export { 
-  StartSegmentAction, 
-  EndSegmentAction, 
+export {
+  StartSegmentAction,
+  EndSegmentAction,
   EndAllSegmentsAction,
   RecordMetricAction,
-  RecordRoundAction 
+  RecordRoundAction
 } from './SegmentActions';
 
 // Display Stack Actions
-export { 
-  PushTimerDisplayAction, 
-  PopTimerDisplayAction, 
-  UpdateTimerDisplayAction 
+export {
+  PushTimerDisplayAction,
+  PopTimerDisplayAction,
+  UpdateTimerDisplayAction
 } from './TimerDisplayActions';
 
-export { 
-  PushCardDisplayAction, 
-  PopCardDisplayAction, 
-  UpdateCardDisplayAction 
+export {
+  PushCardDisplayAction,
+  PopCardDisplayAction,
+  UpdateCardDisplayAction
 } from './CardDisplayActions';
 
-export { 
-  SetWorkoutStateAction, 
-  SetRoundsDisplayAction, 
-  ResetDisplayStackAction 
+export {
+  SetWorkoutStateAction,
+  SetRoundsDisplayAction,
+  ResetDisplayStackAction
 } from './WorkoutStateActions';
 
 export type { TimeSpan } from './StartTimerAction';
