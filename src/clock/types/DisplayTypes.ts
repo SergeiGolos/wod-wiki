@@ -24,8 +24,8 @@ export interface ITimerDisplayEntry {
   /** Custom label to display (defaults to effort label from the block) */
   label?: string;
 
-  /** Timer format: 'countdown' shows remaining, 'countup' shows elapsed */
-  format: 'countdown' | 'countup';
+  /** Timer format: 'down' shows remaining, 'up' shows elapsed */
+  format: 'up' | 'down';
 
   /** Duration in milliseconds (for countdown format) */
   durationMs?: number;

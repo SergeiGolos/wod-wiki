@@ -2,10 +2,11 @@
 import { ITrackerCommand, TrackerContext } from '../ITrackerCommand';
 import {
     RuntimeSpan,
-    TimerSpan,
     SpanStatus,
     RUNTIME_SPAN_TYPE
 } from '../../runtime/models/RuntimeSpan';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
+
 import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
 import { TypedMemoryReference } from '../../runtime/IMemoryReference';
 import { createLabelFragment } from '../../runtime/utils/metricsToFragments';
@@ -82,7 +83,7 @@ export class TrackSpanCommand implements ITrackerCommand {
         const span = new RuntimeSpan(
             blockId,
             [...block.sourceIds],
-            [new TimerSpan(startTime)],
+            [new TimeSpan(startTime)],
             fragments,
             undefined,
             undefined, // metadata

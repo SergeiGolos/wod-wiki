@@ -1,3 +1,5 @@
+import { TimeSpan } from '../runtime/models/TimeSpan';
+
 /**
  * Formats a timestamp (Date or number) into HH:MM:SS format.
  * Returns 'running' if date is undefined.
@@ -34,25 +36,25 @@ export const formatTime = (ms: number): string => {
 };
 
 /**
- * Interface for a time span.
- */
-export interface TimeSpan {
-  start: number; // Changed from Date to number for consistency with calculations
-  stop?: number;
-}
-
-/**
  * Calculates the total duration of an array of time spans.
  * @param spans Array of time spans
  * @param now Current timestamp (defaults to Date.now())
  * @returns Total duration in milliseconds
  */
-export const calculateDuration = (spans: { start: number | Date, stop?: number | Date }[], now: number = Date.now()): number => {
+export const calculateDuration = (spans: (TimeSpan | { started: number, ended?: number } | { start: number | Date, stop?: number | Date })[], now: number = Date.now()): number => {
   if (!spans || !Array.isArray(spans)) return 0;
   return spans.reduce((total, span) => {
-    const start = span.start instanceof Date ? span.start.getTime() : (span.start || 0);
-    const stop = span.stop ? (span.stop instanceof Date ? span.stop.getTime() : span.stop) : now;
-    return total + Math.max(0, stop - start); // Ensure no negative durations from weird inputs
+    // Handle canonical TimeSpan or raw objects with 'started'/'ended'
+    if ('started' in span) {
+      const start = (span as any).started;
+      const end = (span as any).ended ?? now;
+      return total + Math.max(0, end - start);
+    }
+
+    // Handle legacy objects with 'start'/'stop'
+    const start = (span as any).start instanceof Date ? (span as any).start.getTime() : ((span as any).start || 0);
+    const stop = (span as any).stop ? ((span as any).stop instanceof Date ? (span as any).stop.getTime() : (span as any).stop) : now;
+    return total + Math.max(0, (stop as number) - (start as number));
   }, 0);
 };
 

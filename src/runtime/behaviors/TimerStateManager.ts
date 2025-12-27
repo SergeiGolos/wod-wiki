@@ -1,7 +1,9 @@
 import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock } from '../IRuntimeBlock';
 import { IRuntimeAction } from '../IRuntimeAction';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan, TimerDisplayConfig } from '../models/RuntimeSpan';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerDisplayConfig } from '../models/RuntimeSpan';
+import { TimeSpan } from '../models/TimeSpan';
+
 import { TypedMemoryReference } from '../IMemoryReference';
 import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/TimerDisplayActions';
 import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
@@ -48,7 +50,7 @@ export class TimerStateManager {
         const span = new RuntimeSpan(
             block.key.toString(),
             block.sourceIds || [],
-            autoStart ? [new TimerSpan(startTime)] : [],
+            autoStart ? [new TimeSpan(startTime)] : [],
             block.fragments || [],
             undefined,
             undefined,
@@ -68,7 +70,7 @@ export class TimerStateManager {
             ownerId: block.key.toString(),
             timerMemoryId: this.timerRef.id,
             label: this.label,
-            format: this.direction === 'down' ? 'countdown' : 'countup',
+            format: this.direction === 'down' ? 'down' : 'up',
             durationMs: this.durationMs,
             role: finalRole,
             // Initialize with live timer data
@@ -116,7 +118,7 @@ export class TimerStateManager {
     /**
      * Updates the timer state with new spans and running status.
      */
-    updateState(runtime: IScriptRuntime | undefined, spans: TimerSpan[], _isRunning: boolean): void {
+    updateState(runtime: IScriptRuntime | undefined, spans: TimeSpan[], _isRunning: boolean): void {
         if (!this.timerRef) return;
 
         const span = this.timerRef.get();
@@ -126,7 +128,7 @@ export class TimerStateManager {
         // RuntimeSpan is a class, so we should probably clone or just set the properties if we want to trigger updates
         // memory.set triggers the event.
 
-        // We assume 'spans' passed in are the updated list (references to TimerSpan objects)
+        // We assume 'spans' passed in are the updated list (references to TimeSpan objects)
         span.spans = spans;
 
         this.timerRef.set(span);

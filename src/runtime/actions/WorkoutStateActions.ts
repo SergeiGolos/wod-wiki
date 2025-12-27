@@ -2,7 +2,8 @@ import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 import { TypedMemoryReference } from '../IMemoryReference';
-import { TimeSpan, calculateDuration } from '../../lib/timeUtils';
+import { TimeSpan } from '../models/TimeSpan';
+import { calculateDuration } from '../../lib/timeUtils';
 import {
   IDisplayStackState,
   createDefaultDisplayState
@@ -72,7 +73,7 @@ export class SetWorkoutStateAction implements IRuntimeAction {
       const globalTimerRef = runtime.memory.allocate<TimeSpan[]>(
         'timer:global',
         'runtime',
-        [{ start: Date.now() }],
+        [new TimeSpan(Date.now())],
         'public'
       );
       state.globalTimerMemoryId = globalTimerRef.id;

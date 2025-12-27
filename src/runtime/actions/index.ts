@@ -7,8 +7,6 @@
 
 export { EmitEventAction } from './EmitEventAction';
 export { EmitMetricAction } from './EmitMetricAction';
-export { StartTimerAction } from './StartTimerAction';
-export { StopTimerAction } from './StopTimerAction';
 export { PlaySoundAction } from './PlaySoundAction';
 export { RegisterEventHandlerAction } from './RegisterEventHandlerAction';
 export { UnregisterEventHandlerAction } from './UnregisterEventHandlerAction';
@@ -43,5 +41,4 @@ export {
   ResetDisplayStackAction
 } from './WorkoutStateActions';
 
-export type { TimeSpan } from './StartTimerAction';
 export type { RuntimeError } from './ErrorAction';

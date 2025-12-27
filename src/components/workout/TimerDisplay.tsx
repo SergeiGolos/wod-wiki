@@ -121,7 +121,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   // Calculate timer states for ALL timers in the stack
   // We want to give every card its accurate running time.
   const timerStates = useMemo(() => {
-    const map = new Map<string, { elapsed: number; duration?: number; format: 'countdown' | 'countup' }>();
+    const map = new Map<string, { elapsed: number; duration?: number; format: 'down' | 'up' }>();
 
     timerStack.forEach(t => {
       // Calculate elapsed time based on timer state

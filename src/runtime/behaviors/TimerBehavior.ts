@@ -2,8 +2,9 @@ import { IRuntimeBehavior } from '../IRuntimeBehavior';
 import { IRuntimeAction } from '../IRuntimeAction';
 import { IScriptRuntime } from '../IScriptRuntime';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
-import { TimerSpan } from '../models/RuntimeSpan';
-export type TimeSpan = TimerSpan;
+
+
+import { TimeSpan } from '../models/TimeSpan';
 import { TimerStateManager } from './TimerStateManager';
 
 /**
@@ -109,7 +110,7 @@ export class TimerBehavior implements IRuntimeBehavior {
   isRunning(): boolean {
     const timerRef = this.stateManager.getTimerRef();
     if (timerRef) {
-      return timerRef.get()?.isRunning || false;
+      return timerRef.get()?.isActive() || false;
     }
     return !this._isPaused;
   }
@@ -310,7 +311,7 @@ export class TimerBehavior implements IRuntimeBehavior {
   /**
    * Get time spans for this timer from memory.
    */
-  getTimeSpans(): TimerSpan[] {
+  getTimeSpans(): TimeSpan[] {
     const timerRef = this.stateManager.getTimerRef();
     if (timerRef) {
       return timerRef.get()?.spans || [];
@@ -319,7 +320,7 @@ export class TimerBehavior implements IRuntimeBehavior {
     // Fallback for tests that don't use memory
     const elapsedMs = this.getElapsedMs();
     const now = (this._runtime?.clock.now ?? new Date()).getTime();
-    return [new TimerSpan(now - elapsedMs, this.isRunning() ? undefined : now)];
+    return [new TimeSpan(now - elapsedMs, this.isRunning() ? undefined : now)];
   }
 
   /**
@@ -334,7 +335,7 @@ export class TimerBehavior implements IRuntimeBehavior {
 
     // Use RuntimeSpan total() logic if we had the object, but we have spans array.
     // We can map constructs or just sum duration.
-    // TimerSpan class has duration property.
+    // TimeSpan class has duration property.
     return spans.reduce((acc, s) => acc + s.duration, 0);
   }
 

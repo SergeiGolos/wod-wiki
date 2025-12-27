@@ -1,4 +1,6 @@
-import { IRuntimeClock, ClockSpan } from './IRuntimeClock';
+import { IRuntimeClock } from './IRuntimeClock';
+import { TimeSpan } from './models/TimeSpan';
+
 
 /**
  * RuntimeClock tracks time using spans created by start/stop calls.
@@ -9,7 +11,7 @@ import { IRuntimeClock, ClockSpan } from './IRuntimeClock';
  * - `start()`/`stop()`: Control methods that return timestamps for event creation
  */
 export class RuntimeClock implements IRuntimeClock {
-    private _spans: ClockSpan[] = [];
+    private _spans: TimeSpan[] = [];
 
     /**
      * Current wall-clock time as a Date.
@@ -23,13 +25,13 @@ export class RuntimeClock implements IRuntimeClock {
      */
     public get isRunning(): boolean {
         if (this._spans.length === 0) return false;
-        return this._spans[this._spans.length - 1].stop === undefined;
+        return this._spans[this._spans.length - 1].isOpen;
     }
 
     /**
      * All time spans tracked by this clock.
      */
-    public get spans(): ReadonlyArray<ClockSpan> {
+    public get spans(): ReadonlyArray<TimeSpan> {
         return this._spans;
     }
 
@@ -38,12 +40,7 @@ export class RuntimeClock implements IRuntimeClock {
      * Sums all completed spans plus the current running span (if any).
      */
     public get elapsed(): number {
-        const now = Date.now();
-        return this._spans.reduce((total, span) => {
-            const start = span.start.getTime();
-            const stop = span.stop?.getTime() ?? now;
-            return total + (stop - start);
-        }, 0);
+        return this._spans.reduce((total, span) => total + span.duration, 0);
     }
 
     /**
@@ -53,14 +50,14 @@ export class RuntimeClock implements IRuntimeClock {
      * If the clock is already running, returns the current span's start time.
      */
     public start(): Date {
+        const now = new Date();
         // If already running, return the current span's start
         if (this.isRunning) {
-            return this._spans[this._spans.length - 1].start;
+            return this._spans[this._spans.length - 1].startDate;
         }
 
-        const timestamp = new Date();
-        this._spans.push({ start: timestamp });
-        return timestamp;
+        this._spans.push(new TimeSpan(now.getTime()));
+        return now;
     }
 
     /**
@@ -70,16 +67,16 @@ export class RuntimeClock implements IRuntimeClock {
      * If the clock is not running, returns the current time.
      */
     public stop(): Date {
-        const timestamp = new Date();
+        const now = new Date();
 
         // If not running, just return current time
         if (!this.isRunning) {
-            return timestamp;
+            return now;
         }
 
         // Close the current span
-        this._spans[this._spans.length - 1].stop = timestamp;
-        return timestamp;
+        this._spans[this._spans.length - 1].ended = now.getTime();
+        return now;
     }
 
     /**
@@ -100,35 +97,30 @@ export function createMockClock(initialTime: Date = new Date()): IRuntimeClock &
     setTime: (time: Date) => void;
 } {
     let currentTime = initialTime;
-    const spans: ClockSpan[] = [];
+    const spans: TimeSpan[] = [];
 
     return {
         get now() { return currentTime; },
         get elapsed() {
-            const nowMs = currentTime.getTime();
-            return spans.reduce((total, span) => {
-                const start = span.start.getTime();
-                const stop = span.stop?.getTime() ?? nowMs;
-                return total + (stop - start);
-            }, 0);
+            return spans.reduce((total, span) => total + span.duration, 0);
         },
         get isRunning() {
             if (spans.length === 0) return false;
-            return spans[spans.length - 1].stop === undefined;
+            return spans[spans.length - 1].isOpen;
         },
         get spans() { return spans; },
         start() {
-            if (spans.length > 0 && spans[spans.length - 1].stop === undefined) {
-                return spans[spans.length - 1].start;
+            if (spans.length > 0 && spans[spans.length - 1].ended === undefined) {
+                return spans[spans.length - 1].startDate;
             }
             const timestamp = new Date(currentTime);
-            spans.push({ start: timestamp });
+            spans.push(new TimeSpan(timestamp.getTime()));
             return timestamp;
         },
         stop() {
             const timestamp = new Date(currentTime);
-            if (spans.length > 0 && spans[spans.length - 1].stop === undefined) {
-                spans[spans.length - 1].stop = timestamp;
+            if (spans.length > 0 && spans[spans.length - 1].ended === undefined) {
+                spans[spans.length - 1].ended = timestamp.getTime();
             }
             return timestamp;
         },

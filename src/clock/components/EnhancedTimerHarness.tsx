@@ -6,7 +6,9 @@ import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan } from '../../../src/runtime/models/RuntimeSpan';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../../src/runtime/models/RuntimeSpan';
+import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
+
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
@@ -36,7 +38,7 @@ export interface EnhancedTimerHarnessProps {
   /** Whether the timer should start running immediately */
   autoStart?: boolean;
   /** Optional: Pre-configured time spans for complex scenarios */
-  timeSpans?: TimerSpan[];
+  timeSpans?: TimeSpan[];
   /** Children to render with runtime context */
   children: (harness: EnhancedTimerHarnessResult) => React.ReactNode;
 }
@@ -104,20 +106,20 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 
       if (currentState) {
         // Set timer state based on props
-        let spans: TimerSpan[];
+        let spans: TimeSpan[];
 
         if (timeSpans) {
           // Use provided time spans (for complex scenarios)
           spans = timeSpans;
         } else if (autoStart) {
           // Running timer: start time in the past, no stop time
-          spans = [new TimerSpan(Date.now() - durationMs)];
+          spans = [new TimeSpan(Date.now() - durationMs)];
         } else {
           // Stopped timer: start and stop time
           // Assuming stopped immediately after duration? Or just a sample.
           // Let's create a span that ran for `durationMs` and ended now.
           const now = Date.now();
-          spans = [new TimerSpan(now - durationMs, now)];
+          spans = [new TimeSpan(now - durationMs, now)];
         }
 
         currentState.spans = spans;
@@ -236,7 +238,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
  * Memory Card Component with start/stop table and recalculate functionality
  */
 interface MemoryCardProps {
-  timeSpans: TimerSpan[];
+  timeSpans: TimeSpan[];
   isRunning: boolean;
   blockKey: string;
   onRecalculate: () => void;
@@ -264,7 +266,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
     if (timeSpans.length === 0) return 0;
 
     return timeSpans.reduce((total, span) => {
-      // span is TimerSpan class
+      // span is TimeSpan class
       const end = span.ended || Date.now();
       return total + Math.max(0, end - span.started);
     }, 0);

@@ -1,7 +1,7 @@
 import { IEvent } from './IEvent';
 
 export class TickEvent implements IEvent {
-  readonly name: string = 'tick';
+  readonly name: string = 'timer:tick';
   readonly timestamp: Date;
   readonly data?: unknown;
   private static _counter = 0;

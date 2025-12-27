@@ -21,7 +21,7 @@ export interface TimerReferences {
  * 
  * This hook searches the runtime memory for the TimerState reference
  * associated with the given blockKey. The TimerState contains:
-        [new TimerSpan(Date.now())], (start/stop times)
+ * - spans: TimeSpan[] (start/stop times)
  * - isRunning: boolean
  * - format: 'up' | 'down' | 'time'
  * - durationMs: number (for countdown)

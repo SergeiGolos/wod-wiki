@@ -288,7 +288,6 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
     if (spans.length === 0) return 0;
 
     return spans.reduce((total, span) => {
-      // span is TimerSpan class
       const end = span.ended || now;
       return total + Math.max(0, end - span.started);
     }, 0);
@@ -296,7 +295,7 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
 
   // Calculate display time
   const displayTime = useMemo(() => {
-    if (timerEntry.format === 'countdown' && timerEntry.durationMs) {
+    if (timerEntry.format === 'down' && timerEntry.durationMs) {
       return Math.max(0, timerEntry.durationMs - elapsed);
     }
     return elapsed;
@@ -437,7 +436,6 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
     if (spans.length === 0) return 0;
 
     return spans.reduce((total, span) => {
-      // span is TimerSpan class
       const end = span.ended || now;
       return total + Math.max(0, end - span.started);
     }, 0);
@@ -458,7 +456,7 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
   const displayTime = useMemo(() => {
     if (!timerEntry) return 0;
 
-    if (timerEntry.format === 'countdown' && timerEntry.durationMs) {
+    if (timerEntry.format === 'down' && timerEntry.durationMs) {
       return Math.max(0, timerEntry.durationMs - elapsed);
     }
     return elapsed;
@@ -466,7 +464,7 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
 
   // Calculate progress for countdown
   const progress = useMemo(() => {
-    if (timerEntry?.format === 'countdown' && timerEntry.durationMs) {
+    if (timerEntry?.format === 'down' && timerEntry.durationMs) {
       return Math.min((elapsed / timerEntry.durationMs) * 100, 100);
     }
     return 0;
@@ -542,7 +540,7 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
           </div>
 
           {/* Progress bar for countdown */}
-          {timerEntry.format === 'countdown' && timerEntry.durationMs && (
+          {timerEntry.format === 'down' && timerEntry.durationMs && (
             <div className="mt-4">
               <Progress
                 value={progress}
