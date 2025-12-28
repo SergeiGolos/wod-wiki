@@ -1,8 +1,8 @@
-import { IRuntimeBlock } from "./IRuntimeBlock";
-import { IScriptRuntime } from "./IScriptRuntime";
-import { IRuntimeBlockStrategy } from "./IRuntimeBlockStrategy";
+import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
+import { IScriptRuntime } from "../contracts/IScriptRuntime";
+import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import type { CodeStatement } from "@/core/models/CodeStatement";
-import { DialectRegistry } from "../services/DialectRegistry";
+import { DialectRegistry } from "../../services/DialectRegistry";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks that compiles JitStatement nodes 

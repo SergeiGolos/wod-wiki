@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { globalParser, globalCompiler } from './testbench-services';
 import { MdTimerRuntime } from '../../parser/md-timer';
-import { JitCompiler } from '../../runtime/JitCompiler';
+import { JitCompiler } from '../../runtime/compiler/JitCompiler';
 
 describe('testbench-services', () => {
   describe('globalParser', () => {

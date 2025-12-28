@@ -1,11 +1,11 @@
-import { ScriptRuntime } from './ScriptRuntime';
-import { RuntimeMemory } from './RuntimeMemory';
-import { RuntimeStack } from './RuntimeStack';
-import { RuntimeClock } from './RuntimeClock';
-import { EventBus } from './EventBus';
+import { ScriptRuntime } from '../ScriptRuntime';
+import { RuntimeMemory } from '../RuntimeMemory';
+import { RuntimeStack } from '../RuntimeStack';
+import { RuntimeClock } from '../RuntimeClock';
+import { EventBus } from '../EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
-import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './contracts/IRuntimeOptions';
+import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from '../contracts/IRuntimeOptions';
 import { TestableBlockConfig } from './testing/TestableBlock';
 
 /**

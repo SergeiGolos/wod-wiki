@@ -46,7 +46,7 @@
  * ```typescript
  * import { describe, it, expect } from 'bun:test';
  * import { RuntimeTestBuilder } from '../harness';
- * import { TimerStrategy } from '@/runtime/strategies/TimerStrategy';
+ * import { TimerStrategy } from '@/runtime/compiler/strategies';
  *
  * describe('TimerStrategy', () => {
  *   it('should compile timer block from script', () => {

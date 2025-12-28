@@ -5,7 +5,7 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/ActionStackActions';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { ActionFragment } from '../../fragments/ActionFragment';
+import { ActionFragment } from '../compiler/fragments/ActionFragment';
 
 export function buildActionDescriptorsFromFragments(ownerId: string, fragments: ICodeFragment[][] = [], sourceIds: number[] = []): ActionDescriptor[] {
   const descriptors: ActionDescriptor[] = [];

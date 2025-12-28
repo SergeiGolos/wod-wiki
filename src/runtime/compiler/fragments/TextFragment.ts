@@ -1,5 +1,5 @@
-import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
-import { CodeMetadata } from "../core/models/CodeMetadata";
+import { ICodeFragment, FragmentType } from "../../../core/models/CodeFragment";
+import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class TextFragment implements ICodeFragment {
   readonly value: { text: string, level?: string };

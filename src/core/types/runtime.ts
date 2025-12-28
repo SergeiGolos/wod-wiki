@@ -25,7 +25,7 @@ export type { IEventHandler } from '@/runtime/contracts/events';
 
 // Re-export implementations
 export type { RuntimeStack } from '@/runtime/RuntimeStack';
-export type { JitCompiler } from '@/runtime/JitCompiler';
+export type { JitCompiler } from '@/runtime/compiler';
 export type { ScriptRuntime } from '@/runtime/ScriptRuntime';
 export type { RuntimeBlock } from '@/runtime/RuntimeBlock';
 export type { RuntimeMemory } from '@/runtime/RuntimeMemory';

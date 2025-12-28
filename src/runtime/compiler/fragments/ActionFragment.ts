@@ -1,5 +1,5 @@
-import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
-import { CodeMetadata } from "../core/models/CodeMetadata";
+import { ICodeFragment, FragmentType } from "../../../core/models/CodeFragment";
+import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export interface ActionFragmentOptions {
   /** Original text inside the action fence (after the colon) */

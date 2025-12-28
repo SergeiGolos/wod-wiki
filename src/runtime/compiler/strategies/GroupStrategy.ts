@@ -1,10 +1,10 @@
-import { IRuntimeBlockStrategy } from "../IRuntimeBlockStrategy";
+import { IRuntimeBlockStrategy } from "../../contracts/IRuntimeBlockStrategy";
 import { IRuntimeBehavior } from "../IRuntimeBehavior";
-import { IRuntimeBlock } from "../IRuntimeBlock";
+import { IRuntimeBlock } from "../../contracts/IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { BlockKey } from "../../core/models/BlockKey";
+import { BlockKey } from "../../../core/models/BlockKey";
 import { ICodeStatement } from "../../core/models/CodeStatement";
-import { RuntimeBlock } from "../RuntimeBlock";
+import { RuntimeBlock } from "../../RuntimeBlock";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";

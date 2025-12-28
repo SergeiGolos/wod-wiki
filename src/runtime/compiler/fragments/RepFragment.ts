@@ -1,5 +1,5 @@
-import { ICodeFragment, FragmentType, FragmentCollectionState } from "../core/models/CodeFragment";
-import { CodeMetadata } from "../core/models/CodeMetadata";
+import { ICodeFragment, FragmentType, FragmentCollectionState } from "../../../core/models/CodeFragment";
+import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class RepFragment implements ICodeFragment {
   readonly value?: number;

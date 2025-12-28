@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { RuntimeFactory } from '../RuntimeFactory';
+import { RuntimeFactory } from '../compiler/RuntimeFactory';
 import { createTestableRuntime } from '../testing/TestableRuntime';
 import { WodBlock } from '../../markdown-editor/types';
 import { CodeStatement } from '../../core/models/CodeStatement';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { RuntimeControls } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';

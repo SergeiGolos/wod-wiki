@@ -18,18 +18,18 @@
  * ```
  */
 
-import { ScriptRuntime } from './ScriptRuntime';
-import { RuntimeMemory } from './RuntimeMemory';
-import { RuntimeStack } from './RuntimeStack';
-import { RuntimeClock } from './RuntimeClock';
-import { EventBus } from './EventBus';
+import { ScriptRuntime } from '../ScriptRuntime';
+import { RuntimeMemory } from '../RuntimeMemory';
+import { RuntimeStack } from '../RuntimeStack';
+import { RuntimeClock } from '../RuntimeClock';
+import { EventBus } from '../EventBus';
 import { JitCompiler } from './JitCompiler';
-import { WodScript } from '../parser/WodScript';
+import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../markdown-editor/types';
-import { RuntimeBlock } from './RuntimeBlock';
-import { BlockContext } from './BlockContext';
-import { BlockKey } from '../core/models/BlockKey';
-import { LoopType } from './behaviors/LoopCoordinatorBehavior';
+import { RuntimeBlock } from '../RuntimeBlock';
+import { BlockContext } from '../BlockContext';
+import { BlockKey } from '../../core/models/BlockKey';
+import { LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from './behaviors/TimerBehavior';

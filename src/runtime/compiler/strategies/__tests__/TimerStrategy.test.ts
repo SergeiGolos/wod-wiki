@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { RuntimeTestBuilder } from '../../../../tests/harness/RuntimeTestBuilder';
+import { RuntimeTestBuilder } from '../../../../../../tests/harness/RuntimeTestBuilder';
 import { TimerStrategy } from '../TimerStrategy';
 import { TimerBehavior } from '../../behaviors/TimerBehavior';
 import { SoundBehavior } from '../../behaviors/SoundBehavior';

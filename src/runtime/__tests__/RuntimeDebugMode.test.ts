@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, vi } from 'bun:test';
-import { RuntimeBuilder } from '../RuntimeBuilder';
+import { RuntimeBuilder } from '../compiler/RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { TestableBlock } from '../testing/TestableBlock';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';

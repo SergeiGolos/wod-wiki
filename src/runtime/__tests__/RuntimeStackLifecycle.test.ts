@@ -6,7 +6,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';

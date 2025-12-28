@@ -2,7 +2,7 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeStack } from '../contracts/IRuntimeStack';
 import { IRuntimeMemory, Nullable } from '../contracts/IRuntimeMemory';
 import { IMemoryReference, TypedMemoryReference } from '../contracts/IMemoryReference';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
 import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeError } from '../actions/ErrorAction';

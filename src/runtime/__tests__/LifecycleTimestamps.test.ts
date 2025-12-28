@@ -6,7 +6,7 @@ import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock, createMockClock } from '../RuntimeClock';
 import { EventBus } from '../EventBus';

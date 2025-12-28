@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { FragmentMetricCollector } from '../FragmentMetricCollector';
+import { FragmentMetricCollector } from '../compiler/FragmentMetricCollector';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { MetricBehavior } from '../../types/MetricBehavior';
 
