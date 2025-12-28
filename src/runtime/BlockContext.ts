@@ -253,6 +253,9 @@ export class BlockContext implements IBlockContext {
                 unsub();
             }
             // Remove from our subscriptions list
+            // Note: Using findIndex is O(n) but acceptable since:
+            // 1. Number of subscriptions per context is typically very small (1-5)
+            // 2. This only runs on manual unsubscribe, which is rare
             const idx = this._subscriptions.findIndex(s => s.unsubscribe === combinedUnsubscribe);
             if (idx >= 0) {
                 this._subscriptions.splice(idx, 1);

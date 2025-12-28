@@ -274,7 +274,7 @@ describe('BlockContext', () => {
         });
 
         test('should subscribe to allocate events', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const allocatedRefs: any[] = [];
             
             ctx.onAllocate((ref, value) => {
@@ -289,7 +289,7 @@ describe('BlockContext', () => {
         });
 
         test('should subscribe to set events', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const setEvents: any[] = [];
             
             const ref = ctx.allocate<number>('counter', 0);
@@ -309,7 +309,7 @@ describe('BlockContext', () => {
         });
 
         test('should subscribe to release events when memory is manually released', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const releaseEvents: any[] = [];
             
             const ref = ctx.allocate<number>('counter', 42);
@@ -330,7 +330,7 @@ describe('BlockContext', () => {
             // When context.release() is called, it unsubscribes first, then releases memory
             // This means the context's own listeners won't receive release events
             // This is expected behavior - a disposing context shouldn't fire its own listeners
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const releaseEvents: any[] = [];
             
             ctx.allocate<number>('counter', 42);
@@ -346,7 +346,7 @@ describe('BlockContext', () => {
         });
 
         test('should subscribe to any memory event', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const allEvents: any[] = [];
             
             ctx.onAny((ref, value, oldValue) => {
@@ -361,8 +361,8 @@ describe('BlockContext', () => {
         });
 
         test('should only receive events for own references', () => {
-            const ctx1 = new BlockContext(fullRuntime, 'block-1');
-            const ctx2 = new BlockContext(fullRuntime, 'block-2');
+            const ctx1 = new BlockContext(fullRuntime, 'block-1', '');
+            const ctx2 = new BlockContext(fullRuntime, 'block-2', '');
             const ctx1Events: any[] = [];
             const ctx2Events: any[] = [];
             
@@ -387,7 +387,7 @@ describe('BlockContext', () => {
         });
 
         test('should unsubscribe manually', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const setEvents: any[] = [];
             
             const ref = ctx.allocate<number>('counter', 0);
@@ -407,7 +407,7 @@ describe('BlockContext', () => {
         });
 
         test('should automatically unsubscribe on release', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             const allocEvents: any[] = [];
             
             ctx.onAllocate(() => {
@@ -426,7 +426,7 @@ describe('BlockContext', () => {
         });
 
         test('should throw error when subscribing on released context', () => {
-            const ctx = new BlockContext(fullRuntime, 'test-block');
+            const ctx = new BlockContext(fullRuntime, 'test-block', '');
             ctx.release();
             
             expect(() => {
