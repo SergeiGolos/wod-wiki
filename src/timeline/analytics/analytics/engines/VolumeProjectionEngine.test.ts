@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { VolumeProjectionEngine } from './VolumeProjectionEngine';
-import { RuntimeMetric } from '../../../../runtime/RuntimeMetric';
+import { RuntimeMetric } from '../../../../runtime/models/RuntimeMetric';
 import { Exercise, Level, Category } from '../../../../exercise.d';
 import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
 

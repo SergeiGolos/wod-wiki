@@ -4,7 +4,7 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
 import { PopBlockAction } from '../PopBlockAction';
-import { RuntimeMetric } from '../RuntimeMetric';
+import { RuntimeMetric } from '../models/RuntimeMetric';
 import { RuntimeControls, RuntimeButton } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 

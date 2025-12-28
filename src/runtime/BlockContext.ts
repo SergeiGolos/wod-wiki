@@ -1,7 +1,7 @@
 import { IBlockContext } from './contracts/IBlockContext';
 import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { MemoryTypeEnum } from './MemoryTypeEnum';
+import { MemoryTypeEnum } from './models/MemoryTypeEnum';
 import { IAnchorValue } from './contracts/IAnchorValue';
 
 /**

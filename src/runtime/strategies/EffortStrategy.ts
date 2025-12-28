@@ -10,7 +10,7 @@ import { RepFragment } from "../../fragments/RepFragment";
 import { EffortFragment } from "../../fragments/EffortFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { MemoryTypeEnum } from "../models/MemoryTypeEnum";
 import { TypedMemoryReference } from "../IMemoryReference";
 import { EffortBlock } from "../blocks/EffortBlock";
 import { TimerBehavior } from "../behaviors/TimerBehavior";

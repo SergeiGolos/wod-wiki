@@ -6,7 +6,7 @@ import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';

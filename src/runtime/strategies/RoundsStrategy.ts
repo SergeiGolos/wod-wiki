@@ -10,7 +10,7 @@ import { RoundsFragment } from "../../fragments/RoundsFragment";
 import { RepFragment } from "../../fragments/RepFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { MemoryTypeEnum } from "../MemoryTypeEnum";
+import { MemoryTypeEnum } from "../models/MemoryTypeEnum";
 import { TypedMemoryReference } from "../IMemoryReference";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";

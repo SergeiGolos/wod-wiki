@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { RuntimeMetric } from '../RuntimeMetric';
+import { RuntimeMetric } from '../models/RuntimeMetric';
 import { metricsToFragments } from '../utils/metricsToFragments';
 
 /**

@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryTypeEnum } from '../MemoryTypeEnum';
+import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { 
   ITimerDisplayEntry, 

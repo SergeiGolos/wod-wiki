@@ -11,7 +11,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { AnalysisService } from '../AnalysisService';
 import { VolumeProjectionEngine } from '../engines/VolumeProjectionEngine';
 import { ExerciseDefinitionService } from '../../../../repositories/workout/ExerciseDefinitionService';
-import { RuntimeMetric, MetricValueType } from '../../../../runtime/RuntimeMetric';
+import { RuntimeMetric, MetricValueType } from '../../../../runtime/models/RuntimeMetric';
 import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
 import { Exercise, Level, Category } from '../../../../exercise.d';
 import { metricsToFragments } from '../../../../runtime/utils/metricsToFragments';

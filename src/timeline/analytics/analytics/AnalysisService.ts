@@ -1,4 +1,4 @@
-import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import type { RuntimeMetric } from '../../../runtime/models/RuntimeMetric';
 import { ExerciseDefinitionService } from '../../../services';
 import { IProjectionEngine } from './IProjectionEngine';
 import { ProjectionResult } from './ProjectionResult';
