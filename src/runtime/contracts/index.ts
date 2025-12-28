@@ -8,7 +8,7 @@ export type { IRuntimeStack } from './IRuntimeStack';
 export type { IRuntimeClock } from './IRuntimeClock';
 export type { IRuntimeBlockStrategy } from './IRuntimeBlockStrategy';
 export type { IRuntimeOptions, RuntimeStackOptions, RuntimeStackHooks, RuntimeStackLogger, RuntimeStackWrapper, RuntimeStackTracker, DebugLogEvent, DebugLogEventType, BlockWrapperFactory } from './IRuntimeOptions';
-export type { IBlockContext } from './IBlockContext';
+export type { IBlockContext, MemoryEventCallback, MemoryEventType } from './IBlockContext';
 export type { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 export type { IAnchorValue } from './IAnchorValue';
 export type { IDistributedFragments } from './IDistributedFragments';

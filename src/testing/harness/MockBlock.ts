@@ -3,9 +3,11 @@ import { IRuntimeAction } from '@/runtime/contracts';
 import { IRuntimeBehavior } from '@/runtime/contracts';
 import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
-import { IBlockContext } from '@/runtime/contracts';
+import { IBlockContext, MemoryEventCallback } from '@/runtime/contracts';
 import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
-import { IMemoryReference } from '@/runtime/contracts';
+import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
+import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
+import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 
 /**
  * Minimal stub context for MockBlock
@@ -15,32 +17,71 @@ class MockBlockContext implements IBlockContext {
   readonly exerciseId: string;
   readonly references: ReadonlyArray<IMemoryReference> = [];
   private _released = false;
+  private _subscriptions: (() => void)[] = [];
 
   constructor(blockId: string) {
     this.ownerId = blockId;
     this.exerciseId = blockId;
   }
 
-  allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): IMemoryReference {
+  allocate<T>(_type: MemoryTypeEnum | string = 'mock', _initialValue?: T, _visibility?: 'public' | 'private'): TypedMemoryReference<T> {
     let currentValue = _initialValue;
-    return {
+    const ref = {
       id: `mock-ref-${Math.random().toString(36).slice(2)}`,
-      type: _type ?? 'mock',
+      type: _type as string,
       ownerId: this.ownerId,
       visibility: (_visibility ?? 'private') as 'public' | 'private' | 'inherited',
       value: () => currentValue,
       subscriptions: [],
       // Extended TypedMemoryReference-like methods for compatibility
       get: () => currentValue,
-      set: (value: T) => { currentValue = value; }
-    } as any;
+      set: (value: T) => { currentValue = value; },
+      hasSubscribers: () => false,
+      notifySubscribers: () => {},
+      subscribe: () => () => {}
+    };
+    return ref as unknown as TypedMemoryReference<T>;
   }
 
-  get<T>(_type?: string): T | undefined { return undefined; }
-  getAll<T>(_type?: string): T[] { return []; }
-  release(): void { this._released = true; }
+  get<T>(_type: MemoryTypeEnum | string = 'mock'): TypedMemoryReference<T> | undefined { return undefined; }
+  getAll<T>(_type: MemoryTypeEnum | string = 'mock'): TypedMemoryReference<T>[] { return []; }
+  release(): void { 
+    // Clean up all subscriptions
+    for (const unsubscribe of this._subscriptions) {
+      unsubscribe();
+    }
+    this._subscriptions = [];
+    this._released = true; 
+  }
   isReleased(): boolean { return this._released; }
-  getOrCreateAnchor(): IMemoryReference { return this.allocate('anchor'); }
+  getOrCreateAnchor(_anchorId: string = 'mock-anchor'): TypedMemoryReference<IAnchorValue> { 
+    return this.allocate<IAnchorValue>(MemoryTypeEnum.ANCHOR); 
+  }
+  
+  // Memory event subscription methods - stubs for testing
+  onAllocate<T = unknown>(_callback: MemoryEventCallback<T>): () => void {
+    const unsubscribe = () => {};
+    this._subscriptions.push(unsubscribe);
+    return unsubscribe;
+  }
+  
+  onSet<T = unknown>(_callback: MemoryEventCallback<T>): () => void {
+    const unsubscribe = () => {};
+    this._subscriptions.push(unsubscribe);
+    return unsubscribe;
+  }
+  
+  onRelease<T = unknown>(_callback: MemoryEventCallback<T>): () => void {
+    const unsubscribe = () => {};
+    this._subscriptions.push(unsubscribe);
+    return unsubscribe;
+  }
+  
+  onAny<T = unknown>(_callback: MemoryEventCallback<T>): () => void {
+    const unsubscribe = () => {};
+    this._subscriptions.push(unsubscribe);
+    return unsubscribe;
+  }
 }
 
 /**

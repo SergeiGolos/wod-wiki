@@ -31,6 +31,10 @@ function createMockBlock(id: string): IRuntimeBlock {
         release: vi.fn(),
         isReleased: vi.fn().mockReturnValue(false),
         getOrCreateAnchor: vi.fn(),
+        onAllocate: vi.fn().mockReturnValue(() => {}),
+        onSet: vi.fn().mockReturnValue(() => {}),
+        onRelease: vi.fn().mockReturnValue(() => {}),
+        onAny: vi.fn().mockReturnValue(() => {}),
     };
 
     class MockBlockKey extends BlockKey {

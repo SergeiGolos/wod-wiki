@@ -1,6 +1,25 @@
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
-import { MemoryTypeEnum } from './models/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
 import { IAnchorValue } from './IAnchorValue';
+
+/**
+ * Callback type for memory event subscriptions.
+ * Called when a memory event occurs for a reference owned by this context.
+ * 
+ * @param ref The memory reference that changed
+ * @param value The new value (or last value for release events)
+ * @param oldValue The previous value (only for set events)
+ */
+export type MemoryEventCallback<T = unknown> = (
+    ref: IMemoryReference,
+    value: T,
+    oldValue?: T
+) => void;
+
+/**
+ * Memory event type for subscription filtering.
+ */
+export type MemoryEventType = 'allocate' | 'set' | 'release';
 
 /**
  * BlockContext provides memory allocation and access for a runtime block.
@@ -120,4 +139,76 @@ export interface IBlockContext {
      * ```
      */
     getOrCreateAnchor(anchorId: string): TypedMemoryReference<IAnchorValue>;
+    
+    /**
+     * Subscribe to allocate events for memory owned by this context.
+     * Callback is only invoked when memory is allocated with this context's ownerId.
+     * Subscriptions are automatically cleaned up when release() is called.
+     * 
+     * @param callback Function to call when memory is allocated
+     * @returns Unsubscribe function to manually remove the subscription
+     * @throws Error if context has been released
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = context.onAllocate((ref, value) => {
+     *   console.log(`Allocated ${ref.type} with value:`, value);
+     * });
+     * ```
+     */
+    onAllocate<T = unknown>(callback: MemoryEventCallback<T>): () => void;
+    
+    /**
+     * Subscribe to set events for memory owned by this context.
+     * Callback is only invoked when memory is set with this context's ownerId.
+     * Subscriptions are automatically cleaned up when release() is called.
+     * 
+     * @param callback Function to call when memory value is set
+     * @returns Unsubscribe function to manually remove the subscription
+     * @throws Error if context has been released
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = context.onSet((ref, value, oldValue) => {
+     *   console.log(`Value changed from ${oldValue} to ${value}`);
+     * });
+     * ```
+     */
+    onSet<T = unknown>(callback: MemoryEventCallback<T>): () => void;
+    
+    /**
+     * Subscribe to release events for memory owned by this context.
+     * Callback is only invoked when memory is released with this context's ownerId.
+     * Subscriptions are automatically cleaned up when release() is called.
+     * 
+     * @param callback Function to call when memory is released
+     * @returns Unsubscribe function to manually remove the subscription
+     * @throws Error if context has been released
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = context.onRelease((ref, lastValue) => {
+     *   console.log(`Released ${ref.type}, last value was:`, lastValue);
+     * });
+     * ```
+     */
+    onRelease<T = unknown>(callback: MemoryEventCallback<T>): () => void;
+    
+    /**
+     * Subscribe to any memory event for memory owned by this context.
+     * Callback is invoked for allocate, set, and release events.
+     * Subscriptions are automatically cleaned up when release() is called.
+     * 
+     * @param callback Function to call when any memory event occurs
+     * @returns Unsubscribe function to manually remove the subscription
+     * @throws Error if context has been released
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = context.onAny((ref, value, oldValue) => {
+     *   console.log(`Memory event for ${ref.type}`);
+     * });
+     * ```
+     */
+    onAny<T = unknown>(callback: MemoryEventCallback<T>): () => void;
 }
