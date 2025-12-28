@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '../../../../tests/harness';
 import { RoundsStrategy } from '../RoundsStrategy';
 import { FragmentType } from '../../../core/models/CodeFragment';
-import { ICodeStatement } from '../../../core/models/CodeStatement';
+import { ICodeStatement, ParsedCodeStatement } from '../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
 
@@ -21,81 +21,81 @@ describe('RoundsStrategy', () => {
 
   describe('match()', () => {
     it('should match statements with Rounds fragment and no Timer', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with behavior.fixed_rounds hint (no Rounds fragment)', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 },
+        meta: { line: 1, offset: 0, column: 0 } as any,
         hints: new Set(['behavior.fixed_rounds'])
-      } as any;
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should match statements with both Rounds fragment and hint', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 },
+        meta: { line: 1, offset: 0, column: 0 } as any,
         hints: new Set(['behavior.fixed_rounds'])
-      } as any;
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(true);
     });
 
     it('should NOT match statements with Timer fragment (Timer takes precedence)', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' },
           { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should NOT match statements with Timer even with fixed_rounds hint', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 },
+        meta: { line: 1, offset: 0, column: 0 } as any,
         hints: new Set(['behavior.fixed_rounds'])
-      } as any;
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
 
     it('should not match statements without Rounds fragment or hint', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Effort, value: '10 Pullups', type: 'effort' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
@@ -105,11 +105,11 @@ describe('RoundsStrategy', () => {
     });
 
     it('should not match statement with missing fragments', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       expect(strategy.match([statement], harness.runtime)).toBe(false);
     });
@@ -117,14 +117,14 @@ describe('RoundsStrategy', () => {
 
   describe('compile()', () => {
     it('should compile statement with Rounds fragment into RuntimeBlock', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       const block = strategy.compile([statement], harness.runtime);
 
@@ -133,14 +133,14 @@ describe('RoundsStrategy', () => {
     });
 
     it('should create LoopCoordinatorBehavior with correct round count', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       const block = strategy.compile([statement], harness.runtime);
       const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
@@ -151,14 +151,14 @@ describe('RoundsStrategy', () => {
     });
 
     it('should support rep scheme (21-15-9)', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: [21, 15, 9], type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       const block = strategy.compile([statement], harness.runtime);
       const loopCoordinator = block.getBehavior(LoopCoordinatorBehavior);
@@ -170,14 +170,14 @@ describe('RoundsStrategy', () => {
     });
 
     it('should attach HistoryBehavior', () => {
-      const statement: ICodeStatement = {
+      const statement = new ParsedCodeStatement({
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
         ],
         children: [[2]],
-        meta: { line: 1, offset: 0, column: 0 }
-      } as any;
+        meta: { line: 1, offset: 0, column: 0 } as any
+      });
 
       const block = strategy.compile([statement], harness.runtime);
       const historyBehavior = block.getBehavior(HistoryBehavior);

@@ -6,6 +6,8 @@ import { BlockKey } from "../../core/models/BlockKey";
 import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
+import { RepFragment } from "../../fragments/RepFragment";
+import { EffortFragment } from "../../fragments/EffortFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
@@ -59,9 +61,8 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
             return true;
         }
 
-        const fragments = statement.fragments;
-        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
-        const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        const hasTimer = statement.hasFragment(FragmentType.Timer);
+        const hasRounds = statement.hasFragment(FragmentType.Rounds);
 
         // Structural fallback: Only match if NO timer AND NO rounds (pure effort)
         return !hasTimer && !hasRounds;
@@ -85,7 +86,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         let reps: number | undefined = undefined;
 
         // Prefer explicit rep fragments when present
-        const repsFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
+        const repsFragment = code[0]?.findFragment<RepFragment>(FragmentType.Rep);
         if (typeof repsFragment?.value === 'number') {
             reps = repsFragment.value;
         }
@@ -132,7 +133,7 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         // Use EffortBlock if reps are specified, otherwise fallback to generic RuntimeBlock
         // This ensures proper rep tracking and completion logic
         if (reps !== undefined) {
-            const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
+            const effortFragment = code[0]?.findFragment<EffortFragment>(FragmentType.Effort);
             const exerciseName = (typeof effortFragment?.value === 'string' && effortFragment.value.trim().length > 0)
                 ? effortFragment.value
                 : getExerciseName(code[0], "Exercise");

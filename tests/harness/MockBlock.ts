@@ -4,7 +4,7 @@ import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/IRuntimeBlock';
 import { IScriptRuntime } from '@/runtime/IScriptRuntime';
 import { IBlockContext } from '@/runtime/IBlockContext';
-import { ICodeFragment } from '@/core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import { IMemoryReference } from '@/runtime/IMemoryReference';
 
 /**
@@ -176,5 +176,31 @@ export class MockBlock implements IRuntimeBlock {
 
   getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
     return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
+  }
+
+  findFragment<T extends ICodeFragment = ICodeFragment>(
+    type: FragmentType,
+    predicate?: (f: ICodeFragment) => boolean
+  ): T | undefined {
+    for (const group of this.fragments) {
+      const found = group.find(f => f.fragmentType === type && (!predicate || predicate(f)));
+      if (found) return found as T;
+    }
+    return undefined;
+  }
+
+  filterFragments<T extends ICodeFragment = ICodeFragment>(
+    type: FragmentType
+  ): T[] {
+    const result: T[] = [];
+    for (const group of this.fragments) {
+      const found = group.filter(f => f.fragmentType === type);
+      result.push(...(found as T[]));
+    }
+    return result;
+  }
+
+  hasFragment(type: FragmentType): boolean {
+    return this.fragments.some(group => group.some(f => f.fragmentType === type));
   }
 }

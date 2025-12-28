@@ -3,7 +3,7 @@ import { RoundsBlock } from '../../src/runtime/blocks/RoundsBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { JitCompiler } from '../../src/runtime/JitCompiler';
 import { WodScript } from '../../src/parser/WodScript';
-import { ICodeStatement } from '../../src/core/models/CodeStatement';
+import { ICodeStatement, ParsedCodeStatement } from '../../src/core/models/CodeStatement';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
 import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
@@ -18,14 +18,14 @@ describe('RoundsBlock - Metric Inheritance', () => {
 
   beforeEach(() => {
     // Create child statement (Push-ups without explicit reps)
-    const childStatement: ICodeStatement = {
+    const childStatement = new ParsedCodeStatement({
       id: 1,
       fragments: [
         { fragmentType: FragmentType.Effort, value: undefined, type: 'effort' }
       ],
       children: [],
-      meta: { line: 1, startOffset: 0, endOffset: 10, columnStart: 0, columnEnd: 10, length: 10 }
-    };
+      meta: { line: 1, startOffset: 0, endOffset: 10, columnStart: 0, columnEnd: 10, length: 10 } as any
+    });
 
     // Create mock script with proper ID resolution
     mockScript = new WodScript('mock source', [childStatement], []);

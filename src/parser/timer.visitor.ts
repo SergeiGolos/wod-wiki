@@ -11,7 +11,7 @@ import { DistanceFragment } from "../fragments/DistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
-import { ICodeStatement } from "@/core";
+import { ICodeStatement, ParsedCodeStatement } from "../core/models/CodeStatement";
 
 export type GroupType = 'round' | 'compose' | 'repeat';
 
@@ -129,7 +129,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   wodBlock(ctx: any): ICodeStatement[] {
-    let statement = { fragments: [] as ICodeFragment[] } as ICodeStatement;
+    let statement = new ParsedCodeStatement();
     const lapFragments = ctx.lap && this.visit(ctx.lap);
     statement.fragments.push(...(lapFragments || []));
 

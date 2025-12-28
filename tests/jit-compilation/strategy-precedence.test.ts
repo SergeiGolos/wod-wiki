@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { JitCompiler } from '../../src/runtime/JitCompiler';
 import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
-import { ICodeStatement } from '../../src/CodeStatement';
-import { ICodeFragment, FragmentType } from '../../src/CodeFragment';
-import { IScriptRuntime } from '../../src/IScriptRuntime';
+import { ICodeStatement, ParsedCodeStatement } from '../../src/core/models/CodeStatement';
+import { ICodeFragment, FragmentType } from '../../src/core/models/CodeFragment';
+import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { BlockKey } from '../../src/core/models/BlockKey';
 
 describe('Strategy Precedence Contract', () => {
@@ -64,14 +64,14 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new RoundsStrategy());
 
       // GIVEN: Statement with Timer fragment
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-1'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-1') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -91,16 +91,16 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with Rounds fragment (no Timer)
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-2'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-2') as any,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 5, type: 'rounds' }
         ],
         children: [
-          { id: new BlockKey('child-1'), fragments: [{ fragmentType: FragmentType.Effort, value: 'Squats', type: 'effort' }], children: [], meta: undefined }
-        ],
+          new ParsedCodeStatement({ id: new BlockKey('child-1') as any, fragments: [{ fragmentType: FragmentType.Effort, value: 'Squats', type: 'effort' }], children: [], meta: undefined })
+        ] as any,
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -120,15 +120,15 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with only Effort fragment (no Timer, no Rounds)
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-3'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-3') as any,
         fragments: [
           { fragmentType: FragmentType.Effort, value: 'Deadlifts', type: 'effort' },
           { fragmentType: FragmentType.Rep, value: 10, type: 'rep' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -148,15 +148,15 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with BOTH Timer and Rounds fragments
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-4'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-4') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -176,14 +176,14 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new RoundsStrategy());
 
       // GIVEN: Timer statement
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-5'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-5') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 600, type: 'timer' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -204,14 +204,14 @@ describe('Strategy Precedence Contract', () => {
       // (no registerStrategy calls)
 
       // GIVEN: Any statement
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-6'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-6') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 300, type: 'timer' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -254,14 +254,14 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(roundsStrategy);
 
       // GIVEN: Timer statement
-      const statement: ICodeStatement = {
-        id: new BlockKey('test-8'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('test-8') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 900, type: 'timer' }
         ],
         children: [],
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       compiler.compile([statement], mockRuntime);
@@ -281,26 +281,26 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Multiple different statements
-      const timerStmt: ICodeStatement = {
-        id: new BlockKey('t1'),
+      const timerStmt = new ParsedCodeStatement({
+        id: new BlockKey('t1') as any,
         fragments: [{ fragmentType: FragmentType.Timer, value: 600, type: 'timer' }],
         children: [], meta: undefined
-      };
+      });
 
-      const roundsStmt: ICodeStatement = {
-        id: new BlockKey('r1'),
+      const roundsStmt = new ParsedCodeStatement({
+        id: new BlockKey('r1') as any,
         fragments: [{ fragmentType: FragmentType.Rounds, value: 4, type: 'rounds' }],
         children: [
-          { id: new BlockKey('child-r1'), fragments: [{ fragmentType: FragmentType.Effort, value: 'Burpees', type: 'effort' }], children: [], meta: undefined }
-        ],
+          new ParsedCodeStatement({ id: new BlockKey('child-r1') as any, fragments: [{ fragmentType: FragmentType.Effort, value: 'Burpees', type: 'effort' }], children: [], meta: undefined })
+        ] as any,
         meta: undefined
-      };
+      });
 
-      const effortStmt: ICodeStatement = {
-        id: new BlockKey('e1'),
+      const effortStmt = new ParsedCodeStatement({
+        id: new BlockKey('e1') as any,
         fragments: [{ fragmentType: FragmentType.Effort, value: 'Lunges', type: 'effort' }],
         children: [], meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles multiple statements
       const block1 = compiler.compile([timerStmt], mockRuntime);
@@ -326,17 +326,17 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with BOTH Timer and Rounds fragments (AMRAP)
-      const statement: ICodeStatement = {
-        id: new BlockKey('amrap-1'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('amrap-1') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 1200, type: 'timer' },
           { fragmentType: FragmentType.Rounds, value: 10, type: 'rounds' }
         ],
         children: [
-          { id: new BlockKey('child-1'), fragments: [{ fragmentType: FragmentType.Effort, value: 'Pull-ups', type: 'effort' }], children: [], meta: undefined }
-        ],
+          new ParsedCodeStatement({ id: new BlockKey('child-1') as any, fragments: [{ fragmentType: FragmentType.Effort, value: 'Pull-ups', type: 'effort' }], children: [], meta: undefined })
+        ] as any,
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -356,15 +356,17 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with Timer and EMOM action
-      const statement: ICodeStatement = {
-        id: new BlockKey('emom-1'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('emom-1') as any,
         fragments: [
           { fragmentType: FragmentType.Timer, value: 600, type: 'timer' },
           { fragmentType: FragmentType.Action, value: 'EMOM', type: 'action' }
         ],
-        children: [],
+        children: [
+          new ParsedCodeStatement({ id: new BlockKey('child-emom') as any, fragments: [{ fragmentType: FragmentType.Effort, value: 'Burpees', type: 'effort' }], children: [], meta: undefined })
+        ] as any,
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -386,23 +388,23 @@ describe('Strategy Precedence Contract', () => {
 
       // GIVEN: Statement with children but NO specific fragments (just text/action)
       // This represents a pure grouping construct
-      const statement: ICodeStatement = {
-        id: new BlockKey('group-1'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('group-1') as any,
         fragments: [
           { fragmentType: FragmentType.Action, value: 'Superset', type: 'action' }
         ],
         children: [
-          {
-            id: new BlockKey('child-1'),
+          new ParsedCodeStatement({
+            id: new BlockKey('child-1') as any,
             fragments: [
               { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
             ],
             children: [],
             meta: undefined
-          }
-        ],
+          })
+        ] as any,
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
@@ -420,23 +422,23 @@ describe('Strategy Precedence Contract', () => {
       compiler.registerStrategy(new EffortStrategy());
 
       // GIVEN: Statement with Rounds fragment AND children
-      const statement: ICodeStatement = {
-        id: new BlockKey('rounds-group'),
+      const statement = new ParsedCodeStatement({
+        id: new BlockKey('rounds-group') as any,
         fragments: [
           { fragmentType: FragmentType.Rounds, value: 3, type: 'rounds' }
         ],
         children: [
-          {
-            id: new BlockKey('child-1'),
+          new ParsedCodeStatement({
+            id: new BlockKey('child-1') as any,
             fragments: [
               { fragmentType: FragmentType.Effort, value: 'Pullups', type: 'effort' }
             ],
             children: [],
             meta: undefined
-          }
-        ],
+          })
+        ] as any,
         meta: undefined
-      };
+      });
 
       // WHEN: Compiler compiles statement
       const block = compiler.compile([statement], mockRuntime);
