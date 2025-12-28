@@ -472,24 +472,24 @@ classDiagram
 
 ### 1. Dead Code: Interfaces Defined but Never Implemented
 
-| Interface | Location | Status | Recommendation |
-|-----------|----------|--------|----------------|
-| `IValidationRule` | `src/parser/IValidationRule.ts` | **No implementations found** | Remove or implement validation rules |
-| `IMetricCollector` | `src/runtime/MetricCollector.ts` | **Deprecated** - being replaced | Complete migration to `IFragmentMetricCollector` |
-| `IRuntimeAdapter` | `src/runtime-test-bench/types/interfaces.ts` | Test-bench only interface | Consider removing if unused |
+| Interface          | Location                                     | Status                          | Recommendation                                   |
+| ------------------ | -------------------------------------------- | ------------------------------- | ------------------------------------------------ |
+| `IValidationRule`  | `src/parser/IValidationRule.ts`              | **No implementations found**    | Remove or implement validation rules             |
+| `IMetricCollector` | `src/runtime/MetricCollector.ts`             | **Deprecated** - being replaced | Complete migration to `IFragmentMetricCollector` |
+| `IRuntimeAdapter`  | `src/runtime-test-bench/types/interfaces.ts` | Test-bench only interface       | Consider removing if unused                      |
 
 ### 2. Redundant/Overlapping Interfaces
 
-| Issue | Interfaces | Analysis |
-|-------|------------|----------|
-| **Duplicate ICodeStatement** | `src/core/models/CodeStatement.ts` <br> `src/core/types/core.ts` | Same interface defined in two locations. The `core/types/core.ts` version imports from models. **Consolidate to single source.** |
-| **Duplicate IScript** | `src/parser/WodScript.ts` <br> `src/core/types/core.ts` | Re-exported from parser. **Keep single definition.** |
-| **Duplicate IScriptRuntime** | `src/runtime/IScriptRuntime.ts` <br> `src/core/types/runtime.ts` | The `core/types/runtime.ts` version is a simplified re-export. **Consider removing duplicate.** |
-| **Duplicate IRuntimeBlock** | `src/runtime/IRuntimeBlock.ts` <br> `src/core/types/runtime.ts` <br> `src/runtime-test-bench/types/interfaces.ts` | Three definitions with varying completeness. **Consolidate to canonical source.** |
-| **Duplicate IRuntimeAction** | `src/runtime/IRuntimeAction.ts` <br> `src/core/types/runtime.ts` | Re-exported. **Keep single definition.** |
-| **Duplicate IMemoryReference** | `src/runtime/IMemoryReference.ts` <br> `src/core/types/runtime.ts` | Partial re-export with different signature. **Align signatures.** |
-| **IBehavior vs IRuntimeBehavior** | `src/runtime/behaviors/IBehavior.ts` <br> `src/runtime/IRuntimeBehavior.ts` | `IBehavior` has unified `do()` method; `IRuntimeBehavior` has individual hooks. **Both actively used - document pattern.** |
-| **IMetricCollector vs IFragmentMetricCollector** | `src/runtime/MetricCollector.ts` <br> `src/runtime/FragmentMetricCollector.ts` | Deprecated vs new pattern. **Complete deprecation migration.** |
+| Issue                                            | Interfaces                                                                                                        | Analysis                                                                                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Duplicate ICodeStatement**                     | `src/core/models/CodeStatement.ts` <br> `src/core/types/core.ts`                                                  | Same interface defined in two locations. The `core/types/core.ts` version imports from models. **Consolidate to single source.** |
+| **Duplicate IScript**                            | `src/parser/WodScript.ts` <br> `src/core/types/core.ts`                                                           | Re-exported from parser. **Keep single definition.**                                                                             |
+| **Duplicate IScriptRuntime**                     | `src/runtime/IScriptRuntime.ts` <br> `src/core/types/runtime.ts`                                                  | The `core/types/runtime.ts` version is a simplified re-export. **Consider removing duplicate.**                                  |
+| **Duplicate IRuntimeBlock**                      | `src/runtime/IRuntimeBlock.ts` <br> `src/core/types/runtime.ts` <br> `src/runtime-test-bench/types/interfaces.ts` | Three definitions with varying completeness. **Consolidate to canonical source.**                                                |
+| **Duplicate IRuntimeAction**                     | `src/runtime/IRuntimeAction.ts` <br> `src/core/types/runtime.ts`                                                  | Re-exported. **Keep single definition.**                                                                                         |
+| **Duplicate IMemoryReference**                   | `src/runtime/IMemoryReference.ts` <br> `src/core/types/runtime.ts`                                                | Partial re-export with different signature. **Align signatures.**                                                                |
+| **IBehavior vs IRuntimeBehavior**                | `src/runtime/behaviors/IBehavior.ts` <br> `src/runtime/IRuntimeBehavior.ts`                                       | `IBehavior` has unified `do()` method; `IRuntimeBehavior` has individual hooks. **Both actively used - document pattern.**       |
+| **IMetricCollector vs IFragmentMetricCollector** | `src/runtime/MetricCollector.ts` <br> `src/runtime/FragmentMetricCollector.ts`                                    | Deprecated vs new pattern. **Complete deprecation migration.**                                                                   |
 
 ### 3. Circular Dependencies
 
@@ -501,12 +501,12 @@ classDiagram
 
 ### 4. Interface Hygiene Issues
 
-| Issue | Location | Severity | Recommendation |
-|-------|----------|----------|----------------|
-| **Deprecated interface still in use** | `IMetricCollector` | Medium | Complete migration to `IFragmentMetricCollector` |
-| **Large interface** | `IBlockContext` (8 methods) | Low | Consider splitting read vs write operations |
-| **Optional members in interface** | `IRuntimeBehavior` (all hooks optional) | Low | Acceptable - partial implementation pattern |
-| **Type duplication in core/types** | Multiple runtime type re-exports | Medium | Centralize to avoid drift |
+| Issue                                 | Location                                | Severity | Recommendation                                   |
+| ------------------------------------- | --------------------------------------- | -------- | ------------------------------------------------ |
+| **Deprecated interface still in use** | `IMetricCollector`                      | Medium   | Complete migration to `IFragmentMetricCollector` |
+| **Large interface**                   | `IBlockContext` (8 methods)             | Low      | Consider splitting read vs write operations      |
+| **Optional members in interface**     | `IRuntimeBehavior` (all hooks optional) | Low      | Acceptable - partial implementation pattern      |
+| **Type duplication in core/types**    | Multiple runtime type re-exports        | Medium   | Centralize to avoid drift                        |
 
 ### 5. Recommended Cleanups
 
