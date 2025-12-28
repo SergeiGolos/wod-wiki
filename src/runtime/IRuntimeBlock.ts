@@ -3,7 +3,7 @@ import { IRuntimeAction } from "./IRuntimeAction";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
 import { IBlockContext } from "./IBlockContext";
-import { ICodeFragment } from "../core/models/CodeFragment";
+import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
@@ -144,4 +144,24 @@ export interface IRuntimeBlock {
      * @returns The behavior instance or undefined if not found
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
+
+    /**
+     * Find the first fragment of a given type, optionally matching a predicate.
+     */
+    findFragment<T extends ICodeFragment = ICodeFragment>(
+        type: FragmentType,
+        predicate?: (f: ICodeFragment) => boolean
+    ): T | undefined;
+
+    /**
+     * Get all fragments of a given type.
+     */
+    filterFragments<T extends ICodeFragment = ICodeFragment>(
+        type: FragmentType
+    ): T[];
+
+    /**
+     * Check if a fragment of a given type exists.
+     */
+    hasFragment(type: FragmentType): boolean;
 }

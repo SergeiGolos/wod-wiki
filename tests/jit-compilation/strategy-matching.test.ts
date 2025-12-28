@@ -9,8 +9,24 @@ import {
 } from '../../src/runtime/strategies';
 import { BlockKey } from '../../src/core/models/BlockKey';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
-import { ICodeStatement } from '../../src/core/models/CodeStatement';
-import { FragmentType } from '../../src/core/models/CodeFragment';
+import { ICodeStatement, CodeStatement } from '../../src/core/models/CodeStatement';
+import { FragmentType, ICodeFragment } from '../../src/core/models/CodeFragment';
+import { CodeMetadata } from '../../src/core/models/CodeMetadata';
+
+class MockCodeStatement extends CodeStatement {
+  id: any;
+  parent?: number;
+  children: any = [];
+  meta: any;
+  fragments: ICodeFragment[] = [];
+  isLeaf?: boolean;
+  hints?: Set<string>;
+
+  constructor(data: any) {
+    super();
+    Object.assign(this, data);
+  }
+}
 
 /**
  * Strategy Matching Contract
@@ -30,12 +46,12 @@ describe('Strategy Matching Contract', () => {
 
   // Helper to create concise test statements
   function entry(fragments: any[], children: ICodeStatement[] = []): ICodeStatement {
-    return {
+    return new MockCodeStatement({
       id: new BlockKey(`test-${Math.random().toString(36).slice(2, 7)}`),
       fragments: fragments.map(f => ({ ...f, type: f.type || 'test' })),
       children,
       meta: undefined
-    };
+    });
   }
 
   const f = {

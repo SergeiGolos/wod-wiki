@@ -6,6 +6,7 @@ import { BlockKey } from "../../core/models/BlockKey";
 import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
+import { TimerFragment } from "../../fragments/TimerFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
@@ -95,7 +96,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const fragments = statement.fragments;
 
         // Structural check: Has timer fragment
-        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasTimer = statement.hasFragment(FragmentType.Timer);
 
         // Check for explicit timer hint from dialect (optional)
         // Dialects can flag "Rest" or "Work" timers explicitly
@@ -123,7 +124,7 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
 
         // 4. Extract timer fragment to determine direction
         const fragments = code[0]?.fragments || [];
-        const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer) as TimerFragment | undefined;
+        const timerFragment = code[0]?.findFragment<TimerFragment>(FragmentType.Timer);
 
         // Determine timer direction from fragment or default to count-up
         const direction = timerFragment?.direction || 'up';

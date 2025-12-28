@@ -6,6 +6,8 @@ import { BlockKey } from "../../core/models/BlockKey";
 import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { FragmentType } from "../../core/models/CodeFragment";
+import { RoundsFragment } from "../../fragments/RoundsFragment";
+import { RepFragment } from "../../fragments/RepFragment";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../MemoryTypeEnum";
@@ -51,10 +53,10 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const isFixedRounds = statement.hints?.has('behavior.fixed_rounds') ?? false;
 
         // Structural fallback: Has rounds fragment
-        const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        const hasRounds = statement.hasFragment(FragmentType.Rounds);
 
         // Exclusion: Timer presence means higher-precedence strategy should handle
-        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasTimer = statement.hasFragment(FragmentType.Timer);
 
         // Match if (fixed_rounds hint OR rounds fragment) AND no timer
         return (isFixedRounds || hasRounds) && !hasTimer;
@@ -67,8 +69,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const exerciseId = getExerciseId(code[0]);
 
         // Extract rounds configuration from fragments
-        const fragments = code[0]?.fragments || [];
-        const roundsFragment = fragments.find(f => f.fragmentType === FragmentType.Rounds);
+        const roundsFragment = code[0]?.findFragment<RoundsFragment>(FragmentType.Rounds);
 
         if (!roundsFragment) {
             console.error('RoundsStrategy: No Rounds fragment found');
@@ -90,7 +91,7 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
             totalRounds = roundsFragment.value;
 
             // Check for separate RepFragments (modern parser pattern)
-            const repFragments = fragments.filter(f => f.fragmentType === FragmentType.Reps);
+            const repFragments = code[0]?.filterFragments<RepFragment>(FragmentType.Rep) || [];
             if (repFragments.length > 0) {
                 // Build rep scheme from RepFragments
                 repScheme = repFragments.map(f => f.value as number);
