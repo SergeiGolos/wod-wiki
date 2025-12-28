@@ -5,6 +5,11 @@ export * from './StackEvents';
 export * from './MemoryEvents';
 // export * from './DebugRuntimeStack'; // Removed
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
+
+// IRuntimeBehavior is the canonical behavior interface
+export type { IRuntimeBehavior } from './IRuntimeBehavior';
+
+// @deprecated - IBehavior pattern exports (use IRuntimeBehavior instead)
 export {
   BaseBehavior,
   composeBehaviors,
@@ -21,6 +26,7 @@ export type {
   IPopBehavior,
   BehaviorOperation
 } from './behaviors/IBehavior';
+
 export { PlaySoundAction } from './actions/PlaySoundAction';
 export type {
   SoundBehaviorConfig,

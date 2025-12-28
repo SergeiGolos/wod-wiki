@@ -60,7 +60,7 @@ export interface TimeSpan {
  * 
  * **Migration Path:**
  * - Analytics: Use `AnalysisService.runAllProjectionsFromFragments()` instead of `runAllProjections()`
- * - Collection: Use `FragmentMetricCollector` instead of `MetricCollector`
+ * - Collection: Use `FragmentMetricCollector`
  * - Display: Use `fragmentsToDisplayMetrics()` utility for UI rendering
  * 
  * **Timeline:**

@@ -43,9 +43,7 @@ The WOD Wiki codebase is organized around a **stack-based runtime execution engi
 | `ICodeStatement` | `src/core/models/CodeStatement.ts` | Single parsed statement node |
 | `ICodeFragment` | `src/core/models/CodeFragment.ts` | Fragment within a statement |
 | `IDialect` | `src/core/models/Dialect.ts` | Semantic hint generation |
-| `IValidationRule` | `src/parser/IValidationRule.ts` | Parse-time validation |
 | `ITrackerCommand` | `src/tracker/ITrackerCommand.ts` | Command pattern for execution tracking |
-| `IMetricCollector` | `src/runtime/MetricCollector.ts` | **(Deprecated)** Metric collection |
 | `IFragmentMetricCollector` | `src/runtime/FragmentMetricCollector.ts` | Fragment-based metric collection |
 | `IProjectionEngine` | `src/timeline/analytics/analytics/IProjectionEngine.ts` | Analytics projection engine |
 | `ICardParserStrategy` | `src/editor/parsers/ICardParserStrategy.ts` | Editor card parsing strategy |
@@ -54,15 +52,15 @@ The WOD Wiki codebase is organized around a **stack-based runtime execution engi
 | `IRuntimeFactory` | `src/runtime/RuntimeFactory.ts` | Factory for runtime instances |
 | `IAnchorValue` | `src/runtime/IAnchorValue.ts` | Anchor memory reference value |
 
-### Behavior Sub-Interfaces
+### Behavior Interface
+
+The canonical behavior interface is `IRuntimeBehavior`:
 
 | Interface | Location | Purpose |
 |-----------|----------|---------|
-| `IBehavior` | `src/runtime/behaviors/IBehavior.ts` | High-level behavior with `do()` entry point |
-| `IBehaviorContext` | `src/runtime/behaviors/IBehavior.ts` | Context passed to behavior methods |
-| `IPushBehavior` | `src/runtime/behaviors/IBehavior.ts` | Optional push lifecycle hook |
-| `INextBehavior` | `src/runtime/behaviors/IBehavior.ts` | Optional next/tick lifecycle hook |
-| `IPopBehavior` | `src/runtime/behaviors/IBehavior.ts` | Optional pop lifecycle hook |
+| `IRuntimeBehavior` | `src/runtime/IRuntimeBehavior.ts` | **Canonical** composable behavior contract for runtime blocks |
+
+> **Note**: The `IBehavior` pattern in `src/runtime/behaviors/IBehavior.ts` is **deprecated**. All production behaviors implement `IRuntimeBehavior` directly.
 
 ### Testing Interfaces
 
@@ -474,8 +472,8 @@ classDiagram
 
 | Interface          | Location                                     | Status                          | Recommendation                                   |
 | ------------------ | -------------------------------------------- | ------------------------------- | ------------------------------------------------ |
-| `IValidationRule`  | `src/parser/IValidationRule.ts`              | **No implementations found**    | Remove or implement validation rules             |
-| `IMetricCollector` | `src/runtime/MetricCollector.ts`             | **Deprecated** - being replaced | Complete migration to `IFragmentMetricCollector` |
+| `IValidationRule`  | ~~`src/parser/IValidationRule.ts`~~          | **✅ REMOVED**                  | ~~Remove or implement validation rules~~         |
+| `IMetricCollector` | ~~`src/runtime/MetricCollector.ts`~~         | **✅ REMOVED**                  | ~~Complete migration to `IFragmentMetricCollector`~~ |
 | `IRuntimeAdapter`  | `src/runtime-test-bench/types/interfaces.ts` | Test-bench only interface       | Consider removing if unused                      |
 
 ### 2. Redundant/Overlapping Interfaces
@@ -484,12 +482,12 @@ classDiagram
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Duplicate ICodeStatement**                     | `src/core/models/CodeStatement.ts` <br> `src/core/types/core.ts`                                                  | Same interface defined in two locations. The `core/types/core.ts` version imports from models. **Consolidate to single source.** |
 | **Duplicate IScript**                            | `src/parser/WodScript.ts` <br> `src/core/types/core.ts`                                                           | Re-exported from parser. **Keep single definition.**                                                                             |
-| **Duplicate IScriptRuntime**                     | `src/runtime/IScriptRuntime.ts` <br> `src/core/types/runtime.ts`                                                  | The `core/types/runtime.ts` version is a simplified re-export. **Consider removing duplicate.**                                  |
-| **Duplicate IRuntimeBlock**                      | `src/runtime/IRuntimeBlock.ts` <br> `src/core/types/runtime.ts` <br> `src/runtime-test-bench/types/interfaces.ts` | Three definitions with varying completeness. **Consolidate to canonical source.**                                                |
-| **Duplicate IRuntimeAction**                     | `src/runtime/IRuntimeAction.ts` <br> `src/core/types/runtime.ts`                                                  | Re-exported. **Keep single definition.**                                                                                         |
-| **Duplicate IMemoryReference**                   | `src/runtime/IMemoryReference.ts` <br> `src/core/types/runtime.ts`                                                | Partial re-export with different signature. **Align signatures.**                                                                |
-| **IBehavior vs IRuntimeBehavior**                | `src/runtime/behaviors/IBehavior.ts` <br> `src/runtime/IRuntimeBehavior.ts`                                       | `IBehavior` has unified `do()` method; `IRuntimeBehavior` has individual hooks. **Both actively used - document pattern.**       |
-| **IMetricCollector vs IFragmentMetricCollector** | `src/runtime/MetricCollector.ts` <br> `src/runtime/FragmentMetricCollector.ts`                                    | Deprecated vs new pattern. **Complete deprecation migration.**                                                                   |
+| **~~Duplicate IScriptRuntime~~**                 | ~~`src/runtime/IScriptRuntime.ts` <br> `src/core/types/runtime.ts`~~                                              | **✅ CONSOLIDATED** - `core/types/runtime.ts` now re-exports from `src/runtime/`                                                 |
+| **~~Duplicate IRuntimeBlock~~**                  | ~~`src/runtime/IRuntimeBlock.ts` <br> `src/core/types/runtime.ts`~~                                               | **✅ CONSOLIDATED** - `core/types/runtime.ts` now re-exports from `src/runtime/`                                                 |
+| **~~Duplicate IRuntimeAction~~**                 | ~~`src/runtime/IRuntimeAction.ts` <br> `src/core/types/runtime.ts`~~                                              | **✅ CONSOLIDATED** - `core/types/runtime.ts` now re-exports from `src/runtime/`                                                 |
+| **~~Duplicate IMemoryReference~~**               | ~~`src/runtime/IMemoryReference.ts` <br> `src/core/types/runtime.ts`~~                                            | **✅ CONSOLIDATED** - `core/types/runtime.ts` now re-exports from `src/runtime/`                                                 |
+| **~~IBehavior vs IRuntimeBehavior~~**            | ~~`src/runtime/behaviors/IBehavior.ts` <br> `src/runtime/IRuntimeBehavior.ts`~~                                   | **✅ DOCUMENTED** - `IRuntimeBehavior` is canonical; `IBehavior` is deprecated                                                   |
+| **~~IMetricCollector vs IFragmentMetricCollector~~** | ~~`src/runtime/MetricCollector.ts` <br> `src/runtime/FragmentMetricCollector.ts`~~                            | **✅ COMPLETED** - `IMetricCollector` removed, only `IFragmentMetricCollector` remains                                           |
 
 ### 3. Circular Dependencies
 
@@ -501,19 +499,19 @@ classDiagram
 
 ### 4. Interface Hygiene Issues
 
-| Issue                                 | Location                                | Severity | Recommendation                                   |
+| Issue                                 | Location                                | Severity | Status/Recommendation                            |
 | ------------------------------------- | --------------------------------------- | -------- | ------------------------------------------------ |
-| **Deprecated interface still in use** | `IMetricCollector`                      | Medium   | Complete migration to `IFragmentMetricCollector` |
+| **~~Deprecated interface still in use~~** | ~~`IMetricCollector`~~              | ~~Medium~~ | **✅ COMPLETED** - Removed                       |
 | **Large interface**                   | `IBlockContext` (8 methods)             | Low      | Consider splitting read vs write operations      |
 | **Optional members in interface**     | `IRuntimeBehavior` (all hooks optional) | Low      | Acceptable - partial implementation pattern      |
-| **Type duplication in core/types**    | Multiple runtime type re-exports        | Medium   | Centralize to avoid drift                        |
+| **~~Type duplication in core/types~~**| ~~Multiple runtime type re-exports~~    | ~~Medium~~ | **✅ COMPLETED** - Consolidated to re-exports    |
 
-### 5. Recommended Cleanups
+### 5. Completed Cleanups ✅
 
-1. **Consolidate Type Definitions**: Move all interface definitions to `src/runtime/` and export from `src/core/types/` as single source of truth
-2. **Complete Deprecation**: Finish `IMetricCollector` → `IFragmentMetricCollector` migration
-3. **Implement or Remove IValidationRule**: No implementations found - either add validation rules or remove interface
-4. **Document IBehavior vs IRuntimeBehavior**: Both patterns are valid - document when to use each
+1. **✅ Consolidate Type Definitions**: `src/core/types/runtime.ts` now re-exports from `src/runtime/` as single source of truth
+2. **✅ Complete Deprecation**: `IMetricCollector` and `MetricCollector` removed; only `IFragmentMetricCollector` remains
+3. **✅ Remove IValidationRule**: Removed - no implementations existed
+4. **✅ Document IBehavior vs IRuntimeBehavior**: `IRuntimeBehavior` is the canonical interface; `IBehavior` is deprecated with documentation
 
 ---
 
@@ -586,10 +584,16 @@ Parser ──[IScript]──► JitCompiler ──[IRuntimeBlock]──► Runti
 3. **Event-Driven Communication**: Loose coupling via `IEventBus` rather than direct references
 4. **Strategy + Behavior Composition**: Separation of compilation (strategy) from execution (behavior)
 5. **Typed Memory References**: Generic `TypedMemoryReference<T>` for type-safe memory access
+6. **IRuntimeBehavior as Canonical Pattern**: All behaviors implement `IRuntimeBehavior` for consistent lifecycle hooks
+
+### Completed Cleanups (2025-12)
+
+- ✅ Removed deprecated `IMetricCollector` - use `IFragmentMetricCollector` instead
+- ✅ Removed unused `IValidationRule` interface
+- ✅ Consolidated duplicate interface definitions in `core/types/runtime.ts` to re-export from `src/runtime/`
+- ✅ Documented `IRuntimeBehavior` as the canonical behavior interface; deprecated `IBehavior`
 
 ### Future Considerations
 
-- Complete deprecation of `IMetricCollector` in favor of `IFragmentMetricCollector`
-- Implement or remove unused `IValidationRule` interface
-- Consider consolidating duplicate interface definitions in `core/types`
-- Document `IBehavior` vs `IRuntimeBehavior` pattern decision
+- Consider removing `IBehavior` entirely after migration period
+- Evaluate need for `IBlockContext` interface splitting (read vs write operations)
