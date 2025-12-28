@@ -11,7 +11,7 @@ import { TestBenchLayout } from './components/TestBenchLayout';
 import { RuntimeMemory } from '../runtime/RuntimeMemory';
 import { RuntimeStack } from '../runtime/RuntimeStack';
 import { RuntimeClock } from '../runtime/RuntimeClock';
-import { EventBus } from '../runtime/EventBus';
+import { EventBus } from '../runtime/events/EventBus';
 
 /**
  * Inner component to consume context and hooks

@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { AnalysisService } from './AnalysisService';
 import { ExerciseDefinitionService } from '../../../repositories/workout/ExerciseDefinitionService';
 import type { IProjectionEngine } from './IProjectionEngine';
-import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import type { RuntimeMetric } from '../../../runtime/models/RuntimeMetric';
 import type { Exercise } from '../../../exercise.d';
 import { Level, Category } from '../../../exercise.d';
 import type { ProjectionResult } from './ProjectionResult';

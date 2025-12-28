@@ -1,7 +1,7 @@
 
 import { IRuntimeMemory } from '../runtime/IRuntimeMemory';
-import { IRuntimeBlock } from '../runtime/IRuntimeBlock';
-import { TypedMemoryReference } from '../runtime/IMemoryReference';
+import { IRuntimeBlock } from '../runtime/contracts/IRuntimeBlock';
+import { TypedMemoryReference } from '../runtime/contracts/IMemoryReference';
 import { RuntimeSpan, SpanStatus, RUNTIME_SPAN_TYPE } from '../runtime/models/RuntimeSpan';
 import { FragmentType, ICodeFragment } from '../core/models/CodeFragment';
 import { ITrackerCommand, TrackerContext } from './ITrackerCommand';

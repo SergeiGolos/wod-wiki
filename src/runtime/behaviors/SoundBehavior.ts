@@ -1,11 +1,11 @@
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
-import { TypedMemoryReference } from '../IMemoryReference';
-import { PlaySoundAction } from '../actions/PlaySoundAction';
-import { IEventHandler } from '../IEventHandler';
-import { IEvent } from '../IEvent';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
+import { PlaySoundAction } from '../actions/audio/PlaySoundAction';
+import { IEventHandler } from '../contracts/events/IEventHandler';
+import { IEvent } from '../contracts/events/IEvent';
 import { 
   SoundBehaviorConfig, 
   SoundCue, 

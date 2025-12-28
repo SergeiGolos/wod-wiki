@@ -7,10 +7,10 @@
 import React, { useMemo } from 'react';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { ActionDescriptor } from '../../runtime/actions/ActionStackActions';
-import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../runtime/models/MemoryTypeEnum';
 import {
   useTimerStack,
   useCardStack

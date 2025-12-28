@@ -11,7 +11,7 @@
  * 
  * ```typescript
  * import { ScriptRuntime, RuntimeStackWrapper } from '@/runtime';
- * import { TestableBlock } from '@/runtime/testing';
+ * import { TestableBlock } from '@/testing';
  * 
  * const wrappedBlocks = new Map<string, TestableBlock>();
  * 
@@ -56,7 +56,7 @@
  * For interactive testing with step-by-step execution:
  * 
  * ```typescript
- * import { QueueTestHarness, TestTemplate } from '@/runtime/testing';
+ * import { QueueTestHarness, TestTemplate } from '@/testing';
  * 
  * // Use built-in templates or create custom ones
  * const customTemplate: TestTemplate = {

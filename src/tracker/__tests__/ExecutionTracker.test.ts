@@ -2,10 +2,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { RuntimeReporter } from '../ExecutionTracker';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
-import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
+import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IBlockContext } from '../../runtime/IBlockContext';
 import { RUNTIME_SPAN_TYPE, RuntimeSpan } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { FragmentType } from '../../core/models/CodeFragment';
 
 // Mock Block

@@ -12,7 +12,7 @@ import { globalParser, globalCompiler } from '../services/testbench-services';
 import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { RuntimeStack } from '../../runtime/RuntimeStack';
 import { RuntimeClock } from '../../runtime/RuntimeClock';
-import { EventBus } from '../../runtime/EventBus';
+import { EventBus } from '../../runtime/events/EventBus';
 
 interface BlockTestBenchProps {
   initialScript?: string;

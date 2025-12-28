@@ -1,4 +1,4 @@
-import { IRuntimeClock } from './IRuntimeClock';
+import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { TimeSpan } from './models/TimeSpan';
 
 

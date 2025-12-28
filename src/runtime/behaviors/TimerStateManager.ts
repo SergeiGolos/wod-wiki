@@ -1,12 +1,12 @@
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IRuntimeAction } from '../IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerDisplayConfig } from '../models/RuntimeSpan';
 import { TimeSpan } from '../models/TimeSpan';
 
-import { TypedMemoryReference } from '../IMemoryReference';
-import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/TimerDisplayActions';
-import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
+import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/display/TimerDisplayActions';
+import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/display/CardDisplayActions';
 
 /**
  * TimerStateManager handles the memory state and display actions for a timer.

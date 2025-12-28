@@ -1,12 +1,12 @@
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
-import { IEvent } from '../IEvent';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IEvent } from '../contracts/events/IEvent';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
-import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';

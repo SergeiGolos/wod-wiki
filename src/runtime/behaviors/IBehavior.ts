@@ -1,6 +1,6 @@
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../IRuntimeBlock';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 
 /**
  * @deprecated IBehaviorContext is part of the deprecated IBehavior pattern.

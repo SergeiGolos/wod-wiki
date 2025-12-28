@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
 import { BehaviorTestHarness } from '../BehaviorTestHarness';
 import { MockBlock } from '../MockBlock';
-import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
-import { IRuntimeAction } from '@/runtime/IRuntimeAction';
-import { IScriptRuntime } from '@/runtime/IScriptRuntime';
+import { IRuntimeBehavior } from '@/runtime/contracts';
+import { IRuntimeAction } from '@/runtime/contracts';
+import { IScriptRuntime } from '@/runtime/contracts';
 
 // Simple mock action for testing
 class MockAction implements IRuntimeAction {

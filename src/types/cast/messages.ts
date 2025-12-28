@@ -1,7 +1,7 @@
 // src/types/cast/messages.ts
 
 import { IDisplayStackState as ImportedDisplayStackState, ITimerDisplayEntry as ImportedTimerDisplayEntry, IDisplayCardEntry as ImportedDisplayCardEntry } from '@/clock/types/DisplayTypes';
-import { RuntimeMetric } from '@/runtime/RuntimeMetric';
+import { RuntimeMetric } from '@/runtime/models/RuntimeMetric';
 import { RuntimeSpan } from '@/runtime/models/RuntimeSpan';
 
 // Re-export for backward compatibility

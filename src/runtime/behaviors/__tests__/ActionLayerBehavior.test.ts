@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { ActionLayerBehavior } from '../ActionLayerBehavior';
 import { PushActionsAction } from '../../actions/ActionStackActions';
-import { MemoryTypeEnum } from '../../MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
 import { FragmentType } from '../../../core/models/CodeFragment';
 
 /**

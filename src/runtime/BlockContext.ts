@@ -1,8 +1,8 @@
-import { IBlockContext } from './IBlockContext';
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
-import { IScriptRuntime } from './IScriptRuntime';
-import { MemoryTypeEnum } from './MemoryTypeEnum';
-import { IAnchorValue } from './IAnchorValue';
+import { IBlockContext } from './contracts/IBlockContext';
+import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { MemoryTypeEnum } from './models/MemoryTypeEnum';
+import { IAnchorValue } from './contracts/IAnchorValue';
 
 /**
  * BlockContext implementation for runtime block memory management.

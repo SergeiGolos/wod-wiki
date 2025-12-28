@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
-import { MemoryTypeEnum } from '../../runtime/MemoryTypeEnum';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { MemoryTypeEnum } from '../../runtime/models/MemoryTypeEnum';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { 
   IDisplayStackState, 
   ITimerDisplayEntry, 

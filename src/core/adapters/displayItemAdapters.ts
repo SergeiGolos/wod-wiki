@@ -12,7 +12,7 @@ import { ICodeStatement } from '../models/CodeStatement';
 import { FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
-import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
+import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
 // ============================================================================

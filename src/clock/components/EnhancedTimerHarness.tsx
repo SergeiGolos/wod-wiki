@@ -3,7 +3,7 @@ import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../../src/runtime/contracts/IMemoryReference';
 import { JitCompiler } from '../../../src/runtime/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../../src/runtime/models/RuntimeSpan';
@@ -12,7 +12,7 @@ import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
-import { EventBus } from '../../../src/runtime/EventBus';
+import { EventBus } from '../../../src/runtime/events/EventBus';
 
 export interface EnhancedTimerHarnessResult {
   runtime: ScriptRuntime;

@@ -1,7 +1,7 @@
 import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, MemoryGrouping, ExecutionStatus, BlockType, BlockStatus, MemoryType } from '../types/interfaces';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import { IMemoryReference } from '../../runtime/IMemoryReference';
+import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**

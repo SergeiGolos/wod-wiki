@@ -1,13 +1,13 @@
-import { IScriptRuntime } from './IScriptRuntime';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { JitCompiler } from './JitCompiler';
-import { IRuntimeStack } from './IRuntimeStack';
+import { IRuntimeStack } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./IEvent";
-import { IRuntimeMemory } from './IRuntimeMemory';
+import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { RuntimeSpan } from './models/RuntimeSpan';
 import { RuntimeReporter } from '../tracker/ExecutionTracker';
-import { IEventBus } from './IEventBus';
+import { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
     RuntimeStackOptions,
@@ -15,13 +15,13 @@ import {
     RuntimeStackTracker,
     RuntimeStackWrapper,
     RuntimeStackHooks,
-} from './IRuntimeOptions';
-import { TestableBlock } from './testing/TestableBlock';
-import { IRuntimeClock } from './IRuntimeClock';
-import { NextEventHandler } from './NextEventHandler';
-import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
-import { StackPushEvent, StackPopEvent } from './StackEvents';
-import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './MemoryEvents';
+} from './contracts/IRuntimeOptions';
+import { TestableBlock } from '../testing/testable/TestableBlock';
+import { IRuntimeClock } from './contracts/IRuntimeClock';
+import { NextEventHandler } from './events/NextEventHandler';
+import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { StackPushEvent, StackPopEvent } from './events/StackEvents';
+import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './events/MemoryEvents';
 
 const MAX_STACK_DEPTH = 10;
 

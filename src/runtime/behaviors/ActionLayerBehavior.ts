@@ -1,11 +1,11 @@
-import { IEvent } from '../IEvent';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/ActionStackActions';
+import { IEvent } from '../contracts/events/IEvent';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/stack/ActionStackActions';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { ActionFragment } from '../../fragments/ActionFragment';
+import { ActionFragment } from '../compiler/fragments/ActionFragment';
 
 export function buildActionDescriptorsFromFragments(ownerId: string, fragments: ICodeFragment[][] = [], sourceIds: number[] = []): ActionDescriptor[] {
   const descriptors: ActionDescriptor[] = [];

@@ -3,7 +3,7 @@ import {
     RuntimeSpan,
     RUNTIME_SPAN_TYPE
 } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 
 export type TrackEventAction = 'log' | 'tag' | 'context';
 

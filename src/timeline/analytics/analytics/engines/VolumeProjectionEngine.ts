@@ -1,5 +1,5 @@
 import { IProjectionEngine } from '../IProjectionEngine';
-import { RuntimeMetric } from '../../../../runtime/RuntimeMetric';
+import { RuntimeMetric } from '../../../../runtime/models/RuntimeMetric';
 import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
 import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';

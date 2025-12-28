@@ -1,7 +1,7 @@
-import { IRuntimeBlock } from './IRuntimeBlock';
+import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { BlockKey } from '../core/models/BlockKey';
 
-import { IRuntimeStack } from './IRuntimeStack';
+import { IRuntimeStack } from './contracts/IRuntimeStack';
 
 /**
  * Lightweight runtime stack that only maintains state.

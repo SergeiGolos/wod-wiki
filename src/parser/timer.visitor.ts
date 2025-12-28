@@ -1,15 +1,15 @@
 import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
 import { CodeMetadata } from "../core/models/CodeMetadata";
 
-import { EffortFragment } from "../fragments/EffortFragment";
-import { ActionFragment } from "../fragments/ActionFragment";
-import { IncrementFragment } from "../fragments/IncrementFragment";
-import { LapFragment } from "../fragments/LapFragment";
-import { RepFragment } from "../fragments/RepFragment";
-import { ResistanceFragment } from "../fragments/ResistanceFragment";
-import { DistanceFragment } from "../fragments/DistanceFragment";
-import { RoundsFragment } from "../fragments/RoundsFragment";
-import { TimerFragment } from "../fragments/TimerFragment";
+import { EffortFragment } from "../runtime/compiler/fragments/EffortFragment";
+import { ActionFragment } from "../runtime/compiler/fragments/ActionFragment";
+import { IncrementFragment } from "../runtime/compiler/fragments/IncrementFragment";
+import { LapFragment } from "../runtime/compiler/fragments/LapFragment";
+import { RepFragment } from "../runtime/compiler/fragments/RepFragment";
+import { ResistanceFragment } from "../runtime/compiler/fragments/ResistanceFragment";
+import { DistanceFragment } from "../runtime/compiler/fragments/DistanceFragment";
+import { RoundsFragment } from "../runtime/compiler/fragments/RoundsFragment";
+import { TimerFragment } from "../runtime/compiler/fragments/TimerFragment";
 import { MdTimerParse } from "./timer.parser";
 import { ICodeStatement, ParsedCodeStatement } from "../core/models/CodeStatement";
 

@@ -1,9 +1,9 @@
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
-import { IEvent } from '../IEvent';
-import { PopBlockAction } from '../PopBlockAction';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IEvent } from '../contracts/events/IEvent';
+import { PopBlockAction } from '../actions/stack/PopBlockAction';
 
 /**
  * CompletionBehavior provides generic completion detection.

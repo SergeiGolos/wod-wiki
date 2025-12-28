@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { CompletionBehavior } from '../CompletionBehavior';
 
 /**

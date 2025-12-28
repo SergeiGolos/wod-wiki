@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeMemory } from '../../RuntimeMemory';
-import { MemoryTypeEnum } from '../../MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
 import { PushActionsAction, PopActionsAction, UpdateActionsAction, ActionDescriptor } from '../ActionStackActions';
 
 const createRuntime = () => ({ memory: new RuntimeMemory() } as any);

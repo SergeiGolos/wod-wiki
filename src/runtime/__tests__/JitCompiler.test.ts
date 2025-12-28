@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'bun:test';
-import { JitCompiler } from '../JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 import { DialectRegistry } from '../../services/DialectRegistry';
 import { CrossFitDialect } from '../../dialects/CrossFitDialect';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { FragmentType } from '../../core/models/CodeFragment';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlockStrategy } from '../IRuntimeBlockStrategy';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlockStrategy } from '../contracts/IRuntimeBlockStrategy';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 
 describe('JitCompiler with Dialect Registry', () => {
   // Mock runtime

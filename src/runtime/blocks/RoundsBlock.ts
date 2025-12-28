@@ -1,13 +1,13 @@
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeAction } from '../IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
-import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
-import { BlockLifecycleOptions } from '../IRuntimeBlock';
+import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
+import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 

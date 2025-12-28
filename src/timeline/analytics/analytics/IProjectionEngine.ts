@@ -1,4 +1,4 @@
-import type { RuntimeMetric } from '../../../runtime/RuntimeMetric';
+import type { RuntimeMetric } from '../../../runtime/models/RuntimeMetric';
 import type { Exercise } from '../../../exercise';
 import type { ProjectionResult } from './ProjectionResult';
 import type { ICodeFragment } from '../../../core/models/CodeFragment';
