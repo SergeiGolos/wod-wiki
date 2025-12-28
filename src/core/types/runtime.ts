@@ -3,121 +3,40 @@
  * 
  * These types define the runtime execution engine interfaces including
  * script runtime, blocks, actions, memory, and compilation strategies.
+ * 
+ * Note: All types are re-exported from src/runtime/ which is the canonical source.
+ * Import from here for convenience, but the definitions live in src/runtime/.
  */
 
-import { IRuntimeMemory, RuntimeError, IMetricCollector, IEvent } from '@/core-entry'; import { RuntimeStack, JitCompiler } from '.';
-import { IScript, IBlockKey, ICodeStatement } from './core';
+// Re-export canonical interfaces from src/runtime/
+export type { IScriptRuntime } from '@/runtime/IScriptRuntime';
+export type { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/IRuntimeBlock';
+export type { IRuntimeAction } from '@/runtime/IRuntimeAction';
+export type { IRuntimeMemory, MemorySearchCriteria } from '@/runtime/IRuntimeMemory';
+export type { IMemoryReference, TypedMemoryReference } from '@/runtime/IMemoryReference';
+export type { IRuntimeBlockStrategy } from '@/runtime/IRuntimeBlockStrategy';
+export type { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
+export type { IBlockContext } from '@/runtime/IBlockContext';
+export type { IRuntimeStack } from '@/runtime/IRuntimeStack';
+export type { IRuntimeClock } from '@/runtime/IRuntimeClock';
+export type { IEvent } from '@/runtime/IEvent';
+export type { IEventBus } from '@/runtime/IEventBus';
+export type { IEventHandler } from '@/runtime/IEventHandler';
 
-
-/**
- * Main runtime execution context for workout scripts
- */
-export interface IScriptRuntime {
-  readonly script: IScript;
-  readonly memory: IRuntimeMemory;
-  readonly stack: RuntimeStack;
-  readonly jit: JitCompiler;
-
-  /** Errors collected during runtime execution */
-  readonly errors?: RuntimeError[];
-
-  /** Metrics collection subsystem for workout analytics */
-  readonly metrics?: IMetricCollector;
-
-  handle(event: IEvent): void;
-
-  dispose(): void;
-}
-
-/**
- * Represents a runtime block that can be executed within the WOD runtime stack
- */
-export interface IRuntimeBlock {
-  /** Unique identifier for this block instance */
-  readonly key: IBlockKey;
-
-  /** Source code location identifiers */
-  readonly sourceIds: number[];
-
-  /** Type discriminator for UI display and logging */
-  readonly blockType?: string;
-
-  /** Called when this block is pushed onto the runtime stack */
-  mount(runtime: IScriptRuntime): IRuntimeAction[];
-
-  /** Called when a child block completes execution */
-  next(runtime: IScriptRuntime): IRuntimeAction[];
-
-  /** Called when this block is popped from the runtime stack */
-  unmount(runtime: IScriptRuntime): IRuntimeAction[];
-
-  /** Cleans up any resources held by this block */
-  dispose(runtime: IScriptRuntime): void;
-}
-
-/**
- * Interface for actions that can be performed by the runtime in response to events
- */
-export interface IRuntimeAction {
-  /** Type of action to perform */
-  type: string;
-
-  /** Target of the action (optional) */
-  target?: string;
-
-  /** Action payload/data */
-  payload?: unknown;
-
-  /** Executes the action within the given runtime context */
-  do(runtime: IScriptRuntime): void;
-}
-
-/**
- * Search criteria for finding memory references
- */
-export type MemorySearchCriteria = {
-  id: string | null;
-  ownerId: string | null;
-  type: string | null;
-  visibility: 'public' | 'private' | null;
-};
-
-/**
- * Memory reference that can be typed
- */
-export interface IMemoryReference {
-  readonly id: string;
-  readonly ownerId: string;
-  readonly type: string;
-  readonly visibility: 'public' | 'private';
-}
-
-/**
- * Typed memory reference for type-safe memory access
- */
-export interface TypedMemoryReference<T> extends IMemoryReference {
-  readonly __type?: T;
-}
-
-/**
- * Strategy pattern for compiling code statements into runtime blocks
- */
-export interface IRuntimeBlockStrategy {
-  /** Check if this strategy can handle the given statements */
-  match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean;
-
-  /** Compile statements into a runtime block */
-  compile(statements: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
-}
-
-/**
- * Re-export key runtime types
- */
-export type { IScriptRuntime as ScriptRuntime } from '@/runtime/IScriptRuntime';
-export type { IRuntimeBlock as RuntimeBlock } from '@/runtime/IRuntimeBlock';
-export type { IRuntimeAction as RuntimeAction } from '@/runtime/IRuntimeAction';
-export type { IRuntimeMemory as RuntimeMemory } from '@/runtime/IRuntimeMemory';
+// Re-export implementations
 export type { RuntimeStack } from '@/runtime/RuntimeStack';
 export type { JitCompiler } from '@/runtime/JitCompiler';
-export type { IRuntimeBlockStrategy as RuntimeBlockStrategy } from '@/runtime/IRuntimeBlockStrategy';
+export type { ScriptRuntime } from '@/runtime/ScriptRuntime';
+export type { RuntimeBlock } from '@/runtime/RuntimeBlock';
+export type { RuntimeMemory } from '@/runtime/RuntimeMemory';
+export type { BlockContext } from '@/runtime/BlockContext';
+
+// Convenience aliases for backward compatibility
+export type { IScriptRuntime as ScriptRuntimeInterface } from '@/runtime/IScriptRuntime';
+export type { IRuntimeBlock as RuntimeBlockInterface } from '@/runtime/IRuntimeBlock';
+export type { IRuntimeAction as RuntimeActionInterface } from '@/runtime/IRuntimeAction';
+export type { IRuntimeMemory as RuntimeMemoryInterface } from '@/runtime/IRuntimeMemory';
+export type { IRuntimeBlockStrategy as RuntimeBlockStrategyInterface } from '@/runtime/IRuntimeBlockStrategy';
+
+// Re-export from core for convenience
 export type { ICodeStatement } from './core';

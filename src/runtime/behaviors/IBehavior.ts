@@ -3,8 +3,11 @@ import { IScriptRuntime } from '../IScriptRuntime';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../IRuntimeBlock';
 
 /**
- * Context passed to all behavior lifecycle methods.
- * Encapsulates runtime, block, and optional lifecycle options.
+ * @deprecated IBehaviorContext is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior instead, which receives runtime, block, and options
+ * as separate parameters in its lifecycle methods.
+ * 
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export interface IBehaviorContext {
   runtime: IScriptRuntime;
@@ -13,47 +16,54 @@ export interface IBehaviorContext {
 }
 
 /**
- * Operation types for behavior execution.
+ * @deprecated BehaviorOperation is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior instead.
+ * 
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export type BehaviorOperation = 'push' | 'next' | 'pop';
 
 // ============================================================================
-// Optional Sub-Interfaces
+// Optional Sub-Interfaces (Deprecated)
 // ============================================================================
 
 /**
- * Optional interface for behaviors that respond to block push events.
- * Implement this when a behavior needs to initialize state or emit
- * actions when a block is pushed onto the stack.
+ * @deprecated IPushBehavior is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior.onPush() instead.
+ * 
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export interface IPushBehavior {
   onPush(context: IBehaviorContext): IRuntimeAction[];
 }
 
 /**
- * Optional interface for behaviors that respond to next/tick events.
- * Implement this when a behavior needs to handle iteration, time
- * progression, or child block completion.
+ * @deprecated INextBehavior is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior.onNext() instead.
+ * 
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export interface INextBehavior {
   onNext(context: IBehaviorContext): IRuntimeAction[];
 }
 
 /**
- * Optional interface for behaviors that respond to block pop events.
- * Implement this when a behavior needs to clean up state or emit
- * final actions when a block is removed from the stack.
+ * @deprecated IPopBehavior is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior.onPop() instead.
+ * 
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export interface IPopBehavior {
   onPop(context: IBehaviorContext): IRuntimeAction[];
 }
 
 // ============================================================================
-// Type Guards
+// Type Guards (Deprecated)
 // ============================================================================
 
 /**
- * Type guard to check if an object implements IPushBehavior.
+ * @deprecated Part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior instead.
  */
 export function isPushBehavior(obj: unknown): obj is IPushBehavior {
   return (
@@ -65,7 +75,8 @@ export function isPushBehavior(obj: unknown): obj is IPushBehavior {
 }
 
 /**
- * Type guard to check if an object implements INextBehavior.
+ * @deprecated Part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior instead.
  */
 export function isNextBehavior(obj: unknown): obj is INextBehavior {
   return (
@@ -77,7 +88,8 @@ export function isNextBehavior(obj: unknown): obj is INextBehavior {
 }
 
 /**
- * Type guard to check if an object implements IPopBehavior.
+ * @deprecated Part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior instead.
  */
 export function isPopBehavior(obj: unknown): obj is IPopBehavior {
   return (
@@ -89,31 +101,22 @@ export function isPopBehavior(obj: unknown): obj is IPopBehavior {
 }
 
 // ============================================================================
-// Main Interface
+// Main Interface (Deprecated)
 // ============================================================================
 
 /**
- * High-level behavior interface with a single execution entry point.
+ * @deprecated IBehavior is an experimental pattern that was not adopted.
+ * Use IRuntimeBehavior instead, which is the canonical behavior interface
+ * used throughout the codebase.
  * 
- * Behaviors implement this interface and optionally implement the
- * sub-interfaces (IPushBehavior, INextBehavior, IPopBehavior) to
- * respond to specific lifecycle events.
+ * **Why IRuntimeBehavior is preferred:**
+ * - All production behaviors implement IRuntimeBehavior
+ * - Simpler API with direct lifecycle methods (onPush, onNext, onPop, onDispose, onEvent)
+ * - Better integration with the runtime system
  * 
- * The `do` method serves as the unified entry point that dispatches
- * to the appropriate sub-interface method based on the operation type.
- * 
- * @example
- * ```typescript
- * class MyBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {
- *   onPush(context: IBehaviorContext): IRuntimeAction[] {
- *     return [new StartTimerAction(context.block.id)];
- *   }
- *   
- *   onPop(context: IBehaviorContext): IRuntimeAction[] {
- *     return [new StopTimerAction(context.block.id)];
- *   }
- * }
- * ```
+ * @see IRuntimeBehavior for the canonical behavior interface
+ * @see TimerBehavior for example implementation
+ * @see LoopCoordinatorBehavior for example implementation
  */
 export interface IBehavior {
   /**
@@ -127,55 +130,21 @@ export interface IBehavior {
 }
 
 // ============================================================================
-// Abstract Base Class
+// Abstract Base Class (Deprecated)
 // ============================================================================
 
 /**
- * Abstract base class for behaviors that automatically dispatches
- * to the appropriate lifecycle method based on which interfaces
- * the concrete class implements.
+ * @deprecated BaseBehavior is part of the deprecated IBehavior pattern.
+ * Implement IRuntimeBehavior directly instead.
  * 
- * Extend this class and implement one or more of the optional interfaces:
- * - IPushBehavior: Handle block push events
- * - INextBehavior: Handle next/tick events  
- * - IPopBehavior: Handle block pop events
- * 
- * The base class's `do` method will:
- * 1. Check if `this` implements the interface for the given operation
- * 2. If yes, call the interface method and return its actions
- * 3. If no, return an empty array
- * 
- * @example
- * ```typescript
- * // Behavior that only handles push and pop
- * class DisplayBehavior extends BaseBehavior implements IPushBehavior, IPopBehavior {
- *   onPush(ctx: IBehaviorContext): IRuntimeAction[] {
- *     return [displayAction('push', 'timer', ctx.block.displayData)];
- *   }
- *   
- *   onPop(ctx: IBehaviorContext): IRuntimeAction[] {
- *     return [displayAction('pop', 'timer', ctx.block.id)];
- *   }
- * }
- * 
- * // Behavior that only handles next
- * class TickBehavior extends BaseBehavior implements INextBehavior {
- *   onNext(ctx: IBehaviorContext): IRuntimeAction[] {
- *     return [trackAction('tick', ctx.block.id)];
- *   }
- * }
- * ```
+ * @see IRuntimeBehavior for the canonical behavior interface
+ * @see TimerBehavior for example implementation
  */
 export abstract class BaseBehavior implements IBehavior {
   /**
    * Dispatches to the appropriate lifecycle method based on the operation.
    * 
-   * Tests `this` for the presence of IPushBehavior, INextBehavior, or
-   * IPopBehavior interfaces and invokes the corresponding method if present.
-   * 
-   * @param operation - The lifecycle operation type
-   * @param context - The behavior execution context
-   * @returns Actions from the lifecycle method, or empty array if not implemented
+   * @deprecated Use IRuntimeBehavior lifecycle methods directly instead.
    */
   do(operation: BehaviorOperation, context: IBehaviorContext): IRuntimeAction[] {
     switch (operation) {
@@ -203,28 +172,14 @@ export abstract class BaseBehavior implements IBehavior {
 }
 
 // ============================================================================
-// Utility Functions
+// Utility Functions (Deprecated)
 // ============================================================================
 
 /**
- * Compose multiple behaviors into a single behavior.
- * Executes each behavior in order and concatenates their actions.
+ * @deprecated composeBehaviors is part of the deprecated IBehavior pattern.
+ * Use IRuntimeBehavior[] directly with RuntimeBlock instead.
  * 
- * @param behaviors - Array of behaviors to compose
- * @returns A new behavior that executes all given behaviors
- * 
- * @example
- * ```typescript
- * const timerBlockBehavior = composeBehaviors([
- *   new TimerBehavior(config),
- *   new DisplayBehavior(),
- *   new SoundBehavior(sounds),
- *   new TrackBehavior()
- * ]);
- * 
- * // Execute all behaviors for a push operation
- * const actions = timerBlockBehavior.do('push', context);
- * ```
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export function composeBehaviors(behaviors: IBehavior[]): IBehavior {
   return {
@@ -235,19 +190,10 @@ export function composeBehaviors(behaviors: IBehavior[]): IBehavior {
 }
 
 /**
- * Create a behavior from a simple function.
- * Useful for one-off behaviors that don't need a full class.
+ * @deprecated createBehavior is part of the deprecated IBehavior pattern.
+ * Implement IRuntimeBehavior directly instead.
  * 
- * @param fn - Function that takes operation and context, returns actions
- * @returns An IBehavior instance
- * 
- * @example
- * ```typescript
- * const loggingBehavior = createBehavior((op, ctx) => {
- *   console.log(`${op}: ${ctx.block.id}`);
- *   return [];
- * });
- * ```
+ * @see IRuntimeBehavior for the canonical behavior interface
  */
 export function createBehavior(
   fn: (operation: BehaviorOperation, context: IBehaviorContext) => IRuntimeAction[]
