@@ -3,11 +3,11 @@ import { ScriptRuntime } from '../ScriptRuntime';
 
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../JitCompiler';
-import { IRuntimeOptions } from '../IRuntimeOptions';
+import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../EventBus';

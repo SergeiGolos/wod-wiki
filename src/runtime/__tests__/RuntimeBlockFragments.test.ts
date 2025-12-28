@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { ICodeFragment, FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
 
 describe('RuntimeBlock Fragment Methods', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '../RuntimeTestBuilder';
-import { IRuntimeBlockStrategy } from '@/runtime/IRuntimeBlockStrategy';
-import { IRuntimeBlock } from '@/runtime/IRuntimeBlock';
+import { IRuntimeBlockStrategy } from '@/runtime/contracts';
+import { IRuntimeBlock } from '@/runtime/contracts';
 import { MockBlock } from '../MockBlock';
 
 // Mock strategy for testing

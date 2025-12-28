@@ -7,8 +7,8 @@
  * @see docs/plans/unified-execution-metrics.md
  */
 
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 /**
  * Classification of time segments within a span.
  */

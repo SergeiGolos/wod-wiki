@@ -1,5 +1,5 @@
-import { IEvent } from './IEvent';
-import { IMemoryReference } from './IMemoryReference';
+import { IEvent } from './contracts/events/IEvent';
+import { IMemoryReference } from './contracts/IMemoryReference';
 
 /**
  * Base class for memory events.

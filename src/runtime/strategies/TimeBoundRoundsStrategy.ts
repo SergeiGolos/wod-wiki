@@ -14,7 +14,7 @@ import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createSpanMetadata } from "../utils/metadata";
-import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**

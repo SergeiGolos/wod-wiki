@@ -1,8 +1,8 @@
-import { IEvent } from './IEvent';
-import { IEventHandler } from './IEventHandler';
-import { IScriptRuntime } from './IScriptRuntime';
+import { IEvent } from './contracts/events/IEvent';
+import { IEventHandler } from './contracts/events/IEventHandler';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { NextAction } from './NextAction';
-import { IRuntimeAction } from './IRuntimeAction';
+import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { ThrowError } from './actions/ThrowError';
 
 export class NextEventHandler implements IEventHandler {

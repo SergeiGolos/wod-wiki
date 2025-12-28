@@ -1,6 +1,6 @@
-import { IEvent } from './IEvent';
+import { IEvent } from './events/IEvent';
 import { IScriptRuntime } from './IScriptRuntime';
-import { IEventHandler } from './IEventHandler';
+import { IEventHandler } from './events/IEventHandler';
 
 /**
  * Simple callback type for UI event listeners that don't produce actions.

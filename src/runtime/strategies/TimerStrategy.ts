@@ -15,7 +15,7 @@ import { SoundBehavior } from "../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../models/SoundModels";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { createSpanMetadata } from "../utils/metadata";
-import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**

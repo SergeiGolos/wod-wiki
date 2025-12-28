@@ -1,9 +1,9 @@
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { RuntimeButton, RuntimeControls } from '../models/MemoryModels';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
 
 export class RuntimeControlsBehavior implements IRuntimeBehavior {
     private controlsRef?: TypedMemoryReference<RuntimeControls>;

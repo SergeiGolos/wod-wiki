@@ -1,6 +1,6 @@
-import { IEvent } from './IEvent';
-import { IScriptRuntime } from './IScriptRuntime';
-import { IEventHandler } from './IEventHandler';
+import { IEvent } from './contracts/events/IEvent';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IEventHandler } from './contracts/events/IEventHandler';
 
 export type EventHandlerRegistration = {
   handler: IEventHandler;
@@ -8,7 +8,7 @@ export type EventHandlerRegistration = {
   priority: number;
 };
 
-import { IEventBus, EventCallback } from './IEventBus';
+import { IEventBus, EventCallback } from './contracts/events/IEventBus';
 
 type CallbackRegistration = {
   id: string;

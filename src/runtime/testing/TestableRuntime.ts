@@ -1,21 +1,21 @@
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeStack } from '../IRuntimeStack';
-import { IRuntimeMemory, Nullable } from '../IRuntimeMemory';
-import { IMemoryReference, TypedMemoryReference } from '../IMemoryReference';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeStack } from '../contracts/IRuntimeStack';
+import { IRuntimeMemory, Nullable } from '../contracts/IRuntimeMemory';
+import { IMemoryReference, TypedMemoryReference } from '../contracts/IMemoryReference';
 import { JitCompiler } from '../JitCompiler';
 import { WodScript, IScript } from '../../parser/WodScript';
-import { IEvent } from '../IEvent';
+import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeError } from '../actions/ErrorAction';
 import { RuntimeSpan } from '../models/RuntimeSpan';
 import { RuntimeReporter } from '../../tracker/ExecutionTracker';
-import { IEventBus } from '../IEventBus';
+import { IEventBus } from '../contracts/events/IEventBus';
 import { MemoryOperation, StackOperation } from './TestableBlock';
-import { IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
 import { ITestSetupAction } from './actions/ITestSetupAction';
 import { CodeStatement } from '../../core/models/CodeStatement';
-import { IRuntimeClock } from '../IRuntimeClock';
-import { IBlockContext } from '../IBlockContext';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
+import { IBlockContext } from '../contracts/IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 // Re-export for backward compatibility

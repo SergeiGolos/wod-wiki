@@ -1,5 +1,5 @@
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
 
 export class PushStackItemAction implements IRuntimeAction {

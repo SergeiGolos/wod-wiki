@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '../../../../tests/harness/BehaviorTestHarness';
 import { MockBlock } from '../../../../tests/harness/MockBlock';
 import { TimerBehavior } from '../TimerBehavior';
-import { BlockLifecycleOptions } from '@/runtime/IRuntimeBlock';
+import { BlockLifecycleOptions } from '@/runtime/contracts';
 
 describe('TimerBehavior Contract (Migrated)', () => {
   let harness: BehaviorTestHarness;

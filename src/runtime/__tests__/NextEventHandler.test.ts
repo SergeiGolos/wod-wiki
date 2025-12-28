@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { NextEventHandler } from '../NextEventHandler';
 import { NextEvent } from '../NextEvent';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 /**
  * NEW EVENT HANDLER PATTERN:

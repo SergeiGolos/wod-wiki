@@ -1,17 +1,17 @@
 import { CodeStatement } from '../../core/models/CodeStatement';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/WorkoutStateActions';
 import { MemoryTypeEnum } from '../MemoryTypeEnum';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 import { TimeSpan } from '../models/TimeSpan';
-import { IEvent } from '../IEvent';
+import { IEvent } from '../contracts/events/IEvent';
 
 /**
  * Loop type determines completion logic.

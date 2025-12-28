@@ -1,6 +1,6 @@
-import { IRuntimeAction } from './IRuntimeAction';
-import { IScriptRuntime } from './IScriptRuntime';
-import { BlockLifecycleOptions } from './IRuntimeBlock';
+import { IRuntimeAction } from './contracts/IRuntimeAction';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { BlockLifecycleOptions } from './contracts/IRuntimeBlock';
 
 /**
  * Action that pops the current block from the runtime stack.

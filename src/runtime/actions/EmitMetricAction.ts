@@ -1,5 +1,5 @@
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { RuntimeMetric } from '../RuntimeMetric';
 import { metricsToFragments } from '../utils/metricsToFragments';
 

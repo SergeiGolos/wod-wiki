@@ -16,7 +16,7 @@ import { EffortBlock } from "../blocks/EffortBlock";
 import { TimerBehavior } from "../behaviors/TimerBehavior";
 import { HistoryBehavior } from "../behaviors/HistoryBehavior";
 import { createSpanMetadata } from "../utils/metadata";
-import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
 
 /**

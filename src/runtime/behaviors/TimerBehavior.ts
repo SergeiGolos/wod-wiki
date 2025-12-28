@@ -1,7 +1,7 @@
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 
 
 import { TimeSpan } from '../models/TimeSpan';

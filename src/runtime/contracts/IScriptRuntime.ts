@@ -6,7 +6,7 @@ import { RuntimeError } from './actions/ErrorAction';
 
 import { RuntimeReporter } from '../tracker/ExecutionTracker';
 
-import { IEventBus } from './IEventBus';
+import { IEventBus } from './events/IEventBus';
 import { IRuntimeStack } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';

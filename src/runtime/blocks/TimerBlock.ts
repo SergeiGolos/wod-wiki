@@ -1,13 +1,13 @@
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
-import { BlockLifecycleOptions } from '../IRuntimeBlock';
+import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 
 /**
  * TimerBlock Configuration

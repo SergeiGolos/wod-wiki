@@ -4,9 +4,9 @@ import { createTestableRuntime } from '../testing/TestableRuntime';
 import { WodBlock } from '../../markdown-editor/types';
 import { CodeStatement } from '../../core/models/CodeStatement';
 import { JitCompiler } from '../JitCompiler';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { RuntimeControls } from '../models/MemoryModels';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
 
 describe('RootLifecycle Integration', () => {
     it('should inject idle blocks at start and end of execution', () => {

@@ -1,6 +1,6 @@
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IEventHandler } from '../IEventHandler';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IEventHandler } from '../contracts/events/IEventHandler';
 
 /**
  * Action for declaratively registering an event handler.

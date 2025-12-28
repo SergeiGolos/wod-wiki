@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useRuntimeContext } from '../context/RuntimeContext';
-import { TypedMemoryReference } from '../IMemoryReference';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 
 /**

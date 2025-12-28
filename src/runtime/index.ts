@@ -1,13 +1,13 @@
 export * from './ScriptRuntime';
 export * from './RuntimeBuilder';
-export * from './IRuntimeOptions';
+export * from './contracts/IRuntimeOptions';
 export * from './StackEvents';
 export * from './MemoryEvents';
 // export * from './DebugRuntimeStack'; // Removed
 export { SoundBehavior, SOUND_MEMORY_TYPE } from './behaviors/SoundBehavior';
 
 // IRuntimeBehavior is the canonical behavior interface
-export type { IRuntimeBehavior } from './IRuntimeBehavior';
+export type { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 
 // @deprecated - IBehavior pattern exports (use IRuntimeBehavior instead)
 export {

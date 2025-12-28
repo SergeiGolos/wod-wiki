@@ -1,6 +1,6 @@
 import { JitCompiler } from '@/runtime/JitCompiler';
-import { IRuntimeBlockStrategy } from '@/runtime/IRuntimeBlockStrategy';
-import { IScriptRuntime } from '@/runtime/IScriptRuntime';
+import { IRuntimeBlockStrategy } from '@/runtime/contracts';
+import { IScriptRuntime } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { MdTimerRuntime } from '@/parser/md-timer';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';

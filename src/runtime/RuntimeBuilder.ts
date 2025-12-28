@@ -5,7 +5,7 @@ import { RuntimeClock } from './RuntimeClock';
 import { EventBus } from './EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
-import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './IRuntimeOptions';
+import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from './contracts/IRuntimeOptions';
 import { TestableBlockConfig } from './testing/TestableBlock';
 
 /**

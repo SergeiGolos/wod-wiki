@@ -1,5 +1,5 @@
-import { IRuntimeMemory, Nullable, MemoryEventDispatcher } from './IRuntimeMemory';
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import { IRuntimeMemory, Nullable, MemoryEventDispatcher } from './contracts/IRuntimeMemory';
+import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
 
 export type MemoryLocation = {
     ref: IMemoryReference;

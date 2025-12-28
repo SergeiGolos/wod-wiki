@@ -7,7 +7,7 @@ import { ICodeStatement } from "../../core/models/CodeStatement";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { BlockContext } from "../BlockContext";
 import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { PassthroughFragmentDistributor } from "../IDistributedFragments";
+import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
 
 /**
  * Helper to extract optional exerciseId from code statement.

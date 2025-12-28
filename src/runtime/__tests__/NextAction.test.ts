@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { NextAction } from '../NextAction';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 describe('NextAction', () => {
   let action: NextAction;

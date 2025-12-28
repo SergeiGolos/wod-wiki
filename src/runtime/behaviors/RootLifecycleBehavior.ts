@@ -1,7 +1,7 @@
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { IdleBehavior } from './IdleBehavior';
 import { TimerBehavior } from './TimerBehavior';
@@ -10,9 +10,9 @@ import { BlockContext } from '../BlockContext';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../PushBlockAction';
 import { PopBlockAction } from '../PopBlockAction';
-import { IEvent } from '../IEvent';
+import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
-import { IEventHandler } from '../IEventHandler';
+import { IEventHandler } from '../contracts/events/IEventHandler';
 import { SetWorkoutStateAction } from '../actions/WorkoutStateActions';
 
 enum RootState {

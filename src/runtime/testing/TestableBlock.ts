@@ -1,9 +1,9 @@
 import { BlockKey } from '../../core/models/BlockKey';
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IRuntimeBehavior } from '../IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../IRuntimeBlock';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IBlockContext } from '../IBlockContext';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IBlockContext } from '../contracts/IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**

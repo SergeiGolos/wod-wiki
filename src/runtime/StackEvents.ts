@@ -1,5 +1,5 @@
-import { IEvent } from './IEvent';
-import { IRuntimeBlock } from './IRuntimeBlock';
+import { IEvent } from './contracts/events/IEvent';
+import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 
 /**
  * Base class for stack events containing the current stack state.

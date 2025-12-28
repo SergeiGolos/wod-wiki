@@ -1,14 +1,14 @@
 import { ICodeFragment, FragmentCollectionState, FragmentType } from '../core/models/CodeFragment';
 import { BlockKey } from '../core/models/BlockKey';
 import { MetricBehavior } from '../types/MetricBehavior';
-import { IScriptRuntime } from './IScriptRuntime';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
-import { IRuntimeAction } from './IRuntimeAction';
-import { IBlockContext } from './IBlockContext';
+import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { IRuntimeAction } from './contracts/IRuntimeAction';
+import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
-import { IEventHandler } from './IEventHandler';
-import { IEvent } from './IEvent';
+import { IEventHandler } from './contracts/events/IEventHandler';
+import { IEvent } from './contracts/events/IEvent';
 
 export class RuntimeBlock implements IRuntimeBlock {
     protected readonly behaviors: IRuntimeBehavior[] = []

@@ -1,11 +1,11 @@
 import { BlockKey } from '@/core/models/BlockKey';
-import { IRuntimeAction } from '@/runtime/IRuntimeAction';
-import { IRuntimeBehavior } from '@/runtime/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/IRuntimeBlock';
-import { IScriptRuntime } from '@/runtime/IScriptRuntime';
-import { IBlockContext } from '@/runtime/IBlockContext';
+import { IRuntimeAction } from '@/runtime/contracts';
+import { IRuntimeBehavior } from '@/runtime/contracts';
+import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/contracts';
+import { IScriptRuntime } from '@/runtime/contracts';
+import { IBlockContext } from '@/runtime/contracts';
 import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
-import { IMemoryReference } from '@/runtime/IMemoryReference';
+import { IMemoryReference } from '@/runtime/contracts';
 
 /**
  * Minimal stub context for MockBlock

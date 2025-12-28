@@ -1,4 +1,4 @@
-import { IEvent } from './IEvent';
+import { IEvent } from './contracts/events/IEvent';
 
 export class TickEvent implements IEvent {
   readonly name: string = 'timer:tick';

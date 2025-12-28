@@ -1,13 +1,13 @@
 import { vi } from 'bun:test';
-import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/IRuntimeBlock';
-import { IRuntimeAction } from '@/runtime/IRuntimeAction';
-import { IScriptRuntime } from '@/runtime/IScriptRuntime';
-import { IEvent } from '@/runtime/IEvent';
+import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/contracts';
+import { IRuntimeAction } from '@/runtime/contracts';
+import { IScriptRuntime } from '@/runtime/contracts';
+import { IEvent } from '@/runtime/contracts/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/EventBus';
-import { TypedMemoryReference } from '@/runtime/IMemoryReference';
+import { TypedMemoryReference } from '@/runtime/contracts';
 import { MockBlock } from './MockBlock';
 
 /**

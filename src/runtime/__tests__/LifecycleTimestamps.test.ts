@@ -4,7 +4,7 @@ import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../PushBlockAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../IRuntimeBlock';
+import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../JitCompiler';
 import { RuntimeStack } from '../RuntimeStack';

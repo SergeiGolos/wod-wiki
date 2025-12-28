@@ -1,6 +1,6 @@
-import { IRuntimeAction } from '../IRuntimeAction';
-import { IScriptRuntime } from '../IScriptRuntime';
-import { IEvent } from '../IEvent';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IEvent } from '../contracts/events/IEvent';
 
 /**
  * Action for declarative event emission from behaviors.
