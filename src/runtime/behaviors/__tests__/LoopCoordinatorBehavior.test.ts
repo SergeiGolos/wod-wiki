@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { BehaviorTestHarness, MockBlock } from '../../../../tests/harness';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { LoopCoordinatorBehavior, LoopType } from '../LoopCoordinatorBehavior';
 import { TimerBehavior } from '../TimerBehavior';
 import { IEvent } from '../../IEvent';

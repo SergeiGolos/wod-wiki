@@ -5,7 +5,7 @@ import { ICodeStatement, ParsedCodeStatement } from '../../../../core/models/Cod
 import { HistoryBehavior } from '../../../behaviors/HistoryBehavior';
 import { EffortBlock } from '../../../blocks/EffortBlock';
 import { BlockKey } from '../../../../core/models/BlockKey';
-import { BehaviorTestHarness } from '../../../../tests/harness';
+import { BehaviorTestHarness } from '@/testing/harness';
 
 /**
  * EffortStrategy Unit Tests
