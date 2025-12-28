@@ -13,8 +13,8 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeSelectors, runtimeSelectors } from './runtime-selectors';
 import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import type { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import type { IMemoryReference } from '../../runtime/IMemoryReference';
+import type { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import type { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
 
 describe('RuntimeSelectors', () => {
   describe('Singleton Instance', () => {

@@ -34,11 +34,11 @@ export { BlockContext } from './runtime/BlockContext';
 
 // Runtime interfaces
 export type { IScriptRuntime } from './runtime/IScriptRuntime';
-export type { IRuntimeBlock } from './runtime/IRuntimeBlock';
+export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
 export type { IRuntimeAction } from './runtime/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/IRuntimeMemory';
-export type { IRuntimeBlockStrategy } from './runtime/IRuntimeBlockStrategy';
-export type { IMemoryReference, TypedMemoryReference } from './runtime/IMemoryReference';
+export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
+export type { IMemoryReference, TypedMemoryReference } from './runtime/contracts/IMemoryReference';
 export type { IEvent } from './runtime/IEvent';
 export type { IEventHandler } from './runtime/IEventHandler';
 
@@ -64,7 +64,7 @@ export * from './runtime/blocks/RoundsBlock';
 export * from './runtime/blocks/EffortBlock';
 
 // Strategies
-export * from './runtime/strategies';
+export * from './runtime/compiler/strategies';
 
 // Fragments
 export * from './fragments/TimerFragment';

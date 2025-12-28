@@ -7,7 +7,7 @@ import { Clock, Play, Pause, Square, Timer } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import {
   useDisplayStack,

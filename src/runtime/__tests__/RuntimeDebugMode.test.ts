@@ -3,7 +3,7 @@ import { RuntimeBuilder } from '../compiler/RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { TestableBlock } from '../testing/TestableBlock';
+import { TestableBlock } from '../../testing/testable/TestableBlock';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IBlockContext } from '../contracts/IBlockContext';

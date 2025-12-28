@@ -3,11 +3,11 @@ import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
+import { TypedMemoryReference } from '../../../src/runtime/contracts/IMemoryReference';
+import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 import { WodScript } from '../../../src/WodScript';
 import { TimerState, TimerSpan } from '../../../src/runtime/models/MemoryModels';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
 
 export interface ClockMemoryHarnessResult {
   runtime: ScriptRuntime;

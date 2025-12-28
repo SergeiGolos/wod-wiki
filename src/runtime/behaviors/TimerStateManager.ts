@@ -5,8 +5,8 @@ import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerDisplayConfig } from '../models/Ru
 import { TimeSpan } from '../models/TimeSpan';
 
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
-import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/TimerDisplayActions';
-import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/CardDisplayActions';
+import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/display/TimerDisplayActions';
+import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/display/CardDisplayActions';
 
 /**
  * TimerStateManager handles the memory state and display actions for a timer.

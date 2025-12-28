@@ -20,7 +20,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { IRuntimeFactory } from '../../runtime/RuntimeFactory';
+import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
 import { RuntimeContext, type RuntimeContextState } from './RuntimeContext';

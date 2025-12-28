@@ -3,11 +3,11 @@ import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../../contracts/IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
 import { BlockKey } from "../../../core/models/BlockKey";
-import { ICodeStatement } from "../../core/models/CodeStatement";
+import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { RuntimeBlock } from "../../RuntimeBlock";
-import { BlockContext } from "../BlockContext";
-import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
+import { BlockContext } from "../../BlockContext";
+import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
+import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 
 /**
  * Helper to extract optional exerciseId from code statement.

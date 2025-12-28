@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMemorySubscription } from '../runtime/hooks/useMemorySubscription';
-import { TypedMemoryReference } from '../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../runtime/contracts/IMemoryReference';
 import { TimeSpan } from '../runtime/models/TimeSpan';
 import { formatTimestamp } from '@/lib/timeUtils';
 

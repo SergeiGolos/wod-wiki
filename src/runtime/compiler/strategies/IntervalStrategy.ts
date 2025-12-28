@@ -2,20 +2,20 @@ import { IRuntimeBlockStrategy } from "../IRuntimeBlockStrategy";
 import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement } from "../../core/models/CodeStatement";
-import { RuntimeBlock } from "../RuntimeBlock";
-import { FragmentType } from "../../core/models/CodeFragment";
-import { BlockContext } from "../BlockContext";
-import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { LoopCoordinatorBehavior, LoopType } from "../behaviors/LoopCoordinatorBehavior";
-import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { SoundBehavior } from "../behaviors/SoundBehavior";
+import { BlockKey } from "../../../core/models/BlockKey";
+import { ICodeStatement } from "../../../core/models/CodeStatement";
+import { RuntimeBlock } from "../../RuntimeBlock";
+import { FragmentType } from "../../../core/models/CodeFragment";
+import { BlockContext } from "../../BlockContext";
+import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
+import { LoopCoordinatorBehavior, LoopType } from "../../behaviors/LoopCoordinatorBehavior";
+import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
+import { TimerBehavior } from "../../behaviors/TimerBehavior";
+import { SoundBehavior } from "../../behaviors/SoundBehavior";
 import { createCountdownSoundCues } from "./TimerStrategy";
-import { createSpanMetadata } from "../utils/metadata";
-import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
+import { createSpanMetadata } from "../../utils/metadata";
+import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
+import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.

@@ -6,7 +6,7 @@ import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../parser/WodScript';
 import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from '../contracts/IRuntimeOptions';
-import { TestableBlockConfig } from './testing/TestableBlock';
+import { TestableBlockConfig } from '../../testing/testable/TestableBlock';
 
 /**
  * RuntimeBuilder provides a fluent API for constructing ScriptRuntime instances

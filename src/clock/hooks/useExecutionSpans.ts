@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { IEvent } from '../../runtime/IEvent';
 
 /**

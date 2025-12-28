@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
 
 export class PushStackItemAction implements IRuntimeAction {
     readonly type = 'push-stack-item';

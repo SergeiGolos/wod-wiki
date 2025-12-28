@@ -16,12 +16,12 @@ import {
     RuntimeStackWrapper,
     RuntimeStackHooks,
 } from './contracts/IRuntimeOptions';
-import { TestableBlock } from './testing/TestableBlock';
+import { TestableBlock } from '../testing/testable/TestableBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { StackPushEvent, StackPopEvent } from './events/StackEvents';
-import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './MemoryEvents';
+import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './events/MemoryEvents';
 
 const MAX_STACK_DEPTH = 10;
 

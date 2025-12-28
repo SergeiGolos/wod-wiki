@@ -3,7 +3,7 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
-import { PopBlockAction } from '../PopBlockAction';
+import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { RuntimeMetric } from '../models/RuntimeMetric';
 import { RuntimeControls, RuntimeButton } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';

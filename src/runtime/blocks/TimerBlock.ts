@@ -6,7 +6,7 @@ import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
-import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 
 /**

@@ -1,7 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { ErrorAction } from './ErrorAction';
-import { SetWorkoutStateAction } from './WorkoutStateActions';
+import { SetWorkoutStateAction } from './display/WorkoutStateActions';
 
 /**
  * Action that registers a runtime error and transitions the workout to an error state.

@@ -1,13 +1,13 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
-import { TimeSpan } from '../models/TimeSpan';
-import { calculateDuration } from '../../lib/timeUtils';
+import { TimeSpan } from '../../models/TimeSpan';
+import { calculateDuration } from '../../../lib/timeUtils';
 import {
   IDisplayStackState,
   createDefaultDisplayState
-} from '../../clock/types/DisplayTypes';
+} from '../../../clock/types/DisplayTypes';
 
 /**
  * Action that updates the global workout state.

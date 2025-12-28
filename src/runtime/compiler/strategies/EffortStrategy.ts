@@ -2,22 +2,22 @@ import { IRuntimeBlockStrategy } from "../IRuntimeBlockStrategy";
 import { IRuntimeBehavior } from "../IRuntimeBehavior";
 import { IRuntimeBlock } from "../IRuntimeBlock";
 import { IScriptRuntime } from "../IScriptRuntime";
-import { BlockKey } from "../../core/models/BlockKey";
-import { ICodeStatement } from "../../core/models/CodeStatement";
-import { RuntimeBlock } from "../RuntimeBlock";
-import { FragmentType } from "../../core/models/CodeFragment";
+import { BlockKey } from "../../../core/models/BlockKey";
+import { ICodeStatement } from "../../../core/models/CodeStatement";
+import { RuntimeBlock } from "../../RuntimeBlock";
+import { FragmentType } from "../../../core/models/CodeFragment";
 import { RepFragment } from "../../fragments/RepFragment";
 import { EffortFragment } from "../../fragments/EffortFragment";
-import { BlockContext } from "../BlockContext";
-import { CompletionBehavior } from "../behaviors/CompletionBehavior";
-import { MemoryTypeEnum } from "../models/MemoryTypeEnum";
+import { BlockContext } from "../../BlockContext";
+import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
+import { MemoryTypeEnum } from "../../models/MemoryTypeEnum";
 import { TypedMemoryReference } from "../IMemoryReference";
-import { EffortBlock } from "../blocks/EffortBlock";
-import { TimerBehavior } from "../behaviors/TimerBehavior";
-import { HistoryBehavior } from "../behaviors/HistoryBehavior";
-import { createSpanMetadata } from "../utils/metadata";
-import { PassthroughFragmentDistributor } from "../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../behaviors/ActionLayerBehavior";
+import { EffortBlock } from "../../blocks/EffortBlock";
+import { TimerBehavior } from "../../behaviors/TimerBehavior";
+import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
+import { createSpanMetadata } from "../../utils/metadata";
+import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
+import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.

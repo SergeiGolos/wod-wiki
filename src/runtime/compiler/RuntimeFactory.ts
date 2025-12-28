@@ -31,8 +31,8 @@ import { BlockContext } from '../BlockContext';
 import { BlockKey } from '../../core/models/BlockKey';
 import { LoopType } from '../behaviors/LoopCoordinatorBehavior';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
-import { RootLifecycleBehavior } from './behaviors/RootLifecycleBehavior';
-import { TimerBehavior } from './behaviors/TimerBehavior';
+import { RootLifecycleBehavior } from '../behaviors/RootLifecycleBehavior';
+import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeOptions } from './contracts/IRuntimeOptions';
 import type { IScriptRuntime } from './contracts/IScriptRuntime';
 

@@ -8,12 +8,12 @@ import { TimerBehavior } from './TimerBehavior';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { BlockContext } from '../BlockContext';
 import { BlockKey } from '../../core/models/BlockKey';
-import { PushBlockAction } from '../PushBlockAction';
-import { PopBlockAction } from '../PopBlockAction';
+import { PushBlockAction } from '../actions/stack/PushBlockAction';
+import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
 import { IEventHandler } from '../contracts/events/IEventHandler';
-import { SetWorkoutStateAction } from '../actions/WorkoutStateActions';
+import { SetWorkoutStateAction } from '../actions/display/WorkoutStateActions';
 
 enum RootState {
     MOUNTING,

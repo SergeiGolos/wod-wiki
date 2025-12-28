@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeFactory } from '../compiler/RuntimeFactory';
-import { createTestableRuntime } from '../testing/TestableRuntime';
+import { createTestableRuntime } from '../../testing/testable/TestableRuntime';
 import { WodBlock } from '../../markdown-editor/types';
 import { CodeStatement } from '../../core/models/CodeStatement';
 import { JitCompiler } from '../compiler/JitCompiler';

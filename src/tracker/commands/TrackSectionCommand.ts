@@ -3,7 +3,7 @@ import {
     RuntimeSpan,
     RUNTIME_SPAN_TYPE
 } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { FragmentType } from '../../core/models/CodeFragment';
 
 export type TrackSectionAction = 'start' | 'end' | 'end-all';

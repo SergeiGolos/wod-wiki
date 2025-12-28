@@ -1,12 +1,12 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { 
   IDisplayCardEntry, 
   IDisplayStackState, 
   createDefaultDisplayState 
-} from '../../clock/types/DisplayTypes';
+} from '../../../clock/types/DisplayTypes';
 
 /**
  * Action that pushes a display card onto the visual stack.

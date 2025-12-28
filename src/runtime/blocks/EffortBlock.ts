@@ -6,7 +6,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
 import { CompletionBehavior } from '../behaviors/CompletionBehavior';
-import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';

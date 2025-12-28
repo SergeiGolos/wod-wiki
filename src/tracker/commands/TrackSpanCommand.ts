@@ -7,8 +7,8 @@ import {
 } from '../../runtime/models/RuntimeSpan';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
-import { IRuntimeBlock } from '../../runtime/IRuntimeBlock';
-import { TypedMemoryReference } from '../../runtime/IMemoryReference';
+import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { createLabelFragment } from '../../runtime/utils/metricsToFragments';
 
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';

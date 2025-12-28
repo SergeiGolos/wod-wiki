@@ -34,7 +34,7 @@ import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeProvider } from './RuntimeProvider';
-import { RuntimeFactory } from '../../runtime/RuntimeFactory';
+import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { transformRuntimeToAnalytics, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';

@@ -3,7 +3,7 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
-import { PlaySoundAction } from '../actions/PlaySoundAction';
+import { PlaySoundAction } from '../actions/audio/PlaySoundAction';
 import { IEventHandler } from '../contracts/events/IEventHandler';
 import { IEvent } from '../contracts/events/IEvent';
 import { 

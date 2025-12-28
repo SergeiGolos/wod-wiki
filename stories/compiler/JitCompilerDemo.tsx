@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
-import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
+import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import { WodScript } from '../../src/WodScript';
-import { JitCompiler } from '../../src/runtime/JitCompiler';
+import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/CodeMetadata';
 import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
-import { NextEvent } from '../../src/runtime/NextEvent';
-import { NextEventHandler } from '../../src/runtime/NextEventHandler';
-import { EffortStrategy, TimerStrategy, RoundsStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
+import { NextEvent } from '../../src/runtime/events/NextEvent';
+import { NextEventHandler } from '../../src/runtime/events/NextEventHandler';
+import { EffortStrategy, TimerStrategy, RoundsStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/compiler/strategies';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
 import { useTimerElapsed } from '../../src/runtime/hooks/useTimerElapsed';
-import { MemoryTypeEnum } from '../../src/runtime/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../src/runtime/models/MemoryTypeEnum';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;

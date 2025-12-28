@@ -14,7 +14,7 @@ import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
 import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { WodScript } from '../../src/parser/WodScript';
-import { JitCompiler } from '../../src/runtime/JitCompiler';
+import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 
 interface SoundBehaviorDemoProps {
   /** Timer duration in seconds */

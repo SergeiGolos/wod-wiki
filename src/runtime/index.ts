@@ -27,7 +27,7 @@ export type {
   BehaviorOperation
 } from './behaviors/IBehavior';
 
-export { PlaySoundAction } from './actions/PlaySoundAction';
+export { PlaySoundAction } from './actions/audio/PlaySoundAction';
 export type {
   SoundBehaviorConfig,
   SoundCue,

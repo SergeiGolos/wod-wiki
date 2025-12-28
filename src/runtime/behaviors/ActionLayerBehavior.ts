@@ -3,7 +3,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/ActionStackActions';
+import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/stack/ActionStackActions';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { ActionFragment } from '../compiler/fragments/ActionFragment';
 

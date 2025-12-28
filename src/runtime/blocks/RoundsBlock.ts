@@ -6,7 +6,7 @@ import { LoopCoordinatorBehavior, LoopType } from '../behaviors/LoopCoordinatorB
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 
 import { HistoryBehavior } from '../behaviors/HistoryBehavior';
-import { PushStackItemAction, PopStackItemAction } from '../actions/StackActions';
+import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 import { ICodeFragment } from '../../core/models/CodeFragment';
