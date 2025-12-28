@@ -3,8 +3,8 @@ import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { IEvent } from '../../src/runtime/IEvent';
 import { IRuntimeAction } from '../../src/runtime/IRuntimeAction';
-import { WodScript } from '../../src/WodScript';
-import { ICodeStatement } from '../../src/CodeStatement';
+import { WodScript } from '../../src/parser/WodScript';
+import { ICodeStatement } from '../../src/core/models/CodeStatement';
 
 /**
  * Shared test utilities for runtime testing
@@ -60,6 +60,14 @@ export function createMockRuntime(): IScriptRuntime {
       search: vi.fn(() => []),
       subscribe: vi.fn(() => () => {}),
       dispose: vi.fn(),
+    },
+    clock: {
+      now: new Date(),
+      elapsed: 0,
+      isRunning: false,
+      spans: [],
+      start: vi.fn(() => new Date()),
+      stop: vi.fn(() => new Date()),
     },
     handle: vi.fn((event: IEvent) => []),
     compile: vi.fn(),

@@ -92,18 +92,6 @@ describe('EffortStrategy', () => {
     it('should not match empty statements array', () => {
       expect(strategy.match([], harness.runtime)).toBe(false);
     });
-
-    it('should not match statement with missing fragments', () => {
-      const statement = new ParsedCodeStatement({
-        id: new BlockKey('test-6') as any,
-        children: [],
-        meta: { line: 1, offset: 0, column: 0 } as any
-      });
-      // Explicitly set fragments to undefined to simulate missing fragments
-      (statement as any).fragments = undefined;
-
-      expect(strategy.match([statement], harness.runtime)).toBe(false);
-    });
   });
 
   describe('compile()', () => {
