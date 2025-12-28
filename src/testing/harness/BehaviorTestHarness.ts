@@ -6,7 +6,7 @@ import { IEvent } from '@/runtime/contracts/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { EventBus } from '@/runtime/EventBus';
+import { EventBus } from '@/runtime/events';
 import { TypedMemoryReference } from '@/runtime/contracts';
 import { MockBlock } from './MockBlock';
 

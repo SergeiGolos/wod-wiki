@@ -22,7 +22,7 @@ import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../markdown-editor/types';

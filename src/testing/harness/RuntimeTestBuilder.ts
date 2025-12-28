@@ -5,7 +5,7 @@ import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { MdTimerRuntime } from '@/parser/md-timer';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { EventBus } from '@/runtime/EventBus';
+import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { WodScript } from '@/parser/WodScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';

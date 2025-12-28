@@ -18,9 +18,9 @@ import {
 } from './contracts/IRuntimeOptions';
 import { TestableBlock } from './testing/TestableBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
-import { NextEventHandler } from './NextEventHandler';
+import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
-import { StackPushEvent, StackPopEvent } from './StackEvents';
+import { StackPushEvent, StackPopEvent } from './events/StackEvents';
 import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './MemoryEvents';
 
 const MAX_STACK_DEPTH = 10;
