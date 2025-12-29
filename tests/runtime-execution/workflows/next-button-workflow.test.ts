@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { NextEvent } from '../../../src/runtime/NextEvent';
-import { NextEventHandler } from '../../../src/runtime/NextEventHandler';
-import { NextAction } from '../../../src/runtime/NextAction';
+import { NextEvent } from '../../../src/runtime/events/NextEvent';
+import { NextEventHandler } from '../../../src/runtime/events/NextEventHandler';
+import { NextAction } from '../../../src/runtime/actions/stack/NextAction';
 import { ErrorAction } from '../../../src/runtime/actions/ErrorAction';
 import { BehaviorTestHarness, MockBlock } from '../../harness';
 

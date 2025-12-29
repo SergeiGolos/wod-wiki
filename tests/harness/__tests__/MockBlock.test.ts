@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'bun:test';
-import { MockBlock } from '../MockBlock';
+import { MockBlock } from '../index';
 import { IRuntimeBehavior } from '@/runtime/contracts';
 
 describe('MockBlock', () => {

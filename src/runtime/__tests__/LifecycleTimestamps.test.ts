@@ -20,6 +20,11 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     label,
     context: {
       release: vi.fn(),
+      allocate: vi.fn((_type, value) => ({ 
+          id: 'mock-ref', 
+          get: () => value, 
+          set: (v: any) => { value = v; } 
+      })),
     } as any,
     executionTiming: {},
     mount: vi.fn().mockReturnValue([]),
@@ -100,7 +105,14 @@ describe('Lifecycle timestamps', () => {
       sourceIds: [1],
       blockType: 'Timer',
       label: 'Timer',
-      context: { release: vi.fn() } as any,
+      context: { 
+        release: vi.fn(),
+        allocate: vi.fn((_type, value) => ({ 
+            id: 'mock-ref', 
+            get: () => value, 
+            set: (v: any) => { value = v; } 
+        })),
+      } as any,
       executionTiming: {},
       mount: vi.fn(),
       next: vi.fn(),
@@ -144,7 +156,14 @@ describe('Lifecycle timestamps', () => {
       sourceIds: [1],
       blockType: 'Timer',
       label: 'Timer',
-      context: { release: vi.fn() } as any,
+      context: { 
+        release: vi.fn(),
+        allocate: vi.fn((_type, value) => ({ 
+            id: 'mock-ref', 
+            get: () => value, 
+            set: (v: any) => { value = v; } 
+        })),
+      } as any,
       executionTiming: {},
       mount: vi.fn(),
       next: vi.fn(),

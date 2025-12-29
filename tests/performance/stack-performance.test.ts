@@ -7,9 +7,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
-import { BlockKey } from '../../src/BlockKey';
-import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
-import { IRuntimeAction } from '../../src/runtime/IRuntimeAction';
+import { BlockKey } from '../../src/core/models/BlockKey';
+import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
+import { IRuntimeAction } from '../../src/runtime/contracts/IRuntimeAction';
 
 // Lightweight block for performance testing
 class PerformanceTestBlock implements IRuntimeBlock {
@@ -139,7 +139,7 @@ describe('RuntimeStack Performance Tests - Basic Operations', () => {
     
     // Act
     const start = performance.now();
-    const graph = stack.graph();
+    const graph = stack.blocks;
     const end = performance.now();
     
     // Assert
@@ -276,7 +276,7 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
           
           // Measure graph at this size
           const graphStart = performance.now();
-          stack.graph();
+          const _ = stack.blocks;
           const graphEndTime = performance.now();
           graphTimes.push(graphEndTime - graphStart);
         }
@@ -339,9 +339,9 @@ describe('RuntimeStack Performance Tests - Stress Testing', () => {
     const pushStart = performance.now();
     blocks.forEach(block => stack.push(block));
     const pushEnd = performance.now();
-    
+
     const graphStart = performance.now();
-    stack.graph();
+    const _ = stack.blocks;
     const graphEnd = performance.now();
     
     const popStart = performance.now();
@@ -457,11 +457,11 @@ describe('RuntimeStack Performance Tests - Memory Usage', () => {
     // Perform many graph operations
     const graphs: IRuntimeBlock[][] = [];
     const start = performance.now();
-    
+
     for (let i = 0; i < 100; i++) {
-      graphs.push(stack.graph());
+      graphs.push([...stack.blocks]);
     }
-    
+
     const end = performance.now();
     
     // All graph operations should complete quickly

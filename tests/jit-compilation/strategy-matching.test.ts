@@ -6,7 +6,7 @@ import {
   IntervalStrategy,
   TimeBoundRoundsStrategy,
   GroupStrategy
-} from '../../src/runtime/strategies';
+} from '../../src/runtime/compiler/strategies';
 import { BlockKey } from '../../src/core/models/BlockKey';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { ICodeStatement, CodeStatement } from '../../src/core/models/CodeStatement';

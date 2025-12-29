@@ -41,6 +41,7 @@ export function createMockRuntime(): IScriptRuntime {
           ownerId,
           get: () => memoryStore.get(id) ?? value,
           set: (newValue: any) => memoryStore.set(id, newValue),
+          value: () => memoryStore.get(id) ?? value,
         };
         memoryStore.set(id, value);
         return ref;
@@ -72,6 +73,10 @@ export function createMockRuntime(): IScriptRuntime {
     handle: vi.fn((event: IEvent) => []),
     compile: vi.fn(),
     errors: [],
+    eventBus: {
+      dispatch: vi.fn(),
+      register: vi.fn(() => () => {}),
+    },
   };
 
   return mockRuntime as any;

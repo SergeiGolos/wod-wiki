@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { BehaviorTestHarness } from '../BehaviorTestHarness';
-import { MockBlock } from '../MockBlock';
+import { BehaviorTestHarness } from '../index';
+import { MockBlock } from '../index';
 import { IRuntimeBehavior } from '@/runtime/contracts';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
