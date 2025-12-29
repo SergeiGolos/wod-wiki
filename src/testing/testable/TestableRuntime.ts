@@ -1,10 +1,8 @@
 import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement, TypedMemoryReference } from "@/core";
 import { IBlockContext, IRuntimeMemory, RuntimeError } from "@/core-entry";
-import { IRuntimeStack, IRuntimeClock, IEventBus } from "@/runtime/contracts";
+import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, Nullable } from "@/runtime/contracts";
 import { RuntimeSpan } from "@/runtime/models";
 import { SpanTrackingHandler } from "@/tracker/SpanTrackingHandler";
-import { IEvent } from "monaco-editor";
-import { Nullable } from "vitest";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";
 
