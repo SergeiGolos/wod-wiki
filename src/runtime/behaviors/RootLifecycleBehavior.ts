@@ -229,21 +229,16 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 console.log(`[RootLifecycle] handleControlEvent: timer:next -> SkipCurrentBlockAction`);
                 return [new SkipCurrentBlockAction(block.key.toString())];
 
-            case 'timer:complete':
-                console.log(`[RootLifecycle] handleControlEvent: timer:complete, state=${RootState[this.state]}`);
+            case 'workout:complete':
+                console.log(`[RootLifecycle] handleControlEvent: workout:complete, state=${RootState[this.state]}`);
                 // Only handle completion if we're in EXECUTING state
-                // Prevents duplicate handling if timer:complete fires multiple times
+                // Prevents duplicate handling if workout:complete fires multiple times
                 if (this.state !== RootState.EXECUTING) {
-                    console.log(`[RootLifecycle] handleControlEvent: timer:complete ignored, not in EXECUTING state`);
+                    console.log(`[RootLifecycle] handleControlEvent: workout:complete ignored, not in EXECUTING state`);
                     break;
                 }
 
-                // Only handle completion if it's for this block (root)
-                // or if it's a generic command (no blockId)
-                if (event.data && (event.data as any).blockId && (event.data as any).blockId !== block.key.toString()) {
-                    console.log(`[RootLifecycle] handleControlEvent: timer:complete ignored, blockId mismatch`);
-                    break;
-                }
+                // User explicitly requested workout completion
                 if (timer) timer.stop(now);
 
                 // Use COMPLETING state during transition - this prevents onNext from popping root
@@ -306,7 +301,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 id: 'btn-complete',
                 label: 'Complete',
                 icon: 'x',
-                action: 'timer:complete',
+                action: 'workout:complete',
                 variant: 'destructive',
                 size: 'lg'
             })

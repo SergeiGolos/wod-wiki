@@ -30,9 +30,8 @@ export class PopToBlockAction implements IRuntimeAction {
 
             console.log(`[PopToBlockAction] Popping: ${current.label}`);
             
-            // Pop without triggering parent.next() by using a special flag
-            // We need to bypass the normal popBlock flow to avoid re-pushing children
-            this.popWithoutNexting(runtime);
+            // Pop without triggering parent.next() or event emissions
+            this.popSilently(runtime);
             
             iterations++;
         }
@@ -43,22 +42,27 @@ export class PopToBlockAction implements IRuntimeAction {
     }
 
     /**
-     * Pop the current block without calling parent.next().
-     * This prevents intermediate blocks from pushing new children during force-complete.
+     * Pop the current block silently - no parent.next(), no event emissions.
+     * Only executes safe unmount actions (display cleanup, etc).
+     * This prevents intermediate blocks from pushing new children or triggering
+     * cascading events during force-complete.
      */
-    private popWithoutNexting(runtime: IScriptRuntime): void {
+    private popSilently(runtime: IScriptRuntime): void {
         const current = runtime.stack.current;
         if (!current) return;
 
-        // Get unmount actions
+        // Get unmount actions but filter out event emissions to prevent cascades
         const unmountActions = current.unmount(runtime, {}) ?? [];
+        const safeActions = unmountActions.filter(action => 
+            action.type !== 'emit-event'
+        );
 
         // Pop from stack
         const popped = runtime.stack.pop();
         if (!popped) return;
 
-        // Execute unmount actions immediately
-        for (const action of unmountActions) {
+        // Execute only safe unmount actions (display cleanup, etc)
+        for (const action of safeActions) {
             action.do(runtime);
         }
 
@@ -67,6 +71,6 @@ export class PopToBlockAction implements IRuntimeAction {
         popped.context?.release?.();
 
         // NOTE: We intentionally do NOT call parent.next() here
-        // This is the key difference from normal popBlock
+        // and we filter out emit-event actions to prevent cascades
     }
 }

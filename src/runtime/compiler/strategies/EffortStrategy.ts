@@ -9,7 +9,6 @@ import { FragmentType } from "../../../core/models/CodeFragment";
 import { RepFragment } from "../fragments/RepFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { BlockContext } from "../../BlockContext";
-import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../../models/MemoryTypeEnum";
 import { TypedMemoryReference } from "../../contracts/IMemoryReference";
 import { EffortBlock } from "../../blocks/EffortBlock";
@@ -18,6 +17,8 @@ import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
 import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
+import { SinglePassBehavior } from "../../behaviors/SinglePassBehavior";
+import { RoundPerNextBehavior } from "../../behaviors/RoundPerNextBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -107,11 +108,11 @@ export class EffortStrategy implements IRuntimeBlockStrategy {
         const behaviors: IRuntimeBehavior[] = [];
         behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
-        behaviors.push(new CompletionBehavior(
-            () => true,
-            ['next']
-        ));
+        // Use SinglePassBehavior instead of CompletionBehavior for 'next' handling
+        // CompletionBehavior listening to 'next' conflicts with NextEventHandler
 
+        behaviors.push(new RoundPerNextBehavior());
+        behaviors.push(new SinglePassBehavior());
         behaviors.push(new UnboundTimerBehavior('Segment Timer', 'secondary'));
 
         behaviors.push(new HistoryBehavior({
