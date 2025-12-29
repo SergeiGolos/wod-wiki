@@ -1,5 +1,5 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
 /**
  * Action for playing sounds during workout execution.
@@ -7,6 +7,9 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
  * This action emits a 'sound:play' event that can be consumed by UI components
  * to trigger audio playback. The runtime itself does not handle audio playback
  * directly - it delegates to registered sound handlers.
+ * 
+ * This action is in the SIDE_EFFECT phase, executing after display and memory
+ * updates but before events and stack mutations.
  * 
  * @example
  * ```typescript
@@ -20,8 +23,9 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
  * return [new PlaySoundAction('https://example.com/sound.mp3')];
  * ```
  */
-export class PlaySoundAction implements IRuntimeAction {
+export class PlaySoundAction implements IPhasedAction {
   readonly type = 'play-sound';
+  readonly phase = ActionPhase.SIDE_EFFECT;
   
   constructor(
     /** 

@@ -1,19 +1,21 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { MemoryTypeEnum } from '../../models/MemoryTypeEnum';
-import { TypedMemoryReference } from '../contracts/IMemoryReference';
+import { TypedMemoryReference } from '../../contracts/IMemoryReference';
 import { TimeSpan } from '../../models/TimeSpan';
 import { calculateDuration } from '../../../lib/timeUtils';
 import {
   IDisplayStackState,
   createDefaultDisplayState
 } from '../../../clock/types/DisplayTypes';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
 /**
  * Action that updates the global workout state.
  * 
  * This controls the overall workout status shown in the UI
  * and affects which idle cards are displayed.
+ * 
+ * This action is in the DISPLAY phase for quick UI feedback.
  * 
  * Usage:
  * ```typescript
@@ -24,7 +26,8 @@ import {
  * return [new SetWorkoutStateAction('complete')];
  * ```
  */
-export class SetWorkoutStateAction implements IRuntimeAction {
+export class SetWorkoutStateAction implements IPhasedAction {
+  readonly phase = ActionPhase.DISPLAY;
   private _type = 'set-workout-state';
 
   constructor(
@@ -105,13 +108,16 @@ export class SetWorkoutStateAction implements IRuntimeAction {
 /**
  * Action that updates round information in the display state.
  * 
+ * This action is in the DISPLAY phase for quick UI feedback.
+ * 
  * Usage:
  * ```typescript
  * // At the start of round 2 of 5:
  * return [new SetRoundsDisplayAction(2, 5)];
  * ```
  */
-export class SetRoundsDisplayAction implements IRuntimeAction {
+export class SetRoundsDisplayAction implements IPhasedAction {
+  readonly phase = ActionPhase.DISPLAY;
   private _type = 'set-rounds-display';
 
   constructor(
@@ -163,9 +169,11 @@ export class SetRoundsDisplayAction implements IRuntimeAction {
 /**
  * Action that resets the display stack to its initial state.
  * 
+ * This action is in the DISPLAY phase.
  * Useful for cleanup when a workout ends or is cancelled.
  */
-export class ResetDisplayStackAction implements IRuntimeAction {
+export class ResetDisplayStackAction implements IPhasedAction {
+  readonly phase = ActionPhase.DISPLAY;
   private _type = 'reset-display-stack';
 
   get type(): string {

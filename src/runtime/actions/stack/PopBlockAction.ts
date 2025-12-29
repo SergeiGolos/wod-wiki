@@ -1,12 +1,16 @@
-import { IRuntimeAction } from './contracts/IRuntimeAction';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { BlockLifecycleOptions } from './contracts/IRuntimeBlock';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
 /**
  * Action that pops the current block from the runtime stack.
  * Delegated to runtime.popBlock().
+ * 
+ * This action is in the STACK phase, meaning it will be executed
+ * after all other phases complete, preventing mid-lifecycle mutations.
  */
-export class PopBlockAction implements IRuntimeAction {
+export class PopBlockAction implements IPhasedAction {
+    readonly phase = ActionPhase.STACK;
     private _type = 'pop-block';
 
     get type(): string {

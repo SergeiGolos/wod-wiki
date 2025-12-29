@@ -1,12 +1,16 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IEvent } from '../contracts/events/IEvent';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { IEvent } from '../../contracts/events/IEvent';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
 /**
  * Action for declarative event emission from behaviors.
  * 
  * This action allows behaviors to emit events through the action system
  * instead of calling runtime.handle() directly, maintaining declarative patterns.
+ * 
+ * This action is in the EVENT phase, meaning all display, memory, and side effect
+ * actions will complete before events are dispatched. This prevents event handlers
+ * from triggering stack mutations mid-lifecycle.
  * 
  * @example
  * ```typescript
@@ -20,8 +24,9 @@ import { IEvent } from '../contracts/events/IEvent';
  * return [new EmitEventAction('workout:finished', undefined, new Date())];
  * ```
  */
-export class EmitEventAction implements IRuntimeAction {
+export class EmitEventAction implements IPhasedAction {
   readonly type = 'emit-event';
+  readonly phase = ActionPhase.EVENT;
   
   constructor(
     /** Name of the event to emit */

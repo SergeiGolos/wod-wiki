@@ -1,9 +1,16 @@
-import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { IDisplayStackState, DISPLAY_STACK_STATE_TYPE } from '../../contracts/IDisplayStackState';
 import { TypedMemoryReference } from '../../contracts/IMemoryReference';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
-export class UpdateDisplayStateAction implements IRuntimeAction {
+/**
+ * Action that updates the display stack state.
+ * 
+ * This action is in the DISPLAY phase, meaning it will execute first
+ * before any memory, event, or stack mutations.
+ */
+export class UpdateDisplayStateAction implements IPhasedAction {
+    readonly phase = ActionPhase.DISPLAY;
     private _type = 'update-display-state';
 
     constructor(

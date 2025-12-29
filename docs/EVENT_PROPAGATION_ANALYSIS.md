@@ -631,32 +631,38 @@ sequenceDiagram
 4. **Prevents Double-Pop**: Stack operations are deduplicated per cycle
 5. **Clean Lifecycle**: `unmount()` completes before any new blocks are pushed
 
-### Implementation Roadmap
+### Implementation Status
 
-```mermaid
-gantt
-    title Phase-Separated Execution Implementation
-    dateFormat  YYYY-MM-DD
-    section Analysis
-    Document current issues     :done, 2025-12-29, 1d
-    
-    section Phase 1 - Foundations
-    Add ActionPhase enum        :2025-12-30, 1d
-    Create PhasedActionProcessor:2025-12-30, 2d
-    
-    section Phase 2 - Migration
-    Update PopBlockAction       :2025-01-01, 1d
-    Update PushBlockAction      :2025-01-01, 1d
-    Update EmitEventAction      :2025-01-02, 1d
-    
-    section Phase 3 - Integration
-    Modify ScriptRuntime        :2025-01-03, 2d
-    Update behavior tests       :2025-01-05, 2d
-    
-    section Phase 4 - Validation
-    Integration testing         :2025-01-07, 3d
-    Performance benchmarks      :2025-01-10, 1d
-```
+> **Status**: ✅ **IMPLEMENTED** (2025-12-29)
+
+The phase-separated execution model has been implemented with the following components:
+
+#### Core Components
+
+| Component | File | Status |
+|-----------|------|--------|
+| `ActionPhase` enum | `src/runtime/actions/ActionPhase.ts` | ✅ Complete |
+| `IPhasedAction` interface | `src/runtime/actions/ActionPhase.ts` | ✅ Complete |
+| `PhasedActionProcessor` | `src/runtime/actions/PhasedActionProcessor.ts` | ✅ Complete |
+| ScriptRuntime integration | `src/runtime/ScriptRuntime.ts` | ✅ Complete |
+
+#### Updated Actions
+
+| Action | Phase | Status |
+|--------|-------|--------|
+| `PopBlockAction` | STACK | ✅ Updated |
+| `PushBlockAction` | STACK | ✅ Updated |
+| `EmitEventAction` | EVENT | ✅ Updated |
+| `PlaySoundAction` | SIDE_EFFECT | ✅ Updated |
+| `SetWorkoutStateAction` | DISPLAY | ✅ Updated |
+| `SetRoundsDisplayAction` | DISPLAY | ✅ Updated |
+| `ResetDisplayStackAction` | DISPLAY | ✅ Updated |
+| `UpdateDisplayStateAction` | DISPLAY | ✅ Updated |
+
+#### Tests
+
+- 13 unit tests for `PhasedActionProcessor` (all passing)
+- All 432 existing tests continue to pass
 
 ---
 

@@ -22,6 +22,8 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { StackPushEvent, StackPopEvent } from './events/StackEvents';
+import { PhasedActionProcessor } from './actions/PhasedActionProcessor';
+import { ActionPhase } from './actions/ActionPhase';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -72,7 +74,9 @@ export class ScriptRuntime implements IScriptRuntime {
     private readonly _logger: RuntimeStackLogger;
     private readonly _hooks: RuntimeStackHooks;
 
-    private _actionQueue: IRuntimeAction[] = [];
+    // Phase-separated action processing
+    private readonly _phasedProcessor: PhasedActionProcessor;
+    private _immediateQueue: IRuntimeAction[] = [];
     private _isProcessingActions = false;
 
     constructor(
@@ -88,6 +92,13 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
+
+        // Initialize phase-separated action processor
+        // Debug mode is enabled when runtime debug mode is enabled
+        this._phasedProcessor = new PhasedActionProcessor({
+            debug: this.options.debugMode ?? false,
+            maxIterations: 100
+        });
 
         // Note: Memory events are now dispatched by BlockContext, not via a centralized bridge.
         // This keeps RuntimeMemory pure and decoupled from the event system.
@@ -134,6 +145,13 @@ export class ScriptRuntime implements IScriptRuntime {
         return this._spanTracker;
     }
 
+    /**
+     * Get the current execution phase, or null if not processing.
+     */
+    public get currentPhase(): ActionPhase | null {
+        return this._phasedProcessor.getCurrentPhase();
+    }
+
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
         if (actions && actions.length > 0) {
@@ -142,31 +160,66 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Queue actions for processing. Actions are processed in order.
-     * If already processing, actions are added to the queue and will be processed
-     * after the current batch completes.
+     * Queue actions for phase-separated processing.
+     * 
+     * Actions implementing IPhasedAction are sorted by phase:
+     * 1. DISPLAY - UI updates first
+     * 2. MEMORY - State changes
+     * 3. SIDE_EFFECT - Sounds, logging
+     * 4. EVENT - Event dispatch
+     * 5. STACK - Push/pop operations (last)
+     * 
+     * IMMEDIATE phase actions (or non-phased actions) execute inline.
      */
     public queueActions(actions: IRuntimeAction[]) {
         if (actions.length > 0) {
             console.log(`[RT] queueActions: ${actions.map(a => a.type).join(', ')}`);
         }
-        this._actionQueue.push(...actions);
+        
+        // Sort actions into phases, collecting immediate actions
+        const immediateActions = this._phasedProcessor.queueMany(actions);
+        
+        // Add immediate actions to the immediate queue
+        this._immediateQueue.push(...immediateActions);
+        
+        // Trigger processing
         this.processActions();
     }
 
+    /**
+     * Process all queued actions in phase order.
+     * 
+     * First processes IMMEDIATE actions inline, then processes
+     * phased actions in order: DISPLAY → MEMORY → SIDE_EFFECT → EVENT → STACK
+     */
     private processActions() {
         if (this._isProcessingActions) {
-            console.log(`[RT] processActions: already processing, queue size=${this._actionQueue.length}`);
+            console.log(`[RT] processActions: already processing`);
             return;
         }
 
         this._isProcessingActions = true;
-        console.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
+        console.log(`[RT] processActions: starting`);
+        
         try {
-            while (this._actionQueue.length > 0) {
-                const action = this._actionQueue.shift();
+            // First, process any immediate actions (non-phased)
+            while (this._immediateQueue.length > 0) {
+                const action = this._immediateQueue.shift();
                 if (action) {
-                    console.log(`[RT] executing: ${action.type}`);
+                    console.log(`[RT] executing immediate: ${action.type}`);
+                    action.do(this);
+                }
+            }
+            
+            // Then process all phased actions in phase order
+            // This may queue more actions during execution
+            this._phasedProcessor.processAllPhases(this);
+            
+            // Process any immediate actions that were queued during phase processing
+            while (this._immediateQueue.length > 0) {
+                const action = this._immediateQueue.shift();
+                if (action) {
+                    console.log(`[RT] executing immediate (post-phase): ${action.type}`);
                     action.do(this);
                 }
             }

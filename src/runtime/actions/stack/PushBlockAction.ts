@@ -1,12 +1,16 @@
-import { IRuntimeAction } from './contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../../contracts/IRuntimeBlock';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { ActionPhase, IPhasedAction } from '../ActionPhase';
 
 /**
  * Action that pushes a compiled block onto the runtime stack.
  * Used by behaviors to add child blocks for execution.
+ * 
+ * This action is in the STACK phase, meaning it will be executed
+ * after all other phases complete, preventing mid-lifecycle mutations.
  */
-export class PushBlockAction implements IRuntimeAction {
+export class PushBlockAction implements IPhasedAction {
+    readonly phase = ActionPhase.STACK;
     private _type = 'push-block';
 
     constructor(public readonly block: IRuntimeBlock, private readonly options: BlockLifecycleOptions = {}) { }
