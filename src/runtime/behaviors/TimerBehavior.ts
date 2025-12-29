@@ -16,8 +16,8 @@ export class TimerBehavior implements IRuntimeBehavior {
   private stateManager: TimerStateManager;
 
   constructor(
-    private readonly direction: 'up' | 'down' = 'up',
-    private readonly durationMs?: number,
+    public readonly direction: 'up' | 'down' = 'up',
+    public readonly durationMs?: number,
     label: string = 'Timer',
     private readonly role: 'primary' | 'secondary' | 'auto' = 'auto',
     private readonly autoStart: boolean = true
@@ -51,10 +51,6 @@ export class TimerBehavior implements IRuntimeBehavior {
 
   onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const completedAt = options?.completedAt ?? new Date();
-
-    // Emit timer:complete event
-    // Note: getElapsedMs() will use local calculated elapsedMs if available, or fallback.
-    // Ideally we assume options.completedAt is the end time.
     const finalElapsed = this.getElapsedAt(completedAt);
 
     const actions: IRuntimeAction[] = [
@@ -70,20 +66,33 @@ export class TimerBehavior implements IRuntimeBehavior {
     return actions;
   }
 
-  // Note: onNext is typically not used by TimerBehavior unless it needs to react to children.
-  // Since this is a timer block, it usually relies on external storage updates or events.
-
-  onDispose(block: IRuntimeBlock): void {
-    // Dispose logic if needed. Usually logic is in onPop.
-    // If the block is disposed without pop (e.g. error), this might run.
+  onDispose(_block: IRuntimeBlock): void {
+    this.stop();
   }
 
   /**
-   * Get current elapsed time in milliseconds relative to a given time.
-   * If now is not provided, it falls back to stored calculated elapsed time (which might be stale if running).
-   * Note: This method is tricky without access to 'runtime.clock.now'. 
-   * Consumers should prefer reading from Memory via TimerStateManager state.
+   * Get current elapsed time in milliseconds.
    */
+  getElapsedMs(now?: Date): number {
+    return this.getElapsedAt(now ?? new Date());
+  }
+
+  /**
+   * Get remaining time in milliseconds for countdown timers.
+   */
+  getRemainingMs(now?: Date): number {
+    if (this.direction === 'up' || !this.durationMs) return 0;
+    const elapsed = this.getElapsedMs(now);
+    return Math.max(0, this.durationMs - elapsed);
+  }
+
+  /**
+   * Get display time in seconds (rounded to 0.1s).
+   */
+  getDisplayTime(now?: Date): number {
+    return Math.round(this.getElapsedMs(now) / 100) / 10;
+  }
+
   getElapsedAt(now: Date): number {
     if (this._isPaused) {
       return this.elapsedMs;
@@ -91,37 +100,33 @@ export class TimerBehavior implements IRuntimeBehavior {
     return now.getTime() - this.startTime.getTime();
   }
 
-  /**
-   * Check if timer is complete.
-   * Requires 'now' to be passed in since we don't have access to runtime clock.
-   */
-  isComplete(now: Date): boolean {
-    if (this.direction === 'down' && this.durationMs !== undefined) {
-      return this.getElapsedAt(now) >= this.durationMs;
+  isComplete(now?: Date): boolean {
+    if (this.durationMs !== undefined) {
+      return this.getElapsedAt(now ?? new Date()) >= this.durationMs;
     }
     return false;
   }
 
+  isPaused(): boolean {
+    return this._isPaused;
+  }
+
   isRunning(): boolean {
-    // We can check memory too if we had access to block context here, but we don't store block context on 'this'.
-    // We rely on local state 'isPaused' which mirrors the logic.
-    // But 'TimerStateManager' keeps a ref.
     const timerRef = this.stateManager.getTimerRef();
     if (timerRef) {
-      return timerRef.get()?.isActive() || false;
+      const state = timerRef.get();
+      return state?.isActive() || false;
     }
     return !this._isPaused;
   }
 
-  // Methods like start(), stop(), pause(), resume(), restart() modify state.
-  // They previously used 'runtime' to get 'now'.
-  // They should now accept 'now' as argument or be invoked via an Action handler that has runtime access.
-  // Converting them to take 'now' as explicit arg.
-
   start(now: Date = new Date()): void {
     this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
-    if (!timerRef) return;
+    if (!timerRef) {
+      this.startTime = now;
+      return;
+    }
 
     const state = timerRef.get();
     if (!state) return;
@@ -151,22 +156,13 @@ export class TimerBehavior implements IRuntimeBehavior {
   }
 
   pause(now: Date = new Date()): void {
-    // Same as stop for now
     this.stop(now);
-
-    // Specific pause logic in span if needed
-    const timerRef = this.stateManager.getTimerRef();
-    if (timerRef) {
-      const state = timerRef.get();
-      if (state) state.pause(now.getTime());
-    }
   }
 
   resume(now: Date = new Date()): void {
     this._isPaused = false;
     const timerRef = this.stateManager.getTimerRef();
 
-    // Fallback if no ref (rare)
     if (!timerRef) {
       this.startTime = new Date(now.getTime() - this.elapsedMs);
       return;
@@ -181,6 +177,18 @@ export class TimerBehavior implements IRuntimeBehavior {
     this.startTime = new Date(now.getTime() - this.elapsedMs);
 
     this.stateManager.updateState(state.spans, true);
+  }
+
+  reset(now: Date = new Date()): void {
+    this._isPaused = true;
+    this.elapsedMs = 0;
+    this.startTime = now;
+
+    const span = this.stateManager.getTimerRef()?.get();
+    if (span) {
+      span.reset();
+      this.stateManager.updateState(span.spans, false);
+    }
   }
 
   restart(now: Date = new Date()): void {

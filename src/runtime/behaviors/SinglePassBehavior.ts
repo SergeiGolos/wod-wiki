@@ -13,12 +13,12 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
  */
 export class SinglePassBehavior implements IRuntimeBehavior {
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const round = this.getRound(block);
+    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const round = this.getRound(_block);
 
         // Exit if we have started the second round (meaning the first pass is complete)
         if (round >= 2) {
-            return [new PopBlockAction(block)];
+            return [new PopBlockAction()];
         }
 
         return [];

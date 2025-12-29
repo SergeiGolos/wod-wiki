@@ -131,7 +131,12 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     handle(event: IEvent): void {
-        this.eventBus.dispatch(event, this);
+        const actions = this.eventBus.dispatch(event, this);
+        if (actions && actions.length > 0) {
+            for (const action of actions) {
+                action.do(this);
+            }
+        }
     }
 
     /**
@@ -168,6 +173,11 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.stack.push(wrappedBlock);
         this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
+
+        const actions = wrappedBlock.mount(this, options);
+        for (const action of actions) {
+            action.do(this);
+        }
 
         this._logger.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),

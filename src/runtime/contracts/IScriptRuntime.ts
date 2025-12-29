@@ -48,5 +48,6 @@ export interface IScriptRuntime {
     isComplete(): boolean;
 
     handle(event: IEvent): void;
+    dispose(): void;
 }
 

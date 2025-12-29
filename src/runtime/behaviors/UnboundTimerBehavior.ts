@@ -6,7 +6,11 @@ import { TimerBehavior } from './TimerBehavior';
  * No duration limit.
  */
 export class UnboundTimerBehavior extends TimerBehavior {
-    constructor(label: string = 'Timer', autoStart: boolean = true) {
-        super('up', undefined, label, 'auto', autoStart);
+    constructor(
+        label: string = 'Timer',
+        role: 'primary' | 'secondary' | 'auto' = 'auto',
+        autoStart: boolean = true
+    ) {
+        super('up', undefined, label, role, autoStart);
     }
 }

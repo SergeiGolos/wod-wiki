@@ -1,8 +1,8 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
+import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
 
@@ -15,17 +15,18 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
 export class BoundLoopBehavior implements IRuntimeBehavior {
     constructor(private readonly totalRounds: number) { }
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
         const round = this.getRound(block);
+        const actions: IRuntimeAction[] = [];
 
-        // TODO: Report round status to tracker (History)
-        // runtime.tracker.trackRound(round, this.totalRounds);
+        // Report round status to tracker (History)
+        actions.push(new TrackRoundAction(block.key.toString(), round, this.totalRounds));
 
         if (round > this.totalRounds) {
-            return [new PopBlockAction(block)];
+            actions.push(new PopBlockAction());
         }
 
-        return [];
+        return actions;
     }
 
     private getRound(block: IRuntimeBlock): number {

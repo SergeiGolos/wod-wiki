@@ -1,7 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
 
@@ -12,14 +12,11 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
  */
 export class UnboundLoopBehavior implements IRuntimeBehavior {
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
         const round = this.getRound(block);
 
-        // TODO: Report round status to tracker (History)
-        // runtime.tracker.trackRound(round, undefined);
-
-        // Never pop
-        return [];
+        // Report round status to tracker (History)
+        return [new TrackRoundAction(block.key.toString(), round, undefined)];
     }
 
     private getRound(block: IRuntimeBlock): number {

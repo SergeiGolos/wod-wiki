@@ -15,18 +15,16 @@ import { EmitEventAction } from '../actions/events/EmitEventAction';
  * - Emits block:complete when condition is met
  * - Returns PopBlockAction when block completes
  * - Flexible for various completion scenarios
- *
- * API Contract: contracts/runtime-blocks-api.md
  */
 export class CompletionBehavior implements IRuntimeBehavior {
   private isCompleteFlag = false;
 
   constructor(
-    private readonly condition: (block: IRuntimeBlock) => boolean,
+    private readonly condition: (block: IRuntimeBlock, now: Date) => boolean,
     private readonly checkOnEvents: string[] = []
   ) { }
 
-  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
     return [];
   }
 
@@ -35,14 +33,15 @@ export class CompletionBehavior implements IRuntimeBehavior {
       return [];
     }
 
-    if (this.condition(block)) {
-      return this.complete(block, options?.now);
+    const now = options?.now ?? new Date();
+    if (this.condition(block, now)) {
+      return this.complete(block, now);
     }
 
     return [];
   }
 
-  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
     return [];
   }
 
@@ -52,24 +51,24 @@ export class CompletionBehavior implements IRuntimeBehavior {
     }
 
     if (this.checkOnEvents.includes(event.name)) {
-      if (this.condition(block)) {
-        return this.complete(block, event.timestamp);
+      const now = event.timestamp ?? new Date();
+      if (this.condition(block, now)) {
+        return this.complete(block, now);
       }
     }
 
     return [];
   }
 
-  onDispose(block: IRuntimeBlock): void {
+  onDispose(_block: IRuntimeBlock): void {
     // No-op
   }
 
-  private complete(block: IRuntimeBlock, timestamp?: Date): IRuntimeAction[] {
+  private complete(block: IRuntimeBlock, timestamp: Date): IRuntimeAction[] {
     this.isCompleteFlag = true;
-    const now = timestamp ?? new Date();
 
     return [
-      new EmitEventAction('block:complete', { blockId: block.key.toString() }, now),
+      new EmitEventAction('block:complete', { blockId: block.key.toString() }, timestamp),
       new PopBlockAction()
     ];
   }

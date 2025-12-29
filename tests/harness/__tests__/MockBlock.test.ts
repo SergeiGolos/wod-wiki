@@ -40,20 +40,16 @@ describe('MockBlock', () => {
     const mockRuntime = { clock: { now: new Date() } } as any;
 
     block.mount(mockRuntime);
-    console.log('Calls:', onPush.mock.calls);
     expect(onPush).toHaveBeenCalled();
-    expect(onPush.mock.calls[0][0]).toBe(mockRuntime);
-    expect(onPush.mock.calls[0][1]).toBe(block);
+    expect(onPush.mock.calls[0][0]).toBe(block);
 
     block.next(mockRuntime);
     expect(onNext).toHaveBeenCalled();
-    expect(onNext.mock.calls[0][0]).toBe(mockRuntime);
-    expect(onNext.mock.calls[0][1]).toBe(block);
+    expect(onNext.mock.calls[0][0]).toBe(block);
 
     block.unmount(mockRuntime);
     expect(onPop).toHaveBeenCalled();
-    expect(onPop.mock.calls[0][0]).toBe(mockRuntime);
-    expect(onPop.mock.calls[0][1]).toBe(block);
+    expect(onPop.mock.calls[0][0]).toBe(block);
   });
 
   it('should find behaviors by type', () => {

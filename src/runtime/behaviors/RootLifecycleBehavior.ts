@@ -5,11 +5,18 @@ import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { TimerBehavior } from './TimerBehavior';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
+import { SkipCurrentBlockAction } from '../actions/stack/SkipCurrentBlockAction';
 import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
 import { SetWorkoutStateAction } from '../actions/display/WorkoutStateActions';
 import { PushIdleBlockAction } from '../actions/stack/PushIdleBlockAction';
 import { SubscribeEventAction, UnsubscribeEventAction } from '../actions/events/EventSubscriptionActions';
+import {
+    UpdateDisplayModeAction,
+    RegisterButtonAction,
+    UnregisterButtonAction,
+    ClearButtonsAction
+} from '../actions/display/ControlActions';
 
 enum RootState {
     MOUNTING,
@@ -31,19 +38,23 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     }
 
     onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        // Start with Initial Idle Block
         this.state = RootState.INITIAL_IDLE;
         this.controlHandlerId = `root-control-handler-${block.key.toString()}`;
 
-        // Initialize controls (for Root level)
+        // Ensure we use the controls behavior from the block if it exists (for findability via actions)
+        const blockControls = block.getBehavior(RuntimeControlsBehavior);
+        if (blockControls) {
+            this.controls = blockControls;
+        }
+
         const controlActions = this.controls.onPush(block, options);
-        this.controls.setDisplayMode('clock');
+        // We don't call setDisplayMode directly, we use an action
 
         const startTime = options?.startTime ?? new Date();
 
         return [
             ...controlActions,
-            // Register global event handler for controls
+            new UpdateDisplayModeAction('clock'),
             new SubscribeEventAction(
                 '*',
                 this.controlHandlerId,
@@ -67,8 +78,6 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
     onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         const now = options?.now ?? new Date();
-        // Since we don't have runtime here, we can't create blocks if behaviors depend on runtime construction.
-        // But loopCoordinator uses CompileAndPushBlockAction which is stateless here.
 
         switch (this.state) {
             case RootState.INITIAL_IDLE: {
@@ -77,15 +86,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 const timer = block.getBehavior(TimerBehavior);
                 if (timer) {
                     timer.resume(now);
-                } else {
-                    console.error('RootLifecycleBehavior: Root timer not found!');
                 }
-
-                this.updateExecutionControls();
-                this.controls.setDisplayMode('timer');
 
                 return [
                     new SetWorkoutStateAction('running'),
+                    new UpdateDisplayModeAction('timer'),
+                    ...this.getExecutionControlActions(),
                     ...this.loopCoordinator.onNext(block, options)
                 ];
             }
@@ -101,12 +107,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         timer.stop(now);
                     }
 
-                    this.controls.clearButtons();
-
                     const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? now;
                     return [
                         ...actions,
                         new SetWorkoutStateAction('complete'),
+                        new ClearButtonsAction(),
                         new PushIdleBlockAction(
                             'idle-end',
                             'Cooldown, checkout the Analytics',
@@ -137,7 +142,6 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     }
 
     onEvent(_event: IEvent, _block: IRuntimeBlock): IRuntimeAction[] {
-        // We use a separate handler registered in memory to handle events globally
         return [];
     }
 
@@ -161,7 +165,6 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         switch (event.name) {
             case 'timer:start':
                 if (this.state === RootState.INITIAL_IDLE) {
-                    // Pop the initial idle block to start execution
                     return [new PopBlockAction()];
                 }
                 break;
@@ -169,53 +172,57 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             case 'timer:pause':
                 if (timer) {
                     timer.pause(now);
-                    this.controls.unregisterButton('btn-pause');
-                    this.controls.registerButton({
-                        id: 'btn-resume',
-                        label: 'Resume',
-                        icon: 'play',
-                        action: 'timer:resume',
-                        variant: 'default',
-                        size: 'lg'
-                    });
+                    return [
+                        new SetWorkoutStateAction('paused'),
+                        new UnregisterButtonAction('btn-pause'),
+                        new RegisterButtonAction({
+                            id: 'btn-resume',
+                            label: 'Resume',
+                            icon: 'play',
+                            action: 'timer:resume',
+                            variant: 'default',
+                            size: 'lg'
+                        })
+                    ];
                 }
-                return [new SetWorkoutStateAction('paused')];
+                break;
 
             case 'timer:resume':
                 if (timer) {
                     timer.resume(now);
-                    this.controls.unregisterButton('btn-resume');
-                    this.controls.registerButton({
-                        id: 'btn-pause',
-                        label: 'Pause',
-                        icon: 'pause',
-                        action: 'timer:pause',
-                        variant: 'default', // Keep it default/primary
-                        size: 'lg'
-                    });
-                }
-                return [new SetWorkoutStateAction('running')];
-
-            case 'timer:next':
-                // Pop the current leaf block (skip current segment)
-                // We don't want to pop the root block itself
-                if (runtime.stack.current && runtime.stack.current !== block) {
-                    return [new PopBlockAction()];
+                    return [
+                        new SetWorkoutStateAction('running'),
+                        new UnregisterButtonAction('btn-resume'),
+                        new RegisterButtonAction({
+                            id: 'btn-pause',
+                            label: 'Pause',
+                            icon: 'pause',
+                            action: 'timer:pause',
+                            variant: 'default',
+                            size: 'lg'
+                        })
+                    ];
                 }
                 break;
 
+            case 'timer:next':
+                // Use SkipCurrentBlockAction instead of checking runtime.stack.current directly here
+                return [new SkipCurrentBlockAction(block.key.toString())];
+
             case 'timer:complete':
-                // Force completion
+                // Only handle completion if it's for this block (root)
+                // or if it's a generic command (no blockId)
+                if (event.data && (event.data as any).blockId && (event.data as any).blockId !== block.key.toString()) {
+                    break;
+                }
                 if (timer) timer.stop(now);
 
                 this.state = RootState.FINAL_IDLE;
 
-                // Update controls
-                this.controls.clearButtons();
-
                 const startTime = block.executionTiming?.completedAt ?? now;
                 return [
                     new SetWorkoutStateAction('complete'),
+                    new ClearButtonsAction(),
                     new PushIdleBlockAction(
                         'idle-end',
                         'Cooldown, checkout the Analytics',
@@ -233,37 +240,32 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    private updateExecutionControls() {
-        this.controls.clearButtons();
-
-        // Pause/Play
-        this.controls.registerButton({
-            id: 'btn-pause',
-            label: 'Pause',
-            icon: 'pause',
-            action: 'timer:pause',
-            variant: 'default',
-            size: 'lg'
-        });
-
-        // Next
-        this.controls.registerButton({
-            id: 'btn-next',
-            label: 'Next',
-            icon: 'next',
-            action: 'timer:next',
-            variant: 'secondary',
-            size: 'lg'
-        });
-
-        // Complete
-        this.controls.registerButton({
-            id: 'btn-complete',
-            label: 'Complete',
-            icon: 'x',
-            action: 'timer:complete',
-            variant: 'destructive',
-            size: 'lg'
-        });
+    private getExecutionControlActions(): IRuntimeAction[] {
+        return [
+            new RegisterButtonAction({
+                id: 'btn-pause',
+                label: 'Pause',
+                icon: 'pause',
+                action: 'timer:pause',
+                variant: 'default',
+                size: 'lg'
+            }),
+            new RegisterButtonAction({
+                id: 'btn-next',
+                label: 'Next',
+                icon: 'next',
+                action: 'timer:next',
+                variant: 'secondary',
+                size: 'lg'
+            }),
+            new RegisterButtonAction({
+                id: 'btn-complete',
+                label: 'Complete',
+                icon: 'x',
+                action: 'timer:complete',
+                variant: 'destructive',
+                size: 'lg'
+            })
+        ];
     }
 }

@@ -2,11 +2,16 @@ import { TimerBehavior } from './TimerBehavior';
 
 /**
  * Bound Timer Behavior.
- * Runs a timer for a specific duration.
- * Typically counts down ('down').
+ * Runs a timer for a specified duration and records execution timestamps.
  */
 export class BoundTimerBehavior extends TimerBehavior {
-    constructor(durationMs: number, label: string = 'Timer', autoStart: boolean = true) {
-        super('down', durationMs, label, 'primary', autoStart);
+    constructor(
+        durationMs: number,
+        direction: 'up' | 'down' = 'down',
+        label: string = 'Timer',
+        role: 'primary' | 'secondary' | 'auto' = 'auto',
+        autoStart: boolean = true
+    ) {
+        super(direction, durationMs, label, role, autoStart);
     }
 }
