@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { EffortStrategy } from '../EffortStrategy';
 import { FragmentType } from '@/core/models/CodeFragment';
-import { ICodeStatement, ParsedCodeStatement } from '@/core/models/CodeStatement';
+import { ParsedCodeStatement } from '@/core/models/CodeStatement';
 import { HistoryBehavior } from '@/runtime/behaviors/HistoryBehavior';
 import { EffortBlock } from '@/runtime/blocks/EffortBlock';
 import { BlockKey } from '@/core/models/BlockKey';
