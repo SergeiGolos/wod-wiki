@@ -17,6 +17,7 @@ import {
     UnregisterButtonAction,
     ClearButtonsAction
 } from '../actions/display/ControlActions';
+import { SetFlagAction } from '../actions/stack/SetFlagAction';
 
 enum RootState {
     MOUNTING,
@@ -31,6 +32,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
     private loopCoordinator: LoopCoordinatorBehavior;
     private controls: RuntimeControlsBehavior;
     private controlHandlerId?: string;
+    private finalIdlePushed: boolean = false;
 
     constructor(loopConfig: LoopConfig) {
         this.loopCoordinator = new LoopCoordinatorBehavior(loopConfig);
@@ -122,7 +124,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                                 buttonAction: 'view:analytics'
                             },
                             { startTime }
-                        )
+                        ),
+                        new SetFlagAction(() => { this.finalIdlePushed = true; })
                     ];
                 }
 
@@ -130,6 +133,15 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             }
 
             case RootState.FINAL_IDLE:
+                // In FINAL_IDLE state, we need to distinguish:
+                // 1. onNext called because child was skipped (finalIdlePushed = false) - don't pop
+                // 2. onNext called because final idle was dismissed (finalIdlePushed = true) - pop root
+                if (!this.finalIdlePushed) {
+                    // Final idle hasn't been pushed yet (still in action queue)
+                    // Don't pop root, wait for the idle to be pushed and then dismissed
+                    return [];
+                }
+                // Final idle was pushed and now dismissed - complete the workout
                 this.state = RootState.COMPLETE;
                 return [new PopBlockAction()];
 
@@ -250,6 +262,9 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     },
                     { startTime }
                 ));
+
+                // Set flag after idle is pushed so onNext knows it's safe to pop root
+                actions.push(new SetFlagAction(() => { this.finalIdlePushed = true; }));
 
                 return actions;
         }
