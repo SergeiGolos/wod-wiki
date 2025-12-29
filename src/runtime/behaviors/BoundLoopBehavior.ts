@@ -13,9 +13,19 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
  * Reports progress to the tracker.
  */
 export class BoundLoopBehavior implements IRuntimeBehavior {
+    private _isComplete = false;
+
     constructor(private readonly totalRounds: number) { }
 
+    isComplete(): boolean {
+        return this._isComplete;
+    }
+
     onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+        if (this._isComplete) {
+            return [];
+        }
+
         const round = this.getRound(block);
         const actions: IRuntimeAction[] = [];
 
@@ -23,6 +33,7 @@ export class BoundLoopBehavior implements IRuntimeBehavior {
         actions.push(new TrackRoundAction(block.key.toString(), round, this.totalRounds));
 
         if (round > this.totalRounds) {
+            this._isComplete = true;
             actions.push(new PopBlockAction());
         }
 

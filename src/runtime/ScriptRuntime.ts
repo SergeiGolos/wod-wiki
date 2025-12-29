@@ -1,3 +1,4 @@
+import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack } from './contracts/IRuntimeStack';
@@ -71,6 +72,9 @@ export class ScriptRuntime implements IScriptRuntime {
     private readonly _logger: RuntimeStackLogger;
     private readonly _hooks: RuntimeStackHooks;
 
+    private _actionQueue: IRuntimeAction[] = [];
+    private _isProcessingActions = false;
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -133,9 +137,33 @@ export class ScriptRuntime implements IScriptRuntime {
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
         if (actions && actions.length > 0) {
-            for (const action of actions) {
-                action.do(this);
+            this.queueActions(actions);
+        }
+    }
+
+    /**
+     * Queue actions for processing. Actions are processed in order.
+     * If already processing, actions are added to the queue and will be processed
+     * after the current batch completes.
+     */
+    public queueActions(actions: IRuntimeAction[]) {
+        this._actionQueue.push(...actions);
+        this.processActions();
+    }
+
+    private processActions() {
+        if (this._isProcessingActions) {
+            return;
+        }
+
+        this._isProcessingActions = true;
+        try {
+            while (this._actionQueue.length > 0) {
+                const action = this._actionQueue.shift();
+                action?.do(this);
             }
+        } finally {
+            this._isProcessingActions = false;
         }
     }
 
@@ -175,9 +203,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
 
         const actions = wrappedBlock.mount(this, options);
-        for (const action of actions) {
-            action.do(this);
-        }
+        this.queueActions(actions);
 
         this._logger.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),
@@ -224,16 +250,12 @@ export class ScriptRuntime implements IScriptRuntime {
             stackDepth: this.stack.count,
         });
 
-        for (const action of unmountActions) {
-            action.do(this);
-        }
+        this.queueActions(unmountActions);
 
         const parent = this.stack.current;
         if (parent) {
             const nextActions = parent.next(this, lifecycleOptions) ?? [];
-            for (const action of nextActions) {
-                action.do(this);
-            }
+            this.queueActions(nextActions);
         }
 
         this._hooks.onAfterPop?.(popped);

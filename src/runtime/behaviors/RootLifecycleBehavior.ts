@@ -210,6 +210,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 return [new SkipCurrentBlockAction(block.key.toString())];
 
             case 'timer:complete':
+                // Only handle completion if we're in EXECUTING state
+                // Prevents duplicate handling if timer:complete fires multiple times
+                if (this.state !== RootState.EXECUTING) {
+                    break;
+                }
+
                 // Only handle completion if it's for this block (root)
                 // or if it's a generic command (no blockId)
                 if (event.data && (event.data as any).blockId && (event.data as any).blockId !== block.key.toString()) {
@@ -220,21 +226,32 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 this.state = RootState.FINAL_IDLE;
 
                 const startTime = block.executionTiming?.completedAt ?? now;
-                return [
+
+                // Pop any remaining child blocks first, then push final idle
+                // Use SkipCurrentBlockAction to pop children until we're back at root
+                const actions: IRuntimeAction[] = [
                     new SetWorkoutStateAction('complete'),
                     new ClearButtonsAction(),
-                    new PushIdleBlockAction(
-                        'idle-end',
-                        'Cooldown, checkout the Analytics',
-                        {
-                            popOnNext: false,
-                            popOnEvents: ['stop', 'view-results'],
-                            buttonLabel: 'View Analytics',
-                            buttonAction: 'view:analytics'
-                        },
-                        { startTime }
-                    )
                 ];
+
+                // Skip any blocks above root (children)
+                if (runtime.stack.current && runtime.stack.current !== block) {
+                    actions.push(new SkipCurrentBlockAction(block.key.toString()));
+                }
+
+                actions.push(new PushIdleBlockAction(
+                    'idle-end',
+                    'Cooldown, checkout the Analytics',
+                    {
+                        popOnNext: false,
+                        popOnEvents: ['stop', 'view-results'],
+                        buttonLabel: 'View Analytics',
+                        buttonAction: 'view:analytics'
+                    },
+                    { startTime }
+                ));
+
+                return actions;
         }
 
         return [];

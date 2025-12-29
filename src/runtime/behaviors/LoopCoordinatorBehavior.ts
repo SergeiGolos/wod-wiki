@@ -73,6 +73,7 @@ export interface LoopState {
 export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   private index: number = -1; // Pre-first-advance state (onPush will increment to 0)
   private isWaitingForInterval: boolean = false;
+  private _isComplete: boolean = false;
   private readonly config: LoopConfig;
   private lapTimerRefs: TypedMemoryReference<TimeSpan[]>[] = []; // Track lap timer refs for cleanup
 
@@ -152,6 +153,11 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Returns PushBlockAction for next child or empty array if complete.
    */
   onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    // Early exit if already complete
+    if (this._isComplete) {
+      return [];
+    }
+
     const now = options?.now ?? new Date();
 
     // Handle INTERVAL waiting logic
@@ -186,6 +192,7 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
 
     // Check completion AFTER incrementing
     if (this.isComplete(block, now)) {
+      this._isComplete = true;
       return [];
     }
 

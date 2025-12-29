@@ -20,9 +20,15 @@ export class NextAction implements IRuntimeAction {
       // Execute block's next logic
       const nextActions = currentBlock.next(runtime);
 
-      // Execute all returned actions
-      for (const action of nextActions) {
-        action.do(runtime);
+      // Queue actions through the runtime's action queue instead of executing directly
+      // This ensures proper ordering when actions trigger further state changes
+      if (runtime.queueActions && nextActions.length > 0) {
+        runtime.queueActions(nextActions);
+      } else {
+        // Fallback for runtimes without queueActions (e.g., mocks)
+        for (const action of nextActions) {
+          action.do(runtime);
+        }
       }
 
     } catch (error) {

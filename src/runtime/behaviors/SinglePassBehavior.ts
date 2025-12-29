@@ -11,12 +11,22 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
  * Expects a Round Increment behavior to be present.
  */
 export class SinglePassBehavior implements IRuntimeBehavior {
+    private _isComplete = false;
+
+    isComplete(): boolean {
+        return this._isComplete;
+    }
 
     onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+        if (this._isComplete) {
+            return [];
+        }
+
         const round = this.getRound(_block);
 
         // Exit if we have started the second round (meaning the first pass is complete)
         if (round >= 2) {
+            this._isComplete = true;
             return [new PopBlockAction()];
         }
 

@@ -3,6 +3,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { ChildIndexBehavior } from './ChildIndexBehavior';
 import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
+import { BoundLoopBehavior } from './BoundLoopBehavior';
 
 /**
  * ChildRunnerBehavior.
@@ -10,7 +11,7 @@ import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockA
  * 
  * Logic: 
  * - onPush: Force index to 0 and push first child.
- * - onNext: Push child at current index.
+ * - onNext: Push child at current index (only if loop not complete).
  */
 export class ChildRunnerBehavior implements IRuntimeBehavior {
     constructor(private readonly childGroups: number[][]) { }
@@ -27,6 +28,12 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
     }
 
     onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        // Don't push children if the loop is complete
+        const boundLoop = block.getBehavior(BoundLoopBehavior);
+        if (boundLoop?.isComplete()) {
+            return [];
+        }
+
         const indexBehavior = block.getBehavior(ChildIndexBehavior);
         if (!indexBehavior) return [];
 

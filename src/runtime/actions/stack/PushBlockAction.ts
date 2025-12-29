@@ -46,17 +46,8 @@ export class PushBlockAction implements IRuntimeAction {
             }
 
             // Push the block onto the stack via runtime
-            // This handles wrapping, hooks, tracking, and stack updates
-            const pushedBlock = runtime.pushBlock(this.block, lifecycle);
-
-            // Call the block's mount() method to get any initial actions
-            // Use the pushedBlock to ensure we interact with any wrappers (e.g. spies)
-            const mountActions = pushedBlock.mount(runtime, lifecycle);
-
-            // Execute any returned actions
-            for (const action of mountActions) {
-                action.do(runtime);
-            }
+            // This handles wrapping, hooks, tracking, mount(), and stack updates
+            runtime.pushBlock(this.block, lifecycle);
 
         } catch (error) {
             // Check if runtime has optional setError method

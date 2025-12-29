@@ -59,18 +59,20 @@ export class RuntimeBlock implements IRuntimeBlock {
     }
 
     private registerDefaultHandler() {
+        // Note: 'next' event handling is done via NextAction which is triggered by NextEventHandler.
+        // This handler is kept for backwards compatibility but should not process 'next' events
+        // since NextAction already calls block.next() directly.
         const handler: IEventHandler = {
             id: `handler-tick-${this.key.toString()}`,
             name: `TickHandler-${this.label}`,
             handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Only handle explicit next events
-                if (event.name !== 'next') return [];
+                // Skip 'next' events - handled by NextAction via NextEventHandler
+                if (event.name === 'next') return [];
 
                 // Only handle if this is the current block
                 if (runtime.stack.current !== this) return [];
 
-                // Delegate to next() method for state updates
-                return this.next(runtime);
+                return [];
             }
         };
 
