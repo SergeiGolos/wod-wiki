@@ -35,6 +35,10 @@ export enum ActionPhase {
 /**
  * The order in which phases are processed.
  * Display first for quick UI feedback, stack last to prevent mid-cycle mutations.
+ * 
+ * NOTE: IMMEDIATE phase is excluded from this order because IMMEDIATE actions
+ * are executed inline when queued, bypassing the phase sorting entirely.
+ * They are handled separately in the PhasedActionProcessor.
  */
 export const PHASE_EXECUTION_ORDER: readonly ActionPhase[] = [
   ActionPhase.DISPLAY,

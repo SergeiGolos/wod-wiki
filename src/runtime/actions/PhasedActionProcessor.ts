@@ -77,6 +77,10 @@ export class PhasedActionProcessor {
       bucket.push(action);
     } else {
       // Fallback: treat unknown phases as immediate
+      // This can happen if a new phase is added but PHASE_EXECUTION_ORDER isn't updated
+      if (this.config.debug) {
+        console.warn(`[PAP] Unknown phase '${phase}' for action ${action.type}, treating as immediate`);
+      }
       return action;
     }
     
