@@ -6,9 +6,9 @@ import { WorkoutEvent } from '../../services/WorkoutEventBus';
 import { WodBlock } from '../../markdown-editor/types';
 import { NextEvent } from '../../runtime/events/NextEvent';
 import { audioService } from '../../services/AudioService';
-import { IEventHandler } from '../../runtime/IEventHandler';
-import { IEvent } from '../../runtime/IEvent';
-import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { IEventHandler } from '../../runtime/contracts/events/IEventHandler';
+import { IEvent } from '../../runtime/contracts/events/IEvent';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 

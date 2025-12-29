@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { IEvent } from '../../runtime/IEvent';
+import { IEvent } from '../../runtime/contracts/events/IEvent';
 
 /**
  * Data structure returned by useTrackedSpans hook
