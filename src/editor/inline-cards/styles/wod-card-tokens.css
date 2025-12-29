@@ -1,0 +1,42 @@
+/**
+ * WOD Card Design Tokens
+ * 
+ * Single source of truth for all spacing and sizing values used in WOD code block cards.
+ * These CSS custom properties are referenced by both CSS styling and TypeScript calculations.
+ */
+
+:root {
+  /* Monaco Editor Constants */
+  --monaco-line-height: 22px;
+
+  /* WOD Card Spacing - Minimized for vertical space efficiency */
+  --wod-card-header-height: 32px;
+  /* Reduced from 40px */
+  --wod-card-footer-padding: 4px;
+  /* Minimal footer padding */
+
+  /* WOD Preview Panel - Compact spacing for dense display */
+  --wod-preview-header-height: 36px;
+  /* Reduced from 48px for tighter fit */
+  --wod-preview-footer-height: 24px;
+  /* Reduced from 36px for minimal footer */
+  --wod-preview-body-padding: 8px;
+  /* Reduced from 12px for tighter layout */
+  --wod-preview-statement-height: 32px;
+  /* Reduced from 40px for compact rows */
+  --wod-preview-statement-gap: 2px;
+  /* Minimal gap between statements */
+
+  /* Overlay Positioning */
+  --wod-overlay-min-height: 120px;
+  /* Minimum height for preview */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+  :root {
+    --wod-preview-body-padding: 6px;
+    --wod-preview-statement-height: 28px;
+    --wod-preview-statement-gap: 1px;
+  }
+}

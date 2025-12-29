@@ -1,0 +1,700 @@
+﻿bun test v1.3.4 (5eb2145b)
+bun : 
+At line:1 char:1
++ bun test src/runtime tests/runtime-execution --preload ./tests/unit-s ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+tests\runtime-execution\orchestration.test.ts:
+(todo) Runtime Orchestration > should initialize runtime with JIT compiler, stack, and memory
+(todo) Runtime Orchestration > should start runtime and begin execution
+(todo) Runtime Orchestration > should stop runtime and preserve state
+(todo) Runtime Orchestration > should reset runtime to initial state
+(todo) Runtime Orchestration > should track running state correctly
+(todo) Runtime Orchestration > should dispatch events to registered handlers
+(todo) Runtime Orchestration > should collect and report errors
+(todo) Runtime Orchestration > should provide accurate current time
+(todo) Runtime Orchestration > should handle state transitions correctly
+
+src\runtime\__tests__\FragmentMetricCollector.test.ts:
+(pass) FragmentMetricCollector > collectFragment > should collect a single fragment
+(pass) FragmentMetricCollector > collectFragment > should collect multiple fragments for same block
+(pass) FragmentMetricCollector > collectFragment > should collect fragments for different blocks
+(pass) FragmentMetricCollector > getAllFragments > should return empty array when no fragments 
+collected
+(pass) FragmentMetricCollector > getAllFragments > should return all collected fragments
+(pass) FragmentMetricCollector > getFragmentsByBlock > should return fragments grouped by block
+(pass) FragmentMetricCollector > getFragmentsByBlock > should return a copy to prevent external 
+modification
+(pass) FragmentMetricCollector > getFragmentsByBehavior > should filter fragments by single behavior
+(pass) FragmentMetricCollector > getFragmentsByBehavior > should return empty array when no matches
+(pass) FragmentMetricCollector > getFragmentsByBehaviors > should filter fragments by multiple 
+behaviors
+(pass) FragmentMetricCollector > getFragmentsByBehaviors > should return empty array when no matches
+(pass) FragmentMetricCollector > clear > should remove all collected fragments
+
+src\runtime\__tests__\JitCompiler.test.ts:
+(pass) JitCompiler with Dialect Registry > dialect registry integration > should use provided dialect 
+registry
+(pass) JitCompiler with Dialect Registry > dialect registry integration > should create default 
+dialect registry if none provided
+(pass) JitCompiler with Dialect Registry > dialect registry integration > should process statements 
+through dialect registry before strategy matching
+(pass) JitCompiler with Dialect Registry > dialect registry integration > should not match strategy 
+when dialect does not add required hints
+(pass) JitCompiler with Dialect Registry > dialect registry integration > should support multiple 
+dialects adding hints
+(pass) JitCompiler with Dialect Registry > strategy registration > should allow registering 
+strategies after construction
+
+src\runtime\__tests__\LifecycleTimestamps.test.ts:
+(pass) Lifecycle timestamps > passes completedAt from pop to parent.next [15.00ms]
+(pass) Lifecycle timestamps > uses provided startTime when pushing children and calls mount with it
+(pass) Lifecycle timestamps > uses mock clock for deterministic timestamps
+194 |     mockClock.advance(100);
+195 | 
+196 |     // Total elapsed should be ~300ms (200 + 100), not including paused time
+197 |     // Note: Due to how getElapsedMs works, we check if it's reasonable
+198 |     expect(behavior.isRunning()).toBe(true);
+199 |     expect(behavior.isPaused()).toBe(true); // pause() calls stop() which sets _isPaused = true
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\LifecycleTimestamps.test.ts:199:33)
+(fail) Lifecycle timestamps > tracks pause/resume with time spans
+
+src\runtime\__tests__\NextAction.test.ts:
+(pass) NextAction > should have correct action type
+(pass) NextAction > should execute successfully with valid runtime
+(pass) NextAction > should call next() method on current block
+(pass) NextAction > should handle empty next actions array
+(pass) NextAction > should execute multiple actions returned by block.next(runtime)
+(pass) NextAction > should handle single action returned by block.next(runtime)
+(pass) NextAction > should handle no current block gracefully
+(pass) NextAction > should handle undefined current block gracefully
+(pass) NextAction > should set error state when runtime has errors
+(pass) NextAction > should add to errors array when block.next(runtime) throws exception
+(pass) NextAction > should validate runtime state before execution
+(pass) NextAction > should handle corrupted memory state
+(pass) NextAction > should handle action execution errors gracefully
+(pass) NextAction > should execute within performance targets
+(pass) NextAction > should handle nested action execution
+(pass) NextAction > should be reusable for multiple executions
+
+src\runtime\__tests__\NextEvent.test.ts:
+(pass) NextEvent > should implement IEvent interface
+(pass) NextEvent > should have correct event name
+(pass) NextEvent > should have timestamp of type Date
+(pass) NextEvent > should accept optional data parameter
+(pass) NextEvent > should have undefined data when no parameter provided
+(pass) NextEvent > should handle null data parameter
+(pass) NextEvent > should handle complex data objects
+(pass) NextEvent > should handle data mutation on original object
+(pass) NextEvent > should create unique timestamps for multiple events
+(pass) NextEvent > should be serializable to JSON
+
+src\runtime\__tests__\NextEventHandler.test.ts:
+(pass) NextEventHandler > should implement IEventHandler interface
+(pass) NextEventHandler > should have unique id from constructor
+(pass) NextEventHandler > should have correct handler name
+(pass) NextEventHandler > should handle next events correctly
+(pass) NextEventHandler > should ignore non-next events
+(pass) NextEventHandler > should return error action when runtime has errors
+(pass) NextEventHandler > should return throw-error action when stack size is 1 or less
+(pass) NextEventHandler > should return error action when stack is invalid
+(pass) NextEventHandler > should create NextAction for valid next events
+(pass) NextEventHandler > should handle multiple calls with same handler
+(pass) NextEventHandler > should handle events with data
+(pass) NextEventHandler > should have readonly id property
+(pass) NextEventHandler > should have readonly name property
+(pass) NextEventHandler > should create unique handlers with different IDs
+(pass) NextEventHandler > should handle malformed events gracefully
+(pass) NextEventHandler > should validate runtime interface before processing
+(pass) NextEventHandler > should execute within performance targets
+
+src\runtime\__tests__\RootLifecycle.test.ts:
+50 | 
+51 |         const testRuntime = createTestableRuntime(runtime);
+52 | 
+53 |         // 2. Verify Initial State
+54 |         // Stack should be: [Idle, Root] (Top First)
+55 |         expect(testRuntime.stack.blocks.length).toBe(2);
+                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: 2
+Received: 3
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\RootLifecycle.test.ts:55:49)
+(fail) RootLifecycle Integration > should inject idle blocks at start and end of execution
+166 |         // But runtime.handle processes events. RootLifecycleBehavior handles timer:start by 
+returning PopBlockAction.
+167 |         // The runtime executes the action.
+168 | 
+169 |         // Verify controls updated
+170 |         const execControls = getControls();
+171 |         expect(execControls?.displayMode).toBe('timer');
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: "timer"
+Received: undefined
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\RootLifecycle.test.ts:171:43)
+(fail) RootLifecycle Integration > should register and update runtime controls
+
+src\runtime\__tests__\RuntimeBlockFragments.test.ts:
+(pass) RuntimeBlock Fragment Methods > findFragment > should find a fragment by type
+(pass) RuntimeBlock Fragment Methods > findFragment > should find a fragment in a later group
+(pass) RuntimeBlock Fragment Methods > findFragment > should return undefined if fragment not found
+(pass) RuntimeBlock Fragment Methods > findFragment > should find a fragment with predicate
+(pass) RuntimeBlock Fragment Methods > findFragment > should return undefined if predicate fails
+(pass) RuntimeBlock Fragment Methods > filterFragments > should return all fragments of a type
+(pass) RuntimeBlock Fragment Methods > filterFragments > should return empty array if no fragments of 
+type found
+(pass) RuntimeBlock Fragment Methods > hasFragment > should return true if fragment exists
+(pass) RuntimeBlock Fragment Methods > hasFragment > should return false if fragment does not exist
+
+src\runtime\__tests__\RuntimeDebugMode.test.ts:
+(pass) Runtime Debugging and Testing Architecture > RuntimeBuilder > should create runtime with 
+default options
+(pass) Runtime Debugging and Testing Architecture > RuntimeBuilder > should auto-enable logging when 
+debug mode is enabled
+(pass) Runtime Debugging and Testing Architecture > RuntimeBuilder > should enable logging 
+independently of debug mode
+(pass) Runtime Debugging and Testing Architecture > RuntimeBuilder > should return options via 
+getOptions()
+(pass) Runtime Debugging and Testing Architecture > RuntimeBuilder > should support 
+buildWithOptions() for debugging
+(pass) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should wrap blocks 
+when custom wrapper is provided
+(pass) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should not 
+double-wrap TestableBlocks
+209 | 
+210 |             // Get the wrapped block and check calls
+211 |             const wrapped = wrappedBlocks.get('test-block');
+212 |             expect(wrapped).toBeDefined();
+213 |             expect(wrapped!.wasCalled('mount')).toBe(true);
+214 |             expect(wrapped!.callCount('mount')).toBe(1);
+                                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 2
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\RuntimeDebugMode.test.ts:214:49)
+(fail) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should record method 
+calls on wrapped blocks [16.00ms]
+238 |             expect(wrappedBlocks.size).toBe(2);
+239 | 
+240 |             const block1 = wrappedBlocks.get('block-1');
+241 |             const block2 = wrappedBlocks.get('block-2');
+242 | 
+243 |             expect(block1?.callCount('mount')).toBe(1);
+                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 2
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\RuntimeDebugMode.test.ts:243:48)
+(fail) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should track 
+multiple blocks and their calls
+(pass) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should cleanup 
+wrapped blocks on pop
+289 |             testable.mount(runtime);
+290 |             testable.next(runtime);
+291 | 
+292 |             expect(testable.wasCalled('mount')).toBe(true);
+293 |             expect(testable.wasCalled('next')).toBe(true);
+294 |             expect(testable.callCount('mount')).toBe(1);
+                                                      ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 2
+
+      at <anonymous> (X:\wod-wiki\src\runtime\__tests__\RuntimeDebugMode.test.ts:294:49)
+(fail) Runtime Debugging and Testing Architecture > TestableBlock Direct Usage > should allow direct 
+TestableBlock creation for testing
+(pass) Runtime Debugging and Testing Architecture > TestableBlock Direct Usage > should support 
+clearCalls() on TestableBlock
+
+src\runtime\__tests__\RuntimeStackLifecycle.test.ts:
+(pass) ScriptRuntime Lifecycle > sequences push hooks, tracker, wrapper, and logger in order
+(pass) ScriptRuntime Lifecycle > propagates errors from unmount instead of swallowing them
+
+src\runtime-test-bench\selectors\runtime-selectors.test.ts:
+(pass) RuntimeSelectors > Singleton Instance > should export a singleton instance
+(pass) RuntimeSelectors > Singleton Instance > should return same instance on multiple accesses
+(pass) RuntimeSelectors > selectBlocks() > should return empty array when stack is empty
+(pass) RuntimeSelectors > selectBlocks() > should transform single block into RuntimeStackBlock
+(pass) RuntimeSelectors > selectBlocks() > should mark only the last block as active
+(pass) RuntimeSelectors > selectBlocks() > should assign parent keys correctly
+(pass) RuntimeSelectors > selectBlocks() > should map all block types correctly
+(pass) RuntimeSelectors > selectMemory() > should return empty array when memory is empty
+(pass) RuntimeSelectors > selectMemory() > should transform single memory reference into MemoryEntry
+(pass) RuntimeSelectors > selectMemory() > should format different value types correctly
+(pass) RuntimeSelectors > selectMemory() > should map memory types correctly
+(pass) RuntimeSelectors > selectMemory() > should mark memory as invalid when value is undefined
+(pass) RuntimeSelectors > selectStatus() > should return "idle" when stack is empty
+(pass) RuntimeSelectors > selectStatus() > should return "executing" when stack has blocks
+(pass) RuntimeSelectors > selectStatus() > should return "executing" when stack has multiple blocks
+
+src\runtime-test-bench\services\testbench-services.test.ts:
+(pass) testbench-services > globalParser > should export a MdTimerRuntime instance
+(pass) testbench-services > globalParser > should successfully parse workout code
+(pass) testbench-services > globalParser > should parse different workout patterns [15.00ms]
+(pass) testbench-services > globalCompiler > should export a JitCompiler instance
+(pass) testbench-services > globalCompiler > should be ready for compilation with strategies
+(pass) testbench-services > module-level behavior > should maintain same instance throughout test 
+suite
+
+tests\runtime-execution\blocks\effort-block-lifecycle.test.ts:
+(pass) EffortBlock Contract > Constructor Validation > should reject empty exerciseName
+(pass) EffortBlock Contract > Constructor Validation > should reject targetReps < 1
+(pass) EffortBlock Contract > Constructor Validation > should accept valid configuration
+(pass) EffortBlock Contract > Constructor Validation > should initialize with currentReps = 0
+(pass) EffortBlock Contract > Constructor Validation > should initialize with isComplete() = false
+(pass) EffortBlock Contract > incrementRep() - Incremental Tracking > should increment currentReps by 
+1 [16.00ms]
+(pass) EffortBlock Contract > incrementRep() - Incremental Tracking > should emit reps:updated event
+(pass) EffortBlock Contract > incrementRep() - Incremental Tracking > should not exceed targetReps
+(pass) EffortBlock Contract > setReps() - Bulk Entry > should set currentReps to specified count
+(pass) EffortBlock Contract > setReps() - Bulk Entry > should emit reps:updated with bulk mode
+(pass) EffortBlock Contract > setReps() - Bulk Entry > should reject count < 0
+(pass) EffortBlock Contract > setReps() - Bulk Entry > should reject count > targetReps
+(pass) EffortBlock Contract > setReps() - Bulk Entry > should allow setting to exactly targetReps
+(pass) EffortBlock Contract > markComplete() - Force Completion > should set currentReps to targetReps
+(pass) EffortBlock Contract > markComplete() - Force Completion > should emit reps:complete
+(pass) EffortBlock Contract > markComplete() - Force Completion > should be idempotent
+(pass) EffortBlock Contract > isComplete() - Completion Status > should return false when reps < 
+target
+(pass) EffortBlock Contract > isComplete() - Completion Status > should return true when reps >= 
+target
+(pass) EffortBlock Contract > isComplete() - Completion Status > should return true after 
+markComplete()
+(pass) EffortBlock Contract > Hybrid Tracking - Mode Switching > should switch from incremental to 
+bulk
+(pass) EffortBlock Contract > Hybrid Tracking - Mode Switching > should switch from bulk back to 
+incremental
+309 |       vi.mocked(runtime.handle).mockClear();
+310 |       block.mount(runtime);
+311 | 
+312 |       block.incrementRep(); // Mode: incremental
+313 |       // Event should have been emitted
+314 |       expect(runtime.handle).toHaveBeenCalled();
+                                   ^
+error: expect(received).toHaveBeenCalled()
+
+Expected number of calls: >= 1
+Received number of calls: 0
+
+      at <anonymous> 
+(X:\wod-wiki\tests\runtime-execution\blocks\effort-block-lifecycle.test.ts:314:30)
+(fail) EffortBlock Contract > Hybrid Tracking - Mode Switching > should track completion mode 
+correctly
+(pass) EffortBlock Contract > Auto-Completion > should emit reps:complete when target reached via 
+increment
+(pass) EffortBlock Contract > Auto-Completion > should emit reps:complete when target reached via bulk
+(pass) EffortBlock Contract > State Access Methods > should return exercise name
+(pass) EffortBlock Contract > State Access Methods > should return target reps
+(pass) EffortBlock Contract > State Access Methods > should return current reps
+(pass) EffortBlock Contract > Disposal > should clean up memory references
+(pass) EffortBlock Contract > Disposal > should complete disposal in <50ms
+(pass) EffortBlock Contract > Performance > should execute push() in <1ms
+(pass) EffortBlock Contract > Performance > should execute pop() in <1ms
+
+tests\runtime-execution\blocks\timer-block-lifecycle.test.ts:
+(pass) Timer Block Lifecycle > Phase 1: JIT Compilation ΓåÆ Real Runtime with Faked Clock > should 
+compile timer script and push block onto stack
+209 |       // Start at a specific time
+210 |       const t = TimerTestHarness.atTime('0:05 Run', '2024-06-15T10:30:00Z').start();
+211 | 
+212 |       // timer:started event should use that faked time
+213 |       const startedEvents = t.findEvents('timer:started');
+214 |       expect(startedEvents.length).toBe(1);
+                                         ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 2
+
+      at <anonymous> (X:\wod-wiki\tests\runtime-execution\blocks\timer-block-lifecycle.test.ts:214:36)
+(fail) Timer Block Lifecycle > Phase 1: JIT Compilation ΓåÆ Real Runtime with Faked Clock > should 
+use faked clock time for timer start [16.00ms]
+(pass) Timer Block Lifecycle > Phase 2: Memory Allocation on Push > should allocate timer state 
+memory when block is pushed
+(pass) Timer Block Lifecycle > Phase 2: Memory Allocation on Push > should emit timer:started event 
+on push
+(pass) Timer Block Lifecycle > Phase 3: Tick Event After Duration ΓåÆ Block Pops > should detect 
+timer completion when clock advances past duration
+(pass) Timer Block Lifecycle > Phase 3: Tick Event After Duration ΓåÆ Block Pops > should pop block 
+from stack when tick event is received after duration [15.00ms]
+(pass) Timer Block Lifecycle > Phase 3: Tick Event After Duration ΓåÆ Block Pops > should emit 
+timer:complete event when block is popped
+(pass) Timer Block Lifecycle > Phase 3: Tick Event After Duration ΓåÆ Block Pops > should emit 
+block:complete event when block is popped
+(pass) Timer Block Lifecycle > Phase 3: Tick Event After Duration ΓåÆ Block Pops > should NOT pop 
+block before duration expires [16.00ms]
+(pass) Timer Block Lifecycle > Phase 4: Memory Cleanup After Pop > should release timer memory when 
+block is popped
+(pass) Timer Block Lifecycle > Phase 5: Event Bus - Complete Event Sequence > should emit completion 
+events when timer expires
+(pass) Timer Block Lifecycle > Phase 5: Event Bus - Complete Event Sequence > should emit 
+timer:started before timer:complete
+(pass) Timer Block Lifecycle > Count-Up Timer Behavior > should NOT auto-complete count-up timers 
+(00:00 syntax) [16.00ms]
+(pass) Timer Block Lifecycle > Edge Cases > should handle exact duration boundary
+(pass) Timer Block Lifecycle > Edge Cases > should handle multiple tick events gracefully
+
+tests\runtime-execution\memory\anchor-subscriptions.test.ts:
+(pass) Anchor-Based Subscription Model > MemoryTypeEnum.ANCHOR > should include ANCHOR type in 
+MemoryTypeEnum
+(pass) Anchor-Based Subscription Model > getOrCreateAnchor() > should create a new anchor with a 
+stable ID
+(pass) Anchor-Based Subscription Model > getOrCreateAnchor() > should return existing anchor if ID 
+already exists
+(pass) Anchor-Based Subscription Model > getOrCreateAnchor() > should return same anchor across 
+different contexts
+(pass) Anchor-Based Subscription Model > getOrCreateAnchor() > should throw error if context is 
+released
+(pass) Anchor-Based Subscription Model > getOrCreateAnchor() > should track anchor in context 
+references
+(pass) Anchor-Based Subscription Model > Anchor Value (IAnchorValue) > should store and retrieve 
+search criteria
+(pass) Anchor-Based Subscription Model > Anchor Value (IAnchorValue) > should allow updating anchor 
+value dynamically
+(pass) Anchor-Based Subscription Model > Anchor Value (IAnchorValue) > should support partial search 
+criteria
+(pass) Anchor-Based Subscription Model > Anchor Resolution > should resolve anchor to target memory 
+reference
+(pass) Anchor-Based Subscription Model > Anchor Resolution > should return empty array when anchor 
+points to non-existent data
+(pass) Anchor-Based Subscription Model > Anchor Resolution > should resolve to multiple references if 
+search matches multiple
+(pass) Anchor-Based Subscription Model > Anchor Subscriptions > should notify subscribers when anchor 
+value changes
+(pass) Anchor-Based Subscription Model > Anchor Subscriptions > should allow multiple subscribers on 
+same anchor
+(pass) Anchor-Based Subscription Model > Anchor Subscriptions > should stop notifications after 
+unsubscribe
+(pass) Anchor-Based Subscription Model > Anchor Search and Discovery > should find anchor by ID using 
+memory search
+(pass) Anchor-Based Subscription Model > Anchor Search and Discovery > should find all anchors using 
+type search
+(pass) Anchor-Based Subscription Model > Anchor Search and Discovery > should distinguish anchors 
+from regular memory references
+(pass) Anchor-Based Subscription Model > Anchor Lifecycle and Cleanup > should release anchor when 
+context is released
+(pass) Anchor-Based Subscription Model > Anchor Lifecycle and Cleanup > should maintain anchor value 
+across multiple block contexts
+(pass) Anchor-Based Subscription Model > Edge Cases > should handle undefined anchor value
+(pass) Anchor-Based Subscription Model > Edge Cases > should handle empty search criteria
+(pass) Anchor-Based Subscription Model > Edge Cases > should handle null values in search criteria
+(pass) Anchor-Based Subscription Model > Edge Cases > should create multiple unique anchors with 
+different IDs
+
+tests\runtime-execution\memory\block-context.test.ts:
+(pass) BlockContext > Construction > should create context with ownerId
+(pass) BlockContext > Construction > should accept initial references
+(pass) BlockContext > allocate() > should allocate memory with default private visibility
+(pass) BlockContext > allocate() > should allocate memory with public visibility
+(pass) BlockContext > allocate() > should track allocated references
+(pass) BlockContext > allocate() > should allow allocation without initial value
+(pass) BlockContext > allocate() > should throw error when allocating on released context
+(pass) BlockContext > get() > should retrieve reference by type
+(pass) BlockContext > get() > should return undefined for non-existent type
+(pass) BlockContext > get() > should return first reference when multiple exist
+(pass) BlockContext > getAll() > should return empty array for non-existent type
+(pass) BlockContext > getAll() > should return all references of a type
+(pass) BlockContext > getAll() > should handle single reference
+(pass) BlockContext > release() > should release all memory references
+(pass) BlockContext > release() > should clear references array
+(pass) BlockContext > release() > should be idempotent
+(pass) BlockContext > release() > should prevent allocation after release
+(pass) BlockContext > isReleased() > should return false initially
+(pass) BlockContext > isReleased() > should return true after release
+(pass) BlockContext > isReleased() > should remain true after multiple releases
+(pass) BlockContext > Integration with RuntimeMemory > should allocate memory in runtime memory system
+(pass) BlockContext > Integration with RuntimeMemory > should remove memory from runtime on release
+(pass) BlockContext > Integration with RuntimeMemory > should handle multiple blocks with separate 
+contexts
+
+tests\runtime-execution\memory\memory-reference.test.ts:
+(pass) TypedMemoryReference Subscription System > should allow subscribing to memory changes
+(pass) TypedMemoryReference Subscription System > should call subscriber callback when value changes
+(pass) TypedMemoryReference Subscription System > should support multiple subscribers on the same 
+reference
+(pass) TypedMemoryReference Subscription System > should allow unsubscribing from changes
+(pass) TypedMemoryReference Subscription System > should support immediate subscription option
+Error in memory subscription callback: 70 |     it('should handle callback errors gracefully', () => {
+71 |         const memory = new RuntimeMemory();
+72 |         const ref = memory.allocate<number>('test', 'owner-1', 10);
+73 | 
+74 |         const errorCallback = vi.fn(() => {
+75 |             throw new Error('Callback error');
+                           ^
+error: Callback error
+      at X:\wod-wiki\tests\runtime-execution\memory\memory-reference.test.ts:75:23
+      at unknown:1:1
+      at notifySubscribers (X:\wod-wiki\src\runtime\contracts\IMemoryReference.ts:136:30)
+      at set (X:\wod-wiki\src\runtime\RuntimeMemory.ts:90:18)
+      at set (X:\wod-wiki\src\runtime\contracts\IMemoryReference.ts:74:22)
+      at toThrow (unknown:1:1)
+      at X:\wod-wiki\tests\runtime-execution\memory\memory-reference.test.ts:166:15
+
+(pass) TypedMemoryReference Subscription System > should handle callback errors gracefully
+(pass) TypedMemoryReference Subscription System > should notify subscribers when reference is released
+(pass) TypedMemoryReference Subscription System > should work with complex object types
+(pass) TypedMemoryReference Subscription System > should support subscribing to undefined initial 
+values
+(pass) TypedMemoryReference Subscription System > should allow multiple unsubscribe calls safely
+(pass) TypedMemoryReference Subscription System > should maintain subscription independence
+(pass) RuntimeMemory Subscription Integration > should notify subscribers through set operation
+(pass) RuntimeMemory Subscription Integration > should handle multiple memory references independently
+(pass) RuntimeMemory Subscription Integration > should clean up subscriptions when memory is released
+
+tests\runtime-execution\stack\stack-api.test.ts:
+(pass) RuntimeStack.push() Contract Tests > MUST add block to stack immediately without 
+initialization calls
+(pass) RuntimeStack.push() Contract Tests > MUST maintain LIFO stack ordering
+(pass) RuntimeStack.push() Contract Tests > MUST update current block to newly pushed block
+(pass) RuntimeStack.push() Contract Tests > MUST NOT call initialization methods during push
+(pass) RuntimeStack.pop() Contract Tests > MUST remove and return top block without cleanup calls
+(pass) RuntimeStack.pop() Contract Tests > MUST return undefined for empty stack
+(pass) RuntimeStack.pop() Contract Tests > MUST update current block to previous block
+(pass) RuntimeStack.pop() Contract Tests > Consumer MUST be responsible for calling dispose on 
+returned block
+(pass) RuntimeStack.current() Contract Tests > MUST return top block without side effects [16.00ms]
+(pass) RuntimeStack.current() Contract Tests > MUST return undefined for empty stack
+(pass) RuntimeStack.current() Contract Tests > MUST be idempotent
+
+tests\runtime-execution\stack\stack-disposal.test.ts:
+(pass) RuntimeStack Unit Tests > Lifecycle Management > should correctly pop blocks in LIFO order
+(pass) RuntimeStack Unit Tests > Lifecycle Management > should allow idempotent disposal calls on 
+blocks
+(pass) RuntimeStack Unit Tests > Lifecycle Management > should maintain block identity integrity
+(pass) RuntimeStack Unit Tests > Error Handling and Robustness > should stay consistent when a block 
+throws during disposal
+(pass) RuntimeStack Unit Tests > Error Handling and Robustness > should handle disposal of multiple 
+blocks sequentially even if one fails
+(pass) RuntimeStack Unit Tests > Boundary Conditions > should return undefined for current and pop on 
+an empty stack
+(pass) RuntimeStack Unit Tests > Boundary Conditions > should handle single block push and pop
+(pass) RuntimeStack Unit Tests > Boundary Conditions > should maintain consistency with 100 blocks 
+(Smoke Load Test)
+(pass) RuntimeStack Unit Tests > Boundary Conditions > should handle double-pop safely
+
+tests\runtime-execution\stack\stack-edge-cases.test.ts:
+(pass) RuntimeStack Boundary Conditions > empty stack operations
+(pass) RuntimeStack Boundary Conditions > stack with one element operations
+(pass) RuntimeStack Boundary Conditions > repeated push and pop of same block
+(pass) RuntimeStack Boundary Conditions > blocks with identical keys
+(pass) RuntimeStack Performance Edge Cases > operations maintain O(1) time complexity [15.00ms]
+
+tests\runtime-execution\workflows\next-button-workflow.test.ts:
+(pass) Next Button Integration Tests > Event Handling > should return a NextAction when a valid 
+"next" event is received
+(pass) Next Button Integration Tests > Event Handling > should ignore events other than "next"
+(pass) Next Button Integration Tests > Event Handling > should return an ErrorAction if the stack is 
+empty
+(pass) Next Button Integration Tests > Action Execution > should trigger the current block's next() 
+method when action is executed
+(pass) Next Button Integration Tests > Action Execution > should execute actions returned by the 
+block's next() method
+(pass) Next Button Integration Tests > Action Execution > should maintain stable stack depth during 
+sequential clicks
+(pass) Next Button Integration Tests > Error Handling > should return an ErrorAction if the runtime 
+already has errors
+(pass) Next Button Integration Tests > Error Handling > should return an ErrorAction if the stack is 
+missing
+(pass) Next Button Integration Tests > Error Handling > should capture and report errors thrown 
+during block execution
+(pass) Next Button Integration Tests > Error Handling > should handle memory corruption markers
+(pass) Next Button Integration Tests > Sequence and Ordering > should preserve strict order of 
+execution during rapid processing
+
+tests\runtime-execution\workflows\runtime-hooks.test.ts:
+(pass) Runtime Hooks Integration > Timer References > should be able to search for timer state memory 
+reference
+(pass) Runtime Hooks Integration > Timer References > should return undefined for non-existent block 
+keys
+(pass) Runtime Hooks Integration > Memory Subscription > should notify when subscribed to timer state 
+changes
+(pass) Runtime Hooks Integration > Timer Elapsed Calculation > should calculate elapsed time correctly
+(pass) Runtime Hooks Integration > Timer Elapsed Calculation > should handle multiple spans correctly
+(pass) Runtime Hooks Integration > RuntimeProvider Context > should provide runtime memory access
+(pass) Runtime Hooks Integration > Edge Cases > should handle rapid state changes
+(pass) Runtime Hooks Integration > Edge Cases > should handle block disposal gracefully
+
+src\runtime\actions\__tests__\ActionStackActions.test.ts:
+(pass) ActionStackActions > pushes actions and makes them visible
+(pass) ActionStackActions > keeps pinned parent actions visible when child layer is pushed
+(pass) ActionStackActions > updates an existing layer instead of duplicating
+
+src\runtime\behaviors\__tests__\ActionLayerBehavior.test.ts:
+(pass) ActionLayerBehavior > adds default next action when no actions exist
+(pass) ActionLayerBehavior > uses action fragments and preserves pinning
+
+src\runtime\behaviors\__tests__\CompletionBehavior.test.ts:
+(pass) CompletionBehavior Contract > Constructor > should accept a condition function
+(pass) CompletionBehavior Contract > Constructor > should accept trigger events
+(pass) CompletionBehavior Contract > onNext() > should check completion condition
+(pass) CompletionBehavior Contract > onNext() > should emit block:complete when condition returns true
+(pass) CompletionBehavior Contract > onNext() > should NOT emit when condition returns false
+(pass) CompletionBehavior Contract > onNext() > should pass block and now to condition function
+(pass) CompletionBehavior Contract > Event-Triggered Completion > should check condition when trigger 
+event received
+(pass) CompletionBehavior Contract > Event-Triggered Completion > should support multiple trigger 
+events
+(pass) CompletionBehavior Contract > Completion Detection Patterns > should work with reps-based 
+completion
+(pass) CompletionBehavior Contract > Completion Detection Patterns > should work with timer-based 
+completion
+
+src\runtime\behaviors\__tests__\IBehavior.test.ts:
+(pass) IBehavior > Type Guards > isPushBehavior correctly identifies IPushBehavior
+(pass) IBehavior > Type Guards > isNextBehavior correctly identifies INextBehavior
+(pass) IBehavior > Type Guards > isPopBehavior correctly identifies IPopBehavior
+(pass) IBehavior > BaseBehavior > dispatches to onPush when operation is push and interface is 
+implemented
+(pass) IBehavior > BaseBehavior > dispatches to onNext when operation is next and interface is 
+implemented
+(pass) IBehavior > BaseBehavior > dispatches to onPop when operation is pop and interface is 
+implemented
+(pass) IBehavior > BaseBehavior > returns empty array when interface is not implemented
+(pass) IBehavior > BaseBehavior > handles partial implementations correctly
+(pass) IBehavior > BaseBehavior > returns empty array for empty behavior
+(pass) IBehavior > composeBehaviors > combines actions from multiple behaviors
+(pass) IBehavior > composeBehaviors > returns empty array when no behaviors handle operation
+(pass) IBehavior > composeBehaviors > maintains order of behaviors
+(pass) IBehavior > createBehavior > creates behavior from function
+(pass) IBehavior > createBehavior > function receives context correctly
+
+src\runtime\behaviors\__tests__\LoopCoordinatorBehavior.test.ts:
+(pass) LoopCoordinatorBehavior - EMOM Multi-round > should restart timer for subsequent rounds 
+[16.00ms]
+
+src\runtime\behaviors\__tests__\TimerBehavior.test.ts:
+(pass) TimerBehavior Contract (Migrated) > Constructor > should accept valid direction "up"
+(pass) TimerBehavior Contract (Migrated) > Constructor > should accept valid direction "down"
+(pass) TimerBehavior Contract (Migrated) > Constructor > should reject invalid direction
+(pass) TimerBehavior Contract (Migrated) > onPush() > should start timer
+(pass) TimerBehavior Contract (Migrated) > onPush() > should emit timer:started event via action
+(pass) TimerBehavior Contract (Migrated) > onPush() > should use provided startTime from options
+(pass) TimerBehavior Contract (Migrated) > onPop() > should preserve elapsed time state after pop
+(pass) TimerBehavior Contract (Migrated) > Elapsed Time > should track elapsed time correctly
+(pass) TimerBehavior Contract (Migrated) > Elapsed Time > should return display time in seconds
+(pass) TimerBehavior Contract (Migrated) > Countdown Timer > should calculate remaining time for 
+countdown
+(pass) TimerBehavior Contract (Migrated) > Countdown Timer > should detect completion when countdown 
+reaches zero
+(pass) TimerBehavior Contract (Migrated) > Countdown Timer > should NOT mark count-up timers as 
+complete
+(pass) TimerBehavior Contract (Migrated) > Pause/Resume > should stop tracking elapsed when paused
+(pass) TimerBehavior Contract (Migrated) > Pause/Resume > should resume tracking elapsed when resumed
+(pass) TimerBehavior Contract (Migrated) > Start/Stop > should be running after start()
+(pass) TimerBehavior Contract (Migrated) > Start/Stop > should not be running after stop()
+(pass) TimerBehavior Contract (Migrated) > Reset/Restart > should reset elapsed time on reset()
+(pass) TimerBehavior Contract (Migrated) > Reset/Restart > should restart timer on restart()
+(pass) TimerBehavior Contract (Migrated) > Disposal > should not throw when disposing active timer
+(pass) TimerBehavior Contract (Migrated) > Disposal > should stop timer on dispose
+
+src\runtime\compiler\strategies\__tests__\EffortStrategy.test.ts:
+(pass) EffortStrategy > match() > should match statements without Timer or Rounds (structural 
+fallback)
+(pass) EffortStrategy > match() > should match statements with behavior.effort hint (explicit effort)
+(pass) EffortStrategy > match() > should match with effort hint even when Timer or Rounds are present
+(pass) EffortStrategy > match() > should NOT match statements with Timer fragments by default
+(pass) EffortStrategy > match() > should NOT match statements with Rounds fragments by default
+(pass) EffortStrategy > match() > should not match empty statements array
+(pass) EffortStrategy > compile() > should compile statement into RuntimeBlock with blockType Effort
+(pass) EffortStrategy > compile() > should configure targetReps when Rep fragment is present
+(pass) EffortStrategy > compile() > should attach HistoryBehavior during compilation
+(pass) EffortStrategy > compile() > should handle missing fragments during compilation gracefully
+
+src\runtime\compiler\strategies\__tests__\GroupStrategy.test.ts:
+(pass) GroupStrategy > match() > should match statements with children (structural check)
+(pass) GroupStrategy > match() > should match statements with behavior.group hint (explicit group)
+(pass) GroupStrategy > match() > should match statements with both children and hint
+(pass) GroupStrategy > match() > should not match statements without children or hint
+(pass) GroupStrategy > match() > should not match empty statements array
+(pass) GroupStrategy > match() > should handle undefined children array
+(pass) GroupStrategy > match() > should handle empty children array without hint
+(pass) GroupStrategy > match() > should match with hint even when children is empty
+(pass) GroupStrategy > compile() > should compile statement into RuntimeBlock with blockType Group
+
+src\runtime\compiler\strategies\__tests__\IntervalStrategy.test.ts:
+(pass) IntervalStrategy > should match statements with Timer and behavior.repeating_interval hint
+(pass) IntervalStrategy > should compile into a RuntimeBlock with correct behaviors
+(pass) IntervalStrategy > should default to 10 rounds if no RoundsFragment provided
+(pass) IntervalStrategy > should attach SoundBehavior with countdown cues
+(pass) IntervalStrategy > should attach HistoryBehavior
+
+src\runtime\compiler\strategies\__tests__\RoundsStrategy.test.ts:
+(pass) RoundsStrategy > match() > should match statements with Rounds fragment and no Timer
+(pass) RoundsStrategy > match() > should NOT match statements with Timer fragment
+(pass) RoundsStrategy > compile() > should compile statement with Rounds fragment into RuntimeBlock
+(pass) RoundsStrategy > compile() > should create BoundLoopBehavior with correct round limit
+(pass) RoundsStrategy > compile() > should support rep scheme (21-15-9)
+(pass) RoundsStrategy > compile() > should create ChildRunnerBehavior
+(pass) RoundsStrategy > compile() > should attach HistoryBehavior
+
+src\runtime\compiler\strategies\__tests__\TimeBoundRoundsStrategy.test.ts:
+(pass) TimeBoundRoundsStrategy > match() > should match statements with Timer and Rounds fragment
+(pass) TimeBoundRoundsStrategy > match() > should NOT match statements without Timer fragment
+(pass) TimeBoundRoundsStrategy > compile() > should compile AMRAP statement into RuntimeBlock with 
+AMRAP type
+(pass) TimeBoundRoundsStrategy > compile() > should create BoundTimerBehavior with up direction (as 
+implemented)
+(pass) TimeBoundRoundsStrategy > compile() > should create UnboundLoopBehavior and ChildRunnerBehavior
+(pass) TimeBoundRoundsStrategy > compile() > should configure CompletionBehavior to depend on timer
+(pass) TimeBoundRoundsStrategy > compile() > should attach HistoryBehavior
+
+src\runtime\compiler\strategies\__tests__\TimerStrategy.test.ts:
+(pass) TimerStrategy (Migrated) > compile() > should compile statement with Timer fragment into 
+RuntimeBlock
+(pass) TimerStrategy (Migrated) > compile() > should create countdown timer
+(pass) TimerStrategy (Migrated) > compile() > should create count-up timer when direction is up 
+(00:00)
+(pass) TimerStrategy (Migrated) > compile() > should attach SoundBehavior with countdown cues 
+[16.00ms]
+(pass) TimerStrategy (Migrated) > compile() > should attach HistoryBehavior
+
+9 tests todo:
+(todo) Runtime Orchestration > should initialize runtime with JIT compiler, stack, and memory
+(todo) Runtime Orchestration > should start runtime and begin execution
+(todo) Runtime Orchestration > should stop runtime and preserve state
+(todo) Runtime Orchestration > should reset runtime to initial state
+(todo) Runtime Orchestration > should track running state correctly
+(todo) Runtime Orchestration > should dispatch events to registered handlers
+(todo) Runtime Orchestration > should collect and report errors
+(todo) Runtime Orchestration > should provide accurate current time
+(todo) Runtime Orchestration > should handle state transitions correctly
+
+
+8 tests failed:
+(fail) Lifecycle timestamps > tracks pause/resume with time spans
+(fail) RootLifecycle Integration > should inject idle blocks at start and end of execution
+(fail) RootLifecycle Integration > should register and update runtime controls
+(fail) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should record method 
+calls on wrapped blocks [16.00ms]
+(fail) Runtime Debugging and Testing Architecture > Custom Wrapper Integration > should track 
+multiple blocks and their calls
+(fail) Runtime Debugging and Testing Architecture > TestableBlock Direct Usage > should allow direct 
+TestableBlock creation for testing
+(fail) EffortBlock Contract > Hybrid Tracking - Mode Switching > should track completion mode 
+correctly
+(fail) Timer Block Lifecycle > Phase 1: JIT Compilation ΓåÆ Real Runtime with Faked Clock > should 
+use faked clock time for timer start [16.00ms]
+
+ 347 pass
+ 9 todo
+ 8 fail
+ 703 expect() calls
+Ran 364 tests across 35 files. [874.00ms]

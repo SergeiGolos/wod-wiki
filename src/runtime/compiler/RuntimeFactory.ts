@@ -25,16 +25,17 @@ import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import type { WodBlock } from '../markdown-editor/types';
+import type { WodBlock } from '../../markdown-editor/types';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { BlockContext } from '../BlockContext';
 import { BlockKey } from '../../core/models/BlockKey';
 import { LoopType } from '../behaviors/LoopCoordinatorBehavior';
-import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { RootLifecycleBehavior } from '../behaviors/RootLifecycleBehavior';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
-import { IRuntimeOptions } from './contracts/IRuntimeOptions';
-import type { IScriptRuntime } from './contracts/IScriptRuntime';
+import { RuntimeControlsBehavior } from '../behaviors/RuntimeControlsBehavior';
+import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
+import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 /**
  * Interface for runtime factory implementations
@@ -105,15 +106,18 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create Root Block manually
     // This ensures we always have a root grouping node that walks all children once
 
-    const statementIds = block.statements.map(s => s.id);
+    const statementIds = block.statements.map((s: any) => s.id);
     // Map each top-level statement to a group so they execute in sequence
-    const childGroups = statementIds.map(id => [id]);
+    const childGroups = statementIds.map((id: number) => [id]);
 
     const blockKey = new BlockKey('root');
     // Use 'root' as blockId and exerciseId for the root context
     const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
 
     const behaviors: IRuntimeBehavior[] = [];
+
+    // Add RuntimeControlsBehavior first so other behaviors can find it
+    behaviors.push(new RuntimeControlsBehavior());
 
     // Root uses RootLifecycleBehavior to manage the full workout lifecycle
     // (Initial Idle -> Execution -> Final Idle)
@@ -144,12 +148,10 @@ export class RuntimeFactory implements IRuntimeFactory {
       return runtime; // Return runtime even without root block for debugging
     }
 
-    // Push and mount root block with a shared start timestamp for deterministic timing
+    // Push root block with a shared start timestamp for deterministic timing
     const rootStartTime = runtime.clock.now;
     const lifecycle = { startTime: rootStartTime };
-    const pushedRoot = runtime.pushBlock(rootBlock, lifecycle);
-    const actions = pushedRoot.mount(runtime, lifecycle);
-    actions.forEach(action => action.do(runtime));
+    runtime.pushBlock(rootBlock, lifecycle);
 
 
     return runtime;

@@ -19,15 +19,14 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
     harness = new BehaviorTestHarness()
       .withClock(new Date('2024-01-01T12:00:00Z'));
 
-    // Create a mock timer behavior with spied methods
-    mockTimerBehavior = {
-      restart: vi.fn(),
-      isRunning: vi.fn(),
-      isComplete: vi.fn(),
-      onPush: vi.fn(() => []),
-      onNext: vi.fn(() => []),
-      onPop: vi.fn(() => []),
-    } as unknown as Partial<TimerBehavior> & IRuntimeBehavior;
+    // Create a real timer behavior and spy on its methods
+    mockTimerBehavior = new TimerBehavior('up') as any;
+    vi.spyOn(mockTimerBehavior, 'restart');
+    vi.spyOn(mockTimerBehavior, 'isRunning');
+    vi.spyOn(mockTimerBehavior, 'isComplete');
+    vi.spyOn(mockTimerBehavior, 'onPush').mockReturnValue([]);
+    vi.spyOn(mockTimerBehavior, 'onNext').mockReturnValue([]);
+    vi.spyOn(mockTimerBehavior, 'onPop').mockReturnValue([]);
   });
 
   it('should restart timer for subsequent rounds', () => {
@@ -38,31 +37,16 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
       intervalDurationMs: 60000,
     });
 
-    // Create a mock block that returns our mock timer for getBehavior
-    const mockBlock: IRuntimeBlock = {
-      key: { toString: () => 'block-1' },
-      getBehavior: vi.fn((type: any) => {
-        if (type === TimerBehavior) return mockTimerBehavior;
-        return undefined;
-      }),
-      sourceIds: [],
-      blockType: 'MockBlock',
-      label: 'MockBlock',
-      context: { ownerId: 'block-1' } as any,
-      fragments: [],
-      executionTiming: {},
-      mount: vi.fn(() => []),
-      next: vi.fn(() => []),
-      unmount: vi.fn(() => []),
-      dispose: vi.fn(),
-    } as unknown as IRuntimeBlock;
+    // Create a MockBlock and inject behaviors
+    const mockBlock = new MockBlock('block-1', [loopBehavior]);
+    (mockBlock as any).behaviors.push(mockTimerBehavior);
 
     // Mock the runtime's script and jit for the loop coordinator
     (harness.runtime as any).script = { getIds: vi.fn().mockReturnValue([{}]) };
     (harness.runtime as any).jit = { compile: vi.fn().mockReturnValue({}) };
 
     // 1. Start Round 0
-    loopBehavior.onPush(harness.runtime, mockBlock);
+    loopBehavior.onPush(mockBlock);
 
     // Check if timer was restarted on push
     expect(mockTimerBehavior.restart).toHaveBeenCalledTimes(1);
@@ -70,21 +54,21 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
     // 2. Simulate Round 0 completion - Child pops, timer is running
     (mockTimerBehavior.isRunning as any).mockReturnValue(true);
     (mockTimerBehavior.isComplete as any).mockReturnValue(false);
-    loopBehavior.onNext(harness.runtime, mockBlock); // Should return [] (waiting)
+    loopBehavior.onNext(mockBlock); // Should return [] (waiting)
 
     // 3. Simulate Timer Complete (Interval End)
     const event: IEvent = { name: 'timer:complete', data: { blockId: 'block-1' }, timestamp: new Date() };
-    loopBehavior.onEvent(event, harness.runtime, mockBlock);
+    loopBehavior.onEvent(event, mockBlock);
 
     // Expect: Advance to Round 1 - timer.restart() called
     expect(mockTimerBehavior.restart).toHaveBeenCalledTimes(2);
     expect(loopBehavior.getState().rounds).toBe(1);
 
     // 4. Simulate Round 1 waiting
-    loopBehavior.onNext(harness.runtime, mockBlock);
+    loopBehavior.onNext(mockBlock);
 
     // 5. Timer Complete Round 1
-    loopBehavior.onEvent(event, harness.runtime, mockBlock);
+    loopBehavior.onEvent(event, mockBlock);
 
     expect(mockTimerBehavior.restart).toHaveBeenCalledTimes(3);
     expect(loopBehavior.getState().rounds).toBe(2);

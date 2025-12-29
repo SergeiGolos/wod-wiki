@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { IEvent } from '../../runtime/IEvent';
+import { IEvent } from '../../runtime/contracts/events/IEvent';
 
 /**
  * Data structure returned by useTrackedSpans hook
@@ -37,28 +37,46 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
   const ownerIdRef = useRef(`useTrackedSpans-${crypto.randomUUID()}`);
 
   useEffect(() => {
-    if (!runtime?.memory || !runtime?.eventBus) {
+    if (!runtime?.eventBus) {
       setRuntimeSpans([]);
       return;
     }
 
     const ownerId = ownerIdRef.current;
 
-    // Fetch all execution spans from memory
+    // Fetch all execution spans from tracker (persistent) and memory (active)
     const fetchSpans = () => {
-      // New runtime spans
-      const runtimeRefs = runtime.memory.search({
-        type: RUNTIME_SPAN_TYPE,
-        id: null,
-        ownerId: null,
-        visibility: null
-      });
+      const allSpans: RuntimeSpan[] = [];
 
-      const fetchedRuntimeSpans = runtimeRefs
-        .map(ref => runtime.memory.get(ref as TypedMemoryReference<RuntimeSpan>))
-        .filter((s): s is RuntimeSpan => s !== null);
+      // 1. Get spans from SpanTrackingHandler (persists after block pop)
+      if (runtime.tracker) {
+        allSpans.push(...runtime.tracker.getAllSpans());
+      }
 
-      setRuntimeSpans(fetchedRuntimeSpans);
+      // 2. Also check memory for any spans not in tracker (e.g., from HistoryBehavior)
+      if (runtime.memory) {
+        const runtimeRefs = runtime.memory.search({
+          type: RUNTIME_SPAN_TYPE,
+          id: null,
+          ownerId: null,
+          visibility: null
+        });
+
+        const memorySpans = runtimeRefs
+          .map(ref => runtime.memory.get(ref as TypedMemoryReference<RuntimeSpan>))
+          .filter((s): s is RuntimeSpan => s !== null);
+
+        // Dedupe by id
+        const seenIds = new Set(allSpans.map(s => s.id));
+        for (const span of memorySpans) {
+          if (!seenIds.has(span.id)) {
+            allSpans.push(span);
+            seenIds.add(span.id);
+          }
+        }
+      }
+
+      setRuntimeSpans(allSpans);
     };
 
     // Initial load
@@ -72,9 +90,16 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
       }
     };
 
+    // Subscribe to stack events (SpanTrackingHandler updates on these)
+    const handleStackEvent = () => {
+      fetchSpans();
+    };
+
     runtime.eventBus.on('memory:set', handleMemoryEvent, ownerId);
     runtime.eventBus.on('memory:allocate', handleMemoryEvent, ownerId);
     runtime.eventBus.on('memory:release', handleMemoryEvent, ownerId);
+    runtime.eventBus.on('stack:push', handleStackEvent, ownerId);
+    runtime.eventBus.on('stack:pop', handleStackEvent, ownerId);
 
     return () => {
       runtime.eventBus.unregisterByOwner(ownerId);

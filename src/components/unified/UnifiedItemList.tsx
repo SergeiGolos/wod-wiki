@@ -56,11 +56,11 @@ export interface UnifiedItemListProps {
 /**
  * LinkedGroup - Visual wrapper for grouped linked items
  */
-const LinkedGroup: React.FC<{ children: React.ReactNode; size: VisualizerSize }> = ({ children, size }) => {
-  const spacing = size === 'compact' ? 'space-y-0.5' : size === 'focused' ? 'space-y-1.5' : 'space-y-1';
-  
+const LinkedGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+
+
   return (
-    <div className={cn("border-l-2 border-orange-400/50 ml-2 pl-1 my-1 rounded-r", spacing)}>
+    <div className="border-l-2 border-orange-400/50 ml-2 pl-1 my-1 rounded-r">
       {children}
     </div>
   );
@@ -90,13 +90,13 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
 
   // Backward compatibility
   const size = compactProp ? 'compact' : sizeProp;
-  
+
   // Process items: optionally group linked items
   const processedItems = useMemo(() => {
     if (!groupLinked) {
       return items.map(item => ({ type: 'single' as const, item }));
     }
-    
+
     const grouped = groupLinkedItems(items);
     return grouped.map(entry => {
       if (Array.isArray(entry)) {
@@ -105,7 +105,7 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
       return { type: 'single' as const, item: entry };
     });
   }, [items, groupLinked]);
-  
+
   // Find active item for auto-scroll
   const activeItem = useMemo(() => {
     if (activeItemId) {
@@ -114,7 +114,7 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
     // Fallback to first item with 'active' status
     return items.find(isActiveItem);
   }, [items, activeItemId]);
-  
+
   // Auto-scroll to active item
   useEffect(() => {
     if (autoScroll && activeItem && activeItemRef.current && scrollRef.current) {
@@ -124,25 +124,25 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
       });
     }
   }, [autoScroll, activeItem, scrollBehavior]);
-  
+
   // Handlers
   const handleItemClick = useCallback((item: IDisplayItem) => {
     onSelectionChange?.(item.id);
   }, [onSelectionChange]);
-  
+
   const handleItemHover = useCallback((item: IDisplayItem | null) => {
     onHover?.(item?.id ?? null);
   }, [onHover]);
-  
+
   // Render a single item row
   const renderItem = (item: IDisplayItem, isInGroup = false) => {
-    const isActive = activeItemId 
-      ? item.id === activeItemId 
+    const isActive = activeItemId
+      ? item.id === activeItemId
       : isActiveItem(item);
     const isSelected = selectedIds?.has(item.id) ?? false;
-    
+
     return (
-      <div 
+      <div
         key={item.id}
         ref={isActive ? activeItemRef : undefined}
       >
@@ -162,7 +162,7 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
       </div>
     );
   };
-  
+
   // Empty state
   if (items.length === 0) {
     return (
@@ -176,11 +176,10 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
     );
   }
 
-  const listSpacing = size === 'compact' ? 'space-y-0.5' : size === 'focused' ? 'space-y-1.5' : 'space-y-1';
-  const listPadding = size === 'compact' ? 'py-1' : size === 'focused' ? 'py-3' : 'py-2';
-  
+
+
   return (
-    <div 
+    <div
       ref={scrollRef}
       className={cn(
         'overflow-y-auto',
@@ -188,14 +187,11 @@ export const UnifiedItemList: React.FC<UnifiedItemListProps> = ({
       )}
       style={maxHeight ? { maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight } : undefined}
     >
-      <div className={cn(
-        listSpacing,
-        listPadding
-      )}>
+      <div>
         {processedItems.map((entry, index) => {
           if (entry.type === 'group') {
             return (
-              <LinkedGroup key={`group-${index}`} size={size}>
+              <LinkedGroup key={`group-${index}`}>
                 {entry.items.map(item => renderItem(item, true))}
               </LinkedGroup>
             );

@@ -1,6 +1,6 @@
-import { IEvent } from './contracts/events/IEvent';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { IEventHandler } from './contracts/events/IEventHandler';
+import { IEvent } from '../contracts/events/IEvent';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IEventHandler } from '../contracts/events/IEventHandler';
 
 export type EventHandlerRegistration = {
   handler: IEventHandler;
@@ -8,7 +8,7 @@ export type EventHandlerRegistration = {
   priority: number;
 };
 
-import { IEventBus, EventCallback } from './contracts/events/IEventBus';
+import { IEventBus, EventCallback } from '../contracts/events/IEventBus';
 
 type CallbackRegistration = {
   id: string;
@@ -60,7 +60,7 @@ export class EventBus implements IEventBus {
         this.handlersByEvent.set(eventName, filtered);
       }
     }
-    
+
     // Unregister from callbacks
     for (const [eventName, list] of this.callbacksByEvent.entries()) {
       const filtered = list.filter(entry => entry.id !== handlerId);
@@ -82,7 +82,7 @@ export class EventBus implements IEventBus {
         this.handlersByEvent.set(eventName, filtered);
       }
     }
-    
+
     // Unregister callbacks by owner
     for (const [eventName, list] of this.callbacksByEvent.entries()) {
       const filtered = list.filter(entry => entry.ownerId !== ownerId);
@@ -94,13 +94,13 @@ export class EventBus implements IEventBus {
     }
   }
 
-  dispatch(event: IEvent, runtime: IScriptRuntime): void {
+  dispatch(event: IEvent, runtime: IScriptRuntime): import('../contracts/IRuntimeAction').IRuntimeAction[] {
     // First, invoke simple callbacks (no actions)
     const callbacks = [
       ...(this.callbacksByEvent.get('*') ?? []),
       ...(this.callbacksByEvent.get(event.name) ?? [])
     ];
-    
+
     for (const entry of callbacks) {
       try {
         entry.callback(event, runtime);
@@ -108,13 +108,13 @@ export class EventBus implements IEventBus {
         console.error(`EventBus callback error for ${event.name}:`, error);
       }
     }
-    
+
     // Then, invoke action-producing handlers
     const list = [
       ...(this.handlersByEvent.get('*') ?? []),
       ...(this.handlersByEvent.get(event.name) ?? [])
     ];
-    const actions = [] as ReturnType<IEventHandler['handler']>;
+    const actions = [] as import('../contracts/IRuntimeAction').IRuntimeAction[];
 
     for (const entry of list) {
       try {
@@ -130,12 +130,6 @@ export class EventBus implements IEventBus {
       }
     }
 
-    for (const action of actions) {
-      try {
-        action.do(runtime);
-      } catch (error) {
-        console.error(`EventBus action error for ${event.name}:`, error);
-      }
-    }
+    return actions;
   }
 }

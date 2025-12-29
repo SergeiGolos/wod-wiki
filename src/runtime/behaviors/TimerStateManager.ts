@@ -1,11 +1,10 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerDisplayConfig } from '../models/RuntimeSpan';
 import { TimeSpan } from '../models/TimeSpan';
 
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
-import { PushTimerDisplayAction, PopTimerDisplayAction, UpdateTimerDisplayAction } from '../actions/display/TimerDisplayActions';
+import { PushTimerDisplayAction, PopTimerDisplayAction } from '../actions/display/TimerDisplayActions';
 import { PushCardDisplayAction, PopCardDisplayAction } from '../actions/display/CardDisplayActions';
 
 /**
@@ -22,13 +21,12 @@ export class TimerStateManager {
 
     /**
      * Initializes the timer state in memory and creates display actions.
-     * @param runtime The script runtime context
      * @param block The runtime block being initialized
      * @param startTime The timer start timestamp (epoch milliseconds)
      * @param role Optional semantic role for the timer ('root', 'segment', or 'leaf')
      * @returns Array of runtime actions to push timer and card display entries
      */
-    initialize(runtime: IScriptRuntime, block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto', autoStart: boolean = true): IRuntimeAction[] {
+    initialize(block: IRuntimeBlock, startTime: number, role: 'primary' | 'secondary' | 'auto' = 'auto', autoStart: boolean = true): IRuntimeAction[] {
         // Determine default role if 'auto'
         let finalRole = role;
         if (role === 'auto') {
@@ -116,39 +114,20 @@ export class TimerStateManager {
 
     /**
      * Updates the timer state with new spans and running status.
+     * Note: This only updates memory. UI should react to memory changes.
      */
-    updateState(runtime: IScriptRuntime | undefined, spans: TimeSpan[], _isRunning: boolean): void {
+    updateState(spans: TimeSpan[], _isRunning: boolean): void {
         if (!this.timerRef) return;
 
         const span = this.timerRef.get();
         if (!span) return;
 
-        // Create new instance to ensure reactivity if needed, or just mutate and set
-        // RuntimeSpan is a class, so we should probably clone or just set the properties if we want to trigger updates
-        // memory.set triggers the event.
-
-        // We assume 'spans' passed in are the updated list (references to TimeSpan objects)
+        // Update spans and set back to memory to trigger reactivity
         span.spans = spans;
-
         this.timerRef.set(span);
 
-        if (runtime) {
-            // Calculate accumulated time from CLOSED spans for UI interpolation
-            // If active, the last span is open and handled by the UI using startTime
-            const active = span.isActive();
-            const spans = span.spans;
-            const closedSpans = active ? spans.slice(0, -1) : spans;
-            const accumulated = closedSpans.reduce((acc, s) => acc + s.duration, 0);
-
-            const lastSpan = spans.length > 0 ? spans[spans.length - 1] : undefined;
-            const currentStart = active ? lastSpan?.started : undefined;
-
-            new UpdateTimerDisplayAction(`timer-${span.blockId}`, {
-                accumulatedMs: accumulated,
-                startTime: currentStart,
-                isRunning: active
-            }).do(runtime);
-        }
+        // We removed explicit UpdateTimerDisplayAction because the UI should be reactive
+        // to the TimerRef change (which we just set).
     }
 
     /**

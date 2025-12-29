@@ -1,3 +1,4 @@
+import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack } from './contracts/IRuntimeStack';
@@ -71,6 +72,9 @@ export class ScriptRuntime implements IScriptRuntime {
     private readonly _logger: RuntimeStackLogger;
     private readonly _hooks: RuntimeStackHooks;
 
+    private _actionQueue: IRuntimeAction[] = [];
+    private _isProcessingActions = false;
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -131,7 +135,45 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     handle(event: IEvent): void {
-        this.eventBus.dispatch(event, this);
+        const actions = this.eventBus.dispatch(event, this);
+        if (actions && actions.length > 0) {
+            this.queueActions(actions);
+        }
+    }
+
+    /**
+     * Queue actions for processing. Actions are processed in order.
+     * If already processing, actions are added to the queue and will be processed
+     * after the current batch completes.
+     */
+    public queueActions(actions: IRuntimeAction[]) {
+        if (actions.length > 0) {
+            console.log(`[RT] queueActions: ${actions.map(a => a.type).join(', ')}`);
+        }
+        this._actionQueue.push(...actions);
+        this.processActions();
+    }
+
+    private processActions() {
+        if (this._isProcessingActions) {
+            console.log(`[RT] processActions: already processing, queue size=${this._actionQueue.length}`);
+            return;
+        }
+
+        this._isProcessingActions = true;
+        console.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
+        try {
+            while (this._actionQueue.length > 0) {
+                const action = this._actionQueue.shift();
+                if (action) {
+                    console.log(`[RT] executing: ${action.type}`);
+                    action.do(this);
+                }
+            }
+        } finally {
+            this._isProcessingActions = false;
+            console.log(`[RT] processActions: done`);
+        }
     }
 
     /**
@@ -145,6 +187,7 @@ export class ScriptRuntime implements IScriptRuntime {
     // ========== Stack Lifecycle Operations ==========
 
     public pushBlock(block: IRuntimeBlock, options: BlockLifecycleOptions = {}): IRuntimeBlock {
+        console.log(`[RT] pushBlock: ${block.label} (${block.key})`);
         this.validateBlock(block);
 
         const parentBlock = this.stack.current;
@@ -167,7 +210,12 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         this.stack.push(wrappedBlock);
+        console.log(`[RT] pushBlock: stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
         this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
+
+        const actions = wrappedBlock.mount(this, options);
+        console.log(`[RT] pushBlock: mount returned ${actions.length} actions`);
+        this.queueActions(actions);
 
         this._logger.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),
@@ -182,6 +230,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public popBlock(options: BlockLifecycleOptions = {}): IRuntimeBlock | undefined {
         const currentBlock = this.stack.current;
+        console.log(`[RT] popBlock: current=${currentBlock?.label}`);
         if (!currentBlock) {
             return undefined;
         }
@@ -192,18 +241,31 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this._hooks.onBeforePop?.(currentBlock);
 
+        // 1. Get unmount actions before popping
         const unmountActions = currentBlock.unmount(this, lifecycleOptions) ?? [];
+        console.log(`[RT] popBlock: unmount returned ${unmountActions.length} actions`);
 
+        // 2. Pop from stack
         const popped = this.stack.pop();
         if (!popped) {
             return undefined;
         }
+        console.log(`[RT] popBlock: popped ${popped.label}, stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
 
+        // 3. Dispatch pop event
         this.eventBus.dispatch(new StackPopEvent(this.stack.blocks), this);
 
         const ownerKey = this.resolveOwnerKey(popped);
 
+        // 4. End tracking span
         this._tracker.endSpan?.(ownerKey);
+
+        // 5. Execute unmount actions IMMEDIATELY (before dispose)
+        // This ensures all cleanup actions complete before parent.next() is called
+        console.log(`[RT] popBlock: executing ${unmountActions.length} unmount actions immediately`);
+        this.executeActionsImmediately(unmountActions);
+
+        // 6. Dispose and cleanup - child is now fully unmounted
         popped.dispose(this);
         popped.context?.release?.();
         this._hooks.unregisterByOwner?.(ownerKey);
@@ -214,21 +276,29 @@ export class ScriptRuntime implements IScriptRuntime {
             stackDepth: this.stack.count,
         });
 
-        for (const action of unmountActions) {
-            action.do(this);
-        }
-
+        // 7. NOW call parent.next() - child is completely gone
+        // Parent can make decisions knowing the child is fully cleaned up
         const parent = this.stack.current;
+        console.log(`[RT] popBlock: calling parent.next() on ${parent?.label}`);
         if (parent) {
             const nextActions = parent.next(this, lifecycleOptions) ?? [];
-            for (const action of nextActions) {
-                action.do(this);
-            }
+            console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
+            this.queueActions(nextActions);
         }
 
         this._hooks.onAfterPop?.(popped);
 
         return popped;
+    }
+
+    /**
+     * Execute actions immediately without queuing.
+     * Used during popBlock to ensure unmount completes before parent.next().
+     */
+    private executeActionsImmediately(actions: IRuntimeAction[]): void {
+        for (const action of actions) {
+            action.do(this);
+        }
     }
 
     /**

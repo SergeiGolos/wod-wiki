@@ -54,7 +54,7 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       expect(block.getCurrentReps()).toBe(0);
     });
 
@@ -63,7 +63,7 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       expect(block.isComplete()).toBe(false);
     });
   });
@@ -74,14 +74,14 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 10
       });
-      
-      block.mount(runtime);
+
+      block.mount(runtime).forEach(a => a.do(runtime));
       expect(block.getCurrentReps()).toBe(0);
-      
-      block.incrementRep();
+
+      block.incrementRep().forEach(a => a.do(runtime));
       expect(block.getCurrentReps()).toBe(1);
-      
-      block.incrementRep();
+
+      block.incrementRep().forEach(a => a.do(runtime));
       expect(block.getCurrentReps()).toBe(2);
     });
 
@@ -90,11 +90,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 10
       });
-      
+
       vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime);
-      block.incrementRep();
-      
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.incrementRep().forEach(a => a.do(runtime));
+
       expect(runtime.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'reps:updated'
@@ -107,12 +107,12 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 5
       });
-      
-      block.mount(runtime);
+
+      block.mount(runtime).forEach(a => a.do(runtime));
       for (let i = 0; i < 10; i++) {
-        block.incrementRep();
+        block.incrementRep().forEach(a => a.do(runtime));
       }
-      
+
       expect(block.getCurrentReps()).toBe(5); // Capped at target
     });
   });
@@ -123,10 +123,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.setReps(15);
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(15).forEach(a => a.do(runtime));
+
       expect(block.getCurrentReps()).toBe(15);
     });
 
@@ -135,11 +135,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime);
-      block.setReps(15);
-      
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(15).forEach(a => a.do(runtime));
+
       expect(runtime.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'reps:updated'
@@ -152,9 +152,9 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      expect(() => block.setReps(-5)).toThrow(RangeError);
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      expect(() => block.setReps(-5).forEach(a => a.do(runtime))).toThrow(RangeError);
     });
 
     it('should reject count > targetReps', () => {
@@ -162,9 +162,9 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      expect(() => block.setReps(25)).toThrow(RangeError);
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      expect(() => block.setReps(25).forEach(a => a.do(runtime))).toThrow(RangeError);
     });
 
     it('should allow setting to exactly targetReps', () => {
@@ -172,10 +172,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.setReps(21);
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(21).forEach(a => a.do(runtime));
+
       expect(block.getCurrentReps()).toBe(21);
       expect(block.isComplete()).toBe(true);
     });
@@ -187,11 +187,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.incrementRep(); // At 1 rep
-      block.markComplete();
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.incrementRep().forEach(a => a.do(runtime)); // At 1 rep
+      block.markComplete().forEach(a => a.do(runtime));
+
       expect(block.getCurrentReps()).toBe(21);
     });
 
@@ -200,11 +200,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime);
-      block.markComplete();
-      
+
+      (vi as any).mocked(runtime.handle).mockClear();
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.markComplete().forEach(a => a.do(runtime));
+
       expect(runtime.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'reps:complete'
@@ -217,11 +217,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.markComplete();
-      block.markComplete(); // Should not throw
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.markComplete().forEach(a => a.do(runtime));
+      block.markComplete().forEach(a => a.do(runtime)); // Should not throw
+
       expect(block.getCurrentReps()).toBe(21);
     });
   });
@@ -232,10 +232,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.setReps(15);
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(15).forEach(a => a.do(runtime));
+
       expect(block.isComplete()).toBe(false);
     });
 
@@ -244,10 +244,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.setReps(21);
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(21).forEach(a => a.do(runtime));
+
       expect(block.isComplete()).toBe(true);
     });
 
@@ -256,10 +256,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.markComplete();
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.markComplete().forEach(a => a.do(runtime));
+
       expect(block.isComplete()).toBe(true);
     });
   });
@@ -270,14 +270,14 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       block.mount(runtime);
-      
+
       // Incremental
       block.incrementRep();
       block.incrementRep();
       expect(block.getCurrentReps()).toBe(2);
-      
+
       // Switch to bulk
       block.setReps(10);
       expect(block.getCurrentReps()).toBe(10);
@@ -288,13 +288,13 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       block.mount(runtime);
-      
+
       // Bulk
       block.setReps(10);
       expect(block.getCurrentReps()).toBe(10);
-      
+
       // Switch to incremental
       block.incrementRep();
       expect(block.getCurrentReps()).toBe(11);
@@ -305,15 +305,17 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       vi.mocked(runtime.handle).mockClear();
       block.mount(runtime);
-      
-      block.incrementRep(); // Mode: incremental
+
+      const incrementActions = block.incrementRep(); // Mode: incremental
+      incrementActions.forEach(action => action.do(runtime));
       // Event should have been emitted
       expect(runtime.handle).toHaveBeenCalled();
-      
-      block.setReps(5); // Mode: bulk
+
+      const setActions = block.setReps(5); // Mode: bulk
+      setActions.forEach(action => action.do(runtime));
       // Event should have been emitted again
       expect(runtime.handle).toHaveBeenCalled();
     });
@@ -325,13 +327,13 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 3
       });
-      
+
       vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime);
-      block.incrementRep(); // 1
-      block.incrementRep(); // 2
-      block.incrementRep(); // 3 - should trigger completion
-      
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.incrementRep().forEach(a => a.do(runtime)); // 1
+      block.incrementRep().forEach(a => a.do(runtime)); // 2
+      block.incrementRep().forEach(a => a.do(runtime)); // 3 - should trigger completion
+
       expect(runtime.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'reps:complete'
@@ -344,24 +346,24 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime);
-      block.setReps(21); // Complete via bulk
-      
+
+      (vi as any).mocked(runtime.handle).mockClear();
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(21).forEach(a => a.do(runtime)); // Complete via bulk
+
       expect(runtime.handle).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'reps:complete'
         })
       );
     });
-  });  describe('State Access Methods', () => {
+  }); describe('State Access Methods', () => {
     it('should return exercise name', () => {
       const block = new EffortBlock(runtime, [], {
         exerciseName: 'Thrusters',
         targetReps: 21
       });
-      
+
       expect(block.getExerciseName()).toBe('Thrusters');
     });
 
@@ -370,7 +372,7 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 15
       });
-      
+
       expect(block.getTargetReps()).toBe(15);
     });
 
@@ -379,10 +381,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
-      block.setReps(10);
-      
+
+      block.mount(runtime).forEach(a => a.do(runtime));
+      block.setReps(10).forEach(a => a.do(runtime));
+
       expect(block.getCurrentReps()).toBe(10);
     });
   });
@@ -393,10 +395,10 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
-      block.mount(runtime);
+
+      block.mount(runtime).forEach(a => a.do(runtime));
       block.dispose(runtime);
-      
+
       expect(runtime.memory.release).toHaveBeenCalled();
     });
 
@@ -405,13 +407,13 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       block.mount(runtime);
-      
+
       const startTime = performance.now();
       block.dispose(runtime);
       const duration = performance.now() - startTime;
-      
+
       expect(duration).toBeLessThan(50);
     });
   });
@@ -422,11 +424,11 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       const startTime = performance.now();
       block.mount(runtime);
       const duration = performance.now() - startTime;
-      
+
       expect(duration).toBeLessThan(1);
     });
 
@@ -435,13 +437,13 @@ describe('EffortBlock Contract', () => {
         exerciseName: 'Pullups',
         targetReps: 21
       });
-      
+
       block.mount(runtime);
-      
+
       const startTime = performance.now();
       block.unmount(runtime);
       const duration = performance.now() - startTime;
-      
+
       expect(duration).toBeLessThan(1);
     });
   });

@@ -1,9 +1,9 @@
 import { IEvent } from '../contracts/events/IEvent';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { PushActionsAction, PopActionsAction, ActionDescriptor } from '../actions/stack/ActionStackActions';
+import { NextAction } from '../actions/stack/NextAction';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { ActionFragment } from '../compiler/fragments/ActionFragment';
 
@@ -48,28 +48,36 @@ export class ActionLayerBehavior implements IRuntimeBehavior {
     this.includeDefaultNext = includeDefaultNext;
   }
 
-  onPush(_runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions = this.withDefaults(block.key.toString());
     return [new PushActionsAction(block.key.toString(), actions)];
   }
 
-  onPop(_runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return [new PopActionsAction(block.key.toString())];
   }
 
   // Fallback: if a custom action event is received and the block has no other
   // handlers for it, advance to next. We avoid 'next' to prevent double-handling
   // because RuntimeBlock already registers a next handler.
-  onEvent(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
     if (!event?.name) return [];
     if (event.name === 'next') return [];
     const matchesDescriptor = this.descriptors.some(d => d.eventName === event.name);
     if (!matchesDescriptor) return [];
 
-    // Only allow if this block is current
-    if (runtime.stack.current !== block) return [];
+    // Note: We cannot check runtime.stack.current here.
+    // We assume the event is routed to this block because it is active/current.
 
-    return block.next(runtime);
+    return [new NextAction()];
+  }
+
+  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return [];
+  }
+
+  onDispose(block: IRuntimeBlock): void {
+    // No-op
   }
 
   private withDefaults(ownerId: string): ActionDescriptor[] {

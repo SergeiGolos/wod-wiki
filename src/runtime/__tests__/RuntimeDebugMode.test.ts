@@ -28,6 +28,7 @@ function createMockBlock(id: string): IRuntimeBlock {
         }),
         get: vi.fn(),
         getAll: vi.fn().mockReturnValue([]),
+        set: vi.fn(),
         release: vi.fn(),
         isReleased: vi.fn().mockReturnValue(false),
         getOrCreateAnchor: vi.fn(),
@@ -49,6 +50,9 @@ function createMockBlock(id: string): IRuntimeBlock {
         unmount: vi.fn().mockReturnValue([]),
         dispose: vi.fn(),
         getBehavior: vi.fn().mockReturnValue(undefined),
+        findFragment: vi.fn().mockReturnValue(undefined),
+        filterFragments: vi.fn().mockReturnValue([]),
+        hasFragment: vi.fn().mockReturnValue(false),
     };
 }
 
@@ -204,9 +208,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
 
             const current = runtime.stack.current!;
 
-            // Call mount and verify it's recorded
-            current.mount(runtime);
-
             // Get the wrapped block and check calls
             const wrapped = wrappedBlocks.get('test-block');
             expect(wrapped).toBeDefined();
@@ -229,10 +230,8 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const mockBlock2 = createMockBlock('block-2');
 
             runtime.pushBlock(mockBlock1);
-            runtime.stack.current!.mount(runtime);
 
             runtime.pushBlock(mockBlock2);
-            runtime.stack.current!.mount(runtime);
             runtime.stack.current!.next(runtime);
 
             expect(wrappedBlocks.size).toBe(2);
@@ -286,7 +285,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
 
             runtime.pushBlock(testable);
 
-            testable.mount(runtime);
             testable.next(runtime);
 
             expect(testable.wasCalled('mount')).toBe(true);

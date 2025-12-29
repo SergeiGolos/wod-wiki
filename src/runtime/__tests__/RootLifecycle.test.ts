@@ -184,8 +184,8 @@ describe('RootLifecycle Integration', () => {
         const resumedControls = getControls();
         expect(resumedControls?.buttons.find(b => b.id === 'btn-pause')).toBeDefined();
 
-        // 6. Simulate Complete
-        runtime.handle({ name: 'timer:complete', timestamp: new Date(), data: {} });
+        // 6. Simulate Complete (user-initiated via workout:complete)
+        runtime.handle({ name: 'workout:complete', timestamp: new Date(), data: {} });
         const completeControls = getControls();
         expect(completeControls?.buttons.length).toBe(1);
         expect(completeControls?.buttons[0].id).toBe('btn-analytics');

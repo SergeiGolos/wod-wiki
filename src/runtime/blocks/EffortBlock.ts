@@ -5,10 +5,11 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
-import { CompletionBehavior } from '../behaviors/CompletionBehavior';
 import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
-
-import { TimerBehavior } from '../behaviors/TimerBehavior';
+import { EmitEventAction } from '../actions/events/EmitEventAction';
+import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
+import { PopBlockAction } from '../actions/stack/PopBlockAction';
+import { UnboundTimerBehavior } from '../behaviors/UnboundTimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
 /**
@@ -20,38 +21,57 @@ export interface EffortBlockConfig {
 }
 
 /**
- * NextEventBehavior - Sets forceComplete flag when 'next' event is received.
- * Must be added before CompletionBehavior in behaviors array so the flag is set
- * before the completion condition is checked.
+ * EffortCompletionBehavior - Handles completion via onNext() to avoid conflicts with NextEventHandler.
+ * Pops the block when complete or when force-completed.
  */
-class NextEventBehavior implements IRuntimeBehavior {
-  constructor(private readonly setForceComplete: () => void) { }
+class EffortCompletionBehavior implements IRuntimeBehavior {
+  private _forceComplete = false;
+  private _isComplete = false;
 
-  onEvent(event: IEvent, _runtime: IScriptRuntime, _block: IRuntimeBlock): IRuntimeAction[] {
+  constructor(private readonly checkComplete: () => boolean) { }
+
+  forceComplete(): void {
+    this._forceComplete = true;
+  }
+
+  onEvent(event: IEvent, _block: IRuntimeBlock): IRuntimeAction[] {
+    // Set force complete flag when 'next' event received, but DON'T return actions
+    // The actual pop happens in onNext() which is called by NextAction
     if (event.name === 'next') {
-      this.setForceComplete();
+      this._forceComplete = true;
     }
     return [];
   }
+
+  onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
+  
+  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    if (this._isComplete) {
+      return [];
+    }
+
+    if (this.checkComplete() || this._forceComplete) {
+      this._isComplete = true;
+      const now = options?.now ?? new Date();
+      return [
+        new EmitEventAction('block:complete', { blockId: block.key.toString() }, now),
+        new PopBlockAction()
+      ];
+    }
+
+    return [];
+  }
+
+  onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
+  onDispose(_block: IRuntimeBlock): void { }
 }
 
 /**
  * EffortBlock tracks individual exercise/rep completion.
- * 
- * Features:
- * - Hybrid rep tracking: incremental (tap button) or bulk entry
- * - Validates rep counts within valid range [0, targetReps]
- * - Emits reps:updated on every rep change
- * - Emits reps:complete when target reached
- * - Tracks completion mode (incremental vs bulk)
- * - No children (terminal block in workout hierarchy)
- * 
- * API Contract: contracts/runtime-blocks-api.md
  */
 export class EffortBlock extends RuntimeBlock {
   private currentReps = 0;
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
-  private _forceComplete = false;
 
   constructor(
     runtime: IScriptRuntime,
@@ -59,6 +79,17 @@ export class EffortBlock extends RuntimeBlock {
     private readonly config: EffortBlockConfig,
     fragments?: ICodeFragment[][]
   ) {
+    super(
+      runtime,
+      sourceIds,
+      [], // Behaviors added below
+      "Effort",
+      undefined,
+      undefined,
+      `${config.targetReps} ${config.exerciseName}`,
+      fragments
+    );
+
     // Validate configuration
     if (!config.exerciseName || config.exerciseName.trim() === '') {
       throw new TypeError('EffortBlock requires a non-empty exerciseName');
@@ -68,214 +99,108 @@ export class EffortBlock extends RuntimeBlock {
       throw new RangeError(`targetReps must be >= 1, got: ${config.targetReps}`);
     }
 
-    // Create NextEventBehavior to set forceComplete flag on 'next' event
-    // This MUST be added before CompletionBehavior so the flag is set before condition check
-    const nextEventBehavior = new NextEventBehavior(() => {
-      this._forceComplete = true;
-    });
+    const completionBehavior = new EffortCompletionBehavior(() => this.isComplete());
 
-    // Create completion behavior that checks if reps are complete OR user forced completion
-    // Listens for 'reps:updated' (natural completion) and 'next' (user forced completion)
-    // We disable checkOnNext so that tick events don't auto-complete
-    const completionBehavior = new CompletionBehavior(
-      () => this.isComplete() || this._forceComplete,
-      ['reps:updated', 'next'], // Complete when reps hit target OR user clicks next
-      false, // Don't check on push
-      false  // Don't check on tick (onNext called by tick handler)
-    );
-
-    // Generate label from exercise name and reps
-    const label = `${config.targetReps} ${config.exerciseName}`;
-
-    // Initialize RuntimeBlock with behaviors in order (NextEventBehavior first!)
-    super(
-      runtime,
-      sourceIds,
-      [
-        nextEventBehavior,
-        completionBehavior,
-        // Add TimerBehavior for segment timing (count up)
-        // Segment timer is secondary so it doesn't steal the primary clock
-        new TimerBehavior('up', undefined, 'Segment Timer', 'secondary')
-      ],
-      "Effort",  // blockType
-      undefined, // blockKey
-      undefined, // blockTypeParam
-      label,     // label
-      fragments
-    );
-
-    // Ensure actions are exposed (fragment-based plus default next)
-    this.behaviors.unshift(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
+    // Initialize behaviors in order
+    this.behaviors.push(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
+    this.behaviors.push(completionBehavior);
+    this.behaviors.push(new UnboundTimerBehavior('Segment Timer', 'secondary'));
   }
 
-  /**
-   * Initialize effort tracking when block is mounted onto the stack.
-   */
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    // Update metrics
-    this.updateMetrics(runtime);
-
-    // Call parent mount (includes behaviors)
     const actions = super.mount(runtime, options);
-
-    // Push to display stack
+    actions.push(...this.getMetricActions());
     actions.push(new PushStackItemAction(this.key.toString()));
-
     return actions;
   }
 
-  /**
-   * Cleanup effort tracking when block is unmounted.
-   */
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    // Call parent unmount (includes behaviors)
     const actions = super.unmount(runtime, options);
-
-    // Pop from display stack
     actions.push(new PopStackItemAction(this.key.toString()));
-
     return actions;
   }
 
-  /**
-   * Cleanup: release memory reference.
-   */
-  dispose(_runtime: IScriptRuntime): void {
-    // Memory is automatically cleaned up when block is disposed
-
-    // Call parent dispose (includes behaviors)
-    super.dispose(_runtime);
-
-    // Release context memory
+  dispose(runtime: IScriptRuntime): void {
+    super.dispose(runtime);
     if (this.context) {
       this.context.release();
     }
   }
 
-  /**
-   * Get exercise name.
-   */
-  getExerciseName(): string {
-    return this.config.exerciseName;
-  }
-
-  /**
-   * Get target rep count.
-   */
-  getTargetReps(): number {
-    return this.config.targetReps;
-  }
-
-  /**
-   * Get current rep count.
-   */
-  getCurrentReps(): number {
-    return this.currentReps;
-  }
-
-  /**
-   * Check if target reps reached.
-   */
   isComplete(): boolean {
     return this.currentReps >= this.config.targetReps;
   }
 
-  /**
-   * Increment rep count by 1 (incremental tracking).
-   * Emits reps:updated event.
-   */
-  incrementRep(): void {
+  getCurrentReps(): number {
+    return this.currentReps;
+  }
+
+  getTargetReps(): number {
+    return this.config.targetReps;
+  }
+
+  getExerciseName(): string {
+    return this.config.exerciseName;
+  }
+
+  incrementRep(): IRuntimeAction[] {
     if (this.currentReps < this.config.targetReps) {
       this.currentReps++;
       this.lastCompletionMode = 'incremental';
-      this.updateMetrics(this._runtime);
+      return this.getMetricActions();
     }
+    return [];
   }
 
-  /**
-   * Set rep count to specific value (bulk entry).
-   * Validates range [0, targetReps].
-   * Emits reps:updated event.
-   */
-  setReps(count: number): void {
+  setReps(count: number): IRuntimeAction[] {
     if (count < 0 || count > this.config.targetReps) {
-      throw new RangeError(
-        `setReps(${count}) out of valid range [0, ${this.config.targetReps}]`
-      );
+      throw new RangeError(`setReps(${count}) out of valid range [0, ${this.config.targetReps}]`);
     }
 
     this.currentReps = count;
     this.lastCompletionMode = 'bulk';
-    this.updateMetrics(this._runtime);
+    return this.getMetricActions();
   }
 
-  /**
-   * Force completion by setting reps to target.
-   * Emits reps:complete event.
-   */
-  markComplete(): void {
+  markComplete(): IRuntimeAction[] {
     this.currentReps = this.config.targetReps;
     this.lastCompletionMode = 'bulk';
+    const actions = this.getMetricActions();
 
-    // Update metrics
-    this.updateMetrics(this._runtime);
+    actions.push(new EmitEventAction('reps:complete', {
+      blockId: this.key.toString(),
+      exerciseName: this.config.exerciseName,
+      finalReps: this.currentReps,
+    }));
 
-    // Emit reps:complete event
-    this._runtime.handle({
-      name: 'reps:complete',
-      timestamp: new Date(),
-      data: {
-        blockId: this.key.toString(),
-        exerciseName: this.config.exerciseName,
-        finalReps: this.currentReps,
-      },
-    });
+    return actions;
   }
 
-  /**
-   * Update metrics and emit reps:updated event.
-   * Helper method for incrementRep() and setReps().
-   * 
-   * This method implements the unified metrics architecture:
-   * 1. Syncs to ExecutionRecord for history/analytics via tracker
-   * 2. Emits events for reactive UI updates (fragments available on block)
-   * 
-   * Note: METRICS_CURRENT memory slot removed in Phase 3.
-   * UI components now read directly from block.fragments or subscribe to events.
-   */
-  private updateMetrics(runtime: IScriptRuntime): void {
+  private getMetricActions(): IRuntimeAction[] {
     const blockId = this.key.toString();
+    const actions: IRuntimeAction[] = [];
 
-    // 1. Sync to RuntimeSpan via tracker for history/analytics
-    if (runtime.tracker) {
-      runtime.tracker.recordMetric(blockId, 'reps', this.currentReps, 'reps');
-    }
+    // 1. Sync to tracker via action
+    actions.push(new TrackMetricAction(blockId, 'reps', this.currentReps, 'reps'));
 
-    // 2. Emit reps:updated event for reactive UI updates
-    this._runtime.handle({
-      name: 'reps:updated',
-      timestamp: new Date(),
-      data: {
+    // 2. Emit event for UI
+    actions.push(new EmitEventAction('reps:updated', {
+      blockId,
+      exerciseName: this.config.exerciseName,
+      currentReps: this.currentReps,
+      targetReps: this.config.targetReps,
+      completionMode: this.lastCompletionMode,
+    }));
+
+    // 3. Check complete
+    if (this.isComplete()) {
+      actions.push(new EmitEventAction('reps:complete', {
         blockId,
         exerciseName: this.config.exerciseName,
-        currentReps: this.currentReps,
-        targetReps: this.config.targetReps,
-        completionMode: this.lastCompletionMode,
-      },
-    });
-
-    // Check if complete and emit reps:complete if so
-    if (this.isComplete()) {
-      this._runtime.handle({
-        name: 'reps:complete',
-        timestamp: new Date(),
-        data: {
-          blockId,
-          exerciseName: this.config.exerciseName,
-          finalReps: this.currentReps,
-        },
-      });
+        finalReps: this.currentReps,
+      }));
     }
+
+    return actions;
   }
 }

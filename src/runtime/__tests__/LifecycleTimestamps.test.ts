@@ -20,10 +20,10 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     label,
     context: {
       release: vi.fn(),
-      allocate: vi.fn((_type, value) => ({ 
-          id: 'mock-ref', 
-          get: () => value, 
-          set: (v: any) => { value = v; } 
+      allocate: vi.fn((_type, value) => ({
+        id: 'mock-ref',
+        get: () => value,
+        set: (v: any) => { value = v; }
       })),
     } as any,
     executionTiming: {},
@@ -105,12 +105,12 @@ describe('Lifecycle timestamps', () => {
       sourceIds: [1],
       blockType: 'Timer',
       label: 'Timer',
-      context: { 
+      context: {
         release: vi.fn(),
-        allocate: vi.fn((_type, value) => ({ 
-            id: 'mock-ref', 
-            get: () => value, 
-            set: (v: any) => { value = v; } 
+        allocate: vi.fn((_type, value) => ({
+          id: 'mock-ref',
+          get: () => value,
+          set: (v: any) => { value = v; }
         })),
       } as any,
       executionTiming: {},
@@ -122,7 +122,10 @@ describe('Lifecycle timestamps', () => {
     } as any;
 
     // Push with initial start time from mock clock
-    behavior.onPush(runtimeStub, block);
+    const actions = behavior.onPush(block, { startTime: mockClock.now });
+    for (const action of actions) {
+      action.do(runtimeStub);
+    }
 
     // Verify timer:started event was emitted with correct timestamp
     const startedEvent = events.find(e => e.name === 'timer:started');
@@ -133,7 +136,7 @@ describe('Lifecycle timestamps', () => {
     mockClock.advance(1000);
 
     // Check elapsed time
-    const elapsed = behavior.getElapsedMs();
+    const elapsed = behavior.getElapsedAt(mockClock.now);
     expect(elapsed).toBeGreaterThanOrEqual(1000);
   });
 
@@ -156,12 +159,12 @@ describe('Lifecycle timestamps', () => {
       sourceIds: [1],
       blockType: 'Timer',
       label: 'Timer',
-      context: { 
+      context: {
         release: vi.fn(),
-        allocate: vi.fn((_type, value) => ({ 
-            id: 'mock-ref', 
-            get: () => value, 
-            set: (v: any) => { value = v; } 
+        allocate: vi.fn((_type, value) => ({
+          id: 'mock-ref',
+          get: () => value,
+          set: (v: any) => { value = v; }
         })),
       } as any,
       executionTiming: {},
@@ -172,17 +175,20 @@ describe('Lifecycle timestamps', () => {
       getBehavior: vi.fn(),
     } as any;
 
-    behavior.onPush(runtimeStub, block);
+    const actions = behavior.onPush(block, { startTime: mockClock.now });
+    for (const action of actions) {
+      action.do(runtimeStub);
+    }
 
     // Run for 200ms then pause
     mockClock.advance(200);
-    behavior.pause();
+    behavior.pause(mockClock.now);
 
     // Time passes while paused should not increase elapsed
     mockClock.advance(500);
 
     // Resume
-    behavior.resume();
+    behavior.resume(mockClock.now);
 
     // Run for another 100ms
     mockClock.advance(100);
@@ -190,6 +196,7 @@ describe('Lifecycle timestamps', () => {
     // Total elapsed should be ~300ms (200 + 100), not including paused time
     // Note: Due to how getElapsedMs works, we check if it's reasonable
     expect(behavior.isRunning()).toBe(true);
-    expect(behavior.isPaused()).toBe(false);
+    expect(behavior.isPaused()).toBe(false); // resume() sets _isPaused = false
+    expect(behavior.getElapsedAt(mockClock.now)).toBeGreaterThanOrEqual(300);
   });
 });

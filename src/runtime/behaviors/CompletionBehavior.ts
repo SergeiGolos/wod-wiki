@@ -1,13 +1,13 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
+import { EmitEventAction } from '../actions/events/EmitEventAction';
 
 /**
  * CompletionBehavior provides generic completion detection.
- * 
+ *
  * Features:
  * - Accepts a condition function that determines completion
  * - Checks condition on onNext() calls
@@ -15,137 +15,71 @@ import { PopBlockAction } from '../actions/stack/PopBlockAction';
  * - Emits block:complete when condition is met
  * - Returns PopBlockAction when block completes
  * - Flexible for various completion scenarios
- * 
- * API Contract: contracts/runtime-blocks-api.md
  */
 export class CompletionBehavior implements IRuntimeBehavior {
   private isCompleteFlag = false;
 
   constructor(
-    private readonly condition: (runtime: IScriptRuntime, block: IRuntimeBlock) => boolean,
-    private readonly triggerEvents?: string[],
-    private readonly checkOnPush: boolean = false,
-    private readonly checkOnNext: boolean = true
-  ) {
-    if (!condition || typeof condition !== 'function') {
-      throw new TypeError('CompletionBehavior requires a valid condition function');
-    }
+    private readonly condition: (block: IRuntimeBlock, now: Date) => boolean,
+    private readonly checkOnEvents: string[] = []
+  ) { }
+
+  onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return [];
   }
 
-  /**
-   * Check completion condition on push() calls.
-   * Only checks if checkOnPush flag is true.
-   * Allows immediate completion for blocks that complete on mount.
-   */
-  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     if (this.isCompleteFlag) {
-      return []; // Already complete
-    }
-
-    // Only check on push if explicitly enabled
-    if (!this.checkOnPush) {
       return [];
     }
 
-    // Check completion condition
-    if (this.condition(runtime, block)) {
-      this.isCompleteFlag = true;
-
-      // Emit block:complete event
-      runtime.handle({
-        name: 'block:complete',
-        timestamp: new Date(),
-        data: {
-          blockId: block.key.toString(),
-        },
-      });
-
-      // Return PopBlockAction to remove this block from the stack
-      return [new PopBlockAction()];
+    const now = options?.now ?? new Date();
+    if (this.condition(block, now)) {
+      return this.complete(block, now);
     }
 
     return [];
   }
 
-  /**
-   * Check completion condition on next() calls.
-   * Emits block:complete if condition returns true.
-   */
-  onNext(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-    if (this.isCompleteFlag) {
-      return []; // Already complete
-    }
-
-    // Only check on next if explicitly enabled (default true)
-    if (!this.checkOnNext) {
-        return [];
-    }
-
-    // Check completion condition
-    if (this.condition(runtime, block)) {
-      this.isCompleteFlag = true;
-
-      // Emit block:complete event
-      runtime.handle({
-        name: 'block:complete',
-        timestamp: new Date(),
-        data: {
-          blockId: block.key.toString(),
-        },
-      });
-
-      // Return PopBlockAction to remove this block from the stack
-      return [new PopBlockAction()];
-    }
-
+  onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
     return [];
   }
 
-  /**
-   * Check completion condition on configured events.
-   * Allows event-driven completion detection.
-   */
-  onEvent?(event: IEvent, runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
     if (this.isCompleteFlag) {
-      return []; // Already complete
-    }
-
-    // Only check on configured trigger events
-    if (this.triggerEvents && !this.triggerEvents.includes(event.name)) {
       return [];
     }
 
-    // Check completion condition
-    if (this.condition(runtime, block)) {
-      this.isCompleteFlag = true;
+    // timer:complete event always triggers completion (user forced complete)
+    if (event.name === 'timer:complete') {
+      const data = event.data as { blockId?: string } | undefined;
+      // Only complete if this event is for this block or has no blockId (global)
+      if (!data?.blockId || data.blockId === block.key.toString()) {
+        console.log(`[CompletionBehavior] timer:complete received, forcing completion`);
+        return this.complete(block, event.timestamp ?? new Date());
+      }
+    }
 
-      // Emit block:complete event
-      runtime.handle({
-        name: 'block:complete',
-        timestamp: new Date(),
-        data: {
-          blockId: block.key.toString(),
-        },
-      });
-
-      // Return PopBlockAction to remove this block from the stack
-      return [new PopBlockAction()];
+    if (this.checkOnEvents.includes(event.name)) {
+      const now = event.timestamp ?? new Date();
+      if (this.condition(block, now)) {
+        return this.complete(block, now);
+      }
     }
 
     return [];
   }
 
-  /**
-   * Check if completion has been triggered.
-   */
-  isComplete(): boolean {
-    return this.isCompleteFlag;
+  onDispose(_block: IRuntimeBlock): void {
+    // No-op
   }
 
-  /**
-   * Reset completion state (for testing or reuse scenarios).
-   */
-  reset(): void {
-    this.isCompleteFlag = false;
+  private complete(block: IRuntimeBlock, timestamp: Date): IRuntimeAction[] {
+    this.isCompleteFlag = true;
+
+    return [
+      new EmitEventAction('block:complete', { blockId: block.key.toString() }, timestamp),
+      new PopBlockAction()
+    ];
   }
 }

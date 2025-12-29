@@ -1,15 +1,15 @@
 import { BlockKey } from '../../core/models/BlockKey';
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IBlockContext } from '../contracts/IBlockContext';
+import { IRuntimeAction } from '../../runtime/contracts/IRuntimeAction';
+import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { IBlockContext } from '../../runtime/contracts/IBlockContext';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * Configuration for method interception behavior
  */
-export type InterceptMode = 
+export type InterceptMode =
   | 'passthrough'  // Call underlying method normally
   | 'spy'          // Call method and record arguments/return
   | 'override'     // Replace with custom implementation
@@ -55,25 +55,25 @@ export interface StackOperation {
 export interface TestableBlockConfig {
   /** Custom ID for easy identification in visualizations */
   testId?: string;
-  
+
   /** Custom label override for display purposes */
   labelOverride?: string;
-  
+
   /** Mode for mount() interception */
   mountMode?: InterceptMode;
   /** Custom mount implementation when mode is 'override' */
   mountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-  
+
   /** Mode for next() interception */
   nextMode?: InterceptMode;
   /** Custom next implementation when mode is 'override' */
   nextOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-  
+
   /** Mode for unmount() interception */
   unmountMode?: InterceptMode;
   /** Custom unmount implementation when mode is 'override' */
   unmountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-  
+
   /** Mode for dispose() interception */
   disposeMode?: InterceptMode;
   /** Custom dispose implementation when mode is 'override' */
@@ -88,7 +88,7 @@ class TestableBlockKey extends BlockKey {
   constructor(private readonly _testId: string) {
     super();
   }
-  
+
   override toString(): string {
     return this._testId;
   }
@@ -119,7 +119,7 @@ export class TestableBlock implements IRuntimeBlock {
   private _calls: MethodCall[] = [];
   private _config: Required<TestableBlockConfig>;
   private _testKey: BlockKey;
-  
+
   constructor(
     private readonly _wrapped: IRuntimeBlock,
     config: TestableBlockConfig = {}
@@ -135,33 +135,33 @@ export class TestableBlock implements IRuntimeBlock {
       unmountMode: config.unmountMode ?? 'spy',
       unmountOverride: config.unmountOverride ?? (() => []),
       disposeMode: config.disposeMode ?? 'spy',
-      disposeOverride: config.disposeOverride ?? (() => {}),
+      disposeOverride: config.disposeOverride ?? (() => { }),
     };
-    
+
     // Create custom key if testId provided, otherwise use wrapped key
-    this._testKey = this._config.testId 
+    this._testKey = this._config.testId
       ? new TestableBlockKey(this._config.testId)
       : this._wrapped.key;
   }
-  
+
   // ========== IRuntimeBlock Properties ==========
-  
+
   get key(): BlockKey {
     return this._testKey;
   }
-  
+
   get sourceIds(): number[] {
     return this._wrapped.sourceIds;
   }
-  
+
   get blockType(): string | undefined {
     return this._wrapped.blockType;
   }
-  
+
   get label(): string {
     return this._config.labelOverride || this._wrapped.label;
   }
-  
+
   get context(): IBlockContext {
     return this._wrapped.context;
   }
@@ -169,52 +169,52 @@ export class TestableBlock implements IRuntimeBlock {
   get fragments(): ICodeFragment[][] | undefined {
     return this._wrapped.fragments;
   }
-  
+
   // ========== Testing API ==========
-  
+
   /** Access the underlying block for direct inspection */
   get wrapped(): IRuntimeBlock {
     return this._wrapped;
   }
-  
+
   /** The test ID assigned to this block */
   get testId(): string {
     return this._config.testId;
   }
-  
+
   /** All recorded method calls */
   get calls(): ReadonlyArray<MethodCall> {
     return [...this._calls];
   }
-  
+
   /** Get calls for a specific method */
   getCallsFor(method: keyof IRuntimeBlock): MethodCall[] {
     return this._calls.filter(c => c.method === method);
   }
-  
+
   /** Get the most recent call for a method */
   getLastCall(method: keyof IRuntimeBlock): MethodCall | undefined {
     const calls = this.getCallsFor(method);
     return calls[calls.length - 1];
   }
-  
+
   /** Check if a method was called */
   wasCalled(method: keyof IRuntimeBlock): boolean {
     return this._calls.some(c => c.method === method);
   }
-  
+
   /** Get call count for a method */
   callCount(method: keyof IRuntimeBlock): number {
     return this.getCallsFor(method).length;
   }
-  
+
   /** Clear recorded calls */
   clearCalls(): void {
     this._calls = [];
   }
-  
+
   // ========== IRuntimeBlock Methods (intercepted) ==========
-  
+
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return this._intercept('mount', runtime, this._config.mountMode, options, () => {
       if (this._config.mountMode === 'override') {
@@ -223,7 +223,7 @@ export class TestableBlock implements IRuntimeBlock {
       return this._wrapped.mount(runtime, options);
     });
   }
-  
+
   next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return this._intercept('next', runtime, this._config.nextMode, options, () => {
       if (this._config.nextMode === 'override') {
@@ -232,7 +232,7 @@ export class TestableBlock implements IRuntimeBlock {
       return this._wrapped.next(runtime, options);
     });
   }
-  
+
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return this._intercept('unmount', runtime, this._config.unmountMode, options, () => {
       if (this._config.unmountMode === 'override') {
@@ -241,7 +241,7 @@ export class TestableBlock implements IRuntimeBlock {
       return this._wrapped.unmount(runtime, options);
     });
   }
-  
+
   dispose(runtime: IScriptRuntime): void {
     this._intercept('dispose', runtime, this._config.disposeMode, undefined, () => {
       if (this._config.disposeMode === 'override') {
@@ -251,15 +251,32 @@ export class TestableBlock implements IRuntimeBlock {
       this._wrapped.dispose(runtime);
     });
   }
-  
+
   getBehavior<B extends IRuntimeBehavior>(
     behaviorType: new (...args: any[]) => B
   ): B | undefined {
     return this._wrapped.getBehavior(behaviorType);
   }
-  
+
+  findFragment<T extends ICodeFragment = ICodeFragment>(
+    type: string | number,
+    predicate?: (f: ICodeFragment) => boolean
+  ): T | undefined {
+    return this._wrapped.findFragment?.(type as any, predicate);
+  }
+
+  filterFragments<T extends ICodeFragment = ICodeFragment>(
+    type: string | number
+  ): T[] {
+    return this._wrapped.filterFragments?.(type as any) ?? [];
+  }
+
+  hasFragment(type: string | number): boolean {
+    return this._wrapped.hasFragment?.(type as any) ?? false;
+  }
+
   // ========== Private Helpers ==========
-  
+
   private _intercept<R>(
     method: keyof IRuntimeBlock,
     runtime: IScriptRuntime,
@@ -274,13 +291,13 @@ export class TestableBlock implements IRuntimeBlock {
       timestamp: Date.now(),
       duration: 0,
     };
-    
+
     try {
       if (mode === 'ignore') {
         call.returnValue = method === 'dispose' ? undefined : [];
         return call.returnValue as R;
       }
-      
+
       const result = execute();
       call.returnValue = result;
       return result;

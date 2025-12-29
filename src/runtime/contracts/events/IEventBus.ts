@@ -1,6 +1,6 @@
-import { IEvent } from './events/IEvent';
-import { IScriptRuntime } from './IScriptRuntime';
-import { IEventHandler } from './events/IEventHandler';
+import { IEvent } from './IEvent';
+import { IScriptRuntime } from '../IScriptRuntime';
+import { IEventHandler } from './IEventHandler';
 
 /**
  * Simple callback type for UI event listeners that don't produce actions.
@@ -18,15 +18,15 @@ export interface IEventBus {
         ownerId: string,
         priority?: number
     ): () => void;
-    
+
     /**
      * Register a simple callback for event notifications.
      * Used for UI components that need to react to events without producing actions.
      * Returns an unsubscribe function.
      */
     on(eventName: string, callback: EventCallback, ownerId: string): () => void;
-    
+
     unregisterById(handlerId: string): void;
     unregisterByOwner(ownerId: string): void;
-    dispatch(event: IEvent, runtime: IScriptRuntime): void;
+    dispatch(event: IEvent, runtime: IScriptRuntime): import('../IRuntimeAction').IRuntimeAction[];
 }

@@ -1,22 +1,24 @@
-import { IRuntimeBlockStrategy } from "../IRuntimeBlockStrategy";
-import { IRuntimeBehavior } from "../IRuntimeBehavior";
-import { IRuntimeBlock } from "../IRuntimeBlock";
-import { IScriptRuntime } from "../IScriptRuntime";
+import { IRuntimeBlockStrategy } from "../../contracts/IRuntimeBlockStrategy";
+import { IRuntimeBehavior } from "../../contracts/IRuntimeBehavior";
+import { IRuntimeBlock } from "../../contracts/IRuntimeBlock";
+import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { BlockKey } from "../../../core/models/BlockKey";
 import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { RuntimeBlock } from "../../RuntimeBlock";
 import { FragmentType } from "../../../core/models/CodeFragment";
-import { RoundsFragment } from "../../fragments/RoundsFragment";
-import { RepFragment } from "../../fragments/RepFragment";
+import { RoundsFragment } from "../fragments/RoundsFragment";
+import { RepFragment } from "../fragments/RepFragment";
 import { BlockContext } from "../../BlockContext";
-import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
 import { MemoryTypeEnum } from "../../models/MemoryTypeEnum";
-import { TypedMemoryReference } from "../IMemoryReference";
-import { LoopCoordinatorBehavior, LoopType } from "../../behaviors/LoopCoordinatorBehavior";
 import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
+import { BoundLoopBehavior } from "../../behaviors/BoundLoopBehavior";
+import { ChildIndexBehavior } from "../../behaviors/ChildIndexBehavior";
+import { RoundPerLoopBehavior } from "../../behaviors/RoundPerLoopBehavior";
+import { RepSchemeBehavior } from "../../behaviors/RepSchemeBehavior";
 import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
+import { ChildRunnerBehavior } from "../../behaviors/ChildRunnerBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -28,13 +30,6 @@ function getExerciseId(statement: ICodeStatement): string {
 
 /**
  * Strategy that creates rounds-based parent blocks for multi-round workouts.
- * Matches statements with Rounds fragments but NOT Timer fragments.
- * Timer takes precedence over Rounds.
- *
- * This strategy now supports optional `behavior.fixed_rounds` hint from dialects.
- * The structural fallback is preserved for backward compatibility.
- *
- * Implementation Status: COMPLETE - Match logic uses hints with structural fallback
  */
 export class RoundsStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
@@ -47,18 +42,10 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         }
 
         const statement = statements[0];
-        const fragments = statement.fragments;
-
-        // Check for behavior.fixed_rounds hint from dialect
         const isFixedRounds = statement.hints?.has('behavior.fixed_rounds') ?? false;
-
-        // Structural fallback: Has rounds fragment
         const hasRounds = statement.hasFragment(FragmentType.Rounds);
-
-        // Exclusion: Timer presence means higher-precedence strategy should handle
         const hasTimer = statement.hasFragment(FragmentType.Timer);
 
-        // Match if (fixed_rounds hint OR rounds fragment) AND no timer
         return (isFixedRounds || hasRounds) && !hasTimer;
     }
 
@@ -67,88 +54,49 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const fragmentGroups = distributor.distribute(code[0]?.fragments || [], "Rounds");
 
         const exerciseId = getExerciseId(code[0]);
-
-        // Extract rounds configuration from fragments
         const roundsFragment = code[0]?.findFragment<RoundsFragment>(FragmentType.Rounds);
 
         if (!roundsFragment) {
-            console.error('RoundsStrategy: No Rounds fragment found');
             throw new Error('RoundsStrategy requires Rounds fragment');
         }
 
-        // Extract rep scheme from fragments
-        // Two patterns:
-        // 1. RoundsFragment with array value (legacy): value = [21, 15, 9]
-        // 2. RoundsFragment with count + separate RepFragments: value = 3, plus RepFragment(21), RepFragment(15), RepFragment(9)
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
         if (Array.isArray(roundsFragment.value)) {
-            // Legacy pattern: RoundsFragment contains full rep scheme
             repScheme = roundsFragment.value as number[];
             totalRounds = repScheme.length;
         } else if (typeof roundsFragment.value === 'number') {
             totalRounds = roundsFragment.value;
-
-            // Check for separate RepFragments (modern parser pattern)
             const repFragments = code[0]?.filterFragments<RepFragment>(FragmentType.Rep) || [];
             if (repFragments.length > 0) {
-                // Build rep scheme from RepFragments
                 repScheme = repFragments.map(f => f.value as number);
-                // totalRounds stays as specified in RoundsFragment
-                // Rep scheme cycles via modulo if totalRounds > repScheme.length
             }
         }
 
-        // Get children IDs
-        let children = code[0]?.children || [];
+        const children = code[0]?.children || [];
 
-        if (children.length === 0 && code.length > 1) {
-            const siblingIds = code.slice(1).map(s => s.id as number);
-            children = [siblingIds];
-        } else if (children.length === 0) {
-            throw new Error(`RoundsStrategy requires child statements to execute.`);
-        }
-
-        // Create BlockContext
         const blockKey = new BlockKey();
         const blockId = blockKey.toString();
         const context = new BlockContext(runtime, blockId, exerciseId);
 
-        // Create Behaviors
         const behaviors: IRuntimeBehavior[] = [];
         behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
-        const loopType = repScheme ? LoopType.REP_SCHEME : LoopType.FIXED;
-        const loopCoordinator = new LoopCoordinatorBehavior({
-            childGroups: children,
-            loopType,
-            totalRounds,
-            repScheme,
-            onRoundStart: (rt, roundIndex) => {
-                if (repScheme && repScheme.length > 0) {
-                    // Use modulo to cycle through rep scheme
-                    // E.g., 21-15-9 with 5 rounds: round 0→21, round 1→15, round 2→9, round 3→21, round 4→15
-                    const schemeIndex = roundIndex % repScheme.length;
-                    const currentReps = repScheme[schemeIndex];
-                    const refs = rt.memory.search({
-                        type: MemoryTypeEnum.METRIC_REPS,
-                        ownerId: blockId,
-                        id: null,
-                        visibility: 'inherited'
-                    });
-                    if (refs.length > 0) {
-                        const ref = refs[0] as TypedMemoryReference<number>;
-                        rt.memory.set(ref, currentReps);
-                    }
-                }
-            }
-        });
-        behaviors.push(loopCoordinator);
+        // 1. Loop Behaviors
+        behaviors.push(new ChildIndexBehavior(children.length));
+        behaviors.push(new RoundPerLoopBehavior());
 
+        if (repScheme && repScheme.length > 0) {
+            behaviors.push(new RepSchemeBehavior(repScheme));
+        }
 
-        // Add HistoryBehavior with debug metadata stamped at creation time
-        // This ensures analytics can identify the workout structure
+        behaviors.push(new BoundLoopBehavior(totalRounds));
+
+        // 2. Child Execution
+        behaviors.push(new ChildRunnerBehavior(children));
+
+        // 3. History Behavior
         behaviors.push(new HistoryBehavior({
             label: "Rounds",
             debugMetadata: createSpanMetadata(
@@ -156,19 +104,12 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                 {
                     strategyUsed: 'RoundsStrategy',
                     totalRounds,
-                    loopType,
                     ...(repScheme && { repScheme })
                 }
             )
         }));
 
-        // Completion Behavior
-        behaviors.push(new CompletionBehavior(
-            (_rt, block) => loopCoordinator.isComplete(_rt, block),
-            ['rounds:complete']
-        ));
-
-        // Allocate public reps metric if rep scheme
+        // Allocate initial reps if scheme exists
         if (repScheme && repScheme.length > 0) {
             context.allocate(
                 MemoryTypeEnum.METRIC_REPS,

@@ -10,6 +10,7 @@ import { IEventBus } from './events/IEventBus';
 import { IRuntimeStack } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
+import { IRuntimeAction } from './IRuntimeAction';
 
 export interface IScriptRuntime {
     script: WodScript;
@@ -42,11 +43,18 @@ export interface IScriptRuntime {
     popBlock(options?: BlockLifecycleOptions): IRuntimeBlock | undefined;
 
     /**
+     * Queue actions for processing. Actions are processed in order.
+     * Optional method - may not be implemented by all runtimes (e.g., test mocks).
+     */
+    queueActions?(actions: IRuntimeAction[]): void;
+
+    /**
      * Checks if the runtime execution has completed.
      * Returns true if the stack is empty and execution has finished.
      */
     isComplete(): boolean;
 
     handle(event: IEvent): void;
+    dispose(): void;
 }
 

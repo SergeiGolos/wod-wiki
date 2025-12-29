@@ -58,11 +58,11 @@ function formatTimestamp(timestamp: number): string {
  */
 function formatDuration(ms: number): string {
   if (!ms || ms < 0) return '';
-  
+
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  
+
   if (minutes > 0) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
@@ -99,15 +99,15 @@ function StatusDot({ status, size }: { status: IDisplayItem['status'], size: Vis
     skipped: 'bg-gray-400',
     pending: 'bg-gray-300'
   };
-  
+
   const sizeClasses = {
     compact: 'w-1.5 h-1.5',
     normal: 'w-2 h-2',
     focused: 'w-2.5 h-2.5'
   };
-  
+
   return (
-    <span 
+    <span
       className={cn(
         'inline-block rounded-full flex-shrink-0 transition-all',
         colorMap[status],
@@ -138,7 +138,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
   // Configuration based on size
   const config = {
     compact: {
-      padding: 'px-1 py-0.5',
+      // Padding will be controlled by inline styles using CSS variables
       indent: 12,
       baseIndent: 8,
       fontSize: 'text-xs md:text-sm',
@@ -146,7 +146,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       durationWidth: 'min-w-[32px]'
     },
     normal: {
-      padding: 'px-2 py-1',
+      // Padding will be controlled by inline styles using CSS variables
       indent: 16,
       baseIndent: 12,
       fontSize: 'text-sm md:text-base',
@@ -154,7 +154,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
       durationWidth: 'min-w-[40px]'
     },
     focused: {
-      padding: 'px-3 py-2',
+      // Padding will be controlled by inline styles using CSS variables
       indent: 20,
       baseIndent: 16,
       fontSize: 'text-base md:text-lg',
@@ -165,30 +165,28 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
 
   const currentConfig = config[size];
   const paddingLeft = item.depth * currentConfig.indent;
-  
+
   const handleClick = () => {
     onClick?.(item);
   };
-  
+
   const handleMouseEnter = () => {
     onHover?.(item);
   };
-  
+
   const handleMouseLeave = () => {
     onHover?.(null);
   };
-  
+
   // Calculate duration from timestamps if not provided
-  const duration = item.duration ?? 
+  const duration = item.duration ??
     (item.startTime && item.endTime ? item.endTime - item.startTime : undefined);
-  
+
   return (
     <div
       className={cn(
         // Base styles
-        'flex items-center gap-2 border-l-2 transition-all',
-        // Padding based on size
-        currentConfig.padding,
+        'flex items-center gap-2 border-l-2 transition-all px-2',
         // Status-based left border color
         getStatusClasses(item),
         // Header styling
@@ -204,7 +202,12 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
         // Custom className
         className
       )}
-      style={{ paddingLeft: `${paddingLeft + currentConfig.baseIndent}px` }}
+      style={{
+        paddingLeft: `${paddingLeft + currentConfig.baseIndent}px`,
+        minHeight: 'var(--wod-preview-statement-height)',
+        paddingTop: 'var(--wod-preview-statement-gap)',
+        paddingBottom: 'var(--wod-preview-statement-gap)',
+      }}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -213,12 +216,12 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
     >
       {/* Status indicator dot */}
       <StatusDot status={item.status} size={size} />
-      
+
       {/* Main content: fragments */}
       <div className="flex-1 min-w-0">
         {item.fragments.length > 0 ? (
-          <FragmentVisualizer 
-            fragments={item.fragments} 
+          <FragmentVisualizer
+            fragments={item.fragments}
             size={size}
             filter={filter}
             className={cn("inline-flex", currentConfig.fontSize)}
@@ -236,7 +239,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
           </span>
         )}
       </div>
-      
+
       {/* Timestamp column */}
       {showTimestamp && item.startTime && (
         <span className={cn(
@@ -246,7 +249,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
           {formatTimestamp(item.startTime)}
         </span>
       )}
-      
+
       {/* Duration column */}
       {showDuration && duration !== undefined && (
         <span className={cn(
@@ -257,7 +260,7 @@ export const UnifiedItemRow: React.FC<UnifiedItemRowProps> = ({
           {formatDuration(duration)}
         </span>
       )}
-      
+
       {/* Custom actions slot */}
       {actions && (
         <div className="flex-shrink-0 flex items-center gap-1">
