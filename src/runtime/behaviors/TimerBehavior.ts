@@ -1,7 +1,6 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IEvent } from '../contracts/events/IEvent';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TimeSpan } from '../models/TimeSpan';
 import { TimerStateManager } from './TimerStateManager';
