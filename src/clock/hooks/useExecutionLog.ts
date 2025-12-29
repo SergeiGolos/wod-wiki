@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { useTrackedSpans } from './useExecutionSpans';
 

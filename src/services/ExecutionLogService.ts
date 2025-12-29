@@ -1,9 +1,9 @@
-import { IScriptRuntime } from '../runtime/IScriptRuntime';
+import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../runtime/models/RuntimeSpan';
 import { v4 as uuidv4 } from 'uuid';
-import { IEvent } from '../runtime/IEvent';
+import { IEvent } from '../runtime/contracts/events/IEvent';
 
 /**
  * Service to manage execution logging and persistence.

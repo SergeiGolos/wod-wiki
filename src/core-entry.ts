@@ -33,16 +33,16 @@ export { RuntimeBlock } from './runtime/RuntimeBlock';
 export { BlockContext } from './runtime/BlockContext';
 
 // Runtime interfaces
-export type { IScriptRuntime } from './runtime/IScriptRuntime';
+export type { IScriptRuntime } from './runtime/contracts/IScriptRuntime';
 export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
-export type { IRuntimeAction } from './runtime/IRuntimeAction';
-export type { IRuntimeMemory } from './runtime/IRuntimeMemory';
+export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
+export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
 export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
 export type { IMemoryReference, TypedMemoryReference } from './runtime/contracts/IMemoryReference';
-export type { IEvent } from './runtime/IEvent';
-export type { IEventHandler } from './runtime/IEventHandler';
+export type { IEvent } from './runtime/contracts/events/IEvent';
+export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 
-export type { IBlockContext } from './runtime/IBlockContext';
+export type { IBlockContext } from './runtime/contracts/IBlockContext';
 
 // Runtime actions
 export * from './runtime/PushBlockAction';

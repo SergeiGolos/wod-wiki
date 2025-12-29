@@ -3,7 +3,7 @@ import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { RuntimeProvider as ClockRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { WodIndexPanel } from '../layout/WodIndexPanel';
-import { IScriptRuntime } from '../../runtime/IScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 
 export interface TrackPanelProps {
