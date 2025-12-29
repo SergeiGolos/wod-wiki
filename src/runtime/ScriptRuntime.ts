@@ -228,18 +228,28 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this._hooks.onBeforePop?.(currentBlock);
 
+        // 1. Get unmount actions before popping
         const unmountActions = currentBlock.unmount(this, lifecycleOptions) ?? [];
 
+        // 2. Pop from stack
         const popped = this.stack.pop();
         if (!popped) {
             return undefined;
         }
 
+        // 3. Dispatch pop event
         this.eventBus.dispatch(new StackPopEvent(this.stack.blocks), this);
 
         const ownerKey = this.resolveOwnerKey(popped);
 
+        // 4. End tracking span
         this._tracker.endSpan?.(ownerKey);
+
+        // 5. Execute unmount actions IMMEDIATELY (before dispose)
+        // This ensures all cleanup actions complete before parent.next() is called
+        this.executeActionsImmediately(unmountActions);
+
+        // 6. Dispose and cleanup - child is now fully unmounted
         popped.dispose(this);
         popped.context?.release?.();
         this._hooks.unregisterByOwner?.(ownerKey);
@@ -250,8 +260,8 @@ export class ScriptRuntime implements IScriptRuntime {
             stackDepth: this.stack.count,
         });
 
-        this.queueActions(unmountActions);
-
+        // 7. NOW call parent.next() - child is completely gone
+        // Parent can make decisions knowing the child is fully cleaned up
         const parent = this.stack.current;
         if (parent) {
             const nextActions = parent.next(this, lifecycleOptions) ?? [];
@@ -261,6 +271,16 @@ export class ScriptRuntime implements IScriptRuntime {
         this._hooks.onAfterPop?.(popped);
 
         return popped;
+    }
+
+    /**
+     * Execute actions immediately without queuing.
+     * Used during popBlock to ensure unmount completes before parent.next().
+     */
+    private executeActionsImmediately(actions: IRuntimeAction[]): void {
+        for (const action of actions) {
+            action.do(this);
+        }
     }
 
     /**

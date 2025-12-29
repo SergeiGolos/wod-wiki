@@ -1,3 +1,6 @@
+/* Import WOD Card Design Tokens */
+@import './editor/inline-cards/styles/wod-card-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -318,13 +321,63 @@ th {
   border: none;
 }
 
+/* ============================================
+ * WOD Block Card Specific Styles
+ * ============================================ */
+
+/* WOD Fence line styling - minimal appearance */
+.wod-fence-line {
+  background-color: transparent !important;
+}
+
+/* Hide fence text when not editing */
+.wod-fence-text-hidden {
+  opacity: 0.1;
+  font-size: 0.7em;
+}
+
+/* Show fence text when editing */
+.wod-fence-text-visible {
+  opacity: 0.5;
+}
+
+/* WOD content lines */
+.wod-block-content-line {
+  /* Lines are styled with 50% width in overlay system */
+}
+
+.wod-code-text {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+}
+
+/* WOD Preview Panel */
+.wod-preview-panel {
+  min-height: var(--wod-overlay-min-height);
+}
+
+.wod-preview-header,
+.wod-preview-footer {
+  display: flex;
+  align-items: center;
+}
+
+/* WOD card zones */
+.wod-block-card-header {
+  /* Header zone before opening fence */
+}
+
+.wod-block-card-footer {
+  /* Minimal footer zone for spacing */
+}
+
 /* Responsive - single column on mobile */
 @media (max-width: 768px) {
+
   .frontmatter-card-split,
   .wod-card-split {
     grid-template-columns: 1fr;
   }
-  
+
   .frontmatter-card-source,
   .wod-card-source {
     border-right: none;

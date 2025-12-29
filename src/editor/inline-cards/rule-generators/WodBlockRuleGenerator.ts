@@ -12,10 +12,10 @@
 
 import { Range } from 'monaco-editor';
 import React, { useRef, useLayoutEffect } from 'react';
-import type { 
-  CardRuleGenerator, 
-  WodBlockContent, 
-  RowRule, 
+import type {
+  CardRuleGenerator,
+  WodBlockContent,
+  RowRule,
   StyledRowRule,
   ViewZoneRule,
   OverlayRowRule,
@@ -23,6 +23,7 @@ import type {
   RuleGenerationContext,
 } from '../row-types';
 import { WodScriptVisualizer } from '../../../components/WodScriptVisualizer';
+import { getCachedCSSVariable } from '../utils/css-helpers';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
   cardType = 'wod-block' as const;
@@ -37,14 +38,14 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     const startLine = sourceRange.startLineNumber;
     const endLine = sourceRange.endLineNumber;
     const contentLineCount = endLine - startLine - 1; // Lines between fences
-    
+
     // Determine title based on parse state
     const { parseState, statements } = content;
     let title = 'Workout';
     let statusIcon = 'timer';
-    
+
     if (parseState === 'parsed') {
-      title = statements.length > 0 
+      title = statements.length > 0
         ? `Workout (${statements.length} statement${statements.length !== 1 ? 's' : ''})`
         : 'Workout (empty)';
     } else if (parseState === 'error') {
@@ -66,26 +67,32 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
       activeStatementIndex = statements.findIndex(s => s.meta?.line === relativeCursorLine);
     }
 
-    // Calculate heights for preview panel
-    // These values should match the actual rendered sizes of WodPreviewPanel
-    const lineHeight = 22; // Monaco line height
-    const headerZoneHeight = 40; // ViewZone header (increased for visual balance)
-    const previewHeaderHeight = 48; // Header with Run button (py-2 = 8px*2 + content ~32px)
-    const previewFooterHeight = 36; // Footer with hints (py-2 = 8px*2 + text ~20px)
-    const statementItemHeight = 48; // Each statement row (p-2 + border + content + space-y-2 gap)
-    const bodyPadding = 24; // p-3 = 12px * 2
+    // Calculate heights using CSS custom properties (design tokens)
+    // This ensures consistency between TypeScript calculations and CSS rendering
+    const lineHeight = 22; // Monaco's fixed line height
+    const headerZoneHeight = getCachedCSSVariable('--wod-card-header-height', 32);
+    const previewHeaderHeight = getCachedCSSVariable('--wod-preview-header-height', 40);
+    const previewFooterHeight = getCachedCSSVariable('--wod-preview-footer-height', 28);
+    const statementItemHeight = getCachedCSSVariable('--wod-preview-statement-height', 40);
+    const statementGap = getCachedCSSVariable('--wod-preview-statement-gap', 4);
+    const bodyPadding = getCachedCSSVariable('--wod-preview-body-padding', 12);
     const statementCount = statements?.length || 0;
-    
+
     // Calculate total height needed for preview panel content
-    // Use measured height if available, otherwise estimate
-    let previewContentHeight;
+    // Use measured height if available (from ResizeObserver), otherwise estimate
+    let previewContentHeight: number;
     if (measuredHeight !== undefined && measuredHeight > 0) {
       previewContentHeight = measuredHeight;
     } else {
-       const statementsHeight = Math.max(60, statementCount * statementItemHeight);
-       previewContentHeight = previewHeaderHeight + statementsHeight + bodyPadding + previewFooterHeight;
+      // Calculate statements area height
+      const statementsHeight = statementCount > 0
+        ? (statementCount * statementItemHeight) + ((statementCount - 1) * statementGap)
+        : 60; // Minimum height for empty state
+
+      // Total: header + body padding + statements + body padding + footer
+      previewContentHeight = previewHeaderHeight + bodyPadding + statementsHeight + bodyPadding + previewFooterHeight;
     }
-    
+
     // Calculate available height from visible lines:
     // - Opening fence line (styled minimal)
     // - Content lines (between fences)
@@ -94,17 +101,19 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     const contentLinesHeight = contentLineCount * lineHeight;
     const closingFenceHeight = lineHeight;
     const visibleLinesHeight = openingFenceHeight + contentLinesHeight + closingFenceHeight;
-    
-    // The footer ViewZone needs to provide enough extra space so that:
-    // headerZoneHeight + visibleLinesHeight + footerZoneHeight >= previewContentHeight
-    // 
-    // We want the preview panel to fit exactly without scrolling, and the total
-    // card area (header + visible lines + footer) should equal the preview panel height.
-    const footerZoneHeight = Math.max(8, previewContentHeight - headerZoneHeight - visibleLinesHeight);
-    
+
+    // Calculate footer zone height to ensure the code block area matches the preview panel height
+    // This prevents the preview panel from scrolling by expanding the editor area to accommodate it
+    // Formula: Ensure total card area (header + visible lines + footer) >= preview content height
+    const minFooterPadding = getCachedCSSVariable('--wod-card-footer-padding', 4);
+    const footerZoneHeight = Math.max(
+      minFooterPadding,
+      previewContentHeight - headerZoneHeight - visibleLinesHeight
+    );
+
     // Total card height = header + visible lines (opening fence + content + closing fence) + footer
     const totalCardHeight = headerZoneHeight + visibleLinesHeight + footerZoneHeight;
-    
+
     // Line before opening fence (where header will be positioned)
     const lineBeforeOpeningFence = Math.max(0, startLine - 1);
 
@@ -163,7 +172,7 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
         overrideType: 'overlay',
         position: 'right',
         overlayId: `wod-preview-${startLine}`,
-        spanLines: { 
+        spanLines: {
           startLine: startLine, // Include opening fence
           endLine: endLine // Include closing fence
         },
@@ -315,7 +324,10 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
     // Header with Run button
     React.createElement('div', {
       key: 'header',
-      className: 'flex items-center justify-between px-4 py-2 border-b border-border bg-primary/5',
+      className: 'wod-preview-header flex items-center justify-between px-4 border-b border-border bg-primary/5',
+      style: {
+        height: 'var(--wod-preview-header-height)',
+      },
     }, [
       React.createElement('div', {
         key: 'title-section',
@@ -323,9 +335,9 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
       }, [
         React.createElement('span', { key: 'icon', className: 'text-primary text-lg' }, '⏱️'),
         React.createElement('span', { key: 'title', className: 'font-semibold text-foreground' }, 'Workout Preview'),
-        React.createElement('span', { 
-          key: 'count', 
-          className: 'text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full' 
+        React.createElement('span', {
+          key: 'count',
+          className: 'text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full'
         }, `${statements.length} step${statements.length !== 1 ? 's' : ''}`),
       ]),
       // Run Button
@@ -341,31 +353,38 @@ const WodPreviewPanel: React.FC<WodPreviewPanelProps> = ({
         React.createElement('span', { key: 'label' }, 'Run'),
       ]),
     ]),
-    
+
     // Statements list with fragments
     React.createElement('div', {
       key: 'body',
-      className: 'overflow-hidden px-3 flex flex-col justify-center',
+      className: 'wod-preview-body overflow-hidden flex flex-col justify-center',
+      style: {
+        padding: 'var(--wod-preview-body-padding)',
+        gap: 'var(--wod-preview-statement-gap)',
+      },
     }, [
-        React.createElement(WodScriptVisualizer, {
-            key: 'visualizer',
-            statements: statements,
-            activeStatementIds: activeStatementIndex !== -1 && statements[activeStatementIndex] ? new Set([statements[activeStatementIndex].id]) : undefined,
-            onHover: (id: number | null) => {
-                if (id !== null && onHover) {
-                    const stmt = statements.find(s => s.id === id);
-                    if (stmt?.meta?.line !== undefined) {
-                        onHover(stmt.meta.line);
-                    }
-                }
+      React.createElement(WodScriptVisualizer, {
+        key: 'visualizer',
+        statements: statements,
+        activeStatementIds: activeStatementIndex !== -1 && statements[activeStatementIndex] ? new Set([statements[activeStatementIndex].id]) : undefined,
+        onHover: (id: number | null) => {
+          if (id !== null && onHover) {
+            const stmt = statements.find(s => s.id === id);
+            if (stmt?.meta?.line !== undefined) {
+              onHover(stmt.meta.line);
             }
-        })
+          }
+        }
+      })
     ]),
-    
+
     // Footer with stats
     React.createElement('div', {
       key: 'footer',
-      className: 'px-4 py-2 border-t border-border text-xs text-muted-foreground bg-muted/10 flex items-center justify-between',
+      className: 'wod-preview-footer px-4 border-t border-border text-xs text-muted-foreground bg-muted/10 flex items-center justify-between',
+      style: {
+        height: 'var(--wod-preview-footer-height)',
+      },
     }, [
       React.createElement('span', { key: 'hint' }, 'Click Run to start workout'),
       React.createElement('span', { key: 'shortcut', className: 'font-mono' }, '⌘⏎'),

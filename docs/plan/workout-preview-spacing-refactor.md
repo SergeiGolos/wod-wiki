@@ -1,5 +1,10 @@
 # Workout Preview Spacing Refactor Plan
 
+> **✅ STATUS: COMPLETED - 2025-12-29**  
+> See [Implementation Summary](../implementation/workout-preview-spacing-refactor-summary.md) for details.  
+> See [Visual Guide](../implementation/workout-preview-spacing-visual-guide.md) for before/after comparison.
+
+
 ## Current Problem
 
 The `WodBlockRuleGenerator.ts` file currently calculates padding and heights through a series of manual calculations (lines 69-106) that:
