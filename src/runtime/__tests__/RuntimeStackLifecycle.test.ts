@@ -10,7 +10,7 @@ import { JitCompiler } from '../compiler/JitCompiler';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../events/EventBus';
 
 const createAction = (name: string, callOrder: string[]): IRuntimeAction => ({
   type: 'test-action',

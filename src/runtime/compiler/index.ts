@@ -9,7 +9,7 @@ export { FragmentCompilationManager } from './FragmentCompilationManager';
 export type { IFragmentCompiler } from './FragmentCompilationManager';
 export { FragmentMetricCollector } from './FragmentMetricCollector';
 export type { IFragmentMetricCollector } from './FragmentMetricCollector';
-export { FragmentCompilers } from './FragmentCompilers';
+export * from './FragmentCompilers';
 
 // Strategies
 export * from './strategies';

@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from 'bun:test';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
-import { PushBlockAction } from '../PushBlockAction';
+import { PushBlockAction } from '../actions/stack/PushBlockAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock, createMockClock } from '../RuntimeClock';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../events/EventBus';
 
 const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOptions) => void): IRuntimeBlock => {
   const key = new BlockKey();

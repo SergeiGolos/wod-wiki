@@ -3,7 +3,7 @@ export type { IScriptRuntime } from './IScriptRuntime';
 export type { IRuntimeBlock, BlockLifecycleOptions } from './IRuntimeBlock';
 export type { IRuntimeAction } from './IRuntimeAction';
 export type { IRuntimeBehavior } from './IRuntimeBehavior';
-export type { IRuntimeMemory, MemorySearchCriteria, MemoryEventDispatcher, Nullable } from './IRuntimeMemory';
+export type { IRuntimeMemory, MemorySearchCriteria, Nullable } from './IRuntimeMemory';
 export type { IRuntimeStack } from './IRuntimeStack';
 export type { IRuntimeClock } from './IRuntimeClock';
 export type { IRuntimeBlockStrategy } from './IRuntimeBlockStrategy';

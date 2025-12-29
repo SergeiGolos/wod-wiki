@@ -31,23 +31,23 @@ import {
   RoundsFragmentCompiler,
   TextFragmentCompiler,
   TimerFragmentCompiler
-} from '../../src/runtime/FragmentCompilers';
-import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
-import { ActionFragment } from '../../src/fragments/ActionFragment';
-import { DistanceFragment } from '../../src/fragments/DistanceFragment';
-import { EffortFragment } from '../../src/fragments/EffortFragment';
-import { IncrementFragment } from '../../src/fragments/IncrementFragment';
-import { LapFragment } from '../../src/fragments/LapFragment';
-import { RepFragment } from '../../src/fragments/RepFragment';
-import { ResistanceFragment } from '../../src/fragments/ResistanceFragment';
-import { RoundsFragment } from '../../src/fragments/RoundsFragment';
-import { TextFragment } from '../../src/fragments/TextFragment';
-import { TimerFragment } from '../../src/fragments/TimerFragment';
-import { ICodeStatement } from '../../src/CodeStatement';
+} from '@/runtime/compiler/FragmentCompilers';
+import { FragmentCompilationManager } from '@/runtime/compiler/FragmentCompilationManager';
+import { ActionFragment } from '@/runtime/compiler/fragments/ActionFragment';
+import { DistanceFragment } from '@/runtime/compiler/fragments/DistanceFragment';
+import { EffortFragment } from '@/runtime/compiler/fragments/EffortFragment';
+import { IncrementFragment } from '@/runtime/compiler/fragments/IncrementFragment';
+import { LapFragment } from '@/runtime/compiler/fragments/LapFragment';
+import { RepFragment } from '@/runtime/compiler/fragments/RepFragment';
+import { ResistanceFragment } from '@/runtime/compiler/fragments/ResistanceFragment';
+import { RoundsFragment } from '@/runtime/compiler/fragments/RoundsFragment';
+import { TextFragment } from '@/runtime/compiler/fragments/TextFragment';
+import { TimerFragment } from '@/runtime/compiler/fragments/TimerFragment';
+import { ICodeStatement } from '@/core/models/CodeStatement';
 import { createMockRuntime } from '../helpers/test-utils';
-import { MetricValue } from '../../src/runtime/RuntimeMetric';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
-import { CodeMetadata } from '../../src/CodeMetadata';
+import { MetricValue } from '@/runtime/models/RuntimeMetric';
+import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 describe('Fragment Compilation System', () => {
   

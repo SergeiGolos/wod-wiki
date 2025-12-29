@@ -4,9 +4,9 @@ import { IntervalStrategy } from '../IntervalStrategy';
 import { FragmentType } from '../../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../../behaviors/LoopCoordinatorBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { SoundBehavior } from '../../behaviors/SoundBehavior';
-import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
+import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
+import { SoundBehavior } from '@/runtime/behaviors/SoundBehavior';
+import { HistoryBehavior } from '@/runtime/behaviors/HistoryBehavior';
 
 /**
  * IntervalStrategy Contract Tests (Migrated to Test Harness)

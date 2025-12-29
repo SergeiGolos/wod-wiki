@@ -1,10 +1,10 @@
-import { JitCompiler } from './JitCompiler';
-import { WodScript } from '../parser/WodScript';
-import { IEvent } from "./IEvent";
+import { JitCompiler } from '../compiler/JitCompiler';
+import { WodScript } from '../../parser/WodScript';
+import { IEvent } from "./events/IEvent";
 import { IRuntimeMemory } from './IRuntimeMemory';
-import { RuntimeError } from './actions/ErrorAction';
+import { RuntimeError } from '../actions/ErrorAction';
 
-import { RuntimeReporter } from '../tracker/ExecutionTracker';
+import { SpanTrackingHandler } from '../../tracker/SpanTrackingHandler';
 
 import { IEventBus } from './events/IEventBus';
 import { IRuntimeStack } from './IRuntimeStack';
@@ -25,10 +25,10 @@ export interface IScriptRuntime {
     readonly errors?: RuntimeError[];
 
     /** 
-     * RuntimeReporter for recording metrics to active spans.
+     * SpanTrackingHandler for recording metrics to active spans.
      * Use this to record metrics, start/end segments, etc.
      */
-    readonly tracker: RuntimeReporter;
+    readonly tracker: SpanTrackingHandler;
 
     /**
      * Pushes a block onto the runtime stack, handling all lifecycle operations.
@@ -49,3 +49,4 @@ export interface IScriptRuntime {
 
     handle(event: IEvent): void;
 }
+

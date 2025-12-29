@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { NextEvent } from '../NextEvent';
+import { NextEvent } from '../events/NextEvent';
 import { IEvent } from '../contracts/events/IEvent';
 
 describe('NextEvent', () => {
