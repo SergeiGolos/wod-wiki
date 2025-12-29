@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { LoopCoordinatorBehavior, LoopType } from '../LoopCoordinatorBehavior';
 import { TimerBehavior } from '../TimerBehavior';
-import { IEvent } from '../../IEvent';
-import { IRuntimeBehavior } from '../../IRuntimeBehavior';
-import { IRuntimeBlock } from '../../IRuntimeBlock';
+import { IEvent } from '../../contracts/events/IEvent';
+import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
+import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 
 /**
  * LoopCoordinatorBehavior Contract Tests (Migrated to Test Harness)

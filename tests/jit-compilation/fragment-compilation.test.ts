@@ -31,23 +31,23 @@ import {
   RoundsFragmentCompiler,
   TextFragmentCompiler,
   TimerFragmentCompiler
-} from '../../src/runtime/FragmentCompilers';
-import { FragmentCompilationManager } from '../../src/runtime/FragmentCompilationManager';
-import { ActionFragment } from '../../src/fragments/ActionFragment';
-import { DistanceFragment } from '../../src/fragments/DistanceFragment';
-import { EffortFragment } from '../../src/fragments/EffortFragment';
-import { IncrementFragment } from '../../src/fragments/IncrementFragment';
-import { LapFragment } from '../../src/fragments/LapFragment';
-import { RepFragment } from '../../src/fragments/RepFragment';
-import { ResistanceFragment } from '../../src/fragments/ResistanceFragment';
-import { RoundsFragment } from '../../src/fragments/RoundsFragment';
-import { TextFragment } from '../../src/fragments/TextFragment';
-import { TimerFragment } from '../../src/fragments/TimerFragment';
-import { ICodeStatement } from '../../src/CodeStatement';
+} from '@/runtime/compiler/FragmentCompilers';
+import { FragmentCompilationManager } from '@/runtime/compiler/FragmentCompilationManager';
+import { ActionFragment } from '@/runtime/compiler/fragments/ActionFragment';
+import { DistanceFragment } from '@/runtime/compiler/fragments/DistanceFragment';
+import { EffortFragment } from '@/runtime/compiler/fragments/EffortFragment';
+import { IncrementFragment } from '@/runtime/compiler/fragments/IncrementFragment';
+import { LapFragment } from '@/runtime/compiler/fragments/LapFragment';
+import { RepFragment } from '@/runtime/compiler/fragments/RepFragment';
+import { ResistanceFragment } from '@/runtime/compiler/fragments/ResistanceFragment';
+import { RoundsFragment } from '@/runtime/compiler/fragments/RoundsFragment';
+import { TextFragment } from '@/runtime/compiler/fragments/TextFragment';
+import { TimerFragment } from '@/runtime/compiler/fragments/TimerFragment';
+import { ICodeStatement } from '@/core/models/CodeStatement';
 import { createMockRuntime } from '../helpers/test-utils';
-import { MetricValue } from '../../src/runtime/RuntimeMetric';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
-import { CodeMetadata } from '../../src/CodeMetadata';
+import { MetricValue } from '@/runtime/models/RuntimeMetric';
+import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 describe('Fragment Compilation System', () => {
   
@@ -686,7 +686,7 @@ describe('Fragment Compilation System', () => {
         const result = manager.compileStatementFragments(statement, runtime);
 
         expect(result.sourceId).toBe('1');
-        expect(result.effort).toBe('Thrusters');
+        expect(result.exerciseId).toBe('Thrusters');
         expect(result.values).toHaveLength(2); // rep + effort tag
       });
 
@@ -722,7 +722,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Pull-ups');
+        expect(result.exerciseId).toBe('Pull-ups');
       });
 
       it('should combine multiple effort fragments with commas', () => {
@@ -738,7 +738,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Thrusters, Pull-ups');
+        expect(result.exerciseId).toBe('Thrusters, Pull-ups');
       });
 
       it('should include text fragments in effort label', () => {
@@ -755,7 +755,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Thrusters, then, Pull-ups');
+        expect(result.exerciseId).toBe('Thrusters, then, Pull-ups');
       });
 
       it('should handle statement with no effort fragments', () => {
@@ -771,7 +771,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBeUndefined();
+        expect(result.exerciseId).toBe('');
         expect(result.values).toHaveLength(2);
       });
 
@@ -804,7 +804,7 @@ describe('Fragment Compilation System', () => {
         const result = manager.compileStatementFragments(statement, runtime);
 
         expect(result.values).toEqual([]);
-        expect(result.effort).toBeUndefined();
+        expect(result.exerciseId).toBe('');
       });
 
       it('should convert statement ID to string for sourceId', () => {
@@ -838,7 +838,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Thrusters');
+        expect(result.exerciseId).toBe('Thrusters');
         expect(result.values).toContainEqual({ type: 'repetitions', value: 21, unit: '' });
         expect(result.values).toContainEqual({ type: 'resistance', value: 95, unit: '#' });
       });
@@ -857,7 +857,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Run');
+        expect(result.exerciseId).toBe('Run');
         expect(result.values).toContainEqual({ type: 'distance', value: 400, unit: 'm' });
       });
 
@@ -878,7 +878,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Burpees');
+        expect(result.exerciseId).toBe('Burpees');
         expect(result.values).toContainEqual({ type: 'time', value: 60000, unit: 'ms' });
         expect(result.values).toContainEqual({ type: 'action', value: undefined, unit: 'action:AMRAP' });
         expect(result.values).toContainEqual({ type: 'repetitions', value: 10, unit: '' });
@@ -918,7 +918,7 @@ describe('Fragment Compilation System', () => {
 
         const result = manager.compileStatementFragments(statement, runtime);
 
-        expect(result.effort).toBe('Rest'); // Only text fragment
+        expect(result.exerciseId).toBe('Rest'); // Only text fragment
         expect(result.values).toHaveLength(1); // Only rep (empty effort returns no metric)
       });
 

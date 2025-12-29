@@ -3,13 +3,14 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE, TimerSpan } from '../../../src/runtime/models/RuntimeSpan';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../../src/runtime/models/RuntimeSpan';
+import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
-import { EventBus } from '../../../src/runtime/EventBus';
+import { EventBus } from '../../../src/runtime/events/EventBus';
 import { WodScript } from '../../../src/parser/WodScript';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
+import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 
 /**
  * Integration tests for runtime hooks.
@@ -127,7 +128,7 @@ describe('Runtime Hooks Integration', () => {
             // We can mutate the spans array if we are careful, or create new TimerSpan
             const updatedSpans = [...span.spans];
             if (updatedSpans.length > 0) {
-                updatedSpans[0] = new TimerSpan(startTime, updatedSpans[0].ended);
+                updatedSpans[0] = new TimeSpan(startTime, updatedSpans[0].ended);
             }
 
             // Set updated span back to memory (triggers notification)
@@ -137,7 +138,7 @@ describe('Runtime Hooks Integration', () => {
             // Calculate elapsed (simulating what useTimerElapsed does)
             const currentSpan = ref.get() as RuntimeSpan;
             // Use result of .total() or manual calculation simulation
-            const elapsed = currentSpan.spans.reduce((total: number, s: TimerSpan) => {
+            const elapsed = currentSpan.spans.reduce((total: number, s: TimeSpan) => {
                 const end = s.ended ?? Date.now();
                 return total + Math.max(0, end - s.started);
             }, 0);

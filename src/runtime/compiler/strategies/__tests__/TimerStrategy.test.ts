@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { RuntimeTestBuilder } from '../../../../../../tests/harness/RuntimeTestBuilder';
+import { RuntimeTestBuilder } from '@/testing/harness';
 import { TimerStrategy } from '../TimerStrategy';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { SoundBehavior } from '../../behaviors/SoundBehavior';
-import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
+import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
+import { SoundBehavior } from '@/runtime/behaviors/SoundBehavior';
+import { HistoryBehavior } from '@/runtime/behaviors/HistoryBehavior';
 
 describe('TimerStrategy (Migrated)', () => {
   const timerStrategy = new TimerStrategy();

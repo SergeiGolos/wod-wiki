@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { BlockContext } from '../../../src/runtime/BlockContext';
-import { IScriptRuntime } from '../../../src/runtime/IScriptRuntime';
+import { IScriptRuntime } from '../../../src/runtime/contracts/IScriptRuntime';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
-import { TypedMemoryReference } from '../../../src/runtime/IMemoryReference';
+import { TypedMemoryReference } from '../../../src/runtime/contracts/IMemoryReference';
 
 describe('BlockContext', () => {
     let runtime: IScriptRuntime;
@@ -13,6 +13,9 @@ describe('BlockContext', () => {
         // Create minimal runtime with memory
         runtime = {
             memory: new RuntimeMemory(),
+            eventBus: {
+                dispatch: () => {},
+            }
         } as unknown as IScriptRuntime;
         
         context = new BlockContext(runtime, ownerId, '');

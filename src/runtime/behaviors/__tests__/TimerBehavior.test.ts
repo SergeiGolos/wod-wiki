@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { BehaviorTestHarness } from '../../../../tests/harness/BehaviorTestHarness';
-import { MockBlock } from '../../../../tests/harness/MockBlock';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { TimerBehavior } from '../TimerBehavior';
 import { BlockLifecycleOptions } from '@/runtime/contracts';
 

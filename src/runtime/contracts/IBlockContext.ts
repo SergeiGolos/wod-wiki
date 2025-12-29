@@ -1,5 +1,5 @@
 import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
-import { MemoryTypeEnum } from './models/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
 import { IAnchorValue } from './IAnchorValue';
 
 /**
@@ -30,19 +30,19 @@ export interface IBlockContext {
      * Used to track memory ownership in RuntimeMemory.
      */
     readonly ownerId: string;
-    
+
     /**
      * The ID of the exercise this block is executing.
      * Used for metric collection and exercise definition lookup.
      */
     readonly exerciseId: string;
-    
+
     /**
      * All memory references allocated by this context.
      * Readonly array to prevent external modification.
      */
     readonly references: ReadonlyArray<IMemoryReference>;
-    
+
     /**
      * Allocate memory for this block's state.
      * 
@@ -53,11 +53,11 @@ export interface IBlockContext {
      * @throws Error if context has been released
      */
     allocate<T>(
-        type: MemoryTypeEnum | string, 
-        initialValue?: T, 
+        type: MemoryTypeEnum | string,
+        initialValue?: T,
         visibility?: 'public' | 'private'
     ): TypedMemoryReference<T>;
-    
+
     /**
      * Get the first memory reference of a specific type.
      * 
@@ -65,7 +65,7 @@ export interface IBlockContext {
      * @returns Memory reference or undefined if not found
      */
     get<T>(type: MemoryTypeEnum | string): TypedMemoryReference<T> | undefined;
-    
+
     /**
      * Get all memory references of a specific type.
      * Useful when multiple memory entries of the same type exist.
@@ -74,7 +74,17 @@ export interface IBlockContext {
      * @returns Array of matching memory references (empty if none found)
      */
     getAll<T>(type: string): TypedMemoryReference<T>[];
-    
+
+    /**
+     * Set the value of a memory reference and dispatch a memory:set event.
+     * Use this method instead of ref.set() to ensure events are dispatched.
+     * 
+     * @param reference The memory reference to update
+     * @param value The new value to set
+     * @throws Error if context has been released
+     */
+    set<T>(reference: TypedMemoryReference<T>, value: T): void;
+
     /**
      * Release all allocated memory references.
      * Must be called by consumer after block disposal.
@@ -83,14 +93,14 @@ export interface IBlockContext {
      * After release, allocate() will throw an error.
      */
     release(): void;
-    
+
     /**
      * Check if this context has been released.
      * 
      * @returns true if release() has been called
      */
     isReleased(): boolean;
-    
+
     /**
      * Get or create an anchor reference with a stable ID.
      * 

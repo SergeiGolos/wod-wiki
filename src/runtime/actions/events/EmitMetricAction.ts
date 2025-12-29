@@ -9,7 +9,7 @@ import { metricsToFragments } from '../utils/metricsToFragments';
  * This action allows behaviors to emit metrics through the action system
  * instead of directly manipulating a collector, maintaining declarative patterns.
  * 
- * Metrics are recorded to the active RuntimeSpan via RuntimeReporter.
+ * Metrics are recorded to the active RuntimeSpan via SpanTrackingHandler.
  * 
  * @example
  * ```typescript

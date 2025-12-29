@@ -1,22 +1,11 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IRuntimeStack } from '../contracts/IRuntimeStack';
-import { IRuntimeMemory, Nullable } from '../contracts/IRuntimeMemory';
-import { IMemoryReference, TypedMemoryReference } from '../contracts/IMemoryReference';
-import { JitCompiler } from '../compiler/JitCompiler';
-import { WodScript, IScript } from '../../parser/WodScript';
-import { IEvent } from '../contracts/events/IEvent';
-import { RuntimeError } from '../actions/ErrorAction';
-import { RuntimeSpan } from '../models/RuntimeSpan';
-import { RuntimeReporter } from '../../tracker/ExecutionTracker';
-import { IEventBus } from '../contracts/events/IEventBus';
-import { MemoryOperation, StackOperation } from './TestableBlock';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { BlockKey } from '../../core/models/BlockKey';
-import { ITestSetupAction } from './actions/ITestSetupAction';
-import { CodeStatement } from '../../core/models/CodeStatement';
-import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { IBlockContext } from '../contracts/IBlockContext';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement, TypedMemoryReference } from "@/core";
+import { IBlockContext, IRuntimeMemory, RuntimeError } from "@/core-entry";
+import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, Nullable } from "@/runtime/contracts";
+import { RuntimeSpan } from "@/runtime/models";
+import { SpanTrackingHandler } from "@/tracker/SpanTrackingHandler";
+import { ITestSetupAction } from "../setup";
+import { MemoryOperation, StackOperation } from "./TestableBlock";
+
 
 // Re-export for backward compatibility
 export type ExecutionRecord = RuntimeSpan;
@@ -248,7 +237,7 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
 
-  get tracker(): RuntimeReporter {
+  get tracker(): SpanTrackingHandler {
     return this._wrapped.tracker;
   }
 
@@ -728,10 +717,6 @@ export class TestableRuntime implements IScriptRuntime {
 
       subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void) {
         return original.subscribe(callback);
-      },
-
-      setEventDispatcher(dispatcher: import('../IRuntimeMemory').MemoryEventDispatcher | null) {
-        original.setEventDispatcher(dispatcher);
       }
     };
   }

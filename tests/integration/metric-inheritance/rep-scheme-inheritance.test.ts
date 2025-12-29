@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
-import { RoundsStrategy, EffortStrategy } from '../../../src/runtime/strategies';
+import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
+import { RoundsStrategy, EffortStrategy } from '../../../src/runtime/compiler/strategies';
 import { MdTimerRuntime } from '../../../src/parser/md-timer';
 import { WodScript } from '../../../src/parser/WodScript';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
+import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
-import { EventBus } from '../../../src/runtime/EventBus';
+import { EventBus } from '../../../src/runtime/events/EventBus';
 
 /**
  * Integration test for metric inheritance via public memory system.

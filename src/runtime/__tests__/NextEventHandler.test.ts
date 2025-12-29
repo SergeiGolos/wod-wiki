@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { NextEventHandler } from '../NextEventHandler';
-import { NextEvent } from '../NextEvent';
+import { NextEventHandler } from '../events/NextEventHandler';
+import { NextEvent } from '../events/NextEvent';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 /**

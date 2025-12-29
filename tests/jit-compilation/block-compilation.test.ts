@@ -6,7 +6,7 @@ import {
   TimeBoundRoundsStrategy,
   IntervalStrategy,
   GroupStrategy
-} from '../../src/runtime/strategies';
+} from '../../src/runtime/compiler/strategies';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';

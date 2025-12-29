@@ -58,9 +58,8 @@ export class TimerStateManager {
             timerConfig
         );
 
-        this.timerRef = runtime.memory.allocate<RuntimeSpan>(
+        this.timerRef = block.context.allocate<RuntimeSpan>(
             RUNTIME_SPAN_TYPE,
-            block.key.toString(),
             span,
             'public'
         );

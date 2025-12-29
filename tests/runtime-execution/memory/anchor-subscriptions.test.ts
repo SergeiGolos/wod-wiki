@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { BlockContext } from '../../../src/runtime/BlockContext';
-import { MemoryTypeEnum } from '../../../src/runtime/MemoryTypeEnum';
-import { IAnchorValue } from '../../../src/runtime/IAnchorValue';
+import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
+import { IAnchorValue } from '../../../src/runtime/contracts/IAnchorValue';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
-import { EventBus } from '../../../src/runtime/EventBus';
+import { EventBus } from '../../../src/runtime/events/EventBus';
 import { WodScript } from '../../../src/parser/WodScript';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
+import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 
 /**
  * Unit tests for the Anchor-Based Subscription Model.

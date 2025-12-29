@@ -6,7 +6,7 @@ import { IEvent } from "./IEvent";
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { RuntimeSpan } from './models/RuntimeSpan';
-import { RuntimeReporter } from '../tracker/ExecutionTracker';
+import { SpanTrackingHandler } from '../tracker/SpanTrackingHandler';
 import { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
@@ -21,7 +21,6 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { StackPushEvent, StackPopEvent } from './events/StackEvents';
-import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './events/MemoryEvents';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -65,7 +64,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
 
-    private readonly RuntimeReporter: RuntimeReporter;
+    private readonly _spanTracker: SpanTrackingHandler;
 
     private readonly _tracker: RuntimeStackTracker;
     private readonly _wrapper: RuntimeStackWrapper;
@@ -86,27 +85,18 @@ export class ScriptRuntime implements IScriptRuntime {
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
 
-        // Connect memory events to EventBus
-        this.memory.setEventDispatcher((eventType, ref, value, oldValue) => {
-            switch (eventType) {
-                case 'allocate':
-                    this.eventBus.dispatch(new MemoryAllocateEvent(ref, value), this);
-                    break;
-                case 'set':
-                    this.eventBus.dispatch(new MemorySetEvent(ref, value, oldValue), this);
-                    break;
-                case 'release':
-                    this.eventBus.dispatch(new MemoryReleaseEvent(ref, value), this);
-                    break;
-            }
-        });
+        // Note: Memory events are now dispatched by BlockContext, not via a centralized bridge.
+        // This keeps RuntimeMemory pure and decoupled from the event system.
 
-        this.RuntimeReporter = new RuntimeReporter(this.memory);
+        // Event-based span tracking handler
+        this._spanTracker = new SpanTrackingHandler();
+        this.eventBus.register('stack:push', this._spanTracker, 'runtime');
+        this.eventBus.register('stack:pop', this._spanTracker, 'runtime');
 
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
 
-        this._tracker = this.options.tracker ?? this.RuntimeReporter ?? noopTracker;
+        this._tracker = this.options.tracker ?? this._spanTracker ?? noopTracker;
 
         // Hooks setup
         const unregisterHook = this.options.hooks?.unregisterByOwner;
@@ -129,19 +119,15 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Gets the currently active execution spans from memory.
-     * Used by UI to display ongoing execution state.     
+     * Gets the currently active execution spans.
+     * Used by UI to display ongoing execution state.
      */
     public get activeSpans(): ReadonlyMap<string, RuntimeSpan> {
-        return this.RuntimeReporter.getActiveSpansMap();
+        return this._spanTracker.getActiveSpansMap();
     }
 
-    /**
-     * Gets the RuntimeReporter for direct metric recording.
-     * Used by actions and behaviors to record metrics to active spans.
-     */
-    public get tracker(): RuntimeReporter {
-        return this.RuntimeReporter;
+    public get tracker(): SpanTrackingHandler {
+        return this._spanTracker;
     }
 
     handle(event: IEvent): void {
@@ -262,9 +248,6 @@ export class ScriptRuntime implements IScriptRuntime {
         while (this.stack.count > 0) {
             this.popBlock();
         }
-
-        // Disconnect memory event dispatcher
-        this.memory.setEventDispatcher(null);
     }
 
     // ========== Private Helpers ==========

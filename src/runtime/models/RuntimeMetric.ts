@@ -75,6 +75,8 @@ export interface TimeSpan {
 export interface RuntimeMetric {
   /** The ID of the ExerciseDefinition this metric relates to. */
   exerciseId: string;
+  /** Identifier for the originating statement/fragment */
+  sourceId?: string;
   /** Behavior grouping that explains how this metric is intended to be used. */
   behavior?: MetricBehavior;
   /** Array of metric values (reps, distance, etc.) */

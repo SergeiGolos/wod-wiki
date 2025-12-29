@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { RoundsBlock } from '../../src/runtime/blocks/RoundsBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
-import { JitCompiler } from '../../src/runtime/JitCompiler';
+import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { WodScript } from '../../src/parser/WodScript';
 import { ParsedCodeStatement } from '../../src/core/models/CodeStatement';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';
-import { EventBus } from '../../src/runtime/EventBus';
-import { EffortStrategy } from '../../src/runtime/strategies/EffortStrategy';
+import { EventBus } from '../../src/runtime/events/EventBus';
+import { EffortStrategy } from '../../src/runtime/compiler/strategies/EffortStrategy';
 
 /**
  * Tests for RoundsBlock metric inheritance.

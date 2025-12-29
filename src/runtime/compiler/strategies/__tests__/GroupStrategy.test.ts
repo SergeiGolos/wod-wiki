@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness';
 import { GroupStrategy } from '../GroupStrategy';
-import { FragmentType } from '../../../../core/models/CodeFragment';
-import { ICodeStatement } from '../../../../../core/models/CodeStatement';
+import { FragmentType } from '@/core/models/CodeFragment';
+import { ICodeStatement } from '@/core/models/CodeStatement';
 
 /**
  * GroupStrategy Contract Tests (Migrated to Test Harness)

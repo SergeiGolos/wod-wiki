@@ -4,9 +4,9 @@ import { TimeBoundRoundsStrategy } from '../TimeBoundRoundsStrategy';
 import { FragmentType } from '../../../../core/models/CodeFragment';
 import { ICodeStatement } from '../../../../../core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../../behaviors/LoopCoordinatorBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { CompletionBehavior } from '../../behaviors/CompletionBehavior';
-import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
+import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
+import { CompletionBehavior } from '@/runtime/behaviors/CompletionBehavior';
+import { HistoryBehavior } from '@/runtime/behaviors/HistoryBehavior';
 
 /**
  * TimeBoundRoundsStrategy Contract Tests (Migrated to Test Harness)

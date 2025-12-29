@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness';
 import { RoundsStrategy } from '../RoundsStrategy';
 import { FragmentType } from '../../../../core/models/CodeFragment';
-import { ICodeStatement, ParsedCodeStatement } from '../../../../../core/models/CodeStatement';
+import { ParsedCodeStatement } from '@/core/models/CodeStatement';
 import { LoopCoordinatorBehavior, LoopType } from '../../../behaviors/LoopCoordinatorBehavior';
-import { HistoryBehavior } from '../../behaviors/HistoryBehavior';
+import { HistoryBehavior } from '@/runtime/behaviors/HistoryBehavior';
 
 /**
  * RoundsStrategy Contract Tests (Migrated to Test Harness)

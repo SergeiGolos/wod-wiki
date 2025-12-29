@@ -11,7 +11,7 @@ import { RuntimeStackWrapper } from '../contracts/IRuntimeOptions';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../events/EventBus';
 
 // Helper to create a minimal mock block for testing
 function createMockBlock(id: string): IRuntimeBlock {

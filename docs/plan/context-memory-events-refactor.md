@@ -1,7 +1,8 @@
 # Context-Based Memory Events Refactor
 
-> **Status**: Planning  
+> **Status**: ✅ ALL PHASES COMPLETE  
 > **Created**: 2025-12-28  
+> **Updated**: 2025-12-28  
 > **Goal**: Move memory event dispatching responsibility from centralized `RuntimeMemory` bridge to `BlockContext`, and refactor `RuntimeReporter` to be an event subscriber rather than a memory allocator.
 
 ---
@@ -329,36 +330,38 @@ The `TestableRuntime` and `MockBlock` utilities need updates to work with the ne
 
 ## Migration Checklist
 
-### Phase 1: BlockContext Event Dispatching
-- [ ] Add `set<T>()` method to `IBlockContext`
-- [ ] Implement event dispatch in `BlockContext.allocate()`
-- [ ] Implement event dispatch in `BlockContext.release()`
-- [ ] Implement event dispatch in `BlockContext.set()`
-- [ ] Add deprecation warning to `TypedMemoryReference.set()` (optional)
+### Phase 1: BlockContext Event Dispatching ✅ COMPLETE
+- [x] Add `set<T>()` method to `IBlockContext`
+- [x] Implement event dispatch in `BlockContext.allocate()`
+- [x] Implement event dispatch in `BlockContext.release()`
+- [x] Implement event dispatch in `BlockContext.set()`
+- [ ] Add deprecation warning to `TypedMemoryReference.set()` (optional - deferred)
 
-### Phase 2: Remove Centralized Dispatcher
-- [ ] Remove `MemoryEventDispatcher` type from `IRuntimeMemory.ts`
-- [ ] Remove `setEventDispatcher()` from `IRuntimeMemory.ts`
-- [ ] Remove `_eventDispatcher` from `RuntimeMemory.ts`
-- [ ] Remove dispatcher calls from `RuntimeMemory.allocate/set/release`
-- [ ] Remove bridge wiring from `ScriptRuntime` constructor
-- [ ] Remove `setEventDispatcher(null)` from `ScriptRuntime.dispose()`
-- [ ] Remove passthrough from `TestableRuntime._createWrappedMemory()`
+### Phase 2: Remove Centralized Dispatcher ✅ COMPLETE
+- [x] Remove `MemoryEventDispatcher` type from `IRuntimeMemory.ts`
+- [x] Remove `setEventDispatcher()` from `IRuntimeMemory.ts`
+- [x] Remove `_eventDispatcher` from `RuntimeMemory.ts`
+- [x] Remove dispatcher calls from `RuntimeMemory.allocate/set/release`
+- [x] Remove bridge wiring from `ScriptRuntime` constructor
+- [x] Remove `setEventDispatcher(null)` from `ScriptRuntime.dispose()`
+- [x] Remove passthrough from `TestableRuntime._createWrappedMemory()`
 
-### Phase 3: RuntimeReporter as Event Handler
-- [ ] Create `SpanTrackingHandler` implementing `IEventHandler`
-- [ ] Implement `handler()` for `stack:push`, `stack:pop`, `memory:set`
-- [ ] Add query methods (`getActiveSpan`, `getAllSpans`, etc.)
-- [ ] Register handler in `ScriptRuntime` constructor
-- [ ] Expose tracker via `runtime.tracker` property
-- [ ] Deprecate `RuntimeReporter` class
-- [ ] Update UI components using `activeSpans`
+### Phase 3: RuntimeReporter as Event Handler ✅ COMPLETE
+- [x] Create `SpanTrackingHandler` implementing `IEventHandler`
+- [x] Implement `handler()` for `stack:push`, `stack:pop`
+- [x] Add query methods (`getActiveSpan`, `getAllSpans`, etc.)
+- [x] Register handler in `ScriptRuntime` constructor
+- [x] Expose tracker via `runtime.tracker` property
+- [x] ~~Deprecate~~ **Removed** `RuntimeReporter` class entirely
+- [x] UI components using `activeSpans` already compatible (no changes needed)
 
-### Phase 4: Testing & Cleanup
-- [ ] Add new test suites
-- [ ] Update affected existing tests
-- [ ] Remove deprecated code after validation
-- [ ] Update documentation
+### Phase 4: Testing & Cleanup ✅ COMPLETE
+- [x] Removed deprecated `RuntimeReporter` from `ScriptRuntime`
+- [x] Removed `ExecutionTracker.ts` (contained deprecated `RuntimeReporter`)
+- [x] Removed `ITrackerCommand.ts` and `commands/` folder (only used by RuntimeReporter)
+- [x] Removed `ExecutionTracker.test.ts`
+- [x] Removed `MemoryEventDispatcher` from contracts index exports
+- [x] Updated documentation comments
 
 ---
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { WodScript } from '../../src/WodScript';
-import { ICodeStatement } from '../../src/CodeStatement';
-import { CodeMetadata } from '../../src/CodeMetadata';
+import { WodScript } from '../../src/parser/WodScript';
+import { ICodeStatement } from '../../src/core/models/CodeStatement';
+import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 
 describe('WodScript ID Type Consistency', () => {
   const mockMeta: CodeMetadata = {

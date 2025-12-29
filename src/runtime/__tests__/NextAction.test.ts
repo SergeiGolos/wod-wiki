@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { NextAction } from '../NextAction';
+import { NextAction } from '../actions/stack/NextAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 describe('NextAction', () => {

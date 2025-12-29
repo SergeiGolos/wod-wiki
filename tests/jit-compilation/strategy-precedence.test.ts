@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { JitCompiler } from '../../src/runtime/JitCompiler';
-import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/strategies';
+import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
+import { TimerStrategy, RoundsStrategy, EffortStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/compiler/strategies';
 import { ICodeStatement, ParsedCodeStatement } from '../../src/core/models/CodeStatement';
 import { ICodeFragment, FragmentType } from '../../src/core/models/CodeFragment';
 import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';

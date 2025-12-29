@@ -1,5 +1,5 @@
 import { IFragmentCompiler } from "./FragmentCompilationManager";
-import { MetricValue, MetricValueType } from "./RuntimeMetric";
+import { MetricValue, MetricValueType } from "../models/RuntimeMetric";
 import { ActionFragment } from "../fragments/ActionFragment";
 import { DistanceFragment } from "../fragments/DistanceFragment";
 import { EffortFragment } from "../fragments/EffortFragment";

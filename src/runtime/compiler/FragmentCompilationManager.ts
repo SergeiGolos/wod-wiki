@@ -55,6 +55,7 @@ export class FragmentCompilationManager {
         const label = effort.trim();
         return {
             exerciseId: label,  // Use exerciseId to match RuntimeMetric interface
+            sourceId: statement.id?.toString(),
             behavior: this.resolveBehavior(statement.fragments),
             values: allValues,
             timeSpans: []

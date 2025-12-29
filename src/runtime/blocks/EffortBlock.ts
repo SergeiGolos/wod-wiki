@@ -146,6 +146,11 @@ export class EffortBlock extends RuntimeBlock {
 
     // Call parent dispose (includes behaviors)
     super.dispose(_runtime);
+
+    // Release context memory
+    if (this.context) {
+      this.context.release();
+    }
   }
 
   /**
