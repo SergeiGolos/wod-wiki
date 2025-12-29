@@ -7,10 +7,10 @@ import {
   IntervalStrategy,
   GroupStrategy
 } from '../../src/runtime/compiler/strategies';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 import { CrossFitDialect } from '@/dialects';
+import { IScriptRuntime } from '@/core/types';
 
 
 describe('Block Compilation Contract', () => {

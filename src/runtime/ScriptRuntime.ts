@@ -1,8 +1,8 @@
 import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { JitCompiler } from './JitCompiler';
+import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
-import { IEvent } from "./IEvent";
+import { IEvent } from "./contracts/events/IEvent";
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
 import { RuntimeSpan } from './models/RuntimeSpan';

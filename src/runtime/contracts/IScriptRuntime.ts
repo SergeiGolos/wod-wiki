@@ -12,23 +12,23 @@ import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 
 export interface IScriptRuntime {
-    readonly script: WodScript;
+    script: WodScript;
 
-    readonly eventBus: IEventBus;
-    readonly memory: IRuntimeMemory;
-    readonly stack: IRuntimeStack;
+    eventBus: IEventBus;
+    memory: IRuntimeMemory;
+    stack: IRuntimeStack;
 
-    readonly jit: JitCompiler;
-    readonly clock: IRuntimeClock;
+    jit: JitCompiler;
+    clock: IRuntimeClock;
 
     /** Errors collected during runtime execution */
-    readonly errors?: RuntimeError[];
+    errors?: RuntimeError[];
 
     /** 
      * SpanTrackingHandler for recording metrics to active spans.
      * Use this to record metrics, start/end segments, etc.
      */
-    readonly tracker: SpanTrackingHandler;
+    tracker: SpanTrackingHandler;
 
     /**
      * Pushes a block onto the runtime stack, handling all lifecycle operations.

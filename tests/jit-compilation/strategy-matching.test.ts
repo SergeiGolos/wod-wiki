@@ -8,10 +8,9 @@ import {
   GroupStrategy
 } from '../../src/runtime/compiler/strategies';
 import { BlockKey } from '../../src/core/models/BlockKey';
-import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { ICodeStatement, CodeStatement } from '../../src/core/models/CodeStatement';
 import { FragmentType, ICodeFragment } from '../../src/core/models/CodeFragment';
-import { CodeMetadata } from '../../src/core/models/CodeMetadata';
+import { IScriptRuntime } from '@/core/types';
 
 class MockCodeStatement extends CodeStatement {
   id: any;

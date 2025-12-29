@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
-import { BlockKey } from '../../../src/core/models/BlockKey';
 import { BehaviorTestHarness, MockBlock } from '../../harness';
 
 /**

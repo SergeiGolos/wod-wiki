@@ -151,6 +151,9 @@ class StubBlock implements IRuntimeBlock {
   unmount(): [] { return []; }
   dispose(): void { }
   getBehavior(): undefined { return undefined; }
+  findFragment(): undefined { return undefined; }
+  filterFragments(): [] { return []; }
+  hasFragment(): boolean { return false; }
 }
 
 /**
