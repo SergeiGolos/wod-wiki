@@ -50,6 +50,16 @@ export class CompletionBehavior implements IRuntimeBehavior {
       return [];
     }
 
+    // timer:complete event always triggers completion (user forced complete)
+    if (event.name === 'timer:complete') {
+      const data = event.data as { blockId?: string } | undefined;
+      // Only complete if this event is for this block or has no blockId (global)
+      if (!data?.blockId || data.blockId === block.key.toString()) {
+        console.log(`[CompletionBehavior] timer:complete received, forcing completion`);
+        return this.complete(block, event.timestamp ?? new Date());
+      }
+    }
+
     if (this.checkOnEvents.includes(event.name)) {
       const now = event.timestamp ?? new Date();
       if (this.condition(block, now)) {

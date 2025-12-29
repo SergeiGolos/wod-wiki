@@ -186,12 +186,15 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
   private advance(block: IRuntimeBlock, now: Date): IRuntimeAction[] {
     // Increment index
     this.index++;
+    console.log(`[LoopCoordinator] advance: index=${this.index}`);
 
     // Get current state after increment
     const state = this.getState();
+    console.log(`[LoopCoordinator] advance: position=${state.position}, rounds=${state.rounds}`);
 
     // Check completion AFTER incrementing
     if (this.isComplete(block, now)) {
+      console.log(`[LoopCoordinator] advance: isComplete=true, setting _isComplete`);
       this._isComplete = true;
       return [];
     }
@@ -256,22 +259,30 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    */
   isComplete(block: IRuntimeBlock, now: Date): boolean {
     const state = this.getState();
+    console.log(`[LoopCoordinator] isComplete: loopType=${this.config.loopType}, index=${this.index}, position=${state.position}, rounds=${state.rounds}, totalRounds=${this.config.totalRounds}, childGroups=${this.config.childGroups.length}`);
 
     switch (this.config.loopType) {
       case LoopType.FIXED:
       case LoopType.REP_SCHEME:
         // Complete when we've finished all rounds
-        return state.rounds >= (this.config.totalRounds || 0);
+        const fixedComplete = state.rounds >= (this.config.totalRounds || 0);
+        console.log(`[LoopCoordinator] isComplete FIXED/REP_SCHEME: ${fixedComplete}`);
+        return fixedComplete;
 
       case LoopType.TIME_BOUND:
         // Complete when timer expires
-        return this.isTimerExpired(block, now);
+        const timeBoundComplete = this.isTimerExpired(block, now);
+        console.log(`[LoopCoordinator] isComplete TIME_BOUND: ${timeBoundComplete}`);
+        return timeBoundComplete;
 
       case LoopType.INTERVAL:
         // Complete after specified number of intervals
-        return state.rounds >= (this.config.totalRounds || 0);
+        const intervalComplete = state.rounds >= (this.config.totalRounds || 0);
+        console.log(`[LoopCoordinator] isComplete INTERVAL: ${intervalComplete}`);
+        return intervalComplete;
 
       default:
+        console.log(`[LoopCoordinator] isComplete default: false`);
         return false;
     }
   }

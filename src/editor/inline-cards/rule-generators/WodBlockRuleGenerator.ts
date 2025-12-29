@@ -23,7 +23,7 @@ import type {
   RuleGenerationContext,
 } from '../row-types';
 import { WodScriptVisualizer } from '../../../components/WodScriptVisualizer';
-import { getCachedCSSVariable } from '../utils/css-helpers';
+import { getCSSVariable } from '../utils/css-helpers';
 
 export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent> {
   cardType = 'wod-block' as const;
@@ -70,12 +70,12 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     // Calculate heights using CSS custom properties (design tokens)
     // This ensures consistency between TypeScript calculations and CSS rendering
     const lineHeight = 22; // Monaco's fixed line height
-    const headerZoneHeight = getCachedCSSVariable('--wod-card-header-height', 32);
-    const previewHeaderHeight = getCachedCSSVariable('--wod-preview-header-height', 40);
-    const previewFooterHeight = getCachedCSSVariable('--wod-preview-footer-height', 28);
-    const statementItemHeight = getCachedCSSVariable('--wod-preview-statement-height', 40);
-    const statementGap = getCachedCSSVariable('--wod-preview-statement-gap', 4);
-    const bodyPadding = getCachedCSSVariable('--wod-preview-body-padding', 12);
+    const headerZoneHeight = getCSSVariable('--wod-card-header-height', 32);
+    const previewHeaderHeight = getCSSVariable('--wod-preview-header-height', 36);
+    const previewFooterHeight = getCSSVariable('--wod-preview-footer-height', 24);
+    const statementItemHeight = getCSSVariable('--wod-preview-statement-height', 32);
+    const statementGap = getCSSVariable('--wod-preview-statement-gap', 2);
+    const bodyPadding = getCSSVariable('--wod-preview-body-padding', 8);
     const statementCount = statements?.length || 0;
 
     // Calculate total height needed for preview panel content
@@ -105,7 +105,7 @@ export class WodBlockRuleGenerator implements CardRuleGenerator<WodBlockContent>
     // Calculate footer zone height to ensure the code block area matches the preview panel height
     // This prevents the preview panel from scrolling by expanding the editor area to accommodate it
     // Formula: Ensure total card area (header + visible lines + footer) >= preview content height
-    const minFooterPadding = getCachedCSSVariable('--wod-card-footer-padding', 4);
+    const minFooterPadding = getCSSVariable('--wod-card-footer-padding', 4);
     const footerZoneHeight = Math.max(
       minFooterPadding,
       previewContentHeight - headerZoneHeight - visibleLinesHeight

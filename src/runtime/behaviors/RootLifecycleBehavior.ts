@@ -5,6 +5,7 @@ import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { TimerBehavior } from './TimerBehavior';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
+import { PopToBlockAction } from '../actions/stack/PopToBlockAction';
 import { SkipCurrentBlockAction } from '../actions/stack/SkipCurrentBlockAction';
 import { IEvent } from '../contracts/events/IEvent';
 import { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
@@ -79,9 +80,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
     onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
         const now = options?.now ?? new Date();
+        console.log(`[RootLifecycle] onNext: state=${RootState[this.state]}`);
 
         switch (this.state) {
             case RootState.INITIAL_IDLE: {
+                console.log(`[RootLifecycle] INITIAL_IDLE -> EXECUTING`);
                 this.state = RootState.EXECUTING;
 
                 const timer = block.getBehavior(TimerBehavior);
@@ -99,8 +102,11 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
             case RootState.EXECUTING: {
                 const actions = this.loopCoordinator.onNext(block, options);
+                const isComplete = this.loopCoordinator.isComplete(block, now);
+                console.log(`[RootLifecycle] EXECUTING: loopCoordinator.isComplete=${isComplete}`);
 
-                if (this.loopCoordinator.isComplete(block, now)) {
+                if (isComplete) {
+                    console.log(`[RootLifecycle] EXECUTING -> FINAL_IDLE`);
                     this.state = RootState.FINAL_IDLE;
 
                     const timer = block.getBehavior(TimerBehavior);
@@ -133,19 +139,23 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             case RootState.COMPLETING:
                 // Child is being skipped, final idle is being pushed
                 // Transition to FINAL_IDLE now that child skip triggered onNext
+                console.log(`[RootLifecycle] COMPLETING -> FINAL_IDLE`);
                 this.state = RootState.FINAL_IDLE;
                 return [];
 
             case RootState.FINAL_IDLE:
                 // Final idle was pushed and now dismissed - complete the workout
                 // With sequential execution, we know the idle was fully pushed before this is called
+                console.log(`[RootLifecycle] FINAL_IDLE -> COMPLETE, returning PopBlockAction`);
                 this.state = RootState.COMPLETE;
                 return [new PopBlockAction()];
 
             case RootState.COMPLETE:
+                console.log(`[RootLifecycle] COMPLETE: no action`);
                 return [];
 
             default:
+                console.log(`[RootLifecycle] unknown state: ${this.state}`);
                 return [];
         }
     }
@@ -216,38 +226,44 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
 
             case 'timer:next':
                 // Use SkipCurrentBlockAction instead of checking runtime.stack.current directly here
+                console.log(`[RootLifecycle] handleControlEvent: timer:next -> SkipCurrentBlockAction`);
                 return [new SkipCurrentBlockAction(block.key.toString())];
 
             case 'timer:complete':
+                console.log(`[RootLifecycle] handleControlEvent: timer:complete, state=${RootState[this.state]}`);
                 // Only handle completion if we're in EXECUTING state
                 // Prevents duplicate handling if timer:complete fires multiple times
                 if (this.state !== RootState.EXECUTING) {
+                    console.log(`[RootLifecycle] handleControlEvent: timer:complete ignored, not in EXECUTING state`);
                     break;
                 }
 
                 // Only handle completion if it's for this block (root)
                 // or if it's a generic command (no blockId)
                 if (event.data && (event.data as any).blockId && (event.data as any).blockId !== block.key.toString()) {
+                    console.log(`[RootLifecycle] handleControlEvent: timer:complete ignored, blockId mismatch`);
                     break;
                 }
                 if (timer) timer.stop(now);
 
                 // Use COMPLETING state during transition - this prevents onNext from popping root
                 // while child is being skipped
+                console.log(`[RootLifecycle] EXECUTING -> COMPLETING`);
                 this.state = RootState.COMPLETING;
 
                 const startTime = block.executionTiming?.completedAt ?? now;
 
                 // Pop any remaining child blocks first, then push final idle
-                // Use SkipCurrentBlockAction to pop children until we're back at root
+                // Use PopToBlockAction to pop ALL nested children at once
                 const actions: IRuntimeAction[] = [
                     new SetWorkoutStateAction('complete'),
                     new ClearButtonsAction(),
                 ];
 
-                // Skip any blocks above root (children)
+                // Pop all blocks above root (including nested containers like AMRAP)
                 if (runtime.stack.current && runtime.stack.current !== block) {
-                    actions.push(new SkipCurrentBlockAction(block.key.toString()));
+                    console.log(`[RootLifecycle] handleControlEvent: adding PopToBlockAction to pop all children`);
+                    actions.push(new PopToBlockAction(block.key.toString()));
                 }
 
                 actions.push(new PushIdleBlockAction(

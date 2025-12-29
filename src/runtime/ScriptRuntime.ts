@@ -147,23 +147,32 @@ export class ScriptRuntime implements IScriptRuntime {
      * after the current batch completes.
      */
     public queueActions(actions: IRuntimeAction[]) {
+        if (actions.length > 0) {
+            console.log(`[RT] queueActions: ${actions.map(a => a.type).join(', ')}`);
+        }
         this._actionQueue.push(...actions);
         this.processActions();
     }
 
     private processActions() {
         if (this._isProcessingActions) {
+            console.log(`[RT] processActions: already processing, queue size=${this._actionQueue.length}`);
             return;
         }
 
         this._isProcessingActions = true;
+        console.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
         try {
             while (this._actionQueue.length > 0) {
                 const action = this._actionQueue.shift();
-                action?.do(this);
+                if (action) {
+                    console.log(`[RT] executing: ${action.type}`);
+                    action.do(this);
+                }
             }
         } finally {
             this._isProcessingActions = false;
+            console.log(`[RT] processActions: done`);
         }
     }
 
@@ -178,6 +187,7 @@ export class ScriptRuntime implements IScriptRuntime {
     // ========== Stack Lifecycle Operations ==========
 
     public pushBlock(block: IRuntimeBlock, options: BlockLifecycleOptions = {}): IRuntimeBlock {
+        console.log(`[RT] pushBlock: ${block.label} (${block.key})`);
         this.validateBlock(block);
 
         const parentBlock = this.stack.current;
@@ -200,9 +210,11 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         this.stack.push(wrappedBlock);
+        console.log(`[RT] pushBlock: stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
         this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
 
         const actions = wrappedBlock.mount(this, options);
+        console.log(`[RT] pushBlock: mount returned ${actions.length} actions`);
         this.queueActions(actions);
 
         this._logger.debug?.('runtime.pushBlock', {
@@ -218,6 +230,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public popBlock(options: BlockLifecycleOptions = {}): IRuntimeBlock | undefined {
         const currentBlock = this.stack.current;
+        console.log(`[RT] popBlock: current=${currentBlock?.label}`);
         if (!currentBlock) {
             return undefined;
         }
@@ -230,12 +243,14 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // 1. Get unmount actions before popping
         const unmountActions = currentBlock.unmount(this, lifecycleOptions) ?? [];
+        console.log(`[RT] popBlock: unmount returned ${unmountActions.length} actions`);
 
         // 2. Pop from stack
         const popped = this.stack.pop();
         if (!popped) {
             return undefined;
         }
+        console.log(`[RT] popBlock: popped ${popped.label}, stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
 
         // 3. Dispatch pop event
         this.eventBus.dispatch(new StackPopEvent(this.stack.blocks), this);
@@ -247,6 +262,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // 5. Execute unmount actions IMMEDIATELY (before dispose)
         // This ensures all cleanup actions complete before parent.next() is called
+        console.log(`[RT] popBlock: executing ${unmountActions.length} unmount actions immediately`);
         this.executeActionsImmediately(unmountActions);
 
         // 6. Dispose and cleanup - child is now fully unmounted
@@ -263,8 +279,10 @@ export class ScriptRuntime implements IScriptRuntime {
         // 7. NOW call parent.next() - child is completely gone
         // Parent can make decisions knowing the child is fully cleaned up
         const parent = this.stack.current;
+        console.log(`[RT] popBlock: calling parent.next() on ${parent?.label}`);
         if (parent) {
             const nextActions = parent.next(this, lifecycleOptions) ?? [];
+            console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
             this.queueActions(nextActions);
         }
 

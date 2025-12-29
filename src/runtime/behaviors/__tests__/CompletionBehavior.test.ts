@@ -83,7 +83,7 @@ describe('CompletionBehavior Contract', () => {
   });
 
   describe('Event-Triggered Completion', () => {
-    it('should check condition when trigger event received', () => {
+    it('should force complete when timer:complete event received', () => {
       const condition = vi.fn(() => false);
       const behavior = new CompletionBehavior(condition, ['timer:complete']);
       const block = new MockBlock('test-block', [behavior]);
@@ -91,13 +91,15 @@ describe('CompletionBehavior Contract', () => {
       harness.push(block);
       harness.mount();
 
-      // Simulate timer:complete event
-      behavior.onEvent({ name: 'timer:complete', timestamp: new Date() }, block);
+      // Simulate timer:complete event - should force complete regardless of condition
+      const actions = behavior.onEvent({ name: 'timer:complete', timestamp: new Date() }, block);
 
-      expect(condition).toHaveBeenCalled();
+      // timer:complete forces completion, condition not checked
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions.some(a => a.type === 'pop-block')).toBe(true);
     });
 
-    it('should support multiple trigger events', () => {
+    it('should check condition for non-timer:complete events', () => {
       const condition = vi.fn(() => false);
       const behavior = new CompletionBehavior(condition, [
         'timer:complete',
@@ -108,10 +110,10 @@ describe('CompletionBehavior Contract', () => {
       harness.push(block);
       harness.mount();
 
-      behavior.onEvent({ name: 'timer:complete', timestamp: new Date() }, block);
+      // rounds:complete should check condition
       behavior.onEvent({ name: 'rounds:complete', timestamp: new Date() }, block);
 
-      expect(condition).toHaveBeenCalledTimes(2);
+      expect(condition).toHaveBeenCalledTimes(1);
     });
   });
 
