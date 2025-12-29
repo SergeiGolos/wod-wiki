@@ -1,22 +1,17 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { PlaySoundAction } from '../actions/audio/PlaySoundAction';
-import { IEventHandler } from '../contracts/events/IEventHandler';
 import { IEvent } from '../contracts/events/IEvent';
-import { 
-  SoundBehaviorConfig, 
-  SoundCue, 
-  SoundState, 
-  SoundCueState 
+import {
+  SoundBehaviorConfig,
+  SoundCue,
+  SoundState,
+  SoundCueState
 } from '../models/SoundModels';
 
-/**
- * Memory type prefix for sound state.
- */
-export const SOUND_MEMORY_TYPE = 'sound-state';
+const SOUND_STATE_TYPE = 'sound-state';
 
 /**
  * SoundBehavior manages audio cue playback synchronized with timer events.
@@ -36,85 +31,58 @@ export const SOUND_MEMORY_TYPE = 'sound-state';
  *   durationMs: 600000, // 10 minutes
  *   cues: [
  *     { id: '30-sec', threshold: 30000, sound: 'beep' },
- *     { id: '10-sec', threshold: 10000, sound: 'beep' },
- *     { id: 'complete', threshold: 0, sound: 'buzzer' }
- *   ]
- * });
- * ```
+ *
+ * It listens for `timer:tick` events and checks if configured cues should trigger.
+ * State is maintained in block context to ensure cues trigger only once per activation.
  */
 export class SoundBehavior implements IRuntimeBehavior {
-  private readonly config: SoundBehaviorConfig;
+  private config: SoundBehaviorConfig;
   private soundStateRef?: TypedMemoryReference<SoundState>;
-  private handlerId?: string;
   private _blockId?: string;
-  private unsubscribe?: () => void;
 
-  /**
-   * Creates a new SoundBehavior.
-   * 
-   * @param config Sound behavior configuration
-   * @throws {TypeError} If direction is invalid
-   * @throws {RangeError} If countdown timer missing durationMs
-   */
+  static readonly VALID_DIRECTIONS = ['up', 'down'] as const;
+
   constructor(config: SoundBehaviorConfig) {
     this.validateConfig(config);
     this.config = config;
   }
 
-  /**
-   * Valid direction values for timer-based sound behaviors.
-   */
-  private static readonly VALID_DIRECTIONS = ['up', 'down'] as const;
-
-  /**
-   * Validates the configuration.
-   */
   private validateConfig(config: SoundBehaviorConfig): void {
-    // Type-safe direction validation using the valid directions constant
     if (!SoundBehavior.VALID_DIRECTIONS.includes(config.direction as typeof SoundBehavior.VALID_DIRECTIONS[number])) {
-      throw new TypeError(`Invalid direction: ${config.direction}. Must be 'up' or 'down'.`);
+      throw new TypeError(`Invalid timer direction: ${config.direction}. Must be 'up' or 'down'.`);
     }
 
-    if (config.direction === 'down' && !config.durationMs) {
-      throw new RangeError('durationMs is required for countdown timers (direction: down)');
+    if (config.direction === 'down' && config.durationMs === undefined) {
+      throw new RangeError('Countdown timer must have durationMs');
     }
 
-    if (!config.cues || config.cues.length === 0) {
-      throw new RangeError('At least one sound cue must be configured');
+    if (!config.cues) {
+      throw new TypeError('Sound cues array is required');
     }
 
-    // Validate each cue
-    const cueIds = new Set<string>();
+    if (config.cues.length === 0) {
+      // Allow empty cues, functionally a no-op behavior
+    }
+
     for (const cue of config.cues) {
       if (!cue.id) {
         throw new TypeError('Each sound cue must have an id');
       }
-      if (cueIds.has(cue.id)) {
-        throw new RangeError(`Duplicate cue id: ${cue.id}`);
-      }
-      cueIds.add(cue.id);
-
       if (cue.threshold < 0) {
-        throw new RangeError(`Cue threshold must be >= 0, got: ${cue.threshold} for cue ${cue.id}`);
+        throw new RangeError(`Cue threshold must be >= 0, got: ${cue.threshold}`);
       }
-
       if (!cue.sound) {
         throw new TypeError(`Cue ${cue.id} must have a sound`);
       }
-
       if (cue.volume !== undefined && (cue.volume < 0 || cue.volume > 1)) {
         throw new RangeError(`Cue ${cue.id} volume must be between 0.0 and 1.0`);
       }
     }
   }
 
-  /**
-   * Called when the block is pushed onto the stack.
-   * Initializes sound state and registers event handler for timer:tick.
-   */
-  onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
+  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     this._blockId = block.key.toString();
-    
+
     // Initialize sound state with all cues set to not triggered
     const initialState: SoundState = {
       blockId: this._blockId,
@@ -125,42 +93,24 @@ export class SoundBehavior implements IRuntimeBehavior {
     };
 
     // Allocate memory for sound state
-    this.soundStateRef = runtime.memory.allocate<SoundState>(
-      `${SOUND_MEMORY_TYPE}-${this._blockId}`,
-      this._blockId,
+    this.soundStateRef = block.context.allocate<SoundState>(
+      SOUND_STATE_TYPE,
       initialState,
       'private'
     );
 
-    // Create event handler for timer:tick
-    this.handlerId = `sound-handler-${this._blockId}`;
-    const blockId = this._blockId;
-    const self = this;
-    
-    const eventHandler: IEventHandler = {
-      id: this.handlerId,
-      name: `SoundBehavior-${blockId}`,
-      handler: (event: IEvent, rt: IScriptRuntime): IRuntimeAction[] => {
-        return self.handleEvent(event, rt);
-      }
-    };
-
-    this.unsubscribe = runtime.eventBus.register('timer:tick', eventHandler, this._blockId);
     return [];
   }
 
-  onPop(): IRuntimeAction[] {
-    if (this.unsubscribe) {
-      try { this.unsubscribe(); } catch (error) { console.error('Error unsubscribing sound handler', error); }
-      this.unsubscribe = undefined;
-    }
+  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return [];
   }
 
-  /**
-   * Handles timer events and checks if any sound cues should trigger.
-   */
-  private handleEvent(event: IEvent, runtime: IScriptRuntime): IRuntimeAction[] {
+  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    return [];
+  }
+
+  onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
     // Only process timer:tick events
     if (event.name !== 'timer:tick') {
       return [];
@@ -171,10 +121,10 @@ export class SoundBehavior implements IRuntimeBehavior {
       elapsedMs?: number;
       remainingMs?: number;
       direction?: string;
-    };
+    } | undefined;
 
     // Skip if this tick is not for our block
-    if (data.blockId !== this._blockId) {
+    if (!data || data.blockId !== this._blockId) {
       return [];
     }
 
@@ -257,14 +207,8 @@ export class SoundBehavior implements IRuntimeBehavior {
     }
   }
 
-  /**
-   * Cleanup resources on disposal.
-   */
-  onDispose(runtime: IScriptRuntime, block: IRuntimeBlock): void {
-    // Memory will be cleaned up automatically when block is disposed
-    // Handler should already be unregistered via onPop
+  onDispose(block: IRuntimeBlock): void {
     this.soundStateRef = undefined;
-    this.handlerId = undefined;
     this._blockId = undefined;
   }
 

@@ -1,12 +1,10 @@
-import { IRuntimeBehavior } from "../IRuntimeBehavior";
-import { IRuntimeAction } from "../IRuntimeAction";
-import { IScriptRuntime } from "../IScriptRuntime";
-import { IRuntimeBlock } from "../IRuntimeBlock";
-import { MemoryTypeEnum } from "../MemoryTypeEnum";
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from "../models/RuntimeSpan";
-import { TimeSpan } from "../models/TimeSpan";
-
-import { createLabelFragment } from "../utils/metricsToFragments";
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
+import { TimeSpan } from '../models/TimeSpan';
+import { createLabelFragment } from '../utils/metricsToFragments';
+import { TypedMemoryReference } from '../contracts/IMemoryReference';
 
 /**
  * Behavior that tracks the execution history of a block using RuntimeSpan.
@@ -15,6 +13,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
     private startTime: number = 0;
     private label?: string;
     private config?: string | { label?: string; debugMetadata?: any };
+    private spanRef?: TypedMemoryReference<RuntimeSpan>;
 
     constructor(labelOrConfig?: string | { label?: string; debugMetadata?: any }) {
         this.config = labelOrConfig;
@@ -25,8 +24,9 @@ export class HistoryBehavior implements IRuntimeBehavior {
         }
     }
 
-    onPush(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-        this.startTime = Date.now();
+    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const now = options?.startTime ?? new Date();
+        this.startTime = now.getTime();
 
         // Build metadata from config
         const metadata: any = {
@@ -53,37 +53,38 @@ export class HistoryBehavior implements IRuntimeBehavior {
             undefined,
             metadata
         );
-        runtime.memory.allocate(RUNTIME_SPAN_TYPE, block.key.toString(), runtimeSpan, 'public');
+
+        this.spanRef = block.context.allocate(
+            RUNTIME_SPAN_TYPE,
+            runtimeSpan,
+            'public'
+        );
 
         return [];
     }
 
-    onDispose(_runtime: IScriptRuntime, _block: IRuntimeBlock): void {
-        // No-op
-    }
+    onPop(_block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        const endTime = (options?.completedAt ?? new Date()).getTime();
 
-    onPop(runtime: IScriptRuntime, block: IRuntimeBlock): IRuntimeAction[] {
-        const endTime = Date.now();
-
-        // Update RuntimeSpan
-        const runtimeRefs = runtime.memory.search({
-            type: RUNTIME_SPAN_TYPE,
-            id: null,
-            ownerId: block.key.toString(),
-            visibility: null
-        });
-
-        if (runtimeRefs.length > 0) {
-            const span = runtime.memory.get(runtimeRefs[0] as any) as RuntimeSpan;
+        if (this.spanRef) {
+            const span = this.spanRef.get();
             if (span && span.spans.length > 0) {
                 const lastTimer = span.spans[span.spans.length - 1];
                 if (lastTimer.ended === undefined) {
                     lastTimer.ended = endTime;
-                    runtime.memory.set(runtimeRefs[0] as any, span);
+                    this.spanRef.set(span);
                 }
             }
         }
 
         return [];
+    }
+
+    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+        return [];
+    }
+
+    onDispose(_block: IRuntimeBlock): void {
+        this.spanRef = undefined;
     }
 }

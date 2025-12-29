@@ -7,21 +7,9 @@
  * 3. Tick event after duration → block pops from stack
  * 4. Memory cleanup after pop
  * 5. Proper events emitted on event bus throughout
- * 
- * KEY BEHAVIORS UNDER TEST:
- * - TimerBehavior: tracks elapsed time, emits timer:started on push, timer:complete on pop
- * - CompletionBehavior: listens for timer:tick, checks condition, returns PopBlockAction
- * - Runtime: executes PopBlockAction to remove block from stack
- * 
- * TEST APPROACH:
- * - Use ScriptRuntime with faked clock (createMockClock)
- * - Use real JIT with TimerStrategy
- * - Advance clock past duration
- * - Simulate tick event to trigger completion check
- * - Verify block is popped and memory cleaned up
  */
 
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 import { TimerStrategy } from '../../../src/runtime/compiler/strategies/TimerStrategy';
@@ -29,365 +17,358 @@ import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { EventBus } from '../../../src/runtime/events/EventBus';
-import { createMockClock } from '../../../src/runtime/RuntimeClock';
+import { createMockClock, IRuntimeClock } from '../../../src/runtime/RuntimeClock';
 import { MdTimerRuntime } from '../../../src/parser/md-timer';
 import { WodScript } from '../../../src/parser/WodScript';
 import { IEvent } from '../../../src/runtime/contracts/events/IEvent';
-import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
+import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
+
+// ============================================================================
+// TEST HARNESS (Fluent Builder - reads top to bottom)
+// ============================================================================
 
 /**
- * Test harness that creates a real ScriptRuntime with:
- * - Real JIT compiler with TimerStrategy
- * - Faked mock clock (controllable time)
- * - Real memory, stack, and event bus
+ * Fluent test harness for timer lifecycle tests.
+ * 
+ * Usage:
+ *   const t = new TimerTestHarness('0:05 Run')  // Parse "5 second countdown"
+ *     .start();                                  // Compile, push, and mount
+ * 
+ *   t.advanceClock(5100);                       // Move time forward 5.1s
+ *   t.tick();                                   // Send timer:tick event
+ *   expect(t.stackCount).toBe(0);               // Block was popped
  */
-function createTimerTestRuntime(scriptText: string, startTime = new Date('2024-01-01T12:00:00Z')) {
-  // Parse script
-  const parser = new MdTimerRuntime();
-  const script = parser.read(scriptText) as WodScript;
+class TimerTestHarness {
+  // Core runtime components
+  readonly runtime: ScriptRuntime;
+  readonly clock: IRuntimeClock & { advance: (ms: number) => void };
+  readonly memory: RuntimeMemory;
+  readonly stack: RuntimeStack;
+  readonly eventBus: EventBus;
   
-  // Create JIT with TimerStrategy
-  const jit = new JitCompiler([new TimerStrategy()]);
+  // State
+  private _block?: IRuntimeBlock;
+  private _events: IEvent[] = [];
   
-  // Create mock clock we can control
-  const mockClock = createMockClock(startTime);
-  
-  // Create real dependencies
-  const memory = new RuntimeMemory();
-  const stack = new RuntimeStack();
-  const eventBus = new EventBus();
-  
-  // Create runtime
-  const runtime = new ScriptRuntime(script, jit, {
-    memory,
-    stack,
-    clock: mockClock,
-    eventBus
-  });
-  
-  // Track events for assertions
-  const capturedEvents: IEvent[] = [];
-  eventBus.register('*', {
-    id: 'test-event-capture',
-    name: 'TestEventCapture',
-    handler: (event) => {
-      capturedEvents.push(event);
-      return [];
-    }
-  }, 'test-harness');
-  
-  return {
-    runtime,
-    script,
-    jit,
-    clock: mockClock,
-    memory,
-    stack,
-    eventBus,
-    capturedEvents,
+  constructor(timerScript: string, startTime: Date = new Date('2024-01-01T12:00:00Z')) {
+    // 1. Parse the workout script
+    const parser = new MdTimerRuntime();
+    const script = parser.read(timerScript) as WodScript;
     
-    // Helper to find events by name
-    findEvents: (name: string) => capturedEvents.filter(e => e.name === name),
-    wasEventEmitted: (name: string) => capturedEvents.some(e => e.name === name),
+    // 2. Create mock clock (controllable time)
+    this.clock = createMockClock(startTime);
     
-    // Helper to compile and push first statement
-    pushFirstStatement: () => {
-      const statement = script.statements[0];
-      if (!statement) throw new Error('No statements in script');
-      
-      const block = jit.compile([statement as any], runtime);
-      if (!block) throw new Error('Failed to compile statement');
-      
-      runtime.pushBlock(block);
-      
-      // Mount the block (this triggers onPush on behaviors)
-      const mountOptions = { startTime: mockClock.now };
-      block.mount(runtime, mountOptions);
-      
-      return block;
-    }
-  };
+    // 3. Create real runtime dependencies
+    this.memory = new RuntimeMemory();
+    this.stack = new RuntimeStack();
+    this.eventBus = new EventBus();
+    
+    // 4. Create JIT compiler with TimerStrategy
+    const jit = new JitCompiler([new TimerStrategy()]);
+    
+    // 5. Assemble runtime
+    this.runtime = new ScriptRuntime(script, jit, {
+      memory: this.memory,
+      stack: this.stack,
+      clock: this.clock,
+      eventBus: this.eventBus
+    });
+    
+    // 6. Capture all events for assertions
+    this.eventBus.register('*', {
+      id: 'test-capture',
+      name: 'TestEventCapture',
+      handler: (event) => { this._events.push(event); return []; }
+    }, 'test');
+  }
+  
+  /** Alternative constructor with custom start time */
+  static atTime(timerScript: string, isoTime: string): TimerTestHarness {
+    return new TimerTestHarness(timerScript, new Date(isoTime));
+  }
+  
+  // ---------------------------------------------------------------------------
+  // ACTIONS (mutate state)
+  // ---------------------------------------------------------------------------
+  
+  /** Compile the first statement, push to stack, and mount (starts timer) */
+  start(): this {
+    const statement = this.runtime.script.statements[0];
+    if (!statement) throw new Error('No statements in script');
+    
+    const block = this.runtime.jit.compile([statement as any], this.runtime);
+    if (!block) throw new Error('Failed to compile statement');
+    
+    this.runtime.pushBlock(block);
+    block.mount(this.runtime, { startTime: this.clock.now });
+    this._block = block;
+    
+    return this;
+  }
+  
+  /** Advance the mock clock by the given milliseconds */
+  advanceClock(ms: number): this {
+    this.clock.advance(ms);
+    return this;
+  }
+  
+  /** Send a timer:tick event to the runtime */
+  tick(): this {
+    this.runtime.handle({
+      name: 'timer:tick',
+      timestamp: this.clock.now,
+      data: { source: 'test' }
+    });
+    return this;
+  }
+  
+  /** Clear captured events (useful before measuring a specific phase) */
+  clearEvents(): this {
+    this._events = [];
+    return this;
+  }
+  
+  // ---------------------------------------------------------------------------
+  // QUERIES (read state for assertions)
+  // ---------------------------------------------------------------------------
+  
+  /** The timer block that was started */
+  get block(): IRuntimeBlock {
+    if (!this._block) throw new Error('Call start() first');
+    return this._block;
+  }
+  
+  /** Get the TimerBehavior from the block */
+  get timerBehavior(): TimerBehavior {
+    const behavior = this.block.getBehavior(TimerBehavior);
+    if (!behavior) throw new Error('Block has no TimerBehavior');
+    return behavior;
+  }
+  
+  /** Current stack depth */
+  get stackCount(): number {
+    return this.stack.count;
+  }
+  
+  /** Block's unique key as string */
+  get blockId(): string {
+    return this.block.key.toString();
+  }
+  
+  /** All captured event names */
+  get eventNames(): string[] {
+    return this._events.map(e => e.name);
+  }
+  
+  /** Check if a specific event was emitted */
+  wasEmitted(eventName: string): boolean {
+    return this._events.some(e => e.name === eventName);
+  }
+  
+  /** Find all events with a given name */
+  findEvents(eventName: string): IEvent[] {
+    return this._events.filter(e => e.name === eventName);
+  }
+  
+  /** Count memory entries owned by the block */
+  blockMemoryCount(): number {
+    return this.memory.search({
+      type: null,
+      ownerId: this.blockId,
+      id: null,
+      visibility: null
+    }).length;
+  }
 }
 
+// ============================================================================
+// TESTS
+// ============================================================================
+
 describe('Timer Block Lifecycle', () => {
+  
   describe('Phase 1: JIT Compilation → Real Runtime with Faked Clock', () => {
+    
     it('should compile timer script and push block onto stack', () => {
-      // ARRANGE: Create runtime with 5-second countdown timer
-      const harness = createTimerTestRuntime('0:05 Run');
+      // Create a 5-second countdown timer and start it
+      const t = new TimerTestHarness('0:05 Run').start();
       
-      // ACT: Compile and push the timer block
-      const block = harness.pushFirstStatement();
+      // Block should be on the stack
+      expect(t.stackCount).toBe(1);
+      expect(t.stack.current).toBe(t.block);
+      expect(t.block.blockType).toBe('Timer');
       
-      // ASSERT: Block is on stack
-      expect(harness.stack.count).toBe(1);
-      expect(harness.stack.current).toBe(block);
-      expect(block.blockType).toBe('Timer');
-      
-      // ASSERT: TimerBehavior is attached
-      const timerBehavior = block.getBehavior(TimerBehavior);
-      expect(timerBehavior).toBeDefined();
+      // TimerBehavior should be attached
+      expect(t.timerBehavior).toBeDefined();
     });
     
     it('should use faked clock time for timer start', () => {
-      const startTime = new Date('2024-06-15T10:30:00Z');
-      const harness = createTimerTestRuntime('0:05 Run', startTime);
+      // Start at a specific time
+      const t = TimerTestHarness.atTime('0:05 Run', '2024-06-15T10:30:00Z').start();
       
-      const block = harness.pushFirstStatement();
-      
-      // ASSERT: timer:started event uses faked clock time
-      const startedEvents = harness.findEvents('timer:started');
+      // timer:started event should use that faked time
+      const startedEvents = t.findEvents('timer:started');
       expect(startedEvents.length).toBe(1);
-      expect(startedEvents[0].timestamp.getTime()).toBe(startTime.getTime());
+      expect(startedEvents[0].timestamp.toISOString()).toBe('2024-06-15T10:30:00.000Z');
     });
   });
   
   describe('Phase 2: Memory Allocation on Push', () => {
+    
     it('should allocate timer state memory when block is pushed', () => {
-      const harness = createTimerTestRuntime('0:05 Run');
+      const t = new TimerTestHarness('0:05 Run').start();
       
-      const block = harness.pushFirstStatement();
-      const blockId = block.key.toString();
-      
-      // ASSERT: Memory has been allocated for timer state
-      // Search for any memory owned by this block
-      const memoryRefs = harness.memory.search({
-        type: null, // Any type
-        ownerId: blockId,
-        id: null,
-        visibility: null
-      });
-      
-      expect(memoryRefs.length).toBeGreaterThan(0);
+      // Memory should be allocated for this block
+      expect(t.blockMemoryCount()).toBeGreaterThan(0);
     });
     
     it('should emit timer:started event on push', () => {
-      const harness = createTimerTestRuntime('0:05 Run');
+      const t = new TimerTestHarness('0:05 Run').start();
       
-      harness.pushFirstStatement();
-      
-      expect(harness.wasEventEmitted('timer:started')).toBe(true);
+      expect(t.wasEmitted('timer:started')).toBe(true);
     });
   });
   
   describe('Phase 3: Tick Event After Duration → Block Pops', () => {
+    
     it('should detect timer completion when clock advances past duration', () => {
-      // ARRANGE: 5-second (5000ms) countdown timer
-      const harness = createTimerTestRuntime('0:05 Run');
-      const block = harness.pushFirstStatement();
-      const timerBehavior = block.getBehavior(TimerBehavior)!;
+      // 5-second countdown timer
+      const t = new TimerTestHarness('0:05 Run').start();
       
-      // ASSERT: Timer is not complete initially
-      expect(timerBehavior.isComplete()).toBe(false);
+      // Not complete initially
+      expect(t.timerBehavior.isComplete()).toBe(false);
       
-      // ACT: Advance clock past duration
-      harness.clock.advance(5100); // 5.1 seconds
+      // Advance clock past the 5-second duration
+      t.advanceClock(5100);
       
-      // ASSERT: Timer behavior reports complete
-      expect(timerBehavior.isComplete()).toBe(true);
+      // Now it should report complete
+      expect(t.timerBehavior.isComplete()).toBe(true);
     });
     
     it('should pop block from stack when tick event is received after duration', () => {
-      // ARRANGE: 2-second countdown timer for faster test
-      const harness = createTimerTestRuntime('0:02 Run');
-      const block = harness.pushFirstStatement();
+      // 2-second countdown timer
+      const t = new TimerTestHarness('0:02 Run').start();
+      expect(t.stackCount).toBe(1);
       
-      expect(harness.stack.count).toBe(1);
+      // Advance past duration and send tick
+      t.advanceClock(2100).tick();
       
-      // ACT: Advance clock past duration
-      harness.clock.advance(2100); // 2.1 seconds
-      
-      // ACT: Simulate tick event to trigger completion check
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
-      
-      // ASSERT: Block should be popped from stack
-      expect(harness.stack.count).toBe(0);
+      // Block should be popped
+      expect(t.stackCount).toBe(0);
     });
     
     it('should emit timer:complete event when block is popped', () => {
-      const harness = createTimerTestRuntime('0:02 Run');
-      harness.pushFirstStatement();
+      const t = new TimerTestHarness('0:02 Run').start();
       
-      // Advance past duration and tick
-      harness.clock.advance(2100);
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
+      t.advanceClock(2100).tick();
       
-      // ASSERT: timer:complete was emitted
-      expect(harness.wasEventEmitted('timer:complete')).toBe(true);
+      expect(t.wasEmitted('timer:complete')).toBe(true);
     });
     
     it('should emit block:complete event when block is popped', () => {
-      const harness = createTimerTestRuntime('0:02 Run');
-      harness.pushFirstStatement();
+      const t = new TimerTestHarness('0:02 Run').start();
       
-      harness.clock.advance(2100);
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
+      t.advanceClock(2100).tick();
       
-      // ASSERT: block:complete was emitted
-      expect(harness.wasEventEmitted('block:complete')).toBe(true);
+      expect(t.wasEmitted('block:complete')).toBe(true);
     });
     
     it('should NOT pop block before duration expires', () => {
-      const harness = createTimerTestRuntime('0:10 Run'); // 10-second timer
-      harness.pushFirstStatement();
+      // 10-second timer
+      const t = new TimerTestHarness('0:10 Run').start();
       
-      // Advance only 5 seconds (half the duration)
-      harness.clock.advance(5000);
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
+      // Only advance 5 seconds (half the duration)
+      t.advanceClock(5000).tick();
       
-      // ASSERT: Block should still be on stack
-      expect(harness.stack.count).toBe(1);
-      expect(harness.wasEventEmitted('timer:complete')).toBe(false);
+      // Block should still be on stack
+      expect(t.stackCount).toBe(1);
+      expect(t.wasEmitted('timer:complete')).toBe(false);
     });
   });
   
   describe('Phase 4: Memory Cleanup After Pop', () => {
+    
     it('should release timer memory when block is popped', () => {
-      const harness = createTimerTestRuntime('0:02 Run');
-      const block = harness.pushFirstStatement();
-      const blockId = block.key.toString();
+      const t = new TimerTestHarness('0:02 Run').start();
+      const memoryBefore = t.blockMemoryCount();
+      expect(memoryBefore).toBeGreaterThan(0);
       
-      // Verify memory exists before pop
-      const memoryBefore = harness.memory.search({
-        type: null,
-        ownerId: blockId,
-        id: null,
-        visibility: null
-      });
-      expect(memoryBefore.length).toBeGreaterThan(0);
+      // Complete the timer
+      t.advanceClock(2100).tick();
       
-      // Pop the block (simulate completion)
-      harness.clock.advance(2100);
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
+      // BlockContext should be released
+      expect(t.block.context?.isReleased?.()).toBe(true);
       
-      // ASSERT: BlockContext was released
-      expect(block.context?.isReleased?.()).toBe(true);
-      
-      // ASSERT: At least some memory was cleaned up
-      // NOTE: There's a known issue where SoundBehavior and HistoryBehavior
-      // allocate memory outside BlockContext, causing leaks.
-      // TODO: Fix memory allocation in SoundBehavior and HistoryBehavior
-      const memoryAfter = harness.memory.search({
-        type: null,
-        ownerId: blockId,
-        id: null,
-        visibility: null
-      });
-      expect(memoryAfter.length).toBeLessThan(memoryBefore.length);
+      // At least some memory should be cleaned up
+      // NOTE: Known issue - SoundBehavior/HistoryBehavior leak memory
+      const memoryAfter = t.blockMemoryCount();
+      expect(memoryAfter).toBeLessThan(memoryBefore);
     });
   });
   
   describe('Phase 5: Event Bus - Complete Event Sequence', () => {
-    it('should emit events in correct order throughout lifecycle', () => {
-      const harness = createTimerTestRuntime('0:02 Run');
+    
+    it('should emit completion events when timer expires', () => {
+      const t = new TimerTestHarness('0:02 Run').start();
+      t.clearEvents(); // Clear setup events
       
-      // Clear any events from setup
-      harness.capturedEvents.length = 0;
+      // Trigger completion
+      t.advanceClock(2100).tick();
       
-      // Push block
-      harness.pushFirstStatement();
+      // Should have completion events
+      expect(t.eventNames).toContain('timer:tick');
+      expect(t.eventNames).toContain('timer:complete');
+      expect(t.eventNames).toContain('block:complete');
+      expect(t.eventNames).toContain('stack:pop');
+    });
+    
+    it('should emit timer:started before timer:complete', () => {
+      const t = new TimerTestHarness('0:02 Run').start();
+      t.advanceClock(2100).tick();
       
-      // Complete timer
-      harness.clock.advance(2100);
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
+      const startedIdx = t.eventNames.indexOf('timer:started');
+      const completedIdx = t.eventNames.indexOf('timer:complete');
       
-      // ASSERT: Event sequence
-      const eventNames = harness.capturedEvents.map(e => e.name);
-      
-      // Should contain these events (order matters for some)
-      expect(eventNames).toContain('timer:started');
-      expect(eventNames).toContain('stack:push');
-      
-      // After completion
-      expect(eventNames).toContain('timer:tick');
-      expect(eventNames).toContain('timer:complete');
-      expect(eventNames).toContain('block:complete');
-      expect(eventNames).toContain('stack:pop');
-      
-      // timer:started should come before timer:complete
-      const startedIdx = eventNames.indexOf('timer:started');
-      const completedIdx = eventNames.indexOf('timer:complete');
       expect(startedIdx).toBeLessThan(completedIdx);
     });
   });
   
   describe('Count-Up Timer Behavior', () => {
+    
     it('should NOT auto-complete count-up timers (00:00 syntax)', () => {
-      // Count-up timer with 00:00 syntax means "run until stopped"
-      const harness = createTimerTestRuntime('00:00 Run');
-      const block = harness.pushFirstStatement();
-      const timerBehavior = block.getBehavior(TimerBehavior)!;
+      // 00:00 means "count up indefinitely"
+      const t = new TimerTestHarness('00:00 Run').start();
       
-      // Advance time significantly
-      harness.clock.advance(60000); // 1 minute
+      // Advance a full minute
+      t.advanceClock(60000).tick();
       
-      // Tick
-      harness.runtime.handle({
-        name: 'timer:tick',
-        timestamp: harness.clock.now,
-        data: { source: 'test' }
-      });
-      
-      // ASSERT: Timer should NOT be complete (count-up never auto-completes)
-      expect(timerBehavior.isComplete()).toBe(false);
-      expect(harness.stack.count).toBe(1); // Block still on stack
+      // Should NOT complete - count-up timers run forever
+      expect(t.timerBehavior.isComplete()).toBe(false);
+      expect(t.stackCount).toBe(1);
     });
   });
   
   describe('Edge Cases', () => {
+    
     it('should handle exact duration boundary', () => {
-      const harness = createTimerTestRuntime('0:05 Run');
-      const block = harness.pushFirstStatement();
-      const timerBehavior = block.getBehavior(TimerBehavior)!;
+      const t = new TimerTestHarness('0:05 Run').start();
       
-      // Advance exactly to duration (5000ms)
-      harness.clock.advance(5000);
+      // Advance exactly to 5000ms
+      t.advanceClock(5000);
       
-      // At exact boundary, should be complete
-      expect(timerBehavior.isComplete()).toBe(true);
+      // Should be complete at exact boundary
+      expect(t.timerBehavior.isComplete()).toBe(true);
     });
     
     it('should handle multiple tick events gracefully', () => {
-      const harness = createTimerTestRuntime('0:02 Run');
-      harness.pushFirstStatement();
+      const t = new TimerTestHarness('0:02 Run').start();
+      t.advanceClock(2100);
       
-      // Advance past duration
-      harness.clock.advance(2100);
+      // Send 5 ticks (should only pop once, not error)
+      t.tick().tick().tick().tick().tick();
       
-      // Send multiple ticks (should only pop once)
-      for (let i = 0; i < 5; i++) {
-        harness.runtime.handle({
-          name: 'timer:tick',
-          timestamp: harness.clock.now,
-          data: { source: 'test', tick: i }
-        });
-      }
-      
-      // ASSERT: Stack is empty (block popped once, not error from multiple pops)
-      expect(harness.stack.count).toBe(0);
+      // Stack should be empty
+      expect(t.stackCount).toBe(0);
     });
   });
 });

@@ -1,15 +1,17 @@
-import { BlockKey } from "../core/models/BlockKey";
-import { IRuntimeAction } from "./IRuntimeAction";
-import { IScriptRuntime } from "./IScriptRuntime";
-import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { IBlockContext } from "./IBlockContext";
-import { ICodeFragment, FragmentType } from "../core/models/CodeFragment";
+import { BlockKey } from '../../core/models/BlockKey';
+import { IRuntimeAction } from './IRuntimeAction';
+import { IBlockContext } from './IBlockContext';
+import { IScriptRuntime } from './IScriptRuntime';
+import { IRuntimeBehavior } from './IRuntimeBehavior';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
     startTime?: Date;
     /** Completion timestamp when the block was popped from the stack. */
     completedAt?: Date;
+    /** Current timestamp for the operation (onNext, etc). */
+    now?: Date;
 }
 
 /**
@@ -27,15 +29,6 @@ export interface BlockLifecycleOptions {
  * - All lifecycle methods should complete within 50ms
  * - Stack operations should be optimized for frequent push/pop cycles
  * - Memory usage should be minimized during execution
- * 
- * @example
- * ```typescript
- * const block = new MyRuntimeBlock(config); // Initialization happens here
- * stack.push(block);
- * 
- * // Pop now runs lifecycle sequencing internally
- * stack.pop();
- * ```
  */
 export interface IRuntimeBlock {
     /**
@@ -89,8 +82,8 @@ export interface IRuntimeBlock {
      * Note: In constructor-based initialization pattern,
      * this method handles runtime registration only.
      * 
-    * @param runtime The script runtime context
-    * @param options Lifecycle timing data (start time)
+     * @param runtime The script runtime context
+     * @param options Lifecycle timing data (start time)
      * @returns Array of runtime actions to execute after mount
      */
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
@@ -99,8 +92,8 @@ export interface IRuntimeBlock {
      * Called when a child block completes execution.
      * Determines the next block(s) to execute or signals completion.
      * 
-    * @param runtime The script runtime context
-    * @param options Lifecycle timing data (completion timestamp)
+     * @param runtime The script runtime context
+     * @param options Lifecycle timing data (completion timestamp)
      * @returns Array of runtime actions representing next execution steps
      */
     next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
@@ -112,8 +105,8 @@ export interface IRuntimeBlock {
      * Note: In consumer-managed disposal pattern,
      * this method does NOT clean up resources.
      * 
-    * @param runtime The script runtime context
-    * @param options Lifecycle timing data (completion timestamp)
+     * @param runtime The script runtime context
+     * @param options Lifecycle timing data (completion timestamp)
      * @returns Array of runtime actions to execute after unmount
      */
     unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];

@@ -2,7 +2,7 @@ import { ICodeFragment, FragmentCollectionState, FragmentType } from '../core/mo
 import { BlockKey } from '../core/models/BlockKey';
 import { MetricBehavior } from '../types/MetricBehavior';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { IRuntimeBehavior } from "./IRuntimeBehavior";
+import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
@@ -86,10 +86,17 @@ export class RuntimeBlock implements IRuntimeBlock {
             id: `dispatcher-${this.key.toString()}`,
             name: `EventDispatcher-${this.label}`,
             handler: (event: IEvent, runtime: IScriptRuntime) => {
+                // Determine if this block is active.
+                // Standard behavior onEvent is only called for the active block.
+                // Global listeners should be registered separately (e.g. via SubscribeEventAction).
+                if (runtime.stack.current !== this) {
+                    return [];
+                }
+
                 const actions: IRuntimeAction[] = [];
                 for (const behavior of this.behaviors) {
                     if (behavior.onEvent) {
-                        const result = behavior.onEvent(event, runtime, this);
+                        const result = behavior.onEvent(event, this);
                         if (result) {
                             actions.push(...result);
                         }
@@ -121,7 +128,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Call behaviors
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(runtime, this, mountOptions);
+            const result = behavior?.onPush?.(this, mountOptions);
             if (result) { actions.push(...result); }
         }
 
@@ -139,7 +146,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         }
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(runtime, this, nextOptions);
+            const result = behavior?.onNext?.(this, nextOptions);
             if (result) { actions.push(...result); }
         }
         return actions;
@@ -163,7 +170,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(runtime, this, unmountOptions);
+            const result = behavior?.onPop?.(this, unmountOptions);
             if (result) { actions.push(...result); }
         }
 
@@ -174,7 +181,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Call behavior disposal hooks
         for (const behavior of this.behaviors) {
             if (behavior.onDispose) {
-                behavior.onDispose(runtime, this);
+                behavior.onDispose(this);
             }
         }
 

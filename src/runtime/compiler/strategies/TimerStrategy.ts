@@ -188,16 +188,23 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         }
 
         // Add CompletionBehavior
-        // Complete when children complete (if any), otherwise manual completion?
-        // For simple timer, maybe it never completes automatically unless children complete?
+        // Complete when:
+        // - Countdown timer reaches zero (timerBehavior.isComplete())
+        // - Children complete (if any)
+        // Listens to timer:tick to check completion on each tick
         behaviors.push(new CompletionBehavior(
             (_rt, block) => {
+                // Check if countdown timer is complete
+                if (direction === 'down' && timerBehavior.isComplete()) {
+                    return true;
+                }
+                // Check if children completed (if any)
                 if (loopCoordinator) {
                     return loopCoordinator.isComplete(_rt, block);
                 }
-                return false; // Simple timer runs until stopped manually
+                return false; // Count-up timer runs until stopped manually
             },
-            ['timer:complete', 'children:complete']
+            ['timer:tick', 'timer:complete', 'children:complete']
         ));
 
         // 6. Create RuntimeBlock with compiled metrics
