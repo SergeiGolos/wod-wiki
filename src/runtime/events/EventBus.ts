@@ -1,14 +1,14 @@
 import { IEvent } from '../contracts/events/IEvent';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEventHandler } from '../contracts/events/IEventHandler';
+import { IEventBus, EventCallback, HandlerScope, EventHandlerOptions } from '../contracts/events/IEventBus';
 
 export type EventHandlerRegistration = {
   handler: IEventHandler;
   ownerId: string;
   priority: number;
+  scope: HandlerScope;
 };
-
-import { IEventBus, EventCallback } from '../contracts/events/IEventBus';
 
 type CallbackRegistration = {
   id: string;
@@ -18,9 +18,21 @@ type CallbackRegistration = {
 
 /**
  * Simple in-memory event bus for runtime events.
- * - Handlers are registered per event name with optional priority.
- * - Dispatch does not depend on stack state; handlers self-filter as needed.
- * - Supports owner-based cleanup and unregister by handler id.
+ * 
+ * ## Handler Scope Filtering
+ * 
+ * Handlers registered via `register()` are filtered by scope before dispatch:
+ * - `'active'` (default): Only fires when ownerId matches the current/active block on the stack
+ * - `'bubble'`: Fires when ownerId is anywhere on the stack (parent can listen to child events)
+ * - `'global'`: Always fires regardless of stack state (for runtime-level handlers)
+ * 
+ * ## Callbacks vs Handlers
+ * 
+ * - **Handlers** (via `register()`): Produce `IRuntimeAction[]`, are scope-filtered
+ * - **Callbacks** (via `on()`): Simple notifications for UI, are NOT scope-filtered (always fire)
+ * 
+ * Callbacks are intended for UI components that need to react to all events regardless
+ * of which block is active. They do not produce actions and cannot affect runtime state.
  */
 export class EventBus implements IEventBus {
   private handlersByEvent: Map<string, EventHandlerRegistration[]> = new Map();
@@ -30,10 +42,12 @@ export class EventBus implements IEventBus {
     eventName: string,
     handler: IEventHandler,
     ownerId: string,
-    priority: number = 0
+    options: EventHandlerOptions = {}
   ): () => void {
+    const { priority = 0, scope = 'active' } = options;
+    
     const list = this.handlersByEvent.get(eventName) ?? [];
-    const updated = [...list, { handler, ownerId, priority }];
+    const updated = [...list, { handler, ownerId, priority, scope }];
     // Keep deterministic order: higher priority first, then insertion
     updated.sort((a, b) => b.priority - a.priority);
     this.handlersByEvent.set(eventName, updated);
@@ -95,7 +109,7 @@ export class EventBus implements IEventBus {
   }
 
   dispatch(event: IEvent, runtime: IScriptRuntime): import('../contracts/IRuntimeAction').IRuntimeAction[] {
-    // First, invoke simple callbacks (no actions)
+    // First, invoke simple callbacks (no actions) - callbacks are not scope-filtered
     const callbacks = [
       ...(this.callbacksByEvent.get('*') ?? []),
       ...(this.callbacksByEvent.get(event.name) ?? [])
@@ -109,14 +123,35 @@ export class EventBus implements IEventBus {
       }
     }
 
-    // Then, invoke action-producing handlers
-    const list = [
+    // Get active block key and all stack keys for scope filtering
+    const activeBlockKey = runtime.stack.current?.key.toString();
+    const stackKeys = new Set(runtime.stack.keys.map(k => k.toString()));
+
+    // Get all handlers for this event
+    const allHandlers = [
       ...(this.handlersByEvent.get('*') ?? []),
       ...(this.handlersByEvent.get(event.name) ?? [])
     ];
+
+    // Filter handlers based on scope
+    const eligibleHandlers = allHandlers.filter(entry => {
+      switch (entry.scope) {
+        case 'global':
+          // Global handlers always fire
+          return true;
+        case 'bubble':
+          // Bubble handlers fire when owner is anywhere on stack
+          return stackKeys.has(entry.ownerId);
+        case 'active':
+        default:
+          // Active handlers only fire when owner is the current block
+          return entry.ownerId === activeBlockKey;
+      }
+    });
+
     const actions = [] as import('../contracts/IRuntimeAction').IRuntimeAction[];
 
-    for (const entry of list) {
+    for (const entry of eligibleHandlers) {
       try {
         const result = entry.handler.handler(event, runtime);
         if (result && result.length > 0) {

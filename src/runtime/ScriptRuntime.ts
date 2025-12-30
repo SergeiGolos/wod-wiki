@@ -94,11 +94,11 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Event-based span tracking handler
         this._spanTracker = new SpanTrackingHandler();
-        this.eventBus.register('stack:push', this._spanTracker, 'runtime');
-        this.eventBus.register('stack:pop', this._spanTracker, 'runtime');
+        this.eventBus.register('stack:push', this._spanTracker, 'runtime', { scope: 'global' });
+        this.eventBus.register('stack:pop', this._spanTracker, 'runtime', { scope: 'global' });
 
         // Handle explicit next events to advance the current block once per request
-        this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime');
+        this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
 
         this._tracker = this.options.tracker ?? this._spanTracker ?? noopTracker;
 
