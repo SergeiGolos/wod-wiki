@@ -164,6 +164,10 @@ classDiagram
 
 ### 1. Update `IEventBus` Interface
 
+> **Note**: The `HandlerScope` and `EventHandlerOptions` types should be defined in 
+> `src/runtime/contracts/events/IEventBus.ts` alongside the interface since they are 
+> directly related to the event bus API. This keeps the event bus contract self-contained.
+
 **Before:**
 ```typescript
 // src/runtime/contracts/events/IEventBus.ts
@@ -270,6 +274,8 @@ export class EventBus implements IEventBus {
 
   dispatch(event: IEvent, runtime: IScriptRuntime): IRuntimeAction[] {
     const activeBlockKey = runtime.stack.current?.key.toString();
+    // Note: runtime.stack.keys is already part of IRuntimeStack interface
+    // It returns BlockKey[] - see src/runtime/contracts/IRuntimeStack.ts
     const stackKeys = new Set(runtime.stack.keys.map(k => k.toString()));
     
     const allHandlers = [
