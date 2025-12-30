@@ -1,6 +1,7 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IEventHandler } from '../contracts/events/IEventHandler';
+import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { IEventHandler } from '../../contracts/events/IEventHandler';
+import { HandlerScope } from '../../contracts/events/IEventBus';
 
 /**
  * Action for declaratively registering an event handler.
@@ -10,9 +11,12 @@ import { IEventHandler } from '../contracts/events/IEventHandler';
  * 
  * @example
  * ```typescript
- * // Register a handler for block completion
+ * // Register a handler for block completion (default 'active' scope)
  * const handler = new BlockCompleteEventHandler(blockId);
  * return [new RegisterEventHandlerAction(handler, blockId)];
+ * 
+ * // Register a handler that listens to child events ('bubble' scope)
+ * return [new RegisterEventHandlerAction(handler, blockId, 'bubble')];
  * ```
  */
 export class RegisterEventHandlerAction implements IRuntimeAction {
@@ -23,11 +27,11 @@ export class RegisterEventHandlerAction implements IRuntimeAction {
     public readonly handler: IEventHandler,
     /** The block ID that owns this handler (for cleanup) */
     public readonly ownerId: string,
-    /** Visibility of the handler (default: 'private') */
-    public readonly visibility: 'public' | 'private' = 'private'
+    /** Handler scope. Default: 'active' (only fires when owner is current block) */
+    public readonly scope: HandlerScope = 'active'
   ) {}
 
   do(runtime: IScriptRuntime): void {
-    runtime.eventBus.register('*', this.handler, this.ownerId);
+    runtime.eventBus.register('*', this.handler, this.ownerId, { scope: this.scope });
   }
 }

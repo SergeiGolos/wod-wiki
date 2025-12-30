@@ -2,6 +2,7 @@ import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { IEventHandler } from '../../contracts/events/IEventHandler';
 import { IEvent } from '../../contracts/events/IEvent';
+import { HandlerScope } from '../../contracts/events/IEventBus';
 
 export class SubscribeEventAction implements IRuntimeAction {
     private _type = 'subscribe-event';
@@ -10,7 +11,9 @@ export class SubscribeEventAction implements IRuntimeAction {
         private eventName: string,
         private handlerId: string,
         private ownerId: string,
-        private handlerFn: (event: IEvent, runtime: IScriptRuntime) => IRuntimeAction[]
+        private handlerFn: (event: IEvent, runtime: IScriptRuntime) => IRuntimeAction[],
+        /** Handler scope. Default: 'active' (only fires when owner is current block) */
+        private scope: HandlerScope = 'active'
     ) { }
 
     get type(): string {
@@ -28,7 +31,7 @@ export class SubscribeEventAction implements IRuntimeAction {
             name: `Subscription-${this.eventName}`,
             handler: this.handlerFn
         };
-        runtime.eventBus.register(this.eventName, handler, this.ownerId);
+        runtime.eventBus.register(this.eventName, handler, this.ownerId, { scope: this.scope });
     }
 }
 

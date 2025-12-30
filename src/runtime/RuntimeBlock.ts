@@ -65,18 +65,21 @@ export class RuntimeBlock implements IRuntimeBlock {
         const handler: IEventHandler = {
             id: `handler-tick-${this.key.toString()}`,
             name: `TickHandler-${this.label}`,
-            handler: (event: IEvent, runtime: IScriptRuntime) => {
+            handler: (event: IEvent, _runtime: IScriptRuntime) => {
                 // Skip 'next' events - handled by NextAction via NextEventHandler
                 if (event.name === 'next') return [];
 
-                // Only handle if this is the current block
-                if (runtime.stack.current !== this) return [];
+                // Note: No manual active block check needed here.
+                // The EventBus filters handlers by scope automatically.
+                // This handler uses 'active' scope (default), so it only fires
+                // when this block is the current block on the stack.
 
                 return [];
             }
         };
 
-        // Register with event bus (guarded for test stubs without eventBus)
+        // Register with event bus using default 'active' scope
+        // Handler only fires when this block is the current block on the stack
         const unsub = this._runtime?.eventBus?.register?.('next', handler, this.key.toString());
         if (unsub) {
             this._unsubscribers.push(unsub);
@@ -87,13 +90,11 @@ export class RuntimeBlock implements IRuntimeBlock {
         const handler: IEventHandler = {
             id: `dispatcher-${this.key.toString()}`,
             name: `EventDispatcher-${this.label}`,
-            handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Determine if this block is active.
-                // Standard behavior onEvent is only called for the active block.
-                // Global listeners should be registered separately (e.g. via SubscribeEventAction).
-                if (runtime.stack.current !== this) {
-                    return [];
-                }
+            handler: (event: IEvent, _runtime: IScriptRuntime) => {
+                // Note: No manual active block check needed here.
+                // The EventBus filters handlers by scope automatically.
+                // This handler uses 'active' scope (default), so it only fires
+                // when this block is the current block on the stack.
 
                 const actions: IRuntimeAction[] = [];
                 for (const behavior of this.behaviors) {
@@ -108,6 +109,8 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         };
 
+        // Register with event bus using default 'active' scope
+        // Handler only fires when this block is the current block on the stack
         const unsub = this._runtime?.eventBus?.register?.('*', handler, this.key.toString());
         if (unsub) {
             this._unsubscribers.push(unsub);

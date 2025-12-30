@@ -61,7 +61,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                 '*',
                 this.controlHandlerId,
                 block.key.toString(),
-                (event, runtime) => this.handleControlEvent(event, runtime, block)
+                (event, runtime) => this.handleControlEvent(event, runtime, block),
+                'bubble'  // Use 'bubble' scope to receive events from child blocks
             ),
             new SetWorkoutStateAction('running'),
             new PushIdleBlockAction(
