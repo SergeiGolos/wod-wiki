@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { TimerBehavior } from './TimerBehavior';
 import { IEvent } from '../contracts/events/IEvent';
 import { NextAction } from '../actions/stack/NextAction';
@@ -15,8 +16,8 @@ import { NextAction } from '../actions/stack/NextAction';
 export class IntervalWaitingBehavior implements IRuntimeBehavior {
     private isWaiting: boolean = false;
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const now = options?.now || new Date();
+    onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        const now = clock.now;
         const timer = block.getBehavior(TimerBehavior);
 
         if (timer && timer.isRunning() && !timer.isComplete(now)) {
@@ -40,7 +41,7 @@ export class IntervalWaitingBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
-    onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
+    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] { return []; }
+    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] { return []; }
     onDispose(_block: IRuntimeBlock): void { }
 }

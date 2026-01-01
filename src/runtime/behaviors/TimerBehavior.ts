@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TimeSpan } from '../models/TimeSpan';
 import { TimerStateManager } from './TimerStateManager';
@@ -27,8 +28,8 @@ export class TimerBehavior implements IRuntimeBehavior {
     this.stateManager = new TimerStateManager(direction, durationMs, label);
   }
 
-  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    const now = options?.startTime ?? new Date();
+  onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+    const now = clock.now;
     this.startTime = now;
     this.elapsedMs = 0;
     this._isPaused = !this.autoStart;
@@ -48,8 +49,8 @@ export class TimerBehavior implements IRuntimeBehavior {
     return actions;
   }
 
-  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    const completedAt = options?.completedAt ?? new Date();
+  onPop(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+    const completedAt = clock.now;
     const finalElapsed = this.getElapsedAt(completedAt);
 
     const actions: IRuntimeAction[] = [

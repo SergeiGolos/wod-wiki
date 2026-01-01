@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
@@ -21,7 +22,7 @@ export class BoundLoopBehavior implements IRuntimeBehavior {
         return this._isComplete;
     }
 
-    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         if (this._isComplete) {
             return [];
         }

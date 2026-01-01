@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IEvent } from '../contracts/events/IEvent';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
@@ -24,16 +25,16 @@ export class CompletionBehavior implements IRuntimeBehavior {
     private readonly checkOnEvents: string[] = []
   ) { }
 
-  onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
     return [];
   }
 
-  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
     if (this.isCompleteFlag) {
       return [];
     }
 
-    const now = options?.now ?? new Date();
+    const now = clock.now;
     if (this.condition(block, now)) {
       return this.complete(block, now);
     }
@@ -41,7 +42,7 @@ export class CompletionBehavior implements IRuntimeBehavior {
     return [];
   }
 
-  onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
     return [];
   }
 

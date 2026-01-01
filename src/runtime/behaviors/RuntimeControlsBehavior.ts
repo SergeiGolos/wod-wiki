@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { RuntimeButton, RuntimeControls } from '../models/MemoryModels';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 
@@ -9,7 +10,7 @@ export class RuntimeControlsBehavior implements IRuntimeBehavior {
     private buttons: RuntimeButton[] = [];
     private displayMode: 'timer' | 'clock' = 'timer';
 
-    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         // Allocate controls memory in block context
         this.controlsRef = block.context.allocate<RuntimeControls>(
             'runtime-controls',
@@ -20,15 +21,15 @@ export class RuntimeControlsBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         return [];
     }
 
-    onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         return [];
     }
 
-    onDispose(block: IRuntimeBlock): void {
+    onDispose(_block: IRuntimeBlock): void {
         this.controlsRef = undefined;
     }
 

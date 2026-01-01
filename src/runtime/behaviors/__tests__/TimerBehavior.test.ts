@@ -52,16 +52,18 @@ describe('TimerBehavior Contract (Migrated)', () => {
       expect(events[0].data.blockId).toBe('test-block');
     });
 
-    it('should use provided startTime from options', () => {
+    it('should use clock time for startTime', () => {
       const customStartTime = new Date('2024-06-15T10:00:00Z');
       const block = new MockBlock('test-block', [new TimerBehavior('up')]);
 
-      harness.push(block);
+      // Set the clock to the custom start time before mounting
+      const customHarness = new BehaviorTestHarness()
+        .withClock(customStartTime);
 
-      const options: BlockLifecycleOptions = { startTime: customStartTime };
-      harness.mount(options);
+      customHarness.push(block);
+      customHarness.mount();
 
-      const events = harness.findEvents('timer:started');
+      const events = customHarness.findEvents('timer:started');
       expect(events[0].timestamp.getTime()).toBe(customStartTime.getTime());
     });
   });

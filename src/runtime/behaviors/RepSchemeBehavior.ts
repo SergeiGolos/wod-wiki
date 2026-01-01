@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
@@ -39,12 +40,12 @@ export class RepSchemeBehavior implements IRuntimeBehavior {
 
     constructor(private readonly repScheme: number[]) { }
 
-    onPush(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.lastRound = this.getRound(block);
         return this.updateReps(block, this.lastRound);
     }
 
-    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         const currentRound = this.getRound(block);
         if (currentRound !== this.lastRound) {
             this.lastRound = currentRound;
@@ -53,7 +54,7 @@ export class RepSchemeBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         return [];
     }
 

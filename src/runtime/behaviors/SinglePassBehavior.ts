@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
@@ -17,7 +18,7 @@ export class SinglePassBehavior implements IRuntimeBehavior {
         return this._isComplete;
     }
 
-    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         if (this._isComplete) {
             return [];
         }

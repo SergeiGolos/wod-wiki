@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IEvent } from '../contracts/events/IEvent';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { RuntimeMetric, MetricValueType } from '../models/RuntimeMetric';
@@ -30,8 +31,8 @@ export class IdleBehavior implements IRuntimeBehavior {
         };
     }
 
-    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        this.startTime = (options?.startTime ?? new Date()).getTime();
+    onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        this.startTime = clock.now.getTime();
 
         // Allocate controls for this idle block
         const buttons: RuntimeButton[] = [];
@@ -80,7 +81,7 @@ export class IdleBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         if (this.config.popOnNext) {
             return [new PopBlockAction()];
         }
@@ -94,8 +95,8 @@ export class IdleBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onPop(_block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const endTime = (options?.completedAt ?? new Date()).getTime();
+    onPop(_block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        const endTime = clock.now.getTime();
         const duration = endTime - this.startTime;
 
         const metric: RuntimeMetric = {

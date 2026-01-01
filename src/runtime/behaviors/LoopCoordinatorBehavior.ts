@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { TimerBehavior } from './TimerBehavior';
 import { SetRoundsDisplayAction } from '../actions/display/WorkoutStateActions';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
@@ -143,22 +144,22 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when the block is pushed onto the stack.
    * Automatically compiles and pushes the first child group.
    */
-  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
     // Delegate to onNext to compile and push first child
-    return this.onNext(block, options);
+    return this.onNext(block, clock);
   }
 
   /**
    * Called when advancing to the next execution step.
    * Returns PushBlockAction for next child or empty array if complete.
    */
-  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
     // Early exit if already complete
     if (this._isComplete) {
       return [];
     }
 
-    const now = options?.now ?? new Date();
+    const now = clock.now;
 
     // Handle INTERVAL waiting logic
     if (this.config.loopType === LoopType.INTERVAL) {
@@ -323,8 +324,8 @@ export class LoopCoordinatorBehavior implements IRuntimeBehavior {
    * Called when the block is popped from the stack.
    * Cleanup any state if needed.
    */
-  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    const now = options?.completedAt ?? new Date();
+  onPop(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+    const now = clock.now;
 
     // Close the current round span if it exists
     const state = this.getState();

@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
@@ -12,7 +13,7 @@ import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
  */
 export class UnboundLoopBehavior implements IRuntimeBehavior {
 
-    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         const round = this.getRound(block);
 
         // Report round status to tracker (History)

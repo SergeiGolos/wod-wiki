@@ -133,32 +133,32 @@ export class MockBlock implements IRuntimeBlock {
     return this._runtime;
   }
 
-  mount(_runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    this.executionTiming.startTime = options?.startTime ?? new Date();
+  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    this.executionTiming.startTime = options?.startTime ?? runtime.clock.now;
 
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onPush?.(this, options);
+      const result = behavior.onPush?.(this, runtime.clock);
       if (result) actions.push(...result);
     }
     return actions;
   }
 
-  next(_runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onNext?.(this, options);
+      const result = behavior.onNext?.(this, runtime.clock);
       if (result) actions.push(...result);
     }
     return actions;
   }
 
-  unmount(_runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    this.executionTiming.completedAt = options?.completedAt ?? new Date();
+  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    this.executionTiming.completedAt = options?.completedAt ?? runtime.clock.now;
 
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onPop?.(this, options);
+      const result = behavior.onPop?.(this, runtime.clock);
       if (result) actions.push(...result);
     }
     return actions;

@@ -46,7 +46,7 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
     (harness.runtime as any).jit = { compile: vi.fn().mockReturnValue({}) };
 
     // 1. Start Round 0
-    loopBehavior.onPush(mockBlock);
+    loopBehavior.onPush(mockBlock, harness.clock);
 
     // Check if timer was restarted on push
     expect(mockTimerBehavior.restart).toHaveBeenCalledTimes(1);
@@ -54,7 +54,7 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
     // 2. Simulate Round 0 completion - Child pops, timer is running
     (mockTimerBehavior.isRunning as any).mockReturnValue(true);
     (mockTimerBehavior.isComplete as any).mockReturnValue(false);
-    loopBehavior.onNext(mockBlock); // Should return [] (waiting)
+    loopBehavior.onNext(mockBlock, harness.clock); // Should return [] (waiting)
 
     // 3. Simulate Timer Complete (Interval End)
     const event: IEvent = { name: 'timer:complete', data: { blockId: 'block-1' }, timestamp: new Date() };
@@ -65,7 +65,7 @@ describe('LoopCoordinatorBehavior - EMOM Multi-round', () => {
     expect(loopBehavior.getState().rounds).toBe(1);
 
     // 4. Simulate Round 1 waiting
-    loopBehavior.onNext(mockBlock);
+    loopBehavior.onNext(mockBlock, harness.clock);
 
     // 5. Timer Complete Round 1
     loopBehavior.onEvent(event, mockBlock);

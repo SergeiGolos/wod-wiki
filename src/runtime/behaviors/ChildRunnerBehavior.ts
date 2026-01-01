@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { ChildIndexBehavior } from './ChildIndexBehavior';
 import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
 import { BoundLoopBehavior } from './BoundLoopBehavior';
@@ -16,18 +17,18 @@ import { BoundLoopBehavior } from './BoundLoopBehavior';
 export class ChildRunnerBehavior implements IRuntimeBehavior {
     constructor(private readonly childGroups: number[][]) { }
 
-    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
         const indexBehavior = block.getBehavior(ChildIndexBehavior);
         if (indexBehavior) {
             // Force the first index increment during the push phase
-            indexBehavior.onNext(block, options);
+            indexBehavior.onNext(block, clock);
         }
 
         // Now execute the normal onNext logic to push the block at index 0
-        return this.onNext(block, options);
+        return this.onNext(block, clock);
     }
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
         // Don't push children if the loop is complete
         const boundLoop = block.getBehavior(BoundLoopBehavior);
         if (boundLoop?.isComplete()) {
@@ -50,7 +51,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const now = options?.now || new Date();
+        const now = clock.now;
         return [new CompileAndPushBlockAction(childGroupIds, { startTime: now })];
     }
 }

@@ -1,4 +1,4 @@
-import { TimeSpan } from './models/TimeSpan';
+import { TimeSpan } from '../models/TimeSpan';
 
 /**
  * IRuntimeClock provides time tracking for the runtime.

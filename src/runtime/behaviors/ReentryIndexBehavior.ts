@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 
 /**
  * Tracks the number of times next() has been called on this block.
@@ -15,12 +16,12 @@ export class ReentryIndexBehavior implements IRuntimeBehavior {
         return this.reentryCount;
     }
 
-    onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.reentryCount = 0;
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.reentryCount++;
         return [];
     }
