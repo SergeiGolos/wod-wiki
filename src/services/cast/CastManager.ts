@@ -11,6 +11,16 @@ import {
     SessionConfig,
     TargetDiscoveredMessage
 } from '@/types/cast/messages';
+import {
+    MAX_RECONNECT_ATTEMPTS,
+    RECONNECT_BASE_DELAY_SECONDS,
+    MAX_RECONNECT_DELAY_SECONDS,
+    RECONNECT_JITTER_PERCENT,
+    WEB_DEVICE_ID_PREFIX,
+    DEVICE_ID_LENGTH,
+    CAST_PROTOCOL_VERSION,
+    DEFAULT_METRICS_SYNC_INTERVAL_MS
+} from './constants';
 
 type Listener = (...args: unknown[]) => void;
 
@@ -19,19 +29,25 @@ export class CastManager {
   private ws: WebSocket | null = null;
   private deviceId: string;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
+  private maxReconnectAttempts = MAX_RECONNECT_ATTEMPTS;
   private reconnectTimeout: number | null = null;
   private eventBuffer: unknown[] = [];
 
-  // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
+  /**
+   * Calculate reconnection delay with exponential backoff and jitter
+   * @returns Delay in milliseconds
+   */
   private getReconnectDelay(): number {
-    const base = Math.min(30, Math.pow(2, this.reconnectAttempts));
-    const jitter = Math.random() * 0.3 * base; // 30% jitter
+    const base = Math.min(
+      MAX_RECONNECT_DELAY_SECONDS, 
+      RECONNECT_BASE_DELAY_SECONDS * Math.pow(2, this.reconnectAttempts)
+    );
+    const jitter = Math.random() * RECONNECT_JITTER_PERCENT * base;
     return (base + jitter) * 1000;
   }
 
   constructor() {
-    this.deviceId = 'web-' + uuidv4().substring(0, 8);
+    this.deviceId = WEB_DEVICE_ID_PREFIX + uuidv4().substring(0, DEVICE_ID_LENGTH);
   }
 
   on(event: string, listener: Listener) {
@@ -65,7 +81,7 @@ export class CastManager {
       };
 
       this.ws.onclose = (event) => {
-        if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
+        if (!event.wasClean && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           this.scheduleReconnect(serverUrl);
         }
         this.emit('connectionClosed', event);
@@ -115,7 +131,7 @@ export class CastManager {
                   multiUser: false,
                   features: ['*']
               },
-              protocolVersion: '1.0.0'
+              protocolVersion: CAST_PROTOCOL_VERSION
           }
       };
       this.send(msg);
@@ -127,7 +143,21 @@ export class CastManager {
     this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
 
     this.reconnectTimeout = window.setTimeout(() => {
-      this.connect(serverUrl).catch(() => {});
+      this.connect(serverUrl).catch((error) => {
+        console.error('[CastManager] Reconnection attempt failed:', error);
+        this.emit('reconnect-failed', { 
+          attempt: this.reconnectAttempts, 
+          error: error instanceof Error ? error.message : String(error)
+        });
+        
+        // Schedule next attempt if we haven't exceeded max attempts
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.scheduleReconnect(serverUrl);
+        } else {
+          console.error('[CastManager] Max reconnection attempts reached');
+          this.emit('reconnect-exhausted', { attempts: this.reconnectAttempts });
+        }
+      });
     }, delay);
   }
 
@@ -199,7 +229,7 @@ export class CastManager {
               config: {
                   receiverControlEnabled: true,
                   heartRateSyncEnabled: true,
-                  metricsSyncInterval: 5000,
+                  metricsSyncInterval: DEFAULT_METRICS_SYNC_INTERVAL_MS,
                   autoStopOnDisconnect: true
               }
           }
