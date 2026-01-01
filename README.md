@@ -19,6 +19,11 @@ We have comprehensive documentation available in the `docs/` directory:
 - **[Exercise Typeahead](./docs/Exercise_Typeahead.md)**: Details on the intelligent exercise suggestion system.
 - **[Runtime Test Bench](./docs/Runtime_Test_Bench.md)**: How to use the interactive debugging tool.
 
+### Code Quality
+- **[Code Quality Summary](./docs/CODE_QUALITY_SUMMARY.md)**: Overview of code quality metrics and improvements
+- **[Code Analysis](./docs/CODE_ANALYSIS.md)**: Detailed analysis of anti-patterns and code smells
+- **[Refactoring Plan](./docs/REFACTORING_PLAN.md)**: Prioritized roadmap for code improvements
+
 ## 🚀 Quick Start
 
 ### Prerequisites
