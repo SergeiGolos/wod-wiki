@@ -122,7 +122,7 @@ describe('Lifecycle timestamps', () => {
     } as any;
 
     // Push with initial start time from mock clock
-    const actions = behavior.onPush(block, { startTime: mockClock.now });
+    const actions = behavior.onPush(block, mockClock);
     for (const action of actions) {
       action.do(runtimeStub);
     }
@@ -175,7 +175,7 @@ describe('Lifecycle timestamps', () => {
       getBehavior: vi.fn(),
     } as any;
 
-    const actions = behavior.onPush(block, { startTime: mockClock.now });
+    const actions = behavior.onPush(block, mockClock);
     for (const action of actions) {
       action.do(runtimeStub);
     }

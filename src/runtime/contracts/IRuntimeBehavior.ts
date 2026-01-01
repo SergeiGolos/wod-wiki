@@ -1,7 +1,7 @@
-import { IEvent } from "./IEvent";
+import { IEvent } from "./events/IEvent";
 import { IRuntimeAction } from "./IRuntimeAction";
-import { BlockLifecycleOptions, IRuntimeBlock } from "./IRuntimeBlock";
-import { IScriptRuntime } from "./IScriptRuntime";
+import { IRuntimeBlock } from "./IRuntimeBlock";
+import { IRuntimeClock } from "./IRuntimeClock";
 
 /**
  * Generic, composable behavior contract applied to runtime blocks.
@@ -16,13 +16,13 @@ import { IScriptRuntime } from "./IScriptRuntime";
 
 export interface IRuntimeBehavior {
   /** Called when the owning block is pushed onto the stack. May return initial events to emit. */
-  onPush?(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
+  onPush?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 
   /** Called when determining the next block after a child completes. Return a block to override. */
-  onNext?(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
+  onNext?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 
   /** Called right before the owning block is popped from the stack. */
-  onPop?(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[];
+  onPop?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 
   /** Called when the block is being disposed. Use this to clean up resources or log final metrics. */
   onDispose?(block: IRuntimeBlock): void;

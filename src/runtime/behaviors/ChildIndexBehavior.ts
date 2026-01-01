@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 
 /**
  * Tracks the current child index for a block.
@@ -22,7 +23,7 @@ export class ChildIndexBehavior implements IRuntimeBehavior {
     /**
      * Called when the block is pushed. Initialize state.
      */
-    onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.currentIndex = -1;
         this.hasJustWrapped = false;
         return [];
@@ -32,7 +33,7 @@ export class ChildIndexBehavior implements IRuntimeBehavior {
      * Called when determining the next block.
      * Updates the index handling wrap-around.
      */
-    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         const childCount = this.countOverride ?? block.sourceIds.length;
 
         if (childCount === 0) {

@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { ChildIndexBehavior } from './ChildIndexBehavior';
 
 /**
@@ -18,12 +19,12 @@ export class RoundPerLoopBehavior implements IRuntimeBehavior {
         return this.round;
     }
 
-    onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.round = 1;
         return [];
     }
 
-    onNext(block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         const childIndex = block.getBehavior(ChildIndexBehavior);
         if (childIndex && childIndex.hasJustWrapped) {
             this.round++;

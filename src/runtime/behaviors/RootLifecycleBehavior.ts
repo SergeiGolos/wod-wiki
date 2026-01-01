@@ -1,7 +1,8 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { LoopCoordinatorBehavior, LoopConfig } from './LoopCoordinatorBehavior';
 import { TimerBehavior } from './TimerBehavior';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
@@ -39,7 +40,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         this.controls = new RuntimeControlsBehavior();
     }
 
-    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
         this.state = RootState.INITIAL_IDLE;
         this.controlHandlerId = `root-control-handler-${block.key.toString()}`;
 
@@ -49,10 +50,10 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
             this.controls = blockControls;
         }
 
-        const controlActions = this.controls.onPush(block, options);
+        const controlActions = this.controls.onPush(block, clock);
         // We don't call setDisplayMode directly, we use an action
 
-        const startTime = options?.startTime ?? new Date();
+        const startTime = clock.now;
 
         return [
             ...controlActions,
@@ -79,8 +80,8 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         ];
     }
 
-    onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const now = options?.now ?? new Date();
+    onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        const now = clock.now;
         console.log(`[RootLifecycle] onNext: state=${RootState[this.state]}`);
 
         switch (this.state) {
@@ -97,12 +98,12 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                     new SetWorkoutStateAction('running'),
                     new UpdateDisplayModeAction('timer'),
                     ...this.getExecutionControlActions(),
-                    ...this.loopCoordinator.onNext(block, options)
+                    ...this.loopCoordinator.onNext(block, clock)
                 ];
             }
 
             case RootState.EXECUTING: {
-                const actions = this.loopCoordinator.onNext(block, options);
+                const actions = this.loopCoordinator.onNext(block, clock);
                 const isComplete = this.loopCoordinator.isComplete(block, now);
                 console.log(`[RootLifecycle] EXECUTING: loopCoordinator.isComplete=${isComplete}`);
 
@@ -115,7 +116,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
                         timer.stop(now);
                     }
 
-                    const startTime = options?.completedAt ?? block.executionTiming?.completedAt ?? now;
+                    const startTime = block.executionTiming?.completedAt ?? now;
                     return [
                         ...actions,
                         new SetWorkoutStateAction('complete'),
@@ -165,7 +166,7 @@ export class RootLifecycleBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         const actions: IRuntimeAction[] = [];
         if (this.controlHandlerId) {
             actions.push(new UnsubscribeEventAction(this.controlHandlerId));

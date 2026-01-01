@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 import { TimeSpan } from '../models/TimeSpan';
 import { createLabelFragment } from '../utils/metricsToFragments';
@@ -24,8 +25,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
         }
     }
 
-    onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const now = options?.startTime ?? new Date();
+    onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        const now = clock.now;
         this.startTime = now.getTime();
 
         // Build metadata from config
@@ -63,8 +64,8 @@ export class HistoryBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onPop(_block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const endTime = (options?.completedAt ?? new Date()).getTime();
+    onPop(_block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+        const endTime = clock.now.getTime();
 
         if (this.spanRef) {
             const span = this.spanRef.get();
@@ -80,7 +81,7 @@ export class HistoryBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         return [];
     }
 

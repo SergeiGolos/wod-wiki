@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 
 /**
  * Increments the round counter on each next() call.
@@ -15,12 +16,12 @@ export class RoundPerNextBehavior implements IRuntimeBehavior {
         return this.round;
     }
 
-    onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.round = 1;
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] {
+    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         this.round++;
         return [];
     }

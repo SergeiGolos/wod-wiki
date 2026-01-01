@@ -124,16 +124,12 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         const startTime = options?.startTime ?? runtime.clock.now;
-        const mountOptions: BlockLifecycleOptions = {
-            ...options,
-            startTime,
-        };
         this.executionTiming.startTime = startTime;
 
         // Call behaviors
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(this, mountOptions);
+            const result = behavior?.onPush?.(this, runtime.clock);
             if (result) { actions.push(...result); }
         }
 
@@ -145,13 +141,12 @@ export class RuntimeBlock implements IRuntimeBlock {
      * Determines the next block(s) to execute or signals completion.
      */
     next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-        const nextOptions = { ...options };
-        if (nextOptions.completedAt) {
-            this.executionTiming.completedAt = nextOptions.completedAt;
+        if (options?.completedAt) {
+            this.executionTiming.completedAt = options.completedAt;
         }
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(this, nextOptions);
+            const result = behavior?.onNext?.(this, runtime.clock);
             if (result) { actions.push(...result); }
         }
         return actions;
@@ -163,10 +158,6 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         const completedAt = options?.completedAt ?? runtime.clock.now;
-        const unmountOptions: BlockLifecycleOptions = {
-            ...options,
-            completedAt,
-        };
         this.executionTiming.completedAt = completedAt;
 
         // Attach an elapsed-time fragment and metric when completion timing is available.
@@ -175,7 +166,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(this, unmountOptions);
+            const result = behavior?.onPop?.(this, runtime.clock);
             if (result) { actions.push(...result); }
         }
 

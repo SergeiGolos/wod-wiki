@@ -4,6 +4,7 @@ import { MockBlock } from '../index';
 import { IRuntimeBehavior } from '@/runtime/contracts';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
+import { IRuntimeClock } from '@/runtime/contracts';
 
 // Simple mock action for testing
 class MockAction implements IRuntimeAction {
@@ -43,7 +44,7 @@ describe('BehaviorTestHarness', () => {
   it('should mount block and capture actions', () => {
     const action = new MockAction('test');
     const behavior: IRuntimeBehavior = {
-      onPush: () => [action]
+      onPush: (_block, _clock: IRuntimeClock): IRuntimeAction[] => [action]
     };
 
     const harness = new BehaviorTestHarness();

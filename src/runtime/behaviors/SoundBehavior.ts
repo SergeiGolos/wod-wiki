@@ -1,6 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { TypedMemoryReference } from '../contracts/IMemoryReference';
 import { PlaySoundAction } from '../actions/audio/PlaySoundAction';
 import { IEvent } from '../contracts/events/IEvent';
@@ -80,7 +81,7 @@ export class SoundBehavior implements IRuntimeBehavior {
     }
   }
 
-  onPush(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPush(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
     this._blockId = block.key.toString();
 
     // Initialize sound state with all cues set to not triggered
@@ -102,11 +103,11 @@ export class SoundBehavior implements IRuntimeBehavior {
     return [];
   }
 
-  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
     return [];
   }
 
-  onPop(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
     return [];
   }
 
