@@ -1,4 +1,4 @@
-import { MetricBehavior } from "../types/MetricBehavior";
+import { MetricBehavior } from "../../types/MetricBehavior";
 
 /**
  * Enum of all supported metric value types in the system.
@@ -50,40 +50,6 @@ export interface TimeSpan {
   stop: Date;
 }
 
-/**
- * Represents a compiled metric for a workout segment, including effort, 
- * value, and source information. Used to aggregate and report performance 
- * data during and after execution.
- * 
- * @deprecated RuntimeMetric is being phased out in favor of ICodeFragment + MetricBehavior.
- * Use FragmentMetricCollector and fragment-based analytics instead.
- * 
- * **Migration Path:**
- * - Analytics: Use `AnalysisService.runAllProjectionsFromFragments()` instead of `runAllProjections()`
- * - Collection: Use `FragmentMetricCollector`
- * - Display: Use `fragmentsToDisplayMetrics()` utility for UI rendering
- * 
- * **Timeline:**
- * - Phase 2: Both paths supported, equivalence tests passing
- * - Phase 3 (Current): RuntimeMetric marked deprecated but fully functional
- * - Q2 2025: RuntimeMetric will be removed entirely
- * 
- * @see ICodeFragment for the replacement type
- * @see FragmentMetricCollector for fragment-based collection
- * @see MIGRATION_GUIDE.md for detailed migration instructions
- */
-export interface RuntimeMetric {
-  /** The ID of the ExerciseDefinition this metric relates to. */
-  exerciseId: string;
-  /** Identifier for the originating statement/fragment */
-  sourceId?: string;
-  /** Behavior grouping that explains how this metric is intended to be used. */
-  behavior?: MetricBehavior;
-  /** Array of metric values (reps, distance, etc.) */
-  values: MetricValue[];
-  /** The time spans during which the values were recorded. */
-  timeSpans: TimeSpan[];
-}
 
 /**
  * Flattened metric entry stored in memory so UI/debuggers can see per-value metrics

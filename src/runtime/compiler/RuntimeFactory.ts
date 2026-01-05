@@ -26,14 +26,7 @@ import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../../markdown-editor/types';
-import { RuntimeBlock } from '../RuntimeBlock';
-import { BlockContext } from '../BlockContext';
-import { BlockKey } from '../../core/models/BlockKey';
-import { LoopType } from '../behaviors/LoopCoordinatorBehavior';
-import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { RootLifecycleBehavior } from '../behaviors/RootLifecycleBehavior';
-import { TimerBehavior } from '../behaviors/TimerBehavior';
-import { RuntimeControlsBehavior } from '../behaviors/RuntimeControlsBehavior';
+import { WorkoutRootStrategy } from './strategies/WorkoutRootStrategy';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 
@@ -103,56 +96,24 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create runtime with JIT compiler and optional debug options
     const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
 
-    // Create Root Block manually
-    // This ensures we always have a root grouping node that walks all children once
+    // Create Root Block using WorkoutRootStrategy
+    // This uses decomposed single-responsibility behaviors instead of monolithic RootLifecycleBehavior
 
     const statementIds = block.statements.map((s: any) => s.id);
     // Map each top-level statement to a group so they execute in sequence
     const childGroups = statementIds.map((id: number) => [id]);
 
-    const blockKey = new BlockKey('root');
-    // Use 'root' as blockId and exerciseId for the root context
-    const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
-
-    const behaviors: IRuntimeBehavior[] = [];
-
-    // Add RuntimeControlsBehavior first so other behaviors can find it
-    behaviors.push(new RuntimeControlsBehavior());
-
-    // Root uses RootLifecycleBehavior to manage the full workout lifecycle
-    // (Initial Idle -> Execution -> Final Idle)
-    const rootBehavior = new RootLifecycleBehavior({
+    // Use WorkoutRootStrategy to compose the root block with all required behaviors
+    const rootStrategy = new WorkoutRootStrategy();
+    const rootBlock = rootStrategy.build(runtime, {
       childGroups: childGroups,
-      loopType: LoopType.FIXED,
       totalRounds: 1
     });
-    behaviors.push(rootBehavior);
-
-    // Add TimerBehavior to root block and start it immediately for the overall runtime clock
-    // Use 'up' direction (count up) for the main workout timer; mark as primary for the UI
-    behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'primary', true));
-
-    // Note: CompletionBehavior is no longer needed as RootLifecycleBehavior handles completion
-
-    const rootBlock = new RuntimeBlock(
-      runtime,
-      statementIds,
-      behaviors,
-      context,
-      blockKey,
-      "Root",
-      "Workout"
-    );
-
-    if (!rootBlock) {
-      return runtime; // Return runtime even without root block for debugging
-    }
 
     // Push root block with a shared start timestamp for deterministic timing
     const rootStartTime = runtime.clock.now;
     const lifecycle = { startTime: rootStartTime };
     runtime.pushBlock(rootBlock, lifecycle);
-
 
     return runtime;
   }

@@ -20,6 +20,8 @@ import { createCountdownSoundCues } from "./TimerStrategy";
 import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
+import { RoundSpanBehavior } from "../../behaviors/RoundSpanBehavior";
+import { LapTimerBehavior } from "../../behaviors/LapTimerBehavior";
 
 /**
  * Strategy that creates parent blocks for AMRAP (As Many Rounds As Possible).
@@ -84,6 +86,11 @@ export class TimeBoundRoundsStrategy implements IRuntimeBlockStrategy {
             (_block, now) => timerBehavior.isComplete(now),
             ['timer:tick', 'timer:complete']
         ));
+
+        // 6. Round Tracking (decomposed from LoopCoordinatorBehavior)
+        // Note: No RoundDisplayBehavior for AMRAP since total rounds is unknown
+        behaviors.push(new RoundSpanBehavior('rounds'));
+        behaviors.push(new LapTimerBehavior());
 
         return new RuntimeBlock(
             runtime,
