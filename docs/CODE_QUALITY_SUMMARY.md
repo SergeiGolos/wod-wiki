@@ -7,17 +7,14 @@ This document summarizes the code quality analysis performed on the WOD Wiki cod
 1. **[CODE_ANALYSIS.md](CODE_ANALYSIS.md)** - Comprehensive analysis of anti-patterns, code smells, and maintainability issues
 2. **[REFACTORING_PLAN.0md](REFACTORING_PLAN.md)** - Prioritized implementation roadmap for addressing identified issues
 
-## Quick Stats
-
-### Code Quality Rating: 7.5/10
+### Code Quality Rating: 8.0/10
 
 ### Issues Identified
 - **7 files** exceed 500 lines (largest: 836 lines)
-- **0 empty catch blocks** ✅ (All resolved)
-- **485 type safety issues** (any/unknown usage)
+- **0 empty catch blocks** ✅
+- **~430 type safety issues** (any/unknown usage) - Reduced via cleanup
 - **20+ TODO/FIXME comments**
 - **59 error throws** with inconsistent patterns
-- **Monolithic behaviors decomposed** (RootLifecycle, Idle, LoopCoordinator) ✅
 
 ## Completed Fixes ✅
 
@@ -46,6 +43,14 @@ This document summarizes the code quality analysis performed on the WOD Wiki cod
 - ✅ Replaced `RootLifecycleBehavior` with `WorkoutOrchestrator` and `WorkoutFlowStateMachine`.
 - ✅ Introduced behavior contract interfaces (`ICompletionSource`, `IRoundSource`, etc.).
 - ✅ Reduced cyclomatic complexity from ~15 down to <3 per unit.
+
+### 3. Removal of Deprecated Patterns (Phase 4 Cleanup)
+**Issue:** Historical complexity and technical debt from unused or redundant systems.  
+**Resolution:**  
+- ✅ Removed legacy `IBehavior` experimental pattern.
+- ✅ Removed legacy `RuntimeMetric` system entirely.
+- ✅ Migrated all analytical projection engines to `ICodeFragment` path.
+- ✅ Finalized metrics consolidation (no more dual-path logic).
 ## Next Steps
 
 ### High Priority (Sprint 1-2)
@@ -82,8 +87,9 @@ This document summarizes the code quality analysis performed on the WOD Wiki cod
 | Empty Catch Blocks | 1 | 0 | 0 | ✅ Complete |
 | Magic Numbers (CastManager) | 8 | 0 | 0 | ✅ Complete |
 | Behavior Decomposition | 0% | 100% | 100% | ✅ Complete |
+| Deprecated System Cleanup | 0% | 100% | 100% | ✅ Complete |
 | Files >500 Lines | 7 | 7 | 3 | 🔲 In Progress |
-| Type Safety Issues | 485 | 485 | <200 | 🔲 Planned |
+| Type Safety Issues | 485 | ~430 | <200 | 🔲 Planned |
 | TODO Comments | 20+ | 20+ | <5 | 🔲 Planned |
 
 ## Recommendations

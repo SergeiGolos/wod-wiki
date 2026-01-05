@@ -56,6 +56,23 @@ This document provides a concrete action plan for addressing the anti-patterns a
 - ✅ Massive reduction in cyclomatic complexity (from ~15 to <3 per behavior).
 - ✅ Improved testability of individual units.
 - ✅ Easier to extend with new loop and timing types.
+
+---
+
+### 3. Removal of Deprecated Patterns (Phase 4 Cleanup)
+**Status:** ✅ COMPLETED  
+**Date:** 2026-01-04  
+**Resolution:**
+1. ✅ Removed legacy `IBehavior` experimental pattern (BaseBehavior, composeBehaviors, etc.).
+2. ✅ Removed legacy `RuntimeMetric` system entirely.
+3. ✅ Migrated all analytical projection engines to use `ICodeFragment` path.
+4. ✅ Removed dual-path equivalence tests as migration is finalized.
+5. ✅ Cleaned up all lingering file references (RootLifecycleBehavior, IdleBehavior, etc.).
+
+**Impact:**
+- ✅ Reduced codebase surface area and cognitive load.
+- ✅ Simplified analytics pipeline (fragment-based only).
+- ✅ Cleaned up runtime internal interfaces.
 ---
 
 ## 🔴 High Priority - To Be Implemented

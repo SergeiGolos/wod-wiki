@@ -1,4 +1,3 @@
-import type { RuntimeMetric } from '../../../runtime/models/RuntimeMetric';
 import type { Exercise } from '../../../exercise';
 import type { ProjectionResult } from './ProjectionResult';
 import type { ICodeFragment } from '../../../core/models/CodeFragment';
@@ -18,30 +17,17 @@ import type { ICodeFragment } from '../../../core/models/CodeFragment';
 export interface IProjectionEngine {
   /** Unique name identifying this projection engine */
   readonly name: string;
-  
-  /**
-   * Calculate projections from runtime metrics.
-   * 
-   * @deprecated Use calculateFromFragments() for new code. This method is maintained
-   * for backward compatibility during Phase 2 migration and will be removed in Phase 4.
-   * 
-   * @param metrics Array of runtime metrics to analyze
-   * @param definition Exercise definition providing context
-   * @returns Array of projection results (may be empty if analysis not applicable)
-   */
-  calculate(metrics: RuntimeMetric[], definition: Exercise): ProjectionResult[];
-  
+
   /**
    * Calculate projections from code fragments.
    * 
-   * This is the new fragment-based calculation method introduced in Phase 2.
-   * Engines should implement this method to work directly with fragments instead
-   * of converting from RuntimeMetric.
+   * This is the fragment-based calculation method introduced in Phase 2.
+   * Engines must work directly with fragments.
    * 
    * @param fragments Array of code fragments to analyze
    * @param exerciseId The exercise identifier
    * @param definition Exercise definition providing context
    * @returns Array of projection results (may be empty if analysis not applicable)
    */
-  calculateFromFragments?(fragments: ICodeFragment[], exerciseId: string, definition: Exercise): ProjectionResult[];
+  calculateFromFragments(fragments: ICodeFragment[], exerciseId: string, definition: Exercise): ProjectionResult[];
 }
