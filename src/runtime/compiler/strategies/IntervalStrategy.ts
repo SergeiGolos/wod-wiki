@@ -21,6 +21,10 @@ import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFrag
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
+import { RoundDisplayBehavior } from "../../behaviors/RoundDisplayBehavior";
+import { RoundSpanBehavior } from "../../behaviors/RoundSpanBehavior";
+import { LapTimerBehavior } from "../../behaviors/LapTimerBehavior";
+import { IntervalTimerRestartBehavior } from "../../behaviors/IntervalTimerRestartBehavior";
 
 /**
  * Strategy that creates interval-based parent blocks for EMOM workouts.
@@ -101,6 +105,12 @@ export class IntervalStrategy implements IRuntimeBlockStrategy {
             durationMs: intervalDurationMs,
             cues: createCountdownSoundCues(intervalDurationMs)
         }));
+
+        // 7. Round Display & Tracking (decomposed from LoopCoordinatorBehavior)
+        behaviors.push(new RoundDisplayBehavior(totalRounds));
+        behaviors.push(new RoundSpanBehavior('interval', undefined, totalRounds));
+        behaviors.push(new LapTimerBehavior());
+        behaviors.push(new IntervalTimerRestartBehavior());  // EMOM-specific: restart timer each round
 
         return new RuntimeBlock(
             runtime,

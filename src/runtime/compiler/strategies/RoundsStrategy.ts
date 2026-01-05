@@ -19,6 +19,9 @@ import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
 import { ChildRunnerBehavior } from "../../behaviors/ChildRunnerBehavior";
+import { RoundDisplayBehavior } from "../../behaviors/RoundDisplayBehavior";
+import { RoundSpanBehavior } from "../../behaviors/RoundSpanBehavior";
+import { LapTimerBehavior } from "../../behaviors/LapTimerBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -108,6 +111,11 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                 }
             )
         }));
+
+        // 4. Round Display & Tracking (decomposed from LoopCoordinatorBehavior)
+        behaviors.push(new RoundDisplayBehavior(totalRounds));
+        behaviors.push(new RoundSpanBehavior('rounds', repScheme, totalRounds));
+        behaviors.push(new LapTimerBehavior());
 
         // Allocate initial reps if scheme exists
         if (repScheme && repScheme.length > 0) {

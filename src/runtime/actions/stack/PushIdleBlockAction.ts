@@ -1,20 +1,28 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { RuntimeBlock } from '../../RuntimeBlock';
-import { BlockContext } from '../../BlockContext';
-import { BlockKey } from '../../../core/models/BlockKey';
-import { IdleBehavior, IdleBehaviorConfig } from '../../behaviors/IdleBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
+import { IdleBlockStrategy, IdleBlockConfig } from '../../compiler/strategies/IdleBlockStrategy';
 import { PushBlockAction } from './PushBlockAction';
 
+/**
+ * PushIdleBlockAction - Creates and pushes an idle block onto the stack.
+ * 
+ * Now uses IdleBlockStrategy to compose the idle block from single-responsibility
+ * behaviors instead of the monolithic IdleBehavior.
+ */
 export class PushIdleBlockAction implements IRuntimeAction {
     private _type = 'push-idle-block';
+    private strategy = new IdleBlockStrategy();
 
     constructor(
         private id: string,
         private label: string,
-        private config: IdleBehaviorConfig,
+        private config: {
+            popOnNext?: boolean;
+            popOnEvents?: string[];
+            buttonLabel?: string;
+            buttonAction?: string;
+        },
         private options?: BlockLifecycleOptions
     ) { }
 
@@ -28,30 +36,48 @@ export class PushIdleBlockAction implements IRuntimeAction {
     }
 
     do(runtime: IScriptRuntime): void {
-        const blockKey = new BlockKey(this.id);
-        const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
+        // Convert old IdleBehaviorConfig to new IdleBlockConfig
+        const idleConfig: IdleBlockConfig = {
+            id: this.id,
+            label: this.label,
+            popOnNext: this.config.popOnNext,
+            popOnEvents: this.config.popOnEvents,
+            trackTiming: true,
+            displayMode: 'clock'
+        };
 
-        const behaviors = [
-            new IdleBehavior({
-                label: this.label,
-                popOnNext: this.config.popOnNext,
-                popOnEvents: this.config.popOnEvents,
-                buttonLabel: this.config.buttonLabel,
-                buttonAction: this.config.buttonAction
-            }),
-            // Add TimerBehavior so this block appears in the timer stack
-            new TimerBehavior('up', undefined, this.label, 'secondary')
-        ];
+        // Create button from config if provided
+        if (this.config.buttonLabel && this.config.buttonAction) {
+            const labelLower = this.config.buttonLabel.toLowerCase();
+            const actionLower = this.config.buttonAction.toLowerCase();
 
-        const block = new RuntimeBlock(
-            runtime,
-            [], // No source IDs for idle block
-            behaviors,
-            context,
-            blockKey,
-            'Idle',
-            this.label
-        );
+            // Derive button properties from label/action
+            let buttonId = 'btn-next';
+            let icon: 'play' | 'analytics' | 'next' = 'next';
+            let variant: 'default' | 'secondary' = 'secondary';
+
+            if (labelLower.includes('start') || actionLower.includes('start')) {
+                buttonId = 'btn-start';
+                icon = 'play';
+                variant = 'default';
+            } else if (labelLower.includes('analytics') || actionLower.includes('analytics')) {
+                buttonId = 'btn-analytics';
+                icon = 'analytics';
+                variant = 'default';
+            }
+
+            idleConfig.button = {
+                id: buttonId,
+                label: this.config.buttonLabel,
+                icon,
+                action: this.config.buttonAction,
+                variant,
+                size: 'lg'
+            };
+        }
+
+        // Use strategy to build the idle block
+        const block = this.strategy.build(runtime, idleConfig);
 
         // Delegate to PushBlockAction to handle the actual push and mount
         new PushBlockAction(block, this.options).do(runtime);

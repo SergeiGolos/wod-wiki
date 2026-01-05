@@ -116,7 +116,7 @@ export function isPopBehavior(obj: unknown): obj is IPopBehavior {
  * 
  * @see IRuntimeBehavior for the canonical behavior interface
  * @see TimerBehavior for example implementation
- * @see LoopCoordinatorBehavior for example implementation
+ * @see BoundLoopBehavior for example implementation
  */
 export interface IBehavior {
   /**

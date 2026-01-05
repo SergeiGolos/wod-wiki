@@ -56,11 +56,31 @@ export * from './runtime/actions/UnregisterEventHandlerAction';
 // Runtime behaviors
 export * from './runtime/behaviors/TimerBehavior';
 export * from './runtime/behaviors/CompletionBehavior';
-export * from './runtime/behaviors/LoopCoordinatorBehavior';
+export * from './runtime/behaviors/RoundDisplayBehavior';
+export * from './runtime/behaviors/RoundSpanBehavior';
+export * from './runtime/behaviors/LapTimerBehavior';
+export * from './runtime/behaviors/IntervalTimerRestartBehavior';
+export * from './runtime/behaviors/RoundPerLoopBehavior';
+export * from './runtime/behaviors/RoundPerNextBehavior';
+export * from './runtime/behaviors/ChildIndexBehavior';
+export * from './runtime/behaviors/BoundLoopBehavior';
+export * from './runtime/behaviors/UnboundLoopBehavior';
+export * from './runtime/behaviors/ChildRunnerBehavior';
+
+// Decomposed root/idle behaviors
+export * from './runtime/behaviors/PopOnEventBehavior';
+export * from './runtime/behaviors/PopOnNextBehavior';
+export * from './runtime/behaviors/SingleButtonBehavior';
+export * from './runtime/behaviors/TransitionTimingBehavior';
+export * from './runtime/behaviors/WorkoutStateBehavior';
+export * from './runtime/behaviors/DisplayModeBehavior';
+export * from './runtime/behaviors/TimerPauseResumeBehavior';
+export * from './runtime/behaviors/WorkoutControlButtonsBehavior';
+export * from './runtime/behaviors/IdleInjectionBehavior';
+export * from './runtime/behaviors/WorkoutFlowStateMachine';
+export * from './runtime/behaviors/WorkoutOrchestrator';
 
 // Runtime blocks
-export * from './runtime/blocks/TimerBlock';
-export * from './runtime/blocks/RoundsBlock';
 export * from './runtime/blocks/EffortBlock';
 
 // Strategies
