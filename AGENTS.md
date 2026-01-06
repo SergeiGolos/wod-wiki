@@ -63,6 +63,8 @@ bun x tsc --noEmit                    # Type check only
 
 The project provides a unified test harness under `tests/harness/`. **Use this instead of inline mocks.**
 
+**📚 Full Guide:** [Block Isolation Testing Guide](docs/testing/block_isolation_testing_guide.md)
+
 ### Available Classes
 
 | Class | Purpose | Use For |
@@ -99,8 +101,8 @@ describe('TimerBehavior', () => {
 
 ```typescript
 import { describe, it, expect } from 'bun:test';
-import { RuntimeTestBuilder } from '../harness';
-import { TimerStrategy } from '@/runtime/strategies/TimerStrategy';
+import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
+import { TimerStrategy } from '@/runtime/compiler/strategies/components/TimerStrategy';
 
 describe('TimerStrategy', () => {
   it('should compile timer block', () => {
