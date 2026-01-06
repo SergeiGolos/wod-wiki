@@ -61,6 +61,30 @@ describe('CrossFitDialect', () => {
       expect(analysis.hints).toContain('behavior.repeating_interval');
       expect(analysis.hints).toContain('workout.emom');
     });
+
+    it('should detect implicit EMOM pattern (Rounds + Timer + Children)', () => {
+      // Parse a multi-line script with children
+      const script = runtime.read(`(20) :60
+  5 pushups
+  10 situps`);
+      const statement = script.statements[0] as ICodeStatement;
+      const analysis = dialect.analyze(statement);
+
+      // Should detect as implicit EMOM
+      expect(analysis.hints).toContain('behavior.repeating_interval');
+      expect(analysis.hints).toContain('workout.emom');
+      expect(analysis.hints).toContain('workout.implicit_emom');
+    });
+
+    it('should not detect implicit EMOM for Rounds + Timer without Children', () => {
+      // Parse a single line without children
+      const statement = parseStatement('(5) :60');
+      const analysis = dialect.analyze(statement);
+
+      // Should NOT detect as EMOM (no children)
+      expect(analysis.hints).not.toContain('behavior.repeating_interval');
+      expect(analysis.hints).not.toContain('workout.emom');
+    });
   });
 
   describe('FOR TIME detection', () => {

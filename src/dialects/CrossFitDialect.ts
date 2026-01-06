@@ -26,6 +26,13 @@ export class CrossFitDialect implements IDialect {
     );
   }
 
+  /**
+   * Check if statement has children (is a parent block)
+   */
+  private hasChildren(statement: ICodeStatement): boolean {
+    return statement.children && statement.children.length > 0;
+  }
+
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
     const fragments = statement.fragments || [];
@@ -37,9 +44,27 @@ export class CrossFitDialect implements IDialect {
     }
 
     // Check for EMOM - repeating interval workout
+    // Explicit EMOM keyword
     if (this.hasKeyword(fragments, 'EMOM')) {
       hints.push('behavior.repeating_interval');
       hints.push('workout.emom');
+    }
+
+    // Implicit EMOM: Rounds + Timer + Children pattern
+    // e.g., "(20) :60" with child statements implies EMOM
+    // - Rounds specify how many intervals
+    // - Timer specifies interval duration (defaults to 60s if not specified)
+    // - Children are executed within each interval
+    if (!this.hasKeyword(fragments, 'EMOM')) {
+      const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
+      const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+      const hasChildStatements = this.hasChildren(statement);
+
+      if (hasRounds && hasTimer && hasChildStatements) {
+        hints.push('behavior.repeating_interval');
+        hints.push('workout.emom');
+        hints.push('workout.implicit_emom');
+      }
     }
 
     // Check for FOR TIME - time-bound workout with completion goal
