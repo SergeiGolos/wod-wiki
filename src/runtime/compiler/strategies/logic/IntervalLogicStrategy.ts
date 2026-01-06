@@ -26,8 +26,13 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         const fragments = statement.fragments;
         const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
         const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
+
+        // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version.
+        // The debug test showed it as fragmentType: 'effort' for '1:00 EMOM 10'
         const hasEmomAction = fragments.some(
-            f => f.fragmentType === FragmentType.Action && typeof f.value === 'string' && f.value.toLowerCase() === 'emom'
+            f => (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort)
+              && typeof f.value === 'string'
+              && f.value.toLowerCase() === 'emom'
         );
         return hasTimer && (isInterval || hasEmomAction);
     }
@@ -41,11 +46,19 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         let totalRounds = roundsFragment?.value as number | undefined;
 
         if (totalRounds === undefined) {
-            const timers = statement.filterFragments<TimerFragment>(FragmentType.Timer) || [];
-            if (timers.length > 1) {
-                // Heuristic: If there's a second timer, it might be total duration
-                const totalDurationMs = timers[1].value as number;
-                totalRounds = Math.floor(totalDurationMs / intervalDurationMs);
+             // Try to find Reps if Rounds are missing (parser might classify '10' as Reps)
+             const repFragment = statement.findFragment(FragmentType.Rep);
+             if (repFragment && typeof repFragment.value === 'number') {
+                 totalRounds = repFragment.value;
+             }
+
+            if (totalRounds === undefined) {
+                const timers = statement.filterFragments<TimerFragment>(FragmentType.Timer) || [];
+                if (timers.length > 1) {
+                    // Heuristic: If there's a second timer, it might be total duration
+                    const totalDurationMs = timers[1].value as number;
+                    totalRounds = Math.floor(totalDurationMs / intervalDurationMs);
+                }
             }
         }
         totalRounds = totalRounds || 10; // Default to 10 rounds if not specified

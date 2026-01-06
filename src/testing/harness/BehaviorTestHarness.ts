@@ -1,4 +1,4 @@
-import { vi } from 'bun:test';
+import { mock, Mock } from 'bun:test';
 import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/contracts';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
@@ -35,24 +35,6 @@ export interface CapturedEvent {
  * - Controllable mock clock
  * - Action and event capture for assertions
  * - Fluent API for lifecycle operations
- *
- * @example
- * ```typescript
- * const harness = new BehaviorTestHarness()
- *   .withClock(new Date('2024-01-01T12:00:00Z'));
- *
- * const block = new MockBlock('timer-test', [
- *   new TimerBehavior('up')
- * ]);
- *
- * harness.push(block);
- * harness.mount();
- *
- * expect(block.getBehavior(TimerBehavior)!.isRunning()).toBe(true);
- *
- * harness.advanceClock(5000);
- * expect(block.getBehavior(TimerBehavior)!.getElapsedMs()).toBeGreaterThanOrEqual(5000);
- * ```
  */
 export class BehaviorTestHarness {
   private _clock: ReturnType<typeof createMockClock>;
@@ -60,17 +42,25 @@ export class BehaviorTestHarness {
   private _stack: RuntimeStack;
   private _eventBus: EventBus;
   private _mockRuntime: IScriptRuntime;
+  private _mockTracker: IScriptRuntime['tracker'];
 
   private _capturedActions: CapturedAction[] = [];
   private _capturedEvents: CapturedEvent[] = [];
-  private _handleSpy: ReturnType<typeof vi.fn>;
+  private _handleSpy: Mock<any>;
 
   constructor() {
     this._clock = createMockClock(new Date());
     this._memory = new RuntimeMemory();
     this._stack = new RuntimeStack();
     this._eventBus = new EventBus();
-    this._handleSpy = vi.fn();
+    this._handleSpy = mock();
+    this._mockTracker = {
+        recordRound: mock(),
+        recordSpan: mock(),
+        recordMetric: mock(),
+        startSpan: mock(),
+        endSpan: mock(),
+    } as unknown as IScriptRuntime['tracker'];
     this._mockRuntime = this._createMockRuntime();
   }
 
@@ -84,7 +74,7 @@ export class BehaviorTestHarness {
       clock: this._clock,
       jit: {} as unknown as IScriptRuntime['jit'], // Not used in behavior tests
       script: {} as unknown as IScriptRuntime['script'], // Not used in behavior tests
-      tracker: {} as unknown as IScriptRuntime['tracker'], // Not used in behavior tests
+      tracker: this._mockTracker,
       errors: [],
 
       handle(event: IEvent) {
@@ -308,7 +298,7 @@ export class BehaviorTestHarness {
   }
 
   /** The handle() spy for assertions */
-  get handleSpy(): ReturnType<typeof vi.fn> {
+  get handleSpy(): Mock<any> {
     return this._handleSpy;
   }
 

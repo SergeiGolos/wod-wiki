@@ -21,8 +21,21 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
         const hasTimer = statement.hasFragment(FragmentType.Timer);
+
+        // Strict: "AMRAP" usually implies we don't have a fixed round count,
+        // but the AmrapLogicStrategy seems designed for "Time-Capped Work".
+
+        // Heuristic: If we have Timer AND (Rounds OR Action/Effort='Rounds' OR Action/Effort='AMRAP')
         const hasRounds = statement.hasFragment(FragmentType.Rounds);
-        return hasTimer && hasRounds;
+
+        // Also check if we have "5 Rounds" which parsed as Reps + Effort="Rounds"
+        const hasRoundsKeyword = statement.fragments.some(
+             f => (f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action)
+             && typeof f.value === 'string'
+             && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
+        );
+
+        return hasTimer && (hasRounds || hasRoundsKeyword);
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {

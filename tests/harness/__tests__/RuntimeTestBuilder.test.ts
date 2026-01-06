@@ -1,14 +1,21 @@
 import { describe, it, expect } from 'bun:test';
-import { RuntimeTestBuilder } from '../index';
+import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
-import { IRuntimeBlock } from '@/runtime/contracts';
-import { MockBlock } from '../index';
+import { MockBlock } from '@/testing/harness/MockBlock';
+import { BlockBuilder } from '@/runtime/BlockBuilder';
+import { BlockContext } from '@/runtime/BlockContext';
+import { BlockKey } from '@/core/models/BlockKey';
 
 // Mock strategy for testing
 class MockStrategy implements IRuntimeBlockStrategy {
+  priority = 100;
   match() { return true; }
-  compile(statements: any[]) {
-    return new MockBlock(`block-${statements[0].id}`);
+  apply(builder: BlockBuilder, statements: any[], runtime: any) {
+      const key = new BlockKey();
+      const context = new BlockContext(runtime, key.toString(), 'test');
+      builder.setContext(context);
+      builder.setKey(key);
+      builder.setBlockType('MockType');
   }
 }
 
@@ -34,6 +41,7 @@ describe('RuntimeTestBuilder', () => {
 
     expect(harness.stackDepth).toBe(1);
     expect(harness.currentBlock).toBeDefined();
+    expect(harness.currentBlock?.blockType).toBe('MockType');
   });
 
   it('should fail if statement index out of bounds', () => {

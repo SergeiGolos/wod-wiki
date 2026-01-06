@@ -1,114 +1,170 @@
-import { describe, it, expect } from 'bun:test';
-import { BehaviorTestHarness } from '../index';
-import { MockBlock } from '../index';
-import { IRuntimeBehavior } from '@/runtime/contracts';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { BehaviorTestHarness, CapturedAction } from '@/testing/harness/BehaviorTestHarness';
+import { MockBlock } from '@/testing/harness/MockBlock';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
-import { IRuntimeClock } from '@/runtime/contracts';
 
-// Simple mock action for testing
-class MockAction implements IRuntimeAction {
+// Mock Action for testing
+class TestAction implements IRuntimeAction {
   constructor(public name: string) {}
-  do(runtime: IScriptRuntime): void {
+  do(_runtime: IScriptRuntime): void {
     // No-op
   }
 }
 
 describe('BehaviorTestHarness', () => {
-  it('should initialize with default clock', () => {
-    const harness = new BehaviorTestHarness();
-    expect(harness.clock).toBeDefined();
-    expect(harness.clock.now).toBeInstanceOf(Date);
+  let harness: BehaviorTestHarness;
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness()
+      .withClock(new Date('2024-01-01T12:00:00Z'));
   });
 
-  it('should initialize with specific clock time', () => {
-    const time = new Date('2024-01-01T10:00:00Z');
-    const harness = new BehaviorTestHarness().withClock(time);
-    expect(harness.clock.now.getTime()).toBe(time.getTime());
+  describe('Initialization', () => {
+    it('should initialize with default components', () => {
+      expect(harness.clock).toBeDefined();
+      expect(harness.runtime).toBeDefined();
+      expect(harness.stackDepth).toBe(0);
+    });
+
+    it('should set clock time correctly', () => {
+      const time = new Date('2025-01-01T10:00:00Z');
+      harness.withClock(time);
+      expect(harness.clock.now.getTime()).toBe(time.getTime());
+    });
   });
 
-  it('should push blocks to stack', () => {
-    const harness = new BehaviorTestHarness();
-    const block1 = new MockBlock('1');
-    const block2 = new MockBlock('2');
+  describe('Stack Operations', () => {
+    it('should push block to stack', () => {
+      const block = new MockBlock('test-block');
+      harness.push(block);
 
-    harness.push(block1);
-    expect(harness.stackDepth).toBe(1);
-    expect(harness.currentBlock).toBe(block1);
+      expect(harness.stackDepth).toBe(1);
+      expect(harness.currentBlock).toBe(block);
+    });
 
-    harness.push(block2);
-    expect(harness.stackDepth).toBe(2);
-    expect(harness.currentBlock).toBe(block2);
+    it('should mount block and capture actions', () => {
+      const action = new TestAction('mount-action');
+      const block = new MockBlock('test-block');
+      block.setMountActions([action]);
+
+      harness.push(block);
+      const actions = harness.mount();
+
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toBe(action);
+
+      const captured = harness.capturedActions.filter(c => c.phase === 'mount');
+      expect(captured).toHaveLength(1);
+      expect(captured[0].action).toBe(action);
+    });
+
+    it('should execute next on block and capture actions', () => {
+      const action = new TestAction('next-action');
+      const block = new MockBlock('test-block');
+      block.setNextActions([action]);
+
+      harness.push(block);
+      harness.mount();
+
+      const actions = harness.next();
+
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toBe(action);
+
+      const captured = harness.capturedActions.filter(c => c.phase === 'next');
+      expect(captured).toHaveLength(1);
+      expect(captured[0].action).toBe(action);
+    });
+
+    it('should unmount block, capture actions, and pop from stack', () => {
+      const action = new TestAction('unmount-action');
+      const block = new MockBlock('test-block');
+      block.setUnmountActions([action]);
+
+      harness.push(block);
+      harness.mount();
+
+      const actions = harness.unmount();
+
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toBe(action);
+
+      const captured = harness.capturedActions.filter(c => c.phase === 'unmount');
+      expect(captured).toHaveLength(1);
+      expect(captured[0].action).toBe(action);
+
+      expect(harness.stackDepth).toBe(0);
+    });
   });
 
-  it('should mount block and capture actions', () => {
-    const action = new MockAction('test');
-    const behavior: IRuntimeBehavior = {
-      onPush: (_block, _clock: IRuntimeClock): IRuntimeAction[] => [action]
-    };
+  describe('Time Operations', () => {
+    it('should advance clock', () => {
+      const start = harness.clock.now.getTime();
+      harness.advanceClock(5000);
+      expect(harness.clock.now.getTime()).toBe(start + 5000);
+    });
 
-    const harness = new BehaviorTestHarness();
-    const block = new MockBlock('test', [behavior]);
-
-    harness.push(block);
-    harness.mount();
-
-    expect(harness.capturedActions.length).toBe(1);
-    expect(harness.capturedActions[0].action).toBe(action);
-    expect(harness.capturedActions[0].phase).toBe('mount');
+    it('should set clock to specific time', () => {
+      const newTime = new Date('2026-01-01T00:00:00Z');
+      harness.setClock(newTime);
+      expect(harness.clock.now.getTime()).toBe(newTime.getTime());
+    });
   });
 
-  it('should unmount block and pop from stack', () => {
-    const harness = new BehaviorTestHarness();
-    const block = new MockBlock('test');
+  describe('Event Operations', () => {
+    it('should capture emitted events', () => {
+      const eventName = 'test:event';
+      harness.simulateEvent(eventName, { foo: 'bar' });
 
-    harness.push(block);
-    expect(harness.stackDepth).toBe(1);
+      expect(harness.wasEventEmitted(eventName)).toBe(true);
 
-    harness.unmount();
-    expect(harness.stackDepth).toBe(0);
-    expect(harness.currentBlock).toBeUndefined();
+      const events = harness.findEvents(eventName);
+      expect(events).toHaveLength(1);
+      expect(events[0].data.foo).toBe('bar');
+    });
+
+    it('should call handleSpy on event', () => {
+      harness.simulateEvent('any:event');
+      expect(harness.handleSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should advance clock', () => {
-    const start = new Date('2024-01-01T10:00:00Z');
-    const harness = new BehaviorTestHarness().withClock(start);
+  describe('Memory Operations', () => {
+    it('should pre-allocate memory', () => {
+      harness.withMemory('test-type', 'test-owner', 123);
+      const value = harness.getMemory<number>('test-type', 'test-owner');
+      expect(value).toBe(123);
+    });
 
-    harness.advanceClock(1000);
-    expect(harness.clock.now.getTime()).toBe(start.getTime() + 1000);
+    it('should allocate memory during test', () => {
+      harness.allocateMemory('test-type', 'test-owner', 456);
+      const value = harness.getMemory<number>('test-type', 'test-owner');
+      expect(value).toBe(456);
+    });
   });
 
-  it('should simulate events', () => {
-    const harness = new BehaviorTestHarness();
+  describe('Assertions API', () => {
+    it('should find actions by type', () => {
+      const action = new TestAction('test');
+      const block = new MockBlock('test');
+      block.setMountActions([action]);
 
-    harness.simulateEvent('test-event', { foo: 'bar' });
+      harness.push(block);
+      harness.mount();
 
-    expect(harness.wasEventEmitted('test-event')).toBe(true);
-    expect(harness.handleSpy).toHaveBeenCalled();
+      const found = harness.findActions(TestAction);
+      expect(found).toHaveLength(1);
+      expect(found[0]).toBe(action);
+    });
 
-    const events = harness.findEvents('test-event');
-    expect(events[0].data.foo).toBe('bar');
-  });
+    it('should clear captures', () => {
+      harness.simulateEvent('test');
+      expect(harness.capturedEvents).toHaveLength(1);
 
-  it('should manage memory', () => {
-    const harness = new BehaviorTestHarness();
-
-    harness.allocateMemory('metric', 'test-block', 42);
-
-    const value = harness.getMemory<number>('metric', 'test-block');
-    expect(value).toBe(42);
-
-    const missing = harness.getMemory('metric', 'other-block');
-    expect(missing).toBeUndefined();
-  });
-
-  it('should clear captures', () => {
-    const harness = new BehaviorTestHarness();
-    harness.simulateEvent('test');
-
-    expect(harness.capturedEvents.length).toBe(1);
-
-    harness.clearCaptures();
-    expect(harness.capturedEvents.length).toBe(0);
+      harness.clearCaptures();
+      expect(harness.capturedEvents).toHaveLength(0);
+      expect(harness.handleSpy).toHaveBeenCalledTimes(0);
+    });
   });
 });
