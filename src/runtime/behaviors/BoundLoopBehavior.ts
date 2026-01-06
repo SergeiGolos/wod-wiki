@@ -28,22 +28,19 @@ export class BoundLoopBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        // Get the current round from RoundPerLoopBehavior or RoundPerNextBehavior.
-        // Note: Due to behavior execution order, RoundPerLoopBehavior hasn't incremented
-        // the round yet when this behavior runs. We need to predict if the round will
-        // increment by checking if ChildIndexBehavior will wrap on its next increment.
         let round = this.getRound(block);
         
+        // If using RoundPerLoopBehavior (child-based round counting), we need to
+        // anticipate the round increment because this behavior runs BEFORE
+        // ChildIndexBehavior and RoundPerLoopBehavior in the behavior order.
+        // Predict if the next index increment will cause a wrap (and thus round increment).
         const childIndex = block.getBehavior(ChildIndexBehavior);
         if (childIndex) {
-            // Get current index - it will be incremented by ChildIndexBehavior.onNext()
-            // If incrementing would cause a wrap, the round will increase
             const currentIdx = childIndex.getIndex();
             const childCount = childIndex.getChildCount(block);
+            // Will the next increment cause a wrap?
             const willWrap = childCount > 0 && (currentIdx + 1) >= childCount;
-            
             if (willWrap) {
-                // Round will be incremented after this - anticipate it
                 round += 1;
             }
         }

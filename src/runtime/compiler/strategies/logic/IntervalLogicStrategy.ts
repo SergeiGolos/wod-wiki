@@ -86,8 +86,8 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new IntervalWaitingBehavior());
 
         // 3. Loop Logic
-        // Note: RoundPerLoopBehavior is added by ChildrenStrategy to ensure proper ordering
-        // (ChildIndexBehavior must come before RoundPerLoopBehavior)
+        // Note: Round tracking (RoundPerLoopBehavior) is handled by ChildrenStrategy
+        // to ensure proper ordering with ChildIndexBehavior for child-based round counting.
         builder.addBehavior(new BoundLoopBehavior(totalRounds));
         builder.addBehavior(new IntervalTimerRestartBehavior());
 

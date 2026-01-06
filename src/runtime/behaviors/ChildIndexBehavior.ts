@@ -22,8 +22,7 @@ export class ChildIndexBehavior implements IRuntimeBehavior {
 
     /**
      * Gets the total number of children.
-     * Uses countOverride if provided during construction, otherwise falls back to block.sourceIds.length.
-     * The block parameter is required for the fallback case and provides consistent API with onNext().
+     * Used by BoundLoopBehavior to predict if the next increment will wrap.
      */
     getChildCount(block: IRuntimeBlock): number {
         return this.countOverride ?? block.sourceIds.length;

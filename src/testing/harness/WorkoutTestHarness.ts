@@ -221,13 +221,11 @@ export class WorkoutTestHarness {
   private _trackExerciseCompletion(block: IRuntimeBlock): void {
     const label = block.label || 'Unknown';
     
-    // Extract rep count from label if present (e.g., "+ 5 Pullups" -> 5, "5 Pullups" -> 5)
-    // Handle optional lap prefix (+ or -)
+    // Extract rep count and exercise name from label
+    // Handle formats: "5 Pullups", "- 5 Pullups", "+ 5 Pullups"
     const repMatch = label.match(/^[+\-]?\s*(\d+)\s+(.+)$/);
     const reps = repMatch ? parseInt(repMatch[1], 10) : 1;
-    
-    // Extract exercise name (everything after the rep count)
-    const exerciseName = repMatch ? repMatch[2] : label;
+    const exerciseName = repMatch ? repMatch[2] : label.replace(/^[+\-]\s*/, '');
     
     this._exerciseReps[exerciseName] = (this._exerciseReps[exerciseName] || 0) + reps;
     this._partialReps++;
