@@ -225,7 +225,7 @@ export class WorkoutTestHarness {
     // Handle formats: "5 Pullups", "- 5 Pullups", "+ 5 Pullups"
     const repMatch = label.match(/^[+\-]?\s*(\d+)\s+(.+)$/);
     const reps = repMatch ? parseInt(repMatch[1], 10) : 1;
-    const exerciseName = repMatch ? repMatch[2] : label.replace(/^[+\-]\s*/, '');
+    const exerciseName = repMatch ? repMatch[2] : label;
     
     this._exerciseReps[exerciseName] = (this._exerciseReps[exerciseName] || 0) + reps;
     this._partialReps++;
