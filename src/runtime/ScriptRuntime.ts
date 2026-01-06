@@ -260,12 +260,7 @@ export class ScriptRuntime implements IScriptRuntime {
         // 4. End tracking span
         this._tracker.endSpan?.(ownerKey);
 
-        // 5. Execute unmount actions IMMEDIATELY (before dispose)
-        // This ensures all cleanup actions complete before parent.next() is called
-        console.log(`[RT] popBlock: executing ${unmountActions.length} unmount actions immediately`);
-        this.executeActionsImmediately(unmountActions);
-
-        // 6. Dispose and cleanup - child is now fully unmounted
+        // 5. Dispose and cleanup - child is now fully unmounted
         popped.dispose(this);
         popped.context?.release?.();
         this._hooks.unregisterByOwner?.(ownerKey);
@@ -276,29 +271,22 @@ export class ScriptRuntime implements IScriptRuntime {
             stackDepth: this.stack.count,
         });
 
-        // 7. NOW call parent.next() - child is completely gone
-        // Parent can make decisions knowing the child is fully cleaned up
+        // 6. Get parent next actions - child is completely disposed
         const parent = this.stack.current;
         console.log(`[RT] popBlock: calling parent.next() on ${parent?.label}`);
-        if (parent) {
-            const nextActions = parent.next(this, lifecycleOptions) ?? [];
-            console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
-            this.queueActions(nextActions);
-        }
+        const nextActions = parent?.next(this, lifecycleOptions) ?? [];
+        console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
+
+        // 7. CRITICAL FIX: Queue unmount and next actions together
+        // This ensures deterministic action execution order and eliminates race conditions
+        // where unmount events could trigger duplicate actions before parent.next() completes.
+        // Note: unmountActions and nextActions are per-block lifecycle lists, typically 1-5 actions each.
+        console.log(`[RT] popBlock: queueing ${unmountActions.length} unmount + ${nextActions.length} next actions together`);
+        this.queueActions([...unmountActions, ...nextActions]);
 
         this._hooks.onAfterPop?.(popped);
 
         return popped;
-    }
-
-    /**
-     * Execute actions immediately without queuing.
-     * Used during popBlock to ensure unmount completes before parent.next().
-     */
-    private executeActionsImmediately(actions: IRuntimeAction[]): void {
-        for (const action of actions) {
-            action.do(this);
-        }
     }
 
     /**
