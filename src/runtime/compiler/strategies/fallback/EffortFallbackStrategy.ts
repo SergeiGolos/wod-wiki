@@ -24,7 +24,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // If Loop behavior exists (e.g. from ChildrenStrategy?), we might not need Effort?
-        if (builder.hasBehavior(BoundLoopBehavior)) return;
+        if (builder.hasBehavior(BoundLoopBehavior) || builder.hasBehavior(ChildRunnerBehavior)) return;
 
         const statement = statements[0];
         const blockKey = new BlockKey();
