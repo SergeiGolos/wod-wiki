@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { IScriptRuntime } from '../IScriptRuntime';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 /**
  * React Context for providing IScriptRuntime to components.
@@ -29,9 +29,9 @@ export interface RuntimeProviderProps {
  * );
  * ```
  */
-export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({ 
-  runtime, 
-  children 
+export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
+  runtime,
+  children
 }) => {
   return (
     <RuntimeContext.Provider value={runtime}>

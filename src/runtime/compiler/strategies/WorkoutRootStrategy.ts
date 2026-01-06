@@ -88,6 +88,8 @@ const DEFAULT_END_IDLE: IdleConfig = {
  * ```
  */
 export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
+    priority = 100;
+
     /**
      * Root blocks are not matched from statements - they are created directly.
      */
@@ -96,11 +98,10 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     }
 
     /**
-     * Not used for root blocks - use build() instead.
-     * @throws Error - Root blocks should use build() not compile()
+     * Composable apply - not used for root blocks.
      */
-    compile(_statements: ICodeStatement[], _runtime: IScriptRuntime): IRuntimeBlock {
-        throw new Error('WorkoutRootStrategy.compile() should not be called. Use build() instead.');
+    apply(_builder: any, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+        // No-op for direct build
     }
 
     /**

@@ -10,6 +10,23 @@ import { createSpanMetadata } from "../../../utils/metadata";
 import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
+import { ChildRunnerBehavior } from "../../../behaviors/ChildRunnerBehavior";
+
+/**
+ * Helper to extract optional exerciseId from code statement.
+ */
+function getExerciseId(statement: ICodeStatement): string {
+    const stmt = statement as ICodeStatement & { exerciseId?: string };
+    return stmt.exerciseId ?? '';
+}
+
+/**
+ * Helper to extract optional content from code statement.
+ */
+function getContent(statement: ICodeStatement, defaultContent: string): string {
+    const stmt = statement as ICodeStatement & { content?: string };
+    return stmt.content ?? defaultContent;
+}
 
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
@@ -28,13 +45,14 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
         const statement = statements[0];
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const exerciseId = getExerciseId(statement);
+        const context = new BlockContext(runtime, blockKey.toString(), exerciseId);
 
         builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("Effort")
-               .setLabel(statement.content || "Effort") // Use text content as label
-               .setSourceIds(statement.id ? [statement.id] : []);
+            .setKey(blockKey)
+            .setBlockType("Effort")
+            .setLabel(getContent(statement, "Effort")) // Use text content as label
+            .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(statement.fragments || [], "Effort");
@@ -45,7 +63,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
         // Effort block usually has History
         builder.addBehavior(new HistoryBehavior({
-            label: statement.content || "Effort",
+            label: getContent(statement, "Effort"),
             debugMetadata: createSpanMetadata(
                 ['effort'],
                 { strategyUsed: 'EffortFallbackStrategy' }

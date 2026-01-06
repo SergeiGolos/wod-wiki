@@ -150,8 +150,8 @@ class StubBlock implements IRuntimeBlock {
   next(): [] { return []; }
   unmount(): [] { return []; }
   dispose(): void { }
-  getBehavior(): undefined { return undefined; }
-  findFragment(): undefined { return undefined; }
+  getBehavior<T>(_type: any): T | undefined { return undefined; }
+  findFragment<T>(_type: any): T | undefined { return undefined; }
   filterFragments(): [] { return []; }
   hasFragment(): boolean { return false; }
 }
@@ -264,6 +264,10 @@ export class TestableRuntime implements IScriptRuntime {
 
   popBlock(options?: any): IRuntimeBlock | undefined {
     return this._wrapped.popBlock(options);
+  }
+
+  dispose(): void {
+    this._wrapped.dispose();
   }
 
   // ========== Testing API ==========

@@ -2,7 +2,7 @@ import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { CodeStatement } from '../../../core/models/CodeStatement';
+import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
@@ -68,18 +68,20 @@ export interface IdleBlockConfig {
  * ```
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
+    priority = 100; // Root is highest priority if it were ever matched
+
     /**
-     * Idle blocks don't match statements - they are created directly.
+     * Root blocks are not matched from statements - they are created directly.
      */
-    match(_statements: CodeStatement[]): boolean {
+    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         return false;
     }
 
     /**
-     * Compile is not used for idle blocks - use build() instead.
+     * Composable apply - not used for root blocks.
      */
-    compile(_statements: CodeStatement[], _runtime: IScriptRuntime): IRuntimeBlock | null {
-        return null;
+    apply(_builder: any, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+        // No-op for direct build
     }
 
     /**

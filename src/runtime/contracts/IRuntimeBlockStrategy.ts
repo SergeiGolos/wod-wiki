@@ -1,5 +1,4 @@
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IRuntimeBlock } from "./IRuntimeBlock";
 import { IScriptRuntime } from "./IScriptRuntime";
 import { BlockBuilder } from "../compiler/BlockBuilder";
 
@@ -24,10 +23,4 @@ export interface IRuntimeBlockStrategy {
      * Note: This replaces `compile`. The builder accumulates state.
      */
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void;
-
-    /**
-     * Legacy method for backward compatibility during migration.
-     * @deprecated
-     */
-    compile?(statements: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock;
 }

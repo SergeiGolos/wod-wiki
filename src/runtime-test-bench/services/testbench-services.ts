@@ -1,11 +1,6 @@
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { JitCompiler } from '../../runtime/compiler/JitCompiler';
-import { TimeBoundRoundsStrategy } from '../../runtime/compiler/strategies/TimeBoundRoundsStrategy';
-import { IntervalStrategy } from '../../runtime/compiler/strategies/IntervalStrategy';
-import { TimerStrategy } from '../../runtime/compiler/strategies/TimerStrategy';
-import { RoundsStrategy } from '../../runtime/compiler/strategies/RoundsStrategy';
-import { GroupStrategy } from '../../runtime/compiler/strategies/GroupStrategy';
-import { EffortStrategy } from '../../runtime/compiler/strategies/EffortStrategy';
+// Composable Strategies
 
 // New Composable Strategies
 import { AmrapLogicStrategy } from '../../runtime/compiler/strategies/logic/AmrapLogicStrategy';
@@ -55,7 +50,7 @@ export const globalParser = new MdTimerRuntime();
  */
 export const globalCompiler = (() => {
   const compiler = new JitCompiler();
-  
+
   // Register new Composable Strategies
   // Logic
   compiler.registerStrategy(new AmrapLogicStrategy());
@@ -73,6 +68,6 @@ export const globalCompiler = (() => {
 
   // Fallback
   compiler.registerStrategy(new EffortFallbackStrategy());
-  
+
   return compiler;
 })();

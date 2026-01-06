@@ -5,6 +5,7 @@ import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { ChildIndexBehavior } from './ChildIndexBehavior';
 import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
 import { BoundLoopBehavior } from './BoundLoopBehavior';
+import { SinglePassBehavior } from './SinglePassBehavior';
 
 /**
  * ChildRunnerBehavior.
@@ -29,9 +30,14 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
     }
 
     onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
-        // Don't push children if the loop is complete
+        // Don't push children if the loop is already complete or about to be popped
         const boundLoop = block.getBehavior(BoundLoopBehavior);
         if (boundLoop?.isComplete()) {
+            return [];
+        }
+
+        const singlePass = block.getBehavior(SinglePassBehavior);
+        if (singlePass?.isComplete()) {
             return [];
         }
 

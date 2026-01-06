@@ -24,19 +24,20 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         const children = statements[0].children;
 
         builder.addBehavior(new ChildIndexBehavior(children.length));
-        builder.addBehavior(new ChildRunnerBehavior(children));
 
         // Logic to determine if we need to add a default loop behavior (SinglePass).
         // If NO loop behavior exists, we imply a "Single Pass" loop.
 
         // We check for all known loop behaviors.
         const hasLoop = builder.hasBehavior(BoundLoopBehavior) ||
-                        builder.hasBehavior(UnboundLoopBehavior) ||
-                        builder.hasBehavior(RoundPerLoopBehavior);
+            builder.hasBehavior(UnboundLoopBehavior) ||
+            builder.hasBehavior(RoundPerLoopBehavior);
 
         if (!hasLoop) {
-             builder.addBehavior(new RoundPerLoopBehavior());
-             builder.addBehavior(new SinglePassBehavior());
+            builder.addBehavior(new RoundPerLoopBehavior());
+            builder.addBehavior(new SinglePassBehavior());
         }
+
+        builder.addBehavior(new ChildRunnerBehavior(children));
     }
 }

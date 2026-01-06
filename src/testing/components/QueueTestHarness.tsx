@@ -14,27 +14,28 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { TestableRuntime, RuntimeSnapshot, SnapshotDiff } from '../TestableRuntime';
-import { ScriptRuntime } from '../../ScriptRuntime';
-import { RuntimeMemory } from '../../RuntimeMemory';
-import { RuntimeStack } from '../../RuntimeStack';
-import { RuntimeClock } from '../../RuntimeClock';
-import { EventBus } from '../../EventBus';
-import { JitCompiler } from '../../JitCompiler';
-import { WodScript, IScript } from '../../../parser/WodScript';
-import { MdTimerRuntime } from '../../../parser/md-timer';
-import { IRuntimeBlock } from '../../IRuntimeBlock';
-import {
-  EffortStrategy,
-  TimerStrategy,
-  RoundsStrategy,
-  GroupStrategy,
-  TimeBoundRoundsStrategy,
-  IntervalStrategy
-} from '../../strategies';
+import { TestableRuntime, RuntimeSnapshot, SnapshotDiff } from '@/testing/testable';
+import { ScriptRuntime } from '@/runtime/ScriptRuntime';
+import { RuntimeMemory } from '@/runtime/RuntimeMemory';
+import { RuntimeStack } from '@/runtime/RuntimeStack';
+import { RuntimeClock } from '@/runtime/RuntimeClock';
+import { EventBus } from '@/runtime/events/EventBus';
+import { JitCompiler } from '@/runtime/compiler/JitCompiler';
+import { WodScript, IScript } from '@/parser/WodScript';
+import { MdTimerRuntime } from '@/parser/md-timer';
+import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
+import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
+import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
+import { GenericGroupStrategy } from '@/runtime/compiler/strategies/components/GenericGroupStrategy';
+import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
+import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
+import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
+import { HistoryStrategy } from '@/runtime/compiler/strategies/enhancements/HistoryStrategy';
+import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
+import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 import { SnapshotDiffViewer, SnapshotDiffSummary } from './SnapshotDiffViewer';
-import { RuntimeProvider } from '../../context/RuntimeContext';
-import { StackedClockDisplay } from '../../../clock/components/StackedClockDisplay';
+import { RuntimeProvider } from '@/runtime/context/RuntimeContext';
+import { StackedClockDisplay } from '@/clock/components/StackedClockDisplay';
 
 // ==================== Types ====================
 
@@ -146,12 +147,24 @@ const DEFAULT_TEMPLATES: TestTemplate[] = [
 
 function createStandardCompiler(): JitCompiler {
   const compiler = new JitCompiler();
-  compiler.registerStrategy(new TimeBoundRoundsStrategy());
-  compiler.registerStrategy(new IntervalStrategy());
-  compiler.registerStrategy(new TimerStrategy());
-  compiler.registerStrategy(new RoundsStrategy());
-  compiler.registerStrategy(new GroupStrategy());
-  compiler.registerStrategy(new EffortStrategy());
+
+  // Logic
+  compiler.registerStrategy(new AmrapLogicStrategy());
+  compiler.registerStrategy(new IntervalLogicStrategy());
+
+  // Components
+  compiler.registerStrategy(new GenericTimerStrategy());
+  compiler.registerStrategy(new GenericLoopStrategy());
+  compiler.registerStrategy(new GenericGroupStrategy());
+
+  // Enhancements
+  compiler.registerStrategy(new SoundStrategy());
+  compiler.registerStrategy(new HistoryStrategy());
+  compiler.registerStrategy(new ChildrenStrategy());
+
+  // Fallback
+  compiler.registerStrategy(new EffortFallbackStrategy());
+
   return compiler;
 }
 
@@ -219,8 +232,8 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
     return parsedScript.statements.map((stmt, index) => ({
       index,
       id: stmt.id,
-      text: stmt.sourceText || `Statement ${index}`,
-      fragments: stmt.fragments?.map(f => f.type).join(', ') || 'unknown'
+      text: (stmt as any).sourceText || (stmt.meta as any).raw || `Statement ${index}`,
+      fragments: stmt.fragments?.map(f => f.fragmentType).join(', ') || 'unknown'
     }));
   }, [parsedScript]);
 

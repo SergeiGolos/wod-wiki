@@ -4,7 +4,7 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
 import { SoundBehavior } from "../../../behaviors/SoundBehavior";
-import { createCountdownSoundCues, createCountUpSoundCues } from "../TimerStrategy";
+import { createCountdownSoundCues, createCountUpSoundCues } from "../../../utils/soundUtils";
 
 export class SoundStrategy implements IRuntimeBlockStrategy {
     priority = 20;
