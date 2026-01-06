@@ -11,17 +11,10 @@ import { RepFragment } from "../fragments/RepFragment";
 import { BlockContext } from "../../BlockContext";
 import { MemoryTypeEnum } from "../../models/MemoryTypeEnum";
 import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
-import { BoundLoopBehavior } from "../../behaviors/BoundLoopBehavior";
-import { ChildIndexBehavior } from "../../behaviors/ChildIndexBehavior";
-import { RoundPerLoopBehavior } from "../../behaviors/RoundPerLoopBehavior";
-import { RepSchemeBehavior } from "../../behaviors/RepSchemeBehavior";
 import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
-import { ChildRunnerBehavior } from "../../behaviors/ChildRunnerBehavior";
-import { RoundDisplayBehavior } from "../../behaviors/RoundDisplayBehavior";
-import { RoundSpanBehavior } from "../../behaviors/RoundSpanBehavior";
-import { LapTimerBehavior } from "../../behaviors/LapTimerBehavior";
+import { LoopBundle } from "../../behaviors/bundles/LoopBundle";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -86,20 +79,16 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
         const behaviors: IRuntimeBehavior[] = [];
         behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
-        // 1. Loop Behaviors
-        behaviors.push(new ChildIndexBehavior(children.length));
-        behaviors.push(new RoundPerLoopBehavior());
+        // Use LoopBundle for loop behaviors, child execution, and round tracking
+        behaviors.push(...LoopBundle.create({
+            totalRounds,
+            repScheme,
+            children,
+            loopMode: 'perLoop',
+            spanLabel: 'rounds'
+        }));
 
-        if (repScheme && repScheme.length > 0) {
-            behaviors.push(new RepSchemeBehavior(repScheme));
-        }
-
-        behaviors.push(new BoundLoopBehavior(totalRounds));
-
-        // 2. Child Execution
-        behaviors.push(new ChildRunnerBehavior(children));
-
-        // 3. History Behavior
+        // History Behavior
         behaviors.push(new HistoryBehavior({
             label: "Rounds",
             debugMetadata: createSpanMetadata(
@@ -111,11 +100,6 @@ export class RoundsStrategy implements IRuntimeBlockStrategy {
                 }
             )
         }));
-
-        // 4. Round Display & Tracking (decomposed from LoopCoordinatorBehavior)
-        behaviors.push(new RoundDisplayBehavior(totalRounds));
-        behaviors.push(new RoundSpanBehavior('rounds', repScheme, totalRounds));
-        behaviors.push(new LapTimerBehavior());
 
         // Allocate initial reps if scheme exists
         if (repScheme && repScheme.length > 0) {

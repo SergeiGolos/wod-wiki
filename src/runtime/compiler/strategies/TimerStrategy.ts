@@ -8,12 +8,8 @@ import { RuntimeBlock } from "../../RuntimeBlock";
 import { FragmentType } from "../../../core/models/CodeFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { BlockContext } from "../../BlockContext";
-import { CompletionBehavior } from "../../behaviors/CompletionBehavior";
 import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
-import { SoundBehavior } from "../../behaviors/SoundBehavior";
 import { PREDEFINED_SOUNDS, SoundCue } from "../../models/SoundModels";
-import { BoundTimerBehavior } from "../../behaviors/BoundTimerBehavior";
-import { UnboundTimerBehavior } from "../../behaviors/UnboundTimerBehavior";
 import { ChildIndexBehavior } from "../../behaviors/ChildIndexBehavior";
 import { RoundPerLoopBehavior } from "../../behaviors/RoundPerLoopBehavior";
 import { SinglePassBehavior } from "../../behaviors/SinglePassBehavior";
@@ -21,6 +17,7 @@ import { ChildRunnerBehavior } from "../../behaviors/ChildRunnerBehavior";
 import { createSpanMetadata } from "../../utils/metadata";
 import { PassthroughFragmentDistributor } from "../../contracts/IDistributedFragments";
 import { ActionLayerBehavior } from "../../behaviors/ActionLayerBehavior";
+import { TimerBundle } from "../../behaviors/bundles/TimerBundle";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -80,16 +77,15 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
         const behaviors: IRuntimeBehavior[] = [];
         behaviors.push(new ActionLayerBehavior(blockId, fragmentGroups, code[0]?.id ? [code[0].id] : []));
 
-        // 1. Timer Behavior
-        let timerBehavior: any;
-        if (durationMs) {
-            timerBehavior = new BoundTimerBehavior(durationMs, direction, label);
-        } else {
-            timerBehavior = new UnboundTimerBehavior(label);
-        }
-        behaviors.push(timerBehavior);
+        // Use TimerBundle for timer, sound, and completion behaviors
+        behaviors.push(...TimerBundle.create({
+            direction,
+            durationMs,
+            enableSound: true,
+            label
+        }));
 
-        // 2. History Behavior
+        // History Behavior
         behaviors.push(new HistoryBehavior({
             label: "Timer",
             debugMetadata: createSpanMetadata(
@@ -102,35 +98,13 @@ export class TimerStrategy implements IRuntimeBlockStrategy {
             )
         }));
 
-        // 3. Sound Behavior
-        if (direction === 'down' && durationMs && durationMs > 0) {
-            behaviors.push(new SoundBehavior({
-                direction: 'down',
-                durationMs,
-                cues: createCountdownSoundCues(durationMs)
-            }));
-        } else if (direction === 'up') {
-            behaviors.push(new SoundBehavior({
-                direction: 'up',
-                cues: createCountUpSoundCues()
-            }));
-        }
-
-        // 4. Children looping behaviors
+        // Children looping behaviors
         const children = code[0]?.children || [];
         if (children.length > 0) {
             behaviors.push(new ChildIndexBehavior(children.length));
             behaviors.push(new ChildRunnerBehavior(children));
             behaviors.push(new RoundPerLoopBehavior());
             behaviors.push(new SinglePassBehavior());
-        }
-
-        // 5. Completion
-        if (durationMs) {
-            behaviors.push(new CompletionBehavior(
-                (_block, now) => timerBehavior.isComplete(now),
-                ['timer:tick', 'timer:complete']
-            ));
         }
 
         return new RuntimeBlock(
