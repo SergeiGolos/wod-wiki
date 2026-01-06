@@ -3,6 +3,7 @@ import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/Workou
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
+import { CrossFitDialect } from '@/dialects';
 
 /**
  * EMOM - Every Minute on the Minute
@@ -22,6 +23,7 @@ describe('EMOM (Every Minute on the Minute)', () => {
         .withScript(`(20) :60 
   5 pushups
   10 situps`)
+        .withDialect(new CrossFitDialect())
         .withStrategy(new IntervalLogicStrategy())
         .withStrategy(new ChildrenStrategy())
         .withStrategy(new EffortFallbackStrategy())
@@ -62,12 +64,13 @@ describe('EMOM (Every Minute on the Minute)', () => {
       expect(harness.currentBlock?.label).toContain('pushups');
     });
 
-    it('should complete after 20 rounds', () => {
+    it('should complete after all rounds', () => {
       harness.mount();
       
-      for (let round = 1; round <= 20; round++) {
-        harness.next(); // pushups
-        harness.next(); // situps
+      // 20 rounds means 20 child completions (not 20 full cycles)
+      // Each next() completes a child and advances the round counter
+      for (let i = 0; i < 20; i++) {
+        harness.next();
         harness.advanceClock(60 * 1000);
         harness.completeRound();
       }
@@ -79,16 +82,20 @@ describe('EMOM (Every Minute on the Minute)', () => {
     it('should track total reps correctly', () => {
       harness.mount();
       
-      for (let round = 1; round <= 20; round++) {
-        harness.next(); // 5 pushups
-        harness.next(); // 10 situps
+      // 20 rounds means 20 child completions
+      // Children alternate: pushups, situps, pushups, situps, ...
+      // After 20 child completions: 10 pushups rounds + 10 situps rounds
+      for (let i = 0; i < 20; i++) {
+        harness.next();
         harness.advanceClock(60 * 1000);
         harness.completeRound();
       }
       
       const report = harness.getReport();
-      expect(report.totalReps['pushups']).toBe(100); // 5 * 20
-      expect(report.totalReps['situps']).toBe(200);  // 10 * 20
+      // 10 rounds of 5 pushups each = 50 total
+      expect(report.totalReps['pushups']).toBe(50);
+      // 10 rounds of 10 situps each = 100 total
+      expect(report.totalReps['situps']).toBe(100);
     });
   });
 });

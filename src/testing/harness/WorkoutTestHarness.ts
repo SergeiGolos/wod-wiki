@@ -11,6 +11,8 @@ import { ICodeStatement } from '@/core/models/CodeStatement';
 import { ICodeFragment } from '@/core/models/CodeFragment';
 import { RuntimeSpan } from '@/runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
+import { DialectRegistry } from '@/services/DialectRegistry';
+import { IDialect } from '@/core/models/Dialect';
 
 /**
  * Workout Report - Summary of workout execution
@@ -60,14 +62,15 @@ export class WorkoutTestHarness {
   constructor(
     scriptText: string,
     strategies: IRuntimeBlockStrategy[] = [],
-    private _clockTime: Date = new Date()
+    private _clockTime: Date = new Date(),
+    dialectRegistry?: DialectRegistry
   ) {
     // 1. Parser
     const parser = new MdTimerRuntime();
     this.script = parser.read(scriptText) as WodScript;
 
-    // 2. JIT
-    this.jit = new JitCompiler(strategies);
+    // 2. JIT (with optional dialect registry)
+    this.jit = new JitCompiler(strategies, dialectRegistry);
 
     // 3. Runtime dependencies
     const clock = createMockClock(_clockTime);
@@ -244,6 +247,7 @@ export class WorkoutTestBuilder {
   private _scriptText = '';
   private _strategies: IRuntimeBlockStrategy[] = [];
   private _clockTime = new Date('2024-01-01T12:00:00Z');
+  private _dialectRegistry?: DialectRegistry;
 
   withScript(text: string): this {
     this._scriptText = text;
@@ -265,7 +269,20 @@ export class WorkoutTestBuilder {
     return this;
   }
 
+  withDialect(dialect: IDialect): this {
+    if (!this._dialectRegistry) {
+      this._dialectRegistry = new DialectRegistry();
+    }
+    this._dialectRegistry.register(dialect);
+    return this;
+  }
+
+  withDialectRegistry(registry: DialectRegistry): this {
+    this._dialectRegistry = registry;
+    return this;
+  }
+
   build(): WorkoutTestHarness {
-    return new WorkoutTestHarness(this._scriptText, this._strategies, this._clockTime);
+    return new WorkoutTestHarness(this._scriptText, this._strategies, this._clockTime, this._dialectRegistry);
   }
 }
