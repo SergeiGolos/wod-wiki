@@ -15,6 +15,7 @@ This document proposes a fundamental redesign of how block completion is managed
    ```typescript
    // CompletionBehavior.ts
    onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
+     const now = clock.now;
      if (this.condition(block, now)) {
        return [
          new EmitEventAction('block:complete', { blockId: block.key.toString() }),
