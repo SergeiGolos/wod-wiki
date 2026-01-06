@@ -67,8 +67,11 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             .setLabel(label) // Use text content as label
             .setSourceIds(statement.id ? [statement.id] : []);
 
+        // Filter out runtime-generated fragments to avoid pollution
+        const cleanFragments = (statement.fragments || []).filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "Effort");
+        const fragmentGroups = distributor.distribute(cleanFragments, "Effort");
         builder.setFragments(fragmentGroups);
 
         builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
