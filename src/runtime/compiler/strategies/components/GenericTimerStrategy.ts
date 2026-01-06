@@ -42,8 +42,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
                .setLabel(label)
                .setSourceIds(statement.id ? [statement.id] : []);
 
+        // Filter out runtime-generated fragments to avoid pollution
+        const cleanFragments = (statement.fragments || []).filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "Timer");
+        const fragmentGroups = distributor.distribute(cleanFragments, "Timer");
         builder.setFragments(fragmentGroups);
         builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
 
