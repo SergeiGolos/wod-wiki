@@ -25,7 +25,14 @@ function getExerciseId(statement: ICodeStatement): string {
  */
 function getContent(statement: ICodeStatement, defaultContent: string): string {
     const stmt = statement as ICodeStatement & { content?: string };
-    return stmt.content ?? defaultContent;
+    if (stmt.content) return stmt.content;
+
+    // Fallback: Construct content from fragments
+    if (statement.fragments && statement.fragments.length > 0) {
+        return statement.fragments.map(f => f.image).join(' ');
+    }
+
+    return defaultContent;
 }
 
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
@@ -48,10 +55,12 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         const exerciseId = getExerciseId(statement);
         const context = new BlockContext(runtime, blockKey.toString(), exerciseId);
 
+        const label = getContent(statement, "Effort");
+
         builder.setContext(context)
             .setKey(blockKey)
             .setBlockType("Effort")
-            .setLabel(getContent(statement, "Effort")) // Use text content as label
+            .setLabel(label) // Use text content as label
             .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
@@ -63,7 +72,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
         // Effort block usually has History
         builder.addBehavior(new HistoryBehavior({
-            label: getContent(statement, "Effort"),
+            label: label,
             debugMetadata: createSpanMetadata(
                 ['effort'],
                 { strategyUsed: 'EffortFallbackStrategy' }
