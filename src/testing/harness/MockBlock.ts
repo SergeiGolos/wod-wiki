@@ -106,6 +106,9 @@ export class MockBlock implements IRuntimeBlock {
   public state: Record<string, any>;
 
   private _runtime?: IScriptRuntime;
+  private _forcedMountActions: IRuntimeAction[] = [];
+  private _forcedNextActions: IRuntimeAction[] = [];
+  private _forcedUnmountActions: IRuntimeAction[] = [];
 
   constructor(
     idOrConfig: string | MockBlockConfig,
@@ -133,8 +136,25 @@ export class MockBlock implements IRuntimeBlock {
     return this._runtime;
   }
 
+  // Helper methods to force specific actions for testing
+  setMountActions(actions: IRuntimeAction[]): void {
+    this._forcedMountActions = actions;
+  }
+
+  setNextActions(actions: IRuntimeAction[]): void {
+    this._forcedNextActions = actions;
+  }
+
+  setUnmountActions(actions: IRuntimeAction[]): void {
+    this._forcedUnmountActions = actions;
+  }
+
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     this.executionTiming.startTime = options?.startTime ?? runtime.clock.now;
+
+    if (this._forcedMountActions.length > 0) {
+      return [...this._forcedMountActions];
+    }
 
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
@@ -145,6 +165,10 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    if (this._forcedNextActions.length > 0) {
+      return [...this._forcedNextActions];
+    }
+
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
       const result = behavior.onNext?.(this, runtime.clock);
@@ -155,6 +179,10 @@ export class MockBlock implements IRuntimeBlock {
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     this.executionTiming.completedAt = options?.completedAt ?? runtime.clock.now;
+
+    if (this._forcedUnmountActions.length > 0) {
+      return [...this._forcedUnmountActions];
+    }
 
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
