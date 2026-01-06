@@ -1,6 +1,6 @@
 # Block Isolation Testing Plan
 
-> **Author**: AI Assistant  
+> **Author**: WOD Wiki Team  
 > **Created**: 2026-01-06  
 > **Purpose**: Comprehensive testing strategy for isolating and validating runtime blocks created by JIT strategies
 
