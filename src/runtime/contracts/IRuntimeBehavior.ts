@@ -34,6 +34,39 @@ export interface IRuntimeBehavior {
    */
   readonly priority?: number;
 
+  /**
+   * Behaviors that must be present in the same block.
+   * Validated at block construction time.
+   * 
+   * Example:
+   * ```typescript
+   * export class ChildRunnerBehavior implements IRuntimeBehavior {
+   *   readonly requiredBehaviors = [ChildIndexBehavior];
+   * }
+   * ```
+   * 
+   * Note: For OR dependencies (e.g., "requires A OR B"), use behavior bundles
+   * or implement custom validation in the behavior's constructor.
+   * 
+   * @see BEHAVIOR_DEPENDENCIES.md for usage patterns and best practices
+   */
+  readonly requiredBehaviors?: Array<new (...args: any[]) => IRuntimeBehavior>;
+
+  /**
+   * Behaviors that conflict with this behavior.
+   * Construction-time error if both present in same block.
+   * 
+   * Example:
+   * ```typescript
+   * export class UnboundTimerBehavior implements IRuntimeBehavior {
+   *   readonly conflictingBehaviors = [BoundTimerBehavior];
+   * }
+   * ```
+   * 
+   * @see BEHAVIOR_DEPENDENCIES.md for usage patterns and best practices
+   */
+  readonly conflictingBehaviors?: Array<new (...args: any[]) => IRuntimeBehavior>;
+
   /** Called when the owning block is pushed onto the stack. May return initial events to emit. */
   onPush?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 

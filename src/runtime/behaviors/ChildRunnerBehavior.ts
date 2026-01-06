@@ -16,6 +16,8 @@ import { BoundLoopBehavior } from './BoundLoopBehavior';
  */
 export class ChildRunnerBehavior implements IRuntimeBehavior {
     readonly priority = 600; // Core: child execution
+    readonly requiredBehaviors = [ChildIndexBehavior]; // Requires child index tracking
+
     constructor(private readonly childGroups: number[][]) { }
 
     onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {

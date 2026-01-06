@@ -60,11 +60,52 @@ export class RuntimeBlock implements IRuntimeBlock {
             return priorityA - priorityB;
         });
 
+        // Validate behavior dependencies (required/conflicting behaviors)
+        // Catches configuration errors at construction time rather than runtime
+        this.validateBehaviorDependencies();
+
         // Register default 'next' handler to bridge explicit next events to block.next()
         this.registerDefaultHandler();
 
         // Register event dispatcher to route events to behaviors
         this.registerEventDispatcher();
+    }
+
+    /**
+     * Validates behavior dependencies at construction time.
+     * Checks that required behaviors are present and conflicting behaviors are absent.
+     * 
+     * @throws Error if a required behavior is missing or a conflicting behavior is present
+     * @private
+     */
+    private validateBehaviorDependencies(): void {
+        for (const behavior of this.behaviors) {
+            // Check required behaviors
+            if (behavior.requiredBehaviors) {
+                for (const required of behavior.requiredBehaviors) {
+                    const found = this.behaviors.some(b => b instanceof required);
+                    if (!found) {
+                        throw new Error(
+                            `Behavior ${behavior.constructor.name} requires ` +
+                            `${required.name} but it is not present in block "${this.label}"`
+                        );
+                    }
+                }
+            }
+            
+            // Check conflicting behaviors
+            if (behavior.conflictingBehaviors) {
+                for (const conflict of behavior.conflictingBehaviors) {
+                    const found = this.behaviors.some(b => b instanceof conflict);
+                    if (found) {
+                        throw new Error(
+                            `Behavior ${behavior.constructor.name} conflicts with ` +
+                            `${conflict.name} in block "${this.label}"`
+                        );
+                    }
+                }
+            }
+        }
     }
 
     private registerDefaultHandler() {

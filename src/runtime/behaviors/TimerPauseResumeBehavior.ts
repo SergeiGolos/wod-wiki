@@ -26,6 +26,8 @@ import { RegisterButtonAction, UnregisterButtonAction } from '../actions/display
  */
 export class TimerPauseResumeBehavior implements IRuntimeBehavior {
     readonly priority = 150; // Pre-execution: after timer
+    readonly requiredBehaviors = [TimerBehavior]; // Requires timer instance
+
     onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
         const timer = block.getBehavior(TimerBehavior);
         if (!timer) return [];
