@@ -6,6 +6,7 @@ import { ChildIndexBehavior } from './ChildIndexBehavior';
 import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
 import { BoundLoopBehavior } from './BoundLoopBehavior';
 import { SinglePassBehavior } from './SinglePassBehavior';
+import { BoundTimerBehavior } from './BoundTimerBehavior';
 
 /**
  * ChildRunnerBehavior.
@@ -38,6 +39,12 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
 
         const singlePass = block.getBehavior(SinglePassBehavior);
         if (singlePass?.isComplete()) {
+            return [];
+        }
+
+        // Don't push children if the timer has expired (e.g., countdown/AMRAP timer completed)
+        const boundTimer = block.getBehavior(BoundTimerBehavior);
+        if (boundTimer?.isComplete(clock.now)) {
             return [];
         }
 
