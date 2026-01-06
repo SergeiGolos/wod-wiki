@@ -1,10 +1,11 @@
 import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { BoundTimerBehavior } from '../BoundTimerBehavior';
 import { UnboundTimerBehavior } from '../UnboundTimerBehavior';
-import { CompletionBehavior } from '../CompletionBehavior';
 import { SoundBehavior } from '../SoundBehavior';
 import { TimerPauseResumeBehavior } from '../TimerPauseResumeBehavior';
 import { createCountdownSoundCues } from '../../compiler/strategies/TimerStrategy';
+import { StrategyBasedCompletionBehavior } from '../../completion/StrategyBasedCompletionBehavior';
+import { TimerCompletionStrategy } from '../../completion/TimerCompletionStrategy';
 
 export interface TimerBundleConfig {
     direction: 'up' | 'down';
@@ -88,11 +89,10 @@ export class TimerBundle {
             }));
         }
         
-        // 4. Completion detection (for bounded timers only)
+        // 4. Completion detection (for bounded timers only) - uses strategy pattern
         if (config.durationMs) {
-            behaviors.push(new CompletionBehavior(
-                (_block, now) => timer.isComplete(now),
-                ['timer:tick', 'timer:complete']
+            behaviors.push(new StrategyBasedCompletionBehavior(
+                new TimerCompletionStrategy(timer)
             ));
         }
         
