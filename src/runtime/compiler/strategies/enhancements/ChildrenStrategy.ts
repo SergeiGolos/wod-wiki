@@ -8,6 +8,7 @@ import { RoundPerLoopBehavior } from "../../../behaviors/RoundPerLoopBehavior";
 import { SinglePassBehavior } from "../../../behaviors/SinglePassBehavior";
 import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
 import { UnboundLoopBehavior } from "../../../behaviors/UnboundLoopBehavior";
+import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
 
 export class ChildrenStrategy implements IRuntimeBlockStrategy {
     priority = 50;
@@ -35,7 +36,16 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
         if (!hasLoop) {
             builder.addBehavior(new RoundPerLoopBehavior());
-            builder.addBehavior(new SinglePassBehavior());
+
+            // Check if we have a BoundTimer (Countdown). If so, default to Infinite Loop (AMRAP style).
+            // UnboundTimer (For Time) implies Single Pass (task priority).
+            const hasBoundTimer = builder.hasBehavior(BoundTimerBehavior);
+
+            if (hasBoundTimer) {
+                 builder.addBehavior(new UnboundLoopBehavior());
+            } else {
+                 builder.addBehavior(new SinglePassBehavior());
+            }
         }
 
         builder.addBehavior(new ChildRunnerBehavior(children));

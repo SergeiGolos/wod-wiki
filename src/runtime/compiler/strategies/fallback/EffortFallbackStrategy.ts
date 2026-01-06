@@ -2,7 +2,7 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
+import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
@@ -29,7 +29,10 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
 
     // Fallback: Construct content from fragments
     if (statement.fragments && statement.fragments.length > 0) {
-        return statement.fragments.map(f => f.image).join(' ');
+        return statement.fragments
+            .filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated && f.image)
+            .map(f => f.image)
+            .join(' ');
     }
 
     return defaultContent;
@@ -41,8 +44,9 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
-        const hasTimer = statement.hasFragment(FragmentType.Timer);
-        const hasRounds = statement.hasFragment(FragmentType.Rounds);
+        // Ignore runtime-generated fragments when checking for match
+        const hasTimer = statement.findFragment(FragmentType.Timer, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated) !== undefined;
+        const hasRounds = statement.findFragment(FragmentType.Rounds, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated) !== undefined;
         return !hasTimer && !hasRounds;
     }
 

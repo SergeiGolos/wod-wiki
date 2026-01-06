@@ -9,7 +9,7 @@ import { ChildRunnerBehavior } from '@/runtime/behaviors/ChildRunnerBehavior';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 
 describe('Timer Child Rotation Test', () => {
-    it.failing('should rotate children during timer execution', () => {
+    it('should rotate children during timer execution', () => {
         const script = `20:00
   5 pullups
   10 push ups
