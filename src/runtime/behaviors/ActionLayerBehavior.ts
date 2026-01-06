@@ -41,6 +41,7 @@ export function buildActionDescriptorsFromFragments(ownerId: string, fragments: 
 }
 
 export class ActionLayerBehavior implements IRuntimeBehavior {
+    readonly priority = 0; // Infrastructure: must be first
   private readonly descriptors: ActionDescriptor[];
   private readonly includeDefaultNext: boolean;
 

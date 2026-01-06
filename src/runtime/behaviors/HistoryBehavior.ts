@@ -11,6 +11,7 @@ import { TypedMemoryReference } from '../contracts/IMemoryReference';
  * Behavior that tracks the execution history of a block using RuntimeSpan.
  */
 export class HistoryBehavior implements IRuntimeBehavior {
+    readonly priority = 1200; // Post-execution: tracking
     private startTime: number = 0;
     private label?: string;
     private config?: string | { label?: string; debugMetadata?: any };

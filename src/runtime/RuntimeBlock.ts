@@ -3,6 +3,7 @@ import { BlockKey } from '../core/models/BlockKey';
 import { MetricBehavior } from '../types/MetricBehavior';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
+import { PRIORITY_DEFAULT } from './contracts/BehaviorPriority';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
@@ -50,6 +51,14 @@ export class RuntimeBlock implements IRuntimeBlock {
         }
 
         this.behaviors = behaviors;
+        
+        // Sort behaviors by priority (lower = earlier execution)
+        // This ensures deterministic execution order and prevents order-dependent bugs
+        this.behaviors.sort((a, b) => {
+            const priorityA = a.priority ?? PRIORITY_DEFAULT;
+            const priorityB = b.priority ?? PRIORITY_DEFAULT;
+            return priorityA - priorityB;
+        });
 
         // Register default 'next' handler to bridge explicit next events to block.next()
         this.registerDefaultHandler();

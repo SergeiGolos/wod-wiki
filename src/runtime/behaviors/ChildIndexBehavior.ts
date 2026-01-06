@@ -8,6 +8,7 @@ import { IRuntimeClock } from '../contracts/IRuntimeClock';
  * Wraps around when the index exceeds the number of children.
  */
 export class ChildIndexBehavior implements IRuntimeBehavior {
+    readonly priority = 500; // Core: child management
     private currentIndex: number = -1; // Starts at -1 so first increment makes it 0
     public hasJustWrapped: boolean = false;
 

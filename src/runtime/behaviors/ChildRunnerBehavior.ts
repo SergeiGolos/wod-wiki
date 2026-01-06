@@ -15,6 +15,7 @@ import { BoundLoopBehavior } from './BoundLoopBehavior';
  * - onNext: Push child at current index (only if loop not complete).
  */
 export class ChildRunnerBehavior implements IRuntimeBehavior {
+    readonly priority = 600; // Core: child execution
     constructor(private readonly childGroups: number[][]) { }
 
     onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {

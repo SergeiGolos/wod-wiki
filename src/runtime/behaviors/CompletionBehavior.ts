@@ -18,6 +18,7 @@ import { EmitEventAction } from '../actions/events/EmitEventAction';
  * - Flexible for various completion scenarios
  */
 export class CompletionBehavior implements IRuntimeBehavior {
+    readonly priority = 700; // Core: completion detection
   private isCompleteFlag = false;
 
   constructor(

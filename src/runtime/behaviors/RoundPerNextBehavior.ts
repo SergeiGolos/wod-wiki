@@ -7,6 +7,7 @@ import { IRuntimeClock } from '../contracts/IRuntimeClock';
  * Increments the round counter on each next() call.
  */
 export class RoundPerNextBehavior implements IRuntimeBehavior {
+    readonly priority = 550; // Core: round tracking
     private round: number = 0;
 
     /**

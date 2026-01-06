@@ -12,9 +12,28 @@ import { IRuntimeClock } from "./IRuntimeClock";
  * - Application-time context: every hook receives both the script runtime and the specific block
  *   instance being acted upon.
  * - Optional hooks: implement only what you need; unimplemented hooks are skipped.
+ * - Explicit ordering: behaviors specify their execution priority to avoid order-dependent bugs.
  */
 
 export interface IRuntimeBehavior {
+  /**
+   * Execution priority (lower = earlier).
+   * Default: 1000 (post-execution/neutral)
+   * 
+   * Priority Ranges:
+   * - 0-99: Infrastructure (event routing, logging, debugging)
+   * - 100-499: Pre-execution (timers, state setup, memory allocation)
+   * - 500-999: Core logic (child runners, loops, business logic)
+   * - 1000-1499: Post-execution (tracking, display, telemetry)
+   * - 1500+: Cleanup (disposal, memory release, finalization)
+   * 
+   * Use constants from BehaviorPriority.ts for consistency.
+   * 
+   * @see BehaviorPriority.ts for predefined constants
+   * @see https://github.com/SergeiGolos/wod-wiki/blob/main/docs/BEHAVIOR_OVERLAP_AND_RACE_CONDITIONS_ASSESSMENT.md#75-medium-priority-explicit-behavior-ordering
+   */
+  readonly priority?: number;
+
   /** Called when the owning block is pushed onto the stack. May return initial events to emit. */
   onPush?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 

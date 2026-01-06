@@ -23,6 +23,7 @@ import { RoundPerNextBehavior } from './RoundPerNextBehavior';
  * ```
  */
 export class RoundDisplayBehavior implements IRuntimeBehavior {
+    readonly priority = 1300; // Post-execution: display
     private lastEmittedRound: number = 0;
 
     /**

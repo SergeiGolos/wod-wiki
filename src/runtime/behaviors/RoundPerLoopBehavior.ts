@@ -10,6 +10,7 @@ import { ChildIndexBehavior } from './ChildIndexBehavior';
  * Ensure ChildIndexBehavior is ordered BEFORE this behavior in the block's behavior list.
  */
 export class RoundPerLoopBehavior implements IRuntimeBehavior {
+    readonly priority = 550; // Core: round tracking
     private round: number = 0;
 
     /**

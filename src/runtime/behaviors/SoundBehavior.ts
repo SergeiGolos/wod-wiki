@@ -37,6 +37,7 @@ const SOUND_STATE_TYPE = 'sound-state';
  * State is maintained in block context to ensure cues trigger only once per activation.
  */
 export class SoundBehavior implements IRuntimeBehavior {
+    readonly priority = 200; // Pre-execution: sound coordination
   private config: SoundBehaviorConfig;
   private soundStateRef?: TypedMemoryReference<SoundState>;
   private _blockId?: string;

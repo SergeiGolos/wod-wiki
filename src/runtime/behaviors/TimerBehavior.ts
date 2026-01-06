@@ -10,6 +10,7 @@ import { TimerStateManager } from './TimerStateManager';
  * TimerBehavior manages time tracking for workout blocks.
  */
 export class TimerBehavior implements IRuntimeBehavior {
+    readonly priority = 100; // Pre-execution: timer setup
   private startTime: Date = new Date(); // Wall-clock start time
   private elapsedMs = 0;
   private _isPaused = false;
