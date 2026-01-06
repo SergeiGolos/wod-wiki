@@ -3,20 +3,11 @@ import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import type { CodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
+import { BlockBuilder } from "./BlockBuilder";
 
 /**
- * Just-In-Time Compiler for Runtime Blocks that compiles JitStatement nodes 
- * into executable IRuntimeBlock instances on demand. Serves as the central 
- * compilation engine coordinating fragment compilation, strategy management, 
- * and block creation in the Wod.Wiki runtime system.
- * 
- * Metric inheritance is handled via inherited memory references rather than
- * CompilationContext - parent blocks expose metrics with 'inherited' visibility,
- * and child strategies search memory for inherited values.
- * 
- * The JitCompiler integrates with a DialectRegistry to process semantic hints
- * before strategy matching. Dialects analyze statements and emit behavioral hints
- * that strategies can query for matching decisions.
+ * Just-In-Time Compiler for Runtime Blocks.
+ * Coordinates strategy application to build composed RuntimeBlocks.
  */
 export class JitCompiler {
   private dialectRegistry: DialectRegistry;
@@ -28,45 +19,60 @@ export class JitCompiler {
     this.dialectRegistry = dialectRegistry || new DialectRegistry();
   }
 
-  /**
-   * Registers a custom block compilation strategy with the strategy manager.
-   */
   registerStrategy(strategy: IRuntimeBlockStrategy): void {
     this.strategies.push(strategy);
   }
 
-  /**
-   * Get the dialect registry for registering dialects
-   */
   getDialectRegistry(): DialectRegistry {
     return this.dialectRegistry;
   }
 
-  /**
-   * Compiles an array of JitStatement nodes into an executable runtime block.
-   * 
-   * Before strategy matching, all statements are processed through the dialect
-   * registry to populate semantic hints. Strategies then use runtime.memory.search() 
-   * to find public metrics from parent blocks and check hints for matching.
-   * 
-   * @param nodes Array of JitStatement nodes to compile
-   * @param runtime Timer runtime instance for context
-   * @returns Compiled runtime block or undefined if compilation fails
-   */
   compile(nodes: CodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
     if (nodes.length === 0) {
       return undefined;
     }
 
-    // Process all nodes through dialect registry before strategy matching
     this.dialectRegistry.processAll(nodes);
 
-    for (const strategy of this.strategies) {
-      if (strategy.match(nodes, runtime)) {
-        return strategy.compile(nodes, runtime);
-      }
-    }
-    return undefined;
+    // Filter matching strategies and sort by priority (Desc)
+    const matchingStrategies = this.strategies
+        .filter(s => s.match(nodes, runtime))
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
+    if (matchingStrategies.length === 0) {
+        return undefined;
+    }
+
+    // Check for Legacy Strategies (those with compile() but no apply())
+    // If the highest priority match is legacy, use it.
+    const firstMatch = matchingStrategies[0];
+    if (firstMatch.compile && !firstMatch.apply) {
+        return firstMatch.compile(nodes, runtime);
+    }
+
+    // Composition Flow
+    const builder = new BlockBuilder(runtime);
+
+    for (const strategy of matchingStrategies) {
+        if (strategy.apply) {
+            strategy.apply(builder, nodes, runtime);
+        } else if (strategy.compile) {
+            // If we hit a legacy strategy in the middle of a chain...
+            // Ideally we shouldn't mix. But if we must, maybe we ignore it?
+            // Or maybe we treat it as a monolithic block provider and stop?
+            // For safety during migration: if we encounter a legacy strategy,
+            // and we haven't built anything yet, use it.
+            // But since we sorted by priority, if we are here, it means we probably
+            // want to use the new composition.
+            console.warn(`Strategy ${strategy.constructor.name} implements compile() but not apply(). Skipping in composition flow.`);
+        }
+    }
+
+    try {
+        return builder.build();
+    } catch (e) {
+        console.error("Failed to build block from composition:", e);
+        return undefined;
+    }
   }
 }

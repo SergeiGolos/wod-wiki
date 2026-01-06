@@ -7,6 +7,17 @@ import { RoundsStrategy } from '../../runtime/compiler/strategies/RoundsStrategy
 import { GroupStrategy } from '../../runtime/compiler/strategies/GroupStrategy';
 import { EffortStrategy } from '../../runtime/compiler/strategies/EffortStrategy';
 
+// New Composable Strategies
+import { AmrapLogicStrategy } from '../../runtime/compiler/strategies/logic/AmrapLogicStrategy';
+import { IntervalLogicStrategy } from '../../runtime/compiler/strategies/logic/IntervalLogicStrategy';
+import { GenericTimerStrategy } from '../../runtime/compiler/strategies/components/GenericTimerStrategy';
+import { GenericLoopStrategy } from '../../runtime/compiler/strategies/components/GenericLoopStrategy';
+import { SoundStrategy } from '../../runtime/compiler/strategies/enhancements/SoundStrategy';
+import { HistoryStrategy } from '../../runtime/compiler/strategies/enhancements/HistoryStrategy';
+import { ChildrenStrategy } from '../../runtime/compiler/strategies/enhancements/ChildrenStrategy';
+import { GenericGroupStrategy } from '../../runtime/compiler/strategies/components/GenericGroupStrategy';
+import { EffortFallbackStrategy } from '../../runtime/compiler/strategies/fallback/EffortFallbackStrategy';
+
 /**
  * Module-Level Services for RuntimeTestBench
  * This singleton is created once when the module loads and shared
@@ -45,13 +56,23 @@ export const globalParser = new MdTimerRuntime();
 export const globalCompiler = (() => {
   const compiler = new JitCompiler();
   
-  // Register strategies in order of specificity (most specific first)
-  compiler.registerStrategy(new TimeBoundRoundsStrategy());
-  compiler.registerStrategy(new IntervalStrategy());
-  compiler.registerStrategy(new TimerStrategy());
-  compiler.registerStrategy(new RoundsStrategy());
-  compiler.registerStrategy(new GroupStrategy());
-  compiler.registerStrategy(new EffortStrategy());
+  // Register new Composable Strategies
+  // Logic
+  compiler.registerStrategy(new AmrapLogicStrategy());
+  compiler.registerStrategy(new IntervalLogicStrategy());
+
+  // Components
+  compiler.registerStrategy(new GenericTimerStrategy());
+  compiler.registerStrategy(new GenericLoopStrategy());
+  compiler.registerStrategy(new GenericGroupStrategy());
+
+  // Enhancements
+  compiler.registerStrategy(new SoundStrategy());
+  compiler.registerStrategy(new HistoryStrategy());
+  compiler.registerStrategy(new ChildrenStrategy());
+
+  // Fallback
+  compiler.registerStrategy(new EffortFallbackStrategy());
   
   return compiler;
 })();
