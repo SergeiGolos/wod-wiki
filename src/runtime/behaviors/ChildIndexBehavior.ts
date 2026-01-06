@@ -21,6 +21,14 @@ export class ChildIndexBehavior implements IRuntimeBehavior {
     }
 
     /**
+     * Gets the total number of children.
+     * Used by BoundLoopBehavior to predict if the next increment will wrap.
+     */
+    getChildCount(block: IRuntimeBlock): number {
+        return this.countOverride ?? block.sourceIds.length;
+    }
+
+    /**
      * Called when the block is pushed. Initialize state.
      */
     onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {

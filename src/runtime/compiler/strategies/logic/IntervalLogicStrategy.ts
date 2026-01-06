@@ -6,7 +6,6 @@ import { FragmentType } from "@/core/models/CodeFragment";
 import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
 import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
 import { IntervalWaitingBehavior } from "../../../behaviors/IntervalWaitingBehavior";
-import { RoundPerNextBehavior } from "../../../behaviors/RoundPerNextBehavior";
 import { IntervalTimerRestartBehavior } from "../../../behaviors/IntervalTimerRestartBehavior";
 import { TimerFragment } from "../../fragments/TimerFragment";
 import { RoundsFragment } from "../../fragments/RoundsFragment";
@@ -87,7 +86,8 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new IntervalWaitingBehavior());
 
         // 3. Loop Logic
-        builder.addBehavior(new RoundPerNextBehavior());
+        // Note: Round tracking (RoundPerLoopBehavior) is handled by ChildrenStrategy
+        // to ensure proper ordering with ChildIndexBehavior for child-based round counting.
         builder.addBehavior(new BoundLoopBehavior(totalRounds));
         builder.addBehavior(new IntervalTimerRestartBehavior());
 

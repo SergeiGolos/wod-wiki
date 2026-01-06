@@ -24,19 +24,21 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
         const children = statements[0].children;
 
+        // Add ChildIndexBehavior first - it must update the index before RoundPerLoopBehavior checks hasJustWrapped
         builder.addBehavior(new ChildIndexBehavior(children.length));
 
-        // Logic to determine if we need to add a default loop behavior (SinglePass).
-        // If NO loop behavior exists, we imply a "Single Pass" loop.
-
-        // We check for all known loop behaviors.
-        const hasLoop = builder.hasBehavior(BoundLoopBehavior) ||
-            builder.hasBehavior(UnboundLoopBehavior) ||
-            builder.hasBehavior(RoundPerLoopBehavior);
-
-        if (!hasLoop) {
+        // Always add RoundPerLoopBehavior after ChildIndexBehavior for child-based round counting.
+        // This ensures rounds increment when all children complete, not on every next() call.
+        if (!builder.hasBehavior(RoundPerLoopBehavior)) {
             builder.addBehavior(new RoundPerLoopBehavior());
+        }
 
+        // If no loop bound behavior exists, add a default (SinglePass or UnboundLoop).
+        const hasLoopBound = builder.hasBehavior(BoundLoopBehavior) ||
+            builder.hasBehavior(UnboundLoopBehavior) ||
+            builder.hasBehavior(SinglePassBehavior);
+
+        if (!hasLoopBound) {
             // Check if we have a BoundTimer (Countdown). If so, default to Infinite Loop (AMRAP style).
             // UnboundTimer (For Time) implies Single Pass (task priority).
             const hasBoundTimer = builder.hasBehavior(BoundTimerBehavior);

@@ -6,6 +6,7 @@ import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
+import { ChildIndexBehavior } from './ChildIndexBehavior';
 
 /**
  * Bound Loop Behavior.
@@ -27,7 +28,23 @@ export class BoundLoopBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const round = this.getRound(block);
+        let round = this.getRound(block);
+        
+        // If using RoundPerLoopBehavior (child-based round counting), we need to
+        // anticipate the round increment because this behavior runs BEFORE
+        // ChildIndexBehavior and RoundPerLoopBehavior in the behavior order.
+        // Predict if the next index increment will cause a wrap (and thus round increment).
+        const childIndex = block.getBehavior(ChildIndexBehavior);
+        if (childIndex) {
+            const currentIdx = childIndex.getIndex();
+            const childCount = childIndex.getChildCount(block);
+            // Will the next increment cause a wrap?
+            const willWrap = childCount > 0 && (currentIdx + 1) >= childCount;
+            if (willWrap) {
+                round += 1;
+            }
+        }
+        
         const actions: IRuntimeAction[] = [];
 
         // Report round status to tracker (History)

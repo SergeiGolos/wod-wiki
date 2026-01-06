@@ -21,9 +21,9 @@ describe('Chelsea (30-minute EMOM with 3 exercises)', () => {
   beforeEach(() => {
     harness = new WorkoutTestBuilder()
       .withScript(`(30) :60 EMOM
-  + 5 Pullups
-  + 10 Pushups
-  + 15 Air Squats`)
+  - 5 Pullups
+  - 10 Pushups
+  - 15 Air Squats`)
       .withStrategy(new IntervalLogicStrategy())
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
