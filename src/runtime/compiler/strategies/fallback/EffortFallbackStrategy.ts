@@ -2,7 +2,7 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
+import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
@@ -25,7 +25,17 @@ function getExerciseId(statement: ICodeStatement): string {
  */
 function getContent(statement: ICodeStatement, defaultContent: string): string {
     const stmt = statement as ICodeStatement & { content?: string };
-    return stmt.content ?? defaultContent;
+    if (stmt.content) return stmt.content;
+
+    // Fallback: Construct content from fragments
+    if (statement.fragments && statement.fragments.length > 0) {
+        return statement.fragments
+            .filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated && f.image)
+            .map(f => f.image)
+            .join(' ');
+    }
+
+    return defaultContent;
 }
 
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
@@ -34,8 +44,9 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
-        const hasTimer = statement.hasFragment(FragmentType.Timer);
-        const hasRounds = statement.hasFragment(FragmentType.Rounds);
+        // Ignore runtime-generated fragments when checking for match
+        const hasTimer = statement.findFragment(FragmentType.Timer, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated) !== undefined;
+        const hasRounds = statement.findFragment(FragmentType.Rounds, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated) !== undefined;
         return !hasTimer && !hasRounds;
     }
 
@@ -48,10 +59,12 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         const exerciseId = getExerciseId(statement);
         const context = new BlockContext(runtime, blockKey.toString(), exerciseId);
 
+        const label = getContent(statement, "Effort");
+
         builder.setContext(context)
             .setKey(blockKey)
             .setBlockType("Effort")
-            .setLabel(getContent(statement, "Effort")) // Use text content as label
+            .setLabel(label) // Use text content as label
             .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
@@ -63,7 +76,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
         // Effort block usually has History
         builder.addBehavior(new HistoryBehavior({
-            label: getContent(statement, "Effort"),
+            label: label,
             debugMetadata: createSpanMetadata(
                 ['effort'],
                 { strategyUsed: 'EffortFallbackStrategy' }
