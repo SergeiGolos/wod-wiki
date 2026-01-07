@@ -3,7 +3,6 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { BoundLoopBehavior } from '@/runtime/behaviors/BoundLoopBehavior';
 import { RoundPerNextBehavior } from '@/runtime/behaviors/RoundPerNextBehavior';
-import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 import { TrackRoundAction } from '@/runtime/actions/tracking/TrackRoundAction';
 
 describe('RoundsBlock', () => {
@@ -22,7 +21,7 @@ describe('RoundsBlock', () => {
     // Typically Rounds block needs both behaviors
     const block = new MockBlock('rounds-test', [
       roundBehavior, // Updates round count
-      loopBehavior   // Checks round count and pops
+      loopBehavior   // Checks round count and marks complete
     ], { blockType: 'Rounds' });
 
     harness.push(block);
@@ -36,7 +35,7 @@ describe('RoundsBlock', () => {
     // BoundLoop checks round 2. 2 <= 3. Continues.
     let actions = harness.next();
     expect(roundBehavior.getRound()).toBe(2);
-    expect(harness.findActions(PopBlockAction)).toHaveLength(0);
+    expect(block.isComplete).toBe(false);
     expect(harness.findActions(TrackRoundAction)).toHaveLength(1); // Tracks round 2
     harness.clearCaptures();
 
@@ -45,16 +44,15 @@ describe('RoundsBlock', () => {
     // BoundLoop checks round 3. 3 <= 3. Continues.
     actions = harness.next();
     expect(roundBehavior.getRound()).toBe(3);
-    expect(harness.findActions(PopBlockAction)).toHaveLength(0);
+    expect(block.isComplete).toBe(false);
     harness.clearCaptures();
 
     // Simulate next() - End of Round 3
     // RoundPerNext increments to 4
-    // BoundLoop checks round 4. 4 > 3. POPS.
+    // BoundLoop checks round 4. 4 > 3. Marks complete.
     actions = harness.next();
     expect(roundBehavior.getRound()).toBe(4);
 
-    const popActions = harness.findActions(PopBlockAction);
-    expect(popActions).toHaveLength(1);
+    expect(block.isComplete).toBe(true);
   });
 });

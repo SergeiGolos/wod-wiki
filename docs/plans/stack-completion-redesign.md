@@ -404,35 +404,27 @@ Event → EventBus → NextEventHandler → NextAction → block.next() → [act
 
 ## Migration Plan
 
-### Phase 1: Add Infrastructure (Non-Breaking)
+### Phase 1: Add Infrastructure (Non-Breaking) ✅ COMPLETE
 
 1. Add `isComplete` property and `markComplete()` method to `IRuntimeBlock` and `RuntimeBlock`
 2. Add `sweepCompletedBlocks()` to `ScriptRuntime`
 3. Call sweep after action processing
 4. All existing behaviors continue to work unchanged
 
-### Phase 2: Migrate Behaviors (Gradual)
+### Phase 2: Migrate Behaviors ✅ COMPLETE
 
 1. Update `CompletionBehavior` to use `markComplete()`
 2. Update `BoundLoopBehavior` to use `markComplete()`
 3. Update `SinglePassBehavior` to use `markComplete()`
-4. Keep `PopOnNextBehavior` and `PopOnEventBehavior` using `PopBlockAction` initially
-
-### Phase 3: Update Test Infrastructure
-
-1. Update `MockBlock` with `isComplete` support
-2. Update `BehaviorTestHarness` to support completion sweeps
-3. Add test helpers for asserting on completion state
-
-### Phase 4: Deprecate PopBlockAction from Behaviors
-
-1. Add deprecation warning to `PopBlockAction` when returned from behaviors
-2. Migrate remaining behaviors
-3. Document new completion pattern
+4. Update `PopOnNextBehavior` to use `markComplete()`
+5. Update `PopOnEventBehavior` to use `markComplete()`
+6. Update `WorkoutFlowStateMachine` to use `markComplete()`
+7. Update `WorkoutOrchestrator` to use `markComplete()`
+8. Delete `PopBlockAction` class from behaviors (class removed entirely)
 
 ---
 
-## Appendix A: Behaviors to Migrate
+## Appendix A: Behaviors Migrated
 
 | Behavior | Migration Complexity | Notes |
 |----------|---------------------|-------|

@@ -96,12 +96,12 @@ describe('RootLifecycle Integration', () => {
         testRuntime.simulateEvent('stop');
 
         // Final Idle popped. Stack: [Root].
-        // Root sees FINAL_IDLE state -> transitions to COMPLETE -> returns PopBlockAction.
+        // Root sees FINAL_IDLE state -> transitions to COMPLETE -> marks block complete.
         // Using simulateTick to process potential actions or just check if it handled it.
-        // simulateEvent dispatches 'stop'. IdleBehavior pops on 'stop'.
+        // simulateEvent dispatches 'stop'. IdleBehavior marks block complete on 'stop'.
         // So Final Idle is popped.
-        // Root's next() is called. RootState.FINAL_IDLE -> COMPLETE. Returns PopBlockAction.
-        // Runtime executes PopBlockAction -> Root popped.
+        // Root's next() is called. RootState.FINAL_IDLE -> COMPLETE. Marks block complete.
+        // Runtime sweeps completed blocks and pops root.
 
         expect(testRuntime.stack.blocks.length).toBe(0);
         expect(testRuntime.isComplete()).toBe(true);
@@ -162,9 +162,9 @@ describe('RootLifecycle Integration', () => {
         // We can simulate the timer:start event
         runtime.handle({ name: 'timer:start', timestamp: new Date(), data: {} });
 
-        // This should pop the idle block and trigger onNext on Root
-        // But runtime.handle processes events. RootLifecycleBehavior handles timer:start by returning PopBlockAction.
-        // The runtime executes the action.
+        // This should mark the idle block as complete and trigger onNext on Root
+        // runtime.handle processes events. RootLifecycleBehavior handles timer:start by marking idle block complete.
+        // The runtime sweeps completed blocks.
 
         // Verify controls updated
         const execControls = getControls();

@@ -65,8 +65,8 @@ describe('For Time Child Single Pass Test', () => {
         // stackDepth should go from 2 (Timer+Child) -> 1 (Timer) -> 0 (Empty) automatically if SinglePassBehavior works.
         // Wait, popBlock() on child triggers parent.next().
         // parent.next() checks SinglePassBehavior.
-        // If complete, it returns PopBlockAction.
-        // ScriptRuntime processes it.
+        // If complete, it marks the block as complete.
+        // ScriptRuntime sweeps completed blocks and pops them.
 
         // So after popping the 2nd child, the stack should be empty (or at least Timer block popped).
 

@@ -3,7 +3,6 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { SinglePassBehavior } from '@/runtime/behaviors/SinglePassBehavior';
 import { RoundPerNextBehavior } from '@/runtime/behaviors/RoundPerNextBehavior';
-import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
 describe('GroupBlock', () => {
   let harness: BehaviorTestHarness;
@@ -26,29 +25,29 @@ describe('GroupBlock', () => {
 
     // MockBlock behaviors are executed in order.
     // If [passBehavior, roundBehavior]:
-    // 1. passBehavior.onNext() runs. Check round. Round is 1. (1 < 2). Returns [].
-    // 2. roundBehavior.onNext() runs. Round becomes 2. Returns [].
+    // 1. passBehavior.onNext() runs. Check round. Round is 1. (1 < 2). Block not marked complete.
+    // 2. roundBehavior.onNext() runs. Round becomes 2.
 
     // next() returns combined actions.
 
     harness.next(); // First next
     expect(roundBehavior.getRound()).toBe(2);
-    expect(harness.findActions(PopBlockAction)).toHaveLength(0); // Because PassBehavior ran BEFORE Round update
+    expect(block.isComplete).toBe(false); // Because PassBehavior ran BEFORE Round update
 
     // harness.next() again?
     harness.clearCaptures();
     harness.next(); // Second next
-    // 1. passBehavior.onNext() runs. Check round. Round is 2. (2 >= 2). Returns [PopBlockAction].
+    // 1. passBehavior.onNext() runs. Check round. Round is 2. (2 >= 2). Marks block complete.
     // 2. roundBehavior.onNext() runs. Round becomes 3.
 
-    expect(harness.findActions(PopBlockAction)).toHaveLength(1);
+    expect(block.isComplete).toBe(true);
   });
 
-  it('should pop immediately if behaviors are ordered correctly', () => {
+  it('should mark complete immediately if behaviors are ordered correctly', () => {
       // If we put RoundBehavior FIRST, it might work in one next?
       // [roundBehavior, passBehavior]
       // 1. roundBehavior.onNext(). Round -> 2.
-      // 2. passBehavior.onNext(). Check round. 2 >= 2. Returns Pop.
+      // 2. passBehavior.onNext(). Check round. 2 >= 2. Marks complete.
 
     const passBehavior = new SinglePassBehavior();
     const roundBehavior = new RoundPerNextBehavior();
@@ -59,6 +58,6 @@ describe('GroupBlock', () => {
 
     harness.next();
 
-    expect(harness.findActions(PopBlockAction)).toHaveLength(1);
+    expect(block.isComplete).toBe(true);
   });
 });
