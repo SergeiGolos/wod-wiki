@@ -4,7 +4,6 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEvent } from '../contracts/events/IEvent';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { PopToBlockAction } from '../actions/stack/PopToBlockAction';
 import { SkipCurrentBlockAction } from '../actions/stack/SkipCurrentBlockAction';
 import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
@@ -108,7 +107,9 @@ export class WorkoutOrchestrator implements IRuntimeBehavior {
             case 'post-complete':
                 // Final idle dismissed, complete workout
                 flowState.transition('complete');
-                return [new PopBlockAction()];
+                // Mark block as complete - stack will pop it during sweep
+                block.markComplete('workout-post-complete');
+                return [];
 
             case 'complete':
                 // Nothing to do
@@ -260,8 +261,12 @@ export class WorkoutOrchestrator implements IRuntimeBehavior {
         switch (event.name) {
             case 'timer:start':
                 if (flowState?.getPhase() === 'pre-start') {
-                    // Pop the start idle block to trigger onNext
-                    return [new PopBlockAction()];
+                    // Mark the current idle block as complete - stack will pop it during sweep
+                    const currentBlock = runtime.stack.current;
+                    if (currentBlock && currentBlock !== block) {
+                        currentBlock.markComplete('timer-started');
+                    }
+                    return [];
                 }
                 break;
 

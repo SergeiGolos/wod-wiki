@@ -14,8 +14,12 @@ import { IRuntimeAction } from '../../../src/runtime/IRuntimeAction';
 // Minimal block for testing boundary conditions
 class MinimalBlock implements IRuntimeBlock {
   public readonly sourceIds: number[] = [];
+  private _isComplete = false;
   
   constructor(public readonly key: BlockKey) {}
+
+  get isComplete(): boolean { return this._isComplete; }
+  markComplete(_reason?: string): void { this._isComplete = true; }
   
   mount(_runtime: any): IRuntimeAction[] { return []; }
   next(_runtime: any): IRuntimeAction[] { return []; }

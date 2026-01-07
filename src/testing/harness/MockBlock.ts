@@ -109,6 +109,32 @@ export class MockBlock implements IRuntimeBlock {
   private _forcedMountActions: IRuntimeAction[] = [];
   private _forcedNextActions: IRuntimeAction[] = [];
   private _forcedUnmountActions: IRuntimeAction[] = [];
+  private _isComplete = false;
+  private _completionReason?: string;
+
+  /**
+   * Indicates whether this block has completed execution.
+   */
+  get isComplete(): boolean {
+    return this._isComplete;
+  }
+
+  /**
+   * Marks the block as complete. Idempotent - subsequent calls have no effect.
+   * @param reason Optional reason for completion (for debugging/history)
+   */
+  markComplete(reason?: string): void {
+    if (this._isComplete) return;
+    this._isComplete = true;
+    this._completionReason = reason;
+  }
+
+  /**
+   * Gets the completion reason if block is complete.
+   */
+  get completionReason(): string | undefined {
+    return this._completionReason;
+  }
 
   constructor(
     idOrConfig: string | MockBlockConfig,

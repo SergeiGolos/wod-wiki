@@ -54,6 +54,13 @@ export interface IScriptRuntime {
      */
     isComplete(): boolean;
 
+    /**
+     * Performs a completion sweep on the stack, popping all completed blocks.
+     * Called after processing actions and events to autonomously clean up
+     * blocks that have marked themselves as complete.
+     */
+    sweepCompletedBlocks(): void;
+
     handle(event: IEvent): void;
     dispose(): void;
 }

@@ -15,6 +15,7 @@ import { IRuntimeAction } from '../../../src/runtime/IRuntimeAction';
 class MockRuntimeBlock implements IRuntimeBlock {
   private disposed = false;
   public readonly sourceIds: number[];
+  private _isComplete = false;
   
   constructor(
     public readonly key: BlockKey,
@@ -25,6 +26,9 @@ class MockRuntimeBlock implements IRuntimeBlock {
     this.sourceIds = sourceIds;
   }
   blockType?: string | undefined;
+
+  get isComplete(): boolean { return this._isComplete; }
+  markComplete(_reason?: string): void { this._isComplete = true; }
   
   mount(_runtime: any): IRuntimeAction[] {
     return [];

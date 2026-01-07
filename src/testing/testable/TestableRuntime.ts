@@ -137,6 +137,15 @@ class StubBlock implements IRuntimeBlock {
   readonly label: string;
   readonly context: IBlockContext;
   readonly fragments?: ICodeFragment[][];
+  private _isComplete = false;
+
+  get isComplete(): boolean {
+    return this._isComplete;
+  }
+
+  markComplete(_reason?: string): void {
+    this._isComplete = true;
+  }
 
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
@@ -252,6 +261,10 @@ export class TestableRuntime implements IScriptRuntime {
 
   isComplete(): boolean {
     return this._wrapped.isComplete();
+  }
+
+  sweepCompletedBlocks(): void {
+    this._wrapped.sweepCompletedBlocks();
   }
 
   handle(event: IEvent): void {

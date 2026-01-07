@@ -46,7 +46,6 @@ export type { IBlockContext } from './runtime/contracts/IBlockContext';
 
 // Runtime actions
 export * from './runtime/PushBlockAction';
-export * from './runtime/PopBlockAction';
 export * from './runtime/actions/ErrorAction';
 export * from './runtime/actions/EmitMetricAction';
 export * from './runtime/actions/EmitEventAction';

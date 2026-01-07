@@ -2,7 +2,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 
 /**
  * Workout execution phases.
@@ -94,7 +93,7 @@ export class WorkoutFlowStateMachine implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
+    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
         // Handle phase-based actions
         switch (this.phase) {
             case 'pre-start':
@@ -113,7 +112,9 @@ export class WorkoutFlowStateMachine implements IRuntimeBehavior {
             case 'post-complete':
                 // Final idle was dismissed, complete the workout
                 this.phase = 'complete';
-                return [new PopBlockAction()];
+                // Mark block as complete - stack will pop it during sweep
+                block.markComplete('workout-complete');
+                return [];
 
             case 'complete':
                 // Already complete, no action

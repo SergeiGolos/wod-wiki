@@ -157,4 +157,23 @@ export interface IRuntimeBlock {
      * Check if a fragment of a given type exists.
      */
     hasFragment(type: FragmentType): boolean;
+
+    /**
+     * Indicates whether this block has completed execution.
+     * When true, the stack will pop this block during its next completion sweep.
+     * 
+     * @remarks
+     * - Set by behaviors when their completion condition is met
+     * - Read by the stack after action/event processing
+     * - Once true, should not be reset to false
+     */
+    readonly isComplete: boolean;
+
+    /**
+     * Marks the block as complete. Idempotent - subsequent calls have no effect.
+     * Called by behaviors when their completion condition is met.
+     * 
+     * @param reason Optional reason for completion (for debugging/history)
+     */
+    markComplete(reason?: string): void;
 }
