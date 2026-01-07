@@ -75,7 +75,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
           [[{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }]]
         );
         span.metadata.tags = ['amrap', 'time_bound'];
-        span.metadata.context = { strategyUsed: 'TimeBoundRoundsStrategy' };
+        span.metadata.context = { strategyUsed: 'AmrapLogicStrategy' };
 
         const segments = transformer.toSegments([span]);
 
@@ -83,7 +83,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
         expect(segments[0].name).toBe('20:00 AMRAP');
         expect(segments[0].tags).toContain('amrap');
         expect(segments[0].tags).toContain('time_bound');
-        expect(segments[0].context?.strategyUsed).toBe('TimeBoundRoundsStrategy');
+        expect(segments[0].context?.strategyUsed).toBe('AmrapLogicStrategy');
       });
 
       it('should handle missing fragment images by defaulting to blockId', () => {
@@ -165,8 +165,8 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
           context: { strategyUsed: 'TimeBoundRoundsStrategy' }
         };
 
-        expect(transformer.isFromStrategy(segment, 'TimeBoundRoundsStrategy')).toBe(true);
-        expect(transformer.isFromStrategy(segment, 'IntervalStrategy')).toBe(false);
+        expect(transformer.isFromStrategy(segment, 'AmrapLogicStrategy')).toBe(true);
+        expect(transformer.isFromStrategy(segment, 'IntervalLogicStrategy')).toBe(false);
       });
     });
   });

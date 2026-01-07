@@ -77,7 +77,6 @@ export * from './runtime/behaviors/TimerPauseResumeBehavior';
 export * from './runtime/behaviors/WorkoutControlButtonsBehavior';
 export * from './runtime/behaviors/IdleInjectionBehavior';
 export * from './runtime/behaviors/WorkoutFlowStateMachine';
-export * from './runtime/behaviors/WorkoutOrchestrator';
 
 // Runtime blocks
 export * from './runtime/blocks/EffortBlock';

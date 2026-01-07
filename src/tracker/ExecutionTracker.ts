@@ -147,40 +147,8 @@ export class RuntimeReporter {
         // No-op in new model
     }
 
-    addDebugLog(blockId: string, message: string): void {
-        this.execute(new TrackEventCommand({
-            action: 'log',
-            blockId,
-            message
-        }));
-    }
 
-    addDebugTag(blockId: string, tag: string): void {
-        this.execute(new TrackEventCommand({
-            action: 'tag',
-            blockId,
-            tag
-        }));
-    }
 
-    setDebugContext(blockId: string, context: Record<string, unknown>): void {
-        this.execute(new TrackEventCommand({
-            action: 'context',
-            blockId,
-            context
-        }));
-    }
-
-    setDebugMetadata(blockId: string, debugMetadata: any): void {
-        if (debugMetadata.tags) {
-            for (const tag of debugMetadata.tags) {
-                this.addDebugTag(blockId, tag);
-            }
-        }
-        if (debugMetadata.context) {
-            this.setDebugContext(blockId, debugMetadata.context);
-        }
-    }
 
     // ============================================================================
     // Queries (Read-only)

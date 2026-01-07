@@ -54,7 +54,7 @@ describe('RuntimeSpan Metadata', () => {
     it('should create span with metadata', () => {
       const metadata = createSpanMetadata(
         ['amrap', 'time_bound'],
-        { strategyUsed: 'TimeBoundRoundsStrategy' }
+        { strategyUsed: 'AmrapLogicStrategy' }
       );
 
       const span = new RuntimeSpan(
@@ -69,7 +69,7 @@ describe('RuntimeSpan Metadata', () => {
       expect(span.metadata).toBeDefined();
       expect(span.metadata.tags).toContain('amrap');
       expect(span.metadata.tags).toContain('time_bound');
-      expect(span.metadata.context.strategyUsed).toBe('TimeBoundRoundsStrategy');
+      expect(span.metadata.context.strategyUsed).toBe('AmrapLogicStrategy');
     });
 
     it('should preserve all span properties when metadata is included', () => {
@@ -98,7 +98,7 @@ describe('RuntimeSpan Metadata', () => {
       const original = createSpanMetadata(
         ['rounds', 'rep_scheme'],
         {
-          strategyUsed: 'RoundsStrategy',
+          strategyUsed: 'GenericLoopStrategy',
           totalRounds: 3,
           repScheme: [21, 15, 9]
         }
@@ -142,7 +142,7 @@ describe('RuntimeSpan Metadata', () => {
       const metadata = createSpanMetadata(
         ['amrap', 'time_bound', 'max_rounds'],
         {
-          strategyUsed: 'TimeBoundRoundsStrategy',
+          strategyUsed: 'AmrapLogicStrategy',
           timerDuration: 1200000,
           timerDirection: 'down',
           targetRounds: Infinity
@@ -151,7 +151,7 @@ describe('RuntimeSpan Metadata', () => {
 
       // Analytics can now directly read the workout type
       expect(metadata.tags.includes('amrap')).toBe(true);
-      expect(metadata.context.strategyUsed).toBe('TimeBoundRoundsStrategy');
+      expect(metadata.context.strategyUsed).toBe('AmrapLogicStrategy');
       expect(metadata.context.timerDuration).toBe(1200000);
     });
 
@@ -159,7 +159,7 @@ describe('RuntimeSpan Metadata', () => {
       const metadata = createSpanMetadata(
         ['emom', 'interval', 'fixed_rounds'],
         {
-          strategyUsed: 'IntervalStrategy',
+          strategyUsed: 'IntervalLogicStrategy',
           intervalDuration: 60000,
           totalRounds: 10,
           loopType: 'interval'
@@ -175,7 +175,7 @@ describe('RuntimeSpan Metadata', () => {
       const metadata = createSpanMetadata(
         ['effort', 'leaf_node'],
         {
-          strategyUsed: 'EffortStrategy',
+          strategyUsed: 'EffortFallbackStrategy',
           exerciseId: 'burpees'
         }
       );

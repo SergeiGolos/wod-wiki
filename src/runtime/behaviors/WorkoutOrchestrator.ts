@@ -28,6 +28,7 @@ export interface WorkoutOrchestratorConfig {
 }
 
 /**
+ * @deprecated
  * WorkoutOrchestrator - Coordinates decomposed behaviors during workout lifecycle.
  * 
  * This behavior acts as the "glue" between the decomposed single-responsibility

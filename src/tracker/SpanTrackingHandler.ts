@@ -212,36 +212,6 @@ export class SpanTrackingHandler implements IEventHandler {
         this.appendFragments(blockId, [fragment]);
     }
 
-    /**
-     * Add a debug log entry.
-     */
-    addDebugLog(blockId: string, message: string): void {
-        const span = this._activeSpans.get(blockId);
-        if (span) {
-            span.metadata.logs.push(message);
-        }
-    }
-
-    /**
-     * Add a debug tag.
-     */
-    addDebugTag(blockId: string, tag: string): void {
-        const span = this._activeSpans.get(blockId);
-        if (span && !span.metadata.tags.includes(tag)) {
-            span.metadata.tags.push(tag);
-        }
-    }
-
-    /**
-     * Set debug context.
-     */
-    setDebugContext(blockId: string, context: Record<string, unknown>): void {
-        const span = this._activeSpans.get(blockId);
-        if (span) {
-            span.metadata.context = { ...span.metadata.context, ...context };
-        }
-    }
-
     // ============================================================================
     // Query Methods (Read-only)
     // ============================================================================

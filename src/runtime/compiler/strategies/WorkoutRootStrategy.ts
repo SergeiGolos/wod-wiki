@@ -22,7 +22,6 @@ import { WorkoutFlowStateMachine } from '../../behaviors/WorkoutFlowStateMachine
 import { RoundDisplayBehavior } from '../../behaviors/RoundDisplayBehavior';
 import { RoundSpanBehavior } from '../../behaviors/RoundSpanBehavior';
 import { LapTimerBehavior } from '../../behaviors/LapTimerBehavior';
-import { WorkoutOrchestrator } from '../../behaviors/WorkoutOrchestrator';
 
 /**
  * Configuration for the root workout block.
@@ -171,12 +170,6 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
 
         // Round counting (increments when child index wraps)
         behaviors.push(new RoundPerLoopBehavior());
-
-        // Orchestrator coordinates all behaviors and handles child pushing
-        behaviors.push(new WorkoutOrchestrator({
-            childGroups: config.childGroups,
-            totalRounds
-        }));
 
         // ===== 5. Round Tracking (for multi-round workouts) =====
 

@@ -32,12 +32,12 @@ The `IntervalLogicStrategy` is not matching the EMOM syntax `(20) :60` because:
 ### Affected Tests
 - All 5 tests fail with compilation errors
 
-### Required Solution
-**Type: Strategy Enhancement**
 
-1. Update `IntervalLogicStrategy.match()` to recognize `(rounds) :timer` pattern as EMOM
-2. OR create a new strategy that handles this syntax pattern
-3. Ensure the matching strategy sets `BlockContext` via `builder.setContext()`
+
+### Required Solution
+Imam is really syntax that's dialect specific, if imam is listed as part of the string there should be a hint to include the missing part so if the imam does not have rounds that means it's infinite and you need to hit the complete button when it finishes or it will keep on cycling rounds Uh the imam also implies a 60 second timer but other timers can override that so the hint should exist for the compiler to be able to legit to be able to generate the correct timer The test itself should be checking to see if the rounds fragment and the timer exists and then making sure that skipping through those works correctly
+
+Additionally the block context should be set by the jit for all of the blocks, so that should never really be null
 
 ---
 

@@ -10,7 +10,6 @@ import { TimerPauseResumeBehavior } from '../../../behaviors/TimerPauseResumeBeh
 import { WorkoutControlButtonsBehavior } from '../../../behaviors/WorkoutControlButtonsBehavior';
 import { IdleInjectionBehavior } from '../../../behaviors/IdleInjectionBehavior';
 import { WorkoutFlowStateMachine } from '../../../behaviors/WorkoutFlowStateMachine';
-import { WorkoutOrchestrator } from '../../../behaviors/WorkoutOrchestrator';
 import { RoundDisplayBehavior } from '../../../behaviors/RoundDisplayBehavior';
 import { RoundSpanBehavior } from '../../../behaviors/RoundSpanBehavior';
 import { LapTimerBehavior } from '../../../behaviors/LapTimerBehavior';
@@ -52,7 +51,6 @@ describe('WorkoutRootStrategy', () => {
             expect(behaviors.some(b => b instanceof WorkoutFlowStateMachine)).toBe(true);
             expect(behaviors.some(b => b instanceof ChildIndexBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof RoundPerLoopBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof WorkoutOrchestrator)).toBe(true);
             expect(behaviors.some(b => b instanceof WorkoutControlButtonsBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof IdleInjectionBehavior)).toBe(true);
         });
