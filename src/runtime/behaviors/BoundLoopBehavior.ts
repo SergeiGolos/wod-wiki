@@ -2,7 +2,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
@@ -11,7 +10,7 @@ import { ChildIndexBehavior } from './ChildIndexBehavior';
 /**
  * Bound Loop Behavior.
  * Runs for a specified number of rounds.
- * Pops the block when the round count exceeds the limit.
+ * Marks the block as complete when the round count exceeds the limit.
  * Reports progress to the tracker.
  */
 export class BoundLoopBehavior implements IRuntimeBehavior {
@@ -52,7 +51,8 @@ export class BoundLoopBehavior implements IRuntimeBehavior {
 
         if (round > this.totalRounds) {
             this._isComplete = true;
-            actions.push(new PopBlockAction());
+            // Mark block as complete - stack will pop it during sweep
+            block.markComplete('rounds-exceeded');
         }
 
         return actions;

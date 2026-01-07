@@ -20,6 +20,27 @@ export class RuntimeBlock implements IRuntimeBlock {
     public executionTiming: BlockLifecycleOptions = {};
     private _unsubscribers: Array<() => void> = [];
     private elapsedFragmentRecorded = false;
+    private _isComplete = false;
+    private _completionReason?: string;
+
+    /**
+     * Indicates whether this block has completed execution.
+     * When true, the stack will pop this block during its next completion sweep.
+     */
+    get isComplete(): boolean {
+        return this._isComplete;
+    }
+
+    /**
+     * Marks the block as complete. Idempotent - subsequent calls have no effect.
+     * @param reason Optional reason for completion (for debugging/history)
+     */
+    markComplete(reason?: string): void {
+        if (this._isComplete) return; // Already complete
+        this._isComplete = true;
+        this._completionReason = reason;
+        console.log(`[RuntimeBlock] ${this.label} marked complete: ${reason ?? 'no reason'}`);
+    }
 
     constructor(
         protected _runtime: IScriptRuntime,

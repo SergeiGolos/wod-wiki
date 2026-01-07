@@ -3,7 +3,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IEvent } from '../contracts/events/IEvent';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 
 /**
@@ -14,7 +13,7 @@ import { EmitEventAction } from '../actions/events/EmitEventAction';
  * - Checks condition on onNext() calls
  * - Can be configured to check on specific events
  * - Emits block:complete when condition is met
- * - Returns PopBlockAction when block completes
+ * - Marks block as complete (stack will pop it)
  * - Flexible for various completion scenarios
  */
 export class CompletionBehavior implements IRuntimeBehavior {
@@ -78,9 +77,11 @@ export class CompletionBehavior implements IRuntimeBehavior {
   private complete(block: IRuntimeBlock, timestamp: Date): IRuntimeAction[] {
     this.isCompleteFlag = true;
 
+    // Mark the block as complete - stack will pop it during sweep
+    block.markComplete('condition-met');
+
     return [
-      new EmitEventAction('block:complete', { blockId: block.key.toString() }, timestamp),
-      new PopBlockAction()
+      new EmitEventAction('block:complete', { blockId: block.key.toString() }, timestamp)
     ];
   }
 }

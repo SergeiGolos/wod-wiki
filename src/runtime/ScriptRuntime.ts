@@ -163,16 +163,51 @@ export class ScriptRuntime implements IScriptRuntime {
         this._isProcessingActions = true;
         console.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
         try {
-            while (this._actionQueue.length > 0) {
-                const action = this._actionQueue.shift();
-                if (action) {
-                    console.log(`[RT] executing: ${action.type}`);
-                    action.do(this);
+            const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
+            let iterations = 0;
+
+            do {
+                // Process all queued actions
+                while (this._actionQueue.length > 0 && iterations < MAX_ITERATIONS) {
+                    const action = this._actionQueue.shift();
+                    if (action) {
+                        console.log(`[RT] executing: ${action.type}`);
+                        action.do(this);
+                    }
+                    iterations++;
                 }
+
+                // Sweep completed blocks (may queue more actions via parent.next())
+                this.sweepCompletedBlocks();
+
+            } while (this._actionQueue.length > 0 && iterations < MAX_ITERATIONS);
+
+            if (iterations >= MAX_ITERATIONS) {
+                console.error('[RT] Max action iterations exceeded - possible infinite loop');
             }
         } finally {
             this._isProcessingActions = false;
             console.log(`[RT] processActions: done`);
+        }
+    }
+
+    /**
+     * Performs a completion sweep on the stack, popping all completed blocks.
+     * Called after processing actions to autonomously clean up blocks that
+     * have marked themselves as complete.
+     */
+    public sweepCompletedBlocks(): void {
+        while (this.stack.current?.isComplete) {
+            const block = this.stack.current;
+            console.log(`[RT] sweepCompletedBlocks: popping completed block ${block.label}`);
+
+            // Pop the completed block (this handles lifecycle and calls parent.next())
+            this.popBlock();
+
+            // Note: popBlock() already calls parent.next() which may:
+            // - Mark the parent as complete
+            // - Queue more actions
+            // The outer loop in processActions will handle any new actions
         }
     }
 

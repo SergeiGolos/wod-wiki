@@ -96,6 +96,21 @@ export class BehaviorTestHarness {
 
       isComplete() {
         return self._stack.count === 0;
+      },
+
+      sweepCompletedBlocks() {
+        // Sweep completed blocks from the stack
+        while (self._stack.current?.isComplete) {
+          const block = self._stack.pop();
+          if (block) block.dispose(this as unknown as IScriptRuntime);
+        }
+      },
+
+      dispose() {
+        while (self._stack.count > 0) {
+          const block = self._stack.pop();
+          if (block) block.dispose(this as unknown as IScriptRuntime);
+        }
       }
     } as IScriptRuntime;
   }

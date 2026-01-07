@@ -14,6 +14,7 @@ import { IRuntimeAction } from '../../src/runtime/contracts/IRuntimeAction';
 // Lightweight block for performance testing
 class PerformanceTestBlock implements IRuntimeBlock {
   public readonly sourceIds: number[] = [1, 2, 3];
+  private _isComplete = false;
   
   constructor(
     public readonly key: BlockKey,
@@ -24,6 +25,9 @@ class PerformanceTestBlock implements IRuntimeBlock {
       // Data is used for initialization but not stored
     }
   }
+
+  get isComplete(): boolean { return this._isComplete; }
+  markComplete(_reason?: string): void { this._isComplete = true; }
   
   mount(runtime: any): IRuntimeAction[] {
     return [];
@@ -46,6 +50,7 @@ class PerformanceTestBlock implements IRuntimeBlock {
 class HeavyTestBlock implements IRuntimeBlock {
   public readonly sourceIds: number[] = [1, 2, 3];
   private largeData: number[] = [];
+  private _isComplete = false;
   
   constructor(public readonly key: BlockKey) {
     // Simulate resource-heavy initialization
@@ -53,6 +58,9 @@ class HeavyTestBlock implements IRuntimeBlock {
       this.largeData.push(Math.random());
     }
   }
+
+  get isComplete(): boolean { return this._isComplete; }
+  markComplete(_reason?: string): void { this._isComplete = true; }
   
   mount(runtime: any): IRuntimeAction[] {
     return [];

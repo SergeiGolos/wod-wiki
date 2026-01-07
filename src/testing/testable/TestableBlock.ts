@@ -170,6 +170,14 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.fragments;
   }
 
+  get isComplete(): boolean {
+    return this._wrapped.isComplete;
+  }
+
+  markComplete(reason?: string): void {
+    this._wrapped.markComplete(reason);
+  }
+
   // ========== Testing API ==========
 
   /** Access the underlying block for direct inspection */

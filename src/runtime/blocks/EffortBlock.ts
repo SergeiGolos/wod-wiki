@@ -127,7 +127,11 @@ export class EffortBlock extends RuntimeBlock {
     }
   }
 
-  isComplete(): boolean {
+  /**
+   * Check if the effort target has been met.
+   * Note: This is distinct from the block's isComplete flag which is used by the stack.
+   */
+  isTargetComplete(): boolean {
     return this.currentReps >= this.config.targetReps;
   }
 

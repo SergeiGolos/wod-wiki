@@ -64,7 +64,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
 
-      expect(block.isComplete()).toBe(false);
+      expect(block.isTargetComplete()).toBe(false);
     });
   });
 
@@ -177,7 +177,7 @@ describe('EffortBlock Contract', () => {
       block.setReps(21).forEach(a => a.do(runtime));
 
       expect(block.getCurrentReps()).toBe(21);
-      expect(block.isComplete()).toBe(true);
+      expect(block.isTargetComplete()).toBe(true);
     });
   });
 
@@ -236,7 +236,7 @@ describe('EffortBlock Contract', () => {
       block.mount(runtime).forEach(a => a.do(runtime));
       block.setReps(15).forEach(a => a.do(runtime));
 
-      expect(block.isComplete()).toBe(false);
+      expect(block.isTargetComplete()).toBe(false);
     });
 
     it('should return true when reps >= target', () => {
@@ -248,7 +248,7 @@ describe('EffortBlock Contract', () => {
       block.mount(runtime).forEach(a => a.do(runtime));
       block.setReps(21).forEach(a => a.do(runtime));
 
-      expect(block.isComplete()).toBe(true);
+      expect(block.isTargetComplete()).toBe(true);
     });
 
     it('should return true after markComplete()', () => {
@@ -260,7 +260,7 @@ describe('EffortBlock Contract', () => {
       block.mount(runtime).forEach(a => a.do(runtime));
       block.markComplete().forEach(a => a.do(runtime));
 
-      expect(block.isComplete()).toBe(true);
+      expect(block.isTargetComplete()).toBe(true);
     });
   });
 

@@ -52,6 +52,11 @@ const createBlock = (
     }),
     dispose: vi.fn(() => callOrder.push(`${label}.dispose`)),
     getBehavior: vi.fn().mockReturnValue(undefined),
+    findFragment: vi.fn().mockReturnValue(undefined),
+    filterFragments: vi.fn().mockReturnValue([]),
+    hasFragment: vi.fn().mockReturnValue(false),
+    isComplete: false,
+    markComplete: vi.fn(),
   };
 };
 

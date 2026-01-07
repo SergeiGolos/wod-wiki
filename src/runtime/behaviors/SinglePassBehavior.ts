@@ -2,13 +2,12 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { RoundPerNextBehavior } from './RoundPerNextBehavior';
 import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
 
 /**
  * Single Pass Behavior.
- * Runs through the block once. Requests a pop when the round count reaches 2.
+ * Runs through the block once. Marks as complete when the round count reaches 2.
  * Expects a Round Increment behavior to be present.
  */
 export class SinglePassBehavior implements IRuntimeBehavior {
@@ -28,7 +27,8 @@ export class SinglePassBehavior implements IRuntimeBehavior {
         // Exit if we have started the second round (meaning the first pass is complete)
         if (round >= 2) {
             this._isComplete = true;
-            return [new PopBlockAction()];
+            // Mark block as complete - stack will pop it during sweep
+            _block.markComplete('single-pass-complete');
         }
 
         return [];

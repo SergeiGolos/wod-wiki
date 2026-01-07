@@ -3,26 +3,26 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IEvent } from '../contracts/events/IEvent';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 
 /**
- * PopOnEventBehavior - Pops the block when specific events are received.
+ * PopOnEventBehavior - Marks the block as complete when specific events are received.
  * 
  * This is a simple, single-responsibility behavior that can be composed
  * into blocks that should dismiss on certain events (like idle blocks).
  * 
  * @example
  * ```typescript
- * // Pop when 'stop' or 'view-results' events are received
+ * // Complete when 'stop' or 'view-results' events are received
  * new PopOnEventBehavior(['stop', 'view-results'])
  * ```
  */
 export class PopOnEventBehavior implements IRuntimeBehavior {
     constructor(private readonly events: string[]) { }
 
-    onEvent(event: IEvent, _block: IRuntimeBlock): IRuntimeAction[] {
+    onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
         if (this.events.includes(event.name)) {
-            return [new PopBlockAction()];
+            // Mark block as complete - stack will pop it during sweep
+            block.markComplete(`event-${event.name}`);
         }
         return [];
     }
