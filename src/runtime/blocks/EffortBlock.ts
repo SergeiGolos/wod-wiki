@@ -8,7 +8,6 @@ import { IEvent } from '../contracts/events/IEvent';
 import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
-import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { UnboundTimerBehavior } from '../behaviors/UnboundTimerBehavior';
 import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
 
@@ -22,7 +21,7 @@ export interface EffortBlockConfig {
 
 /**
  * EffortCompletionBehavior - Handles completion via onNext() to avoid conflicts with NextEventHandler.
- * Pops the block when complete or when force-completed.
+ * Marks the block as complete when target is achieved or when force-completed.
  */
 class EffortCompletionBehavior implements IRuntimeBehavior {
   private _forceComplete = false;
@@ -36,7 +35,7 @@ class EffortCompletionBehavior implements IRuntimeBehavior {
 
   onEvent(event: IEvent, _block: IRuntimeBlock): IRuntimeAction[] {
     // Set force complete flag when 'next' event received, but DON'T return actions
-    // The actual pop happens in onNext() which is called by NextAction
+    // The actual completion happens in onNext() which is called by NextAction
     if (event.name === 'next') {
       this._forceComplete = true;
     }
@@ -53,9 +52,10 @@ class EffortCompletionBehavior implements IRuntimeBehavior {
     if (this.checkComplete() || this._forceComplete) {
       this._isComplete = true;
       const now = options?.now ?? new Date();
+      // Mark block as complete - stack will pop it during sweep
+      block.markComplete('target-achieved');
       return [
-        new EmitEventAction('block:complete', { blockId: block.key.toString() }, now),
-        new PopBlockAction()
+        new EmitEventAction('block:complete', { blockId: block.key.toString() }, now)
       ];
     }
 
@@ -99,7 +99,7 @@ export class EffortBlock extends RuntimeBlock {
       throw new RangeError(`targetReps must be >= 1, got: ${config.targetReps}`);
     }
 
-    const completionBehavior = new EffortCompletionBehavior(() => this.isComplete());
+    const completionBehavior = new EffortCompletionBehavior(() => this.isTargetComplete());
 
     // Initialize behaviors in order
     this.behaviors.push(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
@@ -196,8 +196,8 @@ export class EffortBlock extends RuntimeBlock {
       completionMode: this.lastCompletionMode,
     }));
 
-    // 3. Check complete
-    if (this.isComplete()) {
+    // 3. Check if target is complete
+    if (this.isTargetComplete()) {
       actions.push(new EmitEventAction('reps:complete', {
         blockId,
         exerciseName: this.config.exerciseName,
