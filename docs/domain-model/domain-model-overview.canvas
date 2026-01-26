@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# Domain Model Architecture\n\n**Input → Output** test boundaries for WOD Wiki","x":-400,"y":-610,"width":700,"height":200,"color":"4"},
+		{"id":"text-source","type":"text","text":"# Text Source\n\n```\n5:00 Run\n10 Push-ups\n3 Rounds\n```","x":-1000,"y":-410,"width":440,"height":220,"color":"1"},
+		{"id":"parser-layer","type":"file","file":"docs/domain-model/layers/01-parser-layer.md","x":-625,"y":40,"width":575,"height":360},
+		{"id":"statement-contract","type":"file","file":"docs/domain-model/contracts/ICodeStatement.md","x":110,"y":-190,"width":380,"height":315,"color":"5"},
+		{"id":"fragment-contract","type":"file","file":"docs/domain-model/contracts/ICodeFragment.md","x":110,"y":195,"width":380,"height":370,"color":"5"},
+		{"id":"test-boundary-1","type":"text","text":"## 🧪 Test Point 1\n\n**Parser Contract**\n\nText → ICodeStatement[]\n\n*Assert: fragments, hierarchy*","x":-625,"y":475,"width":575,"height":275,"color":"6"},
+		{"id":"compiler-layer","type":"file","file":"docs/domain-model/layers/02-compiler-layer.md","x":720,"y":40,"width":520,"height":360},
+		{"id":"test-boundary-2","type":"text","text":"## 🧪 Test Point 2\n\n**Compiler Contract**\n\nStatement[] → RuntimeBlock\n\n*Assert: behaviors, blockType*","x":835,"y":625,"width":250,"height":150,"color":"6"},
+		{"id":"memory-layer","type":"file","file":"docs/domain-model/layers/04-memory-layer.md","x":2253,"y":880,"width":250,"height":100},
+		{"id":"ui-layer","type":"file","file":"docs/domain-model/layers/05-ui-layer.md","x":2253,"y":1080,"width":250,"height":100},
+		{"id":"test-boundary-4","type":"text","text":"## 🧪 Test Point 4\n\n**UI Contract**\n\nMemory → Display state\n\n*Assert: subscriptions, renders*","x":2253,"y":1280,"width":250,"height":150,"color":"6"},
+		{"id":"ui-output","type":"text","text":"# UI Output\n\n- Timer Display\n- Card Stack\n- Workout State\n- Round Counter","x":2603,"y":1080,"width":200,"height":180,"color":"3"},
+		{"id":"memory-contract","type":"file","file":"docs/domain-model/contracts/IRuntimeMemory.md","x":1953,"y":880,"width":200,"height":80,"color":"5"},
+		{"id":"test-boundary-3","type":"text","text":"## 🧪 Test Point 3\n\n**Memory Contract**\n\nBlock lifecycle → Memory state\n\n*Assert: allocations, values*","x":1953,"y":1080,"width":250,"height":150,"color":"6"},
+		{"id":"block-contract","type":"file","file":"docs/domain-model/contracts/IRuntimeBlock.md","x":1553,"y":117,"width":525,"height":205,"color":"5"},
+		{"id":"runtime-layer","type":"file","file":"docs/domain-model/layers/03-runtime-layer.md","x":2400,"y":104,"width":607,"height":230},
+		{"id":"60091acd8e4f45f0","x":1349,"y":-680,"width":491,"height":380,"type":"text","text":"/brainstorm a simpler runtime engine. the goals here would be to be given the script of CodeStatement[] and it will need to  \n-"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"text-source","fromSide":"right","toNode":"parser-layer","toSide":"top","label":"parse()"},
+		{"id":"e2","fromNode":"parser-layer","fromSide":"right","toNode":"statement-contract","toSide":"left"},
+		{"id":"e3","fromNode":"parser-layer","fromSide":"right","toNode":"fragment-contract","toSide":"left"},
+		{"id":"e4","fromNode":"statement-contract","fromSide":"right","toNode":"compiler-layer","toSide":"left"},
+		{"id":"e5","fromNode":"fragment-contract","fromSide":"right","toNode":"compiler-layer","toSide":"left"},
+		{"id":"e6","fromNode":"compiler-layer","fromSide":"right","toNode":"block-contract","toSide":"left","label":"compile()"},
+		{"id":"e7","fromNode":"block-contract","fromSide":"right","toNode":"runtime-layer","toSide":"left","label":"push()"},
+		{"id":"e8","fromNode":"runtime-layer","fromSide":"bottom","toNode":"memory-layer","toSide":"top","label":"allocate/set"},
+		{"id":"e9","fromNode":"memory-layer","fromSide":"left","toNode":"memory-contract","toSide":"right"},
+		{"id":"e10","fromNode":"memory-layer","fromSide":"bottom","toNode":"ui-layer","toSide":"top","label":"subscribe"},
+		{"id":"e11","fromNode":"ui-layer","fromSide":"right","toNode":"ui-output","toSide":"left","label":"render"},
+		{"id":"e12","fromNode":"parser-layer","fromSide":"bottom","toNode":"test-boundary-1","toSide":"top","color":"6"},
+		{"id":"e13","fromNode":"compiler-layer","fromSide":"bottom","toNode":"test-boundary-2","toSide":"top","color":"6"},
+		{"id":"e14","fromNode":"memory-contract","fromSide":"bottom","toNode":"test-boundary-3","toSide":"top","color":"6"},
+		{"id":"e15","fromNode":"ui-layer","fromSide":"bottom","toNode":"test-boundary-4","toSide":"top","color":"6"}
+	]
+}
