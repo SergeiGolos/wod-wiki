@@ -9,6 +9,8 @@ import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
 import { IEventHandler } from './contracts/events/IEventHandler';
 import { IEvent } from './contracts/events/IEvent';
+import { IMemoryEntry } from './memory/IMemoryEntry';
+import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 
 export class RuntimeBlock implements IRuntimeBlock {
     protected readonly behaviors: IRuntimeBehavior[] = []
@@ -22,6 +24,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     private elapsedFragmentRecorded = false;
     private _isComplete = false;
     private _completionReason?: string;
+    private memoryMap: Map<MemoryType, IMemoryEntry<any, any>> = new Map();
 
     /**
      * Indicates whether this block has completed execution.
@@ -71,15 +74,9 @@ export class RuntimeBlock implements IRuntimeBlock {
         }
 
         this.behaviors = behaviors;
-
-        // Register default 'next' handler to bridge explicit next events to block.next()
-        this.registerDefaultHandler();
-
-        // Register event dispatcher to route events to behaviors
-        this.registerEventDispatcher();
     }
 
-    private registerDefaultHandler() {
+    protected registerDefaultHandler() {
         // Note: 'next' event handling is done via NextAction which is triggered by NextEventHandler.
         // This handler is kept for backwards compatibility but should not process 'next' events
         // since NextAction already calls block.next() directly.
@@ -107,7 +104,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         }
     }
 
-    private registerEventDispatcher() {
+    protected registerEventDispatcher() {
         const handler: IEventHandler = {
             id: `dispatcher-${this.key.toString()}`,
             name: `EventDispatcher-${this.label}`,
@@ -147,6 +144,10 @@ export class RuntimeBlock implements IRuntimeBlock {
         const startTime = options?.startTime ?? runtime.clock.now;
         this.executionTiming.startTime = startTime;
 
+        // Register handlers on mount
+        this.registerDefaultHandler();
+        this.registerEventDispatcher();
+
         // Call behaviors
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
@@ -184,12 +185,32 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Attach an elapsed-time fragment and metric when completion timing is available.
         this.recordElapsedTimeArtifact();
 
-        // Call behavior cleanup first
         const actions: IRuntimeAction[] = [];
+
+        // Emit 'unmount' event
+        if (runtime.eventBus && typeof runtime.eventBus.dispatch === 'function') {
+            const eventActions = runtime.eventBus.dispatch({
+                name: 'unmount',
+                timestamp: completedAt,
+                data: { block: this }
+            }, runtime);
+            if (eventActions) {
+                actions.push(...eventActions);
+            }
+        }
+
+        // Call behavior cleanup first
         for (const behavior of this.behaviors) {
             const result = behavior?.onPop?.(this, runtime.clock);
             if (result) { actions.push(...result); }
         }
+
+        // Dispose memory (completes observables)
+        // This fulfills "complete all the subscribed observables"
+        this.disposeMemory();
+
+        // Unsubscribe from event bus
+        this.unregisterHandlers();
 
         return actions;
     }
@@ -202,15 +223,33 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
 
-        // Unsubscribe from event bus
-        for (const unsub of this._unsubscribers) {
-            try { unsub(); } catch (error) { console.error('Error unsubscribing handler', error); }
-        }
-        this._unsubscribers = [];
+        // Just in case unmount wasn't called or didn't clean up everything
+        this.disposeMemory();
+        this.unregisterHandlers();
 
         // NOTE: context.release() is NOT called here - it is the caller's responsibility
         // This allows behaviors to access memory during unmount() and disposal
         // Consumer MUST call block.context.release() after block.dispose()
+    }
+
+    private disposeMemory() {
+        for (const entry of this.memoryMap.values()) {
+            if ('dispose' in entry && typeof entry.dispose === 'function') {
+                try {
+                    entry.dispose();
+                } catch (error) {
+                    console.error(`[RuntimeBlock] Error disposing ${entry.type} memory:`, error);
+                }
+            }
+        }
+        this.memoryMap.clear();
+    }
+
+    private unregisterHandlers() {
+        for (const unsub of this._unsubscribers) {
+            try { unsub(); } catch (error) { console.error('Error unsubscribing handler', error); }
+        }
+        this._unsubscribers = [];
     }
 
     /**
@@ -220,6 +259,43 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
+    }
+
+    // ============================================================================
+    // Block-Owned Memory
+    // ============================================================================
+
+    /**
+     * Check if this block owns memory of the specified type.
+     */
+    hasMemory<T extends MemoryType>(type: T): boolean {
+        return this.memoryMap.has(type);
+    }
+
+    /**
+     * Get memory entry of the specified type.
+     */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
+        return this.memoryMap.get(type) as IMemoryEntry<T, MemoryValueOf<T>> | undefined;
+    }
+
+    /**
+     * Get all memory types owned by this block.
+     */
+    getMemoryTypes(): MemoryType[] {
+        return Array.from(this.memoryMap.keys());
+    }
+
+    /**
+     * Set memory entry on this block. Called by behaviors during mount().
+     * @param type The memory type key
+     * @param entry The memory entry instance
+     */
+    protected setMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
+        if (this.memoryMap.has(type)) {
+            console.warn(`[RuntimeBlock] Overwriting ${type} memory on ${this.label}`);
+        }
+        this.memoryMap.set(type, entry);
     }
 
     findFragment<T extends ICodeFragment = ICodeFragment>(

@@ -13,10 +13,10 @@
 - `src/runtime/memory/MemoryTypes.ts`
 
 **Tasks:**
-- [ ] Define `IMemoryEntry<T, V>` base interface
-- [ ] Define `TimerState`, `RoundState` shapes
-- [ ] Define `MemoryTypeMap` for type registry
-- [ ] Add subscription support to memory entries
+- [x] Define `IMemoryEntry<T, V>` base interface
+- [x] Define `TimerState`, `RoundState` shapes
+- [x] Define `MemoryTypeMap` for type registry
+- [x] Add subscription support to memory entries
 
 **Acceptance:**
 - TypeScript compiles with strict mode
@@ -32,10 +32,10 @@
 - `src/runtime/memory/FragmentMemory.ts`
 
 **Tasks:**
-- [ ] Implement `TimerMemory` with elapsed/duration/running/direction
-- [ ] Implement `RoundMemory` with current/total
-- [ ] Implement `FragmentMemory` for inherited fragments
-- [ ] Add `subscribe()` and `notifySubscribers()` methods
+- [x] Implement `TimerMemory` with spans/duration/direction
+- [x] Implement `RoundMemory` with current/total
+- [x] Implement `FragmentMemory` for inherited fragments
+- [x] Add `subscribe()` and disposal notification methods
 
 **Acceptance:**
 - Unit tests pass for each memory type
@@ -50,10 +50,10 @@
 - `src/runtime/contracts/IRuntimeStack.ts`
 
 **Tasks:**
-- [ ] Add `subscribe(listener): Unsubscribe` to interface
-- [ ] Emit `{ type: 'push', block, depth }` on push
-- [ ] Emit `{ type: 'pop', block, depth }` on pop
-- [ ] Return current stack snapshot to new subscribers
+- [x] Add `subscribe(listener): Unsubscribe` to interface
+- [x] Emit `{ type: 'push', block, depth }` on push
+- [x] Emit `{ type: 'pop', block, depth }` on pop
+- [x] Return current stack snapshot to new subscribers via `initial` event
 
 **Acceptance:**
 - Stack changes trigger subscriber callbacks
@@ -70,11 +70,11 @@
 - `src/runtime/contracts/IRuntimeBlock.ts`
 
 **Tasks:**
-- [ ] Add `private memoryMap: Map<MemoryType, IMemoryEntry<any, any>>`
-- [ ] Implement `hasMemory<T>(type: T): boolean`
-- [ ] Implement `getMemory<T>(type: T): MemoryTypeMap[T] | undefined`
-- [ ] Implement `getMemoryTypes(): MemoryType[]`
-- [ ] Add `protected setMemory<T>(type, entry)` for behaviors
+- [x] Add `private memoryMap: Map<MemoryType, IMemoryEntry<any, any>>`
+- [x] Implement `hasMemory<T>(type: T): boolean`
+- [x] Implement `getMemory<T>(type: T): MemoryTypeMap[T] | undefined`
+- [x] Implement `getMemoryTypes(): MemoryType[]`
+- [x] Add `protected setMemory<T>(type, entry)` for behaviors
 
 **Acceptance:**
 - Blocks can store and retrieve typed memory
@@ -82,20 +82,23 @@
 
 ---
 
-### 2.2 Add Fragment Inheritance
+### 2.2 Lifecycle Refinement (Mount/Next/Unmount)
 
 **Files to Modify:**
 - `src/runtime/RuntimeBlock.ts`
 - `src/runtime/contracts/IRuntimeBlock.ts`
 
 **Tasks:**
-- [ ] Add `getInheritedFragments(): ICodeFragment[]` - returns fragment memory
-- [ ] Add `receiveInheritedFragments(fragments): void` - merges with own
-- [ ] Update `ScriptRuntime.pushBlock()` to pass inherited fragments
+- [ ] Move event registration from `constructor` to `mount()`
+- [ ] Implement `next()` to handle manual progression and timer completion
+- [ ] Implement `unmount()` to emit 'unmount' event
+- [ ] Update `unmount()` to complete/dispose all block memory observables
+- [ ] Ensure `unmount()` cleans up event subscriptions (move from dispose)
 
 **Acceptance:**
-- Child blocks receive parent's inherited fragments
-- Round context flows from parent to child
+- Events are only handled when block is mounted
+- Observables complete when block unmounts
+- 'unmount' event is emitted on pop
 
 ---
 
@@ -112,6 +115,23 @@
 **Acceptance:**
 - Pop → unmount → dispose → parent.next() order is guaranteed
 - Single source of truth for lifecycle
+
+---
+
+### 2.4 Fragment Inheritance (Deferred)
+
+**Files to Modify:**
+- `src/runtime/RuntimeBlock.ts`
+- `src/runtime/contracts/IRuntimeBlock.ts`
+
+**Tasks:**
+- [ ] Add `getInheritedFragments(): ICodeFragment[]` - returns fragment memory
+- [ ] Add `receiveInheritedFragments(fragments): void` - merges with own
+- [ ] Update `ScriptRuntime.pushBlock()` to pass inherited fragments
+
+**Acceptance:**
+- Child blocks receive parent's inherited fragments
+- Round context flows from parent to child
 
 ---
 
@@ -233,12 +253,13 @@
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| **1.1** Typed Memory Interfaces | 4 | ⬜ |
-| **1.2** Memory Implementations | 4 | ⬜ |
-| **1.3** Observable Stack | 4 | ⬜ |
-| **2.1** Block Memory Map | 5 | ⬜ |
-| **2.2** Fragment Inheritance | 3 | ⬜ |
+| **1.1** Typed Memory Interfaces | 4 | ✅ |
+| **1.2** Memory Implementations | 4 | ✅ |
+| **1.3** Observable Stack | 4 | ✅ |
+| **2.1** Block Memory Map | 5 | ✅ |
+| **2.2** Lifecycle Refinement | 5 | ⬜ |
 | **2.3** Explicit next() | 3 | ⬜ |
+| **2.4** Fragment Inheritance | 3 | ⬜ |
 | **3.1** Timer Migration | 3 | ⬜ |
 | **3.2** Round Migration | 3 | ⬜ |
 | **3.3** Completion Simplify | 2 | ⬜ |
@@ -246,4 +267,4 @@
 | **4.2** Update UI | 3 | ⬜ |
 | **4.3** Update Tests | 4 | ⬜ |
 
-**Total Tasks:** ~42
+**Total Tasks:** ~46

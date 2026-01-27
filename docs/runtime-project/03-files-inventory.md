@@ -6,14 +6,15 @@
 
 ## Files to CREATE
 
-| File                                   | Purpose                     | Phase |
-| -------------------------------------- | --------------------------- | ----- |
-| `src/runtime/memory/IMemoryEntry.ts`   | Base typed memory interface | 1.1   |
-| `src/runtime/memory/MemoryTypes.ts`    | Type registry and unions    | 1.1   |
-| `src/runtime/memory/TimerMemory.ts`    | Timer state implementation  | 1.2   |
-| `src/runtime/memory/RoundMemory.ts`    | Round state implementation  | 1.2   |
-| `src/runtime/memory/FragmentMemory.ts` | Fragment inheritance        | 1.2   |
-| `src/runtime/memory/index.ts`          | Barrel export               | 1.2   |
+| File                                   | Purpose                     | Phase | Status |
+| -------------------------------------- | --------------------------- | ----- | ------ |
+| `src/runtime/memory/IMemoryEntry.ts`   | Base typed memory interface | 1.1   | ✅ Created |
+| `src/runtime/memory/MemoryTypes.ts`    | Type registry and unions    | 1.1   | ✅ Created |
+| `src/runtime/memory/BaseMemoryEntry.ts` | Abstract base class        | 1.2   | ✅ Created |
+| `src/runtime/memory/TimerMemory.ts`    | Timer state implementation  | 1.2   | ✅ Created |
+| `src/runtime/memory/RoundMemory.ts`    | Round state implementation  | 1.2   | ✅ Created |
+| `src/runtime/memory/FragmentMemory.ts` | Fragment inheritance        | 1.2   | ✅ Created |
+| `src/runtime/memory/index.ts`          | Barrel export               | 1.2   | ⬜ Pending |
 
 ---
 
@@ -21,13 +22,13 @@
 
 ### Core Runtime
 
-| File               | Changes                                     | Phase    |
-| ------------------ | ------------------------------------------- | -------- |
-| `RuntimeStack.ts`  | Add subscribe()                             | 1.3      |
-| `IRuntimeStack.ts` | Add subscribe to interface                  | 1.3      |
-| `RuntimeBlock.ts`  | Add memory map + methods                    | 2.1, 2.2 |
-| `IRuntimeBlock.ts` | Add memory + inheritance interface          | 2.1, 2.2 |
-| `ScriptRuntime.ts` | Fragment inheritance on push, remove memory | 2.2, 4.1 |
+| File               | Changes                                     | Phase    | Status    |
+| ------------------ | ------------------------------------------- | -------- | --------- |
+| `RuntimeStack.ts`  | Add subscribe()                             | 1.3      | ✅ Done    |
+| `IRuntimeStack.ts` | Add subscribe to interface                  | 1.3      | ✅ Done    |
+| `RuntimeBlock.ts`  | Add memory map + methods                    | 2.1, 2.2 | ⬜ Pending |
+| `IRuntimeBlock.ts` | Add memory + inheritance interface          | 2.1, 2.2 | ⬜ Pending |
+| `ScriptRuntime.ts` | Fragment inheritance on push, remove memory | 2.2, 4.1 | ⬜ Pending |
 
 ### Behaviors (Keep + Modify)
 
@@ -115,10 +116,19 @@
 
 | Category | Create | Modify | Remove | Keep |
 |----------|--------|--------|--------|------|
-| Memory | 6 | 0 | 5 | 0 |
-| Stack | 0 | 2 | 0 | 0 |
+| Memory | 6 (✅ 5) | 0 | 5 | 0 |
+| Stack | 0 | 2 (✅ 2) | 0 | 0 |
 | Block | 0 | 2 | 0 | 0 |
 | Runtime | 0 | 1 | 0 | 0 |
 | Behaviors | 0 | 6 | 7-10 | 5+ |
 | Compiler | 0 | 0 | 0 | 8+ |
 | **Total** | **6** | **11** | **~15** | **15+** |
+
+---
+
+## Phase 1 Tests
+
+| Test File | Coverage |
+|-----------|----------|
+| `src/runtime/memory/__tests__/MemoryEntries.test.ts` | TimerMemory, RoundMemory, FragmentMemory |
+| `src/runtime/memory/__tests__/RuntimeStack.test.ts` | Observable stack, subscribe, events |

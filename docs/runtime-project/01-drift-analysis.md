@@ -8,8 +8,8 @@
 
 | Area | Current State | Proposed State | Drift Level |
 |------|--------------|----------------|-------------|
-| **Stack** | Basic push/pop, no subscriptions | Observable with pub/sub | 🔴 High |
-| **Memory** | Global `RuntimeMemory` w/ refs | Block-owned typed memory | 🔴 High |
+| **Stack** | Observable with pub/sub | Observable with pub/sub | ✅ Implemented |
+| **Memory** | Typed interfaces created | Block-owned typed memory | 🟡 Partial (Interfaces + Impl done, Block integration pending) |
 | **Behaviors** | 34+ behavior classes | Minimal, composable set | 🔴 High |
 | **Lifecycle** | mount/unmount only | mount/next/unmount explicit | 🟡 Medium |
 | **Fragment Collection** | `FragmentMetricCollector` | Lifecycle-triggered | 🟢 Low |
@@ -55,10 +55,10 @@ IMemoryEntry<T>
 ```
 
 **Migration:**
-1. Remove global `RuntimeMemory` class
-2. Add memory map to `RuntimeBlock`
-3. Create typed memory classes (`TimerMemory`, `RoundMemory`)
-4. Update behaviors to use block memory
+1. ✅ ~~Remove global `RuntimeMemory` class~~ (Pending Phase 4)
+2. ✅ Create typed memory classes (`TimerMemory`, `RoundMemory`, `FragmentMemory`)
+3. ⬜ Add memory map to `RuntimeBlock` (Phase 2)
+4. ⬜ Update behaviors to use block memory (Phase 3)
 
 ---
 
@@ -95,9 +95,10 @@ type StackEvent =
 ```
 
 **Migration:**
-1. Extend `RuntimeStack` with `subscribe()`
-2. Emit typed events on push/pop
-3. UI subscribes directly to stack
+1. ✅ Extend `RuntimeStack` with `subscribe()`
+2. ✅ Emit typed events on push/pop (includes `depth`)
+3. ✅ Emit `initial` event with current stack snapshot to new subscribers
+4. ⬜ UI subscribes directly to stack (Phase 4)
 
 ---
 
