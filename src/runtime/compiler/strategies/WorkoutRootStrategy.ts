@@ -12,6 +12,7 @@ import { RuntimeButton } from '../../models/MemoryModels';
 import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
 import { TimerBehavior } from '../../behaviors/TimerBehavior';
 import { ChildIndexBehavior } from '../../behaviors/ChildIndexBehavior';
+import { ChildRunnerBehavior } from '../../behaviors/ChildRunnerBehavior';
 import { RoundPerLoopBehavior } from '../../behaviors/RoundPerLoopBehavior';
 import { WorkoutStateBehavior } from '../../behaviors/WorkoutStateBehavior';
 import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
@@ -170,6 +171,9 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
 
         // Round counting (increments when child index wraps)
         behaviors.push(new RoundPerLoopBehavior());
+
+        // Child execution
+        behaviors.push(new ChildRunnerBehavior(config.childGroups));
 
         // ===== 5. Round Tracking (for multi-round workouts) =====
 

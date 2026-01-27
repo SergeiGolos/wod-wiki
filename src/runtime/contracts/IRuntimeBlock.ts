@@ -91,12 +91,22 @@ export interface IRuntimeBlock {
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
-     * Called when a child block completes execution.
-     * Determines the next block(s) to execute or signals completion.
+     * Called to advance the block's execution state.
+     * 
+     * Triggers:
+     * 1. **Automatic**: Called by RuntimeStack when a child block is popped (child completion).
+     * 2. **Manual**: Called by NextAction when user manually acts (e.g., skips block).
+     * 3. **Timer**: Called by TimerBehavior when a timer completes (implicit next).
+     * 
+     * Responsibilities:
+     * - Determine the next step in the block's execution flow.
+     * - If block has children (e.g., loops), push the next child.
+     * - If block is simple (e.g., single movement), mark itself complete.
+     * - If block is a timer, handle timer completion logic.
      * 
      * @param runtime The script runtime context
-     * @param options Lifecycle timing data (completion timestamp)
-     * @returns Array of runtime actions representing next execution steps
+     * @param options Lifecycle timing data (completion timestamp if triggered by child pop)
+     * @returns Array of runtime actions representing next execution steps (e.g., PushBlock, MarkComplete)
      */
     next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 

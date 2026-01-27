@@ -7,10 +7,16 @@ import { RuntimeError } from '../actions/ErrorAction';
 import { SpanTrackingHandler } from '../../tracker/SpanTrackingHandler';
 
 import { IEventBus } from './events/IEventBus';
-import { IRuntimeStack } from './IRuntimeStack';
+import { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IRuntimeAction } from './IRuntimeAction';
+import { IOutputStatement } from '../../core/models/OutputStatement';
+
+/**
+ * Listener callback for output statement events.
+ */
+export type OutputListener = (output: IOutputStatement) => void;
 
 export interface IScriptRuntime {
     script: WodScript;
@@ -60,6 +66,33 @@ export interface IScriptRuntime {
      * blocks that have marked themselves as complete.
      */
     sweepCompletedBlocks(): void;
+
+    // ============================================================================
+    // Output Statement API
+    // ============================================================================
+
+    /**
+     * Subscribe to output statements generated during execution.
+     * Listeners are notified when a block unmounts and produces output.
+     * 
+     * @param listener Callback invoked for each output statement
+     * @returns Unsubscribe function to stop receiving notifications
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = runtime.subscribeToOutput((output) => {
+     *   console.log(`Block ${output.sourceBlockKey} completed:`, output.outputType);
+     *   console.log('Fragments:', output.fragments);
+     * });
+     * ```
+     */
+    subscribeToOutput(listener: OutputListener): Unsubscribe;
+
+    /**
+     * Get all output statements generated so far during this execution.
+     * Returns a copy of the internal array.
+     */
+    getOutputStatements(): IOutputStatement[];
 
     handle(event: IEvent): void;
     dispose(): void;

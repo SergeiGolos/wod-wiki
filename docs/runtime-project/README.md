@@ -1,6 +1,6 @@
 # Runtime Simplification Project
 
-> **Goal:** Simplified, extensible runtime with observable stack and typed memory
+> **Goal:** Simplified, extensible runtime with observable stack, typed memory, and `IOutputStatement[]` as execution output
 
 ---
 
@@ -11,19 +11,33 @@
 | [01-drift-analysis.md](./01-drift-analysis.md) | Gap analysis: current vs proposed |
 | [02-task-breakdown.md](./02-task-breakdown.md) | Phased implementation tasks |
 | [03-files-inventory.md](./03-files-inventory.md) | Files to create/modify/remove |
+| [03-fragment-lifecycle-worksheet.md](./03-fragment-lifecycle-worksheet.md) | Fragment collection & IOutputStatement design |
 
 ---
 
 ## Quick Summary
 
+### Core Insight
+
+The runtime is a **function** that transforms input statements into output statements:
+
+```
+execute(ICodeStatement[]) → IOutputStatement[]
+```
+
+- **Input:** Parsed statements with fragments (origin: 'parser')
+- **Execution:** RuntimeBlock stack, behaviors mutate memory
+- **Output:** Output statements with timing and runtime fragments (origin: 'runtime' | 'user')
+
 ### What's Changing
 
 | From (Current) | To (Proposed) | Status |
 |----------------|---------------|--------|
-| Global `RuntimeMemory` with refs | Block-owned `IMemoryEntry<T>` | 🟡 Interfaces done, integration pending |
+| Global `RuntimeMemory` with refs | Block-owned `IMemoryEntry<T>` | ✅ Interfaces done |
 | Passive stack | Observable stack with subscribe() | ✅ Implemented |
+| No return type | `IOutputStatement[]` with runtime fragments | ⬜ Pending |
 | 34+ behavior classes | Minimal core behaviors | ⬜ Pending |
-| Implicit lifecycle | Explicit mount → next → unmount | ⬜ Pending |
+| Implicit lifecycle | Explicit mount → next → unmount | ✅ Refined |
 
 ### Key Interfaces
 
@@ -35,12 +49,22 @@ stack.subscribe((event) => {
   // event.depth: number
 });
 
-// Typed Block Memory (Interfaces ready, block integration pending)
+// Typed Block Memory (Implemented)
 block.hasMemory('timer');
 block.getMemory('timer').subscribe(state => { ... });
 
-// Fragment Inheritance (Pending)
-parent.getInheritedFragments() → child
+// Output Statement Subscription (NEW - Pending)
+runtime.subscribeToOutput((output: IOutputStatement) => {
+  // output.outputType: 'segment' | 'completion' | 'milestone' | 'label' | 'metric'
+  // output.timeSpan: TimeSpan
+  // output.fragments: ICodeFragment[] (with origin tracking)
+});
+
+// Fragment Origin (NEW - Pending)
+interface ICodeFragment {
+  origin: 'parser' | 'compiler' | 'runtime' | 'user';
+  // ... existing fields
+}
 ```
 
 ### File Impact

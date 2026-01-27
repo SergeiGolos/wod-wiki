@@ -1,7 +1,7 @@
 import { IRuntimeAction } from './contracts/IRuntimeAction';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
-import { IRuntimeStack } from './contracts/IRuntimeStack';
+import { IRuntimeStack, Unsubscribe } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./contracts/events/IEvent";
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
@@ -22,6 +22,8 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { StackPushEvent, StackPopEvent } from './events/StackEvents';
+import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
+import { TimeSpan } from './models/TimeSpan';
 
 const MAX_STACK_DEPTH = 10;
 
@@ -74,6 +76,10 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private _actionQueue: IRuntimeAction[] = [];
     private _isProcessingActions = false;
+
+    // Output statement tracking
+    private _outputStatements: IOutputStatement[] = [];
+    private _outputListeners: Set<OutputListener> = new Set();
 
     constructor(
         public readonly script: WodScript,
@@ -219,6 +225,62 @@ export class ScriptRuntime implements IScriptRuntime {
         return this.stack.count === 0;
     }
 
+    // ========== Output Statement API ==========
+
+    /**
+     * Subscribe to output statements generated during execution.
+     */
+    public subscribeToOutput(listener: OutputListener): Unsubscribe {
+        this._outputListeners.add(listener);
+        return () => {
+            this._outputListeners.delete(listener);
+        };
+    }
+
+    /**
+     * Get all output statements generated so far.
+     */
+    public getOutputStatements(): IOutputStatement[] {
+        return [...this._outputStatements];
+    }
+
+    /**
+     * Creates an output statement from a popped block and notifies subscribers.
+     */
+    private emitOutputStatement(block: IRuntimeBlock): void {
+        // Build TimeSpan from execution timing
+        const startTime = block.executionTiming?.startTime?.getTime() ?? Date.now();
+        const endTime = block.executionTiming?.completedAt?.getTime() ?? Date.now();
+        const timeSpan = new TimeSpan(startTime, endTime);
+
+        // Get collected fragments from the block (if any)
+        // For now, we use the block's static fragments - behaviors will add runtime fragments later
+        const fragments = block.fragments?.flat() ?? [];
+
+        // Create the output statement
+        const output = new OutputStatement({
+            outputType: 'completion',
+            timeSpan,
+            sourceBlockKey: block.key.toString(),
+            sourceStatementId: block.sourceIds?.[0],
+            fragments,
+            parent: undefined, // TODO: Link to parent output when we have hierarchy
+            children: [],
+        });
+
+        // Store and notify
+        this._outputStatements.push(output);
+        console.log(`[RT] emitOutputStatement: ${block.label} -> ${output.outputType} (${fragments.length} fragments)`);
+
+        for (const listener of this._outputListeners) {
+            try {
+                listener(output);
+            } catch (err) {
+                console.error('[RT] Output listener error:', err);
+            }
+        }
+    }
+
     // ========== Stack Lifecycle Operations ==========
 
     public pushBlock(block: IRuntimeBlock, options: BlockLifecycleOptions = {}): IRuntimeBlock {
@@ -320,6 +382,9 @@ export class ScriptRuntime implements IScriptRuntime {
             console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
             this.queueActions(nextActions);
         }
+
+        // 8. Emit output statement for the popped block
+        this.emitOutputStatement(popped);
 
         this._hooks.onAfterPop?.(popped);
 

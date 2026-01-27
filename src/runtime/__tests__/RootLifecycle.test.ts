@@ -131,8 +131,23 @@ describe('RootLifecycle Integration', () => {
 
         if (!runtime) throw new Error('Failed to create runtime');
 
-        // Helper to get controls (finds controls with buttons, prioritizing idle block controls)
+        // Helper to get controls - mimics UI logic by checking stack top-down
         const getControls = () => {
+            // 1. Try to find controls for current block (top of stack)
+            const current = runtime.stack.current;
+            if (current) {
+                const refs = runtime.memory.search({
+                    type: 'runtime-controls',
+                    id: null,
+                    ownerId: current.key.toString(),
+                    visibility: null
+                });
+                if (refs.length > 0) {
+                    return runtime.memory.get(refs[0] as TypedMemoryReference<RuntimeControls>);
+                }
+            }
+
+            // 2. Fallback: Search all and return first found (legacy behavior or if no owner match)
             const refs = runtime.memory.search({
                 type: 'runtime-controls',
                 id: null,
@@ -140,21 +155,21 @@ describe('RootLifecycle Integration', () => {
                 visibility: null
             });
             if (refs.length === 0) return null;
-            // Find controls with buttons (idle block's controls) or fall back to first
+
+            // Prioritize controls with buttons
             for (const ref of refs) {
                 const controls = runtime.memory.get(ref as TypedMemoryReference<RuntimeControls>);
                 if (controls && controls.buttons.length > 0) {
                     return controls;
                 }
             }
-            // Fall back to first controls if none have buttons
             return runtime.memory.get(refs[0] as TypedMemoryReference<RuntimeControls>);
         };
 
         // 2. Verify Initial State (Idle)
         const initialControls = getControls();
         expect(initialControls).toBeDefined();
-        expect(initialControls?.displayMode).toBe('clock');
+        expect(initialControls?.displayMode).toBe('timer');
         expect(initialControls?.buttons.length).toBe(1);
         expect(initialControls?.buttons[0].id).toBe('btn-start');
 

@@ -8,6 +8,11 @@ export type StackEvent =
 
 export type StackListener = (event: StackEvent) => void;
 
+/**
+ * Unsubscribe function returned by subscription methods.
+ */
+export type Unsubscribe = () => void;
+
 export interface IRuntimeStack {
     readonly blocks: readonly IRuntimeBlock[];
     readonly count: number;

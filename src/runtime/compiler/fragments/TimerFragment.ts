@@ -1,9 +1,10 @@
-import { ICodeFragment, FragmentType, FragmentCollectionState } from "../../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentCollectionState, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class TimerFragment implements ICodeFragment {
   readonly value: number | undefined;
   readonly collectionState: FragmentCollectionState;
+  readonly origin: FragmentOrigin = 'parser';
 
   /**
    * Creates a new TimerFragment.

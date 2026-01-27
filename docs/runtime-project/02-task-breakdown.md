@@ -1,6 +1,8 @@
 # Runtime Simplification: Task Breakdown
 
-> **Scope:** Implement simplified runtime with typed memory and observable stack
+> **Scope:** Implement simplified runtime with typed memory, observable stack, and `IOutputStatement[]` as execution return type.
+>
+> **Key Insight:** The runtime is a function: `execute(ICodeStatement[]) → IOutputStatement[]`
 
 ---
 
@@ -89,11 +91,11 @@
 - `src/runtime/contracts/IRuntimeBlock.ts`
 
 **Tasks:**
-- [ ] Move event registration from `constructor` to `mount()`
-- [ ] Implement `next()` to handle manual progression and timer completion
-- [ ] Implement `unmount()` to emit 'unmount' event
-- [ ] Update `unmount()` to complete/dispose all block memory observables
-- [ ] Ensure `unmount()` cleans up event subscriptions (move from dispose)
+- [x] Move event registration from `constructor` to `mount()`
+- [x] Implement `next()` to handle manual progression and timer completion
+- [x] Implement `unmount()` to emit 'unmount' event
+- [x] Update `unmount()` to complete/dispose all block memory observables
+- [x] Ensure `unmount()` cleans up event subscriptions (move from dispose)
 
 **Acceptance:**
 - Events are only handled when block is mounted
@@ -108,9 +110,9 @@
 - `src/runtime/ScriptRuntime.ts`
 
 **Tasks:**
-- [ ] Ensure `popBlock()` calls `parent.next()` after unmount/dispose
-- [ ] Remove redundant `next()` calls from behaviors
-- [ ] Add lifecycle documentation to IRuntimeBlock
+- [x] Ensure `popBlock()` calls `parent.next()` after unmount/dispose
+- [x] Remove redundant `next()` calls from behaviors
+- [x] Add lifecycle documentation to IRuntimeBlock
 
 **Acceptance:**
 - Pop → unmount → dispose → parent.next() order is guaranteed
@@ -135,7 +137,34 @@
 
 ---
 
-## Phase 3: Behavior Migration
+### 2.5 Output Statement Emission (NEW)
+
+**Files to Create:**
+- `src/core/models/OutputStatement.ts` ✅
+
+**Files to Modify:**
+- `src/core/models/CodeFragment.ts` ✅
+- `src/runtime/contracts/IScriptRuntime.ts` ✅
+- `src/runtime/contracts/IRuntimeStack.ts` ✅ (added `Unsubscribe` type)
+- `src/runtime/ScriptRuntime.ts` ✅
+- `src/runtime/compiler/fragments/*.ts` ✅ (all 10 fragment classes updated with `origin: 'parser'`)
+
+**Tasks:**
+- [x] Create `IOutputStatement` interface extending `ICodeStatement`
+- [x] Add `OutputStatementType` enum (segment, completion, milestone, label, metric)
+- [x] Add `origin` field to `ICodeFragment` interface
+- [x] Add `subscribeToOutput(listener): Unsubscribe` to `IScriptRuntime`
+- [x] Add `getOutputStatements(): IOutputStatement[]` to `IScriptRuntime`
+- [x] Update `ScriptRuntime.popBlock()` to emit `IOutputStatement`
+- [x] Notify subscribers when output statements are created
+- [x] Write tests for output subscription flow
+- [x] Add `origin: 'parser'` to all fragment classes
+- [x] Write tests for fragment origin marking
+
+**Acceptance:**
+- ✅ Runtime emits `IOutputStatement` on every block unmount
+- ✅ Subscribers receive output statements with timing and fragments
+- ✅ Fragments have origin tracking (parser/compiler/runtime/user)
 
 ### 3.1 Migrate Timer Behaviors to TimerMemory
 
@@ -257,9 +286,10 @@
 | **1.2** Memory Implementations | 4 | ✅ |
 | **1.3** Observable Stack | 4 | ✅ |
 | **2.1** Block Memory Map | 5 | ✅ |
-| **2.2** Lifecycle Refinement | 5 | ⬜ |
-| **2.3** Explicit next() | 3 | ⬜ |
-| **2.4** Fragment Inheritance | 3 | ⬜ |
+| **2.2** Lifecycle Refinement | 5 | ✅ |
+| **2.3** Explicit next() | 3 | ✅ |
+| **2.4** Fragment Inheritance | 3 | ⏸️ |
+| **2.5** Output Statement Emission | 8 | ✅ |
 | **3.1** Timer Migration | 3 | ⬜ |
 | **3.2** Round Migration | 3 | ⬜ |
 | **3.3** Completion Simplify | 2 | ⬜ |
@@ -267,4 +297,5 @@
 | **4.2** Update UI | 3 | ⬜ |
 | **4.3** Update Tests | 4 | ⬜ |
 
-**Total Tasks:** ~46
+**Total Tasks:** ~53
+
