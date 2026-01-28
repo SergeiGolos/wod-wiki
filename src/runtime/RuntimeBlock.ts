@@ -1,231 +1,361 @@
+import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { BlockKey } from '../core/models/BlockKey';
-import { IScriptRuntime } from './IScriptRuntime';
-import { IRuntimeBehavior } from "./IRuntimeBehavior";
-import { IRuntimeBlock } from './IRuntimeBlock';
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
-import { IRuntimeAction } from './IRuntimeAction';
-import { NextBlockLogger } from './NextBlockLogger';
-import { IBlockContext } from './IBlockContext';
+import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
+import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { IRuntimeAction } from './contracts/IRuntimeAction';
+import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
-import { IEventHandler } from './IEventHandler';
-import { IEvent } from './IEvent';
-import { RuntimeMetric } from './RuntimeMetric';
-import { PushCardDisplayAction, PopCardDisplayAction } from './actions/CardDisplayActions';
-import { TimerBehavior } from './behaviors/TimerBehavior';
-import { LoopCoordinatorBehavior } from './behaviors/LoopCoordinatorBehavior';
+import { IEventHandler } from './contracts/events/IEventHandler';
+import { IEvent } from './contracts/events/IEvent';
+import { IMemoryEntry } from './memory/IMemoryEntry';
+import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
+import { BehaviorContext } from './BehaviorContext';
 
-
-export type AllocateRequest<T> = { 
-    type: string; 
-    visibility?: 'public' | 'private'; 
-    initialValue?: T 
-};
-
-export class RuntimeBlock implements IRuntimeBlock{
-    protected readonly behaviors: IRuntimeBehavior[] = []
+/**
+ * RuntimeBlock represents an executable unit in the workout runtime.
+ * 
+ * Blocks are composed of behaviors that handle specific aspects (time, iteration, completion, etc.)
+ * Behaviors receive an IBehaviorContext that provides access to memory, events, and output emission.
+ * 
+ * ## Lifecycle
+ * 
+ * 1. Block is created by a strategy with behaviors attached
+ * 2. mount() is called when pushed onto stack - behaviors receive onMount(ctx)
+ * 3. next() is called when child completes or user advances - behaviors receive onNext(ctx)
+ * 4. unmount() is called when popped from stack - behaviors receive onUnmount(ctx)
+ * 5. dispose() is called for cleanup - behaviors receive onDispose(ctx)
+ */
+export class RuntimeBlock implements IRuntimeBlock {
+    protected readonly behaviors: IRuntimeBehavior[] = [];
     public readonly key: BlockKey;
     public readonly blockType?: string;
     public readonly label: string;
-    public readonly compiledMetrics?: RuntimeMetric;
     public readonly context: IBlockContext;
-    // Handlers and metrics are now stored as individual memory entries ('handler' and 'metric').
-    private _memory: IMemoryReference[] = [];
+    public readonly sourceIds: number[];
+
+    // Typed memory entries
+    private _memoryEntries: Map<MemoryType, IMemoryEntry<MemoryType, any>> = new Map();
+
+    // Behavior context (created on mount)
+    protected _behaviorContext?: BehaviorContext;
+
+    // Execution timing
+    public readonly executionTiming: { startTime?: Date; endTime?: Date } = {};
+
+    // Completion state
+    private _isComplete: boolean = false;
+    private _completionReason?: string;
+
+    // Event unsubscribers
+    private _eventUnsubscribers: Array<() => void> = [];
+
+    // Runtime reference (set during mount)
+    protected _runtime?: IScriptRuntime;
 
     constructor(
-        protected _runtime: IScriptRuntime,
-        public readonly sourceIds: number[] = [],
+        runtime: IScriptRuntime,
+        sourceIds: number[] = [],
         behaviors: IRuntimeBehavior[] = [],
         contextOrBlockType?: IBlockContext | string,
         blockKey?: BlockKey,
         blockTypeParam?: string,
-        label?: string,
-        compiledMetrics?: RuntimeMetric
+        label?: string
     ) {
+        this._runtime = runtime;
+        this.sourceIds = sourceIds;
+        this.behaviors = behaviors;
+
         // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
         if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
-            // Old signature: (runtime, sourceIds, behaviors, blockType)
-            this.key = new BlockKey();
+            this.key = blockKey ?? new BlockKey();
             this.blockType = contextOrBlockType as string | undefined;
             this.label = label || (contextOrBlockType as string) || 'Block';
-            this.compiledMetrics = compiledMetrics;
-            // Create a default context for backward compatibility
-            this.context = new BlockContext(_runtime, this.key.toString());
+            this.context = new BlockContext(runtime, this.key.toString());
         } else {
-            // New signature: (runtime, sourceIds, behaviors, context, blockKey?, blockType?, label?, compiledMetrics?)
             this.key = blockKey ?? new BlockKey();
             this.context = contextOrBlockType;
             this.blockType = blockTypeParam;
             this.label = label || blockTypeParam || 'Block';
-            this.compiledMetrics = compiledMetrics;
         }
-        
-        this.behaviors = behaviors;
-
-        // Register default 'tick' handler to bridge event-driven runtime with block.next() method
-        this.registerDefaultHandler();
-        
-        // Register event dispatcher to route events to behaviors
-        this.registerEventDispatcher();
     }
 
-    private registerDefaultHandler() {
-        const handler: IEventHandler = {
-            id: `handler-tick-${this.key.toString()}`,
-            name: `TickHandler-${this.label}`,
-            handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Only handle 'tick' event (periodic updates)
-                if (event.name !== 'tick') return [];
-                
-                // Only handle if this is the current block
-                if (runtime.stack.current !== this) return [];
-                
-                // Delegate to next() method for state updates
-                return this.next(runtime);
-            }
-        };
-        
-        // Allocate handler in memory
-        this.context.allocate<IEventHandler>('handler', handler, 'private');
-    }
+    // ============================================================================
+    // Memory Access
+    // ============================================================================
 
-    private registerEventDispatcher() {
-        const handler: IEventHandler = {
-            id: `dispatcher-${this.key.toString()}`,
-            name: `EventDispatcher-${this.label}`,
-            handler: (event: IEvent, runtime: IScriptRuntime) => {
-                // Only dispatch if this is the current block
-                if (runtime.stack.current !== this) return [];
-                
-                const actions: IRuntimeAction[] = [];
-                for (const behavior of this.behaviors) {
-                    if (behavior.onEvent) {
-                        const result = behavior.onEvent(event, runtime, this);
-                        if (result) {
-                            actions.push(...result);
-                        }
-                    }
-                }
-                return actions;
-            }
-        };
-        
-        this.context.allocate<IEventHandler>('handler', handler, 'private');
-    }
-
-    
     /**
-     * Allocates memory for this block's state.
-     * The memory will be automatically cleaned up when the block is popped from the stack.
+     * Get a typed memory entry.
      */
-    protected allocate<T>(request: AllocateRequest<T>): TypedMemoryReference<T> {
-        if (!this._runtime) {
-            throw new Error(`Cannot allocate memory: runtime not set for block ${this.key.toString()}`);
-        }
-
-        const ref = this._runtime.memory.allocate<T>(request.type, this.key.toString(), request.initialValue, request.visibility || 'private');
-        this._memory.push(ref);
-        return ref;
+    getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
+        return this._memoryEntries.get(type) as IMemoryEntry<T, MemoryValueOf<T>> | undefined;
     }
 
+    /**
+     * Check if a memory entry exists.
+     */
+    hasMemory(type: MemoryType): boolean {
+        return this._memoryEntries.has(type);
+    }
+
+    /**
+     * Set a typed memory entry (protected - called by strategies/behaviors).
+     */
+    protected setMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
+        this._memoryEntries.set(type, entry);
+    }
+
+    /**
+     * Set memory value directly. Creates a new SimpleMemoryEntry or updates existing.
+     * This is the public API for behaviors to store state.
+     */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
+        const existing = this._memoryEntries.get(type);
+        if (existing && typeof (existing as any).update === 'function') {
+            // Update existing entry
+            (existing as any).update(value);
+        } else {
+            // Create new SimpleMemoryEntry
+            const { SimpleMemoryEntry } = require('./memory/SimpleMemoryEntry');
+            this._memoryEntries.set(type, new SimpleMemoryEntry(type, value));
+        }
+    }
+
+    // ============================================================================
+    // Lifecycle Methods
+    // ============================================================================
+
+    /**
+     * Register default event handler for 'next' events.
+     */
+    protected registerDefaultHandler(): void {
+        if (!this._runtime?.eventBus?.register) return;
+
+        const handler: IEventHandler = {
+            id: `handler-next-${this.key.toString()}`,
+            name: `NextHandler-${this.label}`,
+            handler: (_event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
+                // Skip 'next' events - handled by NextAction directly
+                // This handler is kept for other events if needed
+                return [];
+            }
+        };
+
+        const unsub = this._runtime.eventBus.register('next', handler, this.key.toString());
+        if (unsub) {
+            this._eventUnsubscribers.push(unsub);
+        }
+    }
 
     /**
      * Called when this block is pushed onto the runtime stack.
-     * Sets up initial state and registers event listeners.
-     */    
-    mount(runtime: IScriptRuntime): IRuntimeAction[] {
-        // Call behaviors
+     */
+    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        this._runtime = runtime;
+        this.executionTiming.startTime = options?.startTime ?? runtime.clock.now;
+
+        // Register default event handlers
+        this.registerDefaultHandler();
+
+        // Create behavior context
+        const stackLevel = Math.max(0, runtime.stack.count - 1);
+        this._behaviorContext = new BehaviorContext(this, runtime.clock, stackLevel, runtime);
+
+        // Call behavior onMount hooks
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onPush?.(runtime, this);
-            if (result) { actions.push(...result); }
+            if (behavior.onMount) {
+                const result = behavior.onMount(this._behaviorContext);
+                if (result) {
+                    actions.push(...result);
+                }
+            }
         }
 
-        // If no TimerBehavior is present but we have metrics, push a default activity card
-        // This ensures blocks like "10 Pushups" (which have no timer) still show up in the UI
-        // BUT: Don't push cards for container/parent blocks (those with LoopCoordinatorBehavior)
-        // Container blocks manage children and shouldn't show as "current exercise"
-        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
-        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
-            actions.push(new PushCardDisplayAction({
-                id: `card-${this.key}`,
-                ownerId: this.key.toString(),
-                type: 'active-block',
-                title: this.label,
-                subtitle: this.blockType,
-                metrics: this.compiledMetrics.values.map(m => ({
-                    type: m.type,
-                    value: m.value ?? 0,
-                    unit: m.unit,
-                    isActive: true
-                }))
-            }));
-        }
-        
         return actions;
     }
 
     /**
-     * Called when a child block completes execution.
-     * Determines the next block(s) to execute or signals completion.
+     * Called when a child block completes or user advances.
      */
-    next(runtime: IScriptRuntime): IRuntimeAction[] {
-        // Log behavior orchestration
-        NextBlockLogger.logBehaviorOrchestration(
-            this.key.toString(),
-            this.behaviors.length
-        );
+    next(_runtime: IScriptRuntime): IRuntimeAction[] {
+        if (!this._behaviorContext) {
+            console.warn('[RuntimeBlock] next() called before mount()');
+            return [];
+        }
 
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
-            const result = behavior?.onNext?.(runtime, this);
-            if (result) { actions.push(...result); }
+            if (behavior.onNext) {
+                const result = behavior.onNext(this._behaviorContext);
+                if (result) {
+                    actions.push(...result);
+                }
+            }
         }
+
         return actions;
     }
 
     /**
      * Called when this block is popped from the runtime stack.
-     * Handles completion logic, manages result spans, and cleans up resources.
      */
     unmount(runtime: IScriptRuntime): IRuntimeAction[] {
-        // Call behavior cleanup first
+        this.executionTiming.endTime = runtime.clock.now;
+
         const actions: IRuntimeAction[] = [];
-         for (const behavior of this.behaviors) {
-            const result = behavior?.onPop?.(runtime, this);
-            if (result) { actions.push(...result); }
+
+        // Call behavior onUnmount hooks
+        if (this._behaviorContext) {
+            for (const behavior of this.behaviors) {
+                if (behavior.onUnmount) {
+                    const result = behavior.onUnmount(this._behaviorContext);
+                    if (result) {
+                        actions.push(...result);
+                    }
+                }
+            }
         }
 
-        // Pop the default card if we pushed one (only for leaf blocks)
-        const hasLoopCoordinator = this.getBehavior(LoopCoordinatorBehavior);
-        if (!this.getBehavior(TimerBehavior) && !hasLoopCoordinator && this.compiledMetrics) {
-            actions.push(new PopCardDisplayAction(`card-${this.key}`));
+        // Emit unmount event
+        runtime.eventBus.dispatch({
+            name: 'unmount',
+            timestamp: runtime.clock.now,
+            data: { blockKey: this.key.toString() }
+        }, runtime);
+
+        // Dispose memory entries
+        for (const [_type, entry] of this._memoryEntries) {
+            if (typeof (entry as any).dispose === 'function') {
+                (entry as any).dispose();
+            }
+        }
+        this._memoryEntries.clear();
+
+        // Unregister event handlers
+        for (const unsub of this._eventUnsubscribers) {
+            try {
+                unsub();
+            } catch (err) {
+                console.error('[RuntimeBlock] Error unsubscribing event handler:', err);
+            }
+        }
+        this._eventUnsubscribers = [];
+
+        // Dispose behavior context (cleans up subscriptions)
+        if (this._behaviorContext) {
+            this._behaviorContext.dispose();
+            this._behaviorContext = undefined;
         }
 
         return actions;
     }
 
+    /**
+     * Called for final cleanup.
+     */
     dispose(runtime: IScriptRuntime): void {
-        // Call behavior disposal hooks
+        // Create a temporary context if needed for dispose
+        const ctx = this._behaviorContext ?? new BehaviorContext(
+            this,
+            runtime.clock,
+            0,
+            runtime
+        );
+
         for (const behavior of this.behaviors) {
-            if (typeof (behavior as any).onDispose === 'function') {
-                (behavior as any).onDispose(runtime, this);
+            if (behavior.onDispose) {
+                behavior.onDispose(ctx);
             }
         }
-        
-        // Clean up legacy memory references (for backward compatibility)
-        for (const memRef of this._memory) {
-            runtime.memory.release(memRef);
+
+        // Clean up temporary context if we created one
+        if (!this._behaviorContext && ctx) {
+            ctx.dispose();
         }
-        
-        // NOTE: context.release() is NOT called here - it is the caller's responsibility
-        // This allows behaviors to access memory during unmount() and disposal
-        // Consumer MUST call block.context.release() after block.dispose()
+    }
+
+    // ============================================================================
+    // Completion
+    // ============================================================================
+
+    get isComplete(): boolean {
+        return this._isComplete;
+    }
+
+    get completionReason(): string | undefined {
+        return this._completionReason;
+    }
+
+    markComplete(reason?: string): void {
+        this._isComplete = true;
+        this._completionReason = reason;
+    }
+
+    // ============================================================================
+    // Fragment Access (for output generation)
+    // ============================================================================
+
+    get fragments(): ICodeFragment[][] {
+        // Return fragments from fragment memory if available, wrapped in array of arrays
+        const fragmentEntry = this.getMemory('fragment');
+        return fragmentEntry?.value.fragments ? [[...fragmentEntry.value.fragments]] : [];
     }
 
     /**
+     * Find the first fragment of a given type, optionally matching a predicate.
+     */
+    findFragment<T extends ICodeFragment = ICodeFragment>(
+        type: FragmentType,
+        predicate?: (f: ICodeFragment) => boolean
+    ): T | undefined {
+        for (const group of this.fragments) {
+            for (const fragment of group) {
+                if (fragment.fragmentType === type) {
+                    if (!predicate || predicate(fragment)) {
+                        return fragment as T;
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Get all fragments of a given type.
+     */
+    filterFragments<T extends ICodeFragment = ICodeFragment>(type: FragmentType): T[] {
+        const result: T[] = [];
+        for (const group of this.fragments) {
+            for (const fragment of group) {
+                if (fragment.fragmentType === type) {
+                    result.push(fragment as T);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Check if a fragment of a given type exists.
+     */
+    hasFragment(type: FragmentType): boolean {
+        return this.findFragment(type) !== undefined;
+    }
+
+    /**
+     * Get all memory types owned by this block.
+     */
+    getMemoryTypes(): MemoryType[] {
+        return Array.from(this._memoryEntries.keys());
+    }
+
+    // ============================================================================
+    // Utilities
+    // ============================================================================
+
+    /**
      * Gets a specific behavior by type from the behaviors array.
-     * @param behaviorType Constructor/class of the behavior to find
-     * @returns The behavior instance or undefined if not found
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;

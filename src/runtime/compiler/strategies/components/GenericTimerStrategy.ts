@@ -4,66 +4,121 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { TimerFragment } from "../../fragments/TimerFragment";
-import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
-import { UnboundTimerBehavior } from "../../../behaviors/UnboundTimerBehavior";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { CompletionBehavior } from "../../../behaviors/CompletionBehavior";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
 
+// New aspect-based behaviors
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    TimerCompletionBehavior,
+    TimerPauseBehavior,
+    DisplayInitBehavior,
+    TimerOutputBehavior,
+    PopOnNextBehavior,
+    SoundCueBehavior
+} from "../../../behaviors";
+
+/**
+ * GenericTimerStrategy handles blocks with timer fragments.
+ * 
+ * Uses aspect-based behaviors:
+ * - Time: TimerInit, TimerTick, TimerCompletion, TimerPause
+ * - Display: DisplayInit
+ * - Output: TimerOutput
+ * - Completion: PopOnNext (for countup) or TimerCompletion (for countdown)
+ */
 export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Mid priority
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
 
-        // Match if timer fragment exists, ignoring runtime-generated ones (e.g. artifacts from previous execution)
-        return statements[0].findFragment(FragmentType.Timer, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated) !== undefined;
+        // Match if timer fragment exists, ignoring runtime-generated ones
+        return statements[0].findFragment(
+            FragmentType.Timer,
+            f => f.collectionState !== FragmentCollectionState.RuntimeGenerated
+        ) !== undefined;
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        if (builder.hasBehavior(BoundTimerBehavior) || builder.hasBehavior(UnboundTimerBehavior)) {
+        // Skip if timer behaviors already added by higher-priority strategy
+        if (builder.hasBehavior(TimerInitBehavior)) {
             return;
         }
 
         const statement = statements[0];
-        const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer, f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+        const timerFragment = statement.findFragment<TimerFragment>(
+            FragmentType.Timer,
+            f => f.collectionState !== FragmentCollectionState.RuntimeGenerated
+        );
+
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
         const label = direction === 'down' ? 'Countdown' : 'For Time';
 
+        // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
 
-        builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("Timer")
-               .setLabel(label)
-               .setSourceIds(statement.id ? [statement.id] : []);
+        builder
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType("Timer")
+            .setLabel(label)
+            .setSourceIds(statement.id ? [statement.id] : []);
 
-        // Filter out runtime-generated fragments to avoid pollution
-        const cleanFragments = (statement.fragments || []).filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+        // Filter out runtime-generated fragments
+        const cleanFragments = (statement.fragments || [])
+            .filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(cleanFragments, "Timer");
         builder.setFragments(fragmentGroups);
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
 
+        // =====================================================================
+        // Time Aspect
+        // =====================================================================
+        builder.addBehavior(new TimerInitBehavior({
+            direction,
+            durationMs,
+            label,
+            role: 'primary'
+        }));
+        builder.addBehavior(new TimerTickBehavior());
+        builder.addBehavior(new TimerPauseBehavior());
 
-        let timerBehavior: any;
-        if (durationMs) {
-            timerBehavior = new BoundTimerBehavior(durationMs, direction, label);
+        // =====================================================================
+        // Completion Aspect
+        // =====================================================================
+        if (durationMs && direction === 'down') {
+            // Countdown timer: complete when timer expires
+            builder.addBehavior(new TimerCompletionBehavior());
+
+            // Add countdown sounds
+            builder.addBehavior(new SoundCueBehavior({
+                cues: [
+                    { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
+                    { sound: 'timer-complete', trigger: 'complete' }
+                ]
+            }));
         } else {
-            timerBehavior = new UnboundTimerBehavior(label);
+            // Countup timer: complete on user advance
+            builder.addBehavior(new PopOnNextBehavior());
         }
-        builder.addBehavior(timerBehavior);
 
-        if (durationMs) {
-             builder.addBehavior(new CompletionBehavior(
-                (_block, now) => timerBehavior.isComplete(now),
-                ['timer:tick', 'timer:complete']
-            ));
-        }
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        builder.addBehavior(new DisplayInitBehavior({
+            mode: durationMs ? 'countdown' : 'clock',
+            label
+        }));
+
+        // =====================================================================
+        // Output Aspect
+        // =====================================================================
+        builder.addBehavior(new TimerOutputBehavior());
     }
 }

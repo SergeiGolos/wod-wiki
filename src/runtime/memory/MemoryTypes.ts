@@ -56,9 +56,45 @@ export interface FragmentState {
 }
 
 /**
+ * Completion state stored in memory.
+ * Tracks whether a block has completed and why.
+ */
+export interface CompletionState {
+    /** Whether block is marked complete */
+    readonly isComplete: boolean;
+
+    /** Reason for completion */
+    readonly reason?: 'timer-expired' | 'rounds-complete' | 'user-advance' | 'manual' | string;
+
+    /** Timestamp of completion (epoch ms) */
+    readonly completedAt?: number;
+}
+
+/**
+ * Display state stored in memory.
+ * UI-facing state for labels and modes.
+ */
+export interface DisplayState {
+    /** Current display mode */
+    readonly mode: 'clock' | 'timer' | 'countdown' | 'hidden';
+
+    /** Primary label */
+    readonly label: string;
+
+    /** Secondary/subtitle label */
+    readonly subtitle?: string;
+
+    /** Formatted round string (e.g., "Round 2/5") */
+    readonly roundDisplay?: string;
+
+    /** Exercise/action being performed */
+    readonly actionDisplay?: string;
+}
+
+/**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'fragment';
+export type MemoryType = 'timer' | 'round' | 'fragment' | 'completion' | 'display';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
@@ -71,9 +107,12 @@ export interface MemoryTypeMap {
     timer: TimerState;
     round: RoundState;
     fragment: FragmentState;
+    completion: CompletionState;
+    display: DisplayState;
 }
 
 /**
  * Utility to resolve the value type for a given memory type key.
  */
 export type MemoryValueOf<T extends MemoryType> = MemoryTypeMap[T];
+

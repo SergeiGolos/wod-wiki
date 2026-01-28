@@ -1,0 +1,92 @@
+import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { TimerState } from '../memory/MemoryTypes';
+import { TimeSpan } from '../models/TimeSpan';
+
+/**
+ * TimerPauseBehavior handles pause/resume functionality for timers.
+ * 
+ * ## Aspect: Time (Controls)
+ * 
+ * Subscribes to pause/resume events and manages timer spans accordingly.
+ * When paused, closes the current span. When resumed, opens a new span.
+ */
+export class TimerPauseBehavior implements IRuntimeBehavior {
+    private isPaused = false;
+
+    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Subscribe to pause event
+        ctx.subscribe('timer:pause' as any, (_event, pauseCtx) => {
+            if (this.isPaused) return [];
+
+            const timer = pauseCtx.getMemory('timer') as TimerState | undefined;
+            if (!timer) return [];
+
+            // Close current span
+            const now = pauseCtx.clock.now.getTime();
+            const updatedSpans = timer.spans.map((span, i) => {
+                if (i === timer.spans.length - 1 && span.ended === undefined) {
+                    return new TimeSpan(span.started, now);
+                }
+                return span;
+            });
+
+            pauseCtx.setMemory('timer', {
+                ...timer,
+                spans: updatedSpans
+            });
+
+            this.isPaused = true;
+
+            pauseCtx.emitEvent({
+                name: 'timer:paused',
+                timestamp: pauseCtx.clock.now,
+                data: { blockKey: pauseCtx.block.key.toString() }
+            });
+
+            return [];
+        });
+
+        // Subscribe to resume event
+        ctx.subscribe('timer:resume' as any, (_event, resumeCtx) => {
+            if (!this.isPaused) return [];
+
+            const timer = resumeCtx.getMemory('timer') as TimerState | undefined;
+            if (!timer) return [];
+
+            // Open new span
+            const now = resumeCtx.clock.now.getTime();
+            const updatedSpans = [...timer.spans, new TimeSpan(now)];
+
+            resumeCtx.setMemory('timer', {
+                ...timer,
+                spans: updatedSpans
+            });
+
+            this.isPaused = false;
+
+            resumeCtx.emitEvent({
+                name: 'timer:resumed',
+                timestamp: resumeCtx.clock.now,
+                data: { blockKey: resumeCtx.block.key.toString() }
+            });
+
+            return [];
+        });
+
+        return [];
+    }
+
+    onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
+        return [];
+    }
+
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        return [];
+    }
+
+    get paused(): boolean {
+        return this.isPaused;
+    }
+}

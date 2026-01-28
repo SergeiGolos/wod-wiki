@@ -146,15 +146,9 @@ export class BehaviorContext implements IBehaviorContext {
         return entry?.value;
     }
 
-    setMemory<T extends MemoryType>(_type: T, _value: MemoryValueOf<T>): void {
-        // Note: IMemoryEntry is read-only by design. Memory should be pre-allocated
-        // by the strategy that creates the block. This method is a placeholder for
-        // future implementation that would allow behaviors to create/update memory.
-        // 
-        // For now, behaviors should:
-        // 1. Use the memory that was pre-allocated by their strategy
-        // 2. Or store state internally if transient
-        console.warn('[BehaviorContext] setMemory is not yet implemented. Pre-allocate memory in strategy.');
+    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
+        // Use the block's public setMemoryValue method
+        this.block.setMemoryValue(type, value);
     }
 
     // ============================================================================

@@ -5,20 +5,12 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-// import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
-// import { createSpanMetadata } from "../../../utils/metadata";
-// import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
-// import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-// import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
-// import { ChildRunnerBehavior } from "../../../behaviors/ChildRunnerBehavior";
 
-/**
- * Helper to extract optional exerciseId from code statement.
- */
-function getExerciseId(statement: ICodeStatement): string {
-    const stmt = statement as ICodeStatement & { exerciseId?: string };
-    return stmt.exerciseId ?? '';
-}
+// New aspect-based behaviors
+import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
+import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
+
+
 
 /**
  * Helper to extract optional content from code statement.
@@ -38,6 +30,15 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
     return defaultContent;
 }
 
+/**
+ * EffortFallbackStrategy handles simple effort blocks (e.g., "10 Push-ups").
+ * 
+ * These blocks have no timer and no rounds - they complete when the user advances.
+ * 
+ * ## Behaviors Applied:
+ * - **PopOnNextBehavior** (Completion): Marks block complete on next()
+ * - **SegmentOutputBehavior** (Output): Emits segment/completion outputs
+ */
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
 
@@ -51,6 +52,27 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // TODO: Reimplement behaviors with IBehaviorContext
+        const statement = statements[0];
+        const label = getContent(statement, 'Effort');
+
+        // Create block context
+        const blockKey = new BlockKey();
+        const context = new BlockContext(runtime, blockKey.toString());
+
+        // Configure block
+        builder
+            .setSourceIds(statements.map(s => s.id))
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType('effort')
+            .setLabel(label);
+
+        // Add behaviors
+        // Completion Aspect: complete on user advance
+        builder.addBehavior(new PopOnNextBehavior());
+
+        // Output Aspect: emit segment/completion outputs
+        builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }
+

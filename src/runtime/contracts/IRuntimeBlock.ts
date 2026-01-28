@@ -194,6 +194,14 @@ export interface IRuntimeBlock {
     getMemoryTypes(): MemoryType[];
 
     /**
+     * Set memory value directly. Creates or updates a memory entry.
+     * This is the public API for behaviors to store state.
+     * @param type The memory type to set
+     * @param value The value to store
+     */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
+
+    /**
      * Indicates whether this block has completed execution.
      * When true, the stack will pop this block during its next completion sweep.
      * 

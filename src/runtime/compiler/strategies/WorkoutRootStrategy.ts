@@ -7,22 +7,22 @@ import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
-
-// Decomposed behaviors - PENDING REIMPLEMENTATION
-// import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
-// import { TimerBehavior } from '../../behaviors/TimerBehavior';
-// import { ChildIndexBehavior } from '../../behaviors/ChildIndexBehavior';
-// import { ChildRunnerBehavior } from '../../behaviors/ChildRunnerBehavior';
-// import { RoundPerLoopBehavior } from '../../behaviors/RoundPerLoopBehavior';
-// import { WorkoutStateBehavior } from '../../behaviors/WorkoutStateBehavior';
-// import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
-// import { TimerPauseResumeBehavior } from '../../behaviors/TimerPauseResumeBehavior';
-// import { WorkoutControlButtonsBehavior } from '../../behaviors/WorkoutControlButtonsBehavior';
 import { IdleConfig } from '../../behaviors/IdleInjectionBehavior';
-// import { WorkoutFlowStateMachine } from '../../behaviors/WorkoutFlowStateMachine';
-// import { RoundDisplayBehavior } from '../../behaviors/RoundDisplayBehavior';
-// import { RoundSpanBehavior } from '../../behaviors/RoundSpanBehavior';
-// import { LapTimerBehavior } from '../../behaviors/LapTimerBehavior';
+
+// Aspect-based behaviors
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    TimerPauseBehavior,
+    RoundInitBehavior,
+    RoundAdvanceBehavior,
+    RoundCompletionBehavior,
+    RoundDisplayBehavior,
+    ChildRunnerBehavior,
+    DisplayInitBehavior,
+    ControlsInitBehavior,
+    HistoryRecordBehavior
+} from '../../behaviors';
 
 /**
  * Configuration for the root workout block.
@@ -64,7 +64,13 @@ const DEFAULT_END_IDLE: IdleConfig = {
 /**
  * WorkoutRootStrategy - Composes behaviors for the root workout block.
  * 
- * NOTE: Currently neutered pending behavior migration.
+ * Uses aspect-based behaviors:
+ * - Time: TimerInit (elapsed workout time), TimerTick, TimerPause
+ * - Iteration: RoundInit, RoundAdvance, RoundCompletion (if multi-round)
+ * - Children: ChildRunner to execute child blocks
+ * - Display: DisplayInit, RoundDisplay
+ * - Controls: ControlsInit for workout controls
+ * - Output: HistoryRecord for workout logging
  */
 export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;
@@ -79,7 +85,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     /**
      * Composable apply - not used for root blocks.
      */
-    apply(_builder: any, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
         // No-op for direct build
     }
 
@@ -109,8 +115,74 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
      * Builds the behavior list for a root workout block.
      */
     buildBehaviors(config: WorkoutRootConfig): IRuntimeBehavior[] {
-        // TODO: Reimplement behaviors with IBehaviorContext
-        return [];
+        const behaviors: IRuntimeBehavior[] = [];
+        const totalRounds = config.totalRounds ?? 1;
+
+        // =====================================================================
+        // Time Aspect - Track total workout elapsed time
+        // =====================================================================
+        behaviors.push(new TimerInitBehavior({
+            direction: 'up',
+            label: 'Workout',
+            role: 'primary'
+        }));
+        behaviors.push(new TimerTickBehavior());
+        behaviors.push(new TimerPauseBehavior());
+
+        // =====================================================================
+        // Iteration Aspect - If multi-round workout
+        // =====================================================================
+        if (totalRounds > 1) {
+            behaviors.push(new RoundInitBehavior({
+                totalRounds,
+                startRound: 1
+            }));
+            behaviors.push(new RoundAdvanceBehavior());
+            behaviors.push(new RoundCompletionBehavior());
+            behaviors.push(new RoundDisplayBehavior());
+        }
+
+        // =====================================================================
+        // Children Aspect - Execute child blocks
+        // =====================================================================
+        behaviors.push(new ChildRunnerBehavior({
+            childGroups: config.childGroups
+        }));
+
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        behaviors.push(new DisplayInitBehavior({
+            mode: 'clock',
+            label: 'Workout'
+        }));
+
+        // =====================================================================
+        // Controls Aspect - Workout control buttons
+        // =====================================================================
+        const buttons = config.executionButtons ?? [
+            { id: 'pause', label: 'Pause', action: 'timer:pause' },
+            { id: 'next', label: 'Next', action: 'block:next' },
+            { id: 'stop', label: 'Stop', action: 'workout:stop' }
+        ];
+
+        behaviors.push(new ControlsInitBehavior({
+            buttons: buttons.map(btn => ({
+                id: btn.id,
+                label: btn.label ?? btn.id,
+                variant: btn.id === 'stop' ? 'danger' as const : (btn.id === 'next' ? 'primary' as const : 'secondary' as const),
+                visible: true,
+                enabled: true,
+                eventName: btn.action
+            }))
+        }));
+
+        // =====================================================================
+        // Output Aspect - Record workout history
+        // =====================================================================
+        behaviors.push(new HistoryRecordBehavior());
+
+        return behaviors;
     }
 
     /**
