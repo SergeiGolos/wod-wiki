@@ -8,14 +8,14 @@ import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
 
-// Behaviors
-import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { PopOnNextBehavior } from '../../behaviors/PopOnNextBehavior';
-import { PopOnEventBehavior } from '../../behaviors/PopOnEventBehavior';
-import { SingleButtonBehavior } from '../../behaviors/SingleButtonBehavior';
-import { TransitionTimingBehavior } from '../../behaviors/TransitionTimingBehavior';
-import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
+// Behaviors - PENDING REIMPLEMENTATION
+// import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
+// import { TimerBehavior } from '../../behaviors/TimerBehavior';
+// import { PopOnNextBehavior } from '../../behaviors/PopOnNextBehavior';
+// import { PopOnEventBehavior } from '../../behaviors/PopOnEventBehavior';
+// import { SingleButtonBehavior } from '../../behaviors/SingleButtonBehavior';
+// import { TransitionTimingBehavior } from '../../behaviors/TransitionTimingBehavior';
+// import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
 
 /**
  * Configuration for idle blocks.
@@ -40,32 +40,7 @@ export interface IdleBlockConfig {
 /**
  * IdleBlockStrategy - Composes behaviors for idle/transition blocks.
  * 
- * This strategy builds idle blocks using single-responsibility behaviors:
- * - TransitionTimingBehavior: Tracks time spent in idle state
- * - RuntimeControlsBehavior: Manages button/control memory
- * - TimerBehavior: Provides timer display
- * - DisplayModeBehavior: Sets display mode
- * - PopOnNextBehavior: Pops on next (if configured)
- * - PopOnEventBehavior: Pops on specific events (if configured)
- * - SingleButtonBehavior: Registers a button (if configured)
- * 
- * @example
- * ```typescript
- * const strategy = new IdleBlockStrategy();
- * const block = strategy.build(runtime, {
- *     id: 'idle-start',
- *     label: 'Ready',
- *     popOnNext: true,
- *     button: {
- *         id: 'btn-start',
- *         label: 'Start Workout',
- *         icon: 'play',
- *         action: 'timer:start',
- *         variant: 'default',
- *         size: 'lg'
- *     }
- * });
- * ```
+ * NOTE: Neutered pending behavior migration.
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     priority = 100; // Root is highest priority if it were ever matched
@@ -107,37 +82,8 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
      * Builds the behavior list for an idle block.
      */
     buildBehaviors(config: IdleBlockConfig): IRuntimeBehavior[] {
-        const behaviors: IRuntimeBehavior[] = [];
-
-        // 1. Timing tracking (optional, defaults to true)
-        if (config.trackTiming !== false) {
-            behaviors.push(new TransitionTimingBehavior());
-        }
-
-        // 2. Controls allocation
-        behaviors.push(new RuntimeControlsBehavior());
-
-        // 3. Timer for display (secondary timer)
-        behaviors.push(new TimerBehavior('up', undefined, config.label, 'secondary'));
-
-        // 4. Display mode
-        behaviors.push(new DisplayModeBehavior(config.displayMode ?? 'clock'));
-
-        // 5. Pop behaviors
-        if (config.popOnNext) {
-            behaviors.push(new PopOnNextBehavior());
-        }
-
-        if (config.popOnEvents && config.popOnEvents.length > 0) {
-            behaviors.push(new PopOnEventBehavior(config.popOnEvents));
-        }
-
-        // 6. Button (if provided)
-        if (config.button) {
-            behaviors.push(new SingleButtonBehavior(config.button));
-        }
-
-        return behaviors;
+        // TODO: Reimplement behaviors with IBehaviorContext
+        return [];
     }
 }
 

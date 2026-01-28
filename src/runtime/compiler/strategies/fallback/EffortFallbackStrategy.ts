@@ -5,12 +5,12 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
-import { createSpanMetadata } from "../../../utils/metadata";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
-import { ChildRunnerBehavior } from "../../../behaviors/ChildRunnerBehavior";
+// import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
+// import { createSpanMetadata } from "../../../utils/metadata";
+// import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
+// import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+// import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
+// import { ChildRunnerBehavior } from "../../../behaviors/ChildRunnerBehavior";
 
 /**
  * Helper to extract optional exerciseId from code statement.
@@ -51,39 +51,6 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // If Loop behavior exists (e.g. from ChildrenStrategy?), we might not need Effort?
-        if (builder.hasBehavior(BoundLoopBehavior) || builder.hasBehavior(ChildRunnerBehavior)) return;
-
-        const statement = statements[0];
-        const blockKey = new BlockKey();
-        const exerciseId = getExerciseId(statement);
-        const context = new BlockContext(runtime, blockKey.toString(), exerciseId);
-
-        const label = getContent(statement, "Effort");
-
-        builder.setContext(context)
-            .setKey(blockKey)
-            .setBlockType("Effort")
-            .setLabel(label) // Use text content as label
-            .setSourceIds(statement.id ? [statement.id] : []);
-
-        // Filter out runtime-generated fragments to avoid pollution
-        const cleanFragments = (statement.fragments || []).filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
-
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(cleanFragments, "Effort");
-        builder.setFragments(fragmentGroups);
-
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
-
-
-        // Effort block usually has History
-        builder.addBehavior(new HistoryBehavior({
-            label: label,
-            debugMetadata: createSpanMetadata(
-                ['effort'],
-                { strategyUsed: 'EffortFallbackStrategy' }
-            )
-        }));
+        // TODO: Reimplement behaviors with IBehaviorContext
     }
 }

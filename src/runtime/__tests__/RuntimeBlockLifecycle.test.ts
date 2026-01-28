@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'bun:test';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEventBus } from '../contracts/events/IEventBus';
@@ -38,12 +38,14 @@ describe('RuntimeBlock Lifecycle', () => {
         runtime = {
             clock,
             eventBus,
+            stack: { count: 1 },
+            addOutput: vi.fn(), // Needed by BehaviorContext
         } as unknown as IScriptRuntime;
 
         behavior = {
-            onPush: vi.fn(),
+            onMount: vi.fn(),
             onNext: vi.fn(),
-            onPop: vi.fn(),
+            onUnmount: vi.fn(),
             onDispose: vi.fn()
         };
 
@@ -54,15 +56,17 @@ describe('RuntimeBlock Lifecycle', () => {
         it('should register default event handlers', () => {
             block.mount(runtime);
 
-            // Should register 'next' and '*' handlers
-            expect(eventBus.register).toHaveBeenCalledTimes(2);
+            // Should register 'next' handler only (event dispatcher removed)
+            expect(eventBus.register).toHaveBeenCalledTimes(1);
             expect(eventBus.register).toHaveBeenCalledWith('next', expect.any(Object), expect.any(String));
-            expect(eventBus.register).toHaveBeenCalledWith('*', expect.any(Object), expect.any(String));
         });
 
-        it('should call behaviors.onPush', () => {
+        it('should call behaviors.onMount with context', () => {
             block.mount(runtime);
-            expect(behavior.onPush).toHaveBeenCalledWith(block, clock);
+            expect(behavior.onMount).toHaveBeenCalledWith(expect.objectContaining({
+                block: block,
+                clock: runtime.clock
+            }));
         });
 
         it('should capture startTime', () => {
@@ -72,16 +76,29 @@ describe('RuntimeBlock Lifecycle', () => {
     });
 
     describe('next', () => {
-        it('should call behaviors.onNext', () => {
+        beforeEach(() => {
+            block.mount(runtime); // Ensure context exists
+        });
+
+        it('should call behaviors.onNext with context', () => {
             block.next(runtime);
-            expect(behavior.onNext).toHaveBeenCalledWith(block, clock);
+            // Verify called with context (which wraps block/clock)
+            expect(behavior.onNext).toHaveBeenCalledWith(expect.objectContaining({
+                block: block
+            }));
         });
     });
 
     describe('unmount', () => {
-        it('should call behaviors.onPop', () => {
+        beforeEach(() => {
+            block.mount(runtime); // Ensure context exists
+        });
+
+        it('should call behaviors.onUnmount with context', () => {
             block.unmount(runtime);
-            expect(behavior.onPop).toHaveBeenCalledWith(block, clock);
+            expect(behavior.onUnmount).toHaveBeenCalledWith(expect.objectContaining({
+                block: block
+            }));
         });
 
         it('should emit unmount event', () => {
@@ -109,7 +126,8 @@ describe('RuntimeBlock Lifecycle', () => {
             block.mount(runtime);
             block.unmount(runtime);
 
-            expect(unsubscribe).toHaveBeenCalledTimes(2);
+            // 1 call to unsubscribe for the 'next' handler
+            expect(unsubscribe).toHaveBeenCalledTimes(1);
         });
     });
 });

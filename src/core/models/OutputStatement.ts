@@ -56,6 +56,13 @@ export interface IOutputStatement extends ICodeStatement {
     readonly sourceBlockKey: string;
 
     /**
+     * Stack level (depth) when this output was emitted.
+     * 0 = root block, 1 = first child, etc.
+     * Used for visualizing output hierarchy.
+     */
+    readonly stackLevel: number;
+
+    /**
      * Fragments on IOutputStatement are runtime-generated.
      * They should have `origin: 'runtime'` or `origin: 'user'`.
      */
@@ -74,6 +81,9 @@ export interface OutputStatementOptions {
 
     /** The block key that produced this output */
     sourceBlockKey: string;
+
+    /** Stack level (depth) when this output was emitted */
+    stackLevel: number;
 
     /** The source statement ID (optional) */
     sourceStatementId?: number;
@@ -103,6 +113,7 @@ export class OutputStatement implements IOutputStatement {
     readonly timeSpan: TimeSpan;
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
+    readonly stackLevel: number;
     readonly fragments: ICodeFragment[];
     readonly parent?: number;
     readonly children: number[][];
@@ -116,6 +127,7 @@ export class OutputStatement implements IOutputStatement {
         this.timeSpan = options.timeSpan;
         this.sourceBlockKey = options.sourceBlockKey;
         this.sourceStatementId = options.sourceStatementId;
+        this.stackLevel = options.stackLevel;
         this.fragments = options.fragments ?? [];
         this.parent = options.parent;
         this.children = options.children ?? [];

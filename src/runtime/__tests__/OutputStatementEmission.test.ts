@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'bun:test';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeMemory } from '../RuntimeMemory';

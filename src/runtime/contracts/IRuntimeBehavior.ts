@@ -1,32 +1,42 @@
-import { IEvent } from "./events/IEvent";
 import { IRuntimeAction } from "./IRuntimeAction";
-import { IRuntimeBlock } from "./IRuntimeBlock";
-import { IRuntimeClock } from "./IRuntimeClock";
+import { IBehaviorContext } from "./IBehaviorContext";
 
 /**
  * Generic, composable behavior contract applied to runtime blocks.
- *
+ * 
+ * New Design (Phase 2+): behaviors interact purely via IBehaviorContext.
+ * 
  * Design goals:
- * - Constructor-configurable: concrete behaviors can accept arbitrary args in their constructors
- *   to control how they apply (targets, filters, thresholds, etc.).
- * - Application-time context: every hook receives both the script runtime and the specific block
- *   instance being acted upon.
- * - Optional hooks: implement only what you need; unimplemented hooks are skipped.
+ * - Constructor-configurable: concrete behaviors can accept arbitrary args in their constructors.
+ * - Context-driven: every hook receives IBehaviorContext.
+ * - Optional hooks: implement only what you need.
  */
-
 export interface IRuntimeBehavior {
-  /** Called when the owning block is pushed onto the stack. May return initial events to emit. */
-  onPush?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
+  /**
+   * Called when the owning block is mounted.
+   * Use ctx.subscribe() to listen for events and ctx.emitOutput() for initial reports.
+   * Use ctx.setMemory() to initialize block state.
+   */
+  onMount?(ctx: IBehaviorContext): IRuntimeAction[];
 
-  /** Called when determining the next block after a child completes. Return a block to override. */
-  onNext?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
+  /**
+   * Called when parent.next() is invoked (child completed or manual advance).
+   * 
+   * This is the signal to advance the block's internal state (e.g., next round).
+   * If the block is finished, call ctx.markComplete().
+   */
+  onNext?(ctx: IBehaviorContext): IRuntimeAction[];
 
-  /** Called right before the owning block is popped from the stack. */
-  onPop?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
+  /**
+   * Called when the owning block is about to be unmounted.
+   * Use ctx.emitOutput() to report final completion fragments.
+   * Subscriptions are automatically cleaned up *after* this method returns.
+   */
+  onUnmount?(ctx: IBehaviorContext): IRuntimeAction[];
 
-  /** Called when the block is being disposed. Use this to clean up resources or log final metrics. */
-  onDispose?(block: IRuntimeBlock): void;
-
-  /** Called when an event is dispatched to the block. */
-  onEvent?(event: IEvent, block: IRuntimeBlock): IRuntimeAction[];
+  /**
+   * Called when the block is being disposed.
+   * Final cleanup hook.
+   */
+  onDispose?(ctx: IBehaviorContext): void;
 }

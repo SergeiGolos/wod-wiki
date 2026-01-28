@@ -245,9 +245,26 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Creates an output statement from a popped block and notifies subscribers.
+     * Add an output statement to the collection and notify subscribers.
+     * Used by BehaviorContext to emit outputs at any lifecycle point.
      */
-    private emitOutputStatement(block: IRuntimeBlock): void {
+    public addOutput(output: IOutputStatement): void {
+        this._outputStatements.push(output);
+
+        for (const listener of this._outputListeners) {
+            try {
+                listener(output);
+            } catch (err) {
+                console.error('[RT] Output listener error:', err);
+            }
+        }
+    }
+
+    /**
+     * Creates an output statement from a popped block and notifies subscribers.
+     * Called during popBlock() to emit a 'completion' output.
+     */
+    private emitOutputStatement(block: IRuntimeBlock, stackLevel: number): void {
         // Build TimeSpan from execution timing
         const startTime = block.executionTiming?.startTime?.getTime() ?? Date.now();
         const endTime = block.executionTiming?.completedAt?.getTime() ?? Date.now();
@@ -263,22 +280,15 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan,
             sourceBlockKey: block.key.toString(),
             sourceStatementId: block.sourceIds?.[0],
+            stackLevel,
             fragments,
-            parent: undefined, // TODO: Link to parent output when we have hierarchy
+            parent: undefined,
             children: [],
         });
 
-        // Store and notify
-        this._outputStatements.push(output);
-        console.log(`[RT] emitOutputStatement: ${block.label} -> ${output.outputType} (${fragments.length} fragments)`);
-
-        for (const listener of this._outputListeners) {
-            try {
-                listener(output);
-            } catch (err) {
-                console.error('[RT] Output listener error:', err);
-            }
-        }
+        // Store and notify via addOutput
+        this.addOutput(output);
+        console.log(`[RT] emitOutputStatement: ${block.label} -> ${output.outputType} (level=${stackLevel}, ${fragments.length} fragments)`);
     }
 
     // ========== Stack Lifecycle Operations ==========
@@ -332,6 +342,9 @@ export class ScriptRuntime implements IScriptRuntime {
             return undefined;
         }
 
+        // Capture stack level before pop (0-indexed: root = 0)
+        const stackLevelBeforePop = this.stack.count - 1;
+
         const completedAt = options.completedAt ?? this.clock.now;
         const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt };
         this.setCompletedTime(currentBlock, completedAt);
@@ -383,8 +396,8 @@ export class ScriptRuntime implements IScriptRuntime {
             this.queueActions(nextActions);
         }
 
-        // 8. Emit output statement for the popped block
-        this.emitOutputStatement(popped);
+        // 8. Emit output statement for the popped block with its stack level
+        this.emitOutputStatement(popped, stackLevelBeforePop);
 
         this._hooks.onAfterPop?.(popped);
 
