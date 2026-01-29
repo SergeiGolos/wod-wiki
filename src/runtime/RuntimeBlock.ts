@@ -11,6 +11,7 @@ import { IEvent } from './contracts/events/IEvent';
 import { IMemoryEntry } from './memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
+import { SimpleMemoryEntry } from './memory/SimpleMemoryEntry';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -116,7 +117,6 @@ export class RuntimeBlock implements IRuntimeBlock {
             (existing as any).update(value);
         } else {
             // Create new SimpleMemoryEntry
-            const { SimpleMemoryEntry } = require('./memory/SimpleMemoryEntry');
             this._memoryEntries.set(type, new SimpleMemoryEntry(type, value));
         }
     }

@@ -1,31 +1,58 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 export interface ChildRunnerConfig {
     /** Child statement ID groups to execute */
     childGroups: number[][];
 }
 
-// Placeholder for the actual push block action
-// This will need to be imported from the actions module
-interface PushBlockAction extends IRuntimeAction {
-    statementIds: number[];
-}
-
 /**
- * Creates a push block action for the given statement IDs.
- * This is a simple factory - the actual action class should be imported.
+ * PushChildBlockAction - Pushes a block for the given statement IDs.
+ * 
+ * Uses the JIT compiler to create and push blocks for child statements.
  */
-function createPushBlockAction(statementIds: number[]): PushBlockAction {
-    return {
-        execute: () => {
-            // This is a placeholder. The actual implementation should use
-            // the runtime's compilation system to create and push blocks.
-            console.log('[ChildRunnerBehavior] Would push block for:', statementIds);
-        },
-        statementIds
-    } as PushBlockAction;
+class PushChildBlockAction implements IRuntimeAction {
+    readonly type = 'push-child-block';
+    readonly target?: string;
+    readonly payload?: unknown;
+
+    constructor(private readonly statementIds: number[]) {
+        this.payload = { statementIds };
+    }
+
+    do(runtime: IScriptRuntime): void {
+        if (this.statementIds.length === 0) {
+            console.warn('[PushChildBlockAction] No statement IDs to push');
+            return;
+        }
+
+        // Get the script and compiler from runtime
+        const script = runtime.script;
+        const compiler = runtime.jit;
+
+        if (!script || !compiler) {
+            console.warn('[PushChildBlockAction] No script or compiler available');
+            return;
+        }
+
+        // Get statements for these IDs
+        const statements = this.statementIds
+            .map(id => script.statements.find(s => s.id === id))
+            .filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+        if (statements.length === 0) {
+            console.warn('[PushChildBlockAction] No statements found for IDs:', this.statementIds);
+            return;
+        }
+
+        // Compile and push the block
+        const block = compiler.compile(statements, runtime);
+        if (block) {
+            runtime.pushBlock(block);
+        }
+    }
 }
 
 /**
@@ -46,7 +73,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         if (this.config.childGroups.length > 0) {
             const firstGroup = this.config.childGroups[0];
             this.childIndex = 1; // Next to push
-            return [createPushBlockAction(firstGroup)];
+            return [new PushChildBlockAction(firstGroup)];
         }
         return [];
     }
@@ -56,7 +83,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         if (this.childIndex < this.config.childGroups.length) {
             const nextGroup = this.config.childGroups[this.childIndex];
             this.childIndex++;
-            return [createPushBlockAction(nextGroup)];
+            return [new PushChildBlockAction(nextGroup)];
         }
 
         // No more children - parent will handle completion

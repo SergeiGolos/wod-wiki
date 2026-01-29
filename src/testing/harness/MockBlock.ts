@@ -8,6 +8,8 @@ import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
+import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
+import { IMemoryEntry } from '@/runtime/memory/IMemoryEntry';
 
 /**
  * Minimal stub context for MockBlock
@@ -254,5 +256,80 @@ export class MockBlock implements IRuntimeBlock {
 
   hasFragment(type: FragmentType): boolean {
     return this.fragments.some(group => group.some(f => f.fragmentType === type));
+  }
+
+  // ============================================================================
+  // Block-Owned Memory (required by IRuntimeBlock interface)
+  // ============================================================================
+
+  private _memoryEntries: Map<string, MockMemoryEntry<any, any>> = new Map();
+
+  /**
+   * Check if this block owns memory of the specified type.
+   */
+  hasMemory<T extends MemoryType>(type: T): boolean {
+    return this._memoryEntries.has(type);
+  }
+
+  /**
+   * Get memory entry of the specified type.
+   */
+  getMemory<T extends MemoryType>(
+    type: T
+  ): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
+    return this._memoryEntries.get(type);
+  }
+
+  /**
+   * Get all memory types owned by this block.
+   */
+  getMemoryTypes(): MemoryType[] {
+    return Array.from(this._memoryEntries.keys()) as MemoryType[];
+  }
+
+  /**
+   * Set memory value directly. Creates or updates a memory entry.
+   */
+  setMemoryValue<T extends MemoryType>(
+    type: T,
+    value: MemoryValueOf<T>
+  ): void {
+    if (this._memoryEntries.has(type)) {
+      const entry = this._memoryEntries.get(type)!;
+      entry.setValue(value);
+    } else {
+      this._memoryEntries.set(type, new MockMemoryEntry(type, value));
+    }
+  }
+}
+
+/**
+ * Simple mock memory entry for testing.
+ */
+class MockMemoryEntry<T extends string, V> implements IMemoryEntry<T, V> {
+  readonly type: T;
+  private _value: V;
+  private _subscribers: Set<(newValue: V | undefined, oldValue: V | undefined) => void> = new Set();
+
+  constructor(type: T, initialValue: V) {
+    this.type = type;
+    this._value = initialValue;
+  }
+
+  get value(): V {
+    return this._value;
+  }
+
+  setValue(newValue: V): void {
+    const oldValue = this._value;
+    this._value = newValue;
+    for (const subscriber of this._subscribers) {
+      subscriber(newValue, oldValue);
+    }
+  }
+
+  subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void {
+    this._subscribers.add(listener);
+    return () => this._subscribers.delete(listener);
   }
 }

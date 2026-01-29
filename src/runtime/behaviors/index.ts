@@ -69,3 +69,16 @@ export type { ControlsConfig, ButtonConfig, ControlsState } from './ControlsInit
 export { HistoryBehavior } from './HistoryBehavior';
 /** @deprecated Use ControlsInitBehavior and DisplayInitBehavior instead */
 export { ActionLayerBehavior } from './ActionLayerBehavior';
+/** @deprecated Use TimerInitBehavior, TimerTickBehavior, etc. instead */
+export { TimerBehavior, type TimerDirection } from './TimerBehavior';
+export { TimeSpan } from '../models/TimeSpan';
+/** @deprecated Use SoundCueBehavior instead */
+export { SoundBehavior, SOUND_MEMORY_TYPE } from './SoundBehavior';
+/** @deprecated Use TimerInitBehavior with direction 'up' instead */
+export { UnboundTimerBehavior } from './UnboundTimerBehavior';
+/** @deprecated Use TimerInitBehavior with direction 'down' and durationMs instead */
+export { BoundTimerBehavior } from './BoundTimerBehavior';
+/** @deprecated Use RoundInitBehavior, RoundAdvanceBehavior, RoundCompletionBehavior instead */
+export { BoundLoopBehavior } from './BoundLoopBehavior';
+/** @deprecated Use RoundInitBehavior without total instead */
+export { UnboundLoopBehavior } from './UnboundLoopBehavior';
