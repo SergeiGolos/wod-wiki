@@ -61,3 +61,11 @@ export type { SoundCue, SoundCueConfig } from './SoundCueBehavior';
 // ============================================================================
 export { ControlsInitBehavior } from './ControlsInitBehavior';
 export type { ControlsConfig, ButtonConfig, ControlsState } from './ControlsInitBehavior';
+
+// ============================================================================
+// Legacy Behaviors (Deprecated - Maintained for Backward Compatibility)
+// ============================================================================
+/** @deprecated Use HistoryRecordBehavior instead */
+export { HistoryBehavior } from './HistoryBehavior';
+/** @deprecated Use ControlsInitBehavior and DisplayInitBehavior instead */
+export { ActionLayerBehavior } from './ActionLayerBehavior';

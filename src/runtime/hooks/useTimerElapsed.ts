@@ -26,15 +26,23 @@ export interface UseTimerElapsedResult {
  * - Subscription-based updates for state changes
  * - Polling only for display time calculation, not data fetching
  * 
+ * @deprecated Prefer useTimerDisplay when you have access to an IRuntimeBlock.
+ * This hook is maintained for components that receive blockKey strings from
+ * the display stack system. When migrating to the behavior-based system,
+ * use useTimerDisplay(block) instead.
+ * 
  * @param blockKey The block key to track elapsed time for
  * @returns Object with elapsed time, running state, and time spans
  * 
  * @example
  * ```tsx
+ * // Legacy usage (display stack integration)
  * const { elapsed, isRunning, timeSpans } = useTimerElapsed(blockKey);
- * 
  * const seconds = Math.floor(elapsed / 1000);
- * console.log(`Timer: ${seconds}s, Running: ${isRunning}`);
+ * 
+ * // Preferred: Use useTimerDisplay when you have a block reference
+ * // const display = useTimerDisplay(block);
+ * // const formatted = display?.formatted;
  * ```
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
