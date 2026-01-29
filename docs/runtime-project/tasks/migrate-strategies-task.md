@@ -243,6 +243,16 @@ Migrate the remaining runtime block strategies to use the new aspect-based behav
 
 ---
 
+### Task 8.5: Integration Tests
+
+**Duration:** 30 min
+
+**Steps:**
+1. [x] Create comprehensive integration tests for behavior compositions
+2. [ ] Update UI to observe memory state changes
+
+---
+
 ### Task 9: Cleanup & Deprecation
 
 **Duration:** 15 min

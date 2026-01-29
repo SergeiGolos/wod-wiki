@@ -26,15 +26,15 @@ This document describes the aspect-based behavior system for composing runtime b
 
 ## Implementation Status
 
-| Aspect | Behaviors | Status |
-|--------|-----------|--------|
-| **Time** | 5 behaviors | ✅ Implemented |
-| **Iteration** | 5 behaviors | ✅ Implemented |
+| Aspect         | Behaviors   | Status        |
+| -------------- | ----------- | ------------- |
+| **Time**       | 5 behaviors | ✅ Implemented |
+| **Iteration**  | 5 behaviors | ✅ Implemented |
 | **Completion** | 4 behaviors | ✅ Implemented |
-| **Display** | 2 behaviors | ✅ Implemented |
-| **Children** | 1 behavior | ✅ Implemented |
-| **Output** | 4 behaviors | ✅ Implemented |
-| **Controls** | 1 behavior | ✅ Implemented |
+| **Display**    | 2 behaviors | ✅ Implemented |
+| **Children**   | 1 behavior  | ✅ Implemented |
+| **Output**     | 4 behaviors | ✅ Implemented |
+| **Controls**   | 1 behavior  | ✅ Implemented |
 
 **Total: 22 behaviors implemented**
 
@@ -69,13 +69,13 @@ interface TimerState {
 
 #### Behavior Implementations
 
-| Behavior | File | Responsibility |
-|----------|------|---------------|
-| `TimerInitBehavior` | `TimerInitBehavior.ts` | Initialize timer state on mount, emit `timer:started` event |
-| `TimerTickBehavior` | `TimerTickBehavior.ts` | Subscribe to tick events, close spans on unmount |
-| `TimerCompletionBehavior` | `TimerCompletionBehavior.ts` | Mark complete on countdown expiry, emit `timer:complete` |
-| `TimerPauseBehavior` | `TimerPauseBehavior.ts` | Handle `timer:pause`/`timer:resume` events |
-| `TimerOutputBehavior` | `TimerOutputBehavior.ts` | Emit timer outputs with elapsed time on mount/unmount |
+| Behavior                  | File                         | Responsibility                                              |
+| ------------------------- | ---------------------------- | ----------------------------------------------------------- |
+| `TimerInitBehavior`       | `TimerInitBehavior.ts`       | Initialize timer state on mount, emit `timer:started` event |
+| `TimerTickBehavior`       | `TimerTickBehavior.ts`       | Subscribe to tick events, close spans on unmount            |
+| `TimerCompletionBehavior` | `TimerCompletionBehavior.ts` | Mark complete on countdown expiry, emit `timer:complete`    |
+| `TimerPauseBehavior`      | `TimerPauseBehavior.ts`      | Handle `timer:pause`/`timer:resume` events                  |
+| `TimerOutputBehavior`     | `TimerOutputBehavior.ts`     | Emit timer outputs with elapsed time on mount/unmount       |
 
 ---
 
