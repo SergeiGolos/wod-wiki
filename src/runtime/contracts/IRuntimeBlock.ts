@@ -6,6 +6,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IMemoryEntry } from '../memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
+import { IRuntimeClock } from './IRuntimeClock';
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
@@ -14,6 +15,21 @@ export interface BlockLifecycleOptions {
     completedAt?: Date;
     /** Current timestamp for the operation (onNext, etc). */
     now?: Date;
+    
+    /**
+     * Clock to use for this lifecycle operation.
+     * 
+     * If provided, this clock is passed to behaviors and child operations,
+     * allowing consistent timing during execution chains (pop → next → push).
+     * 
+     * Use `SnapshotClock.at(clock, time)` to freeze time during an execution chain:
+     * - When a timer expires at T₁, create a snapshot at T₁
+     * - Pass the snapshot through pop → parent.next → child push
+     * - All operations see T₁ as `clock.now`, ensuring no timing gaps
+     * 
+     * If not provided, defaults to `runtime.clock`.
+     */
+    clock?: IRuntimeClock;
 }
 
 /**

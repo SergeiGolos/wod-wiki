@@ -3,6 +3,78 @@ import { TimeSpan } from './models/TimeSpan';
 
 
 /**
+ * SnapshotClock wraps an IRuntimeClock and freezes `now` at a specific timestamp.
+ * Used to ensure consistent timing during execution chains (pop → next → push).
+ * 
+ * All other properties and methods delegate to the underlying clock.
+ * 
+ * @example
+ * ```typescript
+ * // Freeze time at completion moment
+ * const completedAt = new Date();
+ * const snapshot = SnapshotClock.at(runtime.clock, completedAt);
+ * 
+ * // All operations see the same frozen time
+ * parent.next(runtime, { clock: snapshot });
+ * // child pushed with startTime = snapshot.now = completedAt
+ * ```
+ */
+export class SnapshotClock implements IRuntimeClock {
+    constructor(
+        private readonly _underlying: IRuntimeClock,
+        private readonly _frozenTime: Date
+    ) {}
+
+    /** Always returns the frozen timestamp */
+    get now(): Date {
+        return this._frozenTime;
+    }
+
+    /** Delegate to underlying clock */
+    get elapsed(): number {
+        return this._underlying.elapsed;
+    }
+
+    get isRunning(): boolean {
+        return this._underlying.isRunning;
+    }
+
+    get spans(): ReadonlyArray<TimeSpan> {
+        return this._underlying.spans;
+    }
+
+    start(): Date {
+        return this._underlying.start();
+    }
+
+    stop(): Date {
+        return this._underlying.stop();
+    }
+
+    /**
+     * Create a snapshot of a clock at a specific time.
+     * Factory method for cleaner creation.
+     * 
+     * @param clock The underlying clock to wrap
+     * @param time The frozen timestamp to return from `now`
+     */
+    static at(clock: IRuntimeClock, time: Date): SnapshotClock {
+        return new SnapshotClock(clock, time);
+    }
+
+    /**
+     * Create a snapshot at the clock's current time.
+     * Useful for freezing "now" before starting an execution chain.
+     * 
+     * @param clock The clock to snapshot
+     */
+    static now(clock: IRuntimeClock): SnapshotClock {
+        return new SnapshotClock(clock, clock.now);
+    }
+}
+
+
+/**
  * RuntimeClock tracks time using spans created by start/stop calls.
  * 
  * Provides:
