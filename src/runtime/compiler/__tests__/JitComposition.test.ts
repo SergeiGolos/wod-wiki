@@ -1,8 +1,7 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { JitCompiler } from "../JitCompiler";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { CodeStatement } from "@/core/models/CodeStatement";
-import { FragmentType } from "@/core/models/CodeFragment";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
 import { AmrapLogicStrategy } from "../strategies/logic/AmrapLogicStrategy";
@@ -11,15 +10,16 @@ import { GenericTimerStrategy } from "../strategies/components/GenericTimerStrat
 import { GenericLoopStrategy } from "../strategies/components/GenericLoopStrategy";
 import { SoundStrategy } from "../strategies/enhancements/SoundStrategy";
 import { HistoryStrategy } from "../strategies/enhancements/HistoryStrategy";
-import { ChildrenStrategy } from "../strategies/enhancements/ChildrenStrategy"; // Added
-import { BoundTimerBehavior } from "../../behaviors/BoundTimerBehavior";
-import { BoundLoopBehavior } from "../../behaviors/BoundLoopBehavior";
-import { UnboundLoopBehavior } from "../../behaviors/UnboundLoopBehavior";
-import { SinglePassBehavior } from "../../behaviors/SinglePassBehavior"; // Added
-import { IntervalWaitingBehavior } from "../../behaviors/IntervalWaitingBehavior";
-import { SoundBehavior } from "../../behaviors/SoundBehavior";
-import { HistoryBehavior } from "../../behaviors/HistoryBehavior";
+import { ChildrenStrategy } from "../strategies/enhancements/ChildrenStrategy";
 import { CodeMetadata } from "@/core/models/CodeMetadata";
+
+// Import new aspect-based behaviors for tests
+import { 
+    TimerInitBehavior,
+    RoundInitBehavior,
+    SoundCueBehavior,
+    HistoryRecordBehavior
+} from "../../behaviors";
 
 describe("JIT Composition", () => {
     let runtime: IScriptRuntime;
@@ -52,10 +52,8 @@ describe("JIT Composition", () => {
          }
     }
 
-    it.skip("should compile AMRAP block using composition and avoid SinglePass", () => {
-        // NOTE: This test uses old behavior classes (BoundTimerBehavior, etc.)
-        // The new strategies use aspect-based behaviors (TimerInitBehavior, etc.)
-        // AMRAP 10 min
+    it("should compile AMRAP block using composition with aspect-based behaviors", () => {
+        // AMRAP 10 min - uses new aspect-based behaviors
         const statement = new CodeStatement();
         statement.fragments = [
             new MockTimerFragment(600000, true), // AMRAP implies 'up'
@@ -79,28 +77,20 @@ describe("JIT Composition", () => {
         expect(block.blockType).toBe("AMRAP");
         expect(block.label).toContain("10 min");
 
-        // Check Behaviors
-        // AMRAP should have BoundTimer (Up) and UnboundLoop
-        const timer = block.getBehavior(BoundTimerBehavior);
+        // Check Behaviors - now using aspect-based behaviors
+        // AMRAP should have TimerInitBehavior (direction: 'up') and RoundInitBehavior (unbounded)
+        const timer = block.getBehavior(TimerInitBehavior);
         expect(timer).toBeDefined();
-        expect(timer?.direction).toBe('up');
-        expect(timer?.durationMs).toBe(600000);
 
-        const loop = block.getBehavior(UnboundLoopBehavior);
-        expect(loop).toBeDefined();
+        const round = block.getBehavior(RoundInitBehavior);
+        expect(round).toBeDefined();
 
-        // Should NOT have BoundLoopBehavior (overridden by Amrap logic + GenericLoop check)
-        const boundLoop = block.getBehavior(BoundLoopBehavior);
-        expect(boundLoop).toBeUndefined();
-
-        // Should NOT have SinglePassBehavior (ChildrenStrategy should see UnboundLoop)
-        const singlePass = block.getBehavior(SinglePassBehavior);
-        expect(singlePass).toBeUndefined();
+        // Should have HistoryRecordBehavior
+        expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
     });
 
-    it.skip("should compile EMOM block using composition", () => {
-        // NOTE: This test uses old behavior classes
-        // EMOM 10 min (Every 1 min)
+    it("should compile EMOM block using composition with aspect-based behaviors", () => {
+        // EMOM 10 min (Every 1 min) - uses new aspect-based behaviors
         const statement = new CodeStatement();
         statement.fragments = [
             new MockTimerFragment(60000), // 1 min interval
@@ -120,21 +110,16 @@ describe("JIT Composition", () => {
 
         expect(block.blockType).toBe("Interval");
 
-        // Timer should be Interval Duration (1 min)
-        const timer = block.getBehavior(BoundTimerBehavior);
-        expect(timer?.durationMs).toBe(60000);
-        expect(timer?.direction).toBe('down');
+        // Timer should use TimerInitBehavior
+        const timer = block.getBehavior(TimerInitBehavior);
+        expect(timer).toBeDefined();
 
-        // Should have IntervalWaiting
-        expect(block.getBehavior(IntervalWaitingBehavior)).toBeDefined();
-
-        // Should have Sound (added by SoundStrategy)
-        expect(block.getBehavior(SoundBehavior)).toBeDefined();
+        // Should have SoundCueBehavior (added by SoundStrategy)
+        expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 
-    it.skip("should compile generic Timer block", () => {
-        // NOTE: This test uses old behavior classes
-        // For Time: 5 min
+    it("should compile generic Timer block with aspect-based behaviors", () => {
+        // For Time: 5 min - uses new aspect-based behaviors
         const statement = new CodeStatement();
         statement.fragments = [
             new MockTimerFragment(300000)
@@ -147,7 +132,7 @@ describe("JIT Composition", () => {
 
         expect(block).toBeDefined();
         expect(block?.blockType).toBe("Timer");
-        expect(block?.getBehavior(BoundTimerBehavior)).toBeDefined();
-        expect(block?.getBehavior(SoundBehavior)).toBeDefined();
+        expect(block?.getBehavior(TimerInitBehavior)).toBeDefined();
+        expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 });

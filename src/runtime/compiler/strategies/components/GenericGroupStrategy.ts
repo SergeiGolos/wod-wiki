@@ -5,13 +5,22 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
-import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
-import { createSpanMetadata } from "../../../utils/metadata";
-import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
-import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
-import { UnboundLoopBehavior } from "../../../behaviors/UnboundLoopBehavior";
 
+// New aspect-based behaviors
+import {
+    TimerInitBehavior,
+    RoundInitBehavior,
+    DisplayInitBehavior,
+    HistoryRecordBehavior
+} from "../../../behaviors";
+
+/**
+ * GenericGroupStrategy handles blocks with children but no timer/loop.
+ * 
+ * Uses aspect-based behaviors:
+ * - Display: DisplayInit
+ * - Output: HistoryRecord
+ */
 export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     priority = 40; // Lower than GenericTimer/GenericLoop (50) to let them define identity first
 
@@ -21,9 +30,8 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // If we have Timer or Loop behaviors, the identity is already set (Timer/Rounds/AMRAP/EMOM).
-        if (builder.hasBehavior(BoundTimerBehavior) ||
-            builder.hasBehavior(BoundLoopBehavior) ||
-            builder.hasBehavior(UnboundLoopBehavior)) {
+        if (builder.hasBehavior(TimerInitBehavior) ||
+            builder.hasBehavior(RoundInitBehavior)) {
             return;
         }
 
@@ -31,26 +39,29 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         const statement = statements[0];
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const label = statement.content || "Group";
 
         builder.setContext(context)
                .setKey(blockKey)
                .setBlockType("Group")
-               .setLabel(statement.content || "Group")
+               .setLabel(label)
                .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(statement.fragments || [], "Group");
         builder.setFragments(fragmentGroups);
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
 
-
-        // History for Group
-        builder.addBehavior(new HistoryBehavior({
-            label: statement.content || "Group",
-            debugMetadata: createSpanMetadata(
-                ['group'],
-                { strategyUsed: 'GenericGroupStrategy' }
-            )
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        builder.addBehavior(new DisplayInitBehavior({
+            mode: 'clock',
+            label
         }));
+
+        // =====================================================================
+        // Output Aspect
+        // =====================================================================
+        builder.addBehavior(new HistoryRecordBehavior());
     }
 }
