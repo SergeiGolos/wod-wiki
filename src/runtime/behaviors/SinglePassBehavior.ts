@@ -7,6 +7,8 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
  * 
  * @deprecated This behavior is superseded by PopOnNextBehavior.
  * Use PopOnNextBehavior instead for the same functionality.
+ * 
+ * @see PopOnNextBehavior
  */
 export class SinglePassBehavior implements IRuntimeBehavior {
     private _isComplete = false;
@@ -20,7 +22,7 @@ export class SinglePassBehavior implements IRuntimeBehavior {
         // After first next() call, mark as complete
         if (!this._isComplete) {
             this._isComplete = true;
-            ctx.block.state.isComplete = true;
+            ctx.markComplete('single-pass');
         }
         return [];
     }
