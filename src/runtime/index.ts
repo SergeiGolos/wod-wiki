@@ -2,7 +2,7 @@ export * from './ScriptRuntime';
 export * from './contracts/IRuntimeOptions';
 export * from './events/StackEvents';
 export * from './events/MemoryEvents';
-export { SoundBehavior } from './behaviors/SoundBehavior';
+export { SoundCueBehavior } from './behaviors/SoundCueBehavior';
 
 // IRuntimeBehavior is the canonical behavior interface
 export type { IRuntimeBehavior } from './contracts/IRuntimeBehavior';

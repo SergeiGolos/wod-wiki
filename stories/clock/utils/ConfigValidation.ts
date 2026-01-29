@@ -1,4 +1,4 @@
-import { TimeSpan } from '../../src/runtime/behaviors/TimerBehavior';
+import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 
 /**
  * Configuration interface for Clock Memory Story components.
@@ -48,14 +48,14 @@ export function validateConfig(config: ClockMemoryStoryConfig): void {
 
     // Validate each TimeSpan object in the array
     config.timeSpans.forEach((span, index) => {
-      // Check if start is provided and is a Date
-      if (span.start !== undefined && !(span.start instanceof Date)) {
-        throw new Error(`Invalid timeSpans[${index}].start: must be Date.`);
+      // Check if started is provided and is a number (timestamp)
+      if (typeof span.started !== 'number') {
+        throw new Error(`Invalid timeSpans[${index}].started: must be a number (timestamp).`);
       }
 
-      // Check if stop is provided and is a Date
-      if (span.stop !== undefined && !(span.stop instanceof Date)) {
-        throw new Error(`Invalid timeSpans[${index}].stop: must be Date or undefined.`);
+      // Check if ended is provided and is a number (timestamp)
+      if (span.ended !== undefined && typeof span.ended !== 'number') {
+        throw new Error(`Invalid timeSpans[${index}].ended: must be a number (timestamp) or undefined.`);
       }
     });
   }

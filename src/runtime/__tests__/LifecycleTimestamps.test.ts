@@ -3,7 +3,6 @@ import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../actions/stack/PushBlockAction';
-import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { WodScript } from '../../parser/WodScript';
 import { JitCompiler } from '../compiler/JitCompiler';

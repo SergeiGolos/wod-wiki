@@ -8,8 +8,8 @@ import { IEvent } from '../contracts/events/IEvent';
 import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
-import { UnboundTimerBehavior } from '../behaviors/UnboundTimerBehavior';
-import { ActionLayerBehavior } from '../behaviors/ActionLayerBehavior';
+import { TimerInitBehavior } from '../behaviors/TimerInitBehavior';
+import { DisplayInitBehavior } from '../behaviors/DisplayInitBehavior';
 
 /**
  * EffortBlock Configuration
@@ -102,9 +102,19 @@ export class EffortBlock extends RuntimeBlock {
     const completionBehavior = new EffortCompletionBehavior(() => this.isTargetComplete());
 
     // Initialize behaviors in order
-    this.behaviors.push(new ActionLayerBehavior(this.key.toString(), fragments ?? [], sourceIds));
+    // Display aspect
+    this.behaviors.push(new DisplayInitBehavior({
+      mode: 'clock',
+      label: `${config.targetReps} ${config.exerciseName}`,
+      actionDisplay: config.exerciseName
+    }));
     this.behaviors.push(completionBehavior);
-    this.behaviors.push(new UnboundTimerBehavior('Segment Timer', 'secondary'));
+    // Timer aspect - countup timer for segment timing
+    this.behaviors.push(new TimerInitBehavior({
+      direction: 'up',
+      label: 'Segment Timer',
+      role: 'secondary'
+    }));
   }
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {

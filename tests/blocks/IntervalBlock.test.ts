@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
-import { IntervalWaitingBehavior } from '@/runtime/behaviors/IntervalWaitingBehavior';
-import { EmitEventAction } from '@/runtime/actions/events/EmitEventAction';
+import { TimerInitBehavior, TimerTickBehavior, RoundInitBehavior, RoundAdvanceBehavior } from '@/runtime/behaviors';
 
 describe('IntervalBlock', () => {
   let harness: BehaviorTestHarness;
@@ -13,31 +11,23 @@ describe('IntervalBlock', () => {
       .withClock(new Date('2024-01-01T12:00:00Z'));
   });
 
-  it('should restart timer on completion event (EMOM behavior)', () => {
-    const timerBehavior = new TimerBehavior('down', 60000, 'EMOM');
-    const waitingBehavior = new IntervalWaitingBehavior();
+  it('should initialize interval timer and rounds on mount (EMOM behavior)', () => {
+    const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 60000 });
+    const timerTick = new TimerTickBehavior();
+    const roundInit = new RoundInitBehavior({ totalRounds: 10 });
+    const roundAdvance = new RoundAdvanceBehavior();
 
-    const block = new MockBlock('interval-test', [timerBehavior, waitingBehavior], { blockType: 'Interval' });
+    const block = new MockBlock('interval-test', [timerInit, timerTick, roundInit, roundAdvance], { blockType: 'Interval' });
 
     harness.push(block);
     harness.mount();
 
-    expect(timerBehavior.isRunning()).toBe(true);
-
-    // Simulate work completion early (e.g. 30s)
-    harness.advanceClock(30000);
-
-    // Calling next() (simulating child completion)
-    const nextActions = harness.next();
-
-    // Should NOT have any actions (like PopBlock) because we are waiting
-    expect(nextActions).toHaveLength(0);
-
-    // Let's inspect internal state if possible, or verify behavior via effects
-    // IntervalWaitingBehavior sets isWaiting = true internaly.
-
-    // Advance to timer completion
-    harness.advanceClock(30000); // 60s elapsed
-    expect(timerBehavior.isComplete(harness.clock.now)).toBe(true);
+    // Timer should be initialized
+    expect(harness.wasEventEmitted('timer:started')).toBe(true);
+    
+    // Verify timer started with correct duration
+    const startedEvent = harness.findEvents('timer:started')[0];
+    expect(startedEvent.data.durationMs).toBe(60000);
+    expect(startedEvent.data.direction).toBe('down');
   });
 });
