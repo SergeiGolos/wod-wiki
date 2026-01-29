@@ -1,11 +1,11 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { ControlsInitBehavior, ButtonConfig } from '../../behaviors/ControlsInitBehavior';
+import type { ButtonConfig } from '../../behaviors/ControlsInitBehavior';
 
 /**
  * UpdateDisplayModeAction - Updates display mode via event.
  * 
- * Uses the ControlsInitBehavior event-based pattern.
+ * Uses event-based pattern for display mode changes.
  */
 export class UpdateDisplayModeAction implements IRuntimeAction {
     readonly type = 'update-display-mode';

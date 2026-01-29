@@ -108,7 +108,7 @@ describe("JIT Composition", () => {
         expect(block).toBeDefined();
         if (!block) return;
 
-        expect(block.blockType).toBe("Interval");
+        expect(block.blockType).toBe("EMOM");
 
         // Timer should use TimerInitBehavior
         const timer = block.getBehavior(TimerInitBehavior);

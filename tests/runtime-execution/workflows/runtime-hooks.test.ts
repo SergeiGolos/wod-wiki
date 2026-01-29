@@ -34,23 +34,15 @@ describe('Runtime Hooks Integration', () => {
     });
 
     describe('Timer References', () => {
-        it('should be able to search for timer state memory reference', () => {
+        it('should create a block with timer behaviors', () => {
             const timerInit = new TimerInitBehavior({ direction: 'up', label: 'Timer' });
             const timerTick = new TimerTickBehavior();
             const block = new RuntimeBlock(runtime, [1], [timerInit, timerTick], 'Timer');
             block.mount(runtime);
 
-            // Search for unified RuntimeSpan using the new memory model
-            const runtimeSpanRefs = runtime.memory.search({
-                id: null,
-                ownerId: block.key.toString(),
-                type: RUNTIME_SPAN_TYPE,
-                visibility: null
-            });
-
-            // The new behavior stores timer state differently
-            // This test may need adjustment based on actual memory model
-            expect(runtimeSpanRefs.length).toBeGreaterThanOrEqual(0);
+            // Block should have the behaviors attached
+            expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerTickBehavior)).toBeDefined();
         });
 
         it('should return empty array for non-existent block keys', () => {

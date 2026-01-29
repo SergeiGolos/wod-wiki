@@ -40,7 +40,7 @@ describe('TimerBlock', () => {
     expect(startedEvent.data.durationMs).toBe(10000);
   });
 
-  it('should emit timer:complete on unmount', () => {
+  it('should stop timer on unmount', () => {
      const timerInit = new TimerInitBehavior({ direction: 'up', durationMs: 10000 });
      const timerTick = new TimerTickBehavior();
      const block = new MockBlock('timer-test', [timerInit, timerTick], { blockType: 'Timer' });
@@ -51,7 +51,10 @@ describe('TimerBlock', () => {
      harness.advanceClock(10000);
      harness.unmount();
 
-     // TimerOutputBehavior or unmount should emit timer:complete
-     // Note: The new pattern emits timer:complete from TimerOutputBehavior
+     // After unmount, block should be removed from stack
+     expect(harness.stackDepth).toBe(0);
+     
+     // Block should have completion timing set
+     expect(block.executionTiming.completedAt).toBeDefined();
   });
 });

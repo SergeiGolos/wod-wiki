@@ -7,6 +7,8 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
 // New aspect-based behaviors
+// TimerInitBehavior and RoundInitBehavior are imported for type-checking purposes only
+// to detect if higher-priority strategies have already set the block identity
 import {
     TimerInitBehavior,
     RoundInitBehavior,
