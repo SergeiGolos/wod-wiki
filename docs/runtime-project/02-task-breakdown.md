@@ -166,62 +166,61 @@
 - ✅ Subscribers receive output statements with timing and fragments
 - ✅ Fragments have origin tracking (parser/compiler/runtime/user)
 
-### 3.1 Migrate Timer Behaviors to TimerMemory
+### 3.1 Migrate Timer Behaviors to TimerMemory ✅ COMPLETE
 
-**Files to Modify:**
-- `src/runtime/behaviors/TimerBehavior.ts`
-- `src/runtime/behaviors/BoundTimerBehavior.ts`
+**Approach Changed:** Instead of modifying legacy behaviors, **new aspect-based timer behaviors** were created:
 
-**Files to Remove:**
-- `src/runtime/behaviors/TimerStateManager.ts`
-- `src/runtime/behaviors/TimerPauseResumeBehavior.ts`
+**New Behaviors Created:**
+- `TimerInitBehavior` - Initializes timer state in block memory
+- `TimerTickBehavior` - Subscribes to tick events, updates timer state
+- `TimerCompletionBehavior` - Marks block complete when timer expires
+- `TimerPauseBehavior` - Handles pause/resume events
+- `TimerOutputBehavior` - Emits timer-related outputs
 
-**Tasks:**
-- [ ] Update `TimerBehavior.mount()` to create `TimerMemory` on block
-- [ ] Update `TimerBehavior.onTick()` to mutate memory and notify
-- [ ] Remove behaviors that only updated memory state
+**Legacy Behaviors Deprecated:**
+- `TimerBehavior` - Marked `@deprecated`, now a stub
+- `BoundTimerBehavior` - Marked `@deprecated`, now a stub
+- `UnboundTimerBehavior` - Marked `@deprecated`, now a stub
 
-**Acceptance:**
+**Acceptance:** ✅
 - Timer state accessible via `block.getMemory('timer')`
-- UI can subscribe to timer changes
+- UI can subscribe to timer changes via `useTimerState()` hook
 
 ---
 
-### 3.2 Migrate Round Behaviors to RoundMemory
+### 3.2 Migrate Round Behaviors to RoundMemory ✅ COMPLETE
 
-**Files to Modify:**
-- `src/runtime/behaviors/BoundLoopBehavior.ts`
-- `src/runtime/behaviors/RoundPerLoopBehavior.ts`
+**Approach Changed:** Instead of modifying legacy behaviors, **new aspect-based round behaviors** were created:
 
-**Files to Remove:**
-- `src/runtime/behaviors/RoundDisplayBehavior.ts`
-- `src/runtime/behaviors/ChildIndexBehavior.ts`
-- `src/runtime/behaviors/ReentryIndexBehavior.ts`
+**New Behaviors Created:**
+- `RoundInitBehavior` - Initializes round state in block memory
+- `RoundAdvanceBehavior` - Increments round on `next()`
+- `RoundCompletionBehavior` - Marks block complete when rounds exhausted
+- `RoundDisplayBehavior` - Updates display memory with round info
+- `RoundOutputBehavior` - Emits round-related outputs
 
-**Tasks:**
-- [ ] Update loop behaviors to create `RoundMemory` on block
-- [ ] Update round increment to mutate memory and notify
-- [ ] Remove display-only behaviors
+**Legacy Behaviors Deprecated:**
+- `BoundLoopBehavior` - Marked `@deprecated`, now a stub
+- `UnboundLoopBehavior` - Marked `@deprecated`, now a stub
 
-**Acceptance:**
+**Acceptance:** ✅
 - Round state accessible via `block.getMemory('round')`
-- UI can subscribe to round changes
+- UI can subscribe to round changes via `useRoundState()` hook
 
 ---
 
-### 3.3 Simplify Completion Behaviors
+### 3.3 Simplify Completion Behaviors ✅ COMPLETE
 
-**Files to Keep:**
-- `src/runtime/behaviors/CompletionBehavior.ts`
-- `src/runtime/behaviors/PopOnNextBehavior.ts`
-- `src/runtime/behaviors/PopOnEventBehavior.ts`
+**Behaviors Kept (Active):**
+- `PopOnNextBehavior` - Primary completion behavior
+- `PopOnEventBehavior` - Event-triggered completion
 
-**Files to Remove:**
-- `src/runtime/behaviors/SinglePassBehavior.ts` (merge into PopOnNextBehavior)
+**Behaviors Deprecated:**
+- `SinglePassBehavior` - Marked `@deprecated`, delegates to `markComplete()`
 
-**Tasks:**
-- [ ] Verify completion behaviors work with new memory system
-- [ ] Consolidate single-pass logic if possible
+**Acceptance:** ✅
+- Completion behaviors work with new memory system
+- Single-pass logic consolidated into PopOnNextBehavior pattern
 
 ---
 
@@ -288,14 +287,14 @@
 | **2.1** Block Memory Map | 5 | ✅ |
 | **2.2** Lifecycle Refinement | 5 | ✅ |
 | **2.3** Explicit next() | 3 | ✅ |
-| **2.4** Fragment Inheritance | 3 | ⏸️ |
+| **2.4** Fragment Inheritance | 3 | ⏸️ Deferred |
 | **2.5** Output Statement Emission | 8 | ✅ |
-| **3.1** Timer Migration | 3 | ⬜ |
-| **3.2** Round Migration | 3 | ⬜ |
-| **3.3** Completion Simplify | 2 | ⬜ |
+| **3.1** Timer Migration | 5 | ✅ (New behaviors created, legacy deprecated) |
+| **3.2** Round Migration | 5 | ✅ (New behaviors created, legacy deprecated) |
+| **3.3** Completion Simplify | 2 | ✅ |
 | **4.1** Remove Legacy | 4 | ⬜ |
 | **4.2** Update UI | 3 | ⬜ |
 | **4.3** Update Tests | 4 | ⬜ |
 
-**Total Tasks:** ~53
+**Total Tasks:** ~53 | **Completed:** ~45 | **Remaining:** ~8
 

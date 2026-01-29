@@ -1,7 +1,7 @@
 # Runtime Behavior System - Next Steps
 
-> **Status:** ✅ Phase 2 Complete, UI Hooks Ready  
-> **Last Updated:** 2026-01-28
+> **Status:** ✅ Phase 3 Complete, Ready for Phase 4 Cleanup  
+> **Last Updated:** 2026-01-29
 
 ## Completed Work
 
@@ -19,12 +19,9 @@
 | Output | SegmentOutput, HistoryRecord, SoundCue | ✅ |
 | Controls | ControlsInit | ✅ |
 
-**Test Results:** 100 tests passing (unit + integration)
-
 **Key Files:**
 - Behaviors: `src/runtime/behaviors/`
 - Design Doc: `docs/runtime-project/05-aspect-based-behaviors.md`
-- Proof of Concept: `EffortFallbackStrategy.ts` (migrated)
 
 ---
 
@@ -41,8 +38,6 @@
 | `useTimerDisplay` | Formatted timer values | 60fps |
 | `useRoundDisplay` | Formatted round values | - |
 
-**Test Results:** 16 tests passing
-
 **Key Files:**
 - Hooks: `src/runtime/hooks/useBlockMemory.ts`
 - Index: `src/runtime/hooks/index.ts`
@@ -50,42 +45,59 @@
 
 ---
 
-## Next Steps Task Plans
+### Phase 3: Strategy Migration ✅
 
-### 1. [Migrate Strategies](./tasks/migrate-strategies-task.md) ✅
+**All strategies migrated** to use aspect-based behaviors:
 
-**Status:** Complete
+| Strategy | Location | Status |
+|----------|----------|--------|
+| IntervalLogicStrategy (EMOM) | `strategies/logic/` | ✅ |
+| AmrapLogicStrategy | `strategies/logic/` | ✅ |
+| WorkoutRootStrategy | `strategies/` | ✅ |
+| IdleBlockStrategy | `strategies/` | ✅ |
+| EffortFallbackStrategy | `strategies/fallback/` | ✅ |
+| GenericTimerStrategy | `strategies/components/` | ✅ |
+| GenericLoopStrategy | `strategies/components/` | ✅ |
+| GenericGroupStrategy | `strategies/components/` | ✅ |
+| SoundStrategy | `strategies/enhancements/` | ✅ |
+| HistoryStrategy | `strategies/enhancements/` | ✅ |
+| ChildrenStrategy | `strategies/enhancements/` | ✅ |
 
-All strategies migrated to use aspect-based behaviors.
-
----
-
-### 2. [Integration Tests](./tasks/integration-tests-task.md) ✅
-
-**Status:** Complete (100 tests passing)
-
-Comprehensive integration tests for multi-behavior compositions.
-
----
-
-### 3. [UI Memory Observer](./tasks/ui-memory-observer-task.md) ✅
-
-**Status:** Complete (Core Hooks)
-
-**Completed:**
-- ✅ `useBlockMemory` React hook family (16 tests passing)
-- ✅ `useTimerDisplay` with 60fps animation
-- ✅ `useRoundDisplay` with formatted labels
-- ✅ Hook architecture documented (behavior-based vs legacy hooks)
-- ✅ Deprecation notices on legacy hooks
-
-**Deferred (future enhancement):**
-- Component updates to use new hooks (existing components work)
-- Storybook demos for new hooks
+**Legacy behaviors deprecated:**
+- `TimerBehavior` → Use `TimerInitBehavior` + `TimerTickBehavior`
+- `BoundLoopBehavior` → Use `RoundInitBehavior` + `RoundAdvanceBehavior`
+- `SinglePassBehavior` → Use `PopOnNextBehavior`
 
 ---
 
-### 4. Component Integration (Optional)
+## Test Results
+
+```
+499 pass | 10 skip | 0 fail
+```
+
+Run all tests:
+```bash
+bun run test
+```
+
+---
+
+## Next Steps (Phase 4: Cleanup)
+
+### 4.1 Remove Legacy Memory System (Optional)
+
+**Priority:** Low | **Effort:** 2-3 hours
+
+- [ ] Remove `RuntimeMemory.ts` (if no longer referenced)
+- [ ] Remove `BlockContext.ts` memory wrapper
+- [ ] Update any remaining legacy imports
+
+**Note:** Legacy behaviors are maintained as stubs for backward compatibility.
+
+---
+
+### 4.2 Component Integration (Optional)
 
 **Priority:** Low | **Effort:** 1-2 hours
 
@@ -94,30 +106,7 @@ Update UI components to use new behavior-based hooks:
 - `DigitalClock.tsx` → use `useTimerDisplay`
 - Create demo stories showing new hook usage
 
-**Note:** This is optional as existing components work with legacy hooks.
-Legacy hooks (`useTimerElapsed`, `useTimerReferences`) are maintained for
-display stack integration but marked deprecated for new code.
-
----
-
-## Recommended Execution Order
-
-```mermaid
-graph TD
-    A[Phase 1: Behaviors ✅] --> B[Migrate Strategies ✅]
-    A --> C[Integration Tests ✅]
-    B --> D[UI Memory Hooks ✅]
-    C --> D
-    D --> E[Component Integration]
-```
-
-**Current Status:**
-- ✅ **Track A:** Migrate Strategies - Complete
-- ✅ **Track B:** Integration Tests - Complete (100 tests passing)
-- ✅ **Track C:** UI Memory Hooks - Complete (16 tests passing)
-
-**Next Priority:**
-- Component integration (optional - existing components work)
+**Note:** Existing components work with legacy hooks.
 
 ---
 
@@ -125,33 +114,32 @@ graph TD
 
 ### Run Tests
 ```bash
-# Behavior unit + integration tests (100 tests)
+# All tests
+bun run test
+
+# Behavior tests only
 bun test src/runtime/behaviors/__tests__ --preload ./tests/unit-setup.ts
 
-# Hook tests (16 tests)
+# Hook tests only
 bun test src/runtime/hooks --preload ./tests/unit-setup.ts
 
-# All runtime tests (116 tests)
-bun test src/runtime --preload ./tests/unit-setup.ts
-
-# Specific strategy tests
+# Strategy tests only
 bun test src/runtime/compiler/strategies --preload ./tests/unit-setup.ts
 ```
 
 ### Key Documentation
 - [Aspect-Based Behaviors Design](./05-aspect-based-behaviors.md)
 - [Behavior Interface Redesign](./04-behavior-interface-redesign.md)
-- [Implementation Plan](./implementation_plan.md)
+- [Branch Review](./BRANCH-REVIEW.md)
 
 ---
 
 ## Definition of Done
 
-Phase 2 is complete when:
+Phase 3 is complete when:
 - [x] All strategies migrated to aspect behaviors
 - [x] Integration tests covering all patterns
 - [x] UI hooks for memory state observation
-- [x] No performance regression
+- [x] Legacy behaviors deprecated with @deprecated JSDoc
 - [x] All core documentation updated
-
-**116 tests passing across behaviors and hooks.**
+- [x] All tests passing (499 pass, 10 skip, 0 fail)
