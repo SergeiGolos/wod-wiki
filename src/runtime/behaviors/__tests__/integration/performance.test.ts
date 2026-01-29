@@ -172,8 +172,9 @@ describe('Performance Integration', () => {
 
             // Check event count is reasonable (not growing unbounded)
             // Each advance emits 1 round:advance event + 1 milestone output
+            // Plus 1 initial 'segment' output from RoundOutputBehavior.onMount
             expect(runtime.events.length).toBe(10000);
-            expect(runtime.outputs.length).toBe(10000);
+            expect(runtime.outputs.length).toBe(10001);
         });
     });
 

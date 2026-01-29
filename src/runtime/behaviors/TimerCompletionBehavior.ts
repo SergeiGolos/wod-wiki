@@ -25,6 +25,23 @@ function calculateElapsed(timer: TimerState, now: number): number {
  */
 export class TimerCompletionBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Check for immediate completion (zero duration timer)
+        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        if (timer && timer.direction === 'down' && timer.durationMs !== undefined && timer.durationMs <= 0) {
+            // Zero or negative duration - complete immediately
+            ctx.markComplete('timer-expired');
+            ctx.emitEvent({
+                name: 'timer:complete',
+                timestamp: ctx.clock.now,
+                data: {
+                    blockKey: ctx.block.key.toString(),
+                    elapsedMs: 0,
+                    durationMs: timer.durationMs
+                }
+            });
+            return [];
+        }
+
         // Subscribe to tick events to check for completion
         ctx.subscribe('tick', (_event, tickCtx) => {
             const timer = tickCtx.getMemory('timer') as TimerState | undefined;

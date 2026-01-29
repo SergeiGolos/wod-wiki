@@ -1,0 +1,263 @@
+import { useState, useEffect, useMemo } from 'react';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../memory/MemoryTypes';
+
+/**
+ * React hook to subscribe to a specific memory type on a block.
+ * 
+ * Automatically subscribes when the block or type changes, and
+ * unsubscribes on cleanup. Returns the current value and updates
+ * reactively when behaviors modify the memory.
+ * 
+ * @param block The runtime block to subscribe to (can be undefined)
+ * @param type The memory type to subscribe to
+ * @returns The current memory value or undefined
+ * 
+ * @example
+ * ```tsx
+ * function TimerComponent({ block }: { block: IRuntimeBlock }) {
+ *   const timerState = useBlockMemory(block, 'timer');
+ *   
+ *   if (!timerState) return null;
+ *   
+ *   return <div>Direction: {timerState.direction}</div>;
+ * }
+ * ```
+ */
+export function useBlockMemory<T extends MemoryType>(
+    block: IRuntimeBlock | undefined,
+    type: T
+): MemoryValueOf<T> | undefined {
+    const [value, setValue] = useState<MemoryValueOf<T> | undefined>(() => {
+        return block?.getMemory(type)?.value;
+    });
+
+    useEffect(() => {
+        if (!block) {
+            setValue(undefined);
+            return;
+        }
+
+        // Get initial value
+        const entry = block.getMemory(type);
+        setValue(entry?.value);
+
+        // Subscribe to changes
+        if (entry && typeof entry.subscribe === 'function') {
+            const unsubscribe = entry.subscribe((newValue) => {
+                setValue(newValue as MemoryValueOf<T> | undefined);
+            });
+            return unsubscribe;
+        }
+
+        // No entry or no subscribe method
+        return undefined;
+    }, [block, type]);
+
+    return value;
+}
+
+/**
+ * Hook for subscribing to timer state from a block.
+ * 
+ * @param block The runtime block
+ * @returns The current TimerState or undefined
+ */
+export function useTimerState(block: IRuntimeBlock | undefined): TimerState | undefined {
+    return useBlockMemory(block, 'timer');
+}
+
+/**
+ * Hook for subscribing to round state from a block.
+ * 
+ * @param block The runtime block
+ * @returns The current RoundState or undefined
+ */
+export function useRoundState(block: IRuntimeBlock | undefined): RoundState | undefined {
+    return useBlockMemory(block, 'round');
+}
+
+/**
+ * Hook for subscribing to display state from a block.
+ * 
+ * @param block The runtime block
+ * @returns The current DisplayState or undefined
+ */
+export function useDisplayState(block: IRuntimeBlock | undefined): DisplayState | undefined {
+    return useBlockMemory(block, 'display');
+}
+
+/**
+ * Derived timer display values for UI rendering.
+ */
+export interface TimerDisplayValues {
+    /** Total elapsed time in milliseconds */
+    elapsed: number;
+    /** Remaining time in milliseconds (for countdowns) */
+    remaining: number | undefined;
+    /** Whether the timer is currently running (not paused) */
+    isRunning: boolean;
+    /** Timer direction */
+    direction: 'up' | 'down';
+    /** Whether the timer has completed (countdown reached 0) */
+    isComplete: boolean;
+    /** Formatted time string (MM:SS or HH:MM:SS) */
+    formatted: string;
+}
+
+/**
+ * Calculate elapsed time from timer spans.
+ */
+function calculateElapsed(spans: readonly { started: number; ended?: number }[], now: number): number {
+    return spans.reduce((total, span) => {
+        const end = span.ended ?? now;
+        return total + Math.max(0, end - span.started);
+    }, 0);
+}
+
+/**
+ * Format milliseconds as MM:SS or HH:MM:SS.
+ */
+function formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Hook for derived timer display values.
+ * 
+ * Computes elapsed time, remaining time, and formatted display strings
+ * from the raw timer state. Uses requestAnimationFrame for smooth 60fps
+ * updates when the timer is running.
+ * 
+ * @param block The runtime block
+ * @returns Derived timer display values or null if no timer
+ * 
+ * @example
+ * ```tsx
+ * function TimerDisplay({ block }: { block: IRuntimeBlock }) {
+ *   const display = useTimerDisplay(block);
+ *   
+ *   if (!display) return <div>No timer</div>;
+ *   
+ *   return (
+ *     <div>
+ *       <span>{display.formatted}</span>
+ *       {display.direction === 'down' && (
+ *         <span>{formatTime(display.remaining ?? 0)} remaining</span>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayValues | null {
+    const timer = useTimerState(block);
+    const [now, setNow] = useState(Date.now());
+
+    // Determine if timer is running (last span has no end time)
+    const isRunning = useMemo(() => {
+        if (!timer || timer.spans.length === 0) return false;
+        const lastSpan = timer.spans[timer.spans.length - 1];
+        return lastSpan.ended === undefined;
+    }, [timer]);
+
+    // Animation frame loop for smooth updates when running
+    useEffect(() => {
+        if (!isRunning) return;
+
+        let animationFrameId: number;
+        let running = true;
+
+        const tick = () => {
+            if (running) {
+                setNow(Date.now());
+                animationFrameId = requestAnimationFrame(tick);
+            }
+        };
+
+        animationFrameId = requestAnimationFrame(tick);
+
+        return () => {
+            running = false;
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [isRunning]);
+
+    // Compute derived values
+    return useMemo(() => {
+        if (!timer) return null;
+
+        const elapsed = calculateElapsed(timer.spans, now);
+        const remaining = timer.durationMs !== undefined
+            ? Math.max(0, timer.durationMs - elapsed)
+            : undefined;
+        const isComplete = timer.durationMs !== undefined && elapsed >= timer.durationMs;
+
+        // Format based on direction
+        const displayMs = timer.direction === 'down' && remaining !== undefined
+            ? remaining
+            : elapsed;
+
+        return {
+            elapsed,
+            remaining,
+            isRunning,
+            direction: timer.direction,
+            isComplete,
+            formatted: formatTime(displayMs)
+        };
+    }, [timer, now, isRunning]);
+}
+
+/**
+ * Derived round display values for UI rendering.
+ */
+export interface RoundDisplayValues {
+    /** Current round number */
+    current: number;
+    /** Total rounds (undefined for unbounded) */
+    total: number | undefined;
+    /** Formatted round label (e.g., "Round 3 of 5") */
+    label: string;
+    /** Progress as a fraction 0-1 (undefined for unbounded) */
+    progress: number | undefined;
+}
+
+/**
+ * Hook for derived round display values.
+ * 
+ * @param block The runtime block
+ * @returns Derived round display values or null if no rounds
+ */
+export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayValues | null {
+    const round = useRoundState(block);
+    const display = useDisplayState(block);
+
+    return useMemo(() => {
+        if (!round) return null;
+
+        const label = display?.roundDisplay ??
+            (round.total !== undefined
+                ? `Round ${round.current} of ${round.total}`
+                : `Round ${round.current}`);
+
+        const progress = round.total !== undefined
+            ? Math.min(1, (round.current - 1) / round.total)
+            : undefined;
+
+        return {
+            current: round.current,
+            total: round.total,
+            label,
+            progress
+        };
+    }, [round, display?.roundDisplay]);
+}

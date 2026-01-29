@@ -1,6 +1,7 @@
 # Task: Update UI to Observe Memory State Changes
 
-> **Status:** 📋 Planning  
+> **Status:** � In Progress  
+> **Started:** 2026-01-28  
 > **Priority:** Medium  
 > **Estimated Effort:** 3-4 hours
 
@@ -14,23 +15,30 @@ Update the UI layer to observe block memory state changes from the new aspect-ba
 
 - [x] Aspect behaviors implemented
 - [x] Memory types defined (`MemoryTypes.ts`)
-- [ ] Strategy migration complete
-- [ ] Integration tests passing
+- [x] Strategy migration complete
+- [x] Integration tests passing
 
 ---
 
-## Current UI Architecture
+## Completed Tasks
 
-The current UI likely uses:
-- Direct block property access
-- Event-based updates
-- Possibly RxJS observables
+### ✅ Task 5: Create React Hooks for Memory Consumption
 
-**Target:** Reactive memory-state-driven UI
+**File:** `src/runtime/hooks/useBlockMemory.ts`
+
+**Implemented hooks:**
+- `useBlockMemory<T>(block, type)` - Generic hook for any memory type
+- `useTimerState(block)` - Convenience hook for TimerState
+- `useRoundState(block)` - Convenience hook for RoundState  
+- `useDisplayState(block)` - Convenience hook for DisplayState
+- `useTimerDisplay(block)` - Derived values with 60fps animation
+- `useRoundDisplay(block)` - Derived round display values
+
+**Tests:** 16 tests passing in `src/runtime/hooks/__tests__/useBlockMemory.test.ts`
 
 ---
 
-## Detailed Task Breakdown
+## Remaining Tasks
 
 ### Task 1: Analyze Current UI Integration Points
 

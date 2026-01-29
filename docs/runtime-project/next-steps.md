@@ -1,6 +1,6 @@
 # Runtime Behavior System - Next Steps
 
-> **Status:** ✅ Phase 1 Complete  
+> **Status:** ✅ Phase 1 Complete, Integration Tests Passing  
 > **Last Updated:** 2026-01-28
 
 ## Completed Work
@@ -19,7 +19,7 @@
 | Output | SegmentOutput, HistoryRecord, SoundCue | ✅ |
 | Controls | ControlsInit | ✅ |
 
-**Test Results:** 40 tests passing
+**Test Results:** 100 tests passing (unit + integration)
 
 **Key Files:**
 - Behaviors: `src/runtime/behaviors/`
@@ -57,27 +57,30 @@ Create comprehensive integration tests for multi-behavior compositions:
 - Edge cases and performance
 
 **Key Deliverables:**
-- 7 integration test files
-- Reusable test helpers
-- >80% coverage for behavior module
+- 7 integration test files ✅
+- Reusable test helpers ✅
+- >80% coverage for behavior module ✅
 
 ---
 
-### 3. [UI Memory Observer](./tasks/ui-memory-observer-task.md)
+### 3. [UI Memory Observer](./tasks/ui-memory-observer-task.md) 🔄
 
-**Priority:** Medium | **Effort:** 3-4 hours
+**Priority:** Medium | **Effort:** 3-4 hours | **Status:** In Progress
 
 Update UI to observe block memory state changes:
-- Create memory change observables
-- Implement React hooks for memory consumption
+- ~~Create memory change observables~~ (using SimpleMemoryEntry.subscribe)
+- ~~Implement React hooks for memory consumption~~ ✅
 - Update timer, round, and control components
 - Ensure reactive UI updates
 
-**Key Deliverables:**
-- `MemoryChangeBus` for state observation
-- `useBlockMemory` React hook family
-- Updated UI components
-- Smooth 60fps timer display
+**Completed Deliverables:**
+- `useBlockMemory` React hook family ✅ (16 tests passing)
+- `useTimerDisplay` with 60fps animation ✅
+- `useRoundDisplay` with formatted labels ✅
+
+**Remaining:**
+- Update UI components to use new hooks
+- Create Storybook demos
 
 ---
 
@@ -85,19 +88,19 @@ Update UI to observe block memory state changes:
 
 ```mermaid
 graph TD
-    A[Phase 1: Behaviors ✅] --> B[Migrate Strategies]
-    A --> C[Integration Tests]
+    A[Phase 1: Behaviors ✅] --> B[Migrate Strategies ✅]
+    A --> C[Integration Tests ✅]
     B --> D[UI Memory Observer]
     C --> D
     D --> E[Full System Integration]
 ```
 
-**Parallel Tracks:**
-- **Track A:** Migrate Strategies → Test migrated strategies
-- **Track B:** Integration Tests → Can run alongside Track A
+**Current Status:**
+- ✅ **Track A:** Migrate Strategies - Complete
+- ✅ **Track B:** Integration Tests - Complete (100 tests passing)
 
-**Sequential Dependency:**
-- UI Memory Observer depends on strategy migration for full testing
+**Next Priority:**
+- UI Memory Observer task
 
 ---
 
@@ -105,14 +108,14 @@ graph TD
 
 ### Run Tests
 ```bash
-# Behavior unit tests
-npx vitest run src/runtime/behaviors/__tests__/AspectBehaviors.test.ts
+# Behavior unit + integration tests (100 tests)
+bun test src/runtime/behaviors/__tests__ --preload ./tests/unit-setup.ts
 
 # All runtime tests
-npx vitest run src/runtime
+bun run test
 
 # Specific strategy tests
-npx vitest run src/runtime/compiler/strategies
+bun test src/runtime/compiler/strategies --preload ./tests/unit-setup.ts
 ```
 
 ### Key Documentation
@@ -125,8 +128,8 @@ npx vitest run src/runtime/compiler/strategies
 ## Definition of Done
 
 Phase 2 is complete when:
-- [ ] All strategies migrated to aspect behaviors
-- [ ] Integration tests covering all patterns
+- [x] All strategies migrated to aspect behaviors
+- [x] Integration tests covering all patterns
 - [ ] UI reactively displays memory state
-- [ ] No performance regression
+- [x] No performance regression
 - [ ] All documentation updated

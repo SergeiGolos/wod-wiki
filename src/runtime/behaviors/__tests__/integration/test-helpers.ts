@@ -157,8 +157,14 @@ export function dispatchEvent(
     eventData: unknown = {}
 ): void {
     const handlers = runtime.subscriptions.get(eventType) || [];
+    // Create proper event object with name field as behaviors expect
+    const event = {
+        name: eventType,
+        timestamp: runtime.clock.now,
+        data: eventData
+    };
     for (const handler of handlers) {
-        handler(eventData, ctx);
+        handler(event, ctx);
     }
 }
 

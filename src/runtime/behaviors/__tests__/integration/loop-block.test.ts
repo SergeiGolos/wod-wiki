@@ -127,7 +127,7 @@ describe('Loop Block Integration', () => {
 
             const advanceEvents = findEvents(runtime, 'round:advance');
             expect(advanceEvents.length).toBeGreaterThanOrEqual(1);
-            expect((advanceEvents[0].data as any).round).toBe(2);
+            expect((advanceEvents[0].data as any).newRound).toBe(2);
         });
 
         it('should emit milestone output on round advance', () => {
@@ -198,6 +198,7 @@ describe('Loop Block Integration', () => {
         it('should handle unbounded rounds in display', () => {
             const behaviors = [
                 new RoundInitBehavior({ totalRounds: undefined, startRound: 1 }),
+                new RoundAdvanceBehavior(),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new RoundDisplayBehavior()
             ];
