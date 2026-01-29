@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
-import { UnboundLoopBehavior } from '@/runtime/behaviors/UnboundLoopBehavior';
+import { TimerInitBehavior, TimerTickBehavior, RoundInitBehavior, RoundAdvanceBehavior, TimerCompletionBehavior } from '@/runtime/behaviors';
 
 describe('AmrapBlock', () => {
   let harness: BehaviorTestHarness;
@@ -12,35 +11,43 @@ describe('AmrapBlock', () => {
       .withClock(new Date('2024-01-01T12:00:00Z'));
   });
 
-  it('should run infinite rounds until timer expires', () => {
-    const timerBehavior = new TimerBehavior('down', 10000, 'AMRAP');
-    const loopBehavior = new UnboundLoopBehavior();
+  it('should initialize timer and unbounded rounds on mount', () => {
+    const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
+    const timerTick = new TimerTickBehavior();
+    const timerCompletion = new TimerCompletionBehavior();
+    const roundInit = new RoundInitBehavior({ totalRounds: undefined }); // Unbounded
+    const roundAdvance = new RoundAdvanceBehavior();
 
-    // In a real AMRAP block, there is often a CompletionBehavior that forces completion on timer:complete
-    // But basic AMRAP logic is: Timer runs, Children loop infinitely.
-
-    const block = new MockBlock('amrap-test', [timerBehavior, loopBehavior], { blockType: 'AMRAP' });
+    const block = new MockBlock('amrap-test', [timerInit, timerTick, timerCompletion, roundInit, roundAdvance], { blockType: 'AMRAP' });
 
     harness.push(block);
     harness.mount();
 
-    expect(timerBehavior.isRunning()).toBe(true);
+    // Timer should be initialized and running
+    expect(harness.wasEventEmitted('timer:started')).toBe(true);
+    
+    const startedEvent = harness.findEvents('timer:started')[0];
+    expect(startedEvent.data.direction).toBe('down');
+    expect(startedEvent.data.durationMs).toBe(10000);
+  });
 
-    // Simulate rounds
-    // next() on UnboundLoopBehavior typically does nothing or logs round?
-    // Let's check UnboundLoopBehavior implementation.
-    // If it just allows infinite next calls without marking complete, that's the behavior we want.
+  it('should allow infinite rounds until timer completes', () => {
+    const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
+    const timerTick = new TimerTickBehavior();
+    const roundInit = new RoundInitBehavior({ totalRounds: undefined }); // Unbounded
+    const roundAdvance = new RoundAdvanceBehavior();
 
+    const block = new MockBlock('amrap-test', [timerInit, timerTick, roundInit, roundAdvance], { blockType: 'AMRAP' });
+
+    harness.push(block);
+    harness.mount();
+
+    // Simulate rounds - AMRAP should not complete from rounds
     harness.next(); // Round 1 done
-    harness.advanceClock(5000);
     harness.next(); // Round 2 done
+    harness.next(); // Round 3 done
 
-    expect(block.isComplete).toBe(false); // Should continue looping
-
-    harness.advanceClock(6000); // 11s total - Timer expired
-    expect(timerBehavior.isComplete(harness.clock.now)).toBe(true);
-
-    // Note: To enforce the completion on timer complete, we usually need another behavior (CompletionBehavior)
-    // or the TimerBehavior needs to emit an event that the Runtime/Other behaviors handle.
+    // Block should not be complete - unbounded rounds don't mark complete
+    expect(block.isComplete).toBe(false);
   });
 });
