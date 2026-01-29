@@ -1,70 +1,110 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { ChildIndexBehavior } from './ChildIndexBehavior';
-import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
-import { BoundLoopBehavior } from './BoundLoopBehavior';
-import { SinglePassBehavior } from './SinglePassBehavior';
-import { BoundTimerBehavior } from './BoundTimerBehavior';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+
+export interface ChildRunnerConfig {
+    /** Child statement ID groups to execute */
+    childGroups: number[][];
+}
 
 /**
- * ChildRunnerBehavior.
- * Responsible for pushing children onto the stack based on ChildIndexBehavior index.
+ * PushChildBlockAction - Pushes a block for the given statement IDs.
  * 
- * Logic: 
- * - onPush: Force index to 0 and push first child.
- * - onNext: Push child at current index (only if loop not complete).
+ * Uses the JIT compiler to create and push blocks for child statements.
  */
-export class ChildRunnerBehavior implements IRuntimeBehavior {
-    constructor(private readonly childGroups: number[][]) { }
+class PushChildBlockAction implements IRuntimeAction {
+    readonly type = 'push-child-block';
+    readonly target?: string;
+    readonly payload?: unknown;
 
-    onPush(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
-        const indexBehavior = block.getBehavior(ChildIndexBehavior);
-        if (indexBehavior) {
-            // Force the first index increment during the push phase
-            indexBehavior.onNext(block, clock);
-        }
-
-        // Now execute the normal onNext logic to push the block at index 0
-        return this.onNext(block, clock);
+    constructor(private readonly statementIds: number[]) {
+        this.payload = { statementIds };
     }
 
-    onNext(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] {
-        // Don't push children if the loop is already complete or about to be popped
-        const boundLoop = block.getBehavior(BoundLoopBehavior);
-        if (boundLoop?.isComplete()) {
-            return [];
+    do(runtime: IScriptRuntime): void {
+        if (this.statementIds.length === 0) {
+            console.warn('[PushChildBlockAction] No statement IDs to push');
+            return;
         }
 
-        const singlePass = block.getBehavior(SinglePassBehavior);
-        if (singlePass?.isComplete()) {
-            return [];
+        // Get the script and compiler from runtime
+        const script = runtime.script;
+        const compiler = runtime.jit;
+
+        if (!script || !compiler) {
+            console.warn('[PushChildBlockAction] No script or compiler available');
+            return;
         }
 
-        // Don't push children if the timer has expired (e.g., countdown/AMRAP timer completed)
-        const boundTimer = block.getBehavior(BoundTimerBehavior);
-        if (boundTimer?.isComplete(clock.now)) {
-            return [];
+        // Get statements for these IDs
+        const statements = this.statementIds
+            .map(id => script.statements.find(s => s.id === id))
+            .filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+        if (statements.length === 0) {
+            console.warn('[PushChildBlockAction] No statements found for IDs:', this.statementIds);
+            return;
         }
 
-        const indexBehavior = block.getBehavior(ChildIndexBehavior);
-        if (!indexBehavior) return [];
+        // Compile and push the block
+        const block = compiler.compile(statements, runtime);
+        if (block) {
+            runtime.pushBlock(block);
+        }
+    }
+}
 
-        const currentIndex = indexBehavior.getIndex();
+/**
+ * ChildRunnerBehavior manages execution of child blocks.
+ * 
+ * ## Aspect: Children
+ * 
+ * Pushes the next child block when the current one completes.
+ * Tracks which child to push next using internal index.
+ */
+export class ChildRunnerBehavior implements IRuntimeBehavior {
+    private childIndex = 0;
 
-        // The childGroups might be different from block.sourceIds in some strategies,
-        // but usually they correspond. We use childGroups provided to this behavior.
-        if (currentIndex < 0 || currentIndex >= this.childGroups.length) {
-            return [];
+    constructor(private config: ChildRunnerConfig) { }
+
+    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Push first child on mount
+        if (this.config.childGroups.length > 0) {
+            const firstGroup = this.config.childGroups[0];
+            this.childIndex = 1; // Next to push
+            return [new PushChildBlockAction(firstGroup)];
+        }
+        return [];
+    }
+
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Push next child if available
+        if (this.childIndex < this.config.childGroups.length) {
+            const nextGroup = this.config.childGroups[this.childIndex];
+            this.childIndex++;
+            return [new PushChildBlockAction(nextGroup)];
         }
 
-        const childGroupIds = this.childGroups[currentIndex];
-        if (!childGroupIds || childGroupIds.length === 0) {
-            return [];
-        }
+        // No more children - parent will handle completion
+        return [];
+    }
 
-        const now = clock.now;
-        return [new CompileAndPushBlockAction(childGroupIds, { startTime: now })];
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        return [];
+    }
+
+    /**
+     * Check if all children have been executed.
+     */
+    get allChildrenExecuted(): boolean {
+        return this.childIndex >= this.config.childGroups.length;
+    }
+
+    /**
+     * Reset the child index (for looping).
+     */
+    resetChildIndex(): void {
+        this.childIndex = 0;
     }
 }

@@ -1,84 +1,47 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { SetRoundsDisplayAction } from '../actions/display/WorkoutStateActions';
-import { RoundPerLoopBehavior } from './RoundPerLoopBehavior';
-import { RoundPerNextBehavior } from './RoundPerNextBehavior';
+import { RoundState, DisplayState } from '../memory/MemoryTypes';
 
 /**
- * Updates the round display when rounds change.
+ * RoundDisplayBehavior updates the display roundDisplay when rounds change.
  * 
- * This behavior emits SetRoundsDisplayAction to update the UI with
- * current round information. It depends on an IRoundSource behavior
- * (like RoundPerLoopBehavior or RoundPerNextBehavior) being present
- * on the same block.
+ * ## Aspect: Display
  * 
- * @example
- * ```typescript
- * const behaviors = [
- *   new RoundPerLoopBehavior(),
- *   new RoundDisplayBehavior(5), // 5 total rounds
- * ];
- * ```
+ * Listens to round state changes and updates the display memory.
  */
 export class RoundDisplayBehavior implements IRuntimeBehavior {
-    private lastEmittedRound: number = 0;
-
-    /**
-     * Creates a new RoundDisplayBehavior.
-     * @param totalRounds Optional total number of rounds (for display like "2 of 5")
-     */
-    constructor(private readonly totalRounds?: number) { }
-
-    /**
-     * Finds a behavior implementing IRoundSource on the block.
-     * Checks known implementations: RoundPerLoopBehavior and RoundPerNextBehavior.
-     */
-    private findRoundSource(block: IRuntimeBlock): { getRound(): number } | undefined {
-        // Check for RoundPerLoopBehavior first (most common)
-        const loopBehavior = block.getBehavior(RoundPerLoopBehavior);
-        if (loopBehavior) return loopBehavior;
-
-        // Check for RoundPerNextBehavior (used in EMOM)
-        const nextBehavior = block.getBehavior(RoundPerNextBehavior);
-        if (nextBehavior) return nextBehavior;
-
-        return undefined;
+    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Set initial round display
+        this.updateRoundDisplay(ctx);
+        return [];
     }
 
-    onPush(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
-        const roundSource = this.findRoundSource(block);
-        if (!roundSource) return [];
-
-        const currentRound = roundSource.getRound();
-        this.lastEmittedRound = currentRound;
-
-        if (this.totalRounds !== undefined) {
-            return [new SetRoundsDisplayAction(currentRound, this.totalRounds)];
-        }
-
-        return [new SetRoundsDisplayAction(currentRound)];
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Update round display after each advance
+        this.updateRoundDisplay(ctx);
+        return [];
     }
 
-    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
-        const roundSource = this.findRoundSource(block);
-        if (!roundSource) return [];
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        return [];
+    }
 
-        const currentRound = roundSource.getRound();
+    private updateRoundDisplay(ctx: IBehaviorContext): void {
+        const round = ctx.getMemory('round') as RoundState | undefined;
+        const display = ctx.getMemory('display') as DisplayState | undefined;
 
-        // Only emit if round actually changed
-        if (currentRound === this.lastEmittedRound) {
-            return [];
+        if (!round) return;
+
+        const roundDisplay = round.total !== undefined
+            ? `Round ${round.current} of ${round.total}`
+            : `Round ${round.current}`;
+
+        if (display) {
+            ctx.setMemory('display', {
+                ...display,
+                roundDisplay
+            });
         }
-
-        this.lastEmittedRound = currentRound;
-
-        if (this.totalRounds !== undefined) {
-            return [new SetRoundsDisplayAction(currentRound, this.totalRounds)];
-        }
-
-        return [new SetRoundsDisplayAction(currentRound)];
     }
 }
-

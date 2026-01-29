@@ -2,18 +2,38 @@ import React, { useEffect, useMemo } from 'react';
 import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
-import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { TypedMemoryReference } from '../../../src/runtime/contracts/IMemoryReference';
+import { TimerInitBehavior, TimerTickBehavior } from '../../../src/runtime/behaviors';
 import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
-import { WodScript } from '../../../src/WodScript';
-import { TimerState, TimerSpan } from '../../../src/runtime/models/MemoryModels';
-import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
+import { WodScript } from '../../../src/parser/WodScript';
+import { TimerState } from '../../../src/runtime/memory/MemoryTypes';
+import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
+import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
+import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
+import { EventBus } from '../../../src/runtime/events/EventBus';
+
+/**
+ * Creates a minimal ScriptRuntime for testing purposes.
+ * Provides all required dependencies (memory, stack, clock, eventBus).
+ */
+export function createTestRuntime(): ScriptRuntime {
+  const emptyScript = new WodScript('', []);
+  const jitCompiler = new JitCompiler([]);
+  const dependencies = {
+    memory: new RuntimeMemory(),
+    stack: new RuntimeStack(),
+    clock: new RuntimeClock(),
+    eventBus: new EventBus()
+  };
+  return new ScriptRuntime(emptyScript, jitCompiler, dependencies);
+}
 
 export interface ClockMemoryHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
-  block: RuntimeBlock;
-  timerStateRef: TypedMemoryReference<TimerState> | undefined;
+  block: IRuntimeBlock;
+  timerState: TimerState | undefined;
 }
 
 // Legacy alias for backward compatibility
@@ -25,7 +45,7 @@ export interface TimerTestHarnessProps {
   /** Whether the timer is currently running */
   isRunning?: boolean;
   /** Optional: Multiple time spans for pause/resume scenarios */
-  timeSpans?: TimerSpan[];
+  timeSpans?: TimeSpan[];
   /** Children to render with runtime context */
   children: (harness: ClockMemoryHarnessResult) => React.ReactNode;
 }
@@ -34,12 +54,13 @@ export interface TimerTestHarnessProps {
  * Test harness component for clock stories.
  * 
  * Creates a complete runtime environment with timer memory references
- * pre-configured for testing clock displays.
+ * pre-configured for testing clock displays. Uses the new behavior-based
+ * memory system with TimerInitBehavior and TimerTickBehavior.
  * 
  * @example
  * ```tsx
  * <TimerTestHarness durationMs={185000}>
- *   {({ blockKey }) => <ClockAnchor blockKey={blockKey} />}
+ *   {({ blockKey, block }) => <ClockAnchor blockKey={blockKey} />}
  * </TimerTestHarness>
  * ```
  */
@@ -51,90 +72,79 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
 }) => {
   // Create minimal runtime with empty script for testing
   const runtime = useMemo(() => {
-    const emptyScript = new WodScript('', []); // Empty script for testing
-    const jitCompiler = new JitCompiler([]);
-    return new ScriptRuntime(emptyScript, jitCompiler);
+    return createTestRuntime();
   }, []);
   
-  // Create block, push it, and set memory all in one useMemo
-  // This ensures memory is initialized BEFORE the component renders
-  const { block, blockKey, timerStateRef } = useMemo(() => {
-    console.log('[TimerTestHarness] Creating and initializing block');
+  // Create block with new behavior-based timer system
+  const { block, blockKey, timerState } = useMemo(() => {
+    console.log('[TimerTestHarness] Creating block with new behavior system');
 
-    const behavior = new TimerBehavior('up', durationMs, 'Timer');
-    const newBlock = new RuntimeBlock(runtime, [1], [behavior], 'Timer');
+    // Use new aspect-based behaviors
+    const behaviors = [
+      new TimerInitBehavior({
+        direction: 'up',
+        durationMs: durationMs,
+        label: 'Timer'
+      }),
+      new TimerTickBehavior()
+    ];
 
-    // Mount block immediately to trigger behavior initialization
+    const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
+
+    // Mount block to trigger behavior initialization
     newBlock.mount(runtime);
 
-    // Find unified TimerState reference using the new memory model
-    // The 'type' field in memory allocation is `timer:${blockId}`
-    const timerStateRefs = runtime.memory.search({
-      id: null,
-      ownerId: newBlock.key.toString(),
-      type: `${MemoryTypeEnum.TIMER_PREFIX}${newBlock.key.toString()}`,
-      visibility: null
-    });
+    // Get timer state from the block's typed memory
+    const timerEntry = newBlock.getMemory('timer');
+    let currentState = timerEntry?.value;
 
-    console.log('[TimerTestHarness] Found timer state refs:', {
+    console.log('[TimerTestHarness] Initial timer state:', {
       blockKey: newBlock.key.toString(),
-      timerStateRefs: timerStateRefs.length
+      hasTimer: !!currentState
     });
 
-    let timerRef: TypedMemoryReference<TimerState> | undefined;
+    // Update timer state based on props
+    if (currentState) {
+      let spans: TimeSpan[];
 
-    if (timerStateRefs.length > 0) {
-      timerRef = timerStateRefs[0] as TypedMemoryReference<TimerState>;
-      const currentState = timerRef.get();
-
-      if (currentState) {
-        // Set timer state based on props
-        let spans: TimerSpan[];
-
-        if (timeSpans) {
-          // Use provided time spans (for complex scenarios)
-          spans = timeSpans;
-        } else if (isRunning) {
-          // Running timer: start time in the past, no stop time
-          spans = [{
-            start: Date.now() - durationMs,
-            stop: undefined,
-            state: 'new'
-          }];
-        } else {
-          // Completed timer: start and stop time
-          spans = [{
-            start: Date.now() - durationMs,
-            stop: Date.now(),
-            state: 'new'
-          }];
-        }
-
-        console.log('[TimerTestHarness] Setting timer state:', {
-          durationMs,
-          isRunning,
-          spans
-        });
-
-        timerRef.set({
-          ...currentState,
-          spans,
-          isRunning
-        });
-
-        console.log('[TimerTestHarness] Timer state set. Values:', {
-          spans: timerRef.get()?.spans,
-          isRunning: timerRef.get()?.isRunning
-        });
+      if (timeSpans) {
+        // Use provided time spans (for complex scenarios)
+        spans = timeSpans;
+      } else if (isRunning) {
+        // Running timer: start time in the past, no stop time
+        spans = [new TimeSpan(Date.now() - durationMs)];
+      } else {
+        // Completed timer: start and stop time
+        spans = [new TimeSpan(Date.now() - durationMs, Date.now())];
       }
+
+      console.log('[TimerTestHarness] Setting timer spans:', {
+        durationMs,
+        isRunning,
+        spansCount: spans.length
+      });
+
+      // Update timer state with configured spans
+      newBlock.setMemoryValue('timer', {
+        ...currentState,
+        spans
+      });
+
+      // Refresh current state reference
+      currentState = newBlock.getMemory('timer')?.value;
+
+      console.log('[TimerTestHarness] Timer state configured:', {
+        spans: currentState?.spans?.length,
+        direction: currentState?.direction
+      });
     } else {
-      console.warn('[TimerTestHarness] Could not find timer state reference - timer may not display correctly');
+      console.warn('[TimerTestHarness] Could not find timer state - behaviors may not have initialized');
     }
 
     return {
       block: newBlock,
       blockKey: newBlock.key.toString(),
-      timerStateRef: timerRef
+      timerState: currentState
     };
   }, [runtime, durationMs, isRunning, timeSpans]);
 
@@ -150,7 +160,7 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
     runtime,
     blockKey,
     block,
-    timerStateRef
+    timerState
   };
 
   return (
@@ -174,8 +184,8 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
  */
 export function createPausedTimeSpans(
   segments: Array<{ durationMs: number; isPause?: boolean }>
-): TimerSpan[] {
-  const spans: TimerSpan[] = [];
+): TimeSpan[] {
+  const spans: TimeSpan[] = [];
   let currentTime = Date.now();
 
   // Build spans backward from current time
@@ -187,9 +197,9 @@ export function createPausedTimeSpans(
       currentTime -= segment.durationMs;
     } else {
       // Active segment = span with start and stop
-      const stop = currentTime;
-      const start = currentTime - segment.durationMs;
-      spans.unshift({ start, stop, state: 'new' });
+      const ended = currentTime;
+      const started = currentTime - segment.durationMs;
+      spans.unshift(new TimeSpan(started, ended));
       currentTime -= segment.durationMs;
     }
   }
@@ -203,16 +213,12 @@ export function createPausedTimeSpans(
 export function createRunningTimeSpans(
   completedSegments: Array<{ durationMs: number; isPause?: boolean }>,
   currentSegmentDurationMs: number
-): TimerSpan[] {
+): TimeSpan[] {
   // Get completed spans
   const spans = createPausedTimeSpans(completedSegments);
   
-  // Add current running span
-  spans.push({
-    start: Date.now() - currentSegmentDurationMs,
-    stop: undefined,
-    state: 'new'
-  });
+  // Add current running span (no end time = still running)
+  spans.push(new TimeSpan(Date.now() - currentSegmentDurationMs));
 
   return spans;
 }

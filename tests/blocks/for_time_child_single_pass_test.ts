@@ -4,8 +4,6 @@ import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { BoundTimerBehavior } from '@/runtime/behaviors/BoundTimerBehavior';
-import { ChildRunnerBehavior } from '@/runtime/behaviors/ChildRunnerBehavior';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 
 describe('For Time Child Single Pass Test', () => {

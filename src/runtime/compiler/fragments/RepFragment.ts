@@ -1,10 +1,11 @@
-import { ICodeFragment, FragmentType, FragmentCollectionState } from "../../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentCollectionState, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class RepFragment implements ICodeFragment {
   readonly value?: number;
   readonly image: string;
   readonly collectionState: FragmentCollectionState;
+  readonly origin: FragmentOrigin = 'parser';
 
   constructor(public reps?: number, public meta?: CodeMetadata) {
     if (reps !== undefined) {
@@ -25,3 +26,4 @@ export class RepFragment implements ICodeFragment {
   readonly type: string = "rep";
   readonly fragmentType = FragmentType.Rep;
 }
+

@@ -5,20 +5,12 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
-import { createSpanMetadata } from "../../../utils/metadata";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
-import { ChildRunnerBehavior } from "../../../behaviors/ChildRunnerBehavior";
 
-/**
- * Helper to extract optional exerciseId from code statement.
- */
-function getExerciseId(statement: ICodeStatement): string {
-    const stmt = statement as ICodeStatement & { exerciseId?: string };
-    return stmt.exerciseId ?? '';
-}
+// New aspect-based behaviors
+import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
+import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
+
+
 
 /**
  * Helper to extract optional content from code statement.
@@ -38,6 +30,15 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
     return defaultContent;
 }
 
+/**
+ * EffortFallbackStrategy handles simple effort blocks (e.g., "10 Push-ups").
+ * 
+ * These blocks have no timer and no rounds - they complete when the user advances.
+ * 
+ * ## Behaviors Applied:
+ * - **PopOnNextBehavior** (Completion): Marks block complete on next()
+ * - **SegmentOutputBehavior** (Output): Emits segment/completion outputs
+ */
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
 
@@ -51,39 +52,27 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // If Loop behavior exists (e.g. from ChildrenStrategy?), we might not need Effort?
-        if (builder.hasBehavior(BoundLoopBehavior) || builder.hasBehavior(ChildRunnerBehavior)) return;
-
         const statement = statements[0];
+        const label = getContent(statement, 'Effort');
+
+        // Create block context
         const blockKey = new BlockKey();
-        const exerciseId = getExerciseId(statement);
-        const context = new BlockContext(runtime, blockKey.toString(), exerciseId);
+        const context = new BlockContext(runtime, blockKey.toString());
 
-        const label = getContent(statement, "Effort");
-
-        builder.setContext(context)
+        // Configure block
+        builder
+            .setSourceIds(statements.map(s => s.id))
+            .setContext(context)
             .setKey(blockKey)
-            .setBlockType("Effort")
-            .setLabel(label) // Use text content as label
-            .setSourceIds(statement.id ? [statement.id] : []);
+            .setBlockType('effort')
+            .setLabel(label);
 
-        // Filter out runtime-generated fragments to avoid pollution
-        const cleanFragments = (statement.fragments || []).filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+        // Add behaviors
+        // Completion Aspect: complete on user advance
+        builder.addBehavior(new PopOnNextBehavior());
 
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(cleanFragments, "Effort");
-        builder.setFragments(fragmentGroups);
-
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
-
-
-        // Effort block usually has History
-        builder.addBehavior(new HistoryBehavior({
-            label: label,
-            debugMetadata: createSpanMetadata(
-                ['effort'],
-                { strategyUsed: 'EffortFallbackStrategy' }
-            )
-        }));
+        // Output Aspect: emit segment/completion outputs
+        builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }
+

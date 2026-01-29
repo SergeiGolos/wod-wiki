@@ -1,41 +1,34 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { IEvent } from '../contracts/events/IEvent';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
 
 /**
- * PopOnEventBehavior - Marks the block as complete when specific events are received.
+ * PopOnEventBehavior marks the block complete when a specific event fires.
  * 
- * This is a simple, single-responsibility behavior that can be composed
- * into blocks that should dismiss on certain events (like idle blocks).
+ * ## Aspect: Completion (Event-based)
  * 
- * @example
- * ```typescript
- * // Complete when 'stop' or 'view-results' events are received
- * new PopOnEventBehavior(['stop', 'view-results'])
- * ```
+ * Subscribes to the specified event type and marks complete when received.
  */
 export class PopOnEventBehavior implements IRuntimeBehavior {
-    constructor(private readonly events: string[]) { }
+    constructor(private eventTypes: string[]) { }
 
-    onEvent(event: IEvent, block: IRuntimeBlock): IRuntimeAction[] {
-        if (this.events.includes(event.name)) {
-            // Mark block as complete - stack will pop it during sweep
-            block.markComplete(`event-${event.name}`);
+    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Subscribe to each event type
+        for (const eventType of this.eventTypes) {
+            ctx.subscribe(eventType as any, (event, subCtx) => {
+                subCtx.markComplete(`event:${event.name}`);
+                return [];
+            });
         }
+
         return [];
     }
 
-    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
+    onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
     }
 
-    onNext(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
-        return [];
-    }
-
-    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
     }
 }

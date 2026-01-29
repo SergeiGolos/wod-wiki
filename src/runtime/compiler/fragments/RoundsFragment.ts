@@ -1,9 +1,10 @@
-import { ICodeFragment, FragmentType } from "../../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class RoundsFragment implements ICodeFragment {
   readonly value: number | string;
   readonly image: string;
+  readonly origin: FragmentOrigin = 'parser';
 
   constructor(public count: number | string, public meta?: CodeMetadata) {
     this.value = count;
@@ -12,3 +13,4 @@ export class RoundsFragment implements ICodeFragment {
   readonly type: string = "rounds";
   readonly fragmentType = FragmentType.Rounds;
 }
+

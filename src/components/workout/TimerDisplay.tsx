@@ -9,7 +9,7 @@ import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
 import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
-import { ActionDescriptor } from '../../runtime/actions/ActionStackActions';
+import { ActionDescriptor } from '../../runtime/actions/stack/ActionStackActions';
 import { MemoryTypeEnum } from '../../runtime/models/MemoryTypeEnum';
 import {
   useTimerStack,

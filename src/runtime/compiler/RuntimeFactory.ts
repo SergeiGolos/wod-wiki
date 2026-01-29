@@ -132,9 +132,12 @@ export class RuntimeFactory implements IRuntimeFactory {
 /**
  * Creates a default RuntimeFactory with the global compiler
  * Useful for quick setup in components
+ * 
+ * @deprecated Use explicit RuntimeFactory construction with a JitCompiler instance
+ * to avoid coupling to testbench services.
  */
-export function createDefaultRuntimeFactory(): RuntimeFactory {
-  // Import here to avoid circular dependency
-  const { globalCompiler } = require('../runtime-test-bench/services/testbench-services');
+export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
+  // Dynamic import to avoid circular dependency and browser compatibility
+  const { globalCompiler } = await import('../../runtime-test-bench/services/testbench-services');
   return new RuntimeFactory(globalCompiler);
 }

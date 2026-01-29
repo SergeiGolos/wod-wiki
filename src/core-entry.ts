@@ -26,7 +26,7 @@ export * from './parser/timer.visitor';
 
 // Runtime engine
 export { ScriptRuntime } from './runtime/ScriptRuntime';
-export { JitCompiler } from './runtime/JitCompiler';
+export { JitCompiler } from './runtime/compiler/JitCompiler';
 export { RuntimeStack } from './runtime/RuntimeStack';
 export { RuntimeMemory } from './runtime/RuntimeMemory';
 export { RuntimeBlock } from './runtime/RuntimeBlock';
@@ -45,38 +45,11 @@ export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 export type { IBlockContext } from './runtime/contracts/IBlockContext';
 
 // Runtime actions
-export * from './runtime/PushBlockAction';
+export * from './runtime/actions/stack/PushBlockAction';
 export * from './runtime/actions/ErrorAction';
-export * from './runtime/actions/EmitMetricAction';
-export * from './runtime/actions/EmitEventAction';
-export * from './runtime/actions/RegisterEventHandlerAction';
-export * from './runtime/actions/UnregisterEventHandlerAction';
 
-// Runtime behaviors
-export * from './runtime/behaviors/TimerBehavior';
-export * from './runtime/behaviors/CompletionBehavior';
-export * from './runtime/behaviors/RoundDisplayBehavior';
-export * from './runtime/behaviors/RoundSpanBehavior';
-export * from './runtime/behaviors/LapTimerBehavior';
-export * from './runtime/behaviors/IntervalTimerRestartBehavior';
-export * from './runtime/behaviors/RoundPerLoopBehavior';
-export * from './runtime/behaviors/RoundPerNextBehavior';
-export * from './runtime/behaviors/ChildIndexBehavior';
-export * from './runtime/behaviors/BoundLoopBehavior';
-export * from './runtime/behaviors/UnboundLoopBehavior';
-export * from './runtime/behaviors/ChildRunnerBehavior';
-
-// Decomposed root/idle behaviors
-export * from './runtime/behaviors/PopOnEventBehavior';
-export * from './runtime/behaviors/PopOnNextBehavior';
-export * from './runtime/behaviors/SingleButtonBehavior';
-export * from './runtime/behaviors/TransitionTimingBehavior';
-export * from './runtime/behaviors/WorkoutStateBehavior';
-export * from './runtime/behaviors/DisplayModeBehavior';
-export * from './runtime/behaviors/TimerPauseResumeBehavior';
-export * from './runtime/behaviors/WorkoutControlButtonsBehavior';
-export * from './runtime/behaviors/IdleInjectionBehavior';
-export * from './runtime/behaviors/WorkoutFlowStateMachine';
+// Runtime behaviors - export new aspect-based behaviors
+export * from './runtime/behaviors';
 
 // Runtime blocks
 export * from './runtime/blocks/EffortBlock';
@@ -85,22 +58,22 @@ export * from './runtime/blocks/EffortBlock';
 export * from './runtime/compiler/strategies';
 
 // Fragments
-export * from './fragments/TimerFragment';
-export * from './fragments/RoundsFragment';
-export * from './fragments/RepFragment';
-export * from './fragments/EffortFragment';
-export * from './fragments/DistanceFragment';
-export * from './fragments/ResistanceFragment';
-export * from './fragments/ActionFragment';
-export * from './fragments/IncrementFragment';
-export * from './fragments/LapFragment';
-export * from './fragments/TextFragment';
+export * from './runtime/compiler/fragments/TimerFragment';
+export * from './runtime/compiler/fragments/RoundsFragment';
+export * from './runtime/compiler/fragments/RepFragment';
+export * from './runtime/compiler/fragments/EffortFragment';
+export * from './runtime/compiler/fragments/DistanceFragment';
+export * from './runtime/compiler/fragments/ResistanceFragment';
+export * from './runtime/compiler/fragments/ActionFragment';
+export * from './runtime/compiler/fragments/IncrementFragment';
+export * from './runtime/compiler/fragments/LapFragment';
+export * from './runtime/compiler/fragments/TextFragment';
 
 // Fragment types
 export { FragmentType } from './core/models/CodeFragment';
 export type { ICodeFragment } from './core/models/CodeFragment';
 
 // Utility exports
-export { FragmentMetricCollector } from './runtime/FragmentMetricCollector';
-export type { IFragmentMetricCollector } from './runtime/FragmentMetricCollector';
+export { FragmentMetricCollector } from './runtime/compiler/FragmentMetricCollector';
+export type { IFragmentMetricCollector } from './runtime/compiler/FragmentMetricCollector';
 

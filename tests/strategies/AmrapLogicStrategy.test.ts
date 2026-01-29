@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
-import { BoundTimerBehavior } from '@/runtime/behaviors/BoundTimerBehavior';
-import { UnboundLoopBehavior } from '@/runtime/behaviors/UnboundLoopBehavior';
-import { CompletionBehavior } from '@/runtime/behaviors/CompletionBehavior';
+import { TimerInitBehavior, RoundInitBehavior, HistoryRecordBehavior } from '@/runtime/behaviors';
 
 describe('AmrapLogicStrategy', () => {
   it('should compile "10:00 AMRAP" to an AMRAP block', () => {
@@ -18,8 +16,9 @@ describe('AmrapLogicStrategy', () => {
     expect(block).toBeDefined();
     expect(block.blockType).toBe('AMRAP');
 
-    expect(block.getBehavior(BoundTimerBehavior)).toBeDefined();
-    expect(block.getBehavior(UnboundLoopBehavior)).toBeDefined();
-    expect(block.getBehavior(CompletionBehavior)).toBeDefined();
+    // Now uses aspect-based behaviors
+    expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
+    expect(block.getBehavior(RoundInitBehavior)).toBeDefined();
+    expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
   });
 });

@@ -5,7 +5,7 @@ import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
 import { FragmentCollectionState } from '../../core/models/CodeFragment';
 import { UnifiedItemRow } from '../unified/UnifiedItemRow';
-import { ActionDescriptor } from '../../runtime/actions/ActionStackActions';
+import { ActionDescriptor } from '../../runtime/actions/stack/ActionStackActions';
 
 export interface RefinedTimerDisplayProps {
     elapsedMs: number;

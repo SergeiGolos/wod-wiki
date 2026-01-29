@@ -8,14 +8,15 @@ import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
 
-// Behaviors
-import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { PopOnNextBehavior } from '../../behaviors/PopOnNextBehavior';
-import { PopOnEventBehavior } from '../../behaviors/PopOnEventBehavior';
-import { SingleButtonBehavior } from '../../behaviors/SingleButtonBehavior';
-import { TransitionTimingBehavior } from '../../behaviors/TransitionTimingBehavior';
-import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
+// Aspect-based behaviors
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    PopOnNextBehavior,
+    PopOnEventBehavior,
+    DisplayInitBehavior,
+    ControlsInitBehavior
+} from '../../behaviors';
 
 /**
  * Configuration for idle blocks.
@@ -40,32 +41,11 @@ export interface IdleBlockConfig {
 /**
  * IdleBlockStrategy - Composes behaviors for idle/transition blocks.
  * 
- * This strategy builds idle blocks using single-responsibility behaviors:
- * - TransitionTimingBehavior: Tracks time spent in idle state
- * - RuntimeControlsBehavior: Manages button/control memory
- * - TimerBehavior: Provides timer display
- * - DisplayModeBehavior: Sets display mode
- * - PopOnNextBehavior: Pops on next (if configured)
- * - PopOnEventBehavior: Pops on specific events (if configured)
- * - SingleButtonBehavior: Registers a button (if configured)
- * 
- * @example
- * ```typescript
- * const strategy = new IdleBlockStrategy();
- * const block = strategy.build(runtime, {
- *     id: 'idle-start',
- *     label: 'Ready',
- *     popOnNext: true,
- *     button: {
- *         id: 'btn-start',
- *         label: 'Start Workout',
- *         icon: 'play',
- *         action: 'timer:start',
- *         variant: 'default',
- *         size: 'lg'
- *     }
- * });
- * ```
+ * Uses aspect-based behaviors:
+ * - Time: TimerInit (countup), TimerTick
+ * - Completion: PopOnNext or PopOnEvent
+ * - Display: DisplayInit
+ * - Controls: ControlsInit
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     priority = 100; // Root is highest priority if it were ever matched
@@ -80,7 +60,7 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     /**
      * Composable apply - not used for root blocks.
      */
-    apply(_builder: any, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
         // No-op for direct build
     }
 
@@ -109,21 +89,21 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     buildBehaviors(config: IdleBlockConfig): IRuntimeBehavior[] {
         const behaviors: IRuntimeBehavior[] = [];
 
-        // 1. Timing tracking (optional, defaults to true)
-        if (config.trackTiming !== false) {
-            behaviors.push(new TransitionTimingBehavior());
+        // =====================================================================
+        // Time Aspect - Track idle duration
+        // =====================================================================
+        if (config.trackTiming) {
+            behaviors.push(new TimerInitBehavior({
+                direction: 'up',
+                label: config.label,
+                role: 'secondary'
+            }));
+            behaviors.push(new TimerTickBehavior());
         }
 
-        // 2. Controls allocation
-        behaviors.push(new RuntimeControlsBehavior());
-
-        // 3. Timer for display (secondary timer)
-        behaviors.push(new TimerBehavior('up', undefined, config.label, 'secondary'));
-
-        // 4. Display mode
-        behaviors.push(new DisplayModeBehavior(config.displayMode ?? 'clock'));
-
-        // 5. Pop behaviors
+        // =====================================================================
+        // Completion Aspect
+        // =====================================================================
         if (config.popOnNext) {
             behaviors.push(new PopOnNextBehavior());
         }
@@ -132,9 +112,28 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
             behaviors.push(new PopOnEventBehavior(config.popOnEvents));
         }
 
-        // 6. Button (if provided)
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        behaviors.push(new DisplayInitBehavior({
+            mode: config.displayMode || 'clock',
+            label: config.label
+        }));
+
+        // =====================================================================
+        // Controls Aspect
+        // =====================================================================
         if (config.button) {
-            behaviors.push(new SingleButtonBehavior(config.button));
+            behaviors.push(new ControlsInitBehavior({
+                buttons: [{
+                    id: config.button.id,
+                    label: config.button.label,
+                    variant: 'primary',
+                    visible: true,
+                    enabled: true,
+                    eventName: config.button.action
+                }]
+            }));
         }
 
         return behaviors;

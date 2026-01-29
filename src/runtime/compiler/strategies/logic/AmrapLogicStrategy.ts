@@ -3,36 +3,53 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
-import { BoundTimerBehavior } from "../../../behaviors/BoundTimerBehavior";
-import { UnboundLoopBehavior } from "../../../behaviors/UnboundLoopBehavior";
-import { CompletionBehavior } from "../../../behaviors/CompletionBehavior";
 import { TimerFragment } from "../../fragments/TimerFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { createSpanMetadata } from "../../../utils/metadata";
-import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
 
+// New aspect-based behaviors
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    TimerCompletionBehavior,
+    TimerPauseBehavior,
+    RoundInitBehavior,
+    RoundAdvanceBehavior,
+    RoundDisplayBehavior,
+    RoundOutputBehavior,
+    DisplayInitBehavior,
+    TimerOutputBehavior,
+    HistoryRecordBehavior,
+    SoundCueBehavior
+} from "../../../behaviors";
+
+/**
+ * AmrapLogicStrategy handles "As Many Rounds As Possible" blocks.
+ * 
+ * Pattern: Timer (countdown) + Rounds (unbounded)
+ * 
+ * Uses aspect-based behaviors:
+ * - Time: TimerInit (countdown), TimerTick, TimerCompletion, TimerPause
+ * - Iteration: RoundInit (unbounded), RoundAdvance (no RoundCompletion!)
+ * - Display: DisplayInit, RoundDisplay
+ * - Output: TimerOutput, RoundOutput, HistoryRecord
+ * - Controls: Sound cues for countdown
+ */
 export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
-    priority = 90;
+    priority = 90; // High priority - runs before generic strategies
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
         const hasTimer = statement.hasFragment(FragmentType.Timer);
 
-        // Strict: "AMRAP" usually implies we don't have a fixed round count,
-        // but the AmrapLogicStrategy seems designed for "Time-Capped Work".
-
-        // Heuristic: If we have Timer AND (Rounds OR Action/Effort='Rounds' OR Action/Effort='AMRAP')
+        // Check for AMRAP keyword or rounds with timer
         const hasRounds = statement.hasFragment(FragmentType.Rounds);
-
-        // Also check if we have "5 Rounds" which parsed as Reps + Effort="Rounds"
         const hasRoundsKeyword = statement.fragments.some(
-             f => (f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action)
-             && typeof f.value === 'string'
-             && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
+            f => (f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action)
+                && typeof f.value === 'string'
+                && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
         );
 
         return hasTimer && (hasRounds || hasRoundsKeyword);
@@ -43,50 +60,72 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer);
         const durationMs = timerFragment?.value || 0;
 
-        // 1. Basic Metadata
+        // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const label = `AMRAP ${Math.round(durationMs / 60000)} min`;
 
-        // Only set if not already set (though Logic runs first, so it sets the tone)
-        builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("AMRAP")
-               .setLabel(`AMRAP ${Math.round(durationMs / 60000)} min`)
-               .setSourceIds(statement.id ? [statement.id] : []);
+        builder
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType("AMRAP")
+            .setLabel(label)
+            .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(statement.fragments || [], "AMRAP");
         builder.setFragments(fragmentGroups);
 
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
+        // =====================================================================
+        // Time Aspect - AMRAP uses countdown timer
+        // =====================================================================
+        builder.addBehavior(new TimerInitBehavior({
+            direction: 'down',  // AMRAP counts down
+            durationMs,
+            label: 'AMRAP',
+            role: 'primary'
+        }));
+        builder.addBehavior(new TimerTickBehavior());
+        builder.addBehavior(new TimerPauseBehavior());
 
+        // Timer completion marks the block complete (time cap reached)
+        builder.addBehavior(new TimerCompletionBehavior());
 
-        // 2. Timer (AMRAP is always 'Up' bound timer)
-        const timerBehavior = new BoundTimerBehavior(durationMs, 'up', 'AMRAP');
-        builder.addBehavior(timerBehavior);
+        // =====================================================================
+        // Iteration Aspect - AMRAP has unbounded rounds
+        // =====================================================================
+        builder.addBehavior(new RoundInitBehavior({
+            totalRounds: undefined,  // Unbounded - run until timer expires
+            startRound: 1
+        }));
+        builder.addBehavior(new RoundAdvanceBehavior());
+        // NOTE: No RoundCompletionBehavior - rounds don't complete the block!
 
-        // 3. Loop (Unbound - run until timer stops)
-        // We add UnboundLoopBehavior which allows infinite rounds
-        builder.addBehavior(new UnboundLoopBehavior());
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        builder.addBehavior(new DisplayInitBehavior({
+            mode: 'countdown',
+            label
+        }));
+        builder.addBehavior(new RoundDisplayBehavior());
 
-        // 4. Completion Logic
-        // Complete when timer is done
-        builder.addBehavior(new CompletionBehavior(
-            (_block, now) => timerBehavior.isComplete(now),
-            ['timer:tick', 'timer:complete']
-        ));
+        // =====================================================================
+        // Output Aspect
+        // =====================================================================
+        builder.addBehavior(new TimerOutputBehavior());
+        builder.addBehavior(new RoundOutputBehavior());
+        builder.addBehavior(new HistoryRecordBehavior());
 
-        // 5. History Hint
-        // Logic knows best about what this is
-        builder.addBehavior(new HistoryBehavior({
-            label: "AMRAP",
-            debugMetadata: createSpanMetadata(
-                ['amrap', 'time-bound'],
-                {
-                    strategyUsed: 'AmrapLogicStrategy',
-                    durationMs
-                }
-            )
+        // =====================================================================
+        // Sound Cues
+        // =====================================================================
+        builder.addBehavior(new SoundCueBehavior({
+            cues: [
+                { sound: 'start-beep', trigger: 'mount' },
+                { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
+                { sound: 'timer-complete', trigger: 'complete' }
+            ]
         }));
     }
 }

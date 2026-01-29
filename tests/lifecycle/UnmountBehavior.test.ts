@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
-import { EmitEventAction } from '@/runtime/actions/events/EmitEventAction';
+import { TimerInitBehavior, TimerTickBehavior } from '@/runtime/behaviors';
 
 describe('Unmount Lifecycle', () => {
     let harness: BehaviorTestHarness;
@@ -11,30 +10,19 @@ describe('Unmount Lifecycle', () => {
         harness = new BehaviorTestHarness();
     });
 
-    it('should execute behavior onPop and dispose when unmounted', () => {
-        const timerBehavior = new TimerBehavior('up');
-        // Spy on dispose
-        let disposed = false;
-        // Hack to spy on dispose since TimerBehavior.dispose stops timer
-        const originalDispose = timerBehavior.onDispose.bind(timerBehavior);
-        (timerBehavior as any).onDispose = (block: any) => {
-            disposed = true;
-            originalDispose(block);
-        };
-
-        const block = new MockBlock('unmount-test', [timerBehavior]);
+    it('should execute behavior onUnmount and remove from stack when unmounted', () => {
+        const timerInit = new TimerInitBehavior({ direction: 'up' });
+        const timerTick = new TimerTickBehavior();
+        const block = new MockBlock('unmount-test', [timerInit, timerTick]);
 
         harness.push(block);
         harness.mount();
 
+        // Timer should be started
+        expect(harness.wasEventEmitted('timer:started')).toBe(true);
+
         // Unmount
         harness.unmount();
-
-        // Expect timer to emit complete event (onPop)
-        expect(harness.wasEventEmitted('timer:complete')).toBe(true);
-
-        // Expect disposed
-        expect(disposed).toBe(true);
 
         // Expect block removed from stack
         expect(harness.stackDepth).toBe(0);

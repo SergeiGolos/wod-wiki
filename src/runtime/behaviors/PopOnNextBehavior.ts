@@ -1,33 +1,32 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IRuntimeClock } from '../contracts/IRuntimeClock';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
+import { IRuntimeAction } from '../contracts/IRuntimeAction';
 
 /**
- * PopOnNextBehavior - Marks the block as complete when next() is called.
+ * PopOnNextBehavior marks the block complete immediately when next() is called.
  * 
- * This is a simple, single-responsibility behavior for blocks that
- * should immediately dismiss when the user triggers "next".
- * Commonly used for idle/transition blocks.
+ * Use for simple blocks that advance on user click or single completion:
+ * - Effort blocks (e.g., "10 Push-ups")
+ * - Pause blocks
+ * - Instruction blocks
  * 
- * @example
- * ```typescript
- * // Block will complete when next() is called
- * new PopOnNextBehavior()
- * ```
+ * ## Aspect: Completion
+ * 
+ * This behavior implements the "pop on user advance" completion strategy.
  */
 export class PopOnNextBehavior implements IRuntimeBehavior {
-    onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
-        // Mark block as complete - stack will pop it during sweep
-        block.markComplete('next-triggered');
+    onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        // No-op on mount
         return [];
     }
 
-    onPush(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Mark block complete on any next() call
+        ctx.markComplete('user-advance');
         return [];
     }
 
-    onPop(_block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
     }
 }

@@ -2,12 +2,22 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { HistoryBehavior } from "../../../behaviors/HistoryBehavior";
-import { createSpanMetadata } from "../../../utils/metadata";
 import { FragmentType } from "@/core/models/CodeFragment";
 import { TimerFragment } from "../../fragments/TimerFragment";
 import { RoundsFragment } from "../../fragments/RoundsFragment";
 
+// New aspect-based behaviors
+import { HistoryRecordBehavior } from "../../../behaviors";
+
+/**
+ * HistoryStrategy adds history recording behavior to blocks.
+ * 
+ * Uses aspect-based behaviors:
+ * - Output: HistoryRecordBehavior
+ * 
+ * This is a low-priority enhancement that adds history tracking
+ * if not already added by a higher-priority strategy.
+ */
 export class HistoryStrategy implements IRuntimeBlockStrategy {
     priority = 20;
 
@@ -15,8 +25,9 @@ export class HistoryStrategy implements IRuntimeBlockStrategy {
         return statements && statements.length > 0;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        if (builder.hasBehavior(HistoryBehavior)) {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+        // Skip if history already added by Logic strategy
+        if (builder.hasBehavior(HistoryRecordBehavior)) {
             return;
         }
 
@@ -24,34 +35,16 @@ export class HistoryStrategy implements IRuntimeBlockStrategy {
         const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer);
         const roundsFragment = statement.findFragment<RoundsFragment>(FragmentType.Rounds);
 
-        // We assume Logic strategies have already added a specific HistoryBehavior.
-        // If not, we add a generic one.
-        // Most blocks should have history.
-
-        // But what label?
-        // Let's use the label from the builder if available, but Builder.label is private.
-        // BlockBuilder doesn't expose getLabel().
-        // We can inspect the fragments.
-
-        let label = "Block";
-        const meta: any = { strategyUsed: 'HistoryStrategy' };
-
+        // Determine block type for history context
+        let _label = "Block";
         if (timerFragment) {
-            label = timerFragment.direction === 'down' ? 'Timer' : 'For Time';
-            meta.timerDuration = timerFragment.value;
+            _label = timerFragment.direction === 'down' ? 'Timer' : 'For Time';
         }
-
         if (roundsFragment) {
-            label = "Rounds";
-            meta.rounds = roundsFragment.value;
+            _label = "Rounds";
         }
 
-        builder.addBehavior(new HistoryBehavior({
-            label,
-            debugMetadata: createSpanMetadata(
-                ['generic_block'],
-                meta
-            )
-        }));
+        // Add history recording behavior
+        builder.addBehavior(new HistoryRecordBehavior());
     }
 }

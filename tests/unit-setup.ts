@@ -30,6 +30,18 @@ if (!(globalThis as any).window || !globalThis.document) {
       });
     }
   }
+
+  // Polyfill requestAnimationFrame/cancelAnimationFrame for animation-based hooks
+  if (!(globalThis as any).requestAnimationFrame) {
+    (globalThis as any).requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      return setTimeout(() => callback(Date.now()), 16) as unknown as number;
+    };
+  }
+  if (!(globalThis as any).cancelAnimationFrame) {
+    (globalThis as any).cancelAnimationFrame = (id: number): void => {
+      clearTimeout(id);
+    };
+  }
 }
 
 // Provide vi.mocked helper for compatibility across tests

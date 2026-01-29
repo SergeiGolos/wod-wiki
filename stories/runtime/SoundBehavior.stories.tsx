@@ -1,20 +1,48 @@
 /**
  * SoundBehavior Storybook Story
  * 
- * Demonstrates the SoundBehavior that triggers audio cues at specific time thresholds.
+ * Demonstrates the SoundCueBehavior that triggers audio cues at specific time thresholds.
  * This story provides a visual representation of sound cue triggering and allows
  * interactive testing of the behavior.
+ * 
+ * Uses the new behavior-based system with:
+ * - TimerInitBehavior + TimerTickBehavior for timer management
+ * - SoundCueBehavior for audio cue triggering
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SoundBehavior, SOUND_MEMORY_TYPE } from '../../src/runtime/behaviors/SoundBehavior';
-import { SoundBehaviorConfig, SoundCue, PREDEFINED_SOUNDS } from '../../src/runtime/models/SoundModels';
-import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
+import { SoundCueBehavior, SoundCueConfig } from '../../src/runtime/behaviors/SoundCueBehavior';
+import { TimerInitBehavior, TimerTickBehavior } from '../../src/runtime/behaviors';
 import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { WodScript } from '../../src/parser/WodScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
+import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../src/runtime/RuntimeClock';
+import { EventBus } from '../../src/runtime/events/EventBus';
+
+// Helper to create minimal test runtime with all required dependencies
+function createTestRuntime(): ScriptRuntime {
+  const script = new WodScript('sound-demo', []);
+  const compiler = new JitCompiler([]);
+  const dependencies = {
+    memory: new RuntimeMemory(),
+    stack: new RuntimeStack(),
+    clock: new RuntimeClock(),
+    eventBus: new EventBus()
+  };
+  return new ScriptRuntime(script, compiler, dependencies);
+}
+
+// Predefined sound identifiers
+const PREDEFINED_SOUNDS = {
+  BEEP: 'beep',
+  BUZZER: 'buzzer',
+  CHIME: 'chime',
+  TICK: 'tick'
+} as const;
 
 interface SoundBehaviorDemoProps {
   /** Timer duration in seconds */
@@ -31,7 +59,8 @@ interface SoundBehaviorDemoProps {
 }
 
 /**
- * Demo component that visualizes SoundBehavior with timer integration.
+ * Demo component that visualizes SoundCueBehavior with timer integration.
+ * Uses new aspect-based behaviors: TimerInitBehavior, TimerTickBehavior, SoundCueBehavior
  */
 const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
   durationSeconds,
@@ -49,23 +78,18 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
 
   const durationMs = durationSeconds * 1000;
 
-  // Convert cue config to SoundBehavior config
-  const soundConfig: SoundBehaviorConfig = {
-    direction,
-    durationMs: direction === 'down' ? durationMs : undefined,
+  // Convert cue config to SoundCueBehavior config
+  const soundConfig: SoundCueConfig = {
     cues: cues.map(c => ({
-      id: c.id,
-      threshold: c.thresholdSeconds * 1000,
       sound: c.sound,
-      volume: c.volume
+      trigger: 'countdown' as const,
+      atSeconds: [c.thresholdSeconds]
     }))
   };
 
   // Initialize runtime and block
   useEffect(() => {
-    const script = new WodScript('sound-demo', []);
-    const compiler = new JitCompiler([]);
-    const runtime = new ScriptRuntime(script, compiler);
+    const runtime = createTestRuntime();
     runtimeRef.current = runtime;
 
     // Initialize Web Audio API (with Safari fallback)
@@ -120,26 +144,26 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
       originalHandle(event);
       
       if (event.name === 'sound:play') {
-        const { sound, volume, cueId } = event.data || {};
+        const eventData = event.data as { sound?: string; remainingSeconds?: number; blockKey?: string } || {};
+        const { sound, remainingSeconds } = eventData;
         
         // Add to sound events log
+        const cueId = remainingSeconds !== undefined ? `${remainingSeconds}-sec` : 'event';
         setSoundEvents(prev => [...prev, {
           time: new Date(),
-          cueId: cueId || 'unknown',
+          cueId,
           sound: sound || 'unknown'
         }]);
         
         // Mark cue as triggered
-        if (cueId) {
-          setTriggeredCues(prev => new Set([...prev, cueId]));
-        }
+        setTriggeredCues(prev => new Set([...prev, cueId]));
         
         // Play actual sound
         const freq = sound === PREDEFINED_SOUNDS.BUZZER ? 220 :
                      sound === PREDEFINED_SOUNDS.CHIME ? 880 :
                      sound === PREDEFINED_SOUNDS.TICK ? 1000 : 440;
         const dur = sound === PREDEFINED_SOUNDS.BUZZER ? 500 : 150;
-        playBeep(freq, dur, volume || 0.5);
+        playBeep(freq, dur, 0.5);
       }
     };
   }, [playBeep]);
@@ -158,15 +182,20 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
     setTriggeredCues(new Set());
     setSoundEvents([]);
 
-    // Create behaviors
-    const timerBehavior = new TimerBehavior(direction, direction === 'down' ? durationMs : undefined, 'Demo Timer');
-    const soundBehavior = new SoundBehavior(soundConfig);
+    // Create behaviors using new aspect-based system
+    const timerInitBehavior = new TimerInitBehavior({
+      direction,
+      durationMs: direction === 'down' ? durationMs : undefined,
+      label: 'Demo Timer'
+    });
+    const timerTickBehavior = new TimerTickBehavior();
+    const soundCueBehavior = new SoundCueBehavior(soundConfig);
 
     // Create and mount block
     const block = new RuntimeBlock(
       runtimeRef.current,
       [1],
-      [timerBehavior, soundBehavior],
+      [timerInitBehavior, timerTickBehavior, soundCueBehavior],
       'Timer'
     );
     blockRef.current = block;
@@ -191,10 +220,10 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
 
       setElapsedMs(elapsed);
 
-      // Emit timer:tick event
+      // Emit tick event for behaviors to process
       if (runtimeRef.current && blockRef.current) {
         runtimeRef.current.handle({
-          name: 'timer:tick',
+          name: 'tick',
           timestamp: new Date(),
           data: {
             blockId: blockRef.current.key.toString(),

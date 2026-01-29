@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { WorkoutRootStrategy, WorkoutRootConfig } from '../WorkoutRootStrategy';
-import { RuntimeControlsBehavior } from '../../../behaviors/RuntimeControlsBehavior';
-import { TimerBehavior } from '../../../behaviors/TimerBehavior';
-import { ChildIndexBehavior } from '../../../behaviors/ChildIndexBehavior';
-import { RoundPerLoopBehavior } from '../../../behaviors/RoundPerLoopBehavior';
-import { WorkoutStateBehavior } from '../../../behaviors/WorkoutStateBehavior';
-import { DisplayModeBehavior } from '../../../behaviors/DisplayModeBehavior';
-import { TimerPauseResumeBehavior } from '../../../behaviors/TimerPauseResumeBehavior';
-import { WorkoutControlButtonsBehavior } from '../../../behaviors/WorkoutControlButtonsBehavior';
-import { IdleInjectionBehavior } from '../../../behaviors/IdleInjectionBehavior';
-import { WorkoutFlowStateMachine } from '../../../behaviors/WorkoutFlowStateMachine';
-import { RoundDisplayBehavior } from '../../../behaviors/RoundDisplayBehavior';
-import { RoundSpanBehavior } from '../../../behaviors/RoundSpanBehavior';
-import { LapTimerBehavior } from '../../../behaviors/LapTimerBehavior';
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    TimerPauseBehavior,
+    RoundInitBehavior,
+    RoundAdvanceBehavior,
+    RoundCompletionBehavior,
+    RoundDisplayBehavior,
+    ChildRunnerBehavior,
+    DisplayInitBehavior,
+    ControlsInitBehavior,
+    HistoryRecordBehavior
+} from '../../../behaviors';
 
 describe('WorkoutRootStrategy', () => {
     let strategy: WorkoutRootStrategy;
@@ -42,17 +42,14 @@ describe('WorkoutRootStrategy', () => {
 
             const behaviors = strategy.buildBehaviors(config);
 
-            // Check required behavior types are present
-            expect(behaviors.some(b => b instanceof RuntimeControlsBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof WorkoutStateBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof DisplayModeBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof TimerPauseResumeBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof WorkoutFlowStateMachine)).toBe(true);
-            expect(behaviors.some(b => b instanceof ChildIndexBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof RoundPerLoopBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof WorkoutControlButtonsBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof IdleInjectionBehavior)).toBe(true);
+            // Check required behavior types are present (new aspect-based behaviors)
+            expect(behaviors.some(b => b instanceof TimerInitBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof TimerTickBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof TimerPauseBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof DisplayInitBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof ControlsInitBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof ChildRunnerBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof HistoryRecordBehavior)).toBe(true);
         });
 
         it('should NOT include round tracking behaviors for single-round workout', () => {
@@ -63,9 +60,10 @@ describe('WorkoutRootStrategy', () => {
 
             const behaviors = strategy.buildBehaviors(config);
 
+            expect(behaviors.some(b => b instanceof RoundInitBehavior)).toBe(false);
             expect(behaviors.some(b => b instanceof RoundDisplayBehavior)).toBe(false);
-            expect(behaviors.some(b => b instanceof RoundSpanBehavior)).toBe(false);
-            expect(behaviors.some(b => b instanceof LapTimerBehavior)).toBe(false);
+            expect(behaviors.some(b => b instanceof RoundAdvanceBehavior)).toBe(false);
+            expect(behaviors.some(b => b instanceof RoundCompletionBehavior)).toBe(false);
         });
 
         it('should include round tracking behaviors for multi-round workout', () => {
@@ -76,21 +74,22 @@ describe('WorkoutRootStrategy', () => {
 
             const behaviors = strategy.buildBehaviors(config);
 
+            expect(behaviors.some(b => b instanceof RoundInitBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof RoundDisplayBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof RoundSpanBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof LapTimerBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof RoundAdvanceBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof RoundCompletionBehavior)).toBe(true);
         });
 
-        it('should include two IdleInjectionBehaviors (start and end)', () => {
+        it('should include expected behavior count for single-round workout', () => {
             const config: WorkoutRootConfig = {
                 childGroups: [[1]],
                 totalRounds: 1
             };
 
             const behaviors = strategy.buildBehaviors(config);
-            const idleBehaviors = behaviors.filter(b => b instanceof IdleInjectionBehavior);
-
-            expect(idleBehaviors.length).toBe(2);
+            
+            // Expected: Timer (3) + Children (1) + Display (1) + Controls (1) + History (1) = 7
+            expect(behaviors.length).toBe(7);
         });
     });
 

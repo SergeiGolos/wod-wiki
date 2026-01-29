@@ -1,4 +1,4 @@
-import { ICodeFragment, FragmentType } from "../../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export interface ActionFragmentOptions {
@@ -17,6 +17,7 @@ export class ActionFragment implements ICodeFragment {
   readonly name: string;
   readonly isPinned: boolean;
   readonly sourceLine?: number;
+  readonly origin: FragmentOrigin = 'parser';
 
   constructor(action: string, public meta?: CodeMetadata, options: ActionFragmentOptions = {}) {
     // Preserve backward compatibility: "action" arg is the normalized name when options not provided
@@ -32,3 +33,4 @@ export class ActionFragment implements ICodeFragment {
   readonly type: string = "action";
   readonly fragmentType = FragmentType.Action;
 }
+

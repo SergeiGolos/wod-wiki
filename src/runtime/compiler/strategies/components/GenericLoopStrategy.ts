@@ -4,17 +4,29 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
 import { RoundsFragment } from "../../fragments/RoundsFragment";
-import { BoundLoopBehavior } from "../../../behaviors/BoundLoopBehavior";
-import { UnboundLoopBehavior } from "../../../behaviors/UnboundLoopBehavior";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { ActionLayerBehavior } from "../../../behaviors/ActionLayerBehavior";
-import { RoundPerLoopBehavior } from "../../../behaviors/RoundPerLoopBehavior";
-import { RepFragment } from "../../fragments/RepFragment";
-import { RepSchemeBehavior } from "../../../behaviors/RepSchemeBehavior";
-import { MemoryTypeEnum } from "../../../models/MemoryTypeEnum";
 
+// New aspect-based behaviors
+import {
+    RoundInitBehavior,
+    RoundAdvanceBehavior,
+    RoundCompletionBehavior,
+    RoundDisplayBehavior,
+    RoundOutputBehavior,
+    DisplayInitBehavior,
+    HistoryRecordBehavior
+} from "../../../behaviors";
+
+/**
+ * GenericLoopStrategy handles blocks with round/iteration fragments.
+ * 
+ * Uses aspect-based behaviors:
+ * - Iteration: RoundInit, RoundAdvance, RoundCompletion, RoundDisplay
+ * - Display: DisplayInit
+ * - Output: RoundOutput, HistoryRecord
+ */
 export class GenericLoopStrategy implements IRuntimeBlockStrategy {
     priority = 50;
 
@@ -24,8 +36,8 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // Check for any Loop behavior
-        if (builder.hasBehavior(BoundLoopBehavior) || builder.hasBehavior(UnboundLoopBehavior)) {
+        // Skip if round behaviors already added by higher-priority strategy
+        if (builder.hasBehavior(RoundInitBehavior)) {
             return;
         }
 
@@ -34,6 +46,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         if (!roundsFragment) return;
 
+        // Parse rounds value
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
@@ -42,52 +55,47 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             totalRounds = repScheme.length;
         } else if (typeof roundsFragment.value === 'number') {
             totalRounds = roundsFragment.value;
-            const repFragments = statement.filterFragments<RepFragment>(FragmentType.Rep) || [];
-            if (repFragments.length > 0) {
-                repScheme = repFragments.map(f => f.value as number);
-            }
         }
 
-        // If AmrapLogicStrategy ran, it might have added behaviors but NOT set the BlockType/Label if it didn't match perfectly?
-        // No, AmrapLogicStrategy priority is 90. It should have run.
-        // If it ran, it added UnboundLoopBehavior.
-        // So the check above `builder.hasBehavior(UnboundLoopBehavior)` protects us.
-
-        // However, in the failing test, AmrapLogicStrategy added UnboundLoopBehavior.
-        // But my previous implementation of GenericLoopStrategy only checked for BoundLoopBehavior.
-        // This caused GenericLoopStrategy to ALSO run, and overwrite/add BoundLoopBehavior.
-        // And it likely overwrote the Label/Type as well?
-        // builder.setBlockType("Rounds") overwrote "AMRAP".
-
-        // This Fix (checking UnboundLoopBehavior) should solve the test failure.
-
+        // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
 
-        builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("Rounds")
-               .setLabel(repScheme ? repScheme.join('-') : `${totalRounds} Rounds`)
-               .setSourceIds(statement.id ? [statement.id] : []);
+        builder
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType("Rounds")
+            .setLabel(label)
+            .setSourceIds(statement.id ? [statement.id] : []);
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(statement.fragments || [], "Rounds");
         builder.setFragments(fragmentGroups);
-        builder.addBehaviorIfMissing(new ActionLayerBehavior(blockKey.toString(), fragmentGroups, statement.id ? [statement.id] : []));
 
+        // =====================================================================
+        // Iteration Aspect
+        // =====================================================================
+        builder.addBehavior(new RoundInitBehavior({
+            totalRounds,
+            startRound: 1
+        }));
+        builder.addBehavior(new RoundAdvanceBehavior());
+        builder.addBehavior(new RoundCompletionBehavior());
 
-        builder.addBehavior(new RoundPerLoopBehavior());
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        builder.addBehavior(new DisplayInitBehavior({
+            mode: 'clock',
+            label
+        }));
+        builder.addBehavior(new RoundDisplayBehavior());
 
-        if (repScheme && repScheme.length > 0) {
-            builder.addBehavior(new RepSchemeBehavior(repScheme));
-
-            context.allocate(
-                MemoryTypeEnum.METRIC_REPS,
-                repScheme[0],
-                'inherited'
-            );
-        }
-
-        builder.addBehavior(new BoundLoopBehavior(totalRounds));
+        // =====================================================================
+        // Output Aspect
+        // =====================================================================
+        builder.addBehavior(new RoundOutputBehavior());
+        builder.addBehavior(new HistoryRecordBehavior());
     }
 }

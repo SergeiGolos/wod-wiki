@@ -1,24 +1,23 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
-import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
-import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
-import { TimerBehavior } from '../../../src/runtime/behaviors/TimerBehavior';
-import { TypedMemoryReference } from '../../../src/runtime/contracts/IMemoryReference';
-import { JitCompiler } from '../../../src/runtime/JitCompiler';
+import { RuntimeProvider } from '../../runtime/context/RuntimeContext';
+import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { RuntimeBlock } from '../../runtime/RuntimeBlock';
+import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../runtime/behaviors';
+import { JitCompiler } from '../../runtime/compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../../src/runtime/models/RuntimeSpan';
-import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
-
-import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
-import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
-import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
-import { EventBus } from '../../../src/runtime/events/EventBus';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { TimerState } from '../../runtime/memory/MemoryTypes';
+import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import { RuntimeMemory } from '../../runtime/RuntimeMemory';
+import { RuntimeStack } from '../../runtime/RuntimeStack';
+import { RuntimeClock } from '../../runtime/RuntimeClock';
+import { EventBus } from '../../runtime/events/EventBus';
 
 export interface EnhancedTimerHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
-  block: RuntimeBlock;
-  timerStateRef: TypedMemoryReference<RuntimeSpan> | undefined;
+  block: IRuntimeBlock;
+  timerState: TimerState | undefined;
   controls: {
     start: () => void;
     stop: () => void;
@@ -46,11 +45,10 @@ export interface EnhancedTimerHarnessProps {
 /**
  * Enhanced Timer Test Harness with memory visualization and controls
  *
- * Provides a complete runtime environment with:
- * - Timer display (clock anchor)
- * - Memory card with start/stop table
- * - Timer control buttons (start/stop/pause/resume/reset)
- * - Recalculate elapsed time functionality
+ * Uses the new behavior-based timer system with:
+ * - TimerInitBehavior for state initialization
+ * - TimerTickBehavior for time updates
+ * - TimerPauseBehavior for pause/resume events
  */
 export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   timerType,
@@ -60,7 +58,6 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   children
 }) => {
   const [recalcTrigger, setRecalcTrigger] = useState(0);
-
 
   // Create minimal runtime with empty script for testing
   const runtime = useMemo(() => {
@@ -81,122 +78,122 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     });
   }, []);
 
-  // Create block, push it, and set memory all in one useMemo
-  const { block, blockKey, timerStateRef, behavior } = useMemo(() => {
+  // Create block with new behavior-based timer system
+  const { block, blockKey, timerState } = useMemo(() => {
     const direction = timerType === 'countdown' ? 'down' : 'up';
-    const timerBehavior = new TimerBehavior(direction, durationMs, 'Timer');
-    const newBlock = new RuntimeBlock(runtime, [1], [timerBehavior], 'Timer');
+    
+    // Use new aspect-based behaviors
+    const behaviors = [
+      new TimerInitBehavior({
+        direction,
+        durationMs: timerType === 'countdown' ? durationMs : undefined,
+        label: 'Timer'
+      }),
+      new TimerTickBehavior(),
+      new TimerPauseBehavior()
+    ];
 
-    // Mount block immediately to trigger behavior initialization
+    const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
+
+    // Mount block to trigger behavior initialization
     newBlock.mount(runtime);
 
-    // Find unified RuntimeSpan reference using the new memory model
-    const timerStateRefs = runtime.memory.search({
-      id: null,
-      ownerId: newBlock.key.toString(),
-      type: RUNTIME_SPAN_TYPE,
-      visibility: null
-    });
+    // Get timer state from the block's typed memory
+    const timerEntry = newBlock.getMemory('timer');
+    let currentState = timerEntry?.value;
 
-    let timerRef: TypedMemoryReference<RuntimeSpan> | undefined;
+    // Configure timer state based on props
+    if (currentState) {
+      let spans: TimeSpan[];
 
-    if (timerStateRefs.length > 0) {
-      timerRef = timerStateRefs[0] as TypedMemoryReference<RuntimeSpan>;
-      const currentState = timerRef.get();
-
-      if (currentState) {
-        // Set timer state based on props
-        let spans: TimeSpan[];
-
-        if (timeSpans) {
-          // Use provided time spans (for complex scenarios)
-          spans = timeSpans;
-        } else if (autoStart) {
-          // Running timer: start time in the past, no stop time
-          spans = [new TimeSpan(Date.now() - durationMs)];
-        } else {
-          // Stopped timer: start and stop time
-          // Assuming stopped immediately after duration? Or just a sample.
-          // Let's create a span that ran for `durationMs` and ended now.
-          const now = Date.now();
-          spans = [new TimeSpan(now - durationMs, now)];
-        }
-
-        currentState.spans = spans;
-        // isRunning is derived from spans in RuntimeSpan, but we can't set it directly?
-        // RuntimeSpan.isActive() checks last span.
-        // If autoStart, last span is open -> isRunning true.
-        // If !autoStart, last span closed -> isRunning false.
-
-        // We set the modified object back
-        timerRef.set(currentState);
+      if (timeSpans) {
+        // Use provided time spans (for complex scenarios)
+        spans = timeSpans;
+      } else if (autoStart) {
+        // Running timer: start time in the past, no stop time
+        spans = [new TimeSpan(Date.now() - durationMs)];
+      } else {
+        // Stopped timer: start and stop time
+        const now = Date.now();
+        spans = [new TimeSpan(now - durationMs, now)];
       }
+
+      // Update timer state with configured spans
+      newBlock.setMemoryValue('timer', {
+        ...currentState,
+        spans
+      });
+
+      // Refresh current state
+      currentState = newBlock.getMemory('timer')?.value;
     }
 
     return {
       block: newBlock,
       blockKey: newBlock.key.toString(),
-      timerStateRef: timerRef,
-      behavior: timerBehavior
+      timerState: currentState
     };
   }, [runtime, timerType, durationMs, autoStart, timeSpans]);
 
-  // Subscribe to running state
+  // Determine if timer is running based on last span having no end time
   const isRunning = useMemo(() => {
-    return timerStateRef?.get()?.isActive() ?? false;
-  }, [timerStateRef, recalcTrigger]);
+    if (!timerState || timerState.spans.length === 0) return false;
+    const lastSpan = timerState.spans[timerState.spans.length - 1];
+    return lastSpan.ended === undefined;
+  }, [timerState, recalcTrigger]);
 
-  // Control functions
+  // Control functions using event-based approach
   const handleStart = useCallback(() => {
-    behavior.start();
+    // Start means resume if paused, or create new span
+    runtime.handle({
+      name: 'timer:resume',
+      timestamp: new Date(),
+      data: { blockKey }
+    });
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior]);
+  }, [runtime, blockKey]);
 
   const handleStop = useCallback(() => {
-    behavior.stop();
+    // Stop means pause the timer
+    runtime.handle({
+      name: 'timer:pause',
+      timestamp: new Date(),
+      data: { blockKey }
+    });
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior]);
+  }, [runtime, blockKey]);
 
   const handlePause = useCallback(() => {
-    behavior.pause();
+    runtime.handle({
+      name: 'timer:pause',
+      timestamp: new Date(),
+      data: { blockKey }
+    });
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior]);
+  }, [runtime, blockKey]);
 
   const handleResume = useCallback(() => {
-    behavior.resume();
+    runtime.handle({
+      name: 'timer:resume',
+      timestamp: new Date(),
+      data: { blockKey }
+    });
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior]);
+  }, [runtime, blockKey]);
 
   const handleReset = useCallback(() => {
-    behavior.reset();
-
-    // Reset memory based on timer type using unified RuntimeSpan
-    if (timerStateRef) {
-      const currentState = timerStateRef.get();
-      if (currentState) {
-        if (timerType === 'countdown') {
-          // For countdown, set up initial open span? 
-          // Usually reset stops it.
-          // If we want it to reset and be ready...
-          currentState.reset(); // This clears spans
-          // The old logic initialized a new span on reset for countdown?
-          // "For countdown, set up initial duration" -> { start: now, stop: undefined } ??
-          // That means it starts running immediately? 
-          // The old code had `isRunning: false` but an open span? That's contradictory in new model.
-          // In new model, open span = running.
-          // If it's effectively paused at start? 
-          // Pause logic: open span, but... no.
-          // Reset usually implies 0/Duration.
-          // Let's just call reset() which empties spans.
-        } else {
-          currentState.reset();
-        }
-        timerStateRef.set(currentState);
+    // Reset clears all spans and starts fresh
+    if (block.hasMemory('timer')) {
+      const current = block.getMemory('timer')?.value;
+      if (current) {
+        block.setMemoryValue('timer', {
+          ...current,
+          spans: []
+        });
       }
     }
-
     setRecalcTrigger(prev => prev + 1);
-  }, [behavior, timerType, timerStateRef]);
+  }, [block]);
 
   const recalculateElapsed = useCallback(() => {
     setRecalcTrigger(prev => prev + 1);
@@ -213,7 +210,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     runtime,
     blockKey,
     block,
-    timerStateRef,
+    timerState,
     controls: {
       start: handleStart,
       stop: handleStop,

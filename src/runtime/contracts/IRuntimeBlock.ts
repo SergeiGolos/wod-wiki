@@ -4,6 +4,8 @@ import { IBlockContext } from './IBlockContext';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMemoryEntry } from '../memory/IMemoryEntry';
+import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
@@ -79,8 +81,8 @@ export interface IRuntimeBlock {
      * Called when this block is pushed onto the runtime stack.
      * Sets up initial state and registers event listeners.
      * 
-     * Note: In constructor-based initialization pattern,
-     * this method handles runtime registration only.
+     * Note: Event registration and resource allocation should happen here,
+     * not in the constructor, to ensure they are active only while mounted.
      * 
      * @param runtime The script runtime context
      * @param options Lifecycle timing data (start time)
@@ -89,21 +91,31 @@ export interface IRuntimeBlock {
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
-     * Called when a child block completes execution.
-     * Determines the next block(s) to execute or signals completion.
+     * Called to advance the block's execution state.
+     * 
+     * Triggers:
+     * 1. **Automatic**: Called by RuntimeStack when a child block is popped (child completion).
+     * 2. **Manual**: Called by NextAction when user manually acts (e.g., skips block).
+     * 3. **Timer**: Called by TimerBehavior when a timer completes (implicit next).
+     * 
+     * Responsibilities:
+     * - Determine the next step in the block's execution flow.
+     * - If block has children (e.g., loops), push the next child.
+     * - If block is simple (e.g., single movement), mark itself complete.
+     * - If block is a timer, handle timer completion logic.
      * 
      * @param runtime The script runtime context
-     * @param options Lifecycle timing data (completion timestamp)
-     * @returns Array of runtime actions representing next execution steps
+     * @param options Lifecycle timing data (completion timestamp if triggered by child pop)
+     * @returns Array of runtime actions representing next execution steps (e.g., PushBlock, MarkComplete)
      */
     next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Called when this block is popped from the runtime stack.
-     * Handles completion logic and manages result spans.
+     * Handles completion logic, cleanup, and resource disposal.
      * 
-     * Note: In consumer-managed disposal pattern,
-     * this method does NOT clean up resources.
+     * Note: This method MUST unsubscribe from events and dispose 
+     * memory entries to complete any active observables.
      * 
      * @param runtime The script runtime context
      * @param options Lifecycle timing data (completion timestamp)
@@ -157,6 +169,37 @@ export interface IRuntimeBlock {
      * Check if a fragment of a given type exists.
      */
     hasFragment(type: FragmentType): boolean;
+
+    // ============================================================================
+    // Block-Owned Memory
+    // ============================================================================
+
+    /**
+     * Check if this block owns memory of the specified type.
+     * @param type The memory type to check for
+     */
+    hasMemory<T extends MemoryType>(type: T): boolean;
+
+    /**
+     * Get memory entry of the specified type.
+     * Returns undefined if no memory of that type exists on this block.
+     * @param type The memory type to retrieve
+     */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined;
+
+    /**
+     * Get all memory types owned by this block.
+     * Useful for UI to discover what data is available.
+     */
+    getMemoryTypes(): MemoryType[];
+
+    /**
+     * Set memory value directly. Creates or updates a memory entry.
+     * This is the public API for behaviors to store state.
+     * @param type The memory type to set
+     * @param value The value to store
+     */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 
     /**
      * Indicates whether this block has completed execution.

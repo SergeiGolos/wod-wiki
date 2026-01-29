@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import { editor as monacoEditor } from 'monaco-editor';
 import { WodBlock } from '../../markdown-editor/types';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
@@ -84,7 +84,7 @@ export const WorkoutOverlay: React.FC<WorkoutOverlayProps> = ({
 
     if (!activeBlock) return null;
 
-    return ReactDOM.createPortal(
+    return createPortal(
         <div className="z-20 pointer-events-auto pl-4">
             <div className="bg-background/95 backdrop-blur border border-border rounded-lg shadow-lg overflow-hidden">
                 <WorkoutContextPanel

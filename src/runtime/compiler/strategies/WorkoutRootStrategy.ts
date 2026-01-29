@@ -7,21 +7,22 @@ import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
+import { IdleConfig } from '../../behaviors/IdleInjectionBehavior';
 
-// Decomposed behaviors
-import { RuntimeControlsBehavior } from '../../behaviors/RuntimeControlsBehavior';
-import { TimerBehavior } from '../../behaviors/TimerBehavior';
-import { ChildIndexBehavior } from '../../behaviors/ChildIndexBehavior';
-import { RoundPerLoopBehavior } from '../../behaviors/RoundPerLoopBehavior';
-import { WorkoutStateBehavior } from '../../behaviors/WorkoutStateBehavior';
-import { DisplayModeBehavior } from '../../behaviors/DisplayModeBehavior';
-import { TimerPauseResumeBehavior } from '../../behaviors/TimerPauseResumeBehavior';
-import { WorkoutControlButtonsBehavior } from '../../behaviors/WorkoutControlButtonsBehavior';
-import { IdleInjectionBehavior, IdleConfig } from '../../behaviors/IdleInjectionBehavior';
-import { WorkoutFlowStateMachine } from '../../behaviors/WorkoutFlowStateMachine';
-import { RoundDisplayBehavior } from '../../behaviors/RoundDisplayBehavior';
-import { RoundSpanBehavior } from '../../behaviors/RoundSpanBehavior';
-import { LapTimerBehavior } from '../../behaviors/LapTimerBehavior';
+// Aspect-based behaviors
+import {
+    TimerInitBehavior,
+    TimerTickBehavior,
+    TimerPauseBehavior,
+    RoundInitBehavior,
+    RoundAdvanceBehavior,
+    RoundCompletionBehavior,
+    RoundDisplayBehavior,
+    ChildRunnerBehavior,
+    DisplayInitBehavior,
+    ControlsInitBehavior,
+    HistoryRecordBehavior
+} from '../../behaviors';
 
 /**
  * Configuration for the root workout block.
@@ -63,28 +64,13 @@ const DEFAULT_END_IDLE: IdleConfig = {
 /**
  * WorkoutRootStrategy - Composes behaviors for the root workout block.
  * 
- * This strategy builds the root block using single-responsibility behaviors:
- * - WorkoutFlowStateMachine: Manages workout phases
- * - RuntimeControlsBehavior: Button/control memory management
- * - TimerBehavior: Overall workout timer
- * - ChildIndexBehavior + RoundPerLoopBehavior + ChildRunnerBehavior: Child execution
- * - WorkoutStateBehavior: UI workout state
- * - DisplayModeBehavior: Timer vs clock display mode
- * - TimerPauseResumeBehavior: Pause/resume handling
- * - WorkoutControlButtonsBehavior: Execution control buttons
- * - IdleInjectionBehavior: Start/end idle blocks
- * 
- * Note: This strategy is meant to be DIRECTLY BUILT, not matched against statements.
- * Use the build() method instead of compile().
- * 
- * @example
- * ```typescript
- * const strategy = new WorkoutRootStrategy();
- * const rootBlock = strategy.build(runtime, {
- *     childGroups: [[1], [2], [3]],
- *     totalRounds: 1
- * });
- * ```
+ * Uses aspect-based behaviors:
+ * - Time: TimerInit (elapsed workout time), TimerTick, TimerPause
+ * - Iteration: RoundInit, RoundAdvance, RoundCompletion (if multi-round)
+ * - Children: ChildRunner to execute child blocks
+ * - Display: DisplayInit, RoundDisplay
+ * - Controls: ControlsInit for workout controls
+ * - Output: HistoryRecord for workout logging
  */
 export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;
@@ -99,7 +85,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     /**
      * Composable apply - not used for root blocks.
      */
-    apply(_builder: any, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
         // No-op for direct build
     }
 
@@ -127,75 +113,74 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
 
     /**
      * Builds the behavior list for a root workout block.
-     * 
-     * Behavior order matters:
-     * 1. Controls and state first (so other behaviors can find them)
-     * 2. Timer next (for pause/resume to work)
-     * 3. Flow/loop management
-     * 4. UI behaviors
-     * 5. Idle injection last (so it pushes on top)
      */
     buildBehaviors(config: WorkoutRootConfig): IRuntimeBehavior[] {
         const behaviors: IRuntimeBehavior[] = [];
         const totalRounds = config.totalRounds ?? 1;
 
-        // ===== 1. Core Infrastructure =====
+        // =====================================================================
+        // Time Aspect - Track total workout elapsed time
+        // =====================================================================
+        behaviors.push(new TimerInitBehavior({
+            direction: 'up',
+            label: 'Workout',
+            role: 'primary'
+        }));
+        behaviors.push(new TimerTickBehavior());
+        behaviors.push(new TimerPauseBehavior());
 
-        // Controls must be first so other behaviors can access it
-        behaviors.push(new RuntimeControlsBehavior());
-
-        // Workout state tracking
-        behaviors.push(new WorkoutStateBehavior('idle'));
-
-        // Display mode (starts in clock mode for pre-start)
-        behaviors.push(new DisplayModeBehavior('clock'));
-
-        // ===== 2. Timer =====
-
-        // Main workout timer (count up, primary display)
-        behaviors.push(new TimerBehavior('up', undefined, 'Workout Timer', 'primary', true));
-
-        // Pause/resume event handling
-        behaviors.push(new TimerPauseResumeBehavior());
-
-        // ===== 3. Flow Control =====
-
-        // Phase state machine
-        behaviors.push(new WorkoutFlowStateMachine());
-
-        // ===== 4. Child Loop Management =====
-
-        // Child index tracking
-        behaviors.push(new ChildIndexBehavior(config.childGroups.length));
-
-        // Round counting (increments when child index wraps)
-        behaviors.push(new RoundPerLoopBehavior());
-
-        // ===== 5. Round Tracking (for multi-round workouts) =====
-
+        // =====================================================================
+        // Iteration Aspect - If multi-round workout
+        // =====================================================================
         if (totalRounds > 1) {
-            behaviors.push(new RoundDisplayBehavior(totalRounds));
-            behaviors.push(new RoundSpanBehavior('rounds', undefined, totalRounds));
-            behaviors.push(new LapTimerBehavior());
+            behaviors.push(new RoundInitBehavior({
+                totalRounds,
+                startRound: 1
+            }));
+            behaviors.push(new RoundAdvanceBehavior());
+            behaviors.push(new RoundCompletionBehavior());
+            behaviors.push(new RoundDisplayBehavior());
         }
 
-        // ===== 6. Control Buttons =====
+        // =====================================================================
+        // Children Aspect - Execute child blocks
+        // =====================================================================
+        behaviors.push(new ChildRunnerBehavior({
+            childGroups: config.childGroups
+        }));
 
-        if (config.executionButtons) {
-            behaviors.push(new WorkoutControlButtonsBehavior('custom', config.executionButtons));
-        } else {
-            behaviors.push(new WorkoutControlButtonsBehavior('execution'));
-        }
+        // =====================================================================
+        // Display Aspect
+        // =====================================================================
+        behaviors.push(new DisplayInitBehavior({
+            mode: 'clock',
+            label: 'Workout'
+        }));
 
-        // ===== 7. Idle Injection =====
+        // =====================================================================
+        // Controls Aspect - Workout control buttons
+        // =====================================================================
+        const buttons = config.executionButtons ?? [
+            { id: 'pause', label: 'Pause', action: 'timer:pause' },
+            { id: 'next', label: 'Next', action: 'block:next' },
+            { id: 'stop', label: 'Stop', action: 'workout:stop' }
+        ];
 
-        // Start idle (pushed on mount)
-        const startIdleConfig = config.startIdle ?? DEFAULT_START_IDLE;
-        behaviors.push(new IdleInjectionBehavior('start', startIdleConfig));
+        behaviors.push(new ControlsInitBehavior({
+            buttons: buttons.map(btn => ({
+                id: btn.id,
+                label: btn.label ?? btn.id,
+                variant: btn.id === 'stop' ? 'danger' as const : (btn.id === 'next' ? 'primary' as const : 'secondary' as const),
+                visible: true,
+                enabled: true,
+                eventName: btn.action
+            }))
+        }));
 
-        // End idle (injected on completion)
-        const endIdleConfig = config.endIdle ?? DEFAULT_END_IDLE;
-        behaviors.push(new IdleInjectionBehavior('end', endIdleConfig));
+        // =====================================================================
+        // Output Aspect - Record workout history
+        // =====================================================================
+        behaviors.push(new HistoryRecordBehavior());
 
         return behaviors;
     }

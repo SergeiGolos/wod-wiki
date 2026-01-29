@@ -1,5 +1,17 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { BlockKey } from '../core/models/BlockKey';
+import { BlockKey } from '../../core/models/BlockKey';
+
+export type StackEvent =
+    | { type: 'push'; block: IRuntimeBlock; depth: number }
+    | { type: 'pop'; block: IRuntimeBlock; depth: number }
+    | { type: 'initial'; blocks: readonly IRuntimeBlock[] };
+
+export type StackListener = (event: StackEvent) => void;
+
+/**
+ * Unsubscribe function returned by subscription methods.
+ */
+export type Unsubscribe = () => void;
 
 export interface IRuntimeStack {
     readonly blocks: readonly IRuntimeBlock[];
@@ -10,4 +22,10 @@ export interface IRuntimeStack {
     push(block: IRuntimeBlock): void;
     pop(): IRuntimeBlock | undefined;
     clear(): void;
+
+    /**
+     * Subscribe to stack changes.
+     * New subscribers will immediately receive an 'initial' event with the current stack state.
+     */
+    subscribe(listener: StackListener): () => void;
 }

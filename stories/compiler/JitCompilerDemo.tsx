@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
-import { WodScript } from '../../src/WodScript';
+import { WodScript } from '../../src/parser/WodScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { CodeMetadata } from '../../src/CodeMetadata';
+import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
 import { NextEventHandler } from '../../src/runtime/events/NextEventHandler';
-import { EffortStrategy, TimerStrategy, RoundsStrategy, IntervalStrategy, TimeBoundRoundsStrategy, GroupStrategy } from '../../src/runtime/compiler/strategies';
+import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
+import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
+import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
+import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
-import { TimerBehavior } from '../../src/runtime/behaviors/TimerBehavior';
-import { useTimerElapsed } from '../../src/runtime/hooks/useTimerElapsed';
-import { MemoryTypeEnum } from '../../src/runtime/models/MemoryTypeEnum';
+import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
+import { RuntimeStack } from '../../src/runtime/RuntimeStack';
+import { RuntimeClock } from '../../src/runtime/RuntimeClock';
+import { EventBus } from '../../src/runtime/events/EventBus';
 
 // Visual constants
 const COLUMN_INDENT_REM = 0.8;
@@ -56,18 +60,11 @@ const blockColors: Record<string, string> = {
 // (unused) Full-size stack visualizer kept for future use
 
 // Clock display component for JIT compiler demo
-function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime | ScriptRuntime }) {
+function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime }) {
   // Find the first timer block in the current stack by checking for TimerState memory
-  const timerBlock = runtime?.stack?.blocksBottomFirst?.find(block => {
-    // Check if this block has TimerState memory (new unified model)
-    // The 'type' field in memory allocation is `timer:${blockId}`
-    const timerStateRefs = runtime.memory.search({
-      id: null,
-      ownerId: block.key.toString(),
-      type: `${MemoryTypeEnum.TIMER_PREFIX}${block.key.toString()}`,
-      visibility: null
-    });
-    return timerStateRefs.length > 0;
+  const timerBlock = runtime?.stack?.blocks?.find((block: IRuntimeBlock) => {
+    // Check if this block has TimerState memory using the new API
+    return block.hasMemory('timer');
   });
 
   if (!timerBlock) {
@@ -616,20 +613,26 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     const mdRuntime = new MdTimerRuntime();
     const wodScript = mdRuntime.read(scriptText) as WodScript;    
     
-    // Create JIT compiler and register strategies
+    // Create JIT compiler and register strategies using new architecture
     const jitCompiler = new JitCompiler([]);
 
-    // Register strategies in precedence order: most specific first
-    jitCompiler.registerStrategy(new TimeBoundRoundsStrategy()); // AMRAP: Timer + Rounds
-    jitCompiler.registerStrategy(new IntervalStrategy());        // EMOM: Timer + Action
-    jitCompiler.registerStrategy(new TimerStrategy());           // Simple Timer
-    jitCompiler.registerStrategy(new RoundsStrategy());          // Simple Rounds
-    jitCompiler.registerStrategy(new GroupStrategy());           // Grouped/nested exercises
-    jitCompiler.registerStrategy(new EffortStrategy());          // Fallback: simple efforts
+    // Register strategies in precedence order
+    jitCompiler.registerStrategy(new GenericLoopStrategy());     // Rounds/loops
+    jitCompiler.registerStrategy(new GenericTimerStrategy());    // Timers
+    jitCompiler.registerStrategy(new GenericGroupStrategy());    // Groups
+    jitCompiler.registerStrategy(new IdleBlockStrategy());       // Fallback
 
-    console.log(`📝 Registered strategies with JIT compiler: TimeBoundRounds → Interval → Timer → Rounds → Group → Effort`);
+    console.log(`📝 Registered strategies with JIT compiler: GenericLoop → GenericTimer → GenericGroup → Idle`);
     
-    const runtime = new ScriptRuntime(wodScript, jitCompiler);
+    // Create runtime dependencies
+    const dependencies = {
+      memory: new RuntimeMemory(),
+      stack: new RuntimeStack(),
+      clock: new RuntimeClock(),
+      eventBus: new EventBus()
+    };
+    
+    const runtime = new ScriptRuntime(wodScript, jitCompiler, dependencies);
 
     // Register Next event handler
     const nextHandler = new NextEventHandler('jit-compiler-demo-next-handler');
@@ -644,7 +647,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     
     if (wodScript.statements.length > 0) {
       // Compile the root statements using the JIT compiler
-      const compiledBlock = jitCompiler.compile(wodScript.statements, runtime);
+      // Cast to any to bypass type mismatch between ICodeStatement and CodeStatement
+      const compiledBlock = jitCompiler.compile(wodScript.statements as any, runtime);
       
       if (compiledBlock) {
         runtime.stack.push(compiledBlock);
@@ -770,11 +774,11 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const scriptLines = script.split('\n');
 
   // Render stack in a canonical order: bottom (root) -> top (current)
-  const blocksBottomFirst = runtime?.stack?.blocksBottomFirst ?? [];
+  const blocksArray = runtime?.stack?.blocks ?? [];
   const stack: MockRuntimeStack = {
-    blocks: blocksBottomFirst.map((b, i) => toMockBlock(b, i, scriptLines)),
+    blocks: blocksArray.map((b: IRuntimeBlock, i: number) => toMockBlock(b, i, scriptLines)),
     // Active is always the top-of-stack: last item in bottom-first view
-    currentIndex: Math.max(0, blocksBottomFirst.length - 1)
+    currentIndex: Math.max(0, blocksArray.length - 1)
   }
 
   // Build a debug-like memory snapshot from the current memory interface
