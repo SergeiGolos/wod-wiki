@@ -5,29 +5,40 @@ import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 
 /**
  * Timer memory references for a specific block.
- * @deprecated Prefer using useTimerState hook for the unified TimerState model
+ * 
+ * Note: This interface is used by the display stack integration layer.
+ * The `timeSpans` and `isRunning` fields are no longer populated directly;
+ * use `timerState.get()` to access the unified TimerState model.
  */
 export interface TimerReferences {
-  /** @deprecated Use timerState.spans instead */
+  /** No longer populated - use timerState.get().spans instead */
   timeSpans: undefined;
-  /** @deprecated Use timerState.isRunning instead */
+  /** No longer populated - use timerState.get().isRunning instead */
   isRunning: undefined;
   /** The unified timer state reference */
   timerState: TypedMemoryReference<RuntimeSpan> | undefined;
 }
 
 /**
- * Hook to retrieve timer memory references for a specific block.
+ * Hook to retrieve timer memory references for a specific block by key.
  * 
- * This hook searches the runtime memory for the TimerState reference
- * associated with the given blockKey. The TimerState contains:
+ * This is a low-level hook used by `useTimerElapsed` to bridge the display
+ * stack system (which uses string blockKeys) to the memory system.
+ * 
+ * ## When to Use This Hook
+ * 
+ * Most consumers should use `useTimerElapsed(blockKey)` instead, which
+ * provides computed elapsed time. Use this hook only when you need direct
+ * access to the memory reference for advanced subscription patterns.
+ * 
+ * ## Timer State Contents
  * - spans: TimeSpan[] (start/stop times)
  * - isRunning: boolean
  * - format: 'up' | 'down' | 'time'
  * - durationMs: number (for countdown)
  * 
  * @param blockKey The block key to search for timer references
- * @returns Object containing timerState reference (legacy timeSpans/isRunning are undefined)
+ * @returns Object containing timerState reference
  * 
  * @example
  * ```tsx

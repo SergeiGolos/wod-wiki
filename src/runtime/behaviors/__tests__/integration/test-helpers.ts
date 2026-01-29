@@ -5,7 +5,7 @@
  * in realistic runtime scenarios.
  */
 
-import { vi, expect } from 'vitest';
+import { vi, expect } from 'bun:test';
 import { IRuntimeBehavior } from '../../../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';

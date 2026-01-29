@@ -5,7 +5,7 @@
  * and update when behaviors modify the memory state.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { renderHook, act } from '@testing-library/react';
 import {
     useBlockMemory,

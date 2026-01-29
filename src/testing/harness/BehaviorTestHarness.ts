@@ -106,6 +106,23 @@ export class BehaviorTestHarness {
         }
       },
 
+      subscribeToOutput(_listener: (output: any) => void) {
+        // No-op for test harness
+        return () => {};
+      },
+
+      getOutputStatements() {
+        return [];
+      },
+
+      addOutput(_output: any) {
+        // No-op for test harness
+      },
+
+      getStatementById(_id: number) {
+        return undefined;
+      },
+
       dispose() {
         while (self._stack.count > 0) {
           const block = self._stack.pop();

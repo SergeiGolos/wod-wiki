@@ -81,6 +81,9 @@ export class ScriptRuntime implements IScriptRuntime {
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
 
+    // Statement index for O(1) lookups by ID
+    private _statementIndex: Map<number, typeof this.script.statements[0]> = new Map();
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -124,8 +127,33 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.jit = compiler;
 
+        // Build statement index for O(1) lookups
+        this.buildStatementIndex();
+
         // Start the clock
         this.clock.start();
+    }
+
+    /**
+     * Build the statement index for O(1) lookups by ID.
+     * Called once during construction.
+     */
+    private buildStatementIndex(): void {
+        if (!this.script?.statements) return;
+        for (const stmt of this.script.statements) {
+            this._statementIndex.set(stmt.id, stmt);
+        }
+    }
+
+    /**
+     * Get a statement by its ID in O(1) time.
+     * Used by behaviors that need to look up child statements.
+     * 
+     * @param id The statement ID to look up
+     * @returns The statement, or undefined if not found
+     */
+    public getStatementById(id: number): typeof this.script.statements[0] | undefined {
+        return this._statementIndex.get(id);
     }
 
     /**
@@ -154,7 +182,7 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public queueActions(actions: IRuntimeAction[]) {
         if (actions.length > 0) {
-            console.log(`[RT] queueActions: ${actions.map(a => a.type).join(', ')}`);
+            this.log(`[RT] queueActions: ${actions.map(a => a.type).join(', ')}`);
         }
         this._actionQueue.push(...actions);
         this.processActions();
@@ -162,12 +190,12 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private processActions() {
         if (this._isProcessingActions) {
-            console.log(`[RT] processActions: already processing, queue size=${this._actionQueue.length}`);
+            this.log(`[RT] processActions: already processing, queue size=${this._actionQueue.length}`);
             return;
         }
 
         this._isProcessingActions = true;
-        console.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
+        this.log(`[RT] processActions: starting, queue size=${this._actionQueue.length}`);
         try {
             const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
             let iterations = 0;
@@ -177,7 +205,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 while (this._actionQueue.length > 0 && iterations < MAX_ITERATIONS) {
                     const action = this._actionQueue.shift();
                     if (action) {
-                        console.log(`[RT] executing: ${action.type}`);
+                        this.log(`[RT] executing: ${action.type}`);
                         action.do(this);
                     }
                     iterations++;
@@ -193,7 +221,7 @@ export class ScriptRuntime implements IScriptRuntime {
             }
         } finally {
             this._isProcessingActions = false;
-            console.log(`[RT] processActions: done`);
+            this.log(`[RT] processActions: done`);
         }
     }
 
@@ -205,7 +233,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public sweepCompletedBlocks(): void {
         while (this.stack.current?.isComplete) {
             const block = this.stack.current;
-            console.log(`[RT] sweepCompletedBlocks: popping completed block ${block.label}`);
+            this.log(`[RT] sweepCompletedBlocks: popping completed block ${block.label}`);
 
             // Pop the completed block (this handles lifecycle and calls parent.next())
             this.popBlock();
@@ -288,13 +316,13 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Store and notify via addOutput
         this.addOutput(output);
-        console.log(`[RT] emitOutputStatement: ${block.label} -> ${output.outputType} (level=${stackLevel}, ${fragments.length} fragments)`);
+        this.log(`[RT] emitOutputStatement: ${block.label} -> ${output.outputType} (level=${stackLevel}, ${fragments.length} fragments)`);
     }
 
     // ========== Stack Lifecycle Operations ==========
 
     public pushBlock(block: IRuntimeBlock, options: BlockLifecycleOptions = {}): IRuntimeBlock {
-        console.log(`[RT] pushBlock: ${block.label} (${block.key})`);
+        this.log(`[RT] pushBlock: ${block.label} (${block.key})`);
         this.validateBlock(block);
 
         const parentBlock = this.stack.current;
@@ -317,11 +345,11 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         this.stack.push(wrappedBlock);
-        console.log(`[RT] pushBlock: stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
+        this.log(`[RT] pushBlock: stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
         this.eventBus.dispatch(new StackPushEvent(this.stack.blocks), this);
 
         const actions = wrappedBlock.mount(this, options);
-        console.log(`[RT] pushBlock: mount returned ${actions.length} actions`);
+        this.log(`[RT] pushBlock: mount returned ${actions.length} actions`);
         this.queueActions(actions);
 
         this._logger.debug?.('runtime.pushBlock', {
@@ -337,7 +365,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public popBlock(options: BlockLifecycleOptions = {}): IRuntimeBlock | undefined {
         const currentBlock = this.stack.current;
-        console.log(`[RT] popBlock: current=${currentBlock?.label}`);
+        this.log(`[RT] popBlock: current=${currentBlock?.label}`);
         if (!currentBlock) {
             return undefined;
         }
@@ -353,14 +381,14 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // 1. Get unmount actions before popping
         const unmountActions = currentBlock.unmount(this, lifecycleOptions) ?? [];
-        console.log(`[RT] popBlock: unmount returned ${unmountActions.length} actions`);
+        this.log(`[RT] popBlock: unmount returned ${unmountActions.length} actions`);
 
         // 2. Pop from stack
         const popped = this.stack.pop();
         if (!popped) {
             return undefined;
         }
-        console.log(`[RT] popBlock: popped ${popped.label}, stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
+        this.log(`[RT] popBlock: popped ${popped.label}, stack now [${this.stack.blocks.map(b => b.label).join(', ')}]`);
 
         // 3. Dispatch pop event
         this.eventBus.dispatch(new StackPopEvent(this.stack.blocks), this);
@@ -372,7 +400,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // 5. Execute unmount actions IMMEDIATELY (before dispose)
         // This ensures all cleanup actions complete before parent.next() is called
-        console.log(`[RT] popBlock: executing ${unmountActions.length} unmount actions immediately`);
+        this.log(`[RT] popBlock: executing ${unmountActions.length} unmount actions immediately`);
         this.executeActionsImmediately(unmountActions);
 
         // 6. Dispose and cleanup - child is now fully unmounted
@@ -389,10 +417,10 @@ export class ScriptRuntime implements IScriptRuntime {
         // 7. NOW call parent.next() - child is completely gone
         // Parent can make decisions knowing the child is fully cleaned up
         const parent = this.stack.current;
-        console.log(`[RT] popBlock: calling parent.next() on ${parent?.label}`);
+        this.log(`[RT] popBlock: calling parent.next() on ${parent?.label}`);
         if (parent) {
             const nextActions = parent.next(this, lifecycleOptions) ?? [];
-            console.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
+            this.log(`[RT] popBlock: parent.next() returned ${nextActions.length} actions: ${nextActions.map(a => a.type).join(', ')}`);
             this.queueActions(nextActions);
         }
 
@@ -480,5 +508,21 @@ export class ScriptRuntime implements IScriptRuntime {
             return block.wrapped.key.toString();
         }
         return block.key.toString();
+    }
+
+    // ========== Private Logging Helper ==========
+
+    /**
+     * Log a debug message if logging is enabled.
+     * Uses the configured logger or console.log as fallback.
+     */
+    private log(message: string, details?: Record<string, unknown>): void {
+        if (!this.options.enableLogging) return;
+
+        if (this._logger?.debug) {
+            this._logger.debug(message, details);
+        } else {
+            console.log(message, details ?? '');
+        }
     }
 }

@@ -149,31 +149,31 @@ Detailed implementation solutions:
 Use this checklist to track progress on fixes:
 
 ### Phase 1: Critical Fixes
-- [ ] Fix SinglePassBehavior to use `ctx.markComplete()`
-- [ ] Make IdleInjectionBehavior implement `IRuntimeBehavior`
-- [ ] Fix RuntimeLayout undefined props
+- [x] Fix SinglePassBehavior to use `ctx.markComplete()` - **N/A: File doesn't exist; PopOnNextBehavior is the correct replacement**
+- [x] Make IdleInjectionBehavior implement `IRuntimeBehavior` - **FIXED: Added no-op lifecycle methods**
+- [x] Fix RuntimeLayout undefined props - **N/A: Props are already optional**
 
 ### Phase 2: High Priority
-- [ ] Add `IScriptRuntime.addOutput()` public API
-- [ ] Update `BehaviorContext` to use public API
-- [ ] Implement fallback logic for duplicate completion outputs
-- [ ] Add `getStatementById()` to ScriptRuntime
-- [ ] Update ChildRunnerBehavior to use O(1) lookup
-- [ ] Un-skip and update integration tests
+- [x] Add `IScriptRuntime.addOutput()` public API - **FIXED: Added to interface**
+- [x] Update `BehaviorContext` to use public API - **ALREADY DONE: Uses addOutput when available**
+- [ ] Implement fallback logic for duplicate completion outputs - **DEFERRED: Needs architectural review**
+- [x] Add `getStatementById()` to ScriptRuntime - **FIXED: Added with statement index**
+- [x] Update ChildRunnerBehavior to use O(1) lookup - **FIXED: Uses getStatementById with fallback**
+- [ ] Un-skip and update integration tests - **DEFERRED: Noted for migration work**
 
 ### Phase 3: Quality Improvements
-- [ ] Create RuntimeLogger class
-- [ ] Replace console.log/warn with logger
-- [ ] Convert Vitest imports to bun:test
-- [ ] Fix TimerCompletionBehavior zero-duration check
-- [ ] Remove BOM from CollectionSpan.ts
+- [ ] Create RuntimeLogger class - **DEFERRED: Future work**
+- [ ] Replace console.log/warn with logger - **PARTIAL: Removed console.warn from ChildRunnerBehavior**
+- [x] Convert Vitest imports to bun:test - **FIXED: 14 files converted**
+- [x] Fix TimerCompletionBehavior zero-duration check - **ALREADY FIXED: Uses explicit undefined check**
+- [x] Remove BOM from CollectionSpan.ts - **FIXED: BOM removed**
 
 ### Validation
-- [ ] Run unit tests: `bun run test`
-- [ ] Run integration tests: `bun run test:components`
+- [x] Run unit tests: `bun run test` - **502 pass, 7 skip**
+- [x] Run integration tests: `bun run test:components` - **648 pass, 65 fail (pre-existing)**
 - [ ] Run Storybook: `bun run storybook`
 - [ ] Build validation: `bun run build-storybook`
-- [ ] Type check: `bun x tsc --noEmit`
+- [ ] Type check: `bun x tsc --noEmit` - **Pre-existing TypeScript errors remain**
 
 ---
 

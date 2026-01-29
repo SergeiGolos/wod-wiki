@@ -12,6 +12,7 @@ import { IRuntimeClock } from './IRuntimeClock';
 import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IOutputStatement } from '../../core/models/OutputStatement';
+import { ICodeStatement } from '../../core/types/core';
 
 /**
  * Listener callback for output statement events.
@@ -68,6 +69,19 @@ export interface IScriptRuntime {
     sweepCompletedBlocks(): void;
 
     // ============================================================================
+    // Statement Lookup API
+    // ============================================================================
+
+    /**
+     * Get a statement by its ID in O(1) time.
+     * Used by behaviors that need to look up child statements.
+     * 
+     * @param id The statement ID to look up
+     * @returns The statement, or undefined if not found
+     */
+    getStatementById?(id: number): ICodeStatement | undefined;
+
+    // ============================================================================
     // Output Statement API
     // ============================================================================
 
@@ -93,6 +107,24 @@ export interface IScriptRuntime {
      * Returns a copy of the internal array.
      */
     getOutputStatements(): IOutputStatement[];
+
+    /**
+     * Add an output statement to the collection and notify subscribers.
+     * Used by BehaviorContext to emit outputs at any lifecycle point.
+     * 
+     * @param output The output statement to add
+     * 
+     * @example
+     * ```typescript
+     * runtime.addOutput(new OutputStatement({
+     *   outputType: 'completion',
+     *   timeSpan: new TimeSpan(start, end),
+     *   sourceBlockKey: block.key.toString(),
+     *   fragments: [],
+     * }));
+     * ```
+     */
+    addOutput(output: IOutputStatement): void;
 
     handle(event: IEvent): void;
     dispose(): void;

@@ -1,4 +1,4 @@
-﻿import type { ICodeFragment } from './CodeFragment';
+import type { ICodeFragment } from './CodeFragment';
 
 /**
  * CollectionSpan represents a span of time with associated fragment data.

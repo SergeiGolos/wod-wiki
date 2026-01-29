@@ -4,7 +4,7 @@
  * Tests timer-related behaviors working together in realistic scenarios.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import {
     createMockRuntime,
     createMockBlock,

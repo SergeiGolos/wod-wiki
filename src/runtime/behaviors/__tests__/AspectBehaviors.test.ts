@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'bun:test';
 import { TimerInitBehavior } from '../TimerInitBehavior';
 import { TimerCompletionBehavior } from '../TimerCompletionBehavior';
 import { RoundInitBehavior } from '../RoundInitBehavior';

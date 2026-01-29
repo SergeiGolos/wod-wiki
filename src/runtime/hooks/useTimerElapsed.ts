@@ -14,35 +14,49 @@ export interface UseTimerElapsedResult {
 }
 
 /**
- * Hook to calculate elapsed time for a timer block.
+ * Hook to calculate elapsed time for a timer block by key.
  * 
  * This hook uses the unified TimerState from runtime memory to provide
  * real-time elapsed time calculation. It polls for updates when the timer
  * is running to show current time, but only subscribes to memory changes
  * for start/stop/pause/resume events.
  * 
- * Benefits over old polling system:
+ * ## When to Use This Hook
+ * 
+ * Use this hook when your component receives a `blockKey: string` from the
+ * display stack system. This is the standard integration pattern for:
+ * - ClockAnchor
+ * - DigitalClock
+ * - Display stack consumers
+ * 
+ * ## When to Use useTimerDisplay Instead
+ * 
+ * If you have direct access to an `IRuntimeBlock` reference (e.g., from
+ * `runtime.stack.current()`), prefer `useTimerDisplay(block)` which provides
+ * formatted time strings and richer display values.
+ * 
+ * ## Features
  * - Zero polling for completed timers
  * - Subscription-based updates for state changes
- * - Polling only for display time calculation, not data fetching
- * 
- * @deprecated Prefer useTimerDisplay when you have access to an IRuntimeBlock.
- * This hook is maintained for components that receive blockKey strings from
- * the display stack system. When migrating to the behavior-based system,
- * use useTimerDisplay(block) instead.
+ * - 60fps animation frame updates when running
  * 
  * @param blockKey The block key to track elapsed time for
  * @returns Object with elapsed time, running state, and time spans
  * 
  * @example
  * ```tsx
- * // Legacy usage (display stack integration)
- * const { elapsed, isRunning, timeSpans } = useTimerElapsed(blockKey);
- * const seconds = Math.floor(elapsed / 1000);
+ * // Display stack integration (this hook)
+ * function KeyBasedTimer({ blockKey }: { blockKey: string }) {
+ *   const { elapsed, isRunning } = useTimerElapsed(blockKey);
+ *   const formatted = formatMs(elapsed);
+ *   return <div className={isRunning ? 'running' : ''}>{formatted}</div>;
+ * }
  * 
- * // Preferred: Use useTimerDisplay when you have a block reference
- * // const display = useTimerDisplay(block);
- * // const formatted = display?.formatted;
+ * // Direct block access (use useTimerDisplay instead)
+ * function BlockTimer({ block }: { block: IRuntimeBlock }) {
+ *   const display = useTimerDisplay(block);
+ *   return <div>{display?.formatted}</div>;
+ * }
  * ```
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {

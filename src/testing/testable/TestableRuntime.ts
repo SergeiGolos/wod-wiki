@@ -283,6 +283,24 @@ export class TestableRuntime implements IScriptRuntime {
     this._wrapped.dispose();
   }
 
+  // ========== Output Statement API (delegated) ==========
+
+  subscribeToOutput(listener: (output: any) => void): () => void {
+    return this._wrapped.subscribeToOutput(listener);
+  }
+
+  getOutputStatements(): any[] {
+    return this._wrapped.getOutputStatements();
+  }
+
+  addOutput(output: any): void {
+    this._wrapped.addOutput(output);
+  }
+
+  getStatementById(id: number): any {
+    return this._wrapped.getStatementById?.(id);
+  }
+
   // ========== Testing API ==========
 
   /** Access the underlying runtime */

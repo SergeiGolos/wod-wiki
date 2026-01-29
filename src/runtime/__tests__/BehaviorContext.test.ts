@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { BehaviorContext } from '../BehaviorContext';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';

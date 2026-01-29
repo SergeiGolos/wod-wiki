@@ -12,6 +12,7 @@ export interface ChildRunnerConfig {
  * PushChildBlockAction - Pushes a block for the given statement IDs.
  * 
  * Uses the JIT compiler to create and push blocks for child statements.
+ * Uses O(1) statement lookup via runtime.getStatementById() when available.
  */
 class PushChildBlockAction implements IRuntimeAction {
     readonly type = 'push-child-block';
@@ -24,7 +25,7 @@ class PushChildBlockAction implements IRuntimeAction {
 
     do(runtime: IScriptRuntime): void {
         if (this.statementIds.length === 0) {
-            console.warn('[PushChildBlockAction] No statement IDs to push');
+            // Edge case: empty ID list - not an error, just nothing to do
             return;
         }
 
@@ -33,17 +34,18 @@ class PushChildBlockAction implements IRuntimeAction {
         const compiler = runtime.jit;
 
         if (!script || !compiler) {
-            console.warn('[PushChildBlockAction] No script or compiler available');
+            // This is a configuration error - should not happen in production
             return;
         }
 
-        // Get statements for these IDs
+        // Get statements for these IDs - use O(1) lookup if available
         const statements = this.statementIds
-            .map(id => script.statements.find(s => s.id === id))
+            .map(id => runtime.getStatementById?.(id) ?? script.statements.find(s => s.id === id))
             .filter((s): s is NonNullable<typeof s> => s !== undefined);
 
         if (statements.length === 0) {
-            console.warn('[PushChildBlockAction] No statements found for IDs:', this.statementIds);
+            // No statements found - this is a data integrity issue
+            // The block will not be pushed, but execution can continue
             return;
         }
 

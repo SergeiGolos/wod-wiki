@@ -62,8 +62,8 @@ export {
     type RoundDisplayValues
 } from './useBlockMemory';
 
-// Legacy hooks (maintained for display stack integration)
-// @deprecated - Prefer useTimerState/useTimerDisplay when you have an IRuntimeBlock
+// Display stack integration hooks
+// Use these when you only have a blockKey string from the display system.
+// When you have direct IRuntimeBlock access, prefer the behavior-based hooks above.
 export { useTimerReferences } from './useTimerReferences';
-// @deprecated - Prefer useTimerDisplay when you have an IRuntimeBlock
 export { useTimerElapsed, type UseTimerElapsedResult } from './useTimerElapsed';
