@@ -140,11 +140,11 @@ function segmentToDisplayItem(
   // Use depth directly if available, otherwise calculate
   let depth = segment.depth || 0;
   if (depth === 0 && segment.parentId !== null) {
-    let currentParentId = segment.parentId;
+    let currentParentId: number | null | undefined = segment.parentId;
     const visited = new Set<number>();
     visited.add(segment.id);
     
-    while (currentParentId !== null && !visited.has(currentParentId)) {
+    while (currentParentId !== null && currentParentId !== undefined && !visited.has(currentParentId)) {
       visited.add(currentParentId);
       const parent = allSegments.get(currentParentId);
       if (parent) {

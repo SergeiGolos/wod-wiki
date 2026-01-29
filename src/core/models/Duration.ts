@@ -28,16 +28,8 @@ export class Duration{
 export class SpanDuration extends Duration {
   constructor(spans: TimeSpan[]) {
     const total = spans.reduce((total, span) => {
-      const startTime = span.start;      
-      if (!startTime) {
-        return total;
-      }
-
-      // If span.stop is undefined (timer is running for this span),
-      // use the current time as its effective stop time for this calculation.
-      // Otherwise, use the actual recorded stop time.
-      const stopTime = span.stop ?? new Date();
-      return total + (stopTime.getTime() - startTime.getTime());
+      // Use span.duration which handles open spans automatically
+      return total + span.duration;
     }, 0)
     super(total);
   }

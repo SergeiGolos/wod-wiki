@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TimeSpan } from '../../core/models/CollectionSpan';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 export interface TimeValue {
     value: string;
@@ -12,13 +12,12 @@ export const useTimespan = (timeSpans: TimeSpan[]) => {
     useEffect(() => {
         const calculateTime = () => {
             const milliseconds = timeSpans.reduce((total, span) => {
-                if (!span.start) {
+                if (!span.started) {
                     return total;
                 }
-                const start = span.start.getTime();
-
-                // CLEANUP:  Date.now() is not a valid value for stop
-                const stop = span.stop?.getTime() || Date.now();
+                const start = span.started;
+                // Use ended if available, otherwise current time
+                const stop = span.ended ?? Date.now();
                 return total + (stop - start);
             }, 0);
 
@@ -46,7 +45,8 @@ export const useTimespan = (timeSpans: TimeSpan[]) => {
 
         calculateTime();
 
-        const isRunning = timeSpans.some(span => span.start && !span.stop);
+        // Timer is running if any span has started but not ended
+        const isRunning = timeSpans.some(span => span.started && !span.ended);
 
         if (isRunning) {
             const interval = setInterval(calculateTime, 100);

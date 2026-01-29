@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, beforeEach } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { ICodeFragment, FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
+import type { FragmentState } from '../contracts/memory/MemoryTypes';
 
 describe('RuntimeBlock Fragment Methods', () => {
     const runtime = {} as IScriptRuntime;
@@ -31,34 +32,42 @@ describe('RuntimeBlock Fragment Methods', () => {
         value: 'Run'
     };
 
-    // Create a block with nested fragments
-    // Group 0: [Timer, Rep1]
-    // Group 1: [Rep2, Effort]
-    const fragments: ICodeFragment[][] = [
-        [timerFragment, repFragment1],
-        [repFragment2, effortFragment]
+    // Combine all fragments into a flat array for the new memory-based storage
+    const allFragments: ICodeFragment[] = [
+        timerFragment, repFragment1, repFragment2, effortFragment
     ];
 
-    const block = new RuntimeBlock(
-        runtime, 
-        [], 
-        [], 
-        undefined, 
-        undefined, 
-        undefined, 
-        undefined, 
-        fragments
-    );
+    let block: RuntimeBlock;
+
+    beforeEach(() => {
+        // Create a block and set fragments in memory
+        block = new RuntimeBlock(
+            runtime, 
+            [], 
+            [], 
+            undefined, 
+            undefined, 
+            undefined, 
+            undefined
+        );
+
+        // Set fragments in memory using the public setMemoryValue method
+        const fragmentState: FragmentState = {
+            fragments: allFragments,
+            template: ''
+        };
+        block.setMemoryValue('fragment', fragmentState);
+    });
 
     describe('findFragment', () => {
         it('should find a fragment by type', () => {
             const found = block.findFragment(FragmentType.Timer);
-            expect(found).toBe(timerFragment);
+            expect(found).toEqual(timerFragment);
         });
 
         it('should find a fragment in a later group', () => {
             const found = block.findFragment(FragmentType.Effort);
-            expect(found).toBe(effortFragment);
+            expect(found).toEqual(effortFragment);
         });
 
         it('should return undefined if fragment not found', () => {
@@ -68,7 +77,7 @@ describe('RuntimeBlock Fragment Methods', () => {
 
         it('should find a fragment with predicate', () => {
             const found = block.findFragment(FragmentType.Rep, f => f.value === 20);
-            expect(found).toBe(repFragment2);
+            expect(found).toEqual(repFragment2);
         });
 
         it('should return undefined if predicate fails', () => {
@@ -81,8 +90,8 @@ describe('RuntimeBlock Fragment Methods', () => {
         it('should return all fragments of a type', () => {
             const found = block.filterFragments(FragmentType.Rep);
             expect(found).toHaveLength(2);
-            expect(found).toContain(repFragment1);
-            expect(found).toContain(repFragment2);
+            expect(found).toContainEqual(repFragment1);
+            expect(found).toContainEqual(repFragment2);
         });
 
         it('should return empty array if no fragments of type found', () => {

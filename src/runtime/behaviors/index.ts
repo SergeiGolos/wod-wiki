@@ -63,12 +63,22 @@ export { ControlsInitBehavior } from './ControlsInitBehavior';
 export type { ControlsConfig, ButtonConfig, ControlsState } from './ControlsInitBehavior';
 
 // ============================================================================
+// Lifecycle Aspect
+// ============================================================================
+export { IdleInjectionBehavior } from './IdleInjectionBehavior';
+export type { IdleConfig } from './IdleInjectionBehavior';
+
+// ============================================================================
 // Legacy Behaviors (Deprecated - Maintained for Backward Compatibility)
 // ============================================================================
 /** @deprecated Use HistoryRecordBehavior instead */
 export { HistoryBehavior } from './HistoryBehavior';
 /** @deprecated Use ControlsInitBehavior and DisplayInitBehavior instead */
 export { ActionLayerBehavior } from './ActionLayerBehavior';
+/** @deprecated Use ControlsInitBehavior with event-based patterns instead */
+export { RuntimeControlsBehavior } from './RuntimeControlsBehavior';
+/** @deprecated Use PopOnNextBehavior instead */
+export { SinglePassBehavior } from './SinglePassBehavior';
 /** @deprecated Use TimerInitBehavior, TimerTickBehavior, etc. instead */
 export { TimerBehavior, type TimerDirection } from './TimerBehavior';
 export { TimeSpan } from '../models/TimeSpan';

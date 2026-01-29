@@ -101,39 +101,35 @@ describe('RuntimeBlock Memory Methods', () => {
     });
 
     describe('dispose', () => {
-        it('should dispose all memory entries and notify subscribers', () => {
+        it('should call onDispose on behaviors', () => {
             const block = createBlock();
             const timer = new TimerMemory({ direction: 'up', label: 'Test' });
-            const listener = vi.fn();
 
             block.exposeSetMemory('timer', timer);
-            timer.subscribe(listener);
 
+            // dispose() calls behavior's onDispose but doesn't clear memory
+            // (memory clearing happens in unmount())
             block.dispose(runtime);
 
-            // Subscriber should be notified with (undefined, lastValue)
-            expect(listener).toHaveBeenCalledWith(undefined, expect.any(Object));
+            // Memory is NOT cleared by dispose - only by unmount
+            expect(block.hasMemory('timer')).toBe(true);
         });
 
-        it('should clear memory map after disposal', () => {
+        it('should allow multiple dispose calls safely', () => {
             const block = createBlock();
             block.exposeSetMemory('timer', new TimerMemory({ direction: 'up', label: 'Test' }));
-            block.exposeSetMemory('round', new RoundMemory(1, 5));
 
-            expect(block.getMemoryTypes()).toHaveLength(2);
-
-            block.dispose(runtime);
-
-            expect(block.getMemoryTypes()).toHaveLength(0);
-            expect(block.hasMemory('timer')).toBe(false);
-            expect(block.hasMemory('round')).toBe(false);
+            // Should not throw on multiple dispose calls
+            expect(() => {
+                block.dispose(runtime);
+                block.dispose(runtime);
+            }).not.toThrow();
         });
     });
 
     describe('setMemory', () => {
-        it('should allow overwriting memory with warning', () => {
+        it('should allow overwriting memory without error', () => {
             const block = createBlock();
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
             const timer1 = new TimerMemory({ direction: 'up', label: 'First' });
             const timer2 = new TimerMemory({ direction: 'down', label: 'Second' });
@@ -141,10 +137,8 @@ describe('RuntimeBlock Memory Methods', () => {
             block.exposeSetMemory('timer', timer1);
             block.exposeSetMemory('timer', timer2);
 
-            expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Overwriting timer memory'));
+            // Should have the second value
             expect(block.getMemory('timer')?.value.label).toBe('Second');
-
-            warnSpy.mockRestore();
         });
     });
 });

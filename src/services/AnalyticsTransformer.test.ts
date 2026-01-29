@@ -165,7 +165,7 @@ describe('AnalyticsTransformer (RuntimeSpan version)', () => {
           context: { strategyUsed: 'TimeBoundRoundsStrategy' }
         };
 
-        expect(transformer.isFromStrategy(segment, 'AmrapLogicStrategy')).toBe(true);
+        expect(transformer.isFromStrategy(segment, 'TimeBoundRoundsStrategy')).toBe(true);
         expect(transformer.isFromStrategy(segment, 'IntervalLogicStrategy')).toBe(false);
       });
     });

@@ -122,7 +122,7 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
   }, [editorInstance]);
 
   // Handle navigation from index panel
-  const handleBlockClick = (item: DocumentItem) => {
+  const _handleBlockClick = (item: DocumentItem) => {
     // Set selected block if it's a WOD block
     if (item.type === 'wod') {
       setSelectedBlockId(item.id);
@@ -146,18 +146,18 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
     setViewMode('run');
   };
 
-  const handleComplete = () => {
+  const _handleComplete = () => {
     setViewMode('analyze');
   };
 
-  const handleClearSelection = () => {
+  const _handleClearSelection = () => {
     setSelectedBlockId(null);
     // If we are in run or analyze mode, clearing selection should just show the index in the left panel
     // but we stay in the current view mode.
   };
 
   // Find the selected block object
-  const selectedBlock = useMemo(() => {
+  const _selectedBlock = useMemo(() => {
     return blocks.find(b => b.id === selectedBlockId) || null;
   }, [blocks, selectedBlockId]);
 
@@ -291,14 +291,9 @@ const WodWorkbenchContent: React.FC<WodWorkbenchProps> = ({
               }`}
           >
             <RuntimeLayout
-              activeBlock={selectedBlock}
-              documentItems={documentItems}
-              onBlockClick={handleBlockClick}
-              onComplete={handleComplete}
-              onBack={handleClearSelection}
-              viewMode={viewMode === 'analyze' ? 'analyze' : 'run'}
-              isDebugMode={isDebugMode}
-              onDebugModeChange={setIsDebugMode}
+              runtime={undefined}
+              activeStatement={null}
+              onStatementClick={undefined}
             />
           </div>
 

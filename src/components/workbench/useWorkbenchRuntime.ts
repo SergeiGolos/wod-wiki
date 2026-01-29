@@ -3,7 +3,7 @@ import { useRuntime } from '../layout/RuntimeProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
-import { WodBlock } from '../../markdown-editor/types';
+import type { WorkoutResults, WodBlock } from '../../markdown-editor/types';
 import { NextEvent } from '../../runtime/events/NextEvent';
 import { audioService } from '../../services/AudioService';
 import { IEventHandler } from '../../runtime/contracts/events/IEventHandler';
@@ -15,11 +15,11 @@ import { UnregisterEventHandlerAction } from '../../runtime/actions/events/Unreg
 /**
  * Hook to encapsulate UnifiedWorkbench runtime logic.
  */
-export const useWorkbenchRuntime = (
+export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>(
     _viewMode: string,
-    _selectedBlock: unknown | null,
-    completeWorkout: (results: unknown) => void,
-    startWorkout: (block: unknown) => void
+    _selectedBlock: T,
+    completeWorkout: (results: WorkoutResults) => void,
+    startWorkout: (block: WodBlock) => void
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
     const execution = useRuntimeExecution(runtime);

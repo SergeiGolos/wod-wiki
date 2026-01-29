@@ -99,7 +99,7 @@ export function useCurrentCard(): IDisplayCardEntry | undefined {
  * 
  * @returns The current workout state
  */
-export function useWorkoutState(): 'idle' | 'running' | 'paused' | 'complete' {
+export function useWorkoutState(): 'idle' | 'running' | 'paused' | 'complete' | 'error' {
   const displayState = useDisplayStack();
   return displayState.workoutState;
 }
