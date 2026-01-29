@@ -1,7 +1,7 @@
 import React from 'react';
 import { EnhancedTimerHarness, MemoryCard, TimerControls } from '../../src/clock/components/EnhancedTimerHarness';
 import { DigitalClock } from '../../src/clock/components/DigitalClock';
-import { TimeSpan } from '../../src/runtime/behaviors/TimerBehavior';
+import { TimeSpan } from '../../src/runtime/models/TimeSpan';
 
 export interface UnifiedClockStoryConfig {
   timerType: 'countdown' | 'countup';
