@@ -1,6 +1,5 @@
 import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
-import { IEvent } from "./events/IEvent";
 import { RuntimeError } from '../actions/ErrorAction';
 import { IEventBus } from './events/IEventBus';
 import { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
@@ -89,7 +88,6 @@ export interface IScriptRuntime {
      */
     addOutput(output: IOutputStatement): void;
 
-    handle(event: IEvent): void;
     dispose(): void;
 }
 

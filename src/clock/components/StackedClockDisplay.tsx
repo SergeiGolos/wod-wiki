@@ -55,7 +55,7 @@ export interface StackedClockDisplayProps {
  * ```tsx
  * <RuntimeProvider runtime={runtime}>
  *   <StackedClockDisplay 
- *     onButtonClick={(event, payload) => runtime.handle({ name: event, data: payload })}
+ *     onButtonClick={(event, payload) => runtime.eventBus.emit({ name: event, data: payload, timestamp: new Date() }, runtime)}
  *   />
  * </RuntimeProvider>
  * ```
@@ -121,11 +121,11 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
     onButtonClick?.(eventName, payload);
 
     // Also emit as a runtime event
-    runtime.handle({
+    runtime.eventBus.emit({
       name: eventName,
       timestamp: new Date(),
       data: payload || {},
-    });
+    }, runtime);
   }, [onButtonClick, runtime]);
 
   // Determine which idle card to show when stacks are empty

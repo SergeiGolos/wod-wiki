@@ -531,15 +531,15 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
     return testRuntime?.wrapped ?? null;
   }, [testRuntime]);
 
-  // Handle runtime events from StackedClockDisplay
+    // Handle runtime events from StackedClockDisplay
   const handleRuntimeButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {
     if (!testRuntime) return;
     console.log(`🎮 QueueTestHarness: Runtime button click - ${eventName}`, payload);
-    testRuntime.handle({
+    testRuntime.eventBus.emit({
       name: eventName,
       timestamp: new Date(),
       data: payload || {},
-    });
+    }, testRuntime);
   }, [testRuntime]);
 
   // Build the test controls panel (left side or top)

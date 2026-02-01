@@ -113,12 +113,12 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
     }
 
     // Use NextEvent directly for proper block advancement
-    const nextEvent = {
+        const nextEvent = {
       name: 'next',
       timestamp: new Date(),
       data: {}
     };
-    runtime.handle(nextEvent);
+    runtime.eventBus.emit(nextEvent, runtime);
     updateSnapshot();
   };
 

@@ -135,37 +135,34 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
     oscillator.stop(ctx.currentTime + duration / 1000);
   }, []);
 
-  // Handle sound:play events
+  // Handle sound:play events via eventBus callback
   useEffect(() => {
     if (!runtimeRef.current) return;
 
-    const originalHandle = runtimeRef.current.handle.bind(runtimeRef.current);
-    runtimeRef.current.handle = (event) => {
-      originalHandle(event);
+    const unsubscribe = runtimeRef.current.eventBus.on('sound:play', (event) => {
+      const eventData = event.data as { sound?: string; remainingSeconds?: number; blockKey?: string } || {};
+      const { sound, remainingSeconds } = eventData;
       
-      if (event.name === 'sound:play') {
-        const eventData = event.data as { sound?: string; remainingSeconds?: number; blockKey?: string } || {};
-        const { sound, remainingSeconds } = eventData;
-        
-        // Add to sound events log
-        const cueId = remainingSeconds !== undefined ? `${remainingSeconds}-sec` : 'event';
-        setSoundEvents(prev => [...prev, {
-          time: new Date(),
-          cueId,
-          sound: sound || 'unknown'
-        }]);
-        
-        // Mark cue as triggered
-        setTriggeredCues(prev => new Set([...prev, cueId]));
-        
-        // Play actual sound
-        const freq = sound === PREDEFINED_SOUNDS.BUZZER ? 220 :
-                     sound === PREDEFINED_SOUNDS.CHIME ? 880 :
-                     sound === PREDEFINED_SOUNDS.TICK ? 1000 : 440;
-        const dur = sound === PREDEFINED_SOUNDS.BUZZER ? 500 : 150;
-        playBeep(freq, dur, 0.5);
-      }
-    };
+      // Add to sound events log
+      const cueId = remainingSeconds !== undefined ? `${remainingSeconds}-sec` : 'event';
+      setSoundEvents(prev => [...prev, {
+        time: new Date(),
+        cueId,
+        sound: sound || 'unknown'
+      }]);
+      
+      // Mark cue as triggered
+      setTriggeredCues(prev => new Set([...prev, cueId]));
+      
+      // Play actual sound
+      const freq = sound === PREDEFINED_SOUNDS.BUZZER ? 220 :
+                   sound === PREDEFINED_SOUNDS.CHIME ? 880 :
+                   sound === PREDEFINED_SOUNDS.TICK ? 1000 : 440;
+      const dur = sound === PREDEFINED_SOUNDS.BUZZER ? 500 : 150;
+      playBeep(freq, dur, 0.5);
+    }, 'sound-story-listener');
+
+    return () => unsubscribe();
   }, [playBeep]);
 
   // Start the timer
@@ -222,7 +219,7 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
 
       // Emit tick event for behaviors to process
       if (runtimeRef.current && blockRef.current) {
-        runtimeRef.current.handle({
+        runtimeRef.current.eventBus.emit({
           name: 'tick',
           timestamp: new Date(),
           data: {
@@ -231,7 +228,7 @@ const SoundBehaviorDemo: React.FC<SoundBehaviorDemoProps> = ({
             remainingMs: remaining,
             direction
           }
-        });
+        }, runtimeRef.current);
       }
 
       // Stop when timer completes (for countdown) or after double duration (for count-up)

@@ -145,39 +145,39 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   // Control functions using event-based approach
   const handleStart = useCallback(() => {
     // Start means resume if paused, or create new span
-    runtime.handle({
+    runtime.eventBus.emit({
       name: 'timer:resume',
       timestamp: new Date(),
       data: { blockKey }
-    });
+    }, runtime);
     setRecalcTrigger(prev => prev + 1);
   }, [runtime, blockKey]);
 
   const handleStop = useCallback(() => {
     // Stop means pause the timer
-    runtime.handle({
+    runtime.eventBus.emit({
       name: 'timer:pause',
       timestamp: new Date(),
       data: { blockKey }
-    });
+    }, runtime);
     setRecalcTrigger(prev => prev + 1);
   }, [runtime, blockKey]);
 
   const handlePause = useCallback(() => {
-    runtime.handle({
+    runtime.eventBus.emit({
       name: 'timer:pause',
       timestamp: new Date(),
       data: { blockKey }
-    });
+    }, runtime);
     setRecalcTrigger(prev => prev + 1);
   }, [runtime, blockKey]);
 
   const handleResume = useCallback(() => {
-    runtime.handle({
+    runtime.eventBus.emit({
       name: 'timer:resume',
       timestamp: new Date(),
       data: { blockKey }
-    });
+    }, runtime);
     setRecalcTrigger(prev => prev + 1);
   }, [runtime, blockKey]);
 

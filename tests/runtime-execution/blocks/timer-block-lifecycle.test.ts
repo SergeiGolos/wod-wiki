@@ -114,11 +114,11 @@ class TimerTestHarness {
 
   /** Send a timer:tick event to the runtime */
   tick(): this {
-    this.runtime.handle({
+    this.runtime.eventBus.emit({
       name: 'timer:tick',
       timestamp: this.clock.now,
       data: { source: 'test' }
-    });
+    }, this.runtime);
     return this;
   }
 

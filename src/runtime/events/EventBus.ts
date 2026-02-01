@@ -167,4 +167,20 @@ export class EventBus implements IEventBus {
 
     return actions;
   }
+
+  emit(event: IEvent, runtime: IScriptRuntime): void {
+    const actions = this.dispatch(event, runtime);
+    if (actions && actions.length > 0) {
+      // Access queueActions if available on the runtime
+      const runtimeWithQueue = runtime as IScriptRuntime & { queueActions?: (actions: import('../contracts/IRuntimeAction').IRuntimeAction[]) => void };
+      if (typeof runtimeWithQueue.queueActions === 'function') {
+        runtimeWithQueue.queueActions(actions);
+      } else {
+        // Fallback: execute actions immediately
+        for (const action of actions) {
+          action.do(runtime);
+        }
+      }
+    }
+  }
 }

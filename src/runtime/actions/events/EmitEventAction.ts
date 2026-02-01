@@ -6,7 +6,7 @@ import { IEvent } from '../contracts/events/IEvent';
  * Action for declarative event emission from behaviors.
  * 
  * This action allows behaviors to emit events through the action system
- * instead of calling runtime.handle() directly, maintaining declarative patterns.
+ * using eventBus.emit(), maintaining declarative patterns.
  * 
  * @example
  * ```typescript
@@ -39,6 +39,6 @@ export class EmitEventAction implements IRuntimeAction {
       data: this.data
     };
     
-    runtime.handle(event);
+    runtime.eventBus.emit(event, runtime);
   }
 }

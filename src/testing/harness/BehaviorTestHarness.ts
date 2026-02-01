@@ -77,12 +77,6 @@ export class BehaviorTestHarness {
       tracker: this._mockTracker,
       errors: [],
 
-      handle(event: IEvent) {
-        self._capturedEvents.push({ event, timestamp: Date.now() });
-        self._handleSpy(event);
-        self._eventBus.dispatch(event, this);
-      },
-
       pushBlock(block: IRuntimeBlock) {
         self._stack.push(block);
         return block;
@@ -247,7 +241,12 @@ export class BehaviorTestHarness {
       data: { source: 'test-harness', ...data }
     };
 
-    this._mockRuntime.handle(event);
+    // Track event for assertions
+    this._capturedEvents.push({ event, timestamp: Date.now() });
+    this._handleSpy(event);
+    
+    // Dispatch through event bus
+    this._eventBus.emit(event, this._mockRuntime);
 
     // Collect actions from current block's event response
     const block = this._stack.current;

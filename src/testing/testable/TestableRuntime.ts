@@ -150,8 +150,7 @@ class StubBlock implements IRuntimeBlock {
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
-    this.label = config.label ?? config.key;
-    this.context = new StubBlockContext(config.key);
+    this.label = config.label ?? config.key;    
     this.fragments = [];
   }
 
@@ -239,9 +238,6 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
 
-  get tracker(): SpanTrackingHandler {
-    return this._wrapped.tracker;
-  }
 
   get eventBus(): IEventBus {
     return this._wrapped.eventBus;
@@ -251,22 +247,6 @@ export class TestableRuntime implements IScriptRuntime {
 
   isComplete(): boolean {
     return this._wrapped.isComplete();
-  }
-
-  sweepCompletedBlocks(): void {
-    this._wrapped.sweepCompletedBlocks();
-  }
-
-  handle(event: IEvent): void {
-    this._wrapped.handle(event);
-  }
-
-  pushBlock(block: IRuntimeBlock, options?: any): IRuntimeBlock {
-    return this._wrapped.pushBlock(block, options);
-  }
-
-  popBlock(options?: any): IRuntimeBlock | undefined {
-    return this._wrapped.popBlock(options);
   }
 
   dispose(): void {
@@ -422,11 +402,11 @@ export class TestableRuntime implements IScriptRuntime {
    * This is typically called by the runtime loop
    */
   simulateTick(): void {
-    this.handle({
+    this.eventBus.emit({
       name: 'tick',
       timestamp: new Date(),
       data: { source: 'test-simulation' }
-    });
+    }, this);
   }
 
   /**
@@ -434,11 +414,11 @@ export class TestableRuntime implements IScriptRuntime {
    * This triggers completion for generic effort blocks
    */
   simulateNext(): void {
-    this.handle({
+    this.eventBus.emit({
       name: 'next',
       timestamp: new Date(),
       data: { source: 'test-simulation' }
-    });
+    }, this);
   }
 
   /**
@@ -447,7 +427,7 @@ export class TestableRuntime implements IScriptRuntime {
    * @param reps - Number of reps completed
    */
   simulateReps(blockId: string, reps: number): void {
-    this.handle({
+    this.eventBus.emit({
       name: 'reps:update',
       timestamp: new Date(),
       data: {
@@ -455,7 +435,7 @@ export class TestableRuntime implements IScriptRuntime {
         blockId,
         reps
       }
-    });
+    }, this);
   }
 
   /**
@@ -464,11 +444,11 @@ export class TestableRuntime implements IScriptRuntime {
    * @param data - Additional event data
    */
   simulateTimerEvent(eventType: 'timer:start' | 'timer:stop' | 'timer:pause' | 'timer:resume' | 'timer:complete', data?: any): void {
-    this.handle({
+    this.eventBus.emit({
       name: eventType,
       timestamp: new Date(),
       data: { source: 'test-simulation', ...data }
-    });
+    }, this);
   }
 
   /**
@@ -477,7 +457,7 @@ export class TestableRuntime implements IScriptRuntime {
    * @param roundNumber - Which round completed
    */
   simulateRoundComplete(blockId: string, roundNumber: number): void {
-    this.handle({
+    this.eventBus.emit({
       name: 'rounds:complete',
       timestamp: new Date(),
       data: {
@@ -485,7 +465,7 @@ export class TestableRuntime implements IScriptRuntime {
         blockId,
         round: roundNumber
       }
-    });
+    }, this);
   }
 
   /**
@@ -494,11 +474,11 @@ export class TestableRuntime implements IScriptRuntime {
    * @param data - Event data
    */
   simulateEvent(name: string, data?: any): void {
-    this.handle({
+    this.eventBus.emit({
       name,
       timestamp: new Date(),
       data: { source: 'test-simulation', ...data }
-    });
+    }, this);
   }
 
   /**

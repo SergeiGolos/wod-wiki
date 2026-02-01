@@ -177,10 +177,10 @@ describe('RootLifecycle Integration', () => {
 
         // 3. Simulate Start (Transition to Executing)
         // We can simulate the timer:start event
-        runtime.handle({ name: 'timer:start', timestamp: new Date(), data: {} });
+        runtime.eventBus.emit({ name: 'timer:start', timestamp: new Date(), data: {} }, runtime);
 
         // This should mark the idle block as complete and trigger onNext on Root
-        // runtime.handle processes events. RootLifecycleBehavior handles timer:start by marking idle block complete.
+        // eventBus.emit processes events. RootLifecycleBehavior handles timer:start by marking idle block complete.
         // The runtime sweeps completed blocks.
 
         // Verify controls updated
@@ -191,18 +191,18 @@ describe('RootLifecycle Integration', () => {
         expect(execControls?.buttons.find(b => b.id === 'btn-complete')).toBeDefined();
 
         // 4. Simulate Pause
-        runtime.handle({ name: 'timer:pause', timestamp: new Date(), data: {} });
+        runtime.eventBus.emit({ name: 'timer:pause', timestamp: new Date(), data: {} }, runtime);
         const pausedControls = getControls();
         expect(pausedControls?.buttons.find(b => b.id === 'btn-resume')).toBeDefined();
         expect(pausedControls?.buttons.find(b => b.id === 'btn-pause')).toBeUndefined();
 
         // 5. Simulate Resume
-        runtime.handle({ name: 'timer:resume', timestamp: new Date(), data: {} });
+        runtime.eventBus.emit({ name: 'timer:resume', timestamp: new Date(), data: {} }, runtime);
         const resumedControls = getControls();
         expect(resumedControls?.buttons.find(b => b.id === 'btn-pause')).toBeDefined();
 
         // 6. Simulate Complete (user-initiated via workout:complete)
-        runtime.handle({ name: 'workout:complete', timestamp: new Date(), data: {} });
+        runtime.eventBus.emit({ name: 'workout:complete', timestamp: new Date(), data: {} }, runtime);
         const completeControls = getControls();
         expect(completeControls?.buttons.length).toBe(1);
         expect(completeControls?.buttons[0].id).toBe('btn-analytics');

@@ -53,5 +53,19 @@ export interface IEventBus {
 
     unregisterById(handlerId: string): void;
     unregisterByOwner(ownerId: string): void;
+    
+    /**
+     * Dispatch an event and return the resulting actions without executing them.
+     * Used internally when actions need special handling.
+     */
     dispatch(event: IEvent, runtime: IScriptRuntime): import('../IRuntimeAction').IRuntimeAction[];
+    
+    /**
+     * Dispatch an event and execute all resulting actions immediately.
+     * This is the primary entry point for event handling.
+     * 
+     * @param event - The event to dispatch
+     * @param runtime - The runtime context
+     */
+    emit(event: IEvent, runtime: IScriptRuntime): void;
 }

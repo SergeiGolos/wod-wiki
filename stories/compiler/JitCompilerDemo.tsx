@@ -731,11 +731,11 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         isCompleted: false
       });
       
-      console.log('⚡ Calling runtime.handle(nextEvent)...');
-      runtime.handle(nextEvent);
+      console.log('⚡ Calling runtime.eventBus.emit(nextEvent)...');
+      runtime.eventBus.emit(nextEvent, runtime);
       
-      console.log(`📊 After handle - stack depth: ${runtime.stack.blocks.length}`);
-      console.log(`📍 After handle - current block: ${runtime.stack.current?.key?.toString() || 'None'}`);
+      console.log(`📊 After emit - stack depth: ${runtime.stack.blocks.length}`);
+      console.log(`📍 After emit - current block: ${runtime.stack.current?.key?.toString() || 'None'}`);
 
       // Force a re-render to update the UI
       console.log('🔄 Forcing UI re-render...');

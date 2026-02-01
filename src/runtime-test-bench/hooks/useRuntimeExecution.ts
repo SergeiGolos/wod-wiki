@@ -85,7 +85,7 @@ export const useRuntimeExecution = (
     try {
       // Use TickEvent for periodic updates instead of NextEvent
       const tickEvent = new TickEvent();
-      runtime.handle(tickEvent);
+      runtime.eventBus.emit(tickEvent, runtime);
       setStepCount(prev => prev + 1);
 
       // Check if runtime is complete

@@ -3,7 +3,6 @@ import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack, Unsubscribe } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
-import { IEvent } from "./contracts/events/IEvent";
 import type { RuntimeError } from './actions/ErrorAction';
 import { IEventBus } from './contracts/events/IEventBus';
 import {
@@ -140,13 +139,6 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public getStatementById(id: number): typeof this.script.statements[0] | undefined {
         return this._statementIndex.get(id);
-    }
-
-    handle(event: IEvent): void {
-        const actions = this.eventBus.dispatch(event, this);
-        if (actions && actions.length > 0) {
-            this.queueActions(actions);
-        }
     }
 
     /**
