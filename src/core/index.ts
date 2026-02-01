@@ -10,6 +10,8 @@ export { CodeStatement, ParsedCodeStatement } from './models/CodeStatement';
 export { Duration, SpanDuration } from './models/Duration';
 export type { IDialect, InheritanceMode, InheritanceRule, DialectAnalysis } from './models/Dialect';
 export * from './models/DisplayItem';
+export { OutputStatement } from './models/OutputStatement';
+export type { IOutputStatement } from './models/OutputStatement';
 
 // Adapters
 export * from './adapters/displayItemAdapters';

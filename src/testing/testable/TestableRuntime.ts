@@ -1,8 +1,7 @@
-import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement, TypedMemoryReference } from "@/core";
+import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement } from "@/core";
 import { IBlockContext, RuntimeError } from "@/core-entry";
-import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, Nullable } from "@/runtime/contracts";
+import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, TypedMemoryReference } from "@/runtime/contracts";
 import { RuntimeSpan } from "@/runtime/models";
-import { SpanTrackingHandler } from "@/tracker/SpanTrackingHandler";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";
 
@@ -120,11 +119,24 @@ class StubBlockContext implements IBlockContext {
   allocate<T>(_type?: string, _initialValue?: T, _visibility?: string): any {
     return { id: '', type: '', ownerId: this.ownerId, visibility: 'private', value: () => null };
   }
-  get<T>(_type?: string): T | undefined { return undefined; }
-  getAll<T>(_type?: string): T[] { return []; }
+  get<T>(_type?: string): TypedMemoryReference<T> | undefined { return undefined; }
+  getAll<T>(_type?: string): TypedMemoryReference<T>[] { return []; }
+  set<T>(_reference: TypedMemoryReference<T>, _value: T): void { }
   release(): void { }
   isReleased(): boolean { return false; }
-  getOrCreateAnchor(): any { return { id: '', type: '', ownerId: this.ownerId, visibility: 'public', value: () => null }; }
+  getOrCreateAnchor(): any { 
+    return { 
+      id: '', 
+      type: '', 
+      ownerId: this.ownerId, 
+      visibility: 'public', 
+      get: () => ({ searchCriteria: {} }), 
+      set: () => {}, 
+      subscribe: () => (() => {}),
+      value: () => ({ searchCriteria: {} }),
+      subscriptions: []
+    } as any; 
+  }
 }
 
 /**
@@ -152,16 +164,21 @@ class StubBlock implements IRuntimeBlock {
     this.blockType = config.blockType ?? 'stub';
     this.label = config.label ?? config.key;    
     this.fragments = [];
+    this.context = new StubBlockContext(config.key);
   }
 
-  mount(): [] { return []; }
-  next(): [] { return []; }
-  unmount(): [] { return []; }
+  mount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
+  next(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
+  unmount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   dispose(): void { }
   getBehavior<T>(_type: any): T | undefined { return undefined; }
   findFragment<T>(_type: any): T | undefined { return undefined; }
-  filterFragments(): [] { return []; }
+  filterFragments(): any[] { return []; }
   hasFragment(): boolean { return false; }
+  hasMemory(): boolean { return false; }
+  getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
+  getMemoryTypes(): import("@/runtime/memory/MemoryTypes").MemoryType[] { return []; }
+  setMemoryValue<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T, _value: any): void { }
 }
 
 /**
@@ -245,8 +262,18 @@ export class TestableRuntime implements IScriptRuntime {
 
   // ========== IScriptRuntime Methods (delegated) ==========
 
-  isComplete(): boolean {
-    return this._wrapped.isComplete();
+  /**
+   * Executes an action on the wrapped runtime.
+   */
+  do(action: import("@/runtime/contracts/IRuntimeAction").IRuntimeAction): void {
+    this._wrapped.do(action);
+  }
+
+  /**
+   * Dispatches an event to the wrapped runtime.
+   */
+  handle(event: IEvent): void {
+    this._wrapped.handle(event);
   }
 
   dispose(): void {
@@ -255,20 +282,20 @@ export class TestableRuntime implements IScriptRuntime {
 
   // ========== Output Statement API (delegated) ==========
 
-  subscribeToOutput(listener: (output: any) => void): () => void {
+  subscribeToOutput(listener: (output: import("@/core").IOutputStatement) => void): import("@/runtime/contracts").Unsubscribe {
     return this._wrapped.subscribeToOutput(listener);
   }
 
-  getOutputStatements(): any[] {
+  getOutputStatements(): import("@/core").IOutputStatement[] {
     return this._wrapped.getOutputStatements();
   }
 
-  addOutput(output: any): void {
+  addOutput(output: import("@/core").IOutputStatement): void {
     this._wrapped.addOutput(output);
   }
 
   getStatementById(id: number): any {
-    return this._wrapped.getStatementById?.(id);
+    return this.script.getId(id);
   }
 
   // ========== Testing API ==========

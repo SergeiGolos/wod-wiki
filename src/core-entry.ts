@@ -15,6 +15,8 @@ export { WodScript } from './parser/WodScript';
 export { BlockKey } from './core/models/BlockKey';
 export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';
+export { OutputStatement } from './core/models/OutputStatement';
+export type { IOutputStatement } from './core/models/OutputStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 // Note: Metric and MetricValue removed in Phase 3. Use ICodeFragment instead.
 export type { MetricValue, MetricValueType } from './runtime/models/RuntimeMetric';

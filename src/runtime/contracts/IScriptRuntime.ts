@@ -6,6 +6,8 @@ import { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { ICodeStatement } from '../../core/types/core';
+import { IRuntimeAction } from './IRuntimeAction';
+import { IEvent } from './events/IEvent';
 
 /**
  * Listener callback for output statement events.
@@ -25,23 +27,17 @@ export interface IScriptRuntime {
     errors?: RuntimeError[];
 
     /**
-     * Checks if the runtime execution has completed.
-     * Returns true if the stack is empty and execution has finished.
+     * Executes an action at the next available opportunity.
+     * Actions are processed in "turns" where time is frozen and 
+     * nested actions are allowed up to a recursion limit.
      */
-    isComplete(): boolean;
-
-    // ============================================================================
-    // Statement Lookup API
-    // ============================================================================
+    do(action: IRuntimeAction): void;
 
     /**
-     * Get a statement by its ID in O(1) time.
-     * Used by behaviors that need to look up child statements.
-     * 
-     * @param id The statement ID to look up
-     * @returns The statement, or undefined if not found
+     * Dispatches an event and executes all resulting actions in a single turn.
      */
-    getStatementById?(id: number): ICodeStatement | undefined;
+    handle(event: IEvent): void;
+
 
     // ============================================================================
     // Output Statement API

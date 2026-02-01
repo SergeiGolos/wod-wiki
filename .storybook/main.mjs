@@ -11,20 +11,21 @@ const config = {
   "stories": [
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
+
   "addons": [
     "@storybook/addon-docs",
     "@storybook/addon-a11y",
     // "@storybook/addon-vitest" - disabled due to bun + Windows compatibility issues
     // Run tests via CLI: bun run test:storybook
   ],
-  docs: {
-    autodocs: false,
-  },
+
   "staticDirs": ["../public"],
+
   "framework": {
     "name": "@storybook/react-vite",
     "options": {}
   },
+
   "viteFinal": (config) => {
     // Ensure source maps are generated for debugging
     config.build = config.build || {};

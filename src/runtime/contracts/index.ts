@@ -4,7 +4,7 @@ export type { IRuntimeBlock, BlockLifecycleOptions } from './IRuntimeBlock';
 export type { IRuntimeAction } from './IRuntimeAction';
 export type { IRuntimeBehavior } from './IRuntimeBehavior';
 export type { IRuntimeMemory, MemorySearchCriteria, Nullable } from './IRuntimeMemory';
-export type { IRuntimeStack } from './IRuntimeStack';
+export type { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
 export type { IRuntimeClock } from './IRuntimeClock';
 export type { IRuntimeBlockStrategy } from './IRuntimeBlockStrategy';
 export type { IRuntimeOptions, RuntimeStackOptions, RuntimeStackHooks, RuntimeStackLogger, RuntimeStackWrapper, RuntimeStackTracker, DebugLogEvent, DebugLogEventType, BlockWrapperFactory } from './IRuntimeOptions';

@@ -43,6 +43,12 @@ export interface IRuntimeOptions {
      * If provided, called in addition to console logging.
      */
     onDebugLog?: (event: DebugLogEvent) => void;
+
+    /**
+     * Maximum depth for nested actions within a single execution turn.
+     * Defaults to 20 if not specified.
+     */
+    maxActionDepth?: number;
 }
 
 /**
