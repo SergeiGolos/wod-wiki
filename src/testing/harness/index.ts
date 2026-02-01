@@ -1,5 +1,9 @@
 export { BehaviorTestHarness } from './BehaviorTestHarness';
+export { ExecutionContextTestHarness } from './ExecutionContextTestHarness';
+export type { ActionExecution, EventDispatch, HarnessConfig } from './ExecutionContextTestHarness';
 export { MockBlock } from './MockBlock';
+export { MockJitCompiler } from './MockJitCompiler';
+export type { CompileCall, BlockMatcher } from './MockJitCompiler';
 export { RuntimeTestBuilder, RuntimeTestHarness } from './RuntimeTestBuilder';
 export { WorkoutTestHarness, WorkoutTestBuilder } from './WorkoutTestHarness';
 export type { RuntimeSnapshot, MemoryEntry } from './RuntimeTestBuilder';
