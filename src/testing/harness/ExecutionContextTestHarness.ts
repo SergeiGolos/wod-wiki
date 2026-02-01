@@ -8,6 +8,8 @@ import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
+import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
+import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 
 /**
  * Record of a single action execution.
@@ -377,5 +379,113 @@ export class ExecutionContextTestHarness {
    */
   isComplete(): boolean {
     return this.stack.count === 0;
+  }
+
+  // ============================================================================
+  // Convenience Methods
+  // ============================================================================
+
+  /**
+   * Push block to stack and mount it in one call.
+   * 
+   * @param block Block to push and mount
+   * @returns this for method chaining
+   */
+  pushAndMount(block: IRuntimeBlock): this {
+    this.stack.push(block);
+    const mountAction: IRuntimeAction = {
+      type: 'mount',
+      do: (rt: IScriptRuntime) => block.mount(rt)
+    };
+    this.executeAction(mountAction);
+    return this;
+  }
+
+  /**
+   * Execute action and advance clock by duration.
+   * 
+   * @param action Action to execute
+   * @param ms Milliseconds to advance clock after execution
+   * @returns this for method chaining
+   */
+  executeAndAdvance(action: IRuntimeAction, ms: number): this {
+    this.executeAction(action);
+    this.advanceClock(ms);
+    return this;
+  }
+
+  /**
+   * Dispatch event and return the actions that were executed as a result.
+   * Note: Due to the turn-based execution model, this returns actions
+   * that were recorded after the event dispatch.
+   * 
+   * @param event Event to dispatch
+   * @returns Actions that resulted from the event
+   */
+  dispatchAndGetActions(event: IEvent): IRuntimeAction[] {
+    const beforeCount = this._actionExecutions.length;
+    this.dispatchEvent(event);
+    return this._actionExecutions.slice(beforeCount).map(e => e.action);
+  }
+
+  /**
+   * Assert that an action was executed exactly N times.
+   * Throws if the count doesn't match.
+   * 
+   * @param type Action type to check
+   * @param count Expected execution count
+   * @throws Error if count doesn't match
+   */
+  expectActionCount(type: string, count: number): void {
+    const actual = this.getActionsByType(type).length;
+    if (actual !== count) {
+      throw new Error(
+        `Expected ${count} executions of action '${type}' but found ${actual}`
+      );
+    }
+  }
+
+  /**
+   * Assert that an action was executed at a specific iteration.
+   * Throws if not found at that iteration.
+   * 
+   * @param type Action type to check
+   * @param iteration Expected iteration number
+   * @throws Error if action not found at iteration
+   */
+  expectActionAtIteration(type: string, iteration: number): void {
+    const action = this._actionExecutions.find(
+      e => e.action.type === type && e.iteration === iteration
+    );
+    if (!action) {
+      throw new Error(
+        `Expected action '${type}' at iteration ${iteration} but not found`
+      );
+    }
+  }
+
+  /**
+   * Get the most recent action execution of a specific type.
+   * 
+   * @param type Action type to find
+   * @returns Last action execution of that type, or undefined
+   */
+  getLastAction(type: string): ActionExecution | undefined {
+    const actions = this.getActionsByType(type);
+    return actions[actions.length - 1];
+  }
+
+  /**
+   * Force a new turn boundary by executing a no-op action.
+   * Useful for testing turn-based behavior.
+   * 
+   * @returns this for method chaining
+   */
+  nextTurn(): this {
+    this.executeAction({
+      type: '__turn_boundary',
+      do: () => {}
+    });
+    return this;
   }
 }

@@ -1,4 +1,4 @@
-# Phase 3: Builder & Helper APIs
+th# Phase 3: Builder & Helper APIs
 
 **Duration**: 30 minutes  
 **Priority**: High  
@@ -921,33 +921,39 @@ const harness = createTimerTestHarness({
 
 ## Completion Checklist
 
-- [ ] `tests/harness/ExecutionContextTestBuilder.ts` created
-- [ ] All fluent configuration methods implemented
-- [ ] JIT matcher configuration methods implemented
-- [ ] `build()` method implemented
-- [ ] `tests/harness/factory.ts` created
-- [ ] 5 factory methods implemented
-- [ ] Convenience methods added to ExecutionContextTestHarness
-- [ ] Module declaration for TypeScript typing
-- [ ] `tests/harness/index.ts` updated with exports
-- [ ] `tests/harness/__tests__/ExecutionContextTestBuilder.test.ts` created
-- [ ] 15+ builder test cases implemented
-- [ ] `tests/harness/__tests__/factory.test.ts` created
-- [ ] 10+ factory test cases implemented
-- [ ] Convenience method tests created (10+ cases)
-- [ ] All tests pass
-- [ ] No TypeScript errors: `bun x tsc --noEmit`
-- [ ] JSDoc comments added to all public APIs
+- [x] `src/testing/harness/ExecutionContextTestBuilder.ts` created
+- [x] All fluent configuration methods implemented (withClock, withMaxDepth, withStrategies, withBlocks, onEvent)
+- [x] JIT matcher configuration methods implemented (whenCompiling, whenTextContains, whenStatementIds, withDefaultBlock)
+- [x] `build()` method implemented
+- [x] `src/testing/harness/factory.ts` created
+- [x] 5 factory methods implemented (createTimerTestHarness, createBehaviorTestHarness, createCompilationTestHarness, createBasicTestHarness, createEventTestHarness)
+- [x] Convenience methods added to ExecutionContextTestHarness (pushAndMount, executeAndAdvance, dispatchAndGetActions, expectActionCount, expectActionAtIteration, getLastAction, nextTurn)
+- [x] `src/testing/harness/index.ts` updated with exports
+- [x] `src/testing/harness/__tests__/ExecutionContextTestBuilder.test.ts` created
+- [x] 15+ builder test cases implemented (15 tests)
+- [x] `src/testing/harness/__tests__/factory.test.ts` created
+- [x] 10+ factory test cases implemented (13 tests)
+- [x] Convenience method tests created: `src/testing/harness/__tests__/ConvenienceMethods.test.ts` (21 tests)
+- [x] All tests pass (49 new tests total)
+- [x] No TypeScript errors in new implementation files
+- [x] JSDoc comments added to all public APIs
 
 ## Related Files
 
-- **Depends On**: [tests/harness/ExecutionContextTestHarness.ts](../../../tests/harness/ExecutionContextTestHarness.ts) (Phase 2)
-- **Depends On**: [tests/harness/MockJitCompiler.ts](../../../tests/harness/MockJitCompiler.ts) (Phase 1)
-- **Updates**: [tests/harness/index.ts](../../../tests/harness/index.ts)
+- **Depends On**: [src/testing/harness/ExecutionContextTestHarness.ts](../../../src/testing/harness/ExecutionContextTestHarness.ts) (Phase 2)
+- **Depends On**: [src/testing/harness/MockJitCompiler.ts](../../../src/testing/harness/MockJitCompiler.ts) (Phase 1)
+- **Updates**: [src/testing/harness/index.ts](../../../src/testing/harness/index.ts)
+- **Implementation**: 
+  - [src/testing/harness/ExecutionContextTestBuilder.ts](../../../src/testing/harness/ExecutionContextTestBuilder.ts)
+  - [src/testing/harness/factory.ts](../../../src/testing/harness/factory.ts)
+- **Tests**:
+  - [src/testing/harness/__tests__/ExecutionContextTestBuilder.test.ts](../../../src/testing/harness/__tests__/ExecutionContextTestBuilder.test.ts)
+  - [src/testing/harness/__tests__/factory.test.ts](../../../src/testing/harness/__tests__/factory.test.ts)
+  - [src/testing/harness/__tests__/ConvenienceMethods.test.ts](../../../src/testing/harness/__tests__/ConvenienceMethods.test.ts)
 
 ---
 
-**Status**: 📝 Ready for implementation  
+**Status**: ✅ Completed (2025-02-01)  
 **Previous Phase**: [Phase 2: ExecutionContextTestHarness](./phase-2-execution-context-test-harness.md)  
 **Next Phase**: [Phase 4: Export & Documentation](./phase-4-export-and-documentation.md)
 
