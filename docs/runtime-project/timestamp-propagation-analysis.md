@@ -1,8 +1,43 @@
 # Timestamp Propagation in Next Event Chain
 
-> **Status:** Analysis & Proposal  
-> **Date:** 2026-01-29  
+> **Status:** ✅ IMPLEMENTED (Approach 5 - Snapshot Clock)  
+> **Date:** 2026-01-29 (Updated: 2026-01-30)  
 > **Author:** Engineering Analysis
+
+## Implementation Summary
+
+**Approach 5 (Snapshot Clock)** has been fully implemented across the following phases:
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | SnapshotClock class | ✅ Complete (17 tests) |
+| 2 | BlockLifecycleOptions.clock property | ✅ Complete |
+| 3 | RuntimeBlock lifecycle methods | ✅ Complete |
+| 4 | ScriptRuntime.popBlock() | ✅ Complete |
+| 5 | PushBlockAction clock propagation | ✅ Complete |
+| 6 | ScriptRuntime.pushBlock() | ✅ Complete |
+| 7 | NextAction snapshot creation | ✅ Complete |
+| 8 | Integration tests | ✅ Complete (6 tests) |
+
+### Key Files Modified
+
+- `src/runtime/RuntimeClock.ts` - Added `SnapshotClock` class
+- `src/runtime/contracts/IRuntimeBlock.ts` - Added `clock?: IRuntimeClock` to `BlockLifecycleOptions`
+- `src/runtime/RuntimeBlock.ts` - Updated lifecycle methods to use `options.clock`
+- `src/runtime/ScriptRuntime.ts` - Creates SnapshotClock in `popBlock()`, propagates through lifecycle
+- `src/runtime/actions/stack/PushBlockAction.ts` - Uses clock from options
+- `src/runtime/actions/stack/NextAction.ts` - Creates SnapshotClock for user-triggered next
+- `src/testing/harness/MockBlock.ts` - Added MockBehaviorContext, supports new behavior API
+
+### How It Works
+
+When a block completes:
+1. `popBlock()` creates a `SnapshotClock.at(clock, completedAt)` that freezes `now`
+2. The snapshot is passed via `lifecycleOptions.clock` to all lifecycle methods
+3. `unmount()`, `parent.next()`, and any child `mount()` all see the same frozen time
+4. Behaviors access `ctx.clock.now` which returns the frozen timestamp
+
+---
 
 ## Executive Summary
 

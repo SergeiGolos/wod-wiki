@@ -19,6 +19,7 @@ import {
 } from './contracts/IRuntimeOptions';
 import { TestableBlock } from '../testing/testable/TestableBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
+import { SnapshotClock } from './RuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { StackPushEvent, StackPopEvent } from './events/StackEvents';
@@ -335,7 +336,9 @@ export class ScriptRuntime implements IScriptRuntime {
 
         const wrappedBlock = this._wrapper.wrap?.(block, parentBlock) ?? block;
 
-        const startTime = options.startTime ?? this.clock.now;
+        // Use frozen clock from options if provided (e.g., SnapshotClock for timing consistency)
+        const clock = options.clock ?? this.clock;
+        const startTime = options.startTime ?? clock.now;
         this.setStartTime(wrappedBlock, startTime);
 
         // Check if wrapped block has optional setRuntime method
@@ -373,8 +376,11 @@ export class ScriptRuntime implements IScriptRuntime {
         // Capture stack level before pop (0-indexed: root = 0)
         const stackLevelBeforePop = this.stack.count - 1;
 
+        // Create frozen clock at completion time - this ensures timing consistency
+        // through the entire lifecycle chain: unmount → parent.next → child.mount
         const completedAt = options.completedAt ?? this.clock.now;
-        const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt };
+        const snapshotClock = options.clock ?? SnapshotClock.at(this.clock, completedAt);
+        const lifecycleOptions: BlockLifecycleOptions = { ...options, completedAt, clock: snapshotClock };
         this.setCompletedTime(currentBlock, completedAt);
 
         this._hooks.onBeforePop?.(currentBlock);

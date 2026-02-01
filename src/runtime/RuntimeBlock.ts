@@ -152,14 +152,17 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         this._runtime = runtime;
-        this.executionTiming.startTime = options?.startTime ?? runtime.clock.now;
+        
+        // Use provided clock or fall back to runtime clock
+        const clock = options?.clock ?? runtime.clock;
+        this.executionTiming.startTime = options?.startTime ?? clock.now;
 
         // Register default event handlers
         this.registerDefaultHandler();
 
-        // Create behavior context
+        // Create behavior context with the appropriate clock
         const stackLevel = Math.max(0, runtime.stack.count - 1);
-        this._behaviorContext = new BehaviorContext(this, runtime.clock, stackLevel, runtime);
+        this._behaviorContext = new BehaviorContext(this, clock, stackLevel, runtime);
 
         // Call behavior onMount hooks
         const actions: IRuntimeAction[] = [];
@@ -177,17 +180,32 @@ export class RuntimeBlock implements IRuntimeBlock {
 
     /**
      * Called when a child block completes or user advances.
+     * 
+     * @param runtime The script runtime context
+     * @param options Lifecycle options including optional clock for timing consistency
      */
-    next(_runtime: IScriptRuntime): IRuntimeAction[] {
+    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         if (!this._behaviorContext) {
             console.warn('[RuntimeBlock] next() called before mount()');
             return [];
         }
 
+        // Use provided clock or fall back to existing context clock
+        const clock = options?.clock ?? this._behaviorContext.clock;
+        
+        // Create a fresh context for this next() call with the appropriate clock
+        // This ensures all behaviors in this next() chain see the same frozen time
+        const nextContext = new BehaviorContext(
+            this,
+            clock,
+            this._behaviorContext.stackLevel,
+            runtime
+        );
+
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
             if (behavior.onNext) {
-                const result = behavior.onNext(this._behaviorContext);
+                const result = behavior.onNext(nextContext);
                 if (result) {
                     actions.push(...result);
                 }
@@ -199,9 +217,14 @@ export class RuntimeBlock implements IRuntimeBlock {
 
     /**
      * Called when this block is popped from the runtime stack.
+     * 
+     * @param runtime The script runtime context
+     * @param options Lifecycle options including optional clock for timing consistency
      */
-    unmount(runtime: IScriptRuntime): IRuntimeAction[] {
-        this.executionTiming.endTime = runtime.clock.now;
+    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+        // Use provided clock or fall back to runtime clock
+        const clock = options?.clock ?? runtime.clock;
+        this.executionTiming.endTime = options?.completedAt ?? clock.now;
 
         const actions: IRuntimeAction[] = [];
 

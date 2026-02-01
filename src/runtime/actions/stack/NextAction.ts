@@ -1,5 +1,6 @@
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { SnapshotClock } from '../../RuntimeClock';
 
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
@@ -17,8 +18,14 @@ export class NextAction implements IRuntimeAction {
     }
 
     try {
-      // Execute block's next logic
-      const nextActions = currentBlock.next(runtime);
+      // Create lifecycle options with snapshot clock if clock is available
+      // This ensures any child blocks pushed during next() start at the same time
+      const lifecycleOptions = runtime.clock 
+        ? { clock: SnapshotClock.now(runtime.clock) } 
+        : undefined;
+
+      // Execute block's next logic with the snapshot clock (if available)
+      const nextActions = currentBlock.next(runtime, lifecycleOptions);
 
       // Queue actions through the runtime's action queue instead of executing directly
       // This ensures proper ordering when actions trigger further state changes

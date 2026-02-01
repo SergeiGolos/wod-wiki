@@ -28,12 +28,15 @@ export class PushBlockAction implements IRuntimeAction {
             // Block push timing rules:
             // If startTime is explicitly provided in options, use it
             // Otherwise: if clock running → create start time automatically
+            // Note: Use options.clock if provided (e.g., SnapshotClock) to maintain timing consistency
 
             let startTime: Date | undefined = this.options.startTime;
+            const clock = this.options.clock ?? runtime.clock;
 
-            if (!startTime && runtime.clock?.isRunning) {
+            if (!startTime && clock?.isRunning) {
                 // Clock running → create startTime automatically
-                startTime = runtime.clock.now;
+                // Uses frozen clock if provided for timing consistency
+                startTime = clock.now;
             }
 
             const lifecycle: BlockLifecycleOptions = startTime

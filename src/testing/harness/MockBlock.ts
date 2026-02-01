@@ -10,6 +10,9 @@ import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
 import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
 import { IMemoryEntry } from '@/runtime/memory/IMemoryEntry';
+import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
+import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
+import { OutputStatementType } from '@/core/models/OutputStatement';
 
 /**
  * Minimal stub context for MockBlock
@@ -63,6 +66,59 @@ class MockBlockContext implements IBlockContext {
     const existing = this.get<IAnchorValue>(`anchor-${anchorId}`);
     if (existing) return existing;
     return this.allocate<IAnchorValue>(`anchor-${anchorId}`, { searchCriteria: {} }, 'public');
+  }
+}
+
+/**
+ * Minimal mock implementation of IBehaviorContext for testing.
+ * Provides the essential properties behaviors need without full runtime integration.
+ */
+class MockBehaviorContext implements IBehaviorContext {
+  readonly block: IRuntimeBlock;
+  readonly clock: IRuntimeClock;
+  readonly stackLevel: number;
+  private _mockBlock: MockBlock;
+
+  constructor(block: MockBlock, clock: IRuntimeClock, stackLevel: number = 0) {
+    this._mockBlock = block;
+    this.block = block;
+    this.clock = clock;
+    this.stackLevel = stackLevel;
+  }
+
+  subscribe(_eventType: BehaviorEventType, _listener: BehaviorEventListener): Unsubscribe {
+    // Mock: no-op subscription
+    return () => {};
+  }
+
+  emitOutput(_type: OutputStatementType, _fragments: ICodeFragment[], _options?: { label?: string }): void {
+    // Mock: no-op output emission
+  }
+
+  emitEvent(_event: { name: string; timestamp: Date; data?: unknown }): void {
+    // Mock: no-op event emission
+  }
+
+  getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
+    const ref = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
+    return ref?.get?.() ?? undefined;
+  }
+
+  setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
+    const existing = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
+    if (existing) {
+      existing.set(value);
+    } else {
+      this._mockBlock.context?.allocate(type, value, 'private');
+    }
+  }
+
+  markComplete(reason?: string): void {
+    this._mockBlock.markComplete(reason);
+  }
+
+  dispose(): void {
+    // Mock: no-op dispose
   }
 }
 
@@ -178,15 +234,21 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    this.executionTiming.startTime = options?.startTime ?? runtime.clock.now;
+    const clock = options?.clock ?? runtime.clock;
+    this.executionTiming.startTime = options?.startTime ?? clock.now;
 
     if (this._forcedMountActions.length > 0) {
       return [...this._forcedMountActions];
     }
 
+    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onPush?.(this, runtime.clock);
+      // Detect API version: if onMount exists, use new API; otherwise use legacy onPush
+      const usesNewApi = typeof behavior.onMount === 'function';
+      const result = usesNewApi 
+        ? behavior.onMount(ctx) 
+        : behavior.onPush?.(this, clock);
       if (result) actions.push(...result);
     }
     return actions;
@@ -197,24 +259,36 @@ export class MockBlock implements IRuntimeBlock {
       return [...this._forcedNextActions];
     }
 
+    const clock = options?.clock ?? runtime.clock;
+    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onNext?.(this, runtime.clock);
+      // Detect API version: if onMount exists (new API) use ctx, else use legacy (block, clock)
+      const usesNewApi = typeof behavior.onMount === 'function';
+      const result = usesNewApi 
+        ? behavior.onNext?.(ctx) 
+        : (behavior as any).onNext?.(this, clock);
       if (result) actions.push(...result);
     }
     return actions;
   }
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    this.executionTiming.completedAt = options?.completedAt ?? runtime.clock.now;
+    const clock = options?.clock ?? runtime.clock;
+    this.executionTiming.completedAt = options?.completedAt ?? clock.now;
 
     if (this._forcedUnmountActions.length > 0) {
       return [...this._forcedUnmountActions];
     }
 
+    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      const result = behavior.onPop?.(this, runtime.clock);
+      // Detect API version: if onMount exists (new API) use ctx, else use legacy onPop
+      const usesNewApi = typeof behavior.onMount === 'function';
+      const result = usesNewApi 
+        ? behavior.onUnmount?.(ctx) 
+        : behavior.onPop?.(this, clock);
       if (result) actions.push(...result);
     }
     return actions;
