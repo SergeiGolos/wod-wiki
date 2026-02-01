@@ -1,16 +1,10 @@
 import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { IEvent } from "./events/IEvent";
-import { IRuntimeMemory } from './IRuntimeMemory';
 import { RuntimeError } from '../actions/ErrorAction';
-
-import { SpanTrackingHandler } from '../../tracker/SpanTrackingHandler';
-
 import { IEventBus } from './events/IEventBus';
 import { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
-import { BlockLifecycleOptions, IRuntimeBlock } from './IRuntimeBlock';
-import { IRuntimeAction } from './IRuntimeAction';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { ICodeStatement } from '../../core/types/core';
 
@@ -23,7 +17,6 @@ export interface IScriptRuntime {
     script: WodScript;
 
     eventBus: IEventBus;
-    memory: IRuntimeMemory;
     stack: IRuntimeStack;
 
     jit: JitCompiler;
@@ -32,41 +25,11 @@ export interface IScriptRuntime {
     /** Errors collected during runtime execution */
     errors?: RuntimeError[];
 
-    /** 
-     * SpanTrackingHandler for recording metrics to active spans.
-     * Use this to record metrics, start/end segments, etc.
-     */
-    tracker: SpanTrackingHandler;
-
-    /**
-     * Pushes a block onto the runtime stack, handling all lifecycle operations.
-     * Returns the actual block pushed onto the stack (potentially wrapped).
-     */
-    pushBlock(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeBlock;
-
-    /**
-     * Pops a block from the runtime stack, handling all lifecycle operations.
-     */
-    popBlock(options?: BlockLifecycleOptions): IRuntimeBlock | undefined;
-
-    /**
-     * Queue actions for processing. Actions are processed in order.
-     * Optional method - may not be implemented by all runtimes (e.g., test mocks).
-     */
-    queueActions?(actions: IRuntimeAction[]): void;
-
     /**
      * Checks if the runtime execution has completed.
      * Returns true if the stack is empty and execution has finished.
      */
     isComplete(): boolean;
-
-    /**
-     * Performs a completion sweep on the stack, popping all completed blocks.
-     * Called after processing actions and events to autonomously clean up
-     * blocks that have marked themselves as complete.
-     */
-    sweepCompletedBlocks(): void;
 
     // ============================================================================
     // Statement Lookup API

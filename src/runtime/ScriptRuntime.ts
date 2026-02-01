@@ -4,10 +4,7 @@ import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack, Unsubscribe } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import { IEvent } from "./contracts/events/IEvent";
-import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import type { RuntimeError } from './actions/ErrorAction';
-import { RuntimeSpan } from './models/RuntimeSpan';
-import { SpanTrackingHandler } from '../tracker/SpanTrackingHandler';
 import { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
@@ -50,7 +47,6 @@ const noopHooks: RuntimeStackHooks = {
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
 export interface ScriptRuntimeDependencies {
-    memory: IRuntimeMemory;
     stack: IRuntimeStack;
     clock: IRuntimeClock;
     eventBus: IEventBus;
@@ -60,7 +56,6 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public readonly eventBus: IEventBus;
     public readonly stack: IRuntimeStack;
-    public readonly memory: IRuntimeMemory;
 
     public readonly clock: IRuntimeClock;
     public readonly jit: JitCompiler;
@@ -68,9 +63,6 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
 
-    private readonly _spanTracker: SpanTrackingHandler;
-
-    private readonly _tracker: RuntimeStackTracker;
     private readonly _wrapper: RuntimeStackWrapper;
     private readonly _logger: RuntimeStackLogger;
     private readonly _hooks: RuntimeStackHooks;
@@ -94,7 +86,6 @@ export class ScriptRuntime implements IScriptRuntime {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
 
-        this.memory = dependencies.memory;
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
@@ -102,16 +93,10 @@ export class ScriptRuntime implements IScriptRuntime {
         // Note: Memory events are now dispatched by BlockContext, not via a centralized bridge.
         // This keeps RuntimeMemory pure and decoupled from the event system.
 
-        // Event-based span tracking handler
-        this._spanTracker = new SpanTrackingHandler();
-        this.eventBus.register('stack:push', this._spanTracker, 'runtime', { scope: 'global' });
-        this.eventBus.register('stack:pop', this._spanTracker, 'runtime', { scope: 'global' });
-
+       
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
-
-        this._tracker = this.options.tracker ?? this._spanTracker ?? noopTracker;
-
+       
         // Hooks setup
         const unregisterHook = this.options.hooks?.unregisterByOwner;
         this._hooks = {
@@ -155,18 +140,6 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public getStatementById(id: number): typeof this.script.statements[0] | undefined {
         return this._statementIndex.get(id);
-    }
-
-    /**
-     * Gets the currently active execution spans.
-     * Used by UI to display ongoing execution state.
-     */
-    public get activeSpans(): ReadonlyMap<string, RuntimeSpan> {
-        return this._spanTracker.getActiveSpansMap();
-    }
-
-    public get tracker(): SpanTrackingHandler {
-        return this._spanTracker;
     }
 
     handle(event: IEvent): void {

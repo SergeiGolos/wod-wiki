@@ -3,6 +3,7 @@ import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
 import { MemoryTypeEnum } from '../../runtime/models/MemoryTypeEnum';
 import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 import { 
   IDisplayStackState, 
   ITimerDisplayEntry, 
@@ -37,13 +38,11 @@ import {
 export function useDisplayStack(): IDisplayStackState {
   const runtime = useRuntimeContext();
 
-  // Find the display stack state reference
+  // Find the display stack state reference by searching the block stack
   const stateRef = useMemo(() => {
-    const refs = runtime.memory.search({
-      id: null,
+    const refs = searchStackMemory(runtime, {
       ownerId: 'runtime',
-      type: MemoryTypeEnum.DISPLAY_STACK_STATE,
-      visibility: null
+      type: MemoryTypeEnum.DISPLAY_STACK_STATE
     });
     return refs[0] as TypedMemoryReference<IDisplayStackState> | undefined;
   }, [runtime]);

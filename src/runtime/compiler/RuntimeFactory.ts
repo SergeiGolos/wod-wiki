@@ -81,13 +81,11 @@ export class RuntimeFactory implements IRuntimeFactory {
     const script = new WodScript(block.content, block.statements);
 
     // Instantiate dependencies
-    const memory = new RuntimeMemory();
     const stack = new RuntimeStack();
     const clock = new RuntimeClock();
     const eventBus = new EventBus();
 
     const dependencies = {
-      memory,
       stack,
       clock,
       eventBus

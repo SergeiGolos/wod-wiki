@@ -1,5 +1,5 @@
 import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement, TypedMemoryReference } from "@/core";
-import { IBlockContext, IRuntimeMemory, RuntimeError } from "@/core-entry";
+import { IBlockContext, RuntimeError } from "@/core-entry";
 import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, Nullable } from "@/runtime/contracts";
 import { RuntimeSpan } from "@/runtime/models";
 import { SpanTrackingHandler } from "@/tracker/SpanTrackingHandler";
@@ -189,27 +189,21 @@ export class TestableRuntime implements IScriptRuntime {
   private _memoryOps: MemoryOperation[] = [];
   private _stackOps: StackOperation[] = [];
   private _snapshots: RuntimeSnapshot[] = [];
-  private _wrappedMemory: IRuntimeMemory;
   private _wrappedStack: IRuntimeStack;
 
   constructor(
     private readonly _wrapped: IScriptRuntime,
     config: TestableRuntimeConfig = {}
   ) {
-    // Set up wrapped memory and stack first
-    this._wrappedMemory = this._createWrappedMemory();
+    // Set up wrapped stack first
     this._wrappedStack = this._createWrappedStack();
 
     // Apply initial memory state
     if (config.initialMemory) {
-      for (const entry of config.initialMemory) {
-        this._wrapped.memory.allocate(
-          entry.type,
-          entry.ownerId,
-          entry.value,
-          entry.visibility ?? 'private'
-        );
-      }
+      // Note: Central memory is outdated. Initial memory should be handled 
+      // by the blocks themselves or injected via configuration.
+      // For now, we skip this or we would need to find a target block.
+      console.warn('[TestableRuntime] Initial memory pre-population is skipped because central memory is removed.');
     }
 
     // Apply initial stack state (using stub blocks)
@@ -225,10 +219,6 @@ export class TestableRuntime implements IScriptRuntime {
 
   get script(): WodScript {
     return this._wrapped.script;
-  }
-
-  get memory(): IRuntimeMemory {
-    return this._wrappedMemory;
   }
 
   get stack(): IRuntimeStack {
@@ -342,12 +332,8 @@ export class TestableRuntime implements IScriptRuntime {
 
   /** Capture current state as a snapshot */
   snapshot(label?: string): RuntimeSnapshot {
-    const memoryRefs = this._wrapped.memory.search({
-      id: null,
-      ownerId: null,
-      type: null,
-      visibility: null
-    });
+    // Collect all references from all blocks on the stack
+    const allRefs = this._wrapped.stack.blocks.flatMap(b => b.context.references);
 
     const snapshot: RuntimeSnapshot = {
       timestamp: Date.now(),
@@ -358,14 +344,14 @@ export class TestableRuntime implements IScriptRuntime {
         currentBlockKey: this._wrapped.stack.current?.key.toString()
       },
       memory: {
-        entries: memoryRefs.map(ref => ({
+        entries: allRefs.map(ref => ({
           id: ref.id,
           ownerId: ref.ownerId,
           type: ref.type,
           visibility: ref.visibility,
           value: ref.value()
         })),
-        totalCount: memoryRefs.length
+        totalCount: allRefs.length
       }
     };
 
@@ -687,77 +673,6 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
   // ========== Private Helpers ==========
-
-  private _createWrappedMemory(): IRuntimeMemory {
-    const self = this;
-    const original = this._wrapped.memory;
-
-    return {
-      allocate<T>(type: string, ownerId: string, initialValue?: T, visibility?: 'public' | 'private') {
-        const ref = original.allocate(type, ownerId, initialValue, visibility);
-        self._memoryOps.push({
-          operation: 'allocate',
-          type,
-          ownerId,
-          refId: ref.id,
-          value: initialValue,
-          timestamp: Date.now()
-        });
-        return ref;
-      },
-
-      get<T>(reference: TypedMemoryReference<T>) {
-        const value = original.get(reference);
-        self._memoryOps.push({
-          operation: 'get',
-          type: reference.type,
-          ownerId: reference.ownerId,
-          refId: reference.id,
-          value,
-          timestamp: Date.now()
-        });
-        return value;
-      },
-
-      set<T>(reference: TypedMemoryReference<T>, value: T) {
-        self._memoryOps.push({
-          operation: 'set',
-          type: reference.type,
-          ownerId: reference.ownerId,
-          refId: reference.id,
-          value,
-          timestamp: Date.now()
-        });
-        original.set(reference, value);
-      },
-
-      release(reference: IMemoryReference) {
-        self._memoryOps.push({
-          operation: 'release',
-          type: reference.type,
-          ownerId: reference.ownerId,
-          refId: reference.id,
-          timestamp: Date.now()
-        });
-        original.release(reference);
-      },
-
-      search(criteria: Nullable<IMemoryReference>) {
-        const refs = original.search(criteria);
-        self._memoryOps.push({
-          operation: 'search',
-          type: criteria.type ?? '*',
-          ownerId: criteria.ownerId ?? '*',
-          timestamp: Date.now()
-        });
-        return refs;
-      },
-
-      subscribe(callback: (ref: IMemoryReference, value: any, oldValue: any) => void) {
-        return original.subscribe(callback);
-      }
-    };
-  }
 
   private _createWrappedStack(): IRuntimeStack {
     const self = this;

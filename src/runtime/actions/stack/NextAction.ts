@@ -57,18 +57,8 @@ export class NextAction implements IRuntimeAction {
       return false;
     }
 
-    // Check for undefined/null memory
-    if (!runtime.memory) {
-      return false;
-    }
-
     // Check for runtime errors
     if (runtime.errors && runtime.errors.length > 0) {
-      return false;
-    }
-
-    // Check for corrupted memory state
-    if ('state' in runtime.memory && runtime.memory.state === 'corrupted') {
       return false;
     }
 

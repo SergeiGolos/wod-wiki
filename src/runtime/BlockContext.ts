@@ -1,6 +1,8 @@
 import { IBlockContext } from './contracts/IBlockContext';
 import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IRuntimeMemory } from './contracts/IRuntimeMemory';
+import { RuntimeMemory } from './RuntimeMemory';
 import { MemoryTypeEnum } from './models/MemoryTypeEnum';
 import { IAnchorValue } from './contracts/IAnchorValue';
 import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './events/MemoryEvents';
@@ -30,14 +32,17 @@ import { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './event
 export class BlockContext implements IBlockContext {
     private _references: IMemoryReference[] = [];
     private _released = false;
+    private _memory: IRuntimeMemory;
 
     constructor(
         private readonly runtime: IScriptRuntime,
         public readonly ownerId: string,
         public readonly exerciseId: string = '',
-        initialReferences: IMemoryReference[] = []
+        initialReferences: IMemoryReference[] = [],
+        memory?: IRuntimeMemory
     ) {
         this._references = [...initialReferences];
+        this._memory = memory ?? new RuntimeMemory();
     }
 
     get references(): ReadonlyArray<IMemoryReference> {
@@ -58,7 +63,7 @@ export class BlockContext implements IBlockContext {
         // Convert enum to string for storage (enums are strings in runtime)
         const typeStr = type as string;
 
-        const ref = this.runtime.memory.allocate<T>(
+        const ref = this._memory.allocate<T>(
             typeStr,
             this.ownerId,
             initialValue,
@@ -97,7 +102,7 @@ export class BlockContext implements IBlockContext {
         }
 
         const oldValue = reference.get();
-        this.runtime.memory.set(reference, value);
+        this._memory.set(reference, value);
 
         // Dispatch memory:set event
         this.runtime.eventBus.dispatch(
@@ -113,7 +118,7 @@ export class BlockContext implements IBlockContext {
 
         for (const ref of this._references) {
             const lastValue = ref.value();
-            this.runtime.memory.release(ref);
+            this._memory.release(ref);
 
             // Dispatch memory:release event
             this.runtime.eventBus.dispatch(
@@ -137,28 +142,31 @@ export class BlockContext implements IBlockContext {
             );
         }
 
-        // Search for existing anchor with this ID (across all owners)
-        const existingRefs = this.runtime.memory.search({
-            id: anchorId,
-            type: MemoryTypeEnum.ANCHOR,
-            ownerId: null,
-            visibility: null
-        });
+        // Search for existing anchor with this ID in the stack
+        let existingRef: TypedMemoryReference<IAnchorValue> | undefined;
 
-        if (existingRefs.length > 0) {
-            const anchorRef = existingRefs[0] as TypedMemoryReference<IAnchorValue>;
-
-            // Add to our references if not already tracked
-            if (!this._references.find(r => r.id === anchorRef.id)) {
-                this._references.push(anchorRef);
+        for (const block of this.runtime.stack.blocks) {
+            const matching = block.context.references.find(
+                r => r.id === anchorId && r.type === MemoryTypeEnum.ANCHOR
+            );
+            if (matching) {
+                existingRef = matching as TypedMemoryReference<IAnchorValue>;
+                break;
             }
-
-            return anchorRef;
         }
 
-        // Create new anchor using the runtime's memory allocation system
-        // We use 'public' visibility so it can be shared
-        const anchorRef = this.runtime.memory.allocate<IAnchorValue>(
+        if (existingRef) {
+            // Add to our references if not already tracked
+            if (!this._references.find(r => r.id === existingRef.id)) {
+                this._references.push(existingRef);
+            }
+
+            return existingRef;
+        }
+
+        // Create new anchor in this block's memory
+        // We use 'public' visibility so it can be shared via the stack
+        const anchorRef = this._memory.allocate<IAnchorValue>(
             MemoryTypeEnum.ANCHOR,
             this.ownerId,
             undefined, // No initial value
@@ -166,10 +174,6 @@ export class BlockContext implements IBlockContext {
         );
 
         // Ensure the ID matches the requested anchorId for consistent lookup
-        // This relies on the memory implementation allowing ID mutation or pre-allocation
-        // For now, we manually override to maintain contract with getOrCreateAnchor semantics
-        // TypedMemoryReference has a mutable public id property
-        // TODO: Consider adding a proper setter method or allocate parameter for ID
         anchorRef.id = anchorId;
 
         this._references.push(anchorRef);

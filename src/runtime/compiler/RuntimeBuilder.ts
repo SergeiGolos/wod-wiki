@@ -105,7 +105,6 @@ export class RuntimeBuilder {
     build(): ScriptRuntime {
         // Create runtime with options
         const dependencies = {
-            memory: new RuntimeMemory(),
             stack: new RuntimeStack(),
             clock: new RuntimeClock(),
             eventBus: new EventBus()
