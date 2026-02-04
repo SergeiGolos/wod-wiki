@@ -6,17 +6,15 @@ import { WodScript } from '../../src/parser/WodScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
-import { RuntimeBlock } from '@/runtime/RuntimeBlock';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
-import { NextEventHandler } from '../../src/runtime/events/NextEventHandler';
 import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
+import { WorkoutRootStrategy } from '../../src/runtime/compiler/strategies/WorkoutRootStrategy';
 import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
-import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';
 import { EventBus } from '../../src/runtime/events/EventBus';
@@ -624,9 +622,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
 
     console.log(`📝 Registered strategies with JIT compiler: GenericLoop → GenericTimer → GenericGroup → Idle`);
     
-    // Create runtime dependencies
+    // Create runtime dependencies (memory is no longer a dependency - blocks own their memory)
     const dependencies = {
-      memory: new RuntimeMemory(),
       stack: new RuntimeStack(),
       clock: new RuntimeClock(),
       eventBus: new EventBus()
@@ -634,42 +631,39 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     
     const runtime = new ScriptRuntime(wodScript, jitCompiler, dependencies);
 
-    // Register Next event handler
-    const nextHandler = new NextEventHandler('jit-compiler-demo-next-handler');
-    runtime.memory.allocate('handler', nextHandler.id, {
-      name: nextHandler.name,
-      handler: nextHandler.handler.bind(nextHandler)
-    });
-    console.log(`📝 Registered Next event handler: ${nextHandler.id}`);
-
-    // Initialize by compiling the script's statements
-    console.log(`🌱 Compiling ${wodScript.statements.length} statements`);
+    // Initialize by creating root block with WorkoutRootStrategy
+    console.log(`🌱 Initializing with ${wodScript.statements.length} statements`);
     
     if (wodScript.statements.length > 0) {
-      // Compile the root statements using the JIT compiler
-      // Cast to any to bypass type mismatch between ICodeStatement and CodeStatement
-      const compiledBlock = jitCompiler.compile(wodScript.statements as any, runtime);
+      // Create root block using WorkoutRootStrategy
+      // This properly wraps all statements with lifecycle behaviors
+      const statementIds = wodScript.statements.map(s => s.id);
+      const childGroups = statementIds.map(id => [id]);
       
-      if (compiledBlock) {
-        runtime.stack.push(compiledBlock);
-        console.log(`  ✅ Compiled block pushed to stack, depth: ${runtime.stack.blocks.length}`);
-      } else {
-        console.warn(`  ⚠️ JIT compiler returned no block for statements`);
-        // Create empty root block as fallback
-        const rootBlock = new RuntimeBlock(runtime, [], []);
-        runtime.stack.push(rootBlock);
-      }
+      const rootStrategy = new WorkoutRootStrategy();
+      const rootBlock = rootStrategy.build(runtime, {
+        childGroups: childGroups,
+        totalRounds: 1
+      });
+      
+      // Push and mount root block with proper lifecycle
+      const startTime = runtime.clock.now;
+      runtime.pushBlock(rootBlock, { startTime });
+      console.log(`  ✅ Root block pushed to stack, depth: ${runtime.stack.blocks.length}`);
     } else {
-      console.warn(`  ⚠️ No statements to compile`);
-      // Create empty root block
-      const rootBlock = new RuntimeBlock(runtime, [], []);
-      runtime.stack.push(rootBlock);
+      console.warn(`  ⚠️ No statements to compile - creating empty root block`);
+      const rootStrategy = new WorkoutRootStrategy();
+      const rootBlock = rootStrategy.build(runtime, {
+        childGroups: [],
+        totalRounds: 1
+      });
+      runtime.pushBlock(rootBlock, { startTime: runtime.clock.now });
     }
 
     return runtime;
   };
 
-  const [runtime, setRuntime] = useState<ScriptRuntime | ScriptRuntime>(() => {
+  const [runtime, setRuntime] = useState<ScriptRuntime>(() => {
     return initialRuntime || createRuntime(initialScript);
   });
 

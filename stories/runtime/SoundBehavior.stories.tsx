@@ -18,7 +18,6 @@ import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { WodScript } from '../../src/parser/WodScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
-import { RuntimeMemory } from '../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';
 import { EventBus } from '../../src/runtime/events/EventBus';
@@ -28,7 +27,6 @@ function createTestRuntime(): ScriptRuntime {
   const script = new WodScript('sound-demo', []);
   const compiler = new JitCompiler([]);
   const dependencies = {
-    memory: new RuntimeMemory(),
     stack: new RuntimeStack(),
     clock: new RuntimeClock(),
     eventBus: new EventBus()

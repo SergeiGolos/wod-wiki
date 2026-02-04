@@ -11,7 +11,6 @@
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IDisplayMetric } from '../types/DisplayTypes';
 import { MetricBehavior } from '../../types/MetricBehavior';
-import { FragmentCollectionState } from '../../core/models/CodeFragment';
 
 /**
  * Convert a single ICodeFragment to IDisplayMetric for display rendering.
@@ -28,7 +27,7 @@ export function fragmentToDisplayMetric(fragment: ICodeFragment): IDisplayMetric
     value: fragment.value as string | number,
     image: displayImage,
     unit: getFragmentUnit(fragment),
-    isActive: fragment.collectionState === FragmentCollectionState.Tracked,
+    isActive: fragment.origin === 'tracked',
   };
 }
 

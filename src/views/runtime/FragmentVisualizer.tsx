@@ -96,13 +96,12 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
         return filter.typeOverrides[typeKey];
       }
 
-      // 3. Check Allowed States
-      // If allowedStates is defined, fragment MUST have a matching state.
-      // If fragment has NO state, we assume it's visible unless allowedStates is strict?
-      // Usually "defined" is default.
-      if (filter.allowedStates) {
-        const state = fragment.collectionState || 'defined';
-        const isAllowed = filter.allowedStates.includes(state as any); // Cast for safety if enum mismatch
+      // 3. Check Allowed Origins
+      // If allowedOrigins is defined, fragment MUST have a matching origin.
+      // If fragment has NO origin, we assume 'parser' (default).
+      if (filter.allowedOrigins) {
+        const origin = fragment.origin || 'parser';
+        const isAllowed = filter.allowedOrigins.includes(origin as any);
         return isAllowed;
       }
 

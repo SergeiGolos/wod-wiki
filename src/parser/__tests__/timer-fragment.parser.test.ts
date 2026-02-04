@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../md-timer';
 import { TimerFragment } from '../../fragments/TimerFragment';
-import { FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
+import { FragmentType } from '../../core/models/CodeFragment';
 
 /**
  * Timer Fragment Parser Contract
@@ -45,7 +45,7 @@ describe('Timer Fragment Parser Contract', () => {
     it('should parse ":?" placeholder', () => {
       const script = parse(':?');
       const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Timer) as TimerFragment;
-      expect(timer.collectionState).toBe(FragmentCollectionState.RuntimeGenerated);
+      expect(timer.origin).toBe('runtime');
     });
   });
 });

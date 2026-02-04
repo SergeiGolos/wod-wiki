@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { CodeStatement } from '../CodeStatement';
-import { ICodeFragment, FragmentType, FragmentCollectionState } from '../CodeFragment';
+import { ICodeFragment, FragmentType } from '../CodeFragment';
 import { CodeMetadata } from '../CodeMetadata';
 
 class TestCodeStatement extends CodeStatement {
@@ -34,7 +34,7 @@ describe('CodeStatement Fragment Methods', () => {
         type: 'rep',
         fragmentType: FragmentType.Rep,
         value: 20,
-        collectionState: FragmentCollectionState.UserCollected
+        origin: 'user'
     };
 
     const fragments: ICodeFragment[] = [timerFragment, repFragment1, repFragment2];

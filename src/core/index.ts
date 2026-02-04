@@ -3,8 +3,8 @@ export * from './types';
 
 // Export classes (not just types) from models
 export { BlockKey } from './models/BlockKey';
-export { FragmentType, FragmentCollectionState } from './models/CodeFragment';
-export type { ICodeFragment } from './models/CodeFragment';
+export { FragmentType } from './models/CodeFragment';
+export type { ICodeFragment, FragmentOrigin } from './models/CodeFragment';
 export type { CodeMetadata } from './models/CodeMetadata';
 export { CodeStatement, ParsedCodeStatement } from './models/CodeStatement';
 export { Duration, SpanDuration } from './models/Duration';

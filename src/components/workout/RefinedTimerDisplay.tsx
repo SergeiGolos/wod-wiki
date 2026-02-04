@@ -3,7 +3,6 @@ import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
-import { FragmentCollectionState } from '../../core/models/CodeFragment';
 import { UnifiedItemRow } from '../unified/UnifiedItemRow';
 import { ActionDescriptor } from '../../runtime/actions/stack/ActionStackActions';
 
@@ -140,9 +139,9 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
     }, [effectiveTimerState]);
     // Filter configuration for Stack View
     const stackFilter: VisualizerFilter = {
-        allowedStates: [
-            FragmentCollectionState.Defined,
-            FragmentCollectionState.Collected,
+        allowedOrigins: [
+            'parser',
+            'collected',
         ],
         nameOverrides: {
             'ellapsed-time': false,

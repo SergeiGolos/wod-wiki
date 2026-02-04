@@ -72,6 +72,24 @@ export class ExecutionContext implements IScriptRuntime {
     }
 
     /**
+     * Pushes a block onto the runtime stack.
+     * Queues the PushBlockAction in this execution context.
+     */
+    pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
+        const { PushBlockAction } = require('./actions/stack/PushBlockAction');
+        this.do(new PushBlockAction(block, lifecycle));
+    }
+
+    /**
+     * Pops the current block from the runtime stack.
+     * Queues the PopBlockAction in this execution context.
+     */
+    popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
+        const { PopBlockAction } = require('./actions/stack/PopBlockAction');
+        this.do(new PopBlockAction(lifecycle));
+    }
+
+    /**
      * Executes an initial action and then all subsequent actions queued until exhausted.
      * @throws Error if max iterations reached
      */

@@ -8,20 +8,19 @@ import { WodScript } from '../../../src/parser/WodScript';
 import { TimerState } from '../../../src/runtime/memory/MemoryTypes';
 import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
-import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../../src/runtime/RuntimeClock';
 import { EventBus } from '../../../src/runtime/events/EventBus';
 
 /**
  * Creates a minimal ScriptRuntime for testing purposes.
- * Provides all required dependencies (memory, stack, clock, eventBus).
+ * Provides all required dependencies (stack, clock, eventBus).
+ * Note: Memory is now owned by blocks, not the runtime.
  */
 export function createTestRuntime(): ScriptRuntime {
   const emptyScript = new WodScript('', []);
   const jitCompiler = new JitCompiler([]);
   const dependencies = {
-    memory: new RuntimeMemory(),
     stack: new RuntimeStack(),
     clock: new RuntimeClock(),
     eventBus: new EventBus()

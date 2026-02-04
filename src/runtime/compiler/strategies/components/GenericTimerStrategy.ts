@@ -2,7 +2,7 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType, FragmentCollectionState } from "@/core/models/CodeFragment";
+import { FragmentType } from "@/core/models/CodeFragment";
 import { TimerFragment } from "../../fragments/TimerFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
@@ -38,7 +38,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // Match if timer fragment exists, ignoring runtime-generated ones
         return statements[0].findFragment(
             FragmentType.Timer,
-            f => f.collectionState !== FragmentCollectionState.RuntimeGenerated
+            f => f.origin !== 'runtime'
         ) !== undefined;
     }
 
@@ -51,7 +51,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         const statement = statements[0];
         const timerFragment = statement.findFragment<TimerFragment>(
             FragmentType.Timer,
-            f => f.collectionState !== FragmentCollectionState.RuntimeGenerated
+            f => f.origin !== 'runtime'
         );
 
         const direction = timerFragment?.direction || 'up';
@@ -71,7 +71,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         // Filter out runtime-generated fragments
         const cleanFragments = (statement.fragments || [])
-            .filter(f => f.collectionState !== FragmentCollectionState.RuntimeGenerated);
+            .filter(f => f.origin !== 'runtime');
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = distributor.distribute(cleanFragments, "Timer");

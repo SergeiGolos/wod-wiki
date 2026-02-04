@@ -48,9 +48,14 @@ export class PushBlockAction implements IRuntimeAction {
                 target.executionTiming = { ...(target.executionTiming ?? {}), startTime };
             }
 
-            // Push the block onto the stack via runtime
-            // This handles wrapping, hooks, tracking, mount(), and stack updates
-            runtime.pushBlock(this.block, lifecycle);
+            // Push the block onto the stack
+            runtime.stack.push(this.block);
+            
+            // Mount the block with lifecycle options - this returns actions that should be executed
+            const mountActions = this.block.mount(runtime, lifecycle);
+            for (const action of mountActions) {
+                runtime.do(action);
+            }
 
         } catch (error) {
             // Check if runtime has optional setError method

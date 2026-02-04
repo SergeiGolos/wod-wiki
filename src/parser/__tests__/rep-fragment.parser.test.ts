@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../md-timer';
 import { RepFragment } from '../../fragments/RepFragment';
-import { FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
+import { FragmentType } from '../../core/models/CodeFragment';
 
 /**
  * Rep Fragment Parser Contract
@@ -25,18 +25,18 @@ describe('Rep Fragment Parser Contract', () => {
 
       expect(rep).toBeDefined();
       expect(rep.value).toBe(expectedValue);
-      expect(rep.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(rep.origin).toBe('parser');
     });
   });
 
   describe('Placeholders', () => {
-    it('should parse "?" as UserCollected placeholder', () => {
+    it('should parse "?" as user origin placeholder', () => {
       const script = parse('?');
       const rep = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Rep) as RepFragment;
 
       expect(rep).toBeDefined();
       expect(rep.value).toBeUndefined();
-      expect(rep.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(rep.origin).toBe('user');
     });
   });
 

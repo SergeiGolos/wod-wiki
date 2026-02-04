@@ -10,6 +10,40 @@ import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import { ICodeStatement, CodeMetadata, ICodeFragment } from '@/core/models/CodeStatement';
+
+/**
+ * Helper function to create a minimal mock statement for testing.
+ */
+function createMockStatement(config: { id: number; source?: string }): ICodeStatement {
+  return {
+    id: config.id,
+    parent: undefined,
+    children: [],
+    fragments: [],
+    isLeaf: true,
+    meta: {
+      source: config.source ?? `statement-${config.id}`,
+      start: { line: config.id, column: 0 },
+      end: { line: config.id, column: 0 }
+    } as CodeMetadata,
+    hints: undefined,
+    findFragment<T extends ICodeFragment = ICodeFragment>(
+      _type: string | number,
+      _predicate?: (f: ICodeFragment) => boolean
+    ): T | undefined {
+      return undefined;
+    },
+    filterFragments<T extends ICodeFragment = ICodeFragment>(
+      _type: string | number
+    ): T[] {
+      return [];
+    },
+    hasFragment(_type: string | number): boolean {
+      return false;
+    }
+  };
+}
 
 /**
  * Record of a single action execution.
@@ -40,6 +74,14 @@ export interface EventDispatch {
 }
 
 /**
+ * Simple mock statement for testing.
+ */
+export interface MockStatement {
+  id: number;
+  source?: string;
+}
+
+/**
  * Configuration for the test harness.
  */
 export interface HarnessConfig {
@@ -49,6 +91,8 @@ export interface HarnessConfig {
   maxDepth?: number;
   /** JIT strategies to register with MockJitCompiler */
   strategies?: IRuntimeBlockStrategy[];
+  /** Mock statements to populate the script. Useful for testing child execution. */
+  statements?: MockStatement[];
 }
 
 /** Type for the mock clock with advance/setTime methods */
@@ -123,8 +167,9 @@ export class ExecutionContextTestHarness {
     // 3. Create MockJitCompiler with strategies
     this.mockJit = new MockJitCompiler(config.strategies ?? []);
 
-    // 4. Create empty WodScript for testing
-    const script = new WodScript('', []);
+    // 4. Create WodScript with mock statements
+    const statements = (config.statements ?? []).map(s => createMockStatement(s));
+    const script = new WodScript('', statements);
 
     // 5. Create dependencies
     const dependencies: ScriptRuntimeDependencies = {

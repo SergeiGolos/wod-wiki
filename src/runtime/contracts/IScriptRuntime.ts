@@ -38,6 +38,23 @@ export interface IScriptRuntime {
      */
     handle(event: IEvent): void;
 
+    /**
+     * Pushes a block onto the runtime stack.
+     * This is a convenience method that wraps PushBlockAction.
+     * 
+     * @param block The block to push
+     * @param lifecycle Optional lifecycle options (startTime, etc.)
+     */
+    pushBlock(block: import('./IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
+
+    /**
+     * Pops the current block from the runtime stack.
+     * This is a convenience method that wraps PopBlockAction.
+     * Handles the full lifecycle: unmount, pop, dispose, and parent notification.
+     * 
+     * @param lifecycle Optional lifecycle options (completedAt, etc.)
+     */
+    popBlock(lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
 
     // ============================================================================
     // Output Statement API

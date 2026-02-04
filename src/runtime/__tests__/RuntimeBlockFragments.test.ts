@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { ICodeFragment, FragmentType, FragmentCollectionState } from '../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import type { FragmentState } from '../contracts/memory/MemoryTypes';
 
 describe('RuntimeBlock Fragment Methods', () => {
@@ -23,7 +23,7 @@ describe('RuntimeBlock Fragment Methods', () => {
         type: 'rep',
         fragmentType: FragmentType.Rep,
         value: 20,
-        collectionState: FragmentCollectionState.UserCollected
+        origin: 'user'
     };
 
     const effortFragment: ICodeFragment = {

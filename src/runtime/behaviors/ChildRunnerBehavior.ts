@@ -2,6 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { PushBlockAction } from '../actions/stack/PushBlockAction';
 
 export interface ChildRunnerConfig {
     /** Child statement ID groups to execute */
@@ -9,13 +10,14 @@ export interface ChildRunnerConfig {
 }
 
 /**
- * PushChildBlockAction - Pushes a block for the given statement IDs.
+ * CompileChildBlockAction - Compiles and returns a PushBlockAction for child statements.
  * 
- * Uses the JIT compiler to create and push blocks for child statements.
- * Uses O(1) statement lookup via runtime.getStatementById() when available.
+ * Uses the JIT compiler to create blocks for child statements, then delegates
+ * to PushBlockAction for the actual stack push. This keeps stack operations
+ * centralized in IRuntimeAction implementations.
  */
-class PushChildBlockAction implements IRuntimeAction {
-    readonly type = 'push-child-block';
+class CompileChildBlockAction implements IRuntimeAction {
+    readonly type = 'compile-child-block';
     readonly target?: string;
     readonly payload?: unknown;
 
@@ -25,16 +27,13 @@ class PushChildBlockAction implements IRuntimeAction {
 
     do(runtime: IScriptRuntime): void {
         if (this.statementIds.length === 0) {
-            // Edge case: empty ID list - not an error, just nothing to do
             return;
         }
 
-        // Get the script and compiler from runtime
         const script = runtime.script;
         const compiler = runtime.jit;
 
         if (!script || !compiler) {
-            // This is a configuration error - should not happen in production
             return;
         }
 
@@ -44,15 +43,13 @@ class PushChildBlockAction implements IRuntimeAction {
             .filter((s): s is NonNullable<typeof s> => s !== undefined);
 
         if (statements.length === 0) {
-            // No statements found - this is a data integrity issue
-            // The block will not be pushed, but execution can continue
             return;
         }
 
-        // Compile and push the block
+        // Compile and push via PushBlockAction
         const block = compiler.compile(statements, runtime);
         if (block) {
-            runtime.pushBlock(block);
+            runtime.do(new PushBlockAction(block));
         }
     }
 }
@@ -75,7 +72,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         if (this.config.childGroups.length > 0) {
             const firstGroup = this.config.childGroups[0];
             this.childIndex = 1; // Next to push
-            return [new PushChildBlockAction(firstGroup)];
+            return [new CompileChildBlockAction(firstGroup)];
         }
         return [];
     }
@@ -85,7 +82,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         if (this.childIndex < this.config.childGroups.length) {
             const nextGroup = this.config.childGroups[this.childIndex];
             this.childIndex++;
-            return [new PushChildBlockAction(nextGroup)];
+            return [new CompileChildBlockAction(nextGroup)];
         }
 
         // No more children - parent will handle completion

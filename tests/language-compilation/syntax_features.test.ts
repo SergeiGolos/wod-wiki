@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { FragmentType, FragmentCollectionState } from '../../src/core/models/CodeFragment';
+import { FragmentType } from '../../src/core/models/CodeFragment';
 import { RoundsFragment } from '../../src/fragments/RoundsFragment';
 
 describe('Syntax Features Regression Tests', () => {
@@ -130,7 +130,7 @@ describe('Syntax Features Regression Tests', () => {
       const repFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
       expect(repFragment).toBeDefined();
       expect(repFragment?.value).toBeUndefined();
-      expect(repFragment?.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(repFragment?.origin).toBe('user');
       expect(repFragment?.image).toBe('?');
     });
 
@@ -140,7 +140,7 @@ describe('Syntax Features Regression Tests', () => {
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Resistance);
       expect(fragment.value).toEqual({ amount: undefined, units: 'lb' });
-      expect(fragment.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(fragment.origin).toBe('user');
       expect(fragment.image).toBe('? lb');
     });
 
@@ -150,7 +150,7 @@ describe('Syntax Features Regression Tests', () => {
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Distance);
       expect(fragment.value).toEqual({ amount: undefined, units: 'm' });
-      expect(fragment.collectionState).toBe(FragmentCollectionState.UserCollected);
+      expect(fragment.origin).toBe('user');
       expect(fragment.image).toBe('? m');
     });
 
@@ -160,7 +160,7 @@ describe('Syntax Features Regression Tests', () => {
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Timer);
       expect(fragment.value).toBeUndefined();
-      expect(fragment.collectionState).toBe(FragmentCollectionState.RuntimeGenerated);
+      expect(fragment.origin).toBe('runtime');
       expect(fragment.image).toBe(':?');
     });
 
@@ -172,46 +172,46 @@ describe('Syntax Features Regression Tests', () => {
       const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
       expect(timerFragment).toBeDefined();
       expect(timerFragment?.value).toBeUndefined();
-      expect(timerFragment?.collectionState).toBe(FragmentCollectionState.RuntimeGenerated);
+      expect(timerFragment?.origin).toBe('runtime');
       expect(effortFragment).toBeDefined();
       expect(effortFragment?.value).toBe('Run');
     });
 
-    it('parses defined reps with Defined collection state', () => {
+    it('parses defined reps with parser origin', () => {
       const result = parse('10 Pushups');
       expect(result.errors).toHaveLength(0);
       const fragments = result.statements[0].fragments;
       const repFragment = fragments.find(f => f.fragmentType === FragmentType.Rep);
       expect(repFragment).toBeDefined();
       expect(repFragment?.value).toBe(10);
-      expect(repFragment?.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(repFragment?.origin).toBe('parser');
     });
 
-    it('parses defined weight with Defined collection state', () => {
+    it('parses defined weight with parser origin', () => {
       const result = parse('135 lb');
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Resistance);
       expect(fragment.value).toEqual({ amount: 135, units: 'lb' });
-      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(fragment.origin).toBe('parser');
     });
 
-    it('parses defined distance with Defined collection state', () => {
+    it('parses defined distance with parser origin', () => {
       const result = parse('400 m');
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Distance);
       expect(fragment.value).toEqual({ amount: 400, units: 'm' });
-      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(fragment.origin).toBe('parser');
     });
 
-    it('parses defined timer with Defined collection state', () => {
+    it('parses defined timer with parser origin', () => {
       const result = parse('20:00');
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
       expect(fragment.fragmentType).toBe(FragmentType.Timer);
       expect(fragment.value).toBe(1200000);
-      expect(fragment.collectionState).toBe(FragmentCollectionState.Defined);
+      expect(fragment.origin).toBe('parser');
     });
   });
 });

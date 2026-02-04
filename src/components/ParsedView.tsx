@@ -6,7 +6,6 @@ import { MdTimerInterpreter } from '../parser/timer.visitor';
 import { ICodeStatement } from '../core/models/CodeStatement';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
-import { FragmentCollectionState } from '../core/models/CodeFragment';
 
 /**
  * Extended parser type for Chevrotain runtime-generated methods
@@ -59,11 +58,11 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
 
   // Filter configuration for Plan Screen Overlay
   const planFilter: VisualizerFilter = {
-    allowedStates: [
-      FragmentCollectionState.Defined,
-      FragmentCollectionState.Hinted, 
-      FragmentCollectionState.Collected,
-      FragmentCollectionState.UserCollected 
+    allowedOrigins: [
+      'parser',
+      'hinted', 
+      'collected',
+      'user' 
     ]
   };
 

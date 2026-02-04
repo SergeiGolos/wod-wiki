@@ -77,15 +77,23 @@ export class BehaviorTestHarness {
       tracker: this._mockTracker,
       errors: [],
 
-      pushBlock(block: IRuntimeBlock) {
-        self._stack.push(block);
-        return block;
+      do(action: IRuntimeAction) {
+        action.do(this);
       },
 
-      popBlock() {
-        const block = self._stack.pop();
-        if (block) block.dispose(this);
-        return block;
+      handle(event: IEvent) {
+        // Dispatch event through event bus
+        self._eventBus.emit(event, this);
+      },
+
+      pushBlock(block: IRuntimeBlock) {
+        const { PushBlockAction } = require('@/runtime/actions/stack/PushBlockAction');
+        new PushBlockAction(block).do(this);
+      },
+
+      popBlock(lifecycle?: BlockLifecycleOptions) {
+        const { PopBlockAction } = require('@/runtime/actions/stack/PopBlockAction');
+        new PopBlockAction(lifecycle).do(this);
       },
 
       isComplete() {

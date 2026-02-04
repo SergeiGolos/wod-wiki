@@ -144,5 +144,83 @@ export class ScriptRuntime implements IScriptRuntime {
         while (this.stack.count > 0) {
             this.stack.pop();
         }
-    }   
+    }
+    
+    /**
+     * Pushes a block onto the runtime stack.
+     * This is a convenience method that wraps PushBlockAction.
+     * Also handles hooks, tracking, wrapping, and logging if configured.
+     * 
+     * @param block The block to push
+     * @param lifecycle Optional lifecycle options (startTime, etc.)
+     */
+    public pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
+        const parentBlock = this.stack.current;
+        
+        // Call before hooks
+        this.options.hooks?.onBeforePush?.(block, parentBlock);
+        
+        // Start tracking span
+        const parentSpanId = parentBlock
+            ? this.options.tracker?.getActiveSpanId?.(parentBlock.key.toString()) ?? null
+            : null;
+        this.options.tracker?.startSpan?.(block, parentSpanId);
+        
+        // Wrap block if wrapper is configured
+        const wrappedBlock = this.options.wrapper?.wrap?.(block, parentBlock) ?? block;
+        
+        // Execute the push action
+        const { PushBlockAction } = require('./actions/stack/PushBlockAction');
+        this.do(new PushBlockAction(wrappedBlock, lifecycle));
+        
+        // Log the push
+        this.options.logger?.debug?.('runtime.pushBlock', {
+            blockKey: block.key.toString(),
+            parentKey: parentBlock?.key.toString(),
+        });
+        
+        // Call after hooks
+        this.options.hooks?.onAfterPush?.(wrappedBlock, parentBlock);
+    }
+
+    /**
+     * Pops the current block from the runtime stack.
+     * This is a convenience method that wraps PopBlockAction.
+     * Handles the full lifecycle: unmount, pop, dispose, and parent notification.
+     * Also handles hooks, tracking, wrapping cleanup, and logging if configured.
+     * 
+     * @param lifecycle Optional lifecycle options (completedAt, etc.)
+     */
+    public popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
+        const currentBlock = this.stack.current;
+        if (!currentBlock) {
+            return;
+        }
+        
+        // Call before hooks
+        this.options.hooks?.onBeforePop?.(currentBlock);
+        
+        // Execute the pop action (which handles unmount, dispose, output statement, parent.next)
+        const { PopBlockAction } = require('./actions/stack/PopBlockAction');
+        this.do(new PopBlockAction(lifecycle));
+        
+        // End tracking span
+        const ownerKey = currentBlock.key.toString();
+        this.options.tracker?.endSpan?.(ownerKey);
+        
+        // Cleanup wrapper
+        this.options.wrapper?.cleanup?.(currentBlock);
+        
+        // Unregister hooks by owner
+        this.options.hooks?.unregisterByOwner?.(ownerKey);
+        
+        // Log the pop
+        this.options.logger?.debug?.('runtime.popBlock', {
+            blockKey: ownerKey,
+            stackDepth: this.stack.count,
+        });
+        
+        // Call after hooks
+        this.options.hooks?.onAfterPop?.(currentBlock);
+    }
 }

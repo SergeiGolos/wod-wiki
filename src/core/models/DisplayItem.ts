@@ -15,7 +15,7 @@
  * - Execution spans (from history)
  */
 
-import { ICodeFragment, FragmentCollectionState } from './CodeFragment';
+import { ICodeFragment, FragmentOrigin } from './CodeFragment';
 
 /**
  * Status of a display item in the execution lifecycle
@@ -31,9 +31,9 @@ export type VisualizerSize = 'compact' | 'normal' | 'focused';
  * Filter configuration for fragments within display items
  */
 export interface VisualizerFilter {
-  /** Only show fragments with these states. If undefined, show all. */
-  allowedStates?: FragmentCollectionState[];
-  /** Hide fragments of these types (overrides allowedStates) */
+  /** Only show fragments with these origins. If undefined, show all. */
+  allowedOrigins?: FragmentOrigin[];
+  /** Hide fragments of these types (overrides allowedOrigins) */
   typeOverrides?: Record<string, boolean>;
   /** Hide specific named fragments (overrides everything) */
   nameOverrides?: Record<string, boolean>;

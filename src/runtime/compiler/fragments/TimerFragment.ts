@@ -1,10 +1,9 @@
-import { ICodeFragment, FragmentType, FragmentCollectionState, FragmentOrigin } from "../../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 
 export class TimerFragment implements ICodeFragment {
   readonly value: number | undefined;
-  readonly collectionState: FragmentCollectionState;
-  readonly origin: FragmentOrigin = 'parser';
+  readonly origin: FragmentOrigin;
 
   /**
    * Creates a new TimerFragment.
@@ -27,7 +26,7 @@ export class TimerFragment implements ICodeFragment {
       this.seconds = 0;
       this.original = undefined;
       this.value = undefined;
-      this.collectionState = FragmentCollectionState.RuntimeGenerated;
+      this.origin = 'runtime';
     } else {
       const digits = this.image
         .split(":")
@@ -60,7 +59,7 @@ export class TimerFragment implements ICodeFragment {
         this.days * 60 * 60 * 24) * 1000;
 
       this.value = this.original;
-      this.collectionState = FragmentCollectionState.Defined;
+      this.origin = 'parser';
     }
   }
 
