@@ -15,6 +15,7 @@ import {
   useTimerStack,
   useCardStack
 } from '../../clock/hooks/useDisplayStack';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 import { IDisplayItem } from '../../core/models/DisplayItem';
 
@@ -70,11 +71,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   // Subscribe to runtime controls
   const controlsRef = useMemo(() => {
-    const refs = runtime.memory.search({
+    const refs = searchStackMemory(runtime, {
       type: 'runtime-controls',
-      id: null,
-      ownerId: null,
-      visibility: null
+      ownerId: null
     });
     // Use the last one (most recently created/pushed) as it likely corresponds to the active block
     return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<RuntimeControls>) : undefined;
@@ -84,11 +83,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   // Subscribe to action stack (visible actions)
   const actionStateRef = useMemo(() => {
-    const refs = runtime.memory.search({
+    const refs = searchStackMemory(runtime, {
       type: MemoryTypeEnum.ACTION_STACK_STATE,
-      ownerId: 'runtime',
-      id: null,
-      visibility: null
+      ownerId: 'runtime'
     });
     return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<{ visible: ActionDescriptor[] }>) : undefined;
   }, [runtime]);
@@ -97,11 +94,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   // Subscribe to primary-clock registry
   const primaryClockRef = useMemo(() => {
-    const refs = runtime.memory.search({
+    const refs = searchStackMemory(runtime, {
       type: 'registry',
-      id: 'primary-clock',
-      ownerId: null,
-      visibility: null
+      id: 'primary-clock'
     });
     return refs.length > 0 ? (refs[0] as TypedMemoryReference<string>) : undefined;
   }, [runtime]);

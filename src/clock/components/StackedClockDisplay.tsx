@@ -15,6 +15,7 @@ import {
   useCurrentCard,
   useWorkoutState
 } from '../hooks/useDisplayStack';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../types/DisplayTypes';
 import { CardComponentRegistry } from '../registry/CardComponentRegistry';
@@ -265,15 +266,13 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
     if (!timerEntry?.timerMemoryId) return undefined;
 
     // Search for unified RuntimeSpan
-    const refs = runtime.memory.search({
-      id: null,
+    const refs = searchStackMemory(runtime, {
       ownerId: timerEntry.ownerId, // timerMemoryId might be unreliable if expecting old key
-      type: RUNTIME_SPAN_TYPE,
-      visibility: null,
+      type: RUNTIME_SPAN_TYPE
     });
 
-    // If we didn't find by ownerId (typical), try ID if it was passed as such? 
-    // Usually timerMemoryId is the ownerId in the new system? 
+    // If we didn't find by ownerId (typical), try ID if it was passed as such?
+    // Usually timerMemoryId is the ownerId in the new system?
     // In legacy it was 'timer:blockId'. In new system we typically search by blockId (ownerId).
     // Let's assume timerEntry.ownerId is the blockId.
 
@@ -418,11 +417,9 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
   const timerRef = useMemo(() => {
     if (!timerEntry?.ownerId) return undefined;
 
-    const refs = runtime.memory.search({
-      id: null,
+    const refs = searchStackMemory(runtime, {
       ownerId: timerEntry.ownerId,
-      type: RUNTIME_SPAN_TYPE,
-      visibility: null,
+      type: RUNTIME_SPAN_TYPE
     });
 
     return refs[0] as TypedMemoryReference<RuntimeSpan> | undefined;
