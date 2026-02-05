@@ -130,13 +130,13 @@ export interface ButtonConfig {
 }
 
 /**
- * Controls state stored in memory.
+ * Buttons state stored in memory.
  * Represents the current set of control buttons available to the user.
  * 
  * The UI observes this memory to render action buttons. When buttons are
  * clicked, the UI emits the corresponding `eventName` as an external event.
  */
-export interface ControlsState {
+export interface ButtonsState {
     /** Current button configurations */
     readonly buttons: readonly ButtonConfig[];
 }
@@ -159,7 +159,7 @@ export interface MemoryTypeMap {
     fragment: FragmentState;
     completion: CompletionState;
     display: DisplayState;
-    controls: ControlsState;
+    controls: ButtonsState;
 }
 
 /**

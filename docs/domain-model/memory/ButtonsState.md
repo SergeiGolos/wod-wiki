@@ -1,4 +1,4 @@
-# ControlsState Memory
+# ButtonsState Memory
 
 The `controls` memory type stores UI button configurations that the user can interact with.
 
@@ -36,7 +36,7 @@ interface ButtonConfig {
     readonly isPinned?: boolean;
 }
 
-interface ControlsState {
+interface ButtonsState {
     /** Current button configurations */
     readonly buttons: readonly ButtonConfig[];
 }
@@ -45,7 +45,7 @@ interface ControlsState {
 ## Memory Key
 
 - **Key**: `'controls'`
-- **Value Type**: `ControlsState`
+- **Value Type**: `ButtonsState`
 
 ## Design Philosophy
 
@@ -106,7 +106,7 @@ ButtonBehavior.updateButton(ctx, 'pause', {
 ```typescript
 // React hook example
 function useBlockControls(blockId: string) {
-    const controls = useBlockMemory<ControlsState>(blockId, 'controls');
+    const controls = useBlockMemory<ButtonsState>(blockId, 'controls');
     return controls?.buttons ?? [];
 }
 ```

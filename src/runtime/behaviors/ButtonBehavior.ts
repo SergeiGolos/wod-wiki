@@ -29,7 +29,7 @@ export interface ControlsConfig {
  * 
  * The UI should:
  * 1. Subscribe to `controls` memory changes
- * 2. Render buttons based on `ControlsState.buttons`
+ * 2. Render buttons based on `ButtonsState.buttons`
  * 3. Emit `button.eventName` when user clicks a button
  * 
  * @example
@@ -72,14 +72,14 @@ export class ButtonBehavior implements IRuntimeBehavior {
      * Call this from other behaviors to enable/disable buttons.
      */
     static updateButton(
-        ctx: IBehaviorContext, 
-        buttonId: string, 
+        ctx: IBehaviorContext,
+        buttonId: string,
         updates: Partial<Pick<ButtonConfig, 'visible' | 'enabled' | 'label'>>
     ): void {
         const controls = ctx.getMemory('controls');
         if (!controls) return;
 
-        const updatedButtons = controls.buttons.map(btn => 
+        const updatedButtons = controls.buttons.map(btn =>
             btn.id === buttonId ? { ...btn, ...updates } : btn
         );
 

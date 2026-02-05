@@ -11,7 +11,7 @@ The WOD Wiki runtime uses a typed memory system to store state within runtime bl
 | Display | `'display'` | UI presentation state | [DisplayState](DisplayState.md) |
 | Fragment | `'fragment'` | Inherited code fragments | [FragmentState](FragmentState.md) |
 | Completion | `'completion'` | Block completion tracking | [CompletionState](CompletionState.md) |
-| Controls | `'controls'` | UI button configurations | [ControlsState](ControlsState.md) |
+| Controls | `'controls'` | UI button configurations | [ButtonsState](ButtonsState.md) |
 
 ## Architecture
 
@@ -99,7 +99,7 @@ interface MemoryTypeMap {
     fragment: FragmentState;
     completion: CompletionState;
     display: DisplayState;
-    controls: ControlsState;
+    controls: ButtonsState;
 }
 ```
 

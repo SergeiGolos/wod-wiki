@@ -201,7 +201,7 @@ Type-safe memory access for block state.
 | `timer` | `TimerState` | Time tracking with spans |
 | `round` | `RoundState` | Iteration counter |
 | `display` | `DisplayState` | UI presentation state |
-| `controls` | `ControlsState` | Button configurations |
+| `controls` | `ButtonsState` | Button configurations |
 | `completion` | `CompletionState` | Completion tracking |
 | `fragment` | `FragmentState` | Inherited fragments |
 

@@ -18,7 +18,7 @@
 		{"id":"memory-readme","type":"file","file":"docs/domain-model/memory/README.md","x":1300,"y":260,"width":120,"height":60,"color":"5"},
 		{"id":"timer-state","type":"file","file":"docs/domain-model/memory/TimerState.md","x":1440,"y":260,"width":120,"height":60,"color":"5"},
 		{"id":"round-state","type":"file","file":"docs/domain-model/memory/RoundState.md","x":1300,"y":340,"width":120,"height":60,"color":"5"},
-		{"id":"controls-state","type":"file","file":"docs/domain-model/memory/ControlsState.md","x":1440,"y":340,"width":120,"height":60,"color":"5"},
+		{"id":"controls-state","type":"file","file":"docs/domain-model/memory/ButtonsState.md","x":1440,"y":340,"width":120,"height":60,"color":"5"},
 		{"id":"display-state","type":"file","file":"docs/domain-model/memory/DisplayState.md","x":1580,"y":260,"width":120,"height":60,"color":"5"},
 		{"id":"completion-state","type":"file","file":"docs/domain-model/memory/CompletionState.md","x":1580,"y":340,"width":120,"height":60,"color":"5"},
 		{"id":"test-boundary-4","type":"text","text":"## 🧪 Memory Tests\n\nBehavior → Memory state\n\n*Assert: allocations, values*","x":1300,"y":440,"width":400,"height":120,"color":"6"},
