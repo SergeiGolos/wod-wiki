@@ -23,6 +23,7 @@ import type {
   MemoryType,
   ExecutionStatus
 } from '../types/interfaces';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 /**
  * Transforms ScriptRuntime state into UI-friendly data structures
@@ -90,13 +91,8 @@ export class RuntimeSelectors {
    * @returns Array of UI-friendly MemoryEntry objects
    */
   selectMemory(runtime: ScriptRuntime): MemoryEntry[] {
-    // Get all memory references - search with null criteria to match all
-    const references = runtime.memory.search({
-      id: null,
-      ownerId: null,
-      type: null,
-      visibility: null
-    });
+    // Get all memory references from blocks on the stack
+    const references = searchStackMemory(runtime, {});
 
     return references.map(ref => this.adaptMemoryEntry(ref));
   }

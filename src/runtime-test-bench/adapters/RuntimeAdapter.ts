@@ -3,6 +3,7 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { ICodeFragment } from '../../core/models/CodeFragment';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 /**
  * Adapter that converts ScriptRuntime state to UI-friendly ExecutionSnapshot
@@ -113,13 +114,8 @@ export class RuntimeAdapter implements IRuntimeAdapter {
    * Extracts MemoryEntries from runtime memory
    */
   extractMemoryEntries(runtime: ScriptRuntime): MemoryEntry[] {
-    // Get all memory references - search with null criteria to match all
-    const references = runtime.memory.search({
-      id: null,
-      ownerId: null,
-      type: null,
-      visibility: null
-    });
+    // Get all memory references from blocks on the stack
+    const references = searchStackMemory(runtime, {});
 
     // Build a map of owner block IDs to their line numbers
     const ownerLineMap = new Map<string, number>();

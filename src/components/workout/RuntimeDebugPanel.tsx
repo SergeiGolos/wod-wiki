@@ -3,7 +3,7 @@
  * 
  * Key Features:
  * - Slide-out panel from the right side
- * - Shows RuntimeStack and Memory panels
+ * - Shows RuntimeStack with inline memory for each block
  * - Only visible when debug mode is enabled
  * - Accessible via debug button next to track button
  * - Can be toggled on/off independently of view mode
@@ -12,57 +12,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Bug } from 'lucide-react';
-import { MemoryPanel } from '../../runtime-test-bench/components/MemoryPanel';
+import { X, Bug, ChevronDown, ChevronRight } from 'lucide-react';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
 import { WodBlock } from '../../markdown-editor/types';
-import { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
+import type { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
 
-type DebugTab = 'parser' | 'stack' | 'memory';
+type DebugTab = 'parser' | 'stack';
 
 const DEBUG_TABS: { id: DebugTab; label: string }[] = [
   { id: 'parser', label: 'Parser' },
   { id: 'stack', label: 'Stack' },
-  { id: 'memory', label: 'Memory' },
 ];
-
-/**
- * Helper to compute memory counts by type
- */
-function getMemoryTypeCounts(entries: MemoryEntry[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  entries.forEach(entry => {
-    const type = entry.type || 'unknown';
-    counts[type] = (counts[type] || 0) + 1;
-  });
-  return counts;
-}
-
-/**
- * Memory Type Summary - Shows badge counts for each memory type
- */
-const MemoryTypeSummary: React.FC<{ entries: MemoryEntry[] }> = ({ entries }) => {
-  const typeCounts = useMemo(() => getMemoryTypeCounts(entries), [entries]);
-  const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-  
-  if (sortedTypes.length === 0) return null;
-  
-  return (
-    <div className="flex flex-wrap gap-1">
-      {sortedTypes.map(([type, count]) => (
-        <Badge 
-          key={type} 
-          variant="secondary" 
-          className="text-[10px] px-1.5 py-0 h-4 font-normal"
-        >
-          {type}: {count}
-        </Badge>
-      ))}
-    </div>
-  );
-};
 
 export interface RuntimeDebugPanelProps {
   /** Active runtime to inspect */
@@ -109,20 +71,24 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [activeTab, setActiveTab] = useState<DebugTab>('parser');
   
-  // Track which block's memory should be highlighted (set by double-clicking stack row)
-  const [highlightedOwnerKey, setHighlightedOwnerKey] = useState<string | undefined>(undefined);
+  // Track which blocks are expanded to show memory (by block key)
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   
-  // Handler for double-clicking a stack row - switch to memory tab and highlight
-  const handleStackRowDoubleClick = (blockKey: string) => {
-    setHighlightedOwnerKey(blockKey);
-    setActiveTab('memory');
+  // Toggle a block's expanded state
+  const toggleBlockExpanded = (blockKey: string) => {
+    setExpandedBlocks(prev => {
+      const next = new Set(prev);
+      if (next.has(blockKey)) {
+        next.delete(blockKey);
+      } else {
+        next.add(blockKey);
+      }
+      return next;
+    });
   };
   
-  // Clear highlight when switching away from memory tab
+  // Simple tab change handler
   const handleTabChange = (tab: DebugTab) => {
-    if (tab !== 'memory') {
-      setHighlightedOwnerKey(undefined);
-    }
     setActiveTab(tab);
   };
   
@@ -146,6 +112,18 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
     if (!runtime) return null;
     return adapter.createSnapshot(runtime);
   }, [runtime, adapter, snapshotVersion]);
+
+  // Group memory entries by owner (block key) - must be at top level to avoid hooks order issues
+  const memoryByOwner = useMemo(() => {
+    if (!snapshot) return new Map<string, MemoryEntry[]>();
+    const grouped = new Map<string, MemoryEntry[]>();
+    snapshot.memory.entries.forEach(entry => {
+      const list = grouped.get(entry.ownerId) || [];
+      list.push(entry);
+      grouped.set(entry.ownerId, list);
+    });
+    return grouped;
+  }, [snapshot]);
 
   const renderEmptyState = (title: string, subtitle?: string) => (
     <div className="p-6 text-center text-muted-foreground">
@@ -173,59 +151,73 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
       return renderEmptyState('No active runtime', `Start a workout to inspect the ${target}.`);
     }
 
-    if (activeTab === 'stack') {
-      // Reverse blocks to show top of stack first (most recent at top)
-      const stackBlocks = [...snapshot.stack.blocks].reverse();
-      
-      return (
-        <div className="flex flex-col h-full">
-          {/* Stack Summary Header */}
-          <div className="p-2 bg-muted/20 border-b border-border text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-medium text-foreground">
-                Call Stack ({snapshot.stack.blocks.length} blocks)
-              </span>
-              <span className="text-muted-foreground">
-                Depth: {snapshot.stack.depth}
-              </span>
-            </div>
+    // Stack tab (the only remaining tab besides parser)
+    // Reverse blocks to show top of stack first (most recent at top)
+    const stackBlocks = [...snapshot.stack.blocks].reverse();
+    
+    return (
+      <div className="flex flex-col h-full">
+        {/* Stack Summary Header */}
+        <div className="p-2 bg-muted/20 border-b border-border text-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-medium text-foreground">
+              Call Stack ({snapshot.stack.blocks.length} blocks)
+            </span>
+            <span className="text-muted-foreground">
+              Memory: {snapshot.memory.entries.length} entries
+            </span>
           </div>
-          
-          {/* Flat Stack List - One row per block */}
-          <div className="flex-1 overflow-auto">
-            {stackBlocks.length === 0 ? (
-              <div className="text-center text-muted-foreground py-4 text-xs">
-                Stack is empty
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40">
-                {stackBlocks.map((block, index) => {
-                  const isTop = index === 0;
-                  const isHighlighted = highlightedBlockKey === block.key;
-                  const statusColor = {
-                    complete: 'bg-green-500',
-                    active: 'bg-blue-500',
-                    running: 'bg-blue-500 animate-pulse',
-                    pending: 'bg-gray-400',
-                    error: 'bg-red-500'
-                  }[block.status || 'pending'];
-                  
-                  return (
+        </div>
+        
+        {/* Stack List with inline memory */}
+        <div className="flex-1 overflow-auto">
+          {stackBlocks.length === 0 ? (
+            <div className="text-center text-muted-foreground py-4 text-xs">
+              Stack is empty
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40">
+              {stackBlocks.map((block, index) => {
+                const isTop = index === 0;
+                const isHighlighted = highlightedBlockKey === block.key;
+                const statusColor = {
+                  complete: 'bg-green-500',
+                  active: 'bg-blue-500',
+                  running: 'bg-blue-500 animate-pulse',
+                  pending: 'bg-gray-400',
+                  error: 'bg-red-500'
+                }[block.status || 'pending'];
+                
+                // Get memory entries for this block
+                const blockMemory = memoryByOwner.get(block.key) || [];
+                const hasMemory = blockMemory.length > 0;
+                const isExpanded = expandedBlocks.has(block.key);
+                
+                return (
+                  <div key={block.key}>
+                    {/* Block Row */}
                     <div
-                      key={block.key}
                       className={`
-                        flex items-center gap-3 py-2 px-3 text-xs transition-colors cursor-pointer select-none
+                        flex items-center gap-2 py-2 px-3 text-xs transition-colors cursor-pointer select-none
                         ${isTop ? 'bg-primary/5' : ''}
                         ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
                       `}
-                      onDoubleClick={() => handleStackRowDoubleClick(block.key)}
-                      title="Double-click to view memory for this block"
+                      onClick={() => hasMemory && toggleBlockExpanded(block.key)}
+                      title={hasMemory ? 'Click to expand/collapse memory' : block.key}
                     >
-                      {/* Stack Position */}
-                      <div className="w-6 text-center shrink-0">
-                        <span className={`font-mono ${isTop ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
-                          {isTop ? '→' : index}
-                        </span>
+                      {/* Expand/Collapse or Stack Position */}
+                      <div className="w-5 text-center shrink-0">
+                        {hasMemory ? (
+                          isExpanded ? (
+                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                          )
+                        ) : (
+                          <span className={`font-mono ${isTop ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                            {isTop ? '→' : index}
+                          </span>
+                        )}
                       </div>
                       
                       {/* Status Indicator */}
@@ -243,6 +235,16 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                         </span>
                       </div>
                       
+                      {/* Memory count badge */}
+                      {hasMemory && (
+                        <Badge 
+                          variant="outline" 
+                          className="text-[9px] px-1 py-0 h-3.5 shrink-0 font-normal"
+                        >
+                          {blockMemory.length}
+                        </Badge>
+                      )}
+                      
                       {/* Block Type Badge */}
                       <Badge 
                         variant="secondary" 
@@ -252,26 +254,40 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                       </Badge>
                       
                       {/* Key (truncated) */}
-                      <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[80px] shrink-0" title={block.key}>
+                      <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[60px] shrink-0" title={block.key}>
                         {block.key.split('-').pop()}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    
+                    {/* Inline Memory Entries (when expanded) */}
+                    {hasMemory && isExpanded && (
+                      <div className="bg-muted/20 border-t border-border/30">
+                        <table className="w-full text-[10px]">
+                          <tbody>
+                            {blockMemory.map(entry => (
+                              <tr key={entry.id} className="border-b border-border/20 last:border-0">
+                                <td className="py-1 pl-8 pr-2 text-muted-foreground font-mono w-16">
+                                  {entry.type}
+                                </td>
+                                <td className="py-1 px-2 text-foreground truncate max-w-[120px]" title={entry.label}>
+                                  {entry.label}
+                                </td>
+                                <td className="py-1 pl-2 pr-3 text-right font-mono text-foreground truncate max-w-[100px]" title={entry.valueFormatted}>
+                                  {entry.valueFormatted}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      );
-    }
-
-    return (
-      <MemoryPanel 
-        entries={snapshot.memory.entries}
-        groupBy="owner"
-        highlightedOwnerKey={highlightedOwnerKey}
-        className="border-0 shadow-none rounded-none"
-      />
+      </div>
     );
   };
 
@@ -314,15 +330,12 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           {renderTabContent()}
         </div>
 
-        {/* Footer with Memory Type Summary */}
-        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0 space-y-1">
+        {/* Footer */}
+        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0">
           <div className="flex items-center justify-between">
-            <span>Stack: {snapshot?.stack.blocks.length || 0}</span>
-            <span>Memory: {snapshot?.memory.entries.length || 0}</span>
+            <span>Stack: {snapshot?.stack.blocks.length || 0} blocks</span>
+            <span>Memory: {snapshot?.memory.entries.length || 0} entries</span>
           </div>
-          {snapshot && snapshot.memory.entries.length > 0 && (
-            <MemoryTypeSummary entries={snapshot.memory.entries} />
-          )}
         </div>
       </div>
     );
@@ -368,15 +381,12 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           {renderTabContent()}
         </div>
 
-        {/* Footer with Memory Type Summary */}
-        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0 space-y-1">
+        {/* Footer */}
+        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0">
           <div className="flex items-center justify-between">
-            <span>Stack Depth: {snapshot?.stack.blocks.length || 0}</span>
-            <span>Memory Entries: {snapshot?.memory.entries.length || 0}</span>
+            <span>Stack: {snapshot?.stack.blocks.length || 0} blocks</span>
+            <span>Memory: {snapshot?.memory.entries.length || 0} entries</span>
           </div>
-          {snapshot && snapshot.memory.entries.length > 0 && (
-            <MemoryTypeSummary entries={snapshot.memory.entries} />
-          )}
         </div>
       </div>
     </>

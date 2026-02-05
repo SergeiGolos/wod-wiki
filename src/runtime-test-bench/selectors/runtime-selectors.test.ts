@@ -266,23 +266,28 @@ function createMockRuntime(blocks: IRuntimeBlock[]): ScriptRuntime {
   return {
     stack: {
       blocks: blocks as readonly IRuntimeBlock[]
-    },
-    memory: {
-      search: () => []
     }
   } as unknown as ScriptRuntime;
 }
 
 /**
  * Creates a minimal mock ScriptRuntime for testing selectMemory()
+ * Memory is now accessed via block.context.references (stack-based memory)
  */
 function createMockRuntimeWithMemory(memoryRefs: IMemoryReference[]): ScriptRuntime {
+  // Create a mock block with the memory references attached
+  const mockBlock = {
+    key: 'mock-block',
+    blockType: 'workout',
+    sourceIds: [],
+    context: {
+      references: memoryRefs
+    }
+  };
+  
   return {
     stack: {
-      blocks: []
-    },
-    memory: {
-      search: () => memoryRefs
+      blocks: [mockBlock] as readonly IRuntimeBlock[]
     }
   } as unknown as ScriptRuntime;
 }
