@@ -14,6 +14,23 @@
 export { UnifiedItemRow, type UnifiedItemRowProps } from './UnifiedItemRow';
 export { UnifiedItemList, type UnifiedItemListProps } from './UnifiedItemList';
 
+// Re-export adapters for convenience
+export {
+  statementToDisplayItem,
+  statementsToDisplayItems,
+  runtimeSpanToDisplayItem,
+  runtimeSpansToDisplayItems,
+  blockToDisplayItem,
+  sortByStartTime,
+  sortByStartTimeDesc,
+  groupLinkedItems,
+  filterByStatus,
+  getActiveItems,
+  getCompletedItems,
+  buildDisplayTree,
+  type DisplayItemNode
+} from '@/core/adapters/displayItemAdapters';
+
 // Re-export types
 export type {
   IDisplayItem,
