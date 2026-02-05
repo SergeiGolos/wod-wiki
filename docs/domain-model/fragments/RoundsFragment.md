@@ -125,4 +125,4 @@ expect(roundsFragment.value).toBe(5);
 
 - [RoundState Memory](../memory/RoundState.md) - Runtime round state
 - [TimerFragment](TimerFragment.md) - Interval duration
-- [LapFragment](LapFragment.md) - Round/compose grouping
+- [GroupFragment](GroupFragment.md) - Round/compose grouping

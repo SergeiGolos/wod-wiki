@@ -1,15 +1,15 @@
-# LapFragment
+# GroupFragment
 
-`LapFragment` represents a grouping marker that controls how statements are organized into rounds or composed segments.
+`GroupFragment` represents a grouping marker that controls how statements are organized into rounds or composed segments.
 
 ## Type Definition
 
 ```typescript
 import { GroupType } from "../../../parser/timer.visitor";
 
-class LapFragment implements ICodeFragment {
-  readonly fragmentType = FragmentType.Lap;
-  readonly type: string = "lap";
+class GroupFragment implements ICodeFragment {
+  readonly fragmentType = FragmentType.Group;
+  readonly type: string = "group";
   readonly origin: FragmentOrigin = 'parser';
   
   readonly value: GroupType;          // 'compose' or 'round'
@@ -21,8 +21,8 @@ class LapFragment implements ICodeFragment {
 
 ## Fragment Type
 
-- **Type**: `FragmentType.Lap`
-- **Legacy Type**: `"lap"`
+- **Type**: `FragmentType.Group`
+- **Legacy Type**: `"group"`
 - **Origin**: Always `'parser'`
 
 ## Constructor
@@ -58,40 +58,40 @@ type GroupType = 'compose' | 'round';
 
 ## Compiler Integration
 
-`LapFragmentCompiler` is a pass-through (affects structure only):
+`GroupFragmentCompiler` is a pass-through (affects structure only):
 
 ```typescript
-class LapFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'lap';
+class GroupFragmentCompiler implements IFragmentCompiler {
+  readonly type = 'group';
   
-  compile(_fragment: LapFragment): MetricValue[] {
+  compile(_fragment: GroupFragment): MetricValue[] {
     return [];  // No metric output
   }
 }
 ```
 
-Lap fragments control block structure rather than producing metrics.
+Group fragments control block structure rather than producing metrics.
 
 ## Usage Examples
 
 ### Compose Marker
 
 ```typescript
-const lap = new LapFragment('compose', '+', { line: 1, column: 1 });
+const group = new GroupFragment('compose', '+', { line: 1, column: 1 });
 
-expect(lap.group).toBe('compose');
-expect(lap.value).toBe('compose');
-expect(lap.image).toBe('+');
+expect(group.group).toBe('compose');
+expect(group.value).toBe('compose');
+expect(group.image).toBe('+');
 ```
 
 ### Round Marker
 
 ```typescript
-const lap = new LapFragment('round', '-', { line: 1, column: 1 });
+const group = new GroupFragment('round', '-', { line: 1, column: 1 });
 
-expect(lap.group).toBe('round');
-expect(lap.value).toBe('round');
-expect(lap.image).toBe('-');
+expect(group.group).toBe('round');
+expect(group.value).toBe('round');
+expect(group.image).toBe('-');
 ```
 
 ### In Statement Context
@@ -100,10 +100,10 @@ expect(lap.image).toBe('-');
 import { MdTimerRuntime } from './md-timer';
 
 const script = new MdTimerRuntime().read('+ 5:00 Run');
-const lap = script.statements[0].fragments
-  .find(f => f.fragmentType === FragmentType.Lap) as LapFragment;
+const group = script.statements[0].fragments
+  .find(f => f.fragmentType === FragmentType.Group) as GroupFragment;
 
-expect(lap.group).toBe('compose');
+expect(group.group).toBe('compose');
 ```
 
 ## Grouping Patterns

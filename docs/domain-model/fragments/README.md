@@ -33,7 +33,7 @@ Fragments are the atomic data units that flow through the WOD Wiki pipeline. The
 | [DistanceFragment](DistanceFragment.md) | `distance` | Distance with units | `{amount, units}` |
 | [ResistanceFragment](ResistanceFragment.md) | `resistance` | Weight/resistance with units | `{amount, units}` |
 | [IncrementFragment](IncrementFragment.md) | `increment` | Ascending/descending markers | `number` (+1/-1) |
-| [LapFragment](LapFragment.md) | `lap` | Grouping markers | `GroupType` |
+| [GroupFragment](GroupFragment.md) | `group` | Grouping markers | `GroupType` |
 | [TextFragment](TextFragment.md) | `text` | Display text/headings | `{text, level}` |
 | [SoundFragment](SoundFragment.md) | `sound` | Audio cue triggers | `SoundFragmentValue` |
 
@@ -95,7 +95,7 @@ Fragments compiled to `MetricValue` for aggregation:
 Fragments that affect block structure/behavior:
 
 - IncrementFragment (ascending/descending)
-- LapFragment (grouping control)
+- GroupFragment (grouping control)
 - ActionFragment (pinned actions)
 
 ## Related Documentation

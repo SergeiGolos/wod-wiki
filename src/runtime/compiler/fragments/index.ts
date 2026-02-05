@@ -6,7 +6,7 @@ export { TextFragment } from './TextFragment';
 export { DistanceFragment } from './DistanceFragment';
 export { ResistanceFragment } from './ResistanceFragment';
 export { IncrementFragment } from './IncrementFragment';
-export { LapFragment } from './LapFragment';
+export { GroupFragment } from './GroupFragment';
 export { ActionFragment } from './ActionFragment';
 export type { ActionFragmentOptions } from './ActionFragment';
 export { SoundFragment } from './SoundFragment';

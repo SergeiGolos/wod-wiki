@@ -127,4 +127,4 @@ Executes 10, 9, 8, 7... down to 1.
 
 - [RepFragment](RepFragment.md) - Base rep count to increment
 - [RoundsFragment](RoundsFragment.md) - Rounds structure
-- [LapFragment](LapFragment.md) - Grouping control
+- [GroupFragment](GroupFragment.md) - Grouping control

@@ -60,9 +60,9 @@ export function statementToDisplayItem(
     if (depth > 10) break; // Safety limit
   }
 
-  // Check if this is a linked statement (has lap fragment with '+')
+  // Check if this is a linked statement (has group fragment with '+')
   const isLinked = statement.fragments.some(
-    f => f.fragmentType === FragmentType.Lap && f.image === '+'
+    f => f.fragmentType === FragmentType.Group && f.image === '+'
   );
 
   // Determine if this is a header (has children and certain fragment types)

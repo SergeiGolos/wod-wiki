@@ -20,12 +20,12 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { 
+import {
   ActionFragmentCompiler,
   DistanceFragmentCompiler,
   EffortFragmentCompiler,
   IncrementFragmentCompiler,
-  LapFragmentCompiler,
+  GroupFragmentCompiler,
   RepFragmentCompiler,
   ResistanceFragmentCompiler,
   RoundsFragmentCompiler,
@@ -37,7 +37,7 @@ import { ActionFragment } from '@/runtime/compiler/fragments/ActionFragment';
 import { DistanceFragment } from '@/runtime/compiler/fragments/DistanceFragment';
 import { EffortFragment } from '@/runtime/compiler/fragments/EffortFragment';
 import { IncrementFragment } from '@/runtime/compiler/fragments/IncrementFragment';
-import { LapFragment } from '@/runtime/compiler/fragments/LapFragment';
+import { GroupFragment } from '@/runtime/compiler/fragments/GroupFragment';
 import { RepFragment } from '@/runtime/compiler/fragments/RepFragment';
 import { ResistanceFragment } from '@/runtime/compiler/fragments/ResistanceFragment';
 import { RoundsFragment } from '@/runtime/compiler/fragments/RoundsFragment';
@@ -50,11 +50,11 @@ import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 describe('Fragment Compilation System', () => {
-  
+
   // ============================================================================
   // 1. ActionFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('ActionFragmentCompiler', () => {
     let compiler: ActionFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -108,7 +108,7 @@ describe('Fragment Compilation System', () => {
       actions.forEach(action => {
         const fragment = new ActionFragment(action); // e.g., from [:AMRAP]
         const result = compiler.compile(fragment, runtime);
-        
+
         expect(result).toHaveLength(1);
         expect(result[0].unit).toBe(`action:${action}`);
       });
@@ -118,7 +118,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 2. DistanceFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('DistanceFragmentCompiler', () => {
     let compiler: DistanceFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -201,7 +201,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 3. EffortFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('EffortFragmentCompiler', () => {
     let compiler: EffortFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -253,7 +253,7 @@ describe('Fragment Compilation System', () => {
       exercises.forEach(exercise => {
         const fragment = new EffortFragment(exercise);
         const result = compiler.compile(fragment, runtime);
-        
+
         expect(result).toHaveLength(1);
         expect(result[0].unit).toBe(`effort:${exercise}`);
       });
@@ -263,7 +263,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 4. IncrementFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('IncrementFragmentCompiler', () => {
     let compiler: IncrementFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -301,32 +301,32 @@ describe('Fragment Compilation System', () => {
   });
 
   // ============================================================================
-  // 5. LapFragmentCompiler Tests
+  // 5. GroupFragmentCompiler Tests
   // ============================================================================
-  
-  describe('LapFragmentCompiler', () => {
-    let compiler: LapFragmentCompiler;
+
+  describe('GroupFragmentCompiler', () => {
+    let compiler: GroupFragmentCompiler;
     let runtime: IScriptRuntime;
 
     beforeEach(() => {
-      compiler = new LapFragmentCompiler();
+      compiler = new GroupFragmentCompiler();
       runtime = createMockRuntime();
     });
 
     it('should have correct type identifier', () => {
-      expect(compiler.type).toBe('lap');
+      expect(compiler.type).toBe('group');
     });
 
-    it('should return empty array for lap fragments', () => {
-      const fragment = new LapFragment('or', '[', undefined);
+    it('should return empty array for group fragments', () => {
+      const fragment = new GroupFragment('or', '[', undefined);
       const result = compiler.compile(fragment, runtime);
 
       expect(result).toEqual([]);
     });
 
     it('should not emit metrics (structural grouping)', () => {
-      // Lap fragments define grouping, not measurable metrics
-      const fragment = new LapFragment('and', ',', undefined);
+      // Group fragments define grouping, not measurable metrics
+      const fragment = new GroupFragment('and', ',', undefined);
       const result = compiler.compile(fragment, runtime);
 
       expect(result).toEqual([]);
@@ -336,7 +336,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 6. RepFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('RepFragmentCompiler', () => {
     let compiler: RepFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -395,7 +395,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 7. ResistanceFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('ResistanceFragmentCompiler', () => {
     let compiler: ResistanceFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -470,7 +470,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 8. RoundsFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('RoundsFragmentCompiler', () => {
     let compiler: RoundsFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -521,7 +521,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 9. TextFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('TextFragmentCompiler', () => {
     let compiler: TextFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -551,7 +551,7 @@ describe('Fragment Compilation System', () => {
 
     it('should not emit metrics for any text level', () => {
       const levels = ['note', 'warning', 'info', undefined];
-      
+
       levels.forEach(level => {
         const fragment = new TextFragment('Some text', level);
         const result = compiler.compile(fragment, runtime);
@@ -563,7 +563,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 10. TimerFragmentCompiler Tests
   // ============================================================================
-  
+
   describe('TimerFragmentCompiler', () => {
     let compiler: TimerFragmentCompiler;
     let runtime: IScriptRuntime;
@@ -627,7 +627,7 @@ describe('Fragment Compilation System', () => {
         const meta: CodeMetadata = { line: 1, startOffset: 0, endOffset: input.length, columnStart: 1, columnEnd: input.length + 1, length: input.length };
         const fragment = new TimerFragment(input, meta);
         const result = compiler.compile(fragment, runtime);
-        
+
         expect(result[0].value).toBe(expected);
       });
     });
@@ -644,7 +644,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 11. FragmentCompilationManager Tests
   // ============================================================================
-  
+
   describe('FragmentCompilationManager', () => {
     let manager: FragmentCompilationManager;
     let runtime: IScriptRuntime;
@@ -655,7 +655,7 @@ describe('Fragment Compilation System', () => {
         new DistanceFragmentCompiler(),
         new EffortFragmentCompiler(),
         new IncrementFragmentCompiler(),
-        new LapFragmentCompiler(),
+        new GroupFragmentCompiler(),
         new RepFragmentCompiler(),
         new ResistanceFragmentCompiler(),
         new RoundsFragmentCompiler(),
@@ -889,7 +889,7 @@ describe('Fragment Compilation System', () => {
       it('should handle fragment with string numeric value', () => {
         const fragment = new ResistanceFragment(100, 'kg');
         (fragment.value as any).amount = '150';
-        
+
         const statement: ICodeStatement = {
           id: 200,
           position: 0,
@@ -946,7 +946,7 @@ describe('Fragment Compilation System', () => {
   // ============================================================================
   // 12. MetricValue Format Validation Tests
   // ============================================================================
-  
+
   describe('MetricValue Format Validation', () => {
     let runtime: IScriptRuntime;
 

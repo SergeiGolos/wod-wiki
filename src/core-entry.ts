@@ -68,7 +68,7 @@ export * from './runtime/compiler/fragments/DistanceFragment';
 export * from './runtime/compiler/fragments/ResistanceFragment';
 export * from './runtime/compiler/fragments/ActionFragment';
 export * from './runtime/compiler/fragments/IncrementFragment';
-export * from './runtime/compiler/fragments/LapFragment';
+export * from './runtime/compiler/fragments/GroupFragment';
 export * from './runtime/compiler/fragments/TextFragment';
 
 // Fragment types

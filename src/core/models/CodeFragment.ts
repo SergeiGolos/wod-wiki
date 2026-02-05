@@ -16,10 +16,10 @@ import { CodeMetadata } from "./CodeMetadata";
  * - 'tracked': Value is actively being tracked during execution
  * - 'analyzed': Value is derived from analysis
  */
-export type FragmentOrigin = 
-  | 'parser' 
-  | 'compiler' 
-  | 'runtime' 
+export type FragmentOrigin =
+  | 'parser'
+  | 'compiler'
+  | 'runtime'
   | 'user'
   | 'collected'
   | 'hinted'
@@ -64,7 +64,7 @@ export enum FragmentType {
   Rounds = 'rounds',
   Action = 'action',
   Increment = 'increment',
-  Lap = 'lap',
+  Group = 'group',
   Text = 'text',
   Resistance = 'resistance',
   Sound = 'sound'

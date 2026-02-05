@@ -4,7 +4,7 @@ import { ActionFragment } from "../fragments/ActionFragment";
 import { DistanceFragment } from "../fragments/DistanceFragment";
 import { EffortFragment } from "../fragments/EffortFragment";
 import { IncrementFragment } from "../fragments/IncrementFragment";
-import { LapFragment } from "../fragments/LapFragment";
+import { GroupFragment } from "../fragments/GroupFragment";
 import { RepFragment } from "../fragments/RepFragment";
 import { ResistanceFragment } from "../fragments/ResistanceFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
@@ -15,26 +15,26 @@ import { IScriptRuntime } from "./IScriptRuntime";
 export class ActionFragmentCompiler implements IFragmentCompiler {
     readonly type = 'action';
     compile(fragment: ActionFragment, _context: IScriptRuntime): MetricValue[] {
-    const label = fragment.value?.toString().trim();
-    if (!label) return [];
-    return [{ type: MetricValueType.Action, value: undefined, unit: `action:${label}` }];
+        const label = fragment.value?.toString().trim();
+        if (!label) return [];
+        return [{ type: MetricValueType.Action, value: undefined, unit: `action:${label}` }];
     }
 }
 
 export class DistanceFragmentCompiler implements IFragmentCompiler {
     readonly type = 'distance';
     compile(fragment: DistanceFragment, _context: IScriptRuntime): MetricValue[] {
-    const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
-    return [{ type: MetricValueType.Distance, value: amount, unit: fragment.value.units }];
+        const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
+        return [{ type: MetricValueType.Distance, value: amount, unit: fragment.value.units }];
     }
 }
 
 export class EffortFragmentCompiler implements IFragmentCompiler {
     readonly type = 'effort';
     compile(fragment: EffortFragment, _context: IScriptRuntime): MetricValue[] {
-    const label = fragment.value?.toString().trim();
-    if (!label) return [];
-    return [{ type: MetricValueType.Effort, value: undefined, unit: `effort:${label}` }];
+        const label = fragment.value?.toString().trim();
+        if (!label) return [];
+        return [{ type: MetricValueType.Effort, value: undefined, unit: `effort:${label}` }];
     }
 }
 
@@ -45,9 +45,9 @@ export class IncrementFragmentCompiler implements IFragmentCompiler {
     }
 }
 
-export class LapFragmentCompiler implements IFragmentCompiler {
-    readonly type = 'lap';
-    compile(_fragment: LapFragment, _context: IScriptRuntime): MetricValue[] {
+export class GroupFragmentCompiler implements IFragmentCompiler {
+    readonly type = 'group';
+    compile(_fragment: GroupFragment, _context: IScriptRuntime): MetricValue[] {
         return [];
     }
 }
@@ -62,8 +62,8 @@ export class RepFragmentCompiler implements IFragmentCompiler {
 export class ResistanceFragmentCompiler implements IFragmentCompiler {
     readonly type = 'resistance';
     compile(fragment: ResistanceFragment, _context: IScriptRuntime): MetricValue[] {
-    const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
-    return [{ type: MetricValueType.Resistance, value: amount, unit: fragment.value.units }];
+        const amount = typeof fragment.value.amount === 'string' ? Number(fragment.value.amount) : fragment.value.amount;
+        return [{ type: MetricValueType.Resistance, value: amount, unit: fragment.value.units }];
     }
 }
 

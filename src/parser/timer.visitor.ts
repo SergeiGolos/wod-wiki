@@ -4,7 +4,7 @@ import { CodeMetadata } from "../core/models/CodeMetadata";
 import { EffortFragment } from "../runtime/compiler/fragments/EffortFragment";
 import { ActionFragment } from "../runtime/compiler/fragments/ActionFragment";
 import { IncrementFragment } from "../runtime/compiler/fragments/IncrementFragment";
-import { LapFragment } from "../runtime/compiler/fragments/LapFragment";
+import { GroupFragment } from "../runtime/compiler/fragments/GroupFragment";
 import { RepFragment } from "../runtime/compiler/fragments/RepFragment";
 import { ResistanceFragment } from "../runtime/compiler/fragments/ResistanceFragment";
 import { DistanceFragment } from "../runtime/compiler/fragments/DistanceFragment";
@@ -37,8 +37,8 @@ interface SemanticError {
 }
 
 const parser = new MdTimerParse() as { getBaseCstVisitorConstructor: () => new () => object };
-const BaseCstVisitor = parser.getBaseCstVisitorConstructor() as { 
-  new (): { 
+const BaseCstVisitor = parser.getBaseCstVisitorConstructor() as {
+  new(): {
     validateVisitor(): void;
     visit(ctx: unknown, ...args: unknown[]): unknown;
   };
@@ -100,8 +100,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
         if (stack.length > 0) {
           for (let parent of stack) {
-            const lapFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Lap);
-            parent.block.isLeaf = parent.block.isLeaf || lapFragments.length > 0;
+            const groupFragments = block.fragments.filter(f => f.fragmentType === FragmentType.Group);
+            parent.block.isLeaf = parent.block.isLeaf || groupFragments.length > 0;
 
             // Store parent-child relationships in temporary map (type-safe)
             if (!parentChildMap.has(parent.block.id)) {
@@ -118,7 +118,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       // Apply grouped children structure from temporary map
       for (let block of blocks) {
         const flatChildren = parentChildMap.get(block.id) || [];
-        block.children = this.groupChildrenByLapFragments(flatChildren, blocks);
+        block.children = this.groupChildrenByGroupFragments(flatChildren, blocks);
       }
 
       return blocks;
@@ -130,8 +130,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
   wodBlock(ctx: any): ICodeStatement[] {
     let statement = new ParsedCodeStatement();
-    const lapFragments = ctx.lap && this.visit(ctx.lap);
-    statement.fragments.push(...(lapFragments || []));
+    const groupFragments = ctx.lap && this.visit(ctx.lap);
+    statement.fragments.push(...(groupFragments || []));
 
     const fragmentProducers = [
       ctx.rounds,
@@ -156,9 +156,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     );
     statement.id = statement.meta.line;
 
-    // Lap fragment logic  
-    // If statement is a child (has parent) and no lap fragment, add a repeat LapFragment
-    if (lapFragments?.length === 0 && statement.parent !== undefined) {
+    // Group fragment logic  
+    // If statement is a child (has parent) and no group fragment, add a repeat GroupFragment
+    if (groupFragments?.length === 0 && statement.parent !== undefined) {
       const meta: CodeMetadata = {
         line: statement.meta.line,
         startOffset: statement.meta.startOffset,
@@ -167,10 +167,10 @@ export class MdTimerInterpreter extends BaseCstVisitor {
         columnEnd: statement.meta.columnStart,
         length: 1,
       };
-      statement.fragments.push(new LapFragment('repeat', "", meta));
+      statement.fragments.push(new GroupFragment('repeat', "", meta));
     }
 
-    statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Lap).length > 0;
+    statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Group).length > 0;
     return [statement];
   }
 
@@ -207,15 +207,15 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
 
-  lap(ctx: any): LapFragment[] {
+  lap(ctx: any): GroupFragment[] {
     if (ctx.Plus) {
       const meta = this.getMeta([ctx.Plus[0]]);
-      return [new LapFragment('compose', "+", meta)];
+      return [new GroupFragment('compose', "+", meta)];
     }
 
     if (ctx.Minus) {
       const meta = this.getMeta([ctx.Minus[0]]);
-      return [new LapFragment("round", "-", meta)];
+      return [new GroupFragment("round", "-", meta)];
     }
 
     return [];
@@ -372,11 +372,11 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   /**
-   * Groups consecutive compose lap fragments together while keeping other fragments individual.
+   * Groups consecutive compose group fragments together while keeping other fragments individual.
    * Implements the grouping algorithm per contracts/visitor-grouping.md
    * Optimized with Map for O(1) block lookups.
    */
-  groupChildrenByLapFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
+  groupChildrenByGroupFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
     if (childIds.length === 0) {
       return [];
     }
@@ -390,9 +390,9 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     for (let i = 0; i < childIds.length; i++) {
       const childId = childIds[i];
       const childBlock = blocksById.get(childId);
-      const lapFragmentType = this.getChildLapFragmentType(childBlock);
+      const groupFragmentType = this.getChildGroupFragmentType(childBlock);
 
-      if (lapFragmentType === 'compose') {
+      if (groupFragmentType === 'compose') {
         // Add to current group (compose fragments group consecutively)
         currentGroup.push(childId);
       } else {
@@ -415,18 +415,18 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   /**
-   * Helper method to determine the lap fragment type of a child block
+   * Helper method to determine the group fragment type of a child block
    */
-  private getChildLapFragmentType(childBlock: ICodeStatement | undefined): 'compose' | 'round' | 'repeat' {
+  private getChildGroupFragmentType(childBlock: ICodeStatement | undefined): 'compose' | 'round' | 'repeat' {
     if (!childBlock || !childBlock.fragments) {
-      return 'repeat'; // Default for blocks without lap fragments
+      return 'repeat'; // Default for blocks without group fragments
     }
 
-    const lapFragment = childBlock.fragments.find(f => f.fragmentType === FragmentType.Lap) as LapFragment;
-    if (!lapFragment) {
-      return 'repeat'; // No lap fragment means repeat type
+    const groupFragment = childBlock.fragments.find(f => f.fragmentType === FragmentType.Group) as GroupFragment;
+    if (!groupFragment) {
+      return 'repeat'; // No group fragment means repeat type
     }
 
-    return lapFragment.group || 'repeat';
+    return groupFragment.group || 'repeat';
   }
 }

@@ -3,7 +3,7 @@ import { ActionFragment } from '../runtime/compiler/fragments/ActionFragment';
 import { DistanceFragment } from '../runtime/compiler/fragments/DistanceFragment';
 import { EffortFragment } from '../runtime/compiler/fragments/EffortFragment';
 import { IncrementFragment } from '../runtime/compiler/fragments/IncrementFragment';
-import { LapFragment } from '../runtime/compiler/fragments/LapFragment';
+import { GroupFragment } from '../runtime/compiler/fragments/GroupFragment';
 import { RepFragment } from '../runtime/compiler/fragments/RepFragment';
 import { ResistanceFragment } from '../runtime/compiler/fragments/ResistanceFragment';
 import { RoundsFragment } from '../runtime/compiler/fragments/RoundsFragment';
@@ -43,8 +43,8 @@ describe('Fragment Origin Marking', () => {
             expect(fragment.origin).toBe('parser');
         });
 
-        it('LapFragment has origin: parser', () => {
-            const fragment = new LapFragment('round', '-', mockMeta);
+        it('GroupFragment has origin: parser', () => {
+            const fragment = new GroupFragment('round', '-', mockMeta);
             expect(fragment.origin).toBe('parser');
         });
 
