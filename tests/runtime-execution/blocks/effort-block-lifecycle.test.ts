@@ -245,7 +245,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
 
-      vimocked(runtime.handle).mockClear();
+      (vi as any).mocked(runtime.handle).mockClear();
       block.mount(runtime);
 
       const incrementActions = block.incrementRep(); // Mode: incremental
