@@ -8,10 +8,10 @@ import { globalParser, globalCompiler } from './services/testbench-services';
 import { WodScript } from '../parser/WodScript';
 import { TestBenchProvider, useTestBenchContext } from './context/TestBenchContext';
 import { TestBenchLayout } from './components/TestBenchLayout';
-import { RuntimeMemory } from '../runtime/RuntimeMemory';
 import { RuntimeStack } from '../runtime/RuntimeStack';
 import { RuntimeClock } from '../runtime/RuntimeClock';
 import { EventBus } from '../runtime/events/EventBus';
+import { StartWorkoutAction } from '../runtime/actions/stack/StartWorkoutAction';
 
 /**
  * Inner component to consume context and hooks
@@ -126,7 +126,6 @@ const RuntimeTestBenchInner: React.FC<{
       }
 
       const dependencies = {
-        memory: new RuntimeMemory(),
         stack: new RuntimeStack(),
         clock: new RuntimeClock(),
         eventBus: new EventBus(),
@@ -138,27 +137,30 @@ const RuntimeTestBenchInner: React.FC<{
         dependencies
       );
 
-      const block = compiler.compile(parseResults.statements as any, tempRuntime);
+      // Initialize the workout by pushing root block via StartWorkoutAction
+      tempRuntime.do(new StartWorkoutAction());
 
-      if (!block) {
+      // Verify root block was pushed successfully
+      if (tempRuntime.stack.count === 0) {
         dispatch({
           type: 'ADD_LOG', payload: {
             id: Date.now().toString(),
             timestamp: Date.now(),
-            message: 'Compilation failed - no matching strategy found',
+            message: 'Compilation failed - no root block created',
             level: 'error'
           }
         });
         return;
       }
 
+      const rootBlock = tempRuntime.stack.current;
       setRuntime(tempRuntime);
 
       dispatch({
         type: 'ADD_LOG', payload: {
           id: Date.now().toString(),
           timestamp: Date.now(),
-          message: `Compilation successful. Block type: ${block.blockType}`,
+          message: `Compilation successful. Root block type: ${rootBlock?.blockType}, Stack depth: ${tempRuntime.stack.count}`,
           level: 'success'
         }
       });

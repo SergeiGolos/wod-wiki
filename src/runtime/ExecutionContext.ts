@@ -4,6 +4,8 @@ import { SnapshotClock } from './RuntimeClock';
 import { Unsubscribe } from './contracts/IRuntimeStack';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import { IEvent } from './contracts/events/IEvent';
+import { PushBlockAction } from './actions/stack/PushBlockAction';
+import { PopBlockAction } from './actions/stack/PopBlockAction';
 
 /**
  * ExecutionContext manages a "turn" of execution.
@@ -32,7 +34,7 @@ export class ExecutionContext implements IScriptRuntime {
     get stack() { return this._runtime.stack; }
     get jit() { return this._runtime.jit; }
     get errors() { return this._runtime.errors; }
-    
+
     // Use our frozen clock instead of the live runtime clock
     get clock() { return this._snapshotClock; }
 
@@ -76,7 +78,6 @@ export class ExecutionContext implements IScriptRuntime {
      * Queues the PushBlockAction in this execution context.
      */
     pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
-        const { PushBlockAction } = require('./actions/stack/PushBlockAction');
         this.do(new PushBlockAction(block, lifecycle));
     }
 
@@ -85,7 +86,6 @@ export class ExecutionContext implements IScriptRuntime {
      * Queues the PopBlockAction in this execution context.
      */
     popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
-        const { PopBlockAction } = require('./actions/stack/PopBlockAction');
         this.do(new PopBlockAction(lifecycle));
     }
 
@@ -95,7 +95,7 @@ export class ExecutionContext implements IScriptRuntime {
      */
     execute(initialAction: IRuntimeAction): void {
         this._queue.push(initialAction);
-        
+
         while (this._queue.length > 0) {
             if (this._iteration >= this._maxIterations) {
                 const errorMsg = `[ExecutionContext] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`;
@@ -105,10 +105,11 @@ export class ExecutionContext implements IScriptRuntime {
 
             const action = this._queue.shift()!;
             this._iteration++;
-            
+
             // Execute the action using THIS context as the runtime
             // This ensures any nested .do() calls come back here
             action.do(this);
         }
     }
 }
+

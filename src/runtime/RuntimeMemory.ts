@@ -1,4 +1,4 @@
-import { IRuntimeMemory, Nullable } from './contracts/IRuntimeMemory';
+import { IRuntimeMemory, MemorySearchCriteria } from './contracts/IRuntimeMemory';
 import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
 
 export type MemoryLocation = {
@@ -61,7 +61,8 @@ export class RuntimeMemory implements IRuntimeMemory {
     }
 
     // Searches for references matching any non-null fields in the criteria object.
-    search(criteria: Nullable<IMemoryReference>): IMemoryReference[] {
+    search(criteria: MemorySearchCriteria): IMemoryReference[] {
+
         return this._references
             .map(l => l.ref)
             .filter(ref => {

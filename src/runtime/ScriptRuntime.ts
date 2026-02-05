@@ -14,6 +14,8 @@ import { IOutputStatement } from '../core/models/OutputStatement';
 import { IRuntimeAction } from './contracts';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
+import { PushBlockAction } from './actions/stack/PushBlockAction';
+import { PopBlockAction } from './actions/stack/PopBlockAction';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -31,8 +33,8 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly jit: JitCompiler;
 
     public readonly errors: RuntimeError[] = [];
-    public readonly options: RuntimeStackOptions;    
-        
+    public readonly options: RuntimeStackOptions;
+
     // Output statement tracking
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
@@ -52,10 +54,10 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
-        
+
         // Handle explicit next events to advance the current block once per request
         this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
-               
+
         this.jit = compiler;
 
         // Start the clock
@@ -99,7 +101,7 @@ export class ScriptRuntime implements IScriptRuntime {
             }
         });
     }
-       
+
     // ========== Output Statement API ==========
 
     /**
@@ -133,7 +135,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 console.error('[RT] Output listener error:', err);
             }
         }
-    }    
+    }
 
     /**
      * Emergency cleanup method that disposes all blocks in the stack.
@@ -145,7 +147,7 @@ export class ScriptRuntime implements IScriptRuntime {
             this.stack.pop();
         }
     }
-    
+
     /**
      * Pushes a block onto the runtime stack.
      * This is a convenience method that wraps PushBlockAction.
@@ -156,29 +158,28 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         const parentBlock = this.stack.current;
-        
+
         // Call before hooks
         this.options.hooks?.onBeforePush?.(block, parentBlock);
-        
+
         // Start tracking span
         const parentSpanId = parentBlock
             ? this.options.tracker?.getActiveSpanId?.(parentBlock.key.toString()) ?? null
             : null;
         this.options.tracker?.startSpan?.(block, parentSpanId);
-        
+
         // Wrap block if wrapper is configured
         const wrappedBlock = this.options.wrapper?.wrap?.(block, parentBlock) ?? block;
-        
+
         // Execute the push action
-        const { PushBlockAction } = require('./actions/stack/PushBlockAction');
         this.do(new PushBlockAction(wrappedBlock, lifecycle));
-        
+
         // Log the push
         this.options.logger?.debug?.('runtime.pushBlock', {
             blockKey: block.key.toString(),
             parentKey: parentBlock?.key.toString(),
         });
-        
+
         // Call after hooks
         this.options.hooks?.onAfterPush?.(wrappedBlock, parentBlock);
     }
@@ -196,31 +197,31 @@ export class ScriptRuntime implements IScriptRuntime {
         if (!currentBlock) {
             return;
         }
-        
+
         // Call before hooks
         this.options.hooks?.onBeforePop?.(currentBlock);
-        
+
         // Execute the pop action (which handles unmount, dispose, output statement, parent.next)
-        const { PopBlockAction } = require('./actions/stack/PopBlockAction');
         this.do(new PopBlockAction(lifecycle));
-        
+
         // End tracking span
         const ownerKey = currentBlock.key.toString();
         this.options.tracker?.endSpan?.(ownerKey);
-        
+
         // Cleanup wrapper
         this.options.wrapper?.cleanup?.(currentBlock);
-        
+
         // Unregister hooks by owner
         this.options.hooks?.unregisterByOwner?.(ownerKey);
-        
+
         // Log the pop
         this.options.logger?.debug?.('runtime.popBlock', {
             blockKey: ownerKey,
             stackDepth: this.stack.count,
         });
-        
+
         // Call after hooks
         this.options.hooks?.onAfterPop?.(currentBlock);
     }
 }
+

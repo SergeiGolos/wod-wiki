@@ -27,6 +27,7 @@ import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../../markdown-editor/types';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { StartWorkoutAction } from '../actions/stack/StartWorkoutAction';
 
 /**
  * Interface for runtime factory implementations
@@ -91,7 +92,6 @@ export class RuntimeFactory implements IRuntimeFactory {
 
     // Start the workout by dispatching StartWorkoutAction
     // This wraps the script in a root block and pushes it onto the stack
-    const { StartWorkoutAction } = require('../actions/stack/StartWorkoutAction');
     runtime.do(new StartWorkoutAction());
 
     return runtime;
@@ -120,3 +120,4 @@ export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
   const { globalCompiler } = await import('../../runtime-test-bench/services/testbench-services');
   return new RuntimeFactory(globalCompiler);
 }
+

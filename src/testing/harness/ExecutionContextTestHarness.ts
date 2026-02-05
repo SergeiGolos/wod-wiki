@@ -10,7 +10,8 @@ import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { ICodeStatement, CodeMetadata, ICodeFragment } from '@/core/models/CodeStatement';
+import { ICodeStatement } from '@/core';
+import { StartWorkoutAction } from '@/runtime/actions/stack/StartWorkoutAction';
 
 /**
  * Helper function to create a minimal mock statement for testing.
@@ -23,25 +24,14 @@ function createMockStatement(config: { id: number; source?: string }): ICodeStat
     fragments: [],
     isLeaf: true,
     meta: {
-      source: config.source ?? `statement-${config.id}`,
-      start: { line: config.id, column: 0 },
-      end: { line: config.id, column: 0 }
-    } as CodeMetadata,
-    hints: undefined,
-    findFragment<T extends ICodeFragment = ICodeFragment>(
-      _type: string | number,
-      _predicate?: (f: ICodeFragment) => boolean
-    ): T | undefined {
-      return undefined;
-    },
-    filterFragments<T extends ICodeFragment = ICodeFragment>(
-      _type: string | number
-    ): T[] {
-      return [];
-    },
-    hasFragment(_type: string | number): boolean {
-      return false;
-    }
+      line: config.id,
+      columnStart: 0,
+      columnEnd: 0,
+      startOffset: 0,
+      endOffset: 0,
+      length: 0,
+      raw: config.source ?? `statement-${config.id}`
+    } as any
   };
 }
 
@@ -201,7 +191,7 @@ export class ExecutionContextTestHarness {
     const originalDo = this.runtime.do.bind(this.runtime);
     const self = this;
 
-    (this.runtime as any).do = function(action: IRuntimeAction): void {
+    (this.runtime as any).do = function (action: IRuntimeAction): void {
       // Track turn boundaries - a new turn starts when we're not already executing
       if (!self._isExecutingTurn) {
         self._currentTurnId++;
@@ -230,9 +220,9 @@ export class ExecutionContextTestHarness {
 
     // We need better tracking - use a depth counter
     let executionDepth = 0;
-    (this.runtime as any).do = function(action: IRuntimeAction): void {
+    (this.runtime as any).do = function (action: IRuntimeAction): void {
       const isNewTurn = executionDepth === 0;
-      
+
       if (isNewTurn) {
         self._currentTurnId++;
         self._currentIteration = 0;
@@ -240,7 +230,7 @@ export class ExecutionContextTestHarness {
 
       executionDepth++;
       self._currentIteration++;
-      
+
       self._actionExecutions.push({
         action,
         timestamp: new Date(self.clock.now.getTime()),
@@ -295,7 +285,6 @@ export class ExecutionContextTestHarness {
    * @param options Optional configuration (totalRounds, etc.)
    */
   startWorkout(options?: { totalRounds?: number }): void {
-    const { StartWorkoutAction } = require('@/runtime/actions/stack/StartWorkoutAction');
     this.executeAction(new StartWorkoutAction(options));
   }
 
@@ -308,6 +297,7 @@ export class ExecutionContextTestHarness {
   dispatchEvent(event: IEvent): void {
     this.eventBus.emit(event, this.runtime);
   }
+
 
   // ============================================================================
   // Recording Access
@@ -540,7 +530,7 @@ export class ExecutionContextTestHarness {
   nextTurn(): this {
     this.executeAction({
       type: '__turn_boundary',
-      do: () => {}
+      do: () => { }
     });
     return this;
   }

@@ -9,10 +9,10 @@ import { useRuntimeExecution } from '../hooks/useRuntimeExecution';
 import { RuntimeAdapter } from '../adapters/RuntimeAdapter';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { globalParser, globalCompiler } from '../services/testbench-services';
-import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { RuntimeStack } from '../../runtime/RuntimeStack';
 import { RuntimeClock } from '../../runtime/RuntimeClock';
 import { EventBus } from '../../runtime/events/EventBus';
+import { StartWorkoutAction } from '../../runtime/actions/stack/StartWorkoutAction';
 
 interface BlockTestBenchProps {
   initialScript?: string;
@@ -76,16 +76,16 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
     // Create new runtime with proper initialization
     const script = globalParser.read(wodContent);
     const dependencies = {
-      memory: new RuntimeMemory(),
       stack: new RuntimeStack(),
       clock: new RuntimeClock(),
       eventBus: new EventBus(),
     };
     const newRuntime = new ScriptRuntime(script as any, globalCompiler, dependencies);
-    const block = globalCompiler.compile(script.statements, newRuntime);
+    
+    // Initialize the workout by pushing root block via StartWorkoutAction
+    newRuntime.do(new StartWorkoutAction());
 
-    if (block) {
-      newRuntime.stack.push(block);
+    if (newRuntime.stack.count > 0) {
       setRuntime(newRuntime);
 
       // Update snapshot after runtime is initialized

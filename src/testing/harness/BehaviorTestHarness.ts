@@ -9,6 +9,9 @@ import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { TypedMemoryReference } from '@/runtime/contracts';
 import { MockBlock } from './MockBlock';
+import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
+import { StartWorkoutAction } from '@/runtime/actions/stack/StartWorkoutAction';
 
 /**
  * Captured action for test assertions
@@ -42,7 +45,6 @@ export class BehaviorTestHarness {
   private _stack: RuntimeStack;
   private _eventBus: EventBus;
   private _mockRuntime: IScriptRuntime;
-  private _mockTracker: IScriptRuntime['tracker'];
 
   private _capturedActions: CapturedAction[] = [];
   private _capturedEvents: CapturedEvent[] = [];
@@ -54,13 +56,6 @@ export class BehaviorTestHarness {
     this._stack = new RuntimeStack();
     this._eventBus = new EventBus();
     this._handleSpy = mock();
-    this._mockTracker = {
-        recordRound: mock(),
-        recordSpan: mock(),
-        recordMetric: mock(),
-        startSpan: mock(),
-        endSpan: mock(),
-    } as unknown as IScriptRuntime['tracker'];
     this._mockRuntime = this._createMockRuntime();
   }
 
@@ -74,7 +69,6 @@ export class BehaviorTestHarness {
       clock: this._clock,
       jit: {} as unknown as IScriptRuntime['jit'], // Not used in behavior tests
       script: {} as unknown as IScriptRuntime['script'], // Not used in behavior tests
-      tracker: this._mockTracker,
       errors: [],
 
       do(action: IRuntimeAction) {
@@ -87,12 +81,10 @@ export class BehaviorTestHarness {
       },
 
       pushBlock(block: IRuntimeBlock) {
-        const { PushBlockAction } = require('@/runtime/actions/stack/PushBlockAction');
         new PushBlockAction(block).do(this);
       },
 
       popBlock(lifecycle?: BlockLifecycleOptions) {
-        const { PopBlockAction } = require('@/runtime/actions/stack/PopBlockAction');
         new PopBlockAction(lifecycle).do(this);
       },
 
@@ -110,7 +102,7 @@ export class BehaviorTestHarness {
 
       subscribeToOutput(_listener: (output: any) => void) {
         // No-op for test harness
-        return () => {};
+        return () => { };
       },
 
       getOutputStatements() {
@@ -131,7 +123,7 @@ export class BehaviorTestHarness {
           if (block) block.dispose(this as unknown as IScriptRuntime);
         }
       }
-    } as IScriptRuntime;
+    } as any; // Cast to any because the actual interface might have subtle differences or missing methods in this view
   }
 
   // ========== Configuration API ==========
@@ -164,7 +156,6 @@ export class BehaviorTestHarness {
    * This method is provided for consistency with other harnesses.
    */
   startWorkout(options?: { totalRounds?: number }): this {
-    const { StartWorkoutAction } = require('@/runtime/actions/stack/StartWorkoutAction');
     this._mockRuntime.do(new StartWorkoutAction(options));
     return this;
   }
@@ -268,7 +259,7 @@ export class BehaviorTestHarness {
     // Track event for assertions
     this._capturedEvents.push({ event, timestamp: Date.now() });
     this._handleSpy(event);
-    
+
     // Dispatch through event bus
     this._eventBus.emit(event, this._mockRuntime);
 
@@ -326,11 +317,11 @@ export class BehaviorTestHarness {
         }
       }
     }
-    
+
     // Fall back to harness memory store
     const blockId = ownerId ?? this._stack.current?.key?.toString();
     if (!blockId) return undefined;
-    
+
     const refs = this._memory.search({ type, ownerId: blockId, id: null, visibility: null });
     if (refs.length === 0) return undefined;
     return this._memory.get(refs[0] as TypedMemoryReference<T>);
@@ -443,3 +434,4 @@ export function createBehaviorHarness(clockTime?: Date): BehaviorTestHarness {
   if (clockTime) harness.withClock(clockTime);
   return harness;
 }
+
