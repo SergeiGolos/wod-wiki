@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
-import { Play, Pause, Square } from '@phosphor-icons/react';
+import { PlayIcon, PauseIcon, SquareIcon } from '@phosphor-icons/react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { cn } from '@/lib/utils';
-import { WORKOUT_TYPES } from '@/lib/constants';
 
 interface ClockAnchorProps {
   blockKey: string;
@@ -16,7 +15,7 @@ interface ClockAnchorProps {
   duration?: number; // in milliseconds for countdown
   showProgress?: boolean;
   showControls?: boolean;
-  workoutType?: keyof typeof WORKOUT_TYPES;
+  workoutType?: string
   currentRound?: number;
   onPlay?: () => void;
   onPause?: () => void;
@@ -82,7 +81,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
             <h2 className="text-3xl font-bold text-foreground">{title}</h2>
             <p className="text-muted-foreground">{description}</p>
             <div className="flex justify-center items-center gap-2">
-              <Badge variant="secondary">{WORKOUT_TYPES[workoutType]}</Badge>
+              <Badge variant="secondary">{workoutType}</Badge>
               <Badge variant="outline">Round {currentRound}</Badge>
             </div>
           </div>
@@ -114,7 +113,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
                 size="lg"
                 className="w-32"
               >
-                <Play size={20} className="mr-2" />
+                <PlayIcon size={20} className="mr-2" />
                 Start
               </Button>
 
@@ -125,7 +124,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               )}
 
               <Button onClick={handleReset} variant="destructive" size="lg">
-                <Square size={20} className="mr-2" />
+                <SquareIcon size={20} className="mr-2" />
                 Reset
               </Button>
             </div>
@@ -152,7 +151,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
             <h2 className="text-3xl font-bold text-foreground">{title}</h2>
             <p className="text-muted-foreground">{description}</p>
             <div className="flex justify-center items-center gap-2">
-              <Badge variant="secondary">{WORKOUT_TYPES[workoutType]}</Badge>
+              <Badge variant="secondary">{workoutType}</Badge>
               <Badge variant="outline">Round {currentRound}</Badge>
             </div>
           </div>
@@ -209,12 +208,12 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               >
                 {isRunning ? (
                   <>
-                    <Pause size={20} className="mr-2" />
+                    <PauseIcon size={20} className="mr-2" />
                     Pause
                   </>
                 ) : (
                   <>
-                    <Play size={20} className="mr-2" />
+                    <PlayIcon size={20} className="mr-2" />
                     Start
                   </>
                 )}
@@ -227,7 +226,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               )}
 
               <Button onClick={handleReset} variant="destructive" size="lg">
-                <Square size={20} className="mr-2" />
+                <SquareIcon size={20} className="mr-2" />
                 Reset
               </Button>
             </div>

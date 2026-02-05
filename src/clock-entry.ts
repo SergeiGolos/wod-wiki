@@ -32,6 +32,3 @@ export { useTimerElapsed } from './runtime/hooks/useTimerElapsed';
 
 // Timer memory visualization
 export { TimerMemoryVisualization } from './clock/TimerMemoryVisualization';
-
-// Constants
-export { TIMER_COLORS, WORKOUT_TYPES, HEART_RATE_ZONES, WORKOUT_TYPE_COLORS } from './lib/constants';
