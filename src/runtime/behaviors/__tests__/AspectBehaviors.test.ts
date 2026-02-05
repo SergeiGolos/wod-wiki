@@ -6,6 +6,7 @@ import { RoundAdvanceBehavior } from '../RoundAdvanceBehavior';
 import { RoundCompletionBehavior } from '../RoundCompletionBehavior';
 import { DisplayInitBehavior } from '../DisplayInitBehavior';
 import { PopOnEventBehavior } from '../PopOnEventBehavior';
+import { ControlsInitBehavior } from '../ControlsInitBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
@@ -218,8 +219,7 @@ describe('Completion Aspect Behaviors', () => {
 
 describe('Controls Aspect Behaviors', () => {
     describe('ControlsInitBehavior', () => {
-        it('should emit controls:init event on mount', async () => {
-            const { ControlsInitBehavior } = await import('../ControlsInitBehavior');
+        it('should set controls memory on mount', () => {
             const ctx = createMockContext();
             const behavior = new ControlsInitBehavior({
                 buttons: [
@@ -229,26 +229,24 @@ describe('Controls Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'controls:init',
-                data: expect.objectContaining({
-                    buttons: expect.arrayContaining([
-                        expect.objectContaining({ id: 'next' })
-                    ])
-                })
+            // Controls state is set in memory, not emitted as event
+            expect(ctx.setMemory).toHaveBeenCalledWith('controls', expect.objectContaining({
+                buttons: expect.arrayContaining([
+                    expect.objectContaining({ id: 'next' })
+                ])
             }));
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
 
-        it('should emit controls:cleanup on unmount', async () => {
-            const { ControlsInitBehavior } = await import('../ControlsInitBehavior');
+        it('should clear controls memory on unmount', () => {
             const ctx = createMockContext();
             const behavior = new ControlsInitBehavior({ buttons: [] });
 
             behavior.onUnmount(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'controls:cleanup'
-            }));
+            // Controls cleared (empty buttons array) on unmount
+            expect(ctx.setMemory).toHaveBeenCalledWith('controls', { buttons: [] });
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });
 });
@@ -272,7 +270,7 @@ describe('Output Aspect Behaviors', () => {
     });
 
     describe('SoundCueBehavior', () => {
-        it('should emit sound:play on mount for mount triggers', async () => {
+        it('should emit sound output on mount for mount triggers', async () => {
             const { SoundCueBehavior } = await import('../SoundCueBehavior');
             const ctx = createMockContext();
             const behavior = new SoundCueBehavior({
@@ -281,12 +279,18 @@ describe('Output Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'sound:play',
-                data: expect.objectContaining({
-                    sound: 'start-beep'
-                })
-            }));
+            // Sound cues emit milestone outputs with SoundFragment, not events
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'milestone',
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        sound: 'start-beep',
+                        trigger: 'mount'
+                    })
+                ]),
+                expect.any(Object)
+            );
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
 
         it('should subscribe to tick for countdown cues', async () => {
@@ -301,7 +305,7 @@ describe('Output Aspect Behaviors', () => {
             expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function));
         });
 
-        it('should emit sound:play on unmount for complete triggers', async () => {
+        it('should emit sound output on unmount for complete triggers', async () => {
             const { SoundCueBehavior } = await import('../SoundCueBehavior');
             const ctx = createMockContext();
             const behavior = new SoundCueBehavior({
@@ -310,12 +314,18 @@ describe('Output Aspect Behaviors', () => {
 
             behavior.onUnmount(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'sound:play',
-                data: expect.objectContaining({
-                    sound: 'complete-chime'
-                })
-            }));
+            // Sound cues emit milestone outputs with SoundFragment, not events
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'milestone',
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        sound: 'complete-chime',
+                        trigger: 'complete'
+                    })
+                ]),
+                expect.any(Object)
+            );
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });
 

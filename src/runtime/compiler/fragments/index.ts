@@ -9,3 +9,5 @@ export { IncrementFragment } from './IncrementFragment';
 export { LapFragment } from './LapFragment';
 export { ActionFragment } from './ActionFragment';
 export type { ActionFragmentOptions } from './ActionFragment';
+export { SoundFragment } from './SoundFragment';
+export type { SoundTrigger, SoundFragmentValue } from './SoundFragment';

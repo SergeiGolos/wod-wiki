@@ -178,7 +178,11 @@ describe('AMRAP Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx);
 
             const milestones = findOutputs(runtime, 'milestone');
-            expect(milestones.length).toBe(2);
+            // Filter for round milestones (exclude sound cues)
+            const roundMilestones = milestones.filter(m =>
+                (m.fragments as any[]).some(f => f.fragmentType === 'rounds')
+            );
+            expect(roundMilestones.length).toBe(2);
         });
 
         it('should record final round count in history', () => {
@@ -201,21 +205,27 @@ describe('AMRAP Pattern Integration', () => {
             // Note: completedRounds in history is current - 1
         });
 
-        it('should emit sound cues', () => {
+        it('should emit sound cues as outputs', () => {
             const behaviors = createAmrapBehaviors(5000);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
-            // Mount should trigger start sound
-            let sounds = findEvents(runtime, 'sound:play');
-            expect(sounds.some(e => (e.data as any).sound === 'start')).toBe(true);
+            // Mount should trigger start sound output
+            let milestones = findOutputs(runtime, 'milestone');
+            let startSounds = milestones.filter(m =>
+                (m.fragments as any[]).some(f => f.sound === 'start')
+            );
+            expect(startSounds.length).toBeGreaterThanOrEqual(1);
 
             // Complete and unmount
             simulateTicks(runtime, ctx, 6, 1000);
             unmountBehaviors(behaviors, ctx);
 
-            // Unmount should trigger complete sound
-            sounds = findEvents(runtime, 'sound:play');
-            expect(sounds.some(e => (e.data as any).sound === 'complete')).toBe(true);
+            // Unmount should trigger complete sound output
+            milestones = findOutputs(runtime, 'milestone');
+            let completeSounds = milestones.filter(m =>
+                (m.fragments as any[]).some(f => f.sound === 'complete')
+            );
+            expect(completeSounds.length).toBeGreaterThanOrEqual(1);
         });
     });
 

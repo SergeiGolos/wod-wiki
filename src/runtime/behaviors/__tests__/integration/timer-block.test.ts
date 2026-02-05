@@ -15,6 +15,7 @@ import {
     expectMemoryState,
     calculateElapsed,
     findEvents,
+    findOutputs,
     MockRuntime,
     MockBlock,
     createIntegrationContext
@@ -243,13 +244,17 @@ describe('Timer Block Integration', () => {
             })
         ];
 
-        it('should emit sound:play on mount', () => {
+        it('should emit sound output on mount', () => {
             const behaviors = createSoundBehaviors();
 
             mountBehaviors(behaviors, runtime, block);
 
-            const soundEvents = findEvents(runtime, 'sound:play');
-            expect(soundEvents.some(e => (e.data as any).sound === 'start-beep')).toBe(true);
+            // Sound cues emit milestone outputs, not events
+            const milestones = findOutputs(runtime, 'milestone');
+            const soundOutputs = milestones.filter(m => 
+                (m.fragments as any[]).some(f => f.sound === 'start-beep')
+            );
+            expect(soundOutputs.length).toBeGreaterThanOrEqual(1);
         });
 
         it('should emit countdown sounds at correct times', () => {
@@ -260,8 +265,11 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(2000);
             simulateTicks(runtime, ctx, 3, 1000);
 
-            const soundEvents = findEvents(runtime, 'sound:play');
-            const countdownSounds = soundEvents.filter(e => (e.data as any).sound === 'countdown-beep');
+            // Sound cues emit milestone outputs, not events
+            const milestones = findOutputs(runtime, 'milestone');
+            const countdownSounds = milestones.filter(m =>
+                (m.fragments as any[]).some(f => f.sound === 'countdown-beep')
+            );
             expect(countdownSounds.length).toBeGreaterThanOrEqual(1);
         });
 
@@ -272,8 +280,12 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(6000);
             unmountBehaviors(behaviors, ctx);
 
-            const soundEvents = findEvents(runtime, 'sound:play');
-            expect(soundEvents.some(e => (e.data as any).sound === 'complete-chime')).toBe(true);
+            // Sound cues emit milestone outputs, not events
+            const milestones = findOutputs(runtime, 'milestone');
+            const completeSounds = milestones.filter(m =>
+                (m.fragments as any[]).some(f => f.sound === 'complete-chime')
+            );
+            expect(completeSounds.length).toBeGreaterThanOrEqual(1);
         });
     });
 });

@@ -92,9 +92,59 @@ export interface DisplayState {
 }
 
 /**
+ * Button style variants for UI rendering.
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+/**
+ * Configuration for a single control button.
+ */
+export interface ButtonConfig {
+    /** Unique button identifier */
+    readonly id: string;
+
+    /** Display label */
+    readonly label: string;
+
+    /** Button style variant */
+    readonly variant: ButtonVariant;
+
+    /** Whether button is currently visible */
+    readonly visible: boolean;
+
+    /** Whether button is enabled (clickable) */
+    readonly enabled: boolean;
+
+    /** 
+     * Event name to emit when clicked.
+     * External systems subscribe to these events to handle user actions.
+     * Examples: 'timer:pause', 'block:next', 'workout:stop'
+     */
+    readonly eventName?: string;
+
+    /** 
+     * Whether this button is pinned (always visible).
+     * Derived from `[:!action]` syntax in WOD scripts.
+     */
+    readonly isPinned?: boolean;
+}
+
+/**
+ * Controls state stored in memory.
+ * Represents the current set of control buttons available to the user.
+ * 
+ * The UI observes this memory to render action buttons. When buttons are
+ * clicked, the UI emits the corresponding `eventName` as an external event.
+ */
+export interface ControlsState {
+    /** Current button configurations */
+    readonly buttons: readonly ButtonConfig[];
+}
+
+/**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'fragment' | 'completion' | 'display';
+export type MemoryType = 'timer' | 'round' | 'fragment' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
@@ -109,6 +159,7 @@ export interface MemoryTypeMap {
     fragment: FragmentState;
     completion: CompletionState;
     display: DisplayState;
+    controls: ControlsState;
 }
 
 /**

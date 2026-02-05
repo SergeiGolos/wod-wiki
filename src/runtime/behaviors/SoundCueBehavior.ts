@@ -2,12 +2,14 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
+import { SoundFragment } from '../compiler/fragments/SoundFragment';
+import type { SoundTrigger } from '../compiler/fragments/SoundFragment';
 
 export interface SoundCue {
     /** Sound identifier or URL */
     sound: string;
     /** When to play: 'mount' | 'unmount' | 'countdown' | 'complete' */
-    trigger: 'mount' | 'unmount' | 'countdown' | 'complete';
+    trigger: SoundTrigger;
     /** Countdown seconds (only for trigger: 'countdown') */
     atSeconds?: number[];
 }
@@ -18,27 +20,43 @@ export interface SoundCueConfig {
 }
 
 /**
- * SoundCueBehavior plays audio cues at specific lifecycle points.
+ * SoundCueBehavior emits sound cue outputs at specific lifecycle points.
  * 
  * ## Aspect: Output (Audio)
  * 
- * Emits sound events that the audio system can respond to.
+ * Emits 'milestone' outputs with SoundFragment that audio systems can observe.
+ * This follows the principle that behaviors emit outputs, not events.
+ * 
+ * ## Output Contract
+ * 
+ * - **Mount**: Emits milestone output for 'mount' trigger sounds
+ * - **Tick**: Emits milestone output for 'countdown' trigger sounds at specified seconds
+ * - **Unmount**: Emits milestone output for 'unmount' and 'complete' trigger sounds
+ * 
+ * ## Audio System Integration
+ * 
+ * Audio systems should subscribe to outputs (via runtime output stream) and
+ * filter for SoundFragment to play audio cues:
+ * 
+ * ```typescript
+ * runtime.outputs$.subscribe(output => {
+ *   const soundFragments = output.fragments.filter(f => f.fragmentType === FragmentType.Sound);
+ *   for (const sf of soundFragments) {
+ *     audioPlayer.play(sf.value.sound);
+ *   }
+ * });
+ * ```
  */
 export class SoundCueBehavior implements IRuntimeBehavior {
     constructor(private config: SoundCueConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Play mount sounds
+        // Emit mount sound outputs
         for (const cue of this.config.cues) {
             if (cue.trigger === 'mount') {
-                ctx.emitEvent({
-                    name: 'sound:play',
-                    timestamp: ctx.clock.now,
-                    data: {
-                        sound: cue.sound,
-                        blockKey: ctx.block.key.toString()
-                    }
-                });
+                ctx.emitOutput('milestone', [
+                    new SoundFragment(cue.sound, 'mount')
+                ], { label: `Sound: ${cue.sound}` });
             }
         }
 
@@ -61,19 +79,13 @@ export class SoundCueBehavior implements IRuntimeBehavior {
                 const remainingMs = timer.durationMs - elapsed;
                 const remainingSeconds = Math.ceil(remainingMs / 1000);
 
-                // Check if we should play a cue
+                // Check if we should emit a sound cue
                 for (const cue of countdownCues) {
                     if (cue.atSeconds?.includes(remainingSeconds) && !playedSeconds.has(remainingSeconds)) {
                         playedSeconds.add(remainingSeconds);
-                        tickCtx.emitEvent({
-                            name: 'sound:play',
-                            timestamp: tickCtx.clock.now,
-                            data: {
-                                sound: cue.sound,
-                                remainingSeconds,
-                                blockKey: tickCtx.block.key.toString()
-                            }
-                        });
+                        tickCtx.emitOutput('milestone', [
+                            new SoundFragment(cue.sound, 'countdown', { atSecond: remainingSeconds })
+                        ], { label: `Countdown: ${remainingSeconds}s` });
                     }
                 }
 
@@ -89,17 +101,12 @@ export class SoundCueBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Play unmount sounds
+        // Emit unmount/complete sound outputs
         for (const cue of this.config.cues) {
             if (cue.trigger === 'unmount' || cue.trigger === 'complete') {
-                ctx.emitEvent({
-                    name: 'sound:play',
-                    timestamp: ctx.clock.now,
-                    data: {
-                        sound: cue.sound,
-                        blockKey: ctx.block.key.toString()
-                    }
-                });
+                ctx.emitOutput('milestone', [
+                    new SoundFragment(cue.sound, cue.trigger)
+                ], { label: `Sound: ${cue.sound}` });
             }
         }
 

@@ -66,5 +66,6 @@ export enum FragmentType {
   Increment = 'increment',
   Lap = 'lap',
   Text = 'text',
-  Resistance = 'resistance'
+  Resistance = 'resistance',
+  Sound = 'sound'
 }
