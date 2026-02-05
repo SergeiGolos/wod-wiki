@@ -29,23 +29,13 @@ export class TimerInitBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now.getTime();
 
         // Initialize timer state in memory
+        // Timer start is signaled by the presence of timer memory with an open span
         ctx.setMemory('timer', {
             direction: this.config.direction,
             durationMs: this.config.durationMs,
             spans: [new TimeSpan(now)],
             label: this.config.label ?? ctx.block.label,
             role: this.config.role === 'hidden' ? 'auto' : (this.config.role ?? 'primary')
-        });
-
-        // Emit timer:started event
-        ctx.emitEvent({
-            name: 'timer:started',
-            timestamp: ctx.clock.now,
-            data: {
-                blockKey: ctx.block.key.toString(),
-                direction: this.config.direction,
-                durationMs: this.config.durationMs
-            }
         });
 
         return [];

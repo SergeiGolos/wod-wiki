@@ -22,12 +22,10 @@ describe('IntervalBlock', () => {
     harness.push(block);
     harness.mount();
 
-    // Timer should be initialized
-    expect(harness.wasEventEmitted('timer:started')).toBe(true);
-    
-    // Verify timer started with correct duration
-    const startedEvent = harness.findEvents('timer:started')[0];
-    expect(startedEvent.data.durationMs).toBe(60000);
-    expect(startedEvent.data.direction).toBe('down');
+    // Timer should be initialized in memory (no event emission)
+    const timerMemory = harness.getMemory('timer');
+    expect(timerMemory).toBeDefined();
+    expect(timerMemory.durationMs).toBe(60000);
+    expect(timerMemory.direction).toBe('down');
   });
 });

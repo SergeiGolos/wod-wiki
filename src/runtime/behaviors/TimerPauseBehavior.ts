@@ -37,13 +37,8 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
                 spans: updatedSpans
             });
 
+            // Pause state is signaled by closed span in timer memory
             this.isPaused = true;
-
-            pauseCtx.emitEvent({
-                name: 'timer:paused',
-                timestamp: pauseCtx.clock.now,
-                data: { blockKey: pauseCtx.block.key.toString() }
-            });
 
             return [];
         });
@@ -64,13 +59,8 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
                 spans: updatedSpans
             });
 
+            // Resume state is signaled by new open span in timer memory
             this.isPaused = false;
-
-            resumeCtx.emitEvent({
-                name: 'timer:resumed',
-                timestamp: resumeCtx.clock.now,
-                data: { blockKey: resumeCtx.block.key.toString() }
-            });
 
             return [];
         });

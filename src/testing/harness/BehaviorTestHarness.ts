@@ -284,10 +284,38 @@ export class BehaviorTestHarness {
   // ========== Memory Operations ==========
 
   /**
-   * Get a memory value by type and owner
+   * Get a memory value by type and owner.
+   * If no ownerId is provided, checks the current block's context first,
+   * then falls back to the harness memory store.
    */
-  getMemory<T>(type: string, ownerId: string): T | undefined {
-    const refs = this._memory.search({ type, ownerId, id: null, visibility: null });
+  getMemory<T>(type: string, ownerId?: string): T | undefined {
+    // If no ownerId provided, try current block's context first
+    if (!ownerId) {
+      const currentBlock = this._stack.current;
+      if (currentBlock) {
+        // Check if block has a context with the memory (MockBlock pattern)
+        const blockContext = (currentBlock as any).context;
+        if (blockContext?.get) {
+          const ref = blockContext.get(type);
+          if (ref) {
+            return ref.get?.() ?? ref.value?.();
+          }
+        }
+        // Also check if block has direct getMemory (IRuntimeBlock pattern)
+        if (typeof (currentBlock as any).getMemory === 'function') {
+          const memEntry = (currentBlock as any).getMemory(type);
+          if (memEntry?.value !== undefined) {
+            return memEntry.value;
+          }
+        }
+      }
+    }
+    
+    // Fall back to harness memory store
+    const blockId = ownerId ?? this._stack.current?.key?.toString();
+    if (!blockId) return undefined;
+    
+    const refs = this._memory.search({ type, ownerId: blockId, id: null, visibility: null });
     if (refs.length === 0) return undefined;
     return this._memory.get(refs[0] as TypedMemoryReference<T>);
   }

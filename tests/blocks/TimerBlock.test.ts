@@ -19,8 +19,12 @@ describe('TimerBlock', () => {
     harness.push(block);
     harness.mount();
 
-    // Timer state should be initialized in memory
-    expect(harness.wasEventEmitted('timer:started')).toBe(true);
+    // Timer state should be initialized in memory with open span (signals timer started)
+    const timerMemory = harness.getMemory('timer');
+    expect(timerMemory).toBeDefined();
+    expect(timerMemory.direction).toBe('up');
+    expect(timerMemory.spans.length).toBe(1);
+    expect(timerMemory.spans[0].ended).toBeUndefined(); // Open span = running
   });
 
   it('should initialize countdown timer with durationMs', () => {
@@ -32,12 +36,11 @@ describe('TimerBlock', () => {
     harness.push(block);
     harness.mount();
 
-    expect(harness.wasEventEmitted('timer:started')).toBe(true);
-    
-    // Verify timer:started event contains correct data
-    const startedEvent = harness.findEvents('timer:started')[0];
-    expect(startedEvent.data.direction).toBe('down');
-    expect(startedEvent.data.durationMs).toBe(10000);
+    // Verify timer memory contains correct data (no event emission)
+    const timerMemory = harness.getMemory('timer');
+    expect(timerMemory).toBeDefined();
+    expect(timerMemory.direction).toBe('down');
+    expect(timerMemory.durationMs).toBe(10000);
   });
 
   it('should stop timer on unmount', () => {

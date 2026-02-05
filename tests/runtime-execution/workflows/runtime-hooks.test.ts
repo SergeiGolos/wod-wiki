@@ -58,25 +58,18 @@ describe('Runtime Hooks Integration', () => {
         });
     });
 
-    describe('Timer Events', () => {
-        it('should emit timer:started event on mount', () => {
+    describe('Timer Memory Initialization', () => {
+        it('should initialize timer memory on mount', () => {
             const timerInit = new TimerInitBehavior({ direction: 'up', label: 'Timer' });
             const timerTick = new TimerTickBehavior();
             const block = new RuntimeBlock(runtime, [1], [timerInit, timerTick], 'Timer');
             
-            let startedEventReceived = false;
-            runtime.eventBus.register('timer:started', {
-                id: 'test',
-                name: 'TestHandler',
-                handler: () => {
-                    startedEventReceived = true;
-                    return [];
-                }
-            }, 'test');
-            
             block.mount(runtime);
             
-            expect(startedEventReceived).toBe(true);
+            // Timer state is signaled by memory, not event
+            const timerMemory = block.getMemory('timer');
+            expect(timerMemory).toBeDefined();
+            expect(timerMemory?.value.direction).toBe('up');
         });
     });
 

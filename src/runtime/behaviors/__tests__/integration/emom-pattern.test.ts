@@ -162,14 +162,15 @@ describe('EMOM Pattern Integration', () => {
             expect(milestones.length).toBe(2);
         });
 
-        it('should emit round:advance events', () => {
+        it('should update round memory on advance (no event emission)', () => {
             const behaviors = createEmomBehaviors(60000, 5);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             advanceBehaviors(behaviors, ctx);
 
-            const events = findEvents(runtime, 'round:advance');
-            expect(events.length).toBe(1);
+            // Round advancement is signaled by memory update, not event
+            const round = block.memory.get('round') as { current: number; total: number };
+            expect(round.current).toBe(2);
         });
     });
 

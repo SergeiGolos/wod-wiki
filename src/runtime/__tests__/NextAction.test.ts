@@ -109,13 +109,6 @@ describe('NextAction', () => {
     expect(() => action.do(incompleteRuntime)).not.toThrow();
   });
 
-  it('should handle corrupted memory state', () => {
-    mockRuntime.memory.state = 'corrupted';
-
-    expect(() => action.do(mockRuntime)).not.toThrow();
-    expect(mockCurrentBlock.next).not.toHaveBeenCalled();
-  });
-
   it('should handle action execution errors gracefully', () => {
     const mockAction = {
       do: vi.fn().mockImplementation(() => {

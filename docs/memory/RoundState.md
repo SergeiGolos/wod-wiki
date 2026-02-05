@@ -47,7 +47,7 @@ interface RoundInitConfig {
 
 **Lifecycle**: `onNext`
 
-Increments the round counter when `next()` is called on the block.
+Increments the round counter when `next()` is called on the block. Round advancement is signaled through memory update, not events.
 
 ```typescript
 const round = ctx.getMemory('round');
@@ -55,9 +55,10 @@ ctx.setMemory('round', {
     current: round.current + 1,
     total: round.total
 });
+// No event emission - round advancement is observable through memory
 ```
 
-**Events Emitted**: `round:advance`
+**Note**: Use `RoundOutputBehavior` to emit `milestone` outputs for round tracking.
 
 ## Behaviors That Read Round Memory
 
@@ -65,7 +66,7 @@ ctx.setMemory('round', {
 
 **Lifecycle**: `onNext`
 
-Checks if rounds are exhausted and marks block complete.
+Checks if rounds are exhausted and marks block complete. Completion is signaled through `markComplete()`, not events.
 
 ```typescript
 const round = ctx.getMemory('round');
@@ -76,9 +77,7 @@ if (round.total !== undefined && round.current > round.total) {
 }
 ```
 
-> **Note**: Should run AFTER `RoundAdvanceBehavior` in the behavior chain.
-
-**Events Emitted**: `rounds:complete`
+> **Note**: Should run AFTER `RoundAdvanceBehavior` in the behavior chain. No events are emitted—completion reason is stored in CompletionState memory.
 
 ### RoundDisplayBehavior
 

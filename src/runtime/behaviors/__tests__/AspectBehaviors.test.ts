@@ -48,15 +48,19 @@ describe('Time Aspect Behaviors', () => {
             }));
         });
 
-        it('should emit timer:started event', () => {
+        it('should initialize timer memory with open span (signals timer started)', () => {
             const ctx = createMockContext();
             const behavior = new TimerInitBehavior({ direction: 'up' });
 
             behavior.onMount(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'timer:started'
+            // Timer start is signaled by timer memory with an open span
+            expect(ctx.setMemory).toHaveBeenCalledWith('timer', expect.objectContaining({
+                direction: 'up',
+                spans: expect.arrayContaining([expect.objectContaining({ started: expect.any(Number) })])
             }));
+            // No event emission - timer start is implicit from memory
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });
 
@@ -121,7 +125,7 @@ describe('Iteration Aspect Behaviors', () => {
             });
         });
 
-        it('should emit round:advance event', () => {
+        it('should update round memory (no event emission)', () => {
             const memoryStore = new Map<string, any>();
             memoryStore.set('round', { current: 1, total: 3 });
 
@@ -132,9 +136,9 @@ describe('Iteration Aspect Behaviors', () => {
             const behavior = new RoundAdvanceBehavior();
             behavior.onNext(ctx);
 
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'round:advance'
-            }));
+            // Round advancement is signaled by memory update, no event
+            expect(ctx.setMemory).toHaveBeenCalledWith('round', { current: 2, total: 3 });
+            expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });
 

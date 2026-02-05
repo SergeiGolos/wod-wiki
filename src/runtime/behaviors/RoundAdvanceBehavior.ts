@@ -21,20 +21,10 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
         if (!round) return [];
 
         // Advance to next round
+        // Round advancement is signaled by memory update; no event emission needed
         ctx.setMemory('round', {
             current: round.current + 1,
             total: round.total
-        });
-
-        // Emit round:advance event
-        ctx.emitEvent({
-            name: 'round:advance',
-            timestamp: ctx.clock.now,
-            data: {
-                blockKey: ctx.block.key.toString(),
-                newRound: round.current + 1,
-                totalRounds: round.total
-            }
         });
 
         return [];

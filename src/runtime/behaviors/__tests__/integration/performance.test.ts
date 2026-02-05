@@ -170,10 +170,10 @@ describe('Performance Integration', () => {
                 advanceBehaviors(behaviors, ctx);
             }
 
-            // Check event count is reasonable (not growing unbounded)
-            // Each advance emits 1 round:advance event + 1 milestone output
+            // Check output count is reasonable (not growing unbounded)
+            // Each advance emits 1 milestone output (no events from RoundAdvanceBehavior)
             // Plus 1 initial 'segment' output from RoundOutputBehavior.onMount
-            expect(runtime.events.length).toBe(10000);
+            expect(runtime.events.length).toBe(0); // No internal events emitted
             expect(runtime.outputs.length).toBe(10001);
         });
     });

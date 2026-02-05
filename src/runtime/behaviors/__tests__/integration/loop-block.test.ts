@@ -119,15 +119,15 @@ describe('Loop Block Integration', () => {
             new HistoryRecordBehavior()
         ];
 
-        it('should emit round:advance event on advance', () => {
+        it('should update round memory on advance (no event emission)', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             advanceBehaviors(behaviors, ctx);
 
-            const advanceEvents = findEvents(runtime, 'round:advance');
-            expect(advanceEvents.length).toBeGreaterThanOrEqual(1);
-            expect((advanceEvents[0].data as any).newRound).toBe(2);
+            // Round advancement is signaled by memory update, not event
+            const round = block.memory.get('round') as { current: number; total: number };
+            expect(round.current).toBe(2);
         });
 
         it('should emit milestone output on round advance', () => {

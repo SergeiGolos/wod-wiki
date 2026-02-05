@@ -22,10 +22,10 @@ describe('EffortBlock (simulated with MockBlock)', () => {
     harness.push(block);
     harness.mount();
 
-    expect(harness.wasEventEmitted('timer:started')).toBe(true);
-    
-    const startedEvent = harness.findEvents('timer:started')[0];
-    expect(startedEvent.data.direction).toBe('up');
+    // Timer should be initialized in memory (no event emission)
+    const timerMemory = harness.getMemory('timer');
+    expect(timerMemory).toBeDefined();
+    expect(timerMemory.direction).toBe('up');
   });
 
   it('should mark complete on next via PopOnNextBehavior', () => {

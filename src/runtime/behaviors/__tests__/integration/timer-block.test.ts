@@ -72,17 +72,18 @@ describe('Timer Block Integration', () => {
             });
         });
 
-        it('should emit timer:started event on mount', () => {
+        it('should initialize timer memory with open span on mount', () => {
             const behaviors = createCountdownBehaviors();
 
             mountBehaviors(behaviors, runtime, block);
 
-            const startEvents = findEvents(runtime, 'timer:started');
-            expect(startEvents.length).toBe(1);
-            expect(startEvents[0].data).toMatchObject({
-                direction: 'down',
-                durationMs: 10000
-            });
+            // Timer start is signaled by timer memory with an open span
+            const timer = block.memory.get('timer') as TimerState;
+            expect(timer).toBeDefined();
+            expect(timer.direction).toBe('down');
+            expect(timer.durationMs).toBe(10000);
+            expect(timer.spans.length).toBe(1);
+            expect(timer.spans[0].ended).toBeUndefined(); // Open span = running
         });
 
         it('should close span on unmount', () => {
@@ -106,14 +107,14 @@ describe('Timer Block Integration', () => {
             expect(runtime.completionReason).toBe('timer-expired');
         });
 
-        it('should emit timer:complete event on expiry', () => {
+        it('should mark complete when countdown expires (via markComplete)', () => {
             const behaviors = createCountdownBehaviors(3000); // 3 second timer
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             simulateTicks(runtime, ctx, 4, 1000);
 
-            const completeEvents = findEvents(runtime, 'timer:complete');
-            expect(completeEvents.length).toBeGreaterThanOrEqual(1);
+            // Completion is signaled via markComplete, not event
+            expect(runtime.completionReason).toBe('timer-expired');
         });
 
         it('should emit correct elapsed time in output on unmount', () => {
@@ -175,18 +176,19 @@ describe('Timer Block Integration', () => {
             new TimerCompletionBehavior()
         ];
 
-        it('should pause timer on timer:pause event', () => {
+        it('should close span on pause (timer:pause event)', () => {
             const behaviors = createPausableBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             runtime.clock.advance(3000);
             dispatchEvent(runtime, ctx, 'timer:pause', {});
 
-            const pauseEvents = findEvents(runtime, 'timer:paused');
-            expect(pauseEvents.length).toBe(1);
+            // Pause is signaled by closed span in timer memory, not event
+            const timer = block.memory.get('timer') as TimerState;
+            expect(timer.spans[0].ended).toBeDefined();
         });
 
-        it('should resume timer on timer:resume event', () => {
+        it('should open new span on resume (timer:resume event)', () => {
             const behaviors = createPausableBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -195,8 +197,10 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(5000); // Paused for 5 seconds
             dispatchEvent(runtime, ctx, 'timer:resume', {});
 
-            const resumeEvents = findEvents(runtime, 'timer:resumed');
-            expect(resumeEvents.length).toBe(1);
+            // Resume is signaled by new open span in timer memory, not event
+            const timer = block.memory.get('timer') as TimerState;
+            expect(timer.spans.length).toBe(2);
+            expect(timer.spans[1].ended).toBeUndefined(); // New span is open
         });
 
         it('should track multiple spans correctly', () => {

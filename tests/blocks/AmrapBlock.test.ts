@@ -23,12 +23,12 @@ describe('AmrapBlock', () => {
     harness.push(block);
     harness.mount();
 
-    // Timer should be initialized and running
-    expect(harness.wasEventEmitted('timer:started')).toBe(true);
-    
-    const startedEvent = harness.findEvents('timer:started')[0];
-    expect(startedEvent.data.direction).toBe('down');
-    expect(startedEvent.data.durationMs).toBe(10000);
+    // Timer should be initialized in memory with open span (signals timer started)
+    const timerMemory = harness.getMemory('timer');
+    expect(timerMemory).toBeDefined();
+    expect(timerMemory.direction).toBe('down');
+    expect(timerMemory.durationMs).toBe(10000);
+    expect(timerMemory.spans.length).toBe(1);
   });
 
   it('should allow infinite rounds until timer completes', () => {

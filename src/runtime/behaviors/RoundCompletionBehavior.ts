@@ -21,18 +21,9 @@ export class RoundCompletionBehavior implements IRuntimeBehavior {
         if (!round) return [];
 
         // If we have a total and current exceeds it, mark complete
+        // Completion is signaled via markComplete; no event emission needed
         if (round.total !== undefined && round.current > round.total) {
             ctx.markComplete('rounds-complete');
-
-            // Emit rounds:complete event
-            ctx.emitEvent({
-                name: 'rounds:complete',
-                timestamp: ctx.clock.now,
-                data: {
-                    blockKey: ctx.block.key.toString(),
-                    completedRounds: round.total
-                }
-            });
         }
 
         return [];

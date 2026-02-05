@@ -204,10 +204,12 @@ describe('Timer Block Lifecycle', () => {
       // Start at a specific time
       const t = TimerTestHarness.atTime('0:05 Run', '2024-06-15T10:30:00Z').start();
 
-      // timer:started event should use that faked time
-      const startedEvents = t.findEvents('timer:started');
-      expect(startedEvents.length).toBe(1);
-      expect(startedEvents[0].timestamp.toISOString()).toBe('2024-06-15T10:30:00.000Z');
+      // Timer memory should be initialized with a span starting at the faked time
+      const timerMemory = t.block.getMemory('timer');
+      expect(timerMemory).toBeDefined();
+      expect(timerMemory?.value.spans.length).toBe(1);
+      // The span started timestamp should match the faked clock
+      expect(timerMemory?.value.spans[0].started).toBe(new Date('2024-06-15T10:30:00Z').getTime());
     });
   });
 
@@ -220,23 +222,28 @@ describe('Timer Block Lifecycle', () => {
       expect(t.blockMemoryCount()).toBeGreaterThan(0);
     });
 
-    it('should emit timer:started event on push', () => {
+    it('should initialize timer memory with open span on push', () => {
       const t = new TimerTestHarness('0:05 Run').start();
 
-      expect(t.wasEmitted('timer:started')).toBe(true);
+      // Timer state is signaled by memory with open span, not event
+      const timerMemory = t.block.getMemory('timer');
+      expect(timerMemory).toBeDefined();
+      expect(timerMemory?.value.spans.length).toBe(1);
+      expect(timerMemory?.value.spans[0].ended).toBeUndefined(); // Open span
     });
   });
 
   describe('Phase 3: Timer Events', () => {
 
-    it('should emit timer:started with correct data', () => {
+    it('should initialize timer memory with correct direction and duration', () => {
       // 5-second countdown timer
       const t = new TimerTestHarness('0:05 Run').start();
 
-      const startedEvents = t.findEvents('timer:started');
-      expect(startedEvents.length).toBe(1);
-      expect(startedEvents[0].data.direction).toBe('down');
-      expect(startedEvents[0].data.durationMs).toBe(5000);
+      // Timer memory should have correct configuration (no event emission)
+      const timerMemory = t.block.getMemory('timer');
+      expect(timerMemory).toBeDefined();
+      expect(timerMemory?.value.direction).toBe('down');
+      expect(timerMemory?.value.durationMs).toBe(5000);
     });
   });
 
@@ -249,9 +256,9 @@ describe('Timer Block Lifecycle', () => {
       // Block should be on stack
       expect(t.stackCount).toBe(1);
 
-      // timer:started event should have direction 'up' or no duration
-      const startedEvents = t.findEvents('timer:started');
-      expect(startedEvents.length).toBe(1);
+      // Timer memory should be initialized (no event emission)
+      const timerMemory = t.block.getMemory('timer');
+      expect(timerMemory).toBeDefined();
     });
   });
 

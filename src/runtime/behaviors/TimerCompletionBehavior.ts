@@ -29,16 +29,8 @@ export class TimerCompletionBehavior implements IRuntimeBehavior {
         const timer = ctx.getMemory('timer') as TimerState | undefined;
         if (timer && timer.direction === 'down' && timer.durationMs !== undefined && timer.durationMs <= 0) {
             // Zero or negative duration - complete immediately
+            // Completion is signaled via markComplete; no event emission needed
             ctx.markComplete('timer-expired');
-            ctx.emitEvent({
-                name: 'timer:complete',
-                timestamp: ctx.clock.now,
-                data: {
-                    blockKey: ctx.block.key.toString(),
-                    elapsedMs: 0,
-                    durationMs: timer.durationMs
-                }
-            });
             return [];
         }
 
@@ -55,18 +47,8 @@ export class TimerCompletionBehavior implements IRuntimeBehavior {
 
             if (elapsed >= timer.durationMs) {
                 // Timer expired - mark complete
+                // Completion is signaled via markComplete; no event emission needed
                 tickCtx.markComplete('timer-expired');
-
-                // Emit timer:complete event
-                tickCtx.emitEvent({
-                    name: 'timer:complete',
-                    timestamp: tickCtx.clock.now,
-                    data: {
-                        blockKey: tickCtx.block.key.toString(),
-                        elapsedMs: elapsed,
-                        durationMs: timer.durationMs
-                    }
-                });
             }
 
             return [];

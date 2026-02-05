@@ -50,7 +50,7 @@ Total elapsed time is calculated by summing all span durations.
 
 **Lifecycle**: `onMount`
 
-Initializes timer state when a timer block is mounted.
+Initializes timer state when a timer block is mounted. Timer start is signaled implicitly by the presence of timer memory with an open span—no event is emitted.
 
 ```typescript
 // Initializes with configuration
@@ -61,9 +61,8 @@ ctx.setMemory('timer', {
     label: config.label ?? ctx.block.label,
     role: config.role ?? 'primary'
 });
+// No event emission - timer start is implicit from memory allocation
 ```
-
-**Events Emitted**: `timer:started`
 
 ### TimerTickBehavior
 
@@ -86,14 +85,14 @@ ctx.setMemory('timer', { ...timer, spans: updatedSpans });
 
 **Lifecycle**: Event subscription (`timer:pause`, `timer:resume`)
 
-Manages pause/resume by closing and opening spans.
+Manages pause/resume by closing and opening spans. State changes are signaled through timer memory, not events.
 
 | Event | Action |
 |-------|--------|
 | `timer:pause` | Closes current span (sets `ended` timestamp) |
 | `timer:resume` | Opens new span (adds new `TimeSpan(now)`) |
 
-**Events Emitted**: `timer:paused`, `timer:resumed`
+**Note**: No events are emitted. Pause/resume state is observable through timer memory spans.
 
 ## Behaviors That Read Timer Memory
 
@@ -101,7 +100,7 @@ Manages pause/resume by closing and opening spans.
 
 **Lifecycle**: `onMount` (subscribes to `tick` events)
 
-Monitors countdown timers and marks block complete when duration is reached.
+Monitors countdown timers and marks block complete when duration is reached. Completion is signaled through `markComplete()`, not events.
 
 ```typescript
 // Calculates elapsed from spans
@@ -111,7 +110,7 @@ if (elapsed >= timer.durationMs) {
 }
 ```
 
-**Events Emitted**: `timer:complete`
+**Note**: No events are emitted. Completion reason is stored in CompletionState memory.
 
 ### TimerOutputBehavior
 
