@@ -67,7 +67,7 @@ This document highlights behaviors that have strong automated test coverage, sum
 - **Setup:** Mounted alone or with timer behaviors; driven by `advanceBehaviors`.
 - **Expectations:** Marks completion with `user-advance` on first `next`, works as sole behavior, and wins precedence when fired before event-based completions.
 
-## ControlsInitBehavior
+## ButtonBehavior
 - **Test types:** Unit emissions on mount/unmount ([src/runtime/behaviors/__tests__/AspectBehaviors.test.ts](src/runtime/behaviors/__tests__/AspectBehaviors.test.ts)).
 - **Setup:** Mounted with button config in mock context; unmounted directly.
 - **Expectations:** Emits `controls:init` carrying button metadata on mount and `controls:cleanup` on unmount.

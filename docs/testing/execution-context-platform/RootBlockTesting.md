@@ -43,7 +43,7 @@ import {
     TimerPauseBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
-    ControlsInitBehavior,
+    ButtonBehavior,
     HistoryRecordBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
@@ -75,7 +75,7 @@ describe('RootBlock Behavior Composition', () => {
         expect(rootBlock.getBehavior(TimerPauseBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ChildRunnerBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(DisplayInitBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(ControlsInitBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(ButtonBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(HistoryRecordBehavior)).toBeDefined();
 
         // Round behaviors should NOT be present for single round  // TODO: not needed, remove from rootblock
@@ -140,7 +140,7 @@ describe('RootBlock Behavior Composition', () => {
             executionButtons: customButtons
         });
 
-        const controls = rootBlock.getBehavior(ControlsInitBehavior);
+        const controls = rootBlock.getBehavior(ButtonBehavior);
         expect(controls).toBeDefined();
         // Note: Would need to inspect controls.config or memory to verify
     });
@@ -943,7 +943,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 3. **⚠️ workout:stop undefined behavior**
    - **Issue**: Stop button dispatches event but no handler defined
    - **Impact**: Button does nothing
-   - **Fix**: Add handler in ControlsInitBehavior or new StopBehavior
+   - **Fix**: Add handler in ButtonBehavior or new StopBehavior
 
 ### Important Issues
 

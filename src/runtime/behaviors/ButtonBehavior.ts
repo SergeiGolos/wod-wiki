@@ -12,7 +12,7 @@ export interface ControlsConfig {
 }
 
 /**
- * ControlsInitBehavior initializes control button state in memory.
+ * ButtonBehavior initializes control button state in memory.
  * 
  * ## Aspect: Controls
  * 
@@ -34,7 +34,7 @@ export interface ControlsConfig {
  * 
  * @example
  * ```typescript
- * new ControlsInitBehavior({
+ * new ButtonBehavior({
  *   buttons: [
  *     { id: 'next', label: 'Next', variant: 'primary', visible: true, enabled: true, eventName: 'block:next' },
  *     { id: 'pause', label: 'Pause', variant: 'secondary', visible: true, enabled: true, eventName: 'timer:pause' }
@@ -42,7 +42,7 @@ export interface ControlsConfig {
  * })
  * ```
  */
-export class ControlsInitBehavior implements IRuntimeBehavior {
+export class ButtonBehavior implements IRuntimeBehavior {
     constructor(private config: ControlsConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {

@@ -15,7 +15,7 @@ import {
     PopOnNextBehavior,
     PopOnEventBehavior,
     DisplayInitBehavior,
-    ControlsInitBehavior
+    ButtonBehavior
 } from '../../behaviors';
 
 /**
@@ -124,7 +124,7 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
         // Controls Aspect
         // =====================================================================
         if (config.button) {
-            behaviors.push(new ControlsInitBehavior({
+            behaviors.push(new ButtonBehavior({
                 buttons: [{
                     id: config.button.id,
                     label: config.button.label,

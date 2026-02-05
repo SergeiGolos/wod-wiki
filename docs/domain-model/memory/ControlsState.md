@@ -63,7 +63,7 @@ Behaviors → [write] → Controls Memory → [read] → UI → [user click] →
 
 ## Behaviors That Write Controls Memory
 
-### ControlsInitBehavior
+### ButtonBehavior
 
 **Lifecycle**: `onMount`, `onUnmount`
 
@@ -93,7 +93,7 @@ interface ControlsConfig {
 Update a specific button's state dynamically:
 
 ```typescript
-ControlsInitBehavior.updateButton(ctx, 'pause', { 
+ButtonBehavior.updateButton(ctx, 'pause', { 
     label: 'Resume',
     enabled: false 
 });
@@ -182,7 +182,7 @@ The `!` prefix in `[:!action]` marks the button as pinned (always visible).
 // Create a block with control buttons
 const block = new RuntimeBlock('workout-1', {
     behaviors: [
-        new ControlsInitBehavior({
+        new ButtonBehavior({
             buttons: [
                 { 
                     id: 'pause', 

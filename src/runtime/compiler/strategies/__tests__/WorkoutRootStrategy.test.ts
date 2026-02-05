@@ -10,7 +10,7 @@ import {
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
-    ControlsInitBehavior,
+    ButtonBehavior,
     HistoryRecordBehavior
 } from '../../../behaviors';
 
@@ -47,7 +47,7 @@ describe('WorkoutRootStrategy', () => {
             expect(behaviors.some(b => b instanceof TimerTickBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof TimerPauseBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof DisplayInitBehavior)).toBe(true);
-            expect(behaviors.some(b => b instanceof ControlsInitBehavior)).toBe(true);
+            expect(behaviors.some(b => b instanceof ButtonBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof ChildRunnerBehavior)).toBe(true);
             expect(behaviors.some(b => b instanceof HistoryRecordBehavior)).toBe(true);
         });

@@ -45,7 +45,7 @@ Behaviors are **composable, single-responsibility units** that attach to runtime
 | **Iteration** | `RoundInitBehavior`, `RoundAdvanceBehavior`, `RoundCompletionBehavior` |
 | **Display** | `DisplayInitBehavior`, `RoundDisplayBehavior` |
 | **Output** | `TimerOutputBehavior`, `RoundOutputBehavior`, `SoundCueBehavior` |
-| **Controls** | `ControlsInitBehavior` |
+| **Controls** | `ButtonBehavior` |
 | **Completion** | `PopOnNextBehavior`, `PopOnEventBehavior` |
 
 ## Lifecycle Hooks
@@ -164,7 +164,7 @@ const timerBlock = new RuntimeBlock(runtime, statementIds, [
     new SoundCueBehavior({ cues: [{ sound: 'beep', trigger: 'countdown', atSeconds: [3,2,1] }] }),
     
     // Controls aspect
-    new ControlsInitBehavior({ buttons: [...] })
+    new ButtonBehavior({ buttons: [...] })
 ], 'Timer');
 ```
 

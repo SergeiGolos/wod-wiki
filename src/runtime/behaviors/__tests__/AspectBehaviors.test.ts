@@ -6,7 +6,7 @@ import { RoundAdvanceBehavior } from '../RoundAdvanceBehavior';
 import { RoundCompletionBehavior } from '../RoundCompletionBehavior';
 import { DisplayInitBehavior } from '../DisplayInitBehavior';
 import { PopOnEventBehavior } from '../PopOnEventBehavior';
-import { ControlsInitBehavior } from '../ControlsInitBehavior';
+import { ButtonBehavior } from '../ButtonBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
@@ -218,10 +218,10 @@ describe('Completion Aspect Behaviors', () => {
 });
 
 describe('Controls Aspect Behaviors', () => {
-    describe('ControlsInitBehavior', () => {
+    describe('ButtonBehavior', () => {
         it('should set controls memory on mount', () => {
             const ctx = createMockContext();
-            const behavior = new ControlsInitBehavior({
+            const behavior = new ButtonBehavior({
                 buttons: [
                     { id: 'next', label: 'Next', variant: 'primary', visible: true, enabled: true }
                 ]
@@ -240,7 +240,7 @@ describe('Controls Aspect Behaviors', () => {
 
         it('should clear controls memory on unmount', () => {
             const ctx = createMockContext();
-            const behavior = new ControlsInitBehavior({ buttons: [] });
+            const behavior = new ButtonBehavior({ buttons: [] });
 
             behavior.onUnmount(ctx);
 

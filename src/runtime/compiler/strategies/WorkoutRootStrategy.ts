@@ -20,7 +20,7 @@ import {
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
-    ControlsInitBehavior,
+    ButtonBehavior,
     HistoryRecordBehavior
 } from '../../behaviors';
 
@@ -166,7 +166,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
             { id: 'stop', label: 'Stop', action: 'workout:stop' }
         ];
 
-        behaviors.push(new ControlsInitBehavior({
+        behaviors.push(new ButtonBehavior({
             buttons: buttons.map(btn => ({
                 id: btn.id,
                 label: btn.label ?? btn.id,

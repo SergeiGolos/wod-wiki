@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import type { ButtonConfig } from '../../behaviors/ControlsInitBehavior';
+import type { ButtonConfig } from '../../behaviors/ButtonBehavior';
 
 /**
  * UpdateDisplayModeAction - Updates display mode via event.
@@ -23,7 +23,7 @@ export class UpdateDisplayModeAction implements IRuntimeAction {
 /**
  * RegisterButtonAction - Registers a button via event.
  * 
- * Uses the ControlsInitBehavior event-based pattern.
+ * Uses the ButtonBehavior event-based pattern.
  */
 export class RegisterButtonAction implements IRuntimeAction {
     readonly type = 'register-button';

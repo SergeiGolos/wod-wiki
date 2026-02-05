@@ -17,7 +17,7 @@ export interface IRuntimeBehavior {
    * Use ctx.subscribe() to listen for events and ctx.emitOutput() for initial reports.
    * Use ctx.setMemory() to initialize block state.
    */
-  onMount?(ctx: IBehaviorContext): IRuntimeAction[];
+  onMount(ctx: IBehaviorContext): IRuntimeAction[];
 
   /**
    * Called when parent.next() is invoked (child completed or manual advance).
@@ -25,18 +25,18 @@ export interface IRuntimeBehavior {
    * This is the signal to advance the block's internal state (e.g., next round).
    * If the block is finished, call ctx.markComplete().
    */
-  onNext?(ctx: IBehaviorContext): IRuntimeAction[];
+  onNext(ctx: IBehaviorContext): IRuntimeAction[];
 
   /**
    * Called when the owning block is about to be unmounted.
    * Use ctx.emitOutput() to report final completion fragments.
    * Subscriptions are automatically cleaned up *after* this method returns.
    */
-  onUnmount?(ctx: IBehaviorContext): IRuntimeAction[];
+  onUnmount(ctx: IBehaviorContext): IRuntimeAction[];
 
   /**
    * Called when the block is being disposed.
    * Final cleanup hook.
    */
-  onDispose?(ctx: IBehaviorContext): void;
+  onDispose(ctx: IBehaviorContext): void;
 }

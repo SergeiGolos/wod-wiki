@@ -59,8 +59,8 @@ export type { SoundCue, SoundCueConfig } from './SoundCueBehavior';
 // ============================================================================
 // Controls Aspect
 // ============================================================================
-export { ControlsInitBehavior } from './ControlsInitBehavior';
-export type { ControlsConfig, ButtonConfig, ControlsState } from './ControlsInitBehavior';
+export { ButtonBehavior } from './ButtonBehavior';
+export type { ControlsConfig, ButtonConfig } from './ButtonBehavior';
 
 // ============================================================================
 // Lifecycle Aspect
