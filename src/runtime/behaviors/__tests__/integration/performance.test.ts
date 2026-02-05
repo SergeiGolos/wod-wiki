@@ -172,9 +172,9 @@ describe('Performance Integration', () => {
 
             // Check output count is reasonable (not growing unbounded)
             // Each advance emits 1 milestone output (no events from RoundAdvanceBehavior)
-            // Plus 1 initial 'segment' output from RoundOutputBehavior.onMount
+            // RoundOutputBehavior does not emit segment on mount (SegmentOutputBehavior handles that)
             expect(runtime.events.length).toBe(0); // No internal events emitted
-            expect(runtime.outputs.length).toBe(10001);
+            expect(runtime.outputs.length).toBe(10000);
         });
     });
 

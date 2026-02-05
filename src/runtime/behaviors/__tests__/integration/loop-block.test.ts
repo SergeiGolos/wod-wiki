@@ -23,6 +23,7 @@ import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
+import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { RoundState, DisplayState } from '../../../memory/MemoryTypes';
@@ -43,7 +44,8 @@ describe('Loop Block Integration', () => {
             new RoundCompletionBehavior(),
             new RoundDisplayBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'Rounds' }),
-            new RoundOutputBehavior()
+            new RoundOutputBehavior(),
+            new SegmentOutputBehavior()
         ];
 
         it('should initialize at round 1', () => {
@@ -116,6 +118,7 @@ describe('Loop Block Integration', () => {
             new RoundAdvanceBehavior(),
             new RoundCompletionBehavior(),
             new RoundOutputBehavior(),
+            new SegmentOutputBehavior(),
             new HistoryRecordBehavior()
         ];
 

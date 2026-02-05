@@ -112,13 +112,14 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       return;
     }
 
-    // Use NextEvent directly for proper block advancement
-        const nextEvent = {
+    // Use runtime.handle() for proper ExecutionContext wrapping
+    // This ensures actions are executed in a turn with frozen clock
+    const nextEvent = {
       name: 'next',
       timestamp: new Date(),
       data: {}
     };
-    runtime.eventBus.emit(nextEvent, runtime);
+    runtime.handle(nextEvent);
     updateSnapshot();
   };
 

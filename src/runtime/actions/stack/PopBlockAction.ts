@@ -1,8 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { OutputStatement } from '@/core/models/OutputStatement';
-import { TimeSpan } from '../../models/TimeSpan';
+import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 
 /**
  * Action that pops the current block from the runtime stack.
@@ -21,9 +19,6 @@ export class PopBlockAction implements IRuntimeAction {
         if (!current) {
             return;
         }
-
-        // Capture stack level before pop (0-indexed: root = 0)
-        const stackLevelBeforePop = runtime.stack.count - 1;
 
         // Set completedAt time if not provided
         const completedAt = this.options.completedAt ?? runtime.clock.now;
@@ -52,8 +47,9 @@ export class PopBlockAction implements IRuntimeAction {
         popped.dispose(runtime);
         popped.context?.release?.();
 
-        // Emit output statement for the popped block
-        this.emitOutputStatement(runtime, popped, stackLevelBeforePop);
+        // Output statements are emitted by block behaviors (e.g., TimerOutputBehavior,
+        // SegmentOutputBehavior) during onUnmount. PopBlockAction does NOT emit its own
+        // output to avoid duplicate 'completion' entries.
 
         // Notify parent of child completion via next() with the lifecycle options
         // This passes completedAt to the parent so it can track child completion times
@@ -64,33 +60,5 @@ export class PopBlockAction implements IRuntimeAction {
                 runtime.do(action);
             }
         }
-    }
-
-    /**
-     * Emit an output statement for the completed block.
-     */
-    private emitOutputStatement(runtime: IScriptRuntime, block: IRuntimeBlock, stackLevel: number): void {
-        // Build TimeSpan from execution timing
-        const startTime = block.executionTiming?.startTime?.getTime() ?? Date.now();
-        const endTime = block.executionTiming?.completedAt?.getTime() ?? Date.now();
-        const timeSpan = new TimeSpan(startTime, endTime);
-
-        // Get collected fragments from the block (if any)
-        const fragments = block.fragments?.flat() ?? [];
-
-        // Create the output statement
-        const output = new OutputStatement({
-            outputType: 'completion',
-            timeSpan,
-            sourceBlockKey: block.key.toString(),
-            sourceStatementId: block.sourceIds?.[0],
-            stackLevel,
-            fragments,
-            parent: undefined,
-            children: [],
-        });
-
-        // Store and notify via addOutput
-        runtime.addOutput(output);
     }
 }

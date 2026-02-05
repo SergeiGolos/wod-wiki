@@ -10,9 +10,11 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { OutputStatement } from '../../core/models/OutputStatement';
+import { TimeSpan } from '../models/TimeSpan';
 
 /**
  * Minimal mock block for testing output statement emission.
+ * Simulates what SegmentOutputBehavior does: emits a 'completion' output on unmount.
  */
 function createMockBlock(options: {
     key?: string;
@@ -37,7 +39,26 @@ function createMockBlock(options: {
 
         mount: vi.fn().mockReturnValue([]),
         next: vi.fn().mockReturnValue([]),
-        unmount: vi.fn().mockReturnValue([]),
+        // Simulate behavior-driven output: emit completion on unmount
+        unmount: vi.fn().mockImplementation(function (this: IRuntimeBlock, runtime: any) {
+            const startTime = this.executionTiming?.startTime?.getTime() ?? Date.now();
+            const endTime = this.executionTiming?.completedAt?.getTime() ?? Date.now();
+            const timeSpan = new TimeSpan(startTime, endTime);
+            const fragments = this.fragments?.flat() ?? [];
+
+            const output = new OutputStatement({
+                outputType: 'completion',
+                timeSpan,
+                sourceBlockKey: this.key.toString(),
+                sourceStatementId: this.sourceIds?.[0],
+                stackLevel: runtime.stack?.count ?? 0,
+                fragments,
+                parent: undefined,
+                children: [],
+            });
+            runtime.addOutput(output);
+            return [];
+        }),
         dispose: vi.fn(),
         markComplete: vi.fn(),
 

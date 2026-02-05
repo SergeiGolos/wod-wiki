@@ -46,6 +46,8 @@ export type { DisplayInitConfig } from './DisplayInitBehavior';
 // ============================================================================
 export { ChildRunnerBehavior } from './ChildRunnerBehavior';
 export type { ChildRunnerConfig } from './ChildRunnerBehavior';
+export { ChildLoopBehavior } from './ChildLoopBehavior';
+export type { ChildLoopConfig } from './ChildLoopBehavior';
 
 // ============================================================================
 // Output Aspect

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useTimerReferences } from './useTimerReferences';
-import { useMemorySubscription } from './useMemorySubscription';
+import { useRuntimeContext } from '../context/RuntimeContext';
 import { TimeSpan } from '../models/TimeSpan';
+import { TimerState } from '../memory/MemoryTypes';
 
 
 /**
@@ -60,16 +60,54 @@ export interface UseTimerElapsedResult {
  * ```
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
-  const { timerState: timerStateRef } = useTimerReferences(blockKey);
+  const runtime = useRuntimeContext();
+  
+  // Find the block from the stack by key
+  const block = useMemo(() => {
+    return runtime.stack.blocks.find(b => b.key.toString() === blockKey);
+  }, [runtime, blockKey]);
+  
+  // Subscribe to block-level timer memory
+  const [timerState, setTimerState] = useState<TimerState | undefined>(() => {
+    return block?.getMemory('timer')?.value;
+  });
+  
+  // Subscribe to stack changes to update block reference
+  useEffect(() => {
+    const unsubscribe = runtime.stack.subscribe(() => {
+      const foundBlock = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
+      if (foundBlock) {
+        const entry = foundBlock.getMemory('timer');
+        setTimerState(entry?.value);
+      } else {
+        setTimerState(undefined);
+      }
+    });
+    return unsubscribe;
+  }, [runtime, blockKey]);
+  
+  // Subscribe to timer memory changes on the block
+  useEffect(() => {
+    if (!block) {
+      setTimerState(undefined);
+      return;
+    }
+    
+    const entry = block.getMemory('timer');
+    setTimerState(entry?.value);
+    
+    if (entry && typeof entry.subscribe === 'function') {
+      const unsubscribe = entry.subscribe((newValue) => {
+        setTimerState(newValue as TimerState | undefined);
+      });
+      return unsubscribe;
+    }
+  }, [block]);
 
-  // Subscribe to unified TimerState changes
-  const timerState = useMemorySubscription(timerStateRef);
-
-  // Extract spans from unified state
-  // Even if class type is lost (serialization), the shape { started, ended? } remains
+  // Extract spans from timer state
   const timeSpans = timerState?.spans || [];
 
-  // Robustly derive isRunning locally just in case prototype methods (getters) are lost
+  // Derive isRunning from spans - last span has no end time
   const isRunning = timeSpans.length > 0 && timeSpans[timeSpans.length - 1].ended === undefined;
 
   const [now, setNow] = useState(Date.now());

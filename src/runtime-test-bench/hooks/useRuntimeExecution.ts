@@ -111,6 +111,15 @@ export const useRuntimeExecution = (
 
     if (status === 'running') return;
 
+    // Emit timer:resume event when resuming from paused state
+    if (status === 'paused') {
+      runtime.eventBus.emit({
+        name: 'timer:resume',
+        timestamp: new Date(),
+        data: {}
+      }, runtime);
+    }
+
     setStatus('running');
     const now = Date.now();
     startTimeRef.current = now - elapsedTime; // Resume from paused time
@@ -132,8 +141,18 @@ export const useRuntimeExecution = (
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    
+    // Emit timer:pause event to update timer memory spans
+    if (runtime) {
+      runtime.eventBus.emit({
+        name: 'timer:pause',
+        timestamp: new Date(),
+        data: {}
+      }, runtime);
+    }
+    
     setStatus('paused');
-  }, []);
+  }, [runtime]);
 
   /**
    * Stops execution and resets state

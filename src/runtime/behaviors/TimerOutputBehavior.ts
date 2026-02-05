@@ -27,32 +27,18 @@ function formatDuration(ms: number): string {
 }
 
 /**
- * TimerOutputBehavior emits timer-specific output statements.
+ * TimerOutputBehavior emits timer-specific completion output.
  * 
  * ## Aspect: Output (Timer)
  * 
- * Emits segment on mount with initial timer info,
- * and completion on unmount with elapsed time.
+ * Only emits completion on unmount with elapsed time.
+ * Mount-time segment output is NOT emitted here to avoid duplicates
+ * with other output behaviors.
  */
 export class TimerOutputBehavior implements IRuntimeBehavior {
-    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
-
-        const fragments: ICodeFragment[] = [];
-        if (timer?.durationMs) {
-            fragments.push({
-                type: 'duration',
-                fragmentType: FragmentType.Timer,
-                value: timer.durationMs,
-                image: formatDuration(timer.durationMs),
-                origin: 'parser'
-            } as ICodeFragment);
-        }
-
-        ctx.emitOutput('segment', fragments, {
-            label: timer?.label ?? ctx.block.label
-        });
-
+    onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        // Intentionally empty - segment output is handled by SegmentOutputBehavior
+        // or the first behavior to emit. We only add timer data on completion.
         return [];
     }
 

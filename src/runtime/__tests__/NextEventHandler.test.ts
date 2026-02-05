@@ -90,13 +90,24 @@ describe('NextEventHandler', () => {
     expect(actions[0]).toHaveProperty('type', 'next');
   });
 
-  it('should return throw-error action when stack size is 1 or less', () => {
+  it('should return NextAction when stack size is 1 (single block)', () => {
     (mockRuntime.stack as any).count = 1;
     const nextEvent = new NextEvent();
 
     const actions = handler.handler(nextEvent, mockRuntime);
 
-    // Stack size <= 1 - returns ThrowError
+    // Stack size = 1 is valid - the single block can handle next()
+    expect(actions).toHaveLength(1);
+    expect(actions[0].type).toBe('next');
+  });
+
+  it('should return throw-error action when stack is empty', () => {
+    (mockRuntime.stack as any).count = 0;
+    const nextEvent = new NextEvent();
+
+    const actions = handler.handler(nextEvent, mockRuntime);
+
+    // Empty stack - returns ThrowError
     expect(actions).toHaveLength(1);
     expect(actions[0].type).toBe('throw-error');
   });

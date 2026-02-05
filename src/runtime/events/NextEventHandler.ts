@@ -36,8 +36,8 @@ export class NextEventHandler implements IEventHandler {
       return [];
     }
 
-    // Minimal validation: check runtime existence and stack size > 1
-    if (!runtime || !runtime.stack || runtime.stack.count <= 1) {
+    // Minimal validation: check runtime existence and non-empty stack
+    if (!runtime || !runtime.stack || runtime.stack.count === 0) {
       return [ThrowError(new Error('Invalid runtime state for next event'), 'NextEventHandler')];
     }
 

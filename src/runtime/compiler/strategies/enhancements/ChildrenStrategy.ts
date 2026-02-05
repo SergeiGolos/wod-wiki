@@ -6,6 +6,7 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 // New aspect-based behaviors
 import {
     ChildRunnerBehavior,
+    ChildLoopBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -37,22 +38,27 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
+        // children is already number[][] (grouped child statement IDs)
         const children = statements[0].children!;
 
-        // Map children to statement ID groups
-        // Each child statement becomes a group with one ID
-        const childGroups = children.map(child =>
-            child.id !== undefined ? [child.id] : []
-        ).filter(group => group.length > 0);
+        // Filter out empty groups
+        const childGroups = children.filter(group => group.length > 0);
 
-        // Add child runner behavior
+        // Check if we have a timer (for AMRAP-style unbounded looping)
+        const hasTimer = builder.hasBehavior(TimerInitBehavior);
+
+        // Add child loop behavior FIRST for timer-based blocks
+        // This behavior must run before ChildRunnerBehavior so it can
+        // reset the child index before ChildRunner checks it
+        if (hasTimer && !builder.hasBehavior(ChildLoopBehavior)) {
+            builder.addBehavior(new ChildLoopBehavior({ childGroups }));
+        }
+
+        // Add child runner behavior (after ChildLoopBehavior)
         builder.addBehavior(new ChildRunnerBehavior({ childGroups }));
 
         // Add default round handling if not already present
         if (!builder.hasBehavior(RoundInitBehavior)) {
-            // Check if we have a timer (for AMRAP-style unbounded looping)
-            const hasTimer = builder.hasBehavior(TimerInitBehavior);
-
             if (hasTimer) {
                 // Timer-based: unbounded rounds (AMRAP pattern)
                 builder.addBehavior(new RoundInitBehavior({
