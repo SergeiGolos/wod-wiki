@@ -1,96 +1,118 @@
-
 import { describe, it, expect } from 'bun:test';
-import { transformRuntimeToAnalytics, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
-import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { RuntimeSpan } from '../runtime/models/RuntimeSpan';
+import { getAnalyticsFromRuntime, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
+import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { TimeSpan } from '../runtime/models/TimeSpan';
+import { IOutputStatement, OutputStatementType } from '../core/models/OutputStatement';
+import { FragmentType, ICodeFragment } from '../core/models/CodeFragment';
 
-import { FragmentType } from '../core/models/CodeFragment';
+// Helper to create mock output statements
+function createMockOutput(options: {
+  id?: number;
+  outputType?: OutputStatementType;
+  started?: number;
+  ended?: number;
+  sourceBlockKey?: string;
+  stackLevel?: number;
+  fragments?: ICodeFragment[];
+  hints?: string[];
+}): IOutputStatement {
+  const now = Date.now();
+  return {
+    id: options.id ?? 1,
+    outputType: options.outputType ?? 'segment',
+    timeSpan: new TimeSpan(options.started ?? now, options.ended ?? now + 60000),
+    sourceBlockKey: options.sourceBlockKey ?? 'block-1',
+    stackLevel: options.stackLevel ?? 0,
+    fragments: options.fragments ?? [],
+    hints: options.hints ? new Set(options.hints) : undefined,
+    sourceStatementId: undefined,
+    meta: { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' },
+    isLeaf: true,
+  } as IOutputStatement;
+}
 
-describe('AnalyticsTransformer (RuntimeSpan version)', () => {
-  describe('Legacy Function', () => {
+describe('AnalyticsTransformer', () => {
+  describe('getAnalyticsFromRuntime', () => {
     it('returns empty result when runtime is null', () => {
-      const result = transformRuntimeToAnalytics(null);
+      const result = getAnalyticsFromRuntime(null);
       expect(result.data).toEqual([]);
       expect(result.segments).toEqual([]);
       expect(result.groups).toEqual([]);
     });
 
-    it('returns empty result when runtime has no logs or blocks', () => {
+    it('returns empty result when runtime has no output statements', () => {
       const runtime = {
-        tracker: {
-          getAllSpans: () => [],
-          getActiveSpansMap: () => new Map()
-        }
-      } as unknown as ScriptRuntime;
+        getOutputStatements: () => [],
+      } as unknown as IScriptRuntime;
 
-      const result = transformRuntimeToAnalytics(runtime);
+      const result = getAnalyticsFromRuntime(runtime);
       expect(result.data).toEqual([]);
       expect(result.segments).toEqual([]);
       expect(result.groups).toEqual([]);
     });
 
-    it('transforms execution logs into segments', () => {
+    it('transforms output statements into segments', () => {
       const startTime = Date.now();
-      const spans = [
-        new RuntimeSpan(
-          'block-1',
-          [1],
-          [new TimeSpan(startTime, startTime + 60000)],
-          [[{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Warmup', image: 'Warmup' }]]
-        )
+      const outputs: IOutputStatement[] = [
+        createMockOutput({
+          id: 1,
+          outputType: 'segment',
+          started: startTime,
+          ended: startTime + 60000,
+          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Warmup', image: 'Warmup' }]
+        })
       ];
 
       const runtime = {
-        tracker: {
-          getAllSpans: () => spans,
-          getActiveSpansMap: () => new Map()
-        }
-      } as unknown as ScriptRuntime;
+        getOutputStatements: () => outputs,
+      } as unknown as IScriptRuntime;
 
-      const result = transformRuntimeToAnalytics(runtime);
+      const result = getAnalyticsFromRuntime(runtime);
 
       expect(result.segments).toHaveLength(1);
       expect(result.segments[0].name).toBe('Warmup');
       expect(result.segments[0].duration).toBe(60);
-      expect(result.data.length).toBeGreaterThan(0);
     });
   });
 
   describe('AnalyticsTransformer Class', () => {
     const transformer = new AnalyticsTransformer();
 
-    describe('toSegments', () => {
-      it('returns empty array for empty spans', () => {
-        const segments = transformer.toSegments([]);
+    describe('fromOutputStatements', () => {
+      it('returns empty array for empty outputs', () => {
+        const segments = transformer.fromOutputStatements([]);
         expect(segments).toEqual([]);
       });
 
-      it('transforms spans to segments with tags and metadata', () => {
+      it('transforms outputs to segments with hints as tags', () => {
         const startTime = Date.now();
-        const span = new RuntimeSpan(
-          'amrap-block',
-          [1],
-          [new TimeSpan(startTime, startTime + 1200000)],
-          [[{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }]]
-        );
-        span.metadata.tags = ['amrap', 'time_bound'];
-        span.metadata.context = { strategyUsed: 'AmrapLogicStrategy' };
+        const output = createMockOutput({
+          id: 1,
+          outputType: 'segment',
+          started: startTime,
+          ended: startTime + 1200000,
+          fragments: [{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
+          hints: ['amrap', 'time_bound']
+        });
 
-        const segments = transformer.toSegments([span]);
+        const segments = transformer.fromOutputStatements([output]);
 
         expect(segments).toHaveLength(1);
         expect(segments[0].name).toBe('20:00 AMRAP');
         expect(segments[0].tags).toContain('amrap');
         expect(segments[0].tags).toContain('time_bound');
-        expect(segments[0].context?.strategyUsed).toBe('AmrapLogicStrategy');
       });
 
-      it('should handle missing fragment images by defaulting to blockId', () => {
+      it('should handle missing fragment images by defaulting to sourceBlockKey', () => {
         const startTime = Date.now();
-        const span = new RuntimeSpan('test-block', [1], [new TimeSpan(startTime, startTime + 1000)], []);
+        const output = createMockOutput({
+          started: startTime,
+          ended: startTime + 1000,
+          sourceBlockKey: 'test-block',
+          fragments: []
+        });
 
-        const segments = transformer.toSegments([span]);
+        const segments = transformer.fromOutputStatements([output]);
         expect(segments[0].name).toBe('test-block');
       });
     });

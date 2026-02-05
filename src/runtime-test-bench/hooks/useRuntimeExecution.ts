@@ -88,8 +88,8 @@ export const useRuntimeExecution = (
       runtime.eventBus.emit(tickEvent, runtime);
       setStepCount(prev => prev + 1);
 
-      // Check if runtime is complete
-      if (runtime.isComplete()) {
+      // Check if runtime is complete (stack is empty after root block finishes)
+      if (runtime.stack.count === 0) {
         stop();
         setStatus('completed');
       }

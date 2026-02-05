@@ -37,7 +37,7 @@ import { RuntimeProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { transformRuntimeToAnalytics, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
+import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -167,7 +167,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
 
       if (shouldUpdate) {
-        const newState = transformRuntimeToAnalytics(runtime); // TODO: Refactor to use AnalyticsTransformer and consolidate time series generation.
+        const newState = getAnalyticsFromRuntime(runtime);
         setAnalyticsState(newState);
         lastAnalyticsUpdateRef.current = now;
         lastStatusRef.current = execution.status;

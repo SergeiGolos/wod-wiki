@@ -1,9 +1,9 @@
 
-import { ScriptRuntime } from '../runtime/ScriptRuntime';
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 import { hashCode } from '../lib/utils';
-import { RuntimeSpan } from '../runtime/models/RuntimeSpan';
 import { ICodeFragment } from '../core/models/CodeFragment';
+import { IOutputStatement } from '../core/models/OutputStatement';
+import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 
 /**
  * Time-series data point for analytics visualization.
@@ -53,25 +53,29 @@ export interface SegmentWithMetadata extends Segment {
 }
 
 /**
- * AnalyticsTransformer - The single point of transformation from RuntimeSpan to UI-ready data.
+ * AnalyticsTransformer - Transforms OutputStatements into UI-ready analytics data.
  */
 export class AnalyticsTransformer {
 
   /**
-   * Transform RuntimeSpans into UI-ready Segments.
+   * Transform OutputStatements into UI-ready Segments.
+   * This is the primary API for the new runtime architecture.
    */
-  toSegments(spans: RuntimeSpan[], workoutStartTime?: number): SegmentWithMetadata[] {
-    if (!spans || spans.length === 0) {
+  fromOutputStatements(outputs: IOutputStatement[], workoutStartTime?: number): SegmentWithMetadata[] {
+    if (!outputs || outputs.length === 0) {
       return [];
     }
 
-    const startTime = workoutStartTime ?? Math.min(...spans.map(s => s.startTime));
+    // Find the earliest start time from all outputs
+    const startTime = workoutStartTime ?? Math.min(
+      ...outputs.map(o => o.timeSpan.started)
+    );
 
-    return spans.map(span => {
-      const duration = span.total() / 1000;
-      const endTime = span.endTime || Date.now();
-      const metrics = extractMetricsFromFragments(span.fragments);
-      const fragments = span.fragments.flat();
+    return outputs.map(output => {
+      const duration = output.timeSpan.duration / 1000;
+      const endTime = output.timeSpan.ended ?? Date.now();
+      const metrics = extractMetricsFromFragments([output.fragments]);
+      const fragments = output.fragments;
 
       const nameFragment = fragments.find(f =>
         f.fragmentType === 'effort' ||
@@ -79,24 +83,24 @@ export class AnalyticsTransformer {
         f.fragmentType === 'timer' ||
         f.fragmentType === 'rounds'
       );
-      const label = nameFragment?.image || span.blockId;
-      const type = nameFragment?.type || 'group';
+      const label = nameFragment?.image || output.sourceBlockKey;
+      const type = nameFragment?.type || output.outputType;
 
       return {
-        id: hashCode(span.id),
+        id: output.id,
         name: label,
         type: type,
-        startTime: (span.startTime - startTime) / 1000,
+        startTime: (output.timeSpan.started - startTime) / 1000,
         endTime: (endTime - startTime) / 1000,
         duration,
-        parentId: null,
-        depth: 0,
+        parentId: output.parent ?? null,
+        depth: output.stackLevel,
         metrics,
-        lane: 0,
+        lane: output.stackLevel,
         fragments,
-        tags: span.metadata.tags,
-        context: span.metadata.context,
-        spanType: type
+        tags: output.hints ? Array.from(output.hints) : undefined,
+        context: { outputType: output.outputType, sourceStatementId: output.sourceStatementId },
+        spanType: output.outputType
       };
     });
   }
@@ -180,21 +184,34 @@ export class AnalyticsTransformer {
 }
 
 /**
- * Legacy Function (Backward Compatibility)
+ * Analytics result from transforming runtime output.
  */
-export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { data: any[], segments: Segment[], groups: AnalyticsGroup[] } => {
+export interface AnalyticsResult {
+  data: AnalyticsDataPoint[];
+  segments: Segment[];
+  groups: AnalyticsGroup[];
+}
+
+/**
+ * Transform runtime output statements into analytics-ready data.
+ * This is the primary entry point for analytics visualization.
+ * 
+ * @param runtime The script runtime to extract output from
+ * @returns Analytics data including time-series data, segments, and metric groups
+ */
+export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): AnalyticsResult {
   if (!runtime) return { data: [], segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
-  const spans = runtime.tracker.getAllSpans();
-  const segments = transformer.toSegments(spans);
+  const outputs = runtime.getOutputStatements();
+  const segments = transformer.fromOutputStatements(outputs);
 
   if (segments.length === 0) {
     return { data: [], segments: [], groups: [] };
   }
 
   const groups = transformer.toAnalyticsGroup(segments);
-  const data: any[] = [];
+  const data: AnalyticsDataPoint[] = [];
 
   const totalDuration = segments.length > 0 ? Math.max(...segments.map(s => s.endTime)) : 0;
   const availableMetricKeys = new Set<string>();
@@ -202,12 +219,13 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
 
   for (let t = 0; t <= totalDuration; t++) {
     const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
-    const dataPoint: any = { time: t };
+    const dataPoint: AnalyticsDataPoint = { time: t };
 
     availableMetricKeys.forEach(key => {
       const segWithMetric = activeSegs.find(s => s.metrics[key] !== undefined);
       if (segWithMetric) {
         const baseVal = segWithMetric.metrics[key];
+        // Add slight variation for visualization (can be removed if deterministic values needed)
         dataPoint[key] = Math.max(0, Math.round(baseVal + (Math.random() - 0.5) * (baseVal * 0.1)));
       } else {
         dataPoint[key] = 0;
@@ -217,4 +235,4 @@ export const transformRuntimeToAnalytics = (runtime: ScriptRuntime | null): { da
   }
 
   return { data, segments, groups };
-};
+}

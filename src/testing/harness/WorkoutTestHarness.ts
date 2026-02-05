@@ -189,7 +189,7 @@ export class WorkoutTestHarness {
       restTaken: this._restTaken,
       isComplete: this.isComplete(),
       fragments: this._collectedFragments,
-      spans: this.runtime.tracker.getAllSpans()
+      spans: this.runtime.tracker?.getAllSpans() ?? []
     };
   }
 

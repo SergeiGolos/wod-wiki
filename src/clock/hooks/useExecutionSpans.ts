@@ -1,180 +1,189 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { IEvent } from '../../runtime/contracts/events/IEvent';
-import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
+import { IOutputStatement } from '../../core/models/OutputStatement';
 
 /**
- * Data structure returned by useTrackedSpans hook
+ * Data structure returned by useOutputStatements hook
  */
-export interface TrackedSpansData {
-  /** Currently active execution spans */
-  active: RuntimeSpan[];
-  /** Completed execution spans */
-  completed: RuntimeSpan[];
-  /** All spans indexed by ID for quick lookup */
-  byId: Map<string, RuntimeSpan>;
-  /** All spans indexed by blockId */
-  byBlockId: Map<string, RuntimeSpan>;
-  /** All runtime spans */
-  runtimeSpans: RuntimeSpan[];
+export interface OutputStatementsData {
+  /** All output statements sorted by start time */
+  outputs: IOutputStatement[];
+  /** Outputs indexed by ID for quick lookup */
+  byId: Map<number, IOutputStatement>;
+  /** Outputs indexed by sourceBlockKey */
+  byBlockKey: Map<string, IOutputStatement[]>;
+  /** Segment outputs (timed execution segments) */
+  segments: IOutputStatement[];
+  /** Completion outputs */
+  completions: IOutputStatement[];
+  /** Metric outputs */
+  metrics: IOutputStatement[];
 }
 
 /**
- * React hook that subscribes to execution span updates from a runtime.
+ * React hook that subscribes to output statement updates from a runtime.
  * 
- * This hook uses the EventBus to receive memory change notifications,
- * providing a unified event-driven approach.
- * 
- * Returns both active (currently executing) and completed execution spans,
- * along with indexed maps for quick lookup.
+ * This is the new API for tracking workout execution history.
+ * Uses runtime.subscribeToOutput() for real-time updates.
  * 
  * @param runtime The runtime instance to monitor (can be null)
- * @returns TrackedSpansData containing active, completed spans and index maps
+ * @returns OutputStatementsData containing outputs and indexed maps
  */
-export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData {
-  const [runtimeSpans, setRuntimeSpans] = useState<RuntimeSpan[]>([]);
-  const ownerIdRef = useRef(`useTrackedSpans-${crypto.randomUUID()}`);
+export function useOutputStatements(runtime: IScriptRuntime | null): OutputStatementsData {
+  const [outputs, setOutputs] = useState<IOutputStatement[]>([]);
+  const ownerIdRef = useRef(`useOutputStatements-${crypto.randomUUID()}`);
 
   useEffect(() => {
-    if (!runtime?.eventBus) {
-      setRuntimeSpans([]);
+    if (!runtime) {
+      setOutputs([]);
       return;
     }
 
-    const ownerId = ownerIdRef.current;
-
-    // Fetch all execution spans from tracker (persistent) and memory (active)
-    const fetchSpans = () => {
-      const allSpans: RuntimeSpan[] = [];
-
-      // 1. Get spans from SpanTrackingHandler (persists after block pop)
-      if (runtime.tracker) {
-        allSpans.push(...runtime.tracker.getAllSpans());
-      }
-
-      // 2. Also check memory for any spans not in tracker (e.g., from HistoryBehavior)
-      if (runtime) {
-        const runtimeRefs = searchStackMemory(runtime, {
-          type: RUNTIME_SPAN_TYPE
-        });
-
-        const memorySpans = runtimeRefs
-          .map(ref => {
-            // Get value from memory reference
-            const memoryRef = ref as TypedMemoryReference<RuntimeSpan>;
-            // Access the current value from the reference
-            return memoryRef.value;
-          })
-          .filter((s): s is RuntimeSpan => s !== null && s !== undefined);
-
-        // Dedupe by id
-        const seenIds = new Set(allSpans.map(s => s.id));
-        for (const span of memorySpans) {
-          if (!seenIds.has(span.id)) {
-            allSpans.push(span);
-            seenIds.add(span.id);
-          }
-        }
-      }
-
-      setRuntimeSpans(allSpans);
-    };
-
     // Initial load
-    fetchSpans();
+    setOutputs(runtime.getOutputStatements());
 
-    // Subscribe to memory events via EventBus
-    const handleMemoryEvent = (event: IEvent) => {
-      const data = event.data as { ref: { type: string } };
-      if (data?.ref?.type === RUNTIME_SPAN_TYPE) {
-        fetchSpans();
-      }
-    };
+    // Subscribe to new output statements
+    const unsubscribe = runtime.subscribeToOutput(() => {
+      setOutputs(runtime.getOutputStatements());
+    });
 
-    // Subscribe to stack events (SpanTrackingHandler updates on these)
-    const handleStackEvent = () => {
-      fetchSpans();
-    };
-
-    runtime.eventBus.on('memory:set', handleMemoryEvent, ownerId);
-    runtime.eventBus.on('memory:allocate', handleMemoryEvent, ownerId);
-    runtime.eventBus.on('memory:release', handleMemoryEvent, ownerId);
-    runtime.eventBus.on('stack:push', handleStackEvent, ownerId);
-    runtime.eventBus.on('stack:pop', handleStackEvent, ownerId);
-
-    return () => {
-      runtime.eventBus.unregisterByOwner(ownerId);
-    };
+    return unsubscribe;
   }, [runtime]);
 
   // Compute derived data (memoized for performance)
-  const data = useMemo<TrackedSpansData>(() => {
-    const active: RuntimeSpan[] = [];
-    const completed: RuntimeSpan[] = [];
-    const byId = new Map<string, RuntimeSpan>();
-    const byBlockId = new Map<string, RuntimeSpan>();
+  const data = useMemo<OutputStatementsData>(() => {
+    const byId = new Map<number, IOutputStatement>();
+    const byBlockKey = new Map<string, IOutputStatement[]>();
+    const segments: IOutputStatement[] = [];
+    const completions: IOutputStatement[] = [];
+    const metrics: IOutputStatement[] = [];
 
-    for (const span of runtimeSpans) {
+    for (const output of outputs) {
       // Index by ID
-      byId.set(span.id, span);
-      byBlockId.set(span.blockId, span);
+      byId.set(output.id, output);
 
-      // Categorize by status
-      if (span.isActive()) {
-        active.push(span);
-      } else {
-        completed.push(span);
+      // Index by block key
+      const blockOutputs = byBlockKey.get(output.sourceBlockKey) ?? [];
+      blockOutputs.push(output);
+      byBlockKey.set(output.sourceBlockKey, blockOutputs);
+
+      // Categorize by type
+      switch (output.outputType) {
+        case 'segment':
+          segments.push(output);
+          break;
+        case 'completion':
+          completions.push(output);
+          break;
+        case 'metric':
+          metrics.push(output);
+          break;
       }
     }
 
-    return { active, completed, byId, byBlockId, runtimeSpans };
-  }, [runtimeSpans]);
+    return { outputs, byId, byBlockKey, segments, completions, metrics };
+  }, [outputs]);
 
   return data;
 }
 
 /**
- * Hook to get a specific span by ID or block ID
+ * Hook to get a specific output by ID
+ */
+export function useOutputStatement(
+  runtime: IScriptRuntime | null,
+  id: number | null
+): IOutputStatement | undefined {
+  const { byId } = useOutputStatements(runtime);
+
+  if (id === null) return undefined;
+  return byId.get(id);
+}
+
+/**
+ * Hook to get outputs for a specific block
+ */
+export function useBlockOutputs(
+  runtime: IScriptRuntime | null,
+  blockKey: string | null
+): IOutputStatement[] {
+  const { byBlockKey } = useOutputStatements(runtime);
+
+  if (!blockKey) return [];
+  return byBlockKey.get(blockKey) ?? [];
+}
+
+/**
+ * Hook to compute output hierarchy (parent-child relationships) based on stackLevel
+ */
+export function useOutputHierarchy(runtime: IScriptRuntime | null): Map<number, number> {
+  const { outputs } = useOutputStatements(runtime);
+
+  return useMemo(() => {
+    const depthMap = new Map<number, number>();
+
+    for (const output of outputs) {
+      depthMap.set(output.id, output.stackLevel);
+    }
+
+    return depthMap;
+  }, [outputs]);
+}
+
+// ============================================================================
+// Legacy compatibility exports (deprecated)
+// ============================================================================
+
+import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
+import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
+
+/**
+ * @deprecated Use OutputStatementsData instead
+ */
+export interface TrackedSpansData {
+  /** @deprecated */
+  active: RuntimeSpan[];
+  /** @deprecated */
+  completed: RuntimeSpan[];
+  /** @deprecated */
+  byId: Map<string, RuntimeSpan>;
+  /** @deprecated */
+  byBlockId: Map<string, RuntimeSpan>;
+  /** @deprecated */
+  runtimeSpans: RuntimeSpan[];
+}
+
+/**
+ * @deprecated Use useOutputStatements instead. 
+ * This function now returns empty data as the tracker API has been removed.
+ */
+export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData {
+  // Return empty data - the tracker API is no longer available
+  return useMemo(() => ({
+    active: [],
+    completed: [],
+    byId: new Map(),
+    byBlockId: new Map(),
+    runtimeSpans: []
+  }), []);
+}
+
+/**
+ * @deprecated Use useOutputStatement instead
  */
 export function useTrackedSpan(
   runtime: IScriptRuntime | null,
   id: string | null,
   byBlockId: boolean = false
 ): RuntimeSpan | null {
-  const { byId, byBlockId: byBlock } = useTrackedSpans(runtime);
-
-  if (!id) return null;
-
-  return byBlockId
-    ? byBlock.get(id) ?? null
-    : byId.get(id) ?? null;
+  return null;
 }
 
 /**
- * Hook to compute span hierarchy (parent-child relationships)
+ * @deprecated Use useOutputHierarchy instead
  */
 export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number> {
-  const { runtimeSpans } = useTrackedSpans(runtime);
-
-  return useMemo(() => {
-    const depthMap = new Map<string, number>();
-
-    // Combine all spans and sort by start time
-    const allSpans = [...runtimeSpans].sort((a, b) => a.startTime - b.startTime);
-
-    for (const span of allSpans) {
-      if (!span.parentSpanId) {
-        // Root span
-        depthMap.set(span.id, 0);
-      } else {
-        // Child span - depth is parent + 1
-        const parentDepth = depthMap.get(span.parentSpanId) ?? 0;
-        depthMap.set(span.id, parentDepth + 1);
-      }
-    }
-
-    return depthMap;
-  }, [runtimeSpans]);
+  return useMemo(() => new Map(), []);
 }
+
