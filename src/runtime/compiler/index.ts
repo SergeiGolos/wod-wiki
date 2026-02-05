@@ -7,8 +7,6 @@ export { RuntimeBuilder } from './RuntimeBuilder';
 // Fragment compilation
 export { FragmentCompilationManager } from './FragmentCompilationManager';
 export type { IFragmentCompiler } from './FragmentCompilationManager';
-export { FragmentMetricCollector } from './FragmentMetricCollector';
-export type { IFragmentMetricCollector } from './FragmentMetricCollector';
 export * from './FragmentCompilers';
 
 // Strategies

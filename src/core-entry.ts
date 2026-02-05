@@ -74,8 +74,3 @@ export * from './runtime/compiler/fragments/TextFragment';
 // Fragment types
 export { FragmentType } from './core/models/CodeFragment';
 export type { ICodeFragment } from './core/models/CodeFragment';
-
-// Utility exports
-export { FragmentMetricCollector } from './runtime/compiler/FragmentMetricCollector';
-export type { IFragmentMetricCollector } from './runtime/compiler/FragmentMetricCollector';
-

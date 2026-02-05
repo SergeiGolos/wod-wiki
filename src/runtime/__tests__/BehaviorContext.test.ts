@@ -41,14 +41,13 @@ function createMockBlock(label: string = 'Test Block'): IRuntimeBlock {
  */
 function createMockClock(): IRuntimeClock {
     return {
-        now: new Date('2026-01-27T12:00:00Z'),
-        start: vi.fn(),
-        stop: vi.fn(),
-        pause: vi.fn(),
-        resume: vi.fn(),
-        isPaused: false,
-        isStarted: true,
-    };
+    now: new Date('2026-01-27T12:00:00Z'),
+    start: vi.fn(),
+    stop: vi.fn(),    
+    elapsed: 0,
+    isRunning: false,
+    spans: []    
+};
 }
 
 /**
@@ -128,6 +127,7 @@ describe('BehaviorContext', () => {
                 fragmentType: FragmentType.Timer,
                 image: '1:00',
                 origin: 'runtime',
+                type: 'test'
             };
 
             ctx.emitOutput('segment', [fragment], { label: 'Test Output' });
@@ -157,6 +157,7 @@ describe('BehaviorContext', () => {
                 fragmentType: FragmentType.Timer,
                 image: '2:00',
                 origin: 'runtime',
+                type: ''
             };
 
             ctx.emitOutput('milestone', [fragment], {});
