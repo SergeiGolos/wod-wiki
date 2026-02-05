@@ -12,6 +12,3 @@ export type { IDialect, InheritanceMode, InheritanceRule, DialectAnalysis } from
 export * from './models/DisplayItem';
 export { OutputStatement } from './models/OutputStatement';
 export type { IOutputStatement } from './models/OutputStatement';
-
-// Adapters
-export * from './adapters/displayItemAdapters';

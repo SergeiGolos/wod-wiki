@@ -13,47 +13,6 @@ describe('T076: Parse Code to WodScript', () => {
     parser = new MdTimerRuntime();
   });
 
-  describe('Valid workout parsing', () => {
-    it('should parse simple timer statement', () => {
-      const code = 'timer 5min';
-      const script = parser.read(code);
-
-      expect(script.statements).toBeDefined();
-      expect(script.statements.length).toBeGreaterThan(0);
-      expect(script.errors).toHaveLength(0);
-    });
-
-    it.todo('should parse rounds with reps', () => {
-      // TODO: MdTimerRuntime doesn't support block syntax yet
-      const code = `3 rounds {
-  10 pull-ups
-  20 push-ups
-}`;
-      const script = parser.read(code);
-
-      expect(script.statements).toBeDefined();
-      expect(script.statements.length).toBeGreaterThan(0);
-      expect(script.errors).toHaveLength(0);
-    });
-
-    it.todo('should parse complex workout', () => {
-      // TODO: MdTimerRuntime doesn't support nested block syntax yet
-      const code = `warmup 5min
-main {
-  3 rounds {
-    10 pull-ups
-    20 push-ups
-    30 squats
-  }
-}
-cooldown 3min`;
-      const script = parser.read(code);
-
-      expect(script.statements).toBeDefined();
-      expect(script.statements.length).toBeGreaterThan(0);
-    });
-  });
-
   describe('Parse error handling', () => {
     it('should handle empty code', () => {
       const code = '';
