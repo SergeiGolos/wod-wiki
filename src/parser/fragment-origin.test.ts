@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'bun:test';
-import { ActionFragment } from '../../runtime/compiler/fragments/ActionFragment';
-import { DistanceFragment } from '../../runtime/compiler/fragments/DistanceFragment';
-import { EffortFragment } from '../../runtime/compiler/fragments/EffortFragment';
-import { IncrementFragment } from '../../runtime/compiler/fragments/IncrementFragment';
-import { LapFragment } from '../../runtime/compiler/fragments/LapFragment';
-import { RepFragment } from '../../runtime/compiler/fragments/RepFragment';
-import { ResistanceFragment } from '../../runtime/compiler/fragments/ResistanceFragment';
-import { RoundsFragment } from '../../runtime/compiler/fragments/RoundsFragment';
-import { TextFragment } from '../../runtime/compiler/fragments/TextFragment';
-import { TimerFragment } from '../../runtime/compiler/fragments/TimerFragment';
-import { CodeMetadata } from '../../core/models/CodeMetadata';
+import { ActionFragment } from '../runtime/compiler/fragments/ActionFragment';
+import { DistanceFragment } from '../runtime/compiler/fragments/DistanceFragment';
+import { EffortFragment } from '../runtime/compiler/fragments/EffortFragment';
+import { IncrementFragment } from '../runtime/compiler/fragments/IncrementFragment';
+import { LapFragment } from '../runtime/compiler/fragments/LapFragment';
+import { RepFragment } from '../runtime/compiler/fragments/RepFragment';
+import { ResistanceFragment } from '../runtime/compiler/fragments/ResistanceFragment';
+import { RoundsFragment } from '../runtime/compiler/fragments/RoundsFragment';
+import { TextFragment } from '../runtime/compiler/fragments/TextFragment';
+import { TimerFragment } from '../runtime/compiler/fragments/TimerFragment';
+import { CodeMetadata } from '../core/models/CodeMetadata';
 
 describe('Fragment Origin Marking', () => {
     const mockMeta: CodeMetadata = {

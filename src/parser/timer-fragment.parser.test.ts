@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { MdTimerRuntime } from '../md-timer';
+import { MdTimerRuntime } from './md-timer';
 import { TimerFragment } from '../../fragments/TimerFragment';
-import { FragmentType } from '../../core/models/CodeFragment';
+import { FragmentType } from '../core/models/CodeFragment';
 
 /**
  * Timer Fragment Parser Contract

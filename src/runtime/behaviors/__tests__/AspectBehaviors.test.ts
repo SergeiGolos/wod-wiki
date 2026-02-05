@@ -32,7 +32,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
 describe('Time Aspect Behaviors', () => {
     describe('TimerInitBehavior', () => {
         it('should initialize timer state on mount', () => {
-            const ctx = createMockContext();
+             const ctx = createMockContext();
             const behavior = new TimerInitBehavior({
                 direction: 'down',
                 durationMs: 30000,

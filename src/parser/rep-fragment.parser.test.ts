@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { MdTimerRuntime } from '../md-timer';
+import { MdTimerRuntime } from './md-timer';
 import { RepFragment } from '../../fragments/RepFragment';
-import { FragmentType } from '../../core/models/CodeFragment';
+import { FragmentType } from '../core/models/CodeFragment';
 
 /**
  * Rep Fragment Parser Contract
