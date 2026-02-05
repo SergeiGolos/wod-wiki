@@ -226,5 +226,5 @@ const block = new RuntimeBlock('workout-1', {
 
 ## Related Memory Types
 
-- [`TimerState`](./TimerState.md) - Timer that pause/resume buttons control
-- [`DisplayState`](./DisplayState.md) - Display labels shown alongside controls
+- [`TimerState`](TimerState.md) - Timer that pause/resume buttons control
+- [`DisplayState`](DisplayState.md) - Display labels shown alongside controls

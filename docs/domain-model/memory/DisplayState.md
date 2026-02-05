@@ -139,5 +139,5 @@ Display state is typically composed from multiple sources:
 
 ## Related Memory Types
 
-- [`TimerState`](./TimerState.md) - Timer data that informs display mode
-- [`RoundState`](./RoundState.md) - Round data that populates `roundDisplay`
+- [`TimerState`](TimerState.md) - Timer data that informs display mode
+- [`RoundState`](RoundState.md) - Round data that populates `roundDisplay`

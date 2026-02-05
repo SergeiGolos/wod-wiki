@@ -94,6 +94,6 @@ describe('TimerDisplay', () => {
 
 ## Related Files
 
-- [[../layers/02-compiler-layer|Compiler Layer]] (producer)
-- [[../layers/03-runtime-layer|Runtime Layer]] (executor)
-- [[../layers/05-ui-layer|UI Layer]] (consumer)
+- [[02-compiler-layer|Compiler Layer]] (producer)
+- [[03-runtime-layer|Runtime Layer]] (executor)
+- [[05-ui-layer|UI Layer]] (consumer)

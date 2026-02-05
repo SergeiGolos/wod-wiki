@@ -42,6 +42,6 @@ expect(script.statements[0].fragments).toContainFragmentOfType(FragmentType.Time
 
 ## Related Files
 
-- [[../contracts/ICodeStatement|ICodeStatement]]
-- [[../contracts/ICodeFragment|ICodeFragment]]
-- [[../testing/parser-tests|Parser Tests]]
+- [[ICodeStatement|ICodeStatement]]
+- [[ICodeFragment|ICodeFragment]]
+- [[parser-tests|Parser Tests]]

@@ -137,5 +137,5 @@ if (timer.durationMs !== undefined && timer.durationMs <= 0) {
 
 ## Related Memory Types
 
-- [`TimerState`](./TimerState.md) - Source for timer-based completion
-- [`RoundState`](./RoundState.md) - Source for round-based completion
+- [`TimerState`](TimerState.md) - Source for timer-based completion
+- [`RoundState`](RoundState.md) - Source for round-based completion

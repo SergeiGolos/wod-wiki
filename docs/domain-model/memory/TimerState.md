@@ -183,5 +183,5 @@ const block = new RuntimeBlock('timer-1', {
 
 ## Related Memory Types
 
-- [`DisplayState`](./DisplayState.md) - UI presentation derived from timer state
-- [`CompletionState`](./CompletionState.md) - Tracks block completion status
+- [`DisplayState`](DisplayState.md) - UI presentation derived from timer state
+- [`CompletionState`](CompletionState.md) - Tracks block completion status

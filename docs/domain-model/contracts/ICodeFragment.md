@@ -62,5 +62,5 @@ type FragmentOrigin =
 
 - [[ICodeStatement]] (container)
 - [[IOutputStatement]] (output fragments)
-- [[../layers/01-parser-layer|Parser Layer]] (producer)
-- [[../layers/02-compiler-layer|Compiler Layer]] (consumer)
+- [[01-parser-layer|Parser Layer]] (producer)
+- [[02-compiler-layer|Compiler Layer]] (consumer)

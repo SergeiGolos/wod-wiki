@@ -52,5 +52,5 @@ children: [[1, 2], [3, 4]]  // Group A: [1,2], Group B: [3,4]
 ## Related Files
 
 - [[ICodeFragment]] (contained)
-- [[../layers/01-parser-layer|Parser Layer]] (producer)
-- [[../layers/02-compiler-layer|Compiler Layer]] (consumer)
+- [[01-parser-layer|Parser Layer]] (producer)
+- [[02-compiler-layer|Compiler Layer]] (consumer)

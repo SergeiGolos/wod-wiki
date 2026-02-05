@@ -51,5 +51,5 @@ useEffect(() => block.on('tick', () => setElapsed(block.timerState.elapsed)), [b
 
 ## Related Files
 
-- [[../contracts/IRuntimeBlock|IRuntimeBlock]] (owns state now)
+- [[IRuntimeBlock|IRuntimeBlock]] (owns state now)
 - [[05-ui-layer|UI Layer]] (binds to blocks)

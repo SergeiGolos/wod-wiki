@@ -6,12 +6,12 @@ The WOD Wiki runtime uses a typed memory system to store state within runtime bl
 
 | Type | Key | Description | Documentation |
 |------|-----|-------------|---------------|
-| Timer | `'timer'` | Time tracking with spans for pause/resume | [TimerState](./TimerState.md) |
-| Round | `'round'` | Iteration counter for loops | [RoundState](./RoundState.md) |
-| Display | `'display'` | UI presentation state | [DisplayState](./DisplayState.md) |
-| Fragment | `'fragment'` | Inherited code fragments | [FragmentState](./FragmentState.md) |
-| Completion | `'completion'` | Block completion tracking | [CompletionState](./CompletionState.md) |
-| Controls | `'controls'` | UI button configurations | [ControlsState](./ControlsState.md) |
+| Timer | `'timer'` | Time tracking with spans for pause/resume | [TimerState](TimerState.md) |
+| Round | `'round'` | Iteration counter for loops | [RoundState](RoundState.md) |
+| Display | `'display'` | UI presentation state | [DisplayState](DisplayState.md) |
+| Fragment | `'fragment'` | Inherited code fragments | [FragmentState](FragmentState.md) |
+| Completion | `'completion'` | Block completion tracking | [CompletionState](CompletionState.md) |
+| Controls | `'controls'` | UI button configurations | [ControlsState](ControlsState.md) |
 
 ## Architecture
 

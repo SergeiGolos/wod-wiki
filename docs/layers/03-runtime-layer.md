@@ -85,4 +85,4 @@ expect(block.isComplete()).toBe(true);
 
 - [[02-compiler-layer|Compiler Layer]] (input)
 - [[05-ui-layer|UI Layer]] (consumer via events)
-- [[../contracts/IRuntimeBlock|IRuntimeBlock]]
+- [[IRuntimeBlock|IRuntimeBlock]]

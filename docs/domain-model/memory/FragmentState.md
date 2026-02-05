@@ -157,5 +157,5 @@ const fragmentMemory = new FragmentMemory([
 
 ## Related Memory Types
 
-- [`TimerState`](./TimerState.md) - Timer fragments for output
-- [`RoundState`](./RoundState.md) - Round fragments for output
+- [`TimerState`](TimerState.md) - Timer fragments for output
+- [`RoundState`](RoundState.md) - Round fragments for output

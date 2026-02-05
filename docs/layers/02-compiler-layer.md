@@ -66,4 +66,4 @@ expect(typeof block?.on).toBe('function');
 
 - [[01-parser-layer|Parser Layer]] (input)
 - [[03-runtime-layer|Runtime Layer]] (output consumer)
-- [[../contracts/IRuntimeBlock|IRuntimeBlock]]
+- [[IRuntimeBlock|IRuntimeBlock]]

@@ -188,5 +188,5 @@ it('should create countdown sound fragment', () => {
 ## Related
 
 - [`SoundCueBehavior`](../behaviors/SoundCueBehavior.ts) - Behavior that emits sound outputs
-- [`TimerState`](./TimerState.md) - Timer memory used for countdown calculations
-- [`FragmentType`](../../core/models/CodeFragment.ts) - Fragment type enum including `Sound`
+- [`TimerState`](TimerState.md) - Timer memory used for countdown calculations
+- [`FragmentType`](CodeFragment.ts) - Fragment type enum including `Sound`

@@ -124,4 +124,4 @@ expect(handlerSpy).toHaveBeenCalledTimes(1); // Not called again
 ## Related Files
 
 - [[04-memory-layer|Memory Layer]] (deprecated for UI)
-- [[../contracts/IRuntimeBlock|IRuntimeBlock]] (bind target)
+- [[IRuntimeBlock|IRuntimeBlock]] (bind target)

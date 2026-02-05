@@ -155,6 +155,6 @@ For correct round management, behaviors should be ordered:
 
 ## Related Memory Types
 
-- [`DisplayState`](./DisplayState.md) - Contains `roundDisplay` string
-- [`CompletionState`](./CompletionState.md) - Tracks round-based completion
-- [`TimerState`](./TimerState.md) - Often combined for timed rounds (EMOM, Tabata)
+- [`DisplayState`](DisplayState.md) - Contains `roundDisplay` string
+- [`CompletionState`](CompletionState.md) - Tracks round-based completion
+- [`TimerState`](TimerState.md) - Often combined for timed rounds (EMOM, Tabata)

@@ -206,7 +206,7 @@ eventBus.unregisterByOwner('block-key');
 - [[IEvent]] - Event structure
 - [[IEventHandler]] - Handler interface
 - [[IRuntimeBlock]] - Event sources/sinks
-- [[../layers/03-runtime-layer|Runtime Layer]] - EventBus owner
+- [[03-runtime-layer|Runtime Layer]] - EventBus owner
 
 ## Source Files
 
