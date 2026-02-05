@@ -129,21 +129,15 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   // Subscribe to memory changes for live updates
   useEffect(() => {
     if (!runtime) return;
-    
-    // Subscribe to memory changes
-    const unsubscribe = runtime.memory.subscribe(() => {
+
+    // Subscribe to stack changes (replaces memory.subscribe())
+    const unsubscribeStack = runtime.stack.subscribe(() => {
       // Increment version to trigger snapshot recalculation
       setSnapshotVersion(v => v + 1);
     });
-    
-    // Also set up a periodic refresh for stack changes (stack doesn't emit events)
-    const intervalId = setInterval(() => {
-      setSnapshotVersion(v => v + 1);
-    }, 100); // 10 FPS refresh for stack state
-    
+
     return () => {
-      unsubscribe();
-      clearInterval(intervalId);
+      unsubscribeStack();
     };
   }, [runtime]);
 

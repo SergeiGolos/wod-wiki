@@ -3,6 +3,7 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { IEvent } from '../../runtime/contracts/events/IEvent';
+import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 /**
  * Data structure returned by useTrackedSpans hook
@@ -54,17 +55,19 @@ export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansDat
       }
 
       // 2. Also check memory for any spans not in tracker (e.g., from HistoryBehavior)
-      if (runtime.memory) {
-        const runtimeRefs = runtime.memory.search({
-          type: RUNTIME_SPAN_TYPE,
-          id: null,
-          ownerId: null,
-          visibility: null
+      if (runtime) {
+        const runtimeRefs = searchStackMemory(runtime, {
+          type: RUNTIME_SPAN_TYPE
         });
 
         const memorySpans = runtimeRefs
-          .map(ref => runtime.memory.get(ref as TypedMemoryReference<RuntimeSpan>))
-          .filter((s): s is RuntimeSpan => s !== null);
+          .map(ref => {
+            // Get value from memory reference
+            const memoryRef = ref as TypedMemoryReference<RuntimeSpan>;
+            // Access the current value from the reference
+            return memoryRef.value;
+          })
+          .filter((s): s is RuntimeSpan => s !== null && s !== undefined);
 
         // Dedupe by id
         const seenIds = new Set(allSpans.map(s => s.id));
