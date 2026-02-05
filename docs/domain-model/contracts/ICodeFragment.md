@@ -11,7 +11,7 @@ interface ICodeFragment {
   readonly type: string;          // Legacy type string
   readonly meta?: CodeMetadata;   // Source location
   readonly fragmentType: FragmentType;  // Typed enum
-  readonly collectionState?: FragmentCollectionState;
+  readonly origin?: FragmentOrigin;     // Where fragment came from
   readonly behavior?: MetricBehavior;
 }
 ```
@@ -29,21 +29,24 @@ enum FragmentType {
   Increment = 'increment',
   Lap = 'lap',
   Text = 'text',
-  Resistance = 'resistance'
+  Resistance = 'resistance',
+  Sound = 'sound'
 }
 ```
 
-## Collection States
+## Fragment Origins
 
-| State | Meaning |
-|-------|---------|
-| `Defined` | Value fully specified |
-| `RuntimeGenerated` | Value generated at runtime (e.g., elapsed time) |
-| `UserCollected` | Value collected from user input |
-| `Collected` | Value has been collected |
-| `Hinted` | Value is a suggestion |
-| `Tracked` | Value being actively tracked |
-| `Analyzed` | Value derived from analysis |
+```typescript
+type FragmentOrigin = 
+  | 'parser'     // Created by parser from source text
+  | 'compiler'   // Synthesized by compiler strategy
+  | 'runtime'    // Generated during execution
+  | 'user'       // Collected from user input
+  | 'collected'  // Value has been collected
+  | 'hinted'     // Value is a suggestion
+  | 'tracked'    // Being actively tracked
+  | 'analyzed';  // Derived from analysis
+```
 
 ## Specialized Fragments
 
@@ -52,10 +55,12 @@ enum FragmentType {
 | `TimerFragment` | `value: number`, `direction: 'up' \| 'down'` |
 | `RepFragment` | `value: number \| number[]` (rep scheme) |
 | `RoundsFragment` | `value: number` |
-| `ActionFragment` | `value: string` (exercise name) |
+| `ActionFragment` | `value: string`, `isPinned: boolean` |
+| `SoundFragment` | `sound: string`, `trigger: SoundTrigger` |
 
 ## Related Files
 
 - [[ICodeStatement]] (container)
+- [[IOutputStatement]] (output fragments)
 - [[../layers/01-parser-layer|Parser Layer]] (producer)
 - [[../layers/02-compiler-layer|Compiler Layer]] (consumer)
