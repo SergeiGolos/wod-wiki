@@ -19,14 +19,12 @@
  */
 
 import { ScriptRuntime } from '../ScriptRuntime';
-import { RuntimeMemory } from '../RuntimeMemory';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../../markdown-editor/types';
-import { WorkoutRootStrategy } from './strategies/WorkoutRootStrategy';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 
@@ -63,8 +61,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 1. Validates block has statements
    * 2. Creates WodScript from content + statements
    * 3. Instantiates ScriptRuntime with JIT compiler and options
-   * 4. Creates a Root RuntimeBlock that wraps all top-level statements
-   * 5. Pushes root block to stack and mounts it
+   * 4. Dispatches StartWorkoutAction to wrap script in root block and push it
    * 
    * @param block - The WOD block to create runtime for
    * @param options - Optional runtime options (debug mode, logging, etc.)
@@ -74,8 +71,6 @@ export class RuntimeFactory implements IRuntimeFactory {
     if (!block.statements || block.statements.length === 0) {
       return null;
     }
-
-
 
     // Create WodScript from block content and statements
     const script = new WodScript(block.content, block.statements);
@@ -94,24 +89,10 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create runtime with JIT compiler and optional debug options
     const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
 
-    // Create Root Block using WorkoutRootStrategy
-    // This uses decomposed single-responsibility behaviors instead of monolithic RootLifecycleBehavior
-
-    const statementIds = block.statements.map((s: any) => s.id);
-    // Map each top-level statement to a group so they execute in sequence
-    const childGroups = statementIds.map((id: number) => [id]);
-
-    // Use WorkoutRootStrategy to compose the root block with all required behaviors
-    const rootStrategy = new WorkoutRootStrategy();
-    const rootBlock = rootStrategy.build(runtime, {
-      childGroups: childGroups,
-      totalRounds: 1
-    });
-
-    // Push root block with a shared start timestamp for deterministic timing
-    const rootStartTime = runtime.clock.now;
-    const lifecycle = { startTime: rootStartTime };
-    runtime.pushBlock(rootBlock, lifecycle);
+    // Start the workout by dispatching StartWorkoutAction
+    // This wraps the script in a root block and pushes it onto the stack
+    const { StartWorkoutAction } = require('../actions/stack/StartWorkoutAction');
+    runtime.do(new StartWorkoutAction());
 
     return runtime;
   }

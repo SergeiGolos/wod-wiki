@@ -153,6 +153,22 @@ export class BehaviorTestHarness {
     return this;
   }
 
+  // ========== Workout Operations ==========
+
+  /**
+   * Start a workout by dispatching StartWorkoutAction.
+   * This wraps the script's statements in a root block and pushes it.
+   * 
+   * Note: For BehaviorTestHarness, this is typically a no-op since
+   * there's no real script. Use push() with MockBlock for unit tests.
+   * This method is provided for consistency with other harnesses.
+   */
+  startWorkout(options?: { totalRounds?: number }): this {
+    const { StartWorkoutAction } = require('@/runtime/actions/stack/StartWorkoutAction');
+    this._mockRuntime.do(new StartWorkoutAction(options));
+    return this;
+  }
+
   // ========== Stack Operations ==========
 
   /**

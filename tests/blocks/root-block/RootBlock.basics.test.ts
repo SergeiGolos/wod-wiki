@@ -6,7 +6,7 @@ import {
     TimerPauseBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
-    ControlsInitBehavior,
+    ButtonBehavior,
     HistoryRecordBehavior
 } from '@/runtime/behaviors';
 
@@ -33,7 +33,7 @@ describe('RootBlock Behavior Composition', () => {
         expect(rootBlock.getBehavior(TimerPauseBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ChildRunnerBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(DisplayInitBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(ControlsInitBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(ButtonBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(HistoryRecordBehavior)).toBeDefined();
     });
 
@@ -74,7 +74,7 @@ describe('RootBlock Behavior Composition', () => {
             executionButtons: customButtons
         });
 
-        const controls = rootBlock.getBehavior(ControlsInitBehavior);
+        const controls = rootBlock.getBehavior(ButtonBehavior);
         expect(controls).toBeDefined();
     });
 

@@ -289,6 +289,17 @@ export class ExecutionContextTestHarness {
   }
 
   /**
+   * Start a workout by dispatching StartWorkoutAction.
+   * This wraps the script's statements in a root block and pushes it.
+   * 
+   * @param options Optional configuration (totalRounds, etc.)
+   */
+  startWorkout(options?: { totalRounds?: number }): void {
+    const { StartWorkoutAction } = require('@/runtime/actions/stack/StartWorkoutAction');
+    this.executeAction(new StartWorkoutAction(options));
+  }
+
+  /**
    * Dispatch an event through the event bus.
    * The event and any resulting actions will be recorded.
    * 
