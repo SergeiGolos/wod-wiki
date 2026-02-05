@@ -1,6 +1,5 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { IEvent } from '../contracts/events/IEvent';
+import { IRuntimeAction, IScriptRuntime } from "@/core";
+import { IEvent } from "@/core-entry";
 
 /**
  * Action for declarative event emission from behaviors.
@@ -39,6 +38,6 @@ export class EmitEventAction implements IRuntimeAction {
       data: this.data
     };
     
-    runtime.eventBus.emit(event, runtime);
+    runtime.eventBus.dispatch(event, runtime);
   }
 }

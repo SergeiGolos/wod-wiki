@@ -1,6 +1,5 @@
-import { IRuntimeAction } from './contracts/IRuntimeAction';
-import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IRuntimeAction, IRuntimeBlock, IScriptRuntime } from "@/core";
+import { BlockLifecycleOptions } from "@/runtime/contracts";
 
 /**
  * Action that pushes a compiled block onto the runtime stack.

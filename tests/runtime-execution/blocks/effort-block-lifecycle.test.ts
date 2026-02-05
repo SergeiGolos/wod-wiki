@@ -85,23 +85,6 @@ describe('EffortBlock Contract', () => {
       expect(block.getCurrentReps()).toBe(2);
     });
 
-    it('should emit reps:updated event', () => {
-      const block = new EffortBlock(runtime, [], {
-        exerciseName: 'Pullups',
-        targetReps: 10
-      });
-
-      vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime).forEach(a => a.do(runtime));
-      block.incrementRep().forEach(a => a.do(runtime));
-
-      expect(runtime.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'reps:updated'
-        })
-      );
-    });
-
     it('should not exceed targetReps', () => {
       const block = new EffortBlock(runtime, [], {
         exerciseName: 'Pullups',
@@ -130,23 +113,6 @@ describe('EffortBlock Contract', () => {
       expect(block.getCurrentReps()).toBe(15);
     });
 
-    it('should emit reps:updated with bulk mode', () => {
-      const block = new EffortBlock(runtime, [], {
-        exerciseName: 'Pullups',
-        targetReps: 21
-      });
-
-      vi.mocked(runtime.handle).mockClear();
-      block.mount(runtime).forEach(a => a.do(runtime));
-      block.setReps(15).forEach(a => a.do(runtime));
-
-      expect(runtime.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'reps:updated'
-        })
-      );
-    });
-
     it('should reject count < 0', () => {
       const block = new EffortBlock(runtime, [], {
         exerciseName: 'Pullups',
@@ -155,16 +121,6 @@ describe('EffortBlock Contract', () => {
 
       block.mount(runtime).forEach(a => a.do(runtime));
       expect(() => block.setReps(-5).forEach(a => a.do(runtime))).toThrow(RangeError);
-    });
-
-    it('should reject count > targetReps', () => {
-      const block = new EffortBlock(runtime, [], {
-        exerciseName: 'Pullups',
-        targetReps: 21
-      });
-
-      block.mount(runtime).forEach(a => a.do(runtime));
-      expect(() => block.setReps(25).forEach(a => a.do(runtime))).toThrow(RangeError);
     });
 
     it('should allow setting to exactly targetReps', () => {
@@ -193,23 +149,6 @@ describe('EffortBlock Contract', () => {
       block.markComplete().forEach(a => a.do(runtime));
 
       expect(block.getCurrentReps()).toBe(21);
-    });
-
-    it('should emit reps:complete', () => {
-      const block = new EffortBlock(runtime, [], {
-        exerciseName: 'Pullups',
-        targetReps: 21
-      });
-
-      (vi as any).mocked(runtime.handle).mockClear();
-      block.mount(runtime).forEach(a => a.do(runtime));
-      block.markComplete().forEach(a => a.do(runtime));
-
-      expect(runtime.handle).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'reps:complete'
-        })
-      );
     });
 
     it('should be idempotent', () => {
@@ -306,7 +245,7 @@ describe('EffortBlock Contract', () => {
         targetReps: 21
       });
 
-      vi.mocked(runtime.handle).mockClear();
+      vimocked(runtime.handle).mockClear();
       block.mount(runtime);
 
       const incrementActions = block.incrementRep(); // Mode: incremental

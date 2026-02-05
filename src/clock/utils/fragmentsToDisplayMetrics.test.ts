@@ -2,14 +2,10 @@
  * Tests for Fragment to Display Metric Converter
  */
 
+import { ICodeFragment, FragmentType } from '@/core';
+import { MetricBehavior } from '@/types/MetricBehavior';
 import { describe, it, expect } from 'bun:test';
-import {
-  fragmentToDisplayMetric,
-  fragmentsToDisplayMetrics,
-  getCollectedDisplayMetrics,
-} from '../fragmentsToDisplayMetrics';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
-import { MetricBehavior } from '../../../types/MetricBehavior';
+import { fragmentToDisplayMetric, fragmentsToDisplayMetrics, getCollectedDisplayMetrics } from './fragmentsToDisplayMetrics';
 
 describe('fragmentToDisplayMetric', () => {
   it('should convert a rep fragment to display metric', () => {
