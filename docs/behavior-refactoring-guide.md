@@ -21,7 +21,7 @@
 
 ## Current State Analysis
 
-### Existing Behaviors (19 total)
+### Existing Behaviors (20 total)
 
 | # | Behavior | Aspect | Responsibility |
 |---|----------|--------|----------------|
@@ -88,17 +88,18 @@ childRunner.resetChildIndex();  // Direct mutation of another behavior's state
 
 **Resolution:** This coupling is acceptable given the behavior pattern, but the loop state could be moved to block memory instead of being held as instance state. This would remove the need for `getBehavior()` cross-references. See [New Behaviors](#new-behaviors-to-create).
 
-### 3. `calculateElapsed()` — Duplicated 3 times
+### 3. `calculateElapsed()` — Duplicated 4 times
 
-**Problem:** The elapsed time calculation from spans is implemented identically in three files:
+**Problem:** The elapsed time calculation from spans is implemented in four locations — three as named functions and one inline:
 
-| File | Function |
+| File | Implementation |
 |------|----------|
-| `TimerCompletionBehavior.ts` | `calculateElapsed(timer, now)` |
-| `TimerOutputBehavior.ts` | `calculateElapsed(timer, now)` |
-| `HistoryRecordBehavior.ts` | `calculateElapsed(timer, now)` |
+| `TimerCompletionBehavior.ts` | `calculateElapsed(timer, now)` (named function) |
+| `TimerOutputBehavior.ts` | `calculateElapsed(timer, now)` (named function) |
+| `HistoryRecordBehavior.ts` | `calculateElapsed(timer, now)` (named function) |
+| `SoundCueBehavior.ts` | Inline loop (identical logic) |
 
-Plus an inline variant in `SoundCueBehavior.ts`:
+The inline variant in `SoundCueBehavior.ts`:
 
 ```typescript
 let elapsed = 0;
