@@ -1,0 +1,22 @@
+{
+	"nodes":[
+		{"id":"aspect-display","type":"text","text":"👁️ DISPLAY ASPECT\n\n2 behaviors seed/update display:\n• DisplayInitBehavior\n• RoundDisplayBehavior\n\nDrives: UI labels, mode, round text","x":-480,"y":140,"width":280,"height":160,"color":"#f0f8ff"},
+		{"id":"aspect-timer","type":"text","text":"⏱️ TIMER ASPECT\n\n5 behaviors manage timer memory:\n• Init → Tick → Pause → Complete → Output\n\nDrives: elapsed time, countdown, expiry","x":-480,"y":370,"width":280,"height":160,"color":"#f6f0ff"},
+		{"id":"aspect-output","type":"text","text":"📤 OUTPUT ASPECT\n\n4 behaviors emit outputs:\n• Segment, Timer, Round, Sound\n\nDrives: history, fragments, audio cues","x":-480,"y":880,"width":280,"height":140,"color":"#f5f0ff"},
+		{"id":"link-matrix","type":"file","file":"docs/diagrams/behavior-memory-matrix.md","label":"📊 Reference Matrix","x":-930,"y":-280,"width":900,"height":320},
+		{"id":"title","type":"text","text":"# Behavior System Overview\nHow behaviors interact with memory and produce outputs","x":-930,"y":-440,"width":400,"height":80,"color":"#f0f0f0"},
+		{"id":"link-hubspoke","type":"file","file":"docs/diagrams/memory-hub-spoke.canvas","label":"🔗 Hub-Spoke Diagram","x":-930,"y":90,"width":280,"height":100},
+		{"id":"link-tests","type":"file","file":"docs/testing/behavior-test-coverage.md","label":"🧪 Test Coverage","x":460,"y":800,"width":540,"height":380},
+		{"id":"aspect-controls","type":"text","text":"🎮 CONTROLS ASPECT\n\n1 behavior manages buttons:\n• ButtonBehavior\n\nDrives: UI action buttons","x":-840,"y":660,"width":280,"height":140,"color":"#fff6f0"},
+		{"id":"aspect-completion","type":"text","text":"✅ COMPLETION ASPECT\n\n4 behaviors mark completion:\n• TimerCompletionBehavior\n• RoundCompletionBehavior\n• PopOnEventBehavior\n• PopOnNextBehavior","x":90,"y":880,"width":280,"height":140,"color":"#fff0f6"},
+		{"id":"aspect-round","type":"text","text":"🔄 ROUND ASPECT\n\n5 behaviors manage round memory:\n• Init → Advance → Complete → Display → Output\n\nDrives: iteration tracking, loop progress","x":90,"y":140,"width":280,"height":160,"color":"#f0fff6"},
+		{"id":"link-source","type":"file","file":"src/runtime/memory/MemoryTypes.ts","label":"📋 Memory Types Source","x":-340,"y":1180,"width":460,"height":280}
+	],
+	"edges":[
+		{"id":"e-timer-output","fromNode":"aspect-timer","fromSide":"bottom","toNode":"aspect-output","toSide":"top","label":"emits"},
+		{"id":"e-round-output","fromNode":"aspect-round","fromSide":"bottom","toNode":"aspect-output","toSide":"top","label":"emits"},
+		{"id":"e-timer-complete","fromNode":"aspect-timer","fromSide":"right","toNode":"aspect-completion","toSide":"left"},
+		{"id":"e-round-complete","fromNode":"aspect-round","fromSide":"bottom","toNode":"aspect-completion","toSide":"top"},
+		{"id":"e-round-display","fromNode":"aspect-round","fromSide":"left","toNode":"aspect-display","toSide":"right","label":"updates"}
+	]
+}
