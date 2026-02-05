@@ -144,53 +144,43 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   }, [timerStack, primaryTimer, props.elapsedMs]);
 
 
-  // Calculate stack items for display
+  // Calculate stack items for display from runtime stack blocks
   const stackItems = useMemo(() => {
     if (!runtime) return undefined;
 
-    // Cast to any to access activeSpans if not in interface
-    const rt = runtime as any;
-    if (!rt.activeSpans) return undefined;
-
-    // Get all active spans
-    const activeSpansMap = rt.activeSpans as Map<string, any>;
-
-    if (activeSpansMap.size === 0) return undefined;
+    // Get blocks from the runtime stack
+    const blocks = runtime.stack.blocks;
+    if (!blocks || blocks.length === 0) return undefined;
 
     const items: IDisplayItem[] = [];
 
-    // Filter spans to only those present in the timer stack (or card stack for the active leaf)
-    // This ensures we only show what's visually relevant/active on the stack
-    // We iterate through the timerStack to preserve order
-    timerStack.forEach(timerEntry => {
-      const span = activeSpansMap.get(timerEntry.ownerId);
-      if (!span) return;
+    // Convert stack blocks to display items
+    blocks.forEach((block, index) => {
+      // Skip root/workout container blocks without meaningful labels
+      if (block.blockType === 'Root' && !block.label) return;
 
-      // Skip root/workout container if needed
-      if (span.type === 'group' && !span.label) return;
+      const isLeaf = index === blocks.length - 1;
 
-      const isLeaf = timerEntry === timerStack[timerStack.length - 1];
-
-      // Use fragments already present on the span (flattened for display)
-      const fragments = span.fragments.flat();
+      // Flatten fragments from block (fragments is ICodeFragment[][])
+      const fragments = block.fragments?.flat() || [];
 
       const item: IDisplayItem = {
-        id: span.id,
-        parentId: span.parentSpanId || null,
+        id: block.key.toString(),
+        parentId: index > 0 ? blocks[index - 1].key.toString() : null,
         fragments: fragments,
-        depth: 0, // Flat list for visual cleaness in the stack view
+        depth: index, // Use index as depth for stack visualization
         isHeader: false,
-        status: isLeaf ? 'active' : 'completed', // Visually showing parents as completed/context
-        sourceType: 'span',
-        sourceId: timerEntry.ownerId,
-        label: span.label
+        status: isLeaf ? 'active' : 'pending', // Leaf is active, parents are pending (still on stack)
+        sourceType: 'block',
+        sourceId: block.key.toString(),
+        label: block.label
       };
 
       items.push(item);
     });
 
     return items.length > 0 ? items : undefined;
-  }, [runtime, (runtime as any)?.activeSpans, timerStack]);
+  }, [runtime, runtime?.stack.blocks, timerStack]);
 
   return (
     <RefinedTimerDisplay

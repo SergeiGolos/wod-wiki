@@ -37,11 +37,18 @@ export interface AnalyticsIndexPanelProps {
 }
 
 /**
- * Format timestamp to HH:MM:SS
+ * Format elapsed time (in seconds) to MM:SS or HH:MM:SS
  */
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function formatElapsedTime(seconds: number): string {
+  const totalSeconds = Math.floor(seconds);
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 /**
@@ -79,12 +86,12 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
     image: segment.type,
   });
   
-  // Add Start Time as timer fragment
+  // Add Start Time as timer fragment (startTime is in seconds from workout start)
   fragments.push({
     type: 'timer',
     fragmentType: FragmentType.Timer,
     value: segment.startTime,
-    image: formatTimestamp(segment.startTime),
+    image: formatElapsedTime(segment.startTime),
   });
   
   // Add dynamic metrics based on groups or fallback to all available
@@ -216,7 +223,7 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
           type: 'timer',
           fragmentType: FragmentType.Timer,
           value: lastSegment.endTime,
-          image: formatTimestamp(lastSegment.endTime)
+          image: formatElapsedTime(lastSegment.endTime)
         }],
         depth: 0,
         isHeader: true,

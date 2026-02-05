@@ -114,25 +114,73 @@ export class RuntimeAdapter implements IRuntimeAdapter {
    * Extracts MemoryEntries from runtime memory
    */
   extractMemoryEntries(runtime: ScriptRuntime): MemoryEntry[] {
-    // Get all memory references from blocks on the stack
-    const references = searchStackMemory(runtime, {});
+    const entries: MemoryEntry[] = [];
 
-    // Build a map of owner block IDs to their line numbers
+    // Build a map of owner block IDs to their line numbers and labels
     const ownerLineMap = new Map<string, number>();
+    const ownerLabelMap = new Map<string, string>();
     runtime.stack.blocks.forEach(block => {
+      const key = block.key.toString();
       if (block.sourceIds && block.sourceIds.length > 0) {
-        ownerLineMap.set(block.key.toString(), block.sourceIds[0]);
+        ownerLineMap.set(key, block.sourceIds[0]);
       }
+      ownerLabelMap.set(key, block.label);
     });
 
-    return references.map(ref => {
+    // Extract memory entries from each block's internal memory map
+    // This is where behaviors store state (timer, round, effort, etc.)
+    for (const block of runtime.stack.blocks) {
+      const blockKey = block.key.toString();
+      const memoryTypes = block.getMemoryTypes();
+
+      for (const type of memoryTypes) {
+        const memEntry = block.getMemory(type);
+        if (!memEntry) continue;
+
+        const value = memEntry.value;
+        const memoryType = this.mapMemoryType(type);
+        const entryId = `${blockKey}-${type}`;
+
+        entries.push({
+          id: entryId,
+          ownerId: blockKey,
+          ownerLabel: ownerLabelMap.get(blockKey) ?? blockKey,
+          type: memoryType,
+          value,
+          valueFormatted: this.formatValue(value),
+          label: this.generateMemoryLabelFromType(type, memoryType),
+          groupLabel: this.generateGroupLabel(memoryType),
+          icon: this.getMemoryIcon(memoryType),
+          lineNumber: ownerLineMap.get(blockKey),
+          isValid: value !== undefined,
+          isHighlighted: false,
+          metadata: {
+            createdAt: undefined,
+            lastModified: undefined,
+            accessCount: undefined
+          },
+          references: [],
+          referencedBy: []
+        });
+      }
+    }
+
+    // Also include any memory from the older context.references system (for completeness)
+    const references = searchStackMemory(runtime, {});
+    for (const ref of references) {
+      // Avoid duplicates - check if we already have this entry
+      const existingId = `${ref.ownerId}-${ref.type}`;
+      if (entries.some(e => e.id === existingId)) {
+        continue;
+      }
+
       const value = ref.value();
       const memoryType = this.mapMemoryType(ref.type);
 
-      return {
+      entries.push({
         id: ref.id,
         ownerId: ref.ownerId,
-        ownerLabel: this.generateOwnerLabel(ref.ownerId),
+        ownerLabel: ownerLabelMap.get(ref.ownerId) ?? this.generateOwnerLabel(ref.ownerId),
         type: memoryType,
         value,
         valueFormatted: this.formatValue(value),
@@ -141,16 +189,27 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         icon: this.getMemoryIcon(memoryType),
         lineNumber: ownerLineMap.get(ref.ownerId),
         isValid: value !== undefined,
-        isHighlighted: false, // TODO: Implement highlighting logic
+        isHighlighted: false,
         metadata: {
           createdAt: undefined,
           lastModified: undefined,
           accessCount: undefined
         },
-        references: [], // TODO: Track memory references
+        references: [],
         referencedBy: []
-      };
-    });
+      });
+    }
+
+    return entries;
+  }
+
+  /**
+   * Generates a label for a memory entry from its type
+   */
+  private generateMemoryLabelFromType(rawType: string, _displayType: MemoryType): string {
+    // Capitalize and format the type for display
+    const typeStr = rawType.toString();
+    return typeStr.charAt(0).toUpperCase() + typeStr.slice(1).replace(/-/g, ' ');
   }
 
   /**

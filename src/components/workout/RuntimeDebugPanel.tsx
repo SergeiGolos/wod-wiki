@@ -12,11 +12,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Bug, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, Bug } from 'lucide-react';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
 import { WodBlock } from '../../markdown-editor/types';
+import { MemoryValueDialog, useMemoryValueDialog } from '../../runtime-test-bench/components/MemoryValuePopover';
 import type { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
 
 type DebugTab = 'parser' | 'stack';
@@ -71,39 +72,64 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [activeTab, setActiveTab] = useState<DebugTab>('parser');
   
-  // Track which blocks are expanded to show memory (by block key)
-  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
-  
-  // Toggle a block's expanded state
-  const toggleBlockExpanded = (blockKey: string) => {
-    setExpandedBlocks(prev => {
-      const next = new Set(prev);
-      if (next.has(blockKey)) {
-        next.delete(blockKey);
-      } else {
-        next.add(blockKey);
-      }
-      return next;
-    });
-  };
+  // Dialog for showing memory value details
+  const { dialogData, isOpen: isDialogOpen, openDialog, closeDialog } = useMemoryValueDialog();
   
   // Simple tab change handler
   const handleTabChange = (tab: DebugTab) => {
     setActiveTab(tab);
   };
   
-  // Subscribe to memory changes for live updates
+  // Convert MemoryEntry to MemoryValueData for dialog
+  const openMemoryDialog = (entry: MemoryEntry) => {
+    openDialog({
+      value: entry.value,
+      displayValue: entry.valueFormatted,
+      label: entry.label,
+      type: entry.type,
+      isValid: entry.isValid,
+      ownerId: entry.ownerId,
+      ownerLabel: entry.ownerLabel,
+    });
+  };
+  
+  // Subscribe to runtime changes for live updates
   useEffect(() => {
     if (!runtime) return;
 
-    // Subscribe to stack changes (replaces memory.subscribe())
-    const unsubscribeStack = runtime.stack.subscribe(() => {
+    // Force an immediate snapshot update when runtime becomes available
+    setSnapshotVersion(v => v + 1);
+
+    // Subscribe to stack changes (push/pop events)
+    const unsubscribeStack = runtime.stack.subscribe((event) => {
       // Increment version to trigger snapshot recalculation
+      console.debug('[RuntimeDebugPanel] Stack event:', event?.type || 'initial');
       setSnapshotVersion(v => v + 1);
     });
 
+    // Subscribe to output statements for comprehensive updates
+    const unsubscribeOutput = runtime.subscribeToOutput(() => {
+      setSnapshotVersion(v => v + 1);
+    });
+
+    // Subscribe to tick events for memory updates during execution
+    const unsubscribeTick = runtime.eventBus.register(
+      'tick',
+      {
+        id: 'debug-panel-tick-listener',
+        name: 'DebugPanelTickListener',
+        handler: () => {
+          setSnapshotVersion(v => v + 1);
+          return [];
+        }
+      },
+      'debug-panel'
+    );
+
     return () => {
       unsubscribeStack();
+      unsubscribeOutput();
+      if (unsubscribeTick) unsubscribeTick();
     };
   }, [runtime]);
 
@@ -191,33 +217,23 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                 // Get memory entries for this block
                 const blockMemory = memoryByOwner.get(block.key) || [];
                 const hasMemory = blockMemory.length > 0;
-                const isExpanded = expandedBlocks.has(block.key);
                 
                 return (
                   <div key={block.key}>
                     {/* Block Row */}
                     <div
                       className={`
-                        flex items-center gap-2 py-2 px-3 text-xs transition-colors cursor-pointer select-none
+                        flex items-center gap-2 py-2 px-3 text-xs select-none
                         ${isTop ? 'bg-primary/5' : ''}
-                        ${isHighlighted ? 'bg-primary/10' : 'hover:bg-muted/30'}
+                        ${isHighlighted ? 'bg-primary/10' : ''}
                       `}
-                      onClick={() => hasMemory && toggleBlockExpanded(block.key)}
-                      title={hasMemory ? 'Click to expand/collapse memory' : block.key}
+                      title={block.key}
                     >
-                      {/* Expand/Collapse or Stack Position */}
+                      {/* Stack Position */}
                       <div className="w-5 text-center shrink-0">
-                        {hasMemory ? (
-                          isExpanded ? (
-                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                          )
-                        ) : (
-                          <span className={`font-mono ${isTop ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
-                            {isTop ? '→' : index}
-                          </span>
-                        )}
+                        <span className={`font-mono ${isTop ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+                          {isTop ? '→' : index}
+                        </span>
                       </div>
                       
                       {/* Status Indicator */}
@@ -235,16 +251,6 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                         </span>
                       </div>
                       
-                      {/* Memory count badge */}
-                      {hasMemory && (
-                        <Badge 
-                          variant="outline" 
-                          className="text-[9px] px-1 py-0 h-3.5 shrink-0 font-normal"
-                        >
-                          {blockMemory.length}
-                        </Badge>
-                      )}
-                      
                       {/* Block Type Badge */}
                       <Badge 
                         variant="secondary" 
@@ -259,20 +265,25 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                       </span>
                     </div>
                     
-                    {/* Inline Memory Entries (when expanded) */}
-                    {hasMemory && isExpanded && (
+                    {/* Inline Memory Entries (always shown) */}
+                    {hasMemory && (
                       <div className="bg-muted/20 border-t border-border/30">
                         <table className="w-full text-[10px]">
                           <tbody>
                             {blockMemory.map(entry => (
-                              <tr key={entry.id} className="border-b border-border/20 last:border-0">
+                              <tr 
+                                key={entry.id} 
+                                className="border-b border-border/20 last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
+                                onClick={() => openMemoryDialog(entry)}
+                                title="Click to view full value"
+                              >
                                 <td className="py-1 pl-8 pr-2 text-muted-foreground font-mono w-16">
                                   {entry.type}
                                 </td>
                                 <td className="py-1 px-2 text-foreground truncate max-w-[120px]" title={entry.label}>
                                   {entry.label}
                                 </td>
-                                <td className="py-1 pl-2 pr-3 text-right font-mono text-foreground truncate max-w-[100px]" title={entry.valueFormatted}>
+                                <td className="py-1 pl-2 pr-3 text-right font-mono text-primary truncate max-w-[100px]" title={entry.valueFormatted}>
                                   {entry.valueFormatted}
                                 </td>
                               </tr>
@@ -316,28 +327,37 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   // Embedded mode - render inline without slide-out behavior
   if (embedded) {
     return (
-      <div className={`h-full flex flex-col bg-background ${className}`}>
-        {/* Header */}
-        <div className="p-3 border-b border-border flex items-center gap-2 bg-muted/30 shrink-0">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <h3 className="font-semibold text-sm">Runtime Debugger</h3>
-        </div>
+      <>
+        <div className={`h-full flex flex-col bg-background ${className}`}>
+          {/* Header */}
+          <div className="p-3 border-b border-border flex items-center gap-2 bg-muted/30 shrink-0">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <h3 className="font-semibold text-sm">Runtime Debugger</h3>
+          </div>
 
-        {tabBar}
+          {tabBar}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {renderTabContent()}
-        </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {renderTabContent()}
+          </div>
 
-        {/* Footer */}
-        <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0">
-          <div className="flex items-center justify-between">
-            <span>Stack: {snapshot?.stack.blocks.length || 0} blocks</span>
-            <span>Memory: {snapshot?.memory.entries.length || 0} entries</span>
+          {/* Footer */}
+          <div className="p-2 border-t border-border bg-muted/10 text-xs text-muted-foreground shrink-0">
+            <div className="flex items-center justify-between">
+              <span>Stack: {snapshot?.stack.blocks.length || 0} blocks</span>
+              <span>Memory: {snapshot?.memory.entries.length || 0} entries</span>
+            </div>
           </div>
         </div>
-      </div>
+        
+        {/* Memory Value Dialog */}
+        <MemoryValueDialog 
+          data={dialogData} 
+          isOpen={isDialogOpen} 
+          onClose={closeDialog} 
+        />
+      </>
     );
   }
 
@@ -389,6 +409,13 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Memory Value Dialog */}
+      <MemoryValueDialog 
+        data={dialogData} 
+        isOpen={isDialogOpen} 
+        onClose={closeDialog} 
+      />
     </>
   );
 };
