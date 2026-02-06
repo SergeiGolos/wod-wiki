@@ -351,7 +351,7 @@ Test harnesses intentionally bypass `handle()` for test isolation. However, `Tes
 The state machine document references `tick` events, but the code uses a different name.
 
 ### Current Code
-`TickEvent` (in `src/runtime/events/NextEvent.ts:4`) uses event name `'timer:tick'`:
+`TickEvent` (defined in `src/runtime/events/NextEvent.ts:3-15`, co-located with `NextEvent` despite being unrelated) uses event name `'timer:tick'`:
 
 ```typescript
 export class TickEvent implements IEvent {
