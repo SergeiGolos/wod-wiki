@@ -55,7 +55,8 @@ export class PopBlockAction implements IRuntimeAction {
         }
 
         // Return unmount actions first, then next actions.
-        // ExecutionContext processes in order: unmount effects before parent advancement.
+        // ExecutionContext reverse-pushes returned arrays so first element executes first:
+        // unmount effects run before parent advancement.
         return [...unmountActions, ...nextActions];
     }
 }

@@ -362,8 +362,10 @@ describe('ExecutionContext: Actions returning child actions', () => {
         });
 
         // runtime.do() pushes 'via-do' onto stack during execution.
-        // Then returned 'via-return' is pushed on top.
-        // LIFO: via-return (top) executes first, then via-do
+        // Then returned 'via-return' is reverse-pushed on top (after via-do).
+        // LIFO: via-return (top, pushed last) executes first, then via-do (pushed during do()).
+        // This is consistent with the "first returned = first executed" rule because
+        // returned actions are processed AFTER the action body finishes, landing on top.
         expect(executionOrder).toEqual(['parent', 'via-return', 'via-do']);
     });
 });
