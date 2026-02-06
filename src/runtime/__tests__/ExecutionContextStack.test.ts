@@ -247,6 +247,127 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
     });
 });
 
+describe('ExecutionContext: Actions returning child actions', () => {
+    it('should process returned actions in order (first returned = first executed)', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'parent',
+            do: () => {
+                executionOrder.push('parent');
+                // Return child actions — first one should execute first
+                return [
+                    { type: 'child-A', do: () => { executionOrder.push('child-A'); } },
+                    { type: 'child-B', do: () => { executionOrder.push('child-B'); } },
+                ];
+            }
+        });
+
+        expect(executionOrder).toEqual(['parent', 'child-A', 'child-B']);
+    });
+
+    it('should process returned children depth-first before siblings', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'parent',
+            do: () => {
+                executionOrder.push('parent');
+                return [
+                    {
+                        type: 'first',
+                        do: () => {
+                            executionOrder.push('first');
+                            return [
+                                { type: 'grandchild', do: () => { executionOrder.push('grandchild'); } }
+                            ];
+                        }
+                    },
+                    { type: 'second', do: () => { executionOrder.push('second'); } }
+                ];
+            }
+        });
+
+        // Depth-first: parent → first → grandchild → second
+        expect(executionOrder).toEqual(['parent', 'first', 'grandchild', 'second']);
+    });
+
+    it('should handle void return (no child actions)', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'leaf',
+            do: () => {
+                executionOrder.push('leaf');
+                // Return void — no child actions
+            }
+        });
+
+        expect(executionOrder).toEqual(['leaf']);
+    });
+
+    it('should handle empty array return', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'leaf',
+            do: () => {
+                executionOrder.push('leaf');
+                return [];
+            }
+        });
+
+        expect(executionOrder).toEqual(['leaf']);
+    });
+
+    it('should detect infinite recursion from returned actions', () => {
+        const mockRuntime = createMockRuntime();
+
+        const recursiveAction: IRuntimeAction = {
+            type: 'recursive',
+            do: () => [recursiveAction]
+        };
+
+        const ctx = new ExecutionContext(mockRuntime, 5);
+        expect(() => ctx.execute(recursiveAction)).toThrow(/Max iterations/);
+    });
+
+    it('should mix returned actions with runtime.do() calls correctly', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'parent',
+            do: (runtime: IScriptRuntime) => {
+                executionOrder.push('parent');
+                // Push via runtime.do() (legacy) — goes onto stack first
+                runtime.do({
+                    type: 'via-do',
+                    do: () => { executionOrder.push('via-do'); }
+                });
+                // Return child action — pushed after runtime.do()
+                return [
+                    { type: 'via-return', do: () => { executionOrder.push('via-return'); } }
+                ];
+            }
+        });
+
+        // runtime.do() pushes 'via-do' onto stack during execution.
+        // Then returned 'via-return' is pushed on top.
+        // LIFO: via-return (top) executes first, then via-do
+        expect(executionOrder).toEqual(['parent', 'via-return', 'via-do']);
+    });
+});
+
 describe('ExecutionContext.doAll()', () => {
     it('should execute actions in array order (first element first)', () => {
         const mockRuntime = createMockRuntime();

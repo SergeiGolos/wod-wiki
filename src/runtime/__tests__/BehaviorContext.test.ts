@@ -117,30 +117,25 @@ describe('BehaviorContext', () => {
     });
 
     describe('emitEvent', () => {
-        it('should dispatch event to event bus', () => {
+        it('should dispatch event via runtime.handle()', () => {
             const event = { name: 'timer:started', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
-            expect(runtime.eventBus.dispatch).toHaveBeenCalledWith(event, runtime);
+            expect(runtime.handle).toHaveBeenCalledWith(event);
         });
 
-        it('should process returned actions through runtime.doAll()', () => {
-            const mockAction1 = { type: 'test-action-1', do: vi.fn() };
-            const mockAction2 = { type: 'test-action-2', do: vi.fn() };
-            (runtime.eventBus.dispatch as any).mockReturnValueOnce([mockAction1, mockAction2]);
-
+        it('should delegate to runtime.handle() for action processing', () => {
             const event = { name: 'custom:event', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
 
-            // Should call runtime.doAll() with the returned actions
-            expect(runtime.doAll).toHaveBeenCalledWith([mockAction1, mockAction2]);
+            // Should call runtime.handle() which dispatches and processes actions internally
+            expect(runtime.handle).toHaveBeenCalledWith(event);
         });
 
-        it('should call doAll with empty array when no actions returned', () => {
-            (runtime.eventBus.dispatch as any).mockReturnValueOnce([]);
+        it('should handle events with no data', () => {
             const event = { name: 'noop:event', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
 
-            expect(runtime.doAll).toHaveBeenCalledWith([]);
+            expect(runtime.handle).toHaveBeenCalledWith(event);
         });
     });
 

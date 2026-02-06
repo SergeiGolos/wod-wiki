@@ -5,16 +5,16 @@ import { SnapshotClock } from '../../RuntimeClock';
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IScriptRuntime): IRuntimeAction[] {
     // Validate runtime state
     if (!this.validateRuntimeState(runtime)) {
-      return;
+      return [];
     }
 
     // Get current block
     const currentBlock = runtime.stack.current;
     if (!currentBlock) {
-      return;
+      return [];
     }
 
     try {
@@ -25,8 +25,7 @@ export class NextAction implements IRuntimeAction {
         : undefined;
 
       // Execute block's next logic with the snapshot clock (if available)
-      const nextActions = currentBlock.next(runtime, lifecycleOptions);
-      runtime.doAll(nextActions);
+      return currentBlock.next(runtime, lifecycleOptions);
 
     } catch (error) {
       // Add error to runtime errors array if available
@@ -38,6 +37,7 @@ export class NextAction implements IRuntimeAction {
           blockKey: currentBlock.key.toString()
         });
       }
+      return [];
     }
   }
 

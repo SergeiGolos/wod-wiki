@@ -34,25 +34,25 @@ describe('EmitEventAction', () => {
         );
     });
 
-    it('should process returned actions via runtime.doAll()', () => {
+    it('should return dispatched actions for ExecutionContext to process', () => {
         const returnedAction1 = { type: 'action-1', do: vi.fn() };
         const returnedAction2 = { type: 'action-2', do: vi.fn() };
         (mockRuntime.eventBus.dispatch as any).mockReturnValueOnce([returnedAction1, returnedAction2]);
 
         const action = new EmitEventAction('test:event');
-        action.do(mockRuntime);
+        const result = action.do(mockRuntime);
 
-        // Should call runtime.doAll() with the returned actions
-        expect(mockRuntime.doAll).toHaveBeenCalledWith([returnedAction1, returnedAction2]);
+        // Should return the dispatched actions (ExecutionContext pushes them onto the stack)
+        expect(result).toEqual([returnedAction1, returnedAction2]);
     });
 
-    it('should call doAll with empty array when no actions are returned', () => {
+    it('should return empty array when no actions are returned from dispatch', () => {
         (mockRuntime.eventBus.dispatch as any).mockReturnValueOnce([]);
 
         const action = new EmitEventAction('test:event');
-        action.do(mockRuntime);
+        const result = action.do(mockRuntime);
 
-        expect(mockRuntime.doAll).toHaveBeenCalledWith([]);
+        expect(result).toEqual([]);
     });
 
     it('should use provided timestamp', () => {

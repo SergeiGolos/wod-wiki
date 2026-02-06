@@ -12,9 +12,10 @@ export class PopToBlockAction implements IRuntimeAction {
 
     constructor(private readonly targetBlockId: string) { }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         const MAX_ITERATIONS = 100; // Safety limit
         let iterations = 0;
+        const allActions: IRuntimeAction[] = [];
 
         while (iterations < MAX_ITERATIONS) {
             const current = runtime.stack.current;
@@ -31,7 +32,8 @@ export class PopToBlockAction implements IRuntimeAction {
             console.log(`[PopToBlockAction] Popping: ${current.label}`);
             
             // Pop without triggering parent.next() or event emissions
-            this.popSilently(runtime);
+            const actions = this.popSilently(runtime);
+            allActions.push(...actions);
             
             iterations++;
         }
@@ -39,17 +41,19 @@ export class PopToBlockAction implements IRuntimeAction {
         if (iterations >= MAX_ITERATIONS) {
             console.error(`[PopToBlockAction] Max iterations reached, possible infinite loop`);
         }
+
+        return allActions;
     }
 
     /**
      * Pop the current block silently - no parent.next(), no event emissions.
-     * Only executes safe unmount actions (display cleanup, etc).
+     * Only returns safe unmount actions (display cleanup, etc).
      * This prevents intermediate blocks from pushing new children or triggering
      * cascading events during force-complete.
      */
-    private popSilently(runtime: IScriptRuntime): void {
+    private popSilently(runtime: IScriptRuntime): IRuntimeAction[] {
         const current = runtime.stack.current;
-        if (!current) return;
+        if (!current) return [];
 
         // Get unmount actions but filter out event emissions to prevent cascades
         const unmountActions = current.unmount(runtime, {}) ?? [];
@@ -59,12 +63,7 @@ export class PopToBlockAction implements IRuntimeAction {
 
         // Pop from stack
         const popped = runtime.stack.pop();
-        if (!popped) return;
-
-        // Execute only safe unmount actions (display cleanup, etc)
-        for (const action of safeActions) {
-            action.do(runtime);
-        }
+        if (!popped) return [];
 
         // Dispose and cleanup
         popped.dispose(runtime);
@@ -72,5 +71,6 @@ export class PopToBlockAction implements IRuntimeAction {
 
         // NOTE: We intentionally do NOT call parent.next() here
         // and we filter out emit-event actions to prevent cascades
+        return safeActions;
     }
 }

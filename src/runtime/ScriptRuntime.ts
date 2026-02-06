@@ -97,12 +97,10 @@ export class ScriptRuntime implements IScriptRuntime {
             return;
         }
 
-        // No active context — create one with a composite wrapper
+        // No active context — create one with a composite wrapper that returns actions
         this.do({
             type: 'composite-doAll',
-            do: (runtime) => {
-                runtime.doAll(actions);
-            }
+            do: () => actions
         });
     }
 

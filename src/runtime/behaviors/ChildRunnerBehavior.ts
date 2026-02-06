@@ -25,16 +25,16 @@ class CompileChildBlockAction implements IRuntimeAction {
         this.payload = { statementIds };
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         if (this.statementIds.length === 0) {
-            return;
+            return [];
         }
 
         const script = runtime.script;
         const compiler = runtime.jit;
 
         if (!script || !compiler) {
-            return;
+            return [];
         }
 
         // Get statements for these IDs - use O(1) lookup if available
@@ -43,14 +43,15 @@ class CompileChildBlockAction implements IRuntimeAction {
             .filter((s): s is NonNullable<typeof s> => s !== undefined);
 
         if (statements.length === 0) {
-            return;
+            return [];
         }
 
-        // Compile and push via PushBlockAction
+        // Compile and return PushBlockAction
         const block = compiler.compile(statements, runtime);
         if (block) {
-            runtime.do(new PushBlockAction(block));
+            return [new PushBlockAction(block)];
         }
+        return [];
     }
 }
 

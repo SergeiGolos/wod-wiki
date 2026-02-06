@@ -18,9 +18,9 @@ export class PushBlockAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         if (!runtime.stack) {
-            return;
+            return [];
         }
 
         try {
@@ -50,9 +50,8 @@ export class PushBlockAction implements IRuntimeAction {
             // Push the block onto the stack
             runtime.stack.push(this.block);
             
-            // Mount the block with lifecycle options - this returns actions that should be executed
-            const mountActions = this.block.mount(runtime, lifecycle);
-            runtime.doAll(mountActions);
+            // Mount the block with lifecycle options - returns actions to be executed
+            return this.block.mount(runtime, lifecycle);
 
         } catch (error) {
             // Check if runtime has optional setError method
@@ -60,6 +59,7 @@ export class PushBlockAction implements IRuntimeAction {
             if (typeof runtimeWithSetError.setError === 'function') {
                 runtimeWithSetError.setError(error);
             }
+            return [];
         }
     }
 }

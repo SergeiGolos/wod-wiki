@@ -122,9 +122,16 @@ export class ExecutionContext implements IScriptRuntime {
     /**
      * Executes an initial action and then all subsequent actions on the stack until empty.
      * 
-     * Uses LIFO (stack) ordering: when an action produces child actions via `runtime.do()`,
-     * those children execute before any remaining sibling actions. This ensures depth-first
-     * processing of block lifecycle chains (pop → parent.next() → push child).
+     * Uses LIFO (stack) ordering: when an action returns child actions, those children
+     * are pushed onto the stack and execute before any remaining sibling actions.
+     * This ensures depth-first processing of block lifecycle chains
+     * (pop → parent.next() → push child).
+     * 
+     * Actions can produce child actions in two ways:
+     * 1. **Return them** from `do()` (preferred) — ExecutionContext pushes them automatically
+     * 2. **Call `runtime.do()`** (legacy) — directly pushes onto the stack
+     * 
+     * Both approaches work simultaneously, enabling incremental migration.
      * 
      * @throws Error if max iterations reached
      */
@@ -142,10 +149,17 @@ export class ExecutionContext implements IScriptRuntime {
             const action = this._stack.pop()!;
             this._iteration++;
 
-            // Execute the action using THIS context as the runtime
-            // This ensures any nested .do() calls come back here and are
-            // pushed onto the same stack for depth-first processing
-            action.do(this);
+            // Execute the action using THIS context as the runtime.
+            // Actions can return child actions OR call runtime.do() (both work).
+            const childActions = action.do(this);
+            
+            // If the action returned child actions, push them onto the stack
+            // in reverse order for correct LIFO execution (first returned = first executed)
+            if (childActions && childActions.length > 0) {
+                for (let i = childActions.length - 1; i >= 0; i--) {
+                    this._stack.push(childActions[i]);
+                }
+            }
         }
     }
 }

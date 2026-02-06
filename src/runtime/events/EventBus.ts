@@ -169,7 +169,6 @@ export class EventBus implements IEventBus {
   }
 
   emit(event: IEvent, runtime: IScriptRuntime): void {
-    const actions = this.dispatch(event, runtime);
-    runtime.doAll(actions);
+    runtime.handle(event);
   }
 }

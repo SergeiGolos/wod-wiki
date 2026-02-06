@@ -74,8 +74,7 @@ export class BehaviorContext implements IBehaviorContext {
     // ============================================================================
 
     emitEvent(event: IEvent): void {
-        const actions = this.runtime.eventBus.dispatch(event, this.runtime);
-        this.runtime.doAll(actions);
+        this.runtime.handle(event);
     }
 
     // ============================================================================
