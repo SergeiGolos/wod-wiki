@@ -237,7 +237,7 @@ flowchart TD
 - `block._behaviorContext` exists
 - Event handlers are registered (via `ctx.subscribe()` in behaviors)
 - Memory entries are initialized (via `ctx.setMemory()` in init behaviors)
-- Returned actions are queued for execution (e.g., `CompileChildBlockAction` to push first child)
+- Returned actions are pushed onto the execution stack (e.g., `CompileChildBlockAction` to push first child)
 
 ### next() Detail — Dual-Purpose Trigger
 
@@ -327,9 +327,9 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         note over EC: Turn begins — clock frozen
         EC->>A: action₁.do(this)
-        A->>EC: do(action₂) — queued
+        A->>EC: do(action₂) — pushed onto stack
         EC->>A: action₂.do(this)
-        note over EC: Queue empty — turn ends
+        note over EC: Stack empty — turn ends
     end
     
     EC-->>SR: Turn complete
@@ -353,7 +353,7 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         note over EC: Turn begins — clock frozen
         EC->>A: action.do(this)
-        note over EC: Queue empty — turn ends
+        note over EC: Stack empty — turn ends
     end
     
     EC-->>SR: Turn complete
@@ -364,32 +364,39 @@ sequenceDiagram
 | Invariant | Mechanism |
 |-----------|-----------|
 | **Clock consistency** | `ExecutionContext` wraps `RuntimeClock` in `SnapshotClock.at(clock, clock.now)` |
-| **No re-entrant turns** | `ScriptRuntime.do()` checks `_activeContext` — if active, queues in current turn |
+| **No re-entrant turns** | `ScriptRuntime.do()` checks `_activeContext` — if active, pushes onto current turn's stack |
 | **Bounded execution** | `_iteration` counter checked against `_maxIterations` (default 20) |
-| **Action ordering** | FIFO queue (`_queue.shift()`) — actions execute in order queued |
+| **Action ordering** | LIFO stack (`_stack.pop()`) — child actions complete before siblings (depth-first) |
 
 ### Nested Action Processing
 
-When an action queues more actions during its execution:
+Actions are processed using a **stack** (Last-In-First-Out). When an action
+produces child actions via `runtime.do()`, those children execute before any
+remaining sibling actions — ensuring depth-first processing of block lifecycle chains.
 
 ```
-Turn Start (initial action queued)
+Turn Start (initial action pushed)
 │
-├─ Iteration 1: action₁.do(this)
-│   ├─ this.do(action₂)  →  queued
-│   └─ this.do(action₃)  →  queued
+├─ Iteration 1: action₁.do(this)    ← popped from stack
+│   ├─ this.do(action₂)  →  pushed
+│   └─ this.do(action₃)  →  pushed (on top of action₂)
 │
-├─ Iteration 2: action₂.do(this)
-│   └─ this.do(action₄)  →  queued
-│
-├─ Iteration 3: action₃.do(this)
+├─ Iteration 2: action₃.do(this)    ← LIFO: last pushed, first popped
 │   └─ (no new actions)
 │
-├─ Iteration 4: action₄.do(this)
+├─ Iteration 3: action₂.do(this)    ← now action₂ pops
+│   └─ this.do(action₄)  →  pushed
+│
+├─ Iteration 4: action₄.do(this)    ← depth-first: action₄ before any remaining
 │   └─ (no new actions)
 │
-└─ Queue empty → Turn ends (4 iterations used)
+└─ Stack empty → Turn ends (4 iterations used)
 ```
+
+This depth-first order is critical for block lifecycle chains. For example,
+when a child block completes: `PopBlockAction` → unmount actions → `parent.next()`
+→ `CompileChildBlockAction` → `PushBlockAction` — each step's children complete
+before returning to sibling actions.
 
 ---
 
@@ -506,9 +513,9 @@ sequenceDiagram
 | Action | Type | Triggered By | Does |
 |--------|------|-------------|------|
 | `StartWorkoutAction` | `start-workout` | Runtime initialization | Compiles root block, pushes to stack |
-| `PushBlockAction` | `push-block` | Behaviors, strategies | Pushes block, calls `mount()`, queues mount actions |
+| `PushBlockAction` | `push-block` | Behaviors, strategies | Pushes block, calls `mount()`, pushes mount actions onto stack |
 | `PopBlockAction` | `pop-block` | Completion behaviors, timer expiry | Calls `unmount()`, pops, disposes, notifies parent via `next()` |
-| `NextAction` | `next` | `NextEventHandler` on 'next' event | Calls `block.next()`, queues resulting actions |
+| `NextAction` | `next` | `NextEventHandler` on 'next' event | Calls `block.next()`, pushes resulting actions onto stack |
 | `CompileAndPushBlockAction` | `compile-and-push-block` | `ChildRunnerBehavior` | JIT compiles statement IDs, delegates to `PushBlockAction` |
 | `PushIdleBlockAction` | `push-idle-block` | Workout start/end transitions | Creates idle block via `IdleBlockStrategy`, pushes |
 | `PopToBlockAction` | `pop-to-block` | Force-complete / workout stop | Silently pops blocks until target reached (no parent.next()) |
@@ -773,7 +780,7 @@ User clicks "Next" → External Command:
 │   ├─ current = Effort("10 Push-ups")
 │   ├─ Effort.next(runtime, {clock: snapshot}):
 │   │   └─ PopOnNextBehavior → markComplete('user-advance'), returns [PopBlockAction]
-│   └─ Queue: [PopBlockAction]
+│   └─ Stack: [PopBlockAction]
 │
 └─ PopBlockAction.do(runtime):       ← Clock frozen at T₁
     ├─ Effort.unmount():
@@ -800,7 +807,7 @@ User clicks "Next" → External Command:
         └─ RoundOutputBehavior:
             └─ emits 'milestone' output: "Round 2"
 
-    Queue: [CompileChildBlockAction([squats-id])]
+    Stack: [CompileChildBlockAction([squats-id])]
 
     CompileChildBlockAction → compile "15 Air Squats" → Effort block
     PushBlockAction(effortBlock)

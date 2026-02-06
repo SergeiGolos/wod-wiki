@@ -37,26 +37,7 @@ The UI layer and tick loop call `eventBus.emit()` directly, bypassing the `handl
 | `TimerDisplay.tsx` | 195 | `runtime.eventBus.emit(...)` |
 
 ### Why This Matters
-`EventBus.emit()` has a problematic fallback path. When actions are returned by handlers, it tries to use `queueActions` (which doesn't exist on most runtimes) or falls back to executing actions directly via `action.do(runtime)` — outside any `ExecutionContext`, meaning **no frozen clock** and no bounded execution.
-
-```typescript
-// EventBus.emit() — current problematic code (EventBus.ts:171-185)
-emit(event: IEvent, runtime: IScriptRuntime): void {
-    const actions = this.dispatch(event, runtime);
-    if (actions && actions.length > 0) {
-      // This queueActions doesn't exist on IScriptRuntime!
-      const runtimeWithQueue = runtime as IScriptRuntime & { queueActions?: ... };
-      if (typeof runtimeWithQueue.queueActions === 'function') {
-        runtimeWithQueue.queueActions(actions);
-      } else {
-        // DANGER: executes actions without ExecutionContext
-        for (const action of actions) {
-          action.do(runtime);
-        }
-      }
-    }
-}
-```
+`EventBus.emit()` bypasses `runtime.handle()`. While the `queueActions` fallback code has been removed (it now uses `runtime.do()` consistently), `emit()` callers still bypass the `handle()` entry point which creates a dedicated `ExecutionContext` with frozen clock. When called outside an active `ExecutionContext`, `runtime.do()` will create its own context — but the intent should be to use `handle()` for all external events.
 
 ### Fix
 Replace all `eventBus.emit()` calls with `runtime.handle(event)`:
@@ -69,55 +50,13 @@ runtime.eventBus.emit(tickEvent, runtime);
 runtime.handle(tickEvent);
 ```
 
-### Severity: **High** — Correctness issue. Actions may execute without frozen clock.
+### Severity: **High** — UI code should use `handle()` for proper event entry point.
 
 ---
 
-## Gap 2: `NextAction` References Non-Existent `queueActions`
+## Gap 2: ~~`NextAction` References Non-Existent `queueActions`~~ ✅ RESOLVED
 
-### Vision
-Actions should use `runtime.do(action)` to queue nested actions. The `ExecutionContext` handles queueing automatically.
-
-### Current Code
-`NextAction` (in `src/runtime/actions/stack/NextAction.ts:32-33`) checks for a `queueActions` method that doesn't exist on `IScriptRuntime`:
-
-```typescript
-// NextAction.ts:30-38
-if (runtime.queueActions && nextActions.length > 0) {
-    runtime.queueActions(nextActions);  // This method doesn't exist on the interface!
-} else {
-    // Fallback for runtimes without queueActions (e.g., mocks)
-    for (const action of nextActions) {
-        action.do(runtime);
-    }
-}
-```
-
-### Why This Matters
-- `queueActions` is not defined on `IScriptRuntime`, so this always falls through to the fallback
-- The fallback calls `action.do(runtime)` directly, which works but is misleading — the code suggests a queuing mechanism that doesn't exist
-- When called within an `ExecutionContext`, `runtime.do(action)` already queues properly
-
-### Fix
-Replace with standard `runtime.do()` pattern:
-
-```typescript
-// Before:
-if (runtime.queueActions && nextActions.length > 0) {
-    runtime.queueActions(nextActions);
-} else {
-    for (const action of nextActions) {
-        action.do(runtime);
-    }
-}
-
-// After:
-for (const action of nextActions) {
-    runtime.do(action);
-}
-```
-
-### Severity: **Medium** — Works by accident but code is misleading and fragile.
+> **Fixed in:** `ec2066c` — `NextAction` and `EventBus.emit()` now use `runtime.do(action)` exclusively. The `queueActions` fallback code has been removed. `ExecutionContext` now uses LIFO stack processing for depth-first action chain execution.
 
 ---
 
@@ -368,31 +307,31 @@ But behaviors may subscribe to `'tick'` or `'timer:tick'` depending on the behav
 
 ## Summary Table
 
-| # | Gap | Where | Severity | Impact |
+| # | Gap | Where | Severity | Status |
 |---|-----|-------|----------|--------|
-| 1 | `eventBus.emit()` bypasses `handle()` | UI hooks, components | **High** | Actions execute without frozen clock |
-| 2 | `NextAction` references non-existent `queueActions` | NextAction.ts | **Medium** | Misleading code, works by accident |
-| 3 | `PopBlockAction` inlines `parent.next()` | PopBlockAction.ts | **Low** | Acceptable but tightly coupled |
-| 4 | `EmitEventAction` drops returned actions | EmitEventAction.ts | **High** | Silent action loss |
-| 5 | `BehaviorContext.emitEvent()` drops returned actions | BehaviorContext.ts | **High** | Silent action loss |
-| 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Parent timer behaviors may not fire |
-| 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Inconsistent, no current impact |
-| 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Unmount handlers can't produce actions |
-| 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Low** | Tests may miss production bugs |
-| 10 | Event name inconsistency (`tick` vs `timer:tick`) | NextEvent.ts | **Medium** | Handler registration mismatches |
+| 1 | `eventBus.emit()` bypasses `handle()` | UI hooks, components | **High** | Open — `emit()` callers still bypass `handle()` |
+| 2 | ~~`NextAction` references `queueActions`~~ | NextAction.ts | ~~Medium~~ | ✅ **RESOLVED** — uses `runtime.do()` now |
+| 3 | `PopBlockAction` inlines `parent.next()` | PopBlockAction.ts | **Low** | Acceptable — properly uses LIFO stack now |
+| 4 | `EmitEventAction` drops returned actions | EmitEventAction.ts | **High** | Open |
+| 5 | `BehaviorContext.emitEvent()` drops returned actions | BehaviorContext.ts | **High** | Open |
+| 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Open |
+| 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open |
+| 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
+| 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Low** | Open |
+| 10 | Event name inconsistency (`tick` vs `timer:tick`) | NextEvent.ts | **Medium** | Open |
 
 ---
 
 ## Recommended Fix Order
+
+### ~~Phase 3: Clean Up `NextAction` (Gap 2)~~ ✅ DONE
+Removed the `queueActions` reference. `NextAction` and `EventBus.emit()` now use `runtime.do()` consistently. `ExecutionContext` uses LIFO stack (depth-first) processing.
 
 ### Phase 1: Fix Action Loss (Gaps 4, 5)
 These are silent data loss bugs. Fix `EmitEventAction.do()` and `BehaviorContext.emitEvent()` to process returned actions.
 
 ### Phase 2: Route Through `handle()` (Gap 1)  
 Update all UI-layer code to use `runtime.handle(event)` instead of `eventBus.emit()`. This ensures all external events get frozen-clock execution contexts.
-
-### Phase 3: Clean Up `NextAction` (Gap 2)
-Remove the `queueActions` reference and use `runtime.do()` consistently.
 
 ### Phase 4: Add Scope Support to `subscribe()` (Gap 6)
 Enable behaviors to specify handler scope, fixing parent timer behavior isolation.

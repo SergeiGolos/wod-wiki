@@ -41,17 +41,17 @@
 
 		{"id":"ev-dispatch","type":"text","text":"## 📡 EventBus.dispatch()\n\n**Step 1:** Invoke UI callbacks (no filtering, no actions)\n**Step 2:** Get `activeBlockKey` = stack.current.key\n**Step 3:** Get `stackKeys` = all block keys on stack\n**Step 4:** Filter handlers by scope:\n\n```\nfor each handler:\n  if scope === 'global' → INCLUDE\n  if scope === 'bubble' && owner in stackKeys → INCLUDE  \n  if scope === 'active' && owner === activeBlockKey → INCLUDE\n  else → SKIP\n```\n\n**Step 5:** Execute eligible handlers\n**Step 6:** Collect and return all `IRuntimeAction[]`","x":1100,"y":320,"width":440,"height":380,"color":"#e0f0ff"},
 
-		{"id":"ev-turn","type":"text","text":"## ⏱️ ExecutionContext (Turn)\n\n**Frozen clock** — all actions see same `clock.now`\n**FIFO queue** — actions execute in order\n**Max 20 iterations** — prevents infinite loops\n**Re-entrant safe** — nested `.do()` queues in same turn\n\n```\nwhile queue not empty && iteration < 20:\n  action = queue.shift()\n  action.do(this)  // may queue more actions\n  iteration++\n```\n\n**Available Data:**\n• SnapshotClock (frozen at turn start)\n• RuntimeStack (push/pop via actions)\n• EventBus (for internal dispatch)\n• JitCompiler (for child compilation)","x":1100,"y":760,"width":440,"height":380,"color":"#f6f0ff"},
+		{"id":"ev-turn","type":"text","text":"## ⏱️ ExecutionContext (Turn)\n\n**Frozen clock** — all actions see same `clock.now`\n**LIFO stack** — depth-first processing\n**Max 20 iterations** — prevents infinite loops\n**Re-entrant safe** — nested `.do()` pushes onto same stack\n\n```\nwhile stack not empty && iteration < 20:\n  action = stack.pop()  // LIFO\n  action.do(this)  // may push more actions\n  iteration++\n```\n\n**Available Data:**\n• SnapshotClock (frozen at turn start)\n• RuntimeStack (push/pop via actions)\n• EventBus (for internal dispatch)\n• JitCompiler (for child compilation)","x":1100,"y":760,"width":440,"height":380,"color":"#f6f0ff"},
 
 		{"id":"section-actions","type":"text","text":"# ═══ ACTION CATALOG ═══\n\n*Stack operations produced by behaviors*","x":1650,"y":-440,"width":400,"height":80,"color":"6"},
 
 		{"id":"act-start","type":"text","text":"## StartWorkoutAction\n**Compiles root block, pushes to stack**\nGuards: stack empty, script valid","x":1650,"y":-320,"width":400,"height":80,"color":"#ffe0e0"},
 
-		{"id":"act-push","type":"text","text":"## PushBlockAction\n**Pushes block, calls mount(), queues mount actions**\nSets startTime from frozen clock","x":1650,"y":-200,"width":400,"height":80,"color":"#e0ffe0"},
+		{"id":"act-push","type":"text","text":"## PushBlockAction\n**Pushes block, calls mount(), pushes mount actions onto stack**\nSets startTime from frozen clock","x":1650,"y":-200,"width":400,"height":80,"color":"#e0ffe0"},
 
 		{"id":"act-pop","type":"text","text":"## PopBlockAction\n**Calls unmount(), pops, disposes, notifies parent**\nSets completedAt from frozen clock\nCalls parent.next() → may push next child","x":1650,"y":-80,"width":400,"height":100,"color":"#ffe0e0"},
 
-		{"id":"act-next","type":"text","text":"## NextAction\n**Calls block.next(), queues resulting actions**\nTriggered by NextEventHandler (global scope)","x":1650,"y":60,"width":400,"height":80,"color":"#e0e0ff"},
+		{"id":"act-next","type":"text","text":"## NextAction\n**Calls block.next(), pushes resulting actions onto stack**\nTriggered by NextEventHandler (global scope)","x":1650,"y":60,"width":400,"height":80,"color":"#e0e0ff"},
 
 		{"id":"act-compile","type":"text","text":"## CompileChildBlockAction\n**JIT compiles statement IDs → PushBlockAction**\nReturned by ChildRunnerBehavior","x":1650,"y":180,"width":400,"height":80,"color":"#fff0e0"},
 
