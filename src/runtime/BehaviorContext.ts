@@ -13,6 +13,7 @@ import {
     BehaviorEventType,
     BehaviorEventListener,
     OutputOptions,
+    SubscribeOptions,
     Unsubscribe,
 } from './contracts/IBehaviorContext';
 
@@ -49,7 +50,7 @@ export class BehaviorContext implements IBehaviorContext {
     // Event Subscription
     // ============================================================================
 
-    subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener): Unsubscribe {
+    subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe {
         const handler: IEventHandler = {
             id: `behavior-${this.block.key.toString()}-${eventType}-${Date.now()}`,
             name: `BehaviorHandler-${this.block.label}-${eventType}`,
@@ -62,7 +63,8 @@ export class BehaviorContext implements IBehaviorContext {
         const unsub = this.runtime.eventBus.register(
             eventType,
             handler,
-            this.block.key.toString()
+            this.block.key.toString(),
+            { scope: options?.scope ?? 'active' }
         );
 
         this.subscriptions.push({ eventType, unsubscribe: unsub });

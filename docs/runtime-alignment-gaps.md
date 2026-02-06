@@ -45,57 +45,12 @@ The runtime should follow this flow:
 
 ---
 
-## Gap 6: `BehaviorContext.subscribe()` Always Uses Default (Active) Scope
+## Gap 6: ~~`BehaviorContext.subscribe()` Always Uses Default (Active) Scope~~ ✅ RESOLVED
 
-### Vision
-Behaviors should be able to listen to events at different scope levels. Parent blocks need to hear child events (e.g., `TimerCompletionBehavior` on an AMRAP needs tick events even when a child effort block is active).
-
-### Current Code
-`BehaviorContext.subscribe()` (in `src/runtime/BehaviorContext.ts:52-69`) registers handlers with no scope option, which defaults to `'active'`:
-
-```typescript
-// BehaviorContext.ts:62-66
-const unsub = this.runtime.eventBus.register(
-    eventType,
-    handler,
-    this.block.key.toString()
-    // No options! Defaults to scope: 'active'
-);
-```
-
-### Reassessment
-The `TimerCompletionBehavior` on an AMRAP block subscribes to `'tick'` events. When a child effort block is on top of the stack, the AMRAP is not the `active` block — its tick handler won't fire with `'active'` scope.
-
-The EventBus already supports `'bubble'` and `'global'` scopes (see `EventBus.dispatch()` filtering at lines 139-152). The infrastructure exists — `BehaviorContext.subscribe()` simply doesn't expose it.
-
-### Fix
-Allow `subscribe()` to accept a scope parameter:
-
-```typescript
-subscribe(
-    eventType: BehaviorEventType,
-    listener: BehaviorEventListener,
-    options?: { scope?: HandlerScope }
-): Unsubscribe {
-    // ... handler creation ...
-    const unsub = this.runtime.eventBus.register(
-        eventType,
-        handler,
-        this.block.key.toString(),
-        { scope: options?.scope ?? 'active' }
-    );
-    // ...
-}
-```
-
-Then behaviors that need to hear events while children are active can use `scope: 'bubble'`:
-
-```typescript
-// TimerCompletionBehavior — needs ticks even when child is active
-ctx.subscribe('tick', handler, { scope: 'bubble' });
-```
-
-### Severity: **High** — Timer completion on parent blocks may not fire correctly when children are active.
+> **Fixed in:** `IBehaviorContext.subscribe()` now accepts an optional `SubscribeOptions` parameter with `scope?: HandlerScope`. `BehaviorContext.subscribe()` passes the scope to `eventBus.register()`, defaulting to `'active'` for backward compatibility. Updated behaviors:
+> - **TimerCompletionBehavior**: `scope: 'bubble'` — parent timer expiration checks fire even with child blocks active
+> - **TimerTickBehavior**: `scope: 'bubble'` — parent timer tracking continues with child blocks active
+> - **SoundCueBehavior**: `scope: 'bubble'` — countdown sound cues play even with child blocks active
 
 ---
 
@@ -116,43 +71,9 @@ Recommendation: Leave as-is unless a concrete use case emerges for memory-event-
 
 ---
 
-## Gap 8: `RuntimeBlock.unmount()` Dispatches Event Outside Action System
+## Gap 8: ~~`RuntimeBlock.unmount()` Dispatches Event Outside Action System~~ ✅ RESOLVED
 
-### Vision
-Events emitted during block lifecycle should participate in the action system.
-
-### Current Code
-`RuntimeBlock.unmount()` (in `src/runtime/RuntimeBlock.ts:244-248`) dispatches an `unmount` event directly on the EventBus:
-
-```typescript
-// RuntimeBlock.ts:243-248
-runtime.eventBus.dispatch({
-    name: 'unmount',
-    timestamp: runtime.clock.now,
-    data: { blockKey: this.key.toString() }
-}, runtime);
-```
-
-This call's return value (`IRuntimeAction[]`) is silently ignored.
-
-### Reassessment
-The unmount dispatch is diagnostic — it notifies observers that a block was unmounted. Currently no handlers return actions for unmount events. However, the return value should either be:
-- Collected and returned as part of `unmount()`'s `IRuntimeAction[]` return, or
-- Processed through `runtime.do()` for consistency
-
-The first option is cleanest since `unmount()` already returns actions.
-
-### Fix
-```typescript
-const unmountEventActions = runtime.eventBus.dispatch({
-    name: 'unmount',
-    timestamp: runtime.clock.now,
-    data: { blockKey: this.key.toString() }
-}, runtime);
-actions.push(...unmountEventActions);
-```
-
-### Severity: **Medium** — Unmount event handlers cannot produce actions that affect the stack.
+> **Fixed in:** `RuntimeBlock.unmount()` now captures the return value of `eventBus.dispatch()` for the unmount event and pushes any resulting actions into the returned actions array. Unmount event handlers can now produce actions that participate in the action system.
 
 ---
 
@@ -181,9 +102,9 @@ actions.push(...unmountEventActions);
 | 3 | ~~`PopBlockAction` inlines `parent.next()`~~ | PopBlockAction.ts | ~~Low~~ | ✅ **RESOLVED** — returns `NextAction` instead |
 | 4 | ~~`EmitEventAction` drops returned actions~~ | EmitEventAction.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
 | 5 | ~~`BehaviorContext.emitEvent()` drops actions~~ | BehaviorContext.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
-| 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Open |
+| 6 | ~~`subscribe()` always uses active scope~~ | ~~BehaviorContext.ts~~ | ~~High~~ | ✅ **RESOLVED** — scope param added, behaviors use `'bubble'` |
 | 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open (Won't Fix) |
-| 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
+| 8 | ~~`unmount()` dispatches outside action system~~ | ~~RuntimeBlock.ts~~ | ~~Medium~~ | ✅ **RESOLVED** — dispatch return captured |
 | 9 | ~~Test harnesses use `emit()` not `handle()`~~ | ~~Testing files~~ | ~~Medium~~ | ✅ **RESOLVED** — all use `handle()`/`dispatch()` |
 | 10 | ~~Event name mismatch (`tick` vs `timer:tick`)~~ | ~~NextEvent.ts~~ | ~~High~~ | ✅ **RESOLVED** — `TickEvent.name` is now `'tick'` |
 
@@ -208,31 +129,11 @@ All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. This
 ### ~~Phase 5: Fix Test Harness Infinite Loop (Gap 9)~~ ✅ DONE
 All test harnesses now use `runtime.handle()` or `eventBus.dispatch()` instead of `eventBus.emit()`. BehaviorTestHarness mock `handle()` mirrors `ScriptRuntime.handle()` — calls `dispatch()` + `doAll()`. Infinite recursion bug eliminated.
 
-### Phase 6: Add Scope Support to `subscribe()` (Gap 6) — **IMPORTANT**
+### ~~Phase 6: Add Scope Support to `subscribe()` (Gap 6)~~ ✅ DONE
+`IBehaviorContext.subscribe()` now accepts `SubscribeOptions` with `scope?: HandlerScope`. `BehaviorContext` passes scope to `eventBus.register()`, defaulting to `'active'`. `TimerCompletionBehavior`, `TimerTickBehavior`, and `SoundCueBehavior` updated to use `scope: 'bubble'` for tick subscriptions.
 
-**Why next:** Parent timer behaviors (e.g., `TimerCompletionBehavior` on an AMRAP) need to hear tick events even when a child effort block is active. This is a functional gap.
-
-**Tasks:**
-1. Update `IBehaviorContext.subscribe()` signature to accept optional `{ scope?: HandlerScope }`
-2. Update `BehaviorContext.subscribe()` implementation to pass scope to `eventBus.register()`
-3. Default scope remains `'active'` for backward compatibility
-4. Update `TimerCompletionBehavior` to use `scope: 'bubble'`
-5. Update `TimerTickBehavior` to use `scope: 'bubble'` (parent needs timer updates too)
-6. Update `SoundCueBehavior` to use appropriate scope
-7. Add tests for scope-filtered behavior subscriptions
-
-**Risk:** Medium — changing scope could cause behaviors to fire in unexpected contexts. Needs careful per-behavior analysis.
-
-### Phase 7: Unmount Event Actions (Gap 8) — **LOW PRIORITY**
-
-**Why last:** No unmount handlers currently return actions. Fix for completeness.
-
-**Tasks:**
-1. Capture return value of `runtime.eventBus.dispatch()` in `RuntimeBlock.unmount()`
-2. Push returned actions into the `actions` array that `unmount()` returns
-3. Add test verifying unmount event handlers can produce actions
-
-**Risk:** Low — additive change, no existing behavior changes.
+### ~~Phase 7: Unmount Event Actions (Gap 8)~~ ✅ DONE
+`RuntimeBlock.unmount()` now captures the return value of `eventBus.dispatch()` and pushes resulting actions into the returned array.
 
 ### Gap 7 — **WON'T FIX** (unless needed)
 
@@ -248,9 +149,9 @@ All gaps are resolved when:
 2. **Action-only stack operations:** All stack changes go through actions ✔️
 3. **No dropped actions:** Every `dispatch()` return value is processed ✔️ (except Gap 7)
 4. **Consistent event names:** `TickEvent.name` matches behavior subscriptions ✔️
-5. **Scope-aware subscriptions:** Parent behaviors can hear child events ⬜ Phase 6
+5. **Scope-aware subscriptions:** Parent behaviors can hear child events ✔️
 6. **Test fidelity:** Test harnesses use the same entry points as production ✔️
-7. **Complete lifecycle participation:** Unmount events can produce actions ⬜ Phase 7
+7. **Complete lifecycle participation:** Unmount events can produce actions ✔️
 
 ---
 

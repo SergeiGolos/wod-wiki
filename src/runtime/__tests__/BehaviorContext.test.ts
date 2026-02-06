@@ -196,7 +196,8 @@ describe('BehaviorContext', () => {
                     id: expect.stringContaining('behavior-'),
                     name: expect.stringContaining('BehaviorHandler-Test Block-tick'),
                 }),
-                block.key.toString()
+                block.key.toString(),
+                { scope: 'active' }
             );
         });
 
