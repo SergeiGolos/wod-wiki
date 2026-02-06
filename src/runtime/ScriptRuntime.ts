@@ -91,12 +91,14 @@ export class ScriptRuntime implements IScriptRuntime {
         const actions = this.eventBus.dispatch(event, this);
         if (actions.length === 0) return;
 
-        // Wrap multiple actions in a single turn if more than one is returned
+        // Wrap multiple actions in a single turn if more than one is returned.
+        // Push actions in reverse order so that with LIFO stack processing,
+        // the first handler's action executes first.
         this.do({
             type: 'composite-event-action',
             do: (runtime) => {
-                for (const action of actions) {
-                    runtime.do(action);
+                for (let i = actions.length - 1; i >= 0; i--) {
+                    runtime.do(actions[i]);
                 }
             }
         });

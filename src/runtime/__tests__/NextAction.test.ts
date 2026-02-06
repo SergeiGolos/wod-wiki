@@ -28,7 +28,8 @@ describe('NextAction', () => {
         set: vi.fn()
       },
       errors: [],
-      handle: vi.fn()
+      handle: vi.fn(),
+      do: vi.fn().mockImplementation((a: any) => { a.do(mockRuntime); })
     } as any;
   });
 

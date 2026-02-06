@@ -38,11 +38,6 @@ export class PopBlockAction implements IRuntimeAction {
             return;
         }
 
-        // Execute unmount actions
-        for (const action of unmountActions) {
-            runtime.do(action);
-        }
-
         // Dispose and cleanup
         popped.dispose(runtime);
         popped.context?.release?.();
@@ -54,11 +49,20 @@ export class PopBlockAction implements IRuntimeAction {
         // Notify parent of child completion via next() with the lifecycle options
         // This passes completedAt to the parent so it can track child completion times
         const parent = runtime.stack.current;
+        let nextActions: IRuntimeAction[] = [];
         if (parent) {
-            const nextActions = parent.next(runtime, lifecycleOptions);
-            for (const action of nextActions) {
-                runtime.do(action);
-            }
+            nextActions = parent.next(runtime, lifecycleOptions);
+        }
+
+        // Push actions in correct order for LIFO processing:
+        // Next actions go on the stack first (bottom), unmount actions on top.
+        // LIFO pops unmount actions first, then next actions — preserving
+        // the lifecycle order: unmount effects before parent advancement.
+        for (let i = nextActions.length - 1; i >= 0; i--) {
+            runtime.do(nextActions[i]);
+        }
+        for (let i = unmountActions.length - 1; i >= 0; i--) {
+            runtime.do(unmountActions[i]);
         }
     }
 }

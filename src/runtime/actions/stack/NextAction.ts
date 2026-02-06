@@ -27,15 +27,10 @@ export class NextAction implements IRuntimeAction {
       // Execute block's next logic with the snapshot clock (if available)
       const nextActions = currentBlock.next(runtime, lifecycleOptions);
 
-      // Queue actions through the runtime's action queue instead of executing directly
-      // This ensures proper ordering when actions trigger further state changes
-      if (runtime.queueActions && nextActions.length > 0) {
-        runtime.queueActions(nextActions);
-      } else {
-        // Fallback for runtimes without queueActions (e.g., mocks)
-        for (const action of nextActions) {
-          action.do(runtime);
-        }
+      // Push actions in reverse order for LIFO processing so the first
+      // action in the list executes first
+      for (let i = nextActions.length - 1; i >= 0; i--) {
+        runtime.do(nextActions[i]);
       }
 
     } catch (error) {

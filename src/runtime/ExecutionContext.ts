@@ -9,11 +9,30 @@ import { PopBlockAction } from './actions/stack/PopBlockAction';
 
 /**
  * ExecutionContext manages a "turn" of execution.
- * It wraps a runtime and ensures that all actions queued during the turn
+ * 
+ * It wraps a runtime and ensures that all actions pushed during the turn
  * see a consistent frozen clock and share an execution depth limit.
+ * 
+ * ## Stack Semantics (LIFO)
+ * 
+ * Actions are processed using a **stack** (Last-In-First-Out). When an action
+ * produces child actions via `runtime.do()`, those children are pushed onto the
+ * stack and executed **before** returning to any remaining sibling actions.
+ * 
+ * This ensures that nested operations (e.g., a pop that triggers a parent.next()
+ * which pushes a new child) complete their full depth before processing continues
+ * at the parent level — mirroring the natural call-stack behavior of block
+ * lifecycle operations.
+ * 
+ * ## Lifecycle
+ * 
+ * 1. Created by `ScriptRuntime.do()` or `ScriptRuntime.handle()` when no active context exists
+ * 2. Clock is frozen at creation time (SnapshotClock)
+ * 3. Actions are executed from the stack until empty
+ * 4. Context is discarded — all actions in the turn shared the same frozen timestamp
  */
 export class ExecutionContext implements IScriptRuntime {
-    private _queue: IRuntimeAction[] = [];
+    private _stack: IRuntimeAction[] = [];
     private _iteration = 0;
     private readonly _maxIterations: number;
     private readonly _snapshotClock: SnapshotClock;
@@ -55,27 +74,28 @@ export class ExecutionContext implements IScriptRuntime {
     }
 
     /**
-     * Queues an action to be executed in this turn.
-     * Implementation of IScriptRuntime.do
+     * Pushes an action onto the execution stack to be processed in this turn.
+     * Actions pushed during another action's execution will be processed next (LIFO).
      */
     do(action: IRuntimeAction): void {
-        this._queue.push(action);
+        this._stack.push(action);
     }
 
     /**
-     * Dispatches an event and executes all resulting actions in this turn.
-     * Implementation of IScriptRuntime.handle
+     * Dispatches an event and pushes all resulting actions onto the stack.
+     * Actions are pushed in reverse order so the first handler's action
+     * executes first under LIFO processing.
      */
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
-        for (const action of actions) {
-            this.do(action);
+        for (let i = actions.length - 1; i >= 0; i--) {
+            this.do(actions[i]);
         }
     }
 
     /**
      * Pushes a block onto the runtime stack.
-     * Queues the PushBlockAction in this execution context.
+     * Pushes the PushBlockAction onto this execution context's action stack.
      */
     pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         this.do(new PushBlockAction(block, lifecycle));
@@ -83,31 +103,38 @@ export class ExecutionContext implements IScriptRuntime {
 
     /**
      * Pops the current block from the runtime stack.
-     * Queues the PopBlockAction in this execution context.
+     * Pushes the PopBlockAction onto this execution context's action stack.
      */
     popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         this.do(new PopBlockAction(lifecycle));
     }
 
     /**
-     * Executes an initial action and then all subsequent actions queued until exhausted.
+     * Executes an initial action and then all subsequent actions on the stack until empty.
+     * 
+     * Uses LIFO (stack) ordering: when an action produces child actions via `runtime.do()`,
+     * those children execute before any remaining sibling actions. This ensures depth-first
+     * processing of block lifecycle chains (pop → parent.next() → push child).
+     * 
      * @throws Error if max iterations reached
      */
     execute(initialAction: IRuntimeAction): void {
-        this._queue.push(initialAction);
+        this._stack.push(initialAction);
 
-        while (this._queue.length > 0) {
+        while (this._stack.length > 0) {
             if (this._iteration >= this._maxIterations) {
                 const errorMsg = `[ExecutionContext] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`;
                 console.error(errorMsg);
                 throw new Error(errorMsg);
             }
 
-            const action = this._queue.shift()!;
+            // LIFO: pop from the top of the stack (last-in, first-out)
+            const action = this._stack.pop()!;
             this._iteration++;
 
             // Execute the action using THIS context as the runtime
-            // This ensures any nested .do() calls come back here
+            // This ensures any nested .do() calls come back here and are
+            // pushed onto the same stack for depth-first processing
             action.do(this);
         }
     }
