@@ -11,6 +11,7 @@ describe('EmitEventAction', () => {
                 dispatch: vi.fn().mockReturnValue([]),
             },
             do: vi.fn(),
+            doAll: vi.fn(),
             handle: vi.fn(),
         } as unknown as IScriptRuntime;
     });
@@ -33,7 +34,7 @@ describe('EmitEventAction', () => {
         );
     });
 
-    it('should process returned actions via runtime.do()', () => {
+    it('should process returned actions via runtime.doAll()', () => {
         const returnedAction1 = { type: 'action-1', do: vi.fn() };
         const returnedAction2 = { type: 'action-2', do: vi.fn() };
         (mockRuntime.eventBus.dispatch as any).mockReturnValueOnce([returnedAction1, returnedAction2]);
@@ -41,19 +42,17 @@ describe('EmitEventAction', () => {
         const action = new EmitEventAction('test:event');
         action.do(mockRuntime);
 
-        // Should call runtime.do() for each returned action (in reverse for LIFO)
-        expect(mockRuntime.do).toHaveBeenCalledTimes(2);
-        expect(mockRuntime.do).toHaveBeenCalledWith(returnedAction2);
-        expect(mockRuntime.do).toHaveBeenCalledWith(returnedAction1);
+        // Should call runtime.doAll() with the returned actions
+        expect(mockRuntime.doAll).toHaveBeenCalledWith([returnedAction1, returnedAction2]);
     });
 
-    it('should not call runtime.do() when no actions are returned', () => {
+    it('should call doAll with empty array when no actions are returned', () => {
         (mockRuntime.eventBus.dispatch as any).mockReturnValueOnce([]);
 
         const action = new EmitEventAction('test:event');
         action.do(mockRuntime);
 
-        expect(mockRuntime.do).not.toHaveBeenCalled();
+        expect(mockRuntime.doAll).toHaveBeenCalledWith([]);
     });
 
     it('should use provided timestamp', () => {

@@ -58,11 +58,7 @@ export class PopBlockAction implements IRuntimeAction {
         // Next actions go on the stack first (bottom), unmount actions on top.
         // LIFO pops unmount actions first, then next actions — preserving
         // the lifecycle order: unmount effects before parent advancement.
-        for (let i = nextActions.length - 1; i >= 0; i--) {
-            runtime.do(nextActions[i]);
-        }
-        for (let i = unmountActions.length - 1; i >= 0; i--) {
-            runtime.do(unmountActions[i]);
-        }
+        runtime.doAll(nextActions);
+        runtime.doAll(unmountActions);
     }
 }

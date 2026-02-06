@@ -29,7 +29,10 @@ describe('NextAction', () => {
       },
       errors: [],
       handle: vi.fn(),
-      do: vi.fn().mockImplementation((a: any) => { a.do(mockRuntime); })
+      do: vi.fn().mockImplementation((a: any) => { a.do(mockRuntime); }),
+      doAll: vi.fn().mockImplementation((actions: any[]) => {
+        for (const a of actions) { a.do(mockRuntime); }
+      })
     } as any;
   });
 
@@ -59,8 +62,7 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(mockAction1.do).toHaveBeenCalledWith(mockRuntime);
-    expect(mockAction2.do).toHaveBeenCalledWith(mockRuntime);
+    expect(mockRuntime.doAll).toHaveBeenCalledWith([mockAction1, mockAction2]);
   });
 
   it('should handle single action returned by block.next(runtime)', () => {
@@ -69,7 +71,7 @@ describe('NextAction', () => {
 
     action.do(mockRuntime);
 
-    expect(mockAction.do).toHaveBeenCalledWith(mockRuntime);
+    expect(mockRuntime.doAll).toHaveBeenCalledWith([mockAction]);
   });
 
   it('should handle no current block gracefully', () => {
@@ -110,7 +112,7 @@ describe('NextAction', () => {
     expect(() => action.do(incompleteRuntime)).not.toThrow();
   });
 
-  it('should handle action execution errors gracefully', () => {
+  it('should pass actions to doAll even if they would throw', () => {
     const mockAction = {
       do: vi.fn().mockImplementation(() => {
         throw new Error('Action execution failed');
@@ -119,7 +121,7 @@ describe('NextAction', () => {
     mockCurrentBlock.next.mockReturnValue([mockAction]);
 
     expect(() => action.do(mockRuntime)).not.toThrow();
-    expect(mockAction.do).toHaveBeenCalled();
+    expect(mockRuntime.doAll).toHaveBeenCalledWith([mockAction]);
   });
 
   it('should execute within performance targets', () => {

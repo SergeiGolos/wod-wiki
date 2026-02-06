@@ -31,6 +31,7 @@ function createMockRuntime(): IScriptRuntime {
         jit: {} as any,
         errors: [],
         do: () => {},
+        doAll: () => {},
         handle: () => {},
         pushBlock: () => {},
         popBlock: () => {},
@@ -243,5 +244,102 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
 
         // LIFO depth-first: parent → child (on top) → grandchild (child's child, on top) → sibling
         expect(executionOrder).toEqual(['parent', 'child', 'grandchild', 'sibling']);
+    });
+});
+
+describe('ExecutionContext.doAll()', () => {
+    it('should execute actions in array order (first element first)', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const actions: IRuntimeAction[] = [
+            { type: 'A', do: () => { executionOrder.push('A'); } },
+            { type: 'B', do: () => { executionOrder.push('B'); } },
+            { type: 'C', do: () => { executionOrder.push('C'); } },
+        ];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        // Use a wrapper to call doAll from within the execution loop
+        ctx.execute({
+            type: 'wrapper',
+            do: (runtime: IScriptRuntime) => {
+                runtime.doAll(actions);
+            }
+        });
+
+        expect(executionOrder).toEqual(['A', 'B', 'C']);
+    });
+
+    it('should handle empty actions array', () => {
+        const mockRuntime = createMockRuntime();
+        const ctx = new ExecutionContext(mockRuntime, 20);
+
+        ctx.execute({
+            type: 'wrapper',
+            do: (runtime: IScriptRuntime) => {
+                runtime.doAll([]);
+            }
+        });
+
+        // Should not throw or produce any errors
+    });
+
+    it('should process doAll children depth-first before siblings', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'parent',
+            do: (runtime: IScriptRuntime) => {
+                executionOrder.push('parent');
+                // Use doAll for sibling pair
+                runtime.doAll([
+                    {
+                        type: 'first',
+                        do: (rt: IScriptRuntime) => {
+                            executionOrder.push('first');
+                            // First action pushes a child via doAll
+                            rt.doAll([
+                                { type: 'first-child', do: () => { executionOrder.push('first-child'); } }
+                            ]);
+                        }
+                    },
+                    {
+                        type: 'second',
+                        do: () => { executionOrder.push('second'); }
+                    }
+                ]);
+            }
+        });
+
+        // parent → first (doAll puts first on top) → first-child (depth-first) → second
+        expect(executionOrder).toEqual(['parent', 'first', 'first-child', 'second']);
+    });
+
+    it('should interleave doAll and do correctly', () => {
+        const mockRuntime = createMockRuntime();
+        const executionOrder: string[] = [];
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+        ctx.execute({
+            type: 'start',
+            do: (runtime: IScriptRuntime) => {
+                executionOrder.push('start');
+                // Mix do() and doAll() calls
+                runtime.doAll([
+                    { type: 'batch-1', do: () => { executionOrder.push('batch-1'); } },
+                    { type: 'batch-2', do: () => { executionOrder.push('batch-2'); } },
+                ]);
+                runtime.do({
+                    type: 'single',
+                    do: () => { executionOrder.push('single'); }
+                });
+            }
+        });
+
+        // LIFO: 'single' was pushed last (on top), so it executes first
+        // Then batch-1 (top of doAll), then batch-2
+        expect(executionOrder).toEqual(['start', 'single', 'batch-1', 'batch-2']);
     });
 });

@@ -82,15 +82,24 @@ export class ExecutionContext implements IScriptRuntime {
     }
 
     /**
+     * Pushes multiple actions onto the stack in the correct order for LIFO processing.
+     * The first action in the array will execute first.
+     * 
+     * Internally pushes in reverse order so the first action lands on top of the stack.
+     */
+    doAll(actions: IRuntimeAction[]): void {
+        for (let i = actions.length - 1; i >= 0; i--) {
+            this._stack.push(actions[i]);
+        }
+    }
+
+    /**
      * Dispatches an event and pushes all resulting actions onto the stack.
-     * Actions are pushed in reverse order so the first handler's action
-     * executes first under LIFO processing.
+     * Uses doAll() to handle LIFO ordering internally.
      */
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
-        for (let i = actions.length - 1; i >= 0; i--) {
-            this.do(actions[i]);
-        }
+        this.doAll(actions);
     }
 
     /**

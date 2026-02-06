@@ -75,6 +75,12 @@ export class BehaviorTestHarness {
         action.do(this);
       },
 
+      doAll(actions: IRuntimeAction[]) {
+        for (const action of actions) {
+          action.do(this);
+        }
+      },
+
       handle(event: IEvent) {
         // Dispatch event through event bus
         self._eventBus.emit(event, this);

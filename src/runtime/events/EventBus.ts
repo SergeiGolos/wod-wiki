@@ -170,12 +170,6 @@ export class EventBus implements IEventBus {
 
   emit(event: IEvent, runtime: IScriptRuntime): void {
     const actions = this.dispatch(event, runtime);
-    if (actions && actions.length > 0) {
-      // Push actions in reverse order for LIFO processing so the first
-      // handler's action executes first
-      for (let i = actions.length - 1; i >= 0; i--) {
-        runtime.do(actions[i]);
-      }
-    }
+    runtime.doAll(actions);
   }
 }

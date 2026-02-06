@@ -270,6 +270,13 @@ export class TestableRuntime implements IScriptRuntime {
   }
 
   /**
+   * Pushes multiple actions in the correct order for execution.
+   */
+  doAll(actions: import("@/runtime/contracts/IRuntimeAction").IRuntimeAction[]): void {
+    this._wrapped.doAll(actions);
+  }
+
+  /**
    * Dispatches an event to the wrapped runtime.
    */
   handle(event: IEvent): void {

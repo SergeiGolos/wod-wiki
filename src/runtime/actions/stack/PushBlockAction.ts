@@ -51,11 +51,8 @@ export class PushBlockAction implements IRuntimeAction {
             runtime.stack.push(this.block);
             
             // Mount the block with lifecycle options - this returns actions that should be executed
-            // Push in reverse order so first action executes first under LIFO stack processing
             const mountActions = this.block.mount(runtime, lifecycle);
-            for (let i = mountActions.length - 1; i >= 0; i--) {
-                runtime.do(mountActions[i]);
-            }
+            runtime.doAll(mountActions);
 
         } catch (error) {
             // Check if runtime has optional setError method

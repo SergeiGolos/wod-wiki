@@ -26,12 +26,7 @@ export class NextAction implements IRuntimeAction {
 
       // Execute block's next logic with the snapshot clock (if available)
       const nextActions = currentBlock.next(runtime, lifecycleOptions);
-
-      // Push actions in reverse order for LIFO processing so the first
-      // action in the list executes first
-      for (let i = nextActions.length - 1; i >= 0; i--) {
-        runtime.do(nextActions[i]);
-      }
+      runtime.doAll(nextActions);
 
     } catch (error) {
       // Add error to runtime errors array if available

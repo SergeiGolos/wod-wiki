@@ -84,6 +84,29 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
+     * Pushes multiple actions onto the execution stack in the correct order
+     * for LIFO processing. The first action in the array will execute first.
+     * 
+     * If called within an active execution context, delegates to it.
+     * Otherwise, wraps in a new context as a composite action.
+     */
+    public doAll(actions: IRuntimeAction[]): void {
+        if (actions.length === 0) return;
+        if (this._activeContext) {
+            this._activeContext.doAll(actions);
+            return;
+        }
+
+        // No active context — create one with a composite wrapper
+        this.do({
+            type: 'composite-doAll',
+            do: (runtime) => {
+                runtime.doAll(actions);
+            }
+        });
+    }
+
+    /**
      * Dispatches an event to the event bus and executes any resulting actions
      * within a single execution turn.
      */
@@ -91,17 +114,7 @@ export class ScriptRuntime implements IScriptRuntime {
         const actions = this.eventBus.dispatch(event, this);
         if (actions.length === 0) return;
 
-        // Wrap multiple actions in a single turn if more than one is returned.
-        // Push actions in reverse order so that with LIFO stack processing,
-        // the first handler's action executes first.
-        this.do({
-            type: 'composite-event-action',
-            do: (runtime) => {
-                for (let i = actions.length - 1; i >= 0; i--) {
-                    runtime.do(actions[i]);
-                }
-            }
-        });
+        this.doAll(actions);
     }
 
     // ========== Output Statement API ==========

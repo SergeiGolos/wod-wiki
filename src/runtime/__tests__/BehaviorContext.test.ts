@@ -71,6 +71,7 @@ function createMockRuntime(): IScriptRuntime {
         errors: [],
         options: {} as any,
         do: vi.fn(),
+        doAll: vi.fn(),
         handle: vi.fn(),
         // Output tracking
         _outputStatements: outputs,
@@ -122,7 +123,7 @@ describe('BehaviorContext', () => {
             expect(runtime.eventBus.dispatch).toHaveBeenCalledWith(event, runtime);
         });
 
-        it('should process returned actions through runtime.do()', () => {
+        it('should process returned actions through runtime.doAll()', () => {
             const mockAction1 = { type: 'test-action-1', do: vi.fn() };
             const mockAction2 = { type: 'test-action-2', do: vi.fn() };
             (runtime.eventBus.dispatch as any).mockReturnValueOnce([mockAction1, mockAction2]);
@@ -130,18 +131,16 @@ describe('BehaviorContext', () => {
             const event = { name: 'custom:event', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
 
-            // Should call runtime.do() for each returned action (in reverse for LIFO)
-            expect(runtime.do).toHaveBeenCalledTimes(2);
-            expect(runtime.do).toHaveBeenCalledWith(mockAction2);
-            expect(runtime.do).toHaveBeenCalledWith(mockAction1);
+            // Should call runtime.doAll() with the returned actions
+            expect(runtime.doAll).toHaveBeenCalledWith([mockAction1, mockAction2]);
         });
 
-        it('should handle empty actions array without calling runtime.do()', () => {
+        it('should call doAll with empty array when no actions returned', () => {
             (runtime.eventBus.dispatch as any).mockReturnValueOnce([]);
             const event = { name: 'noop:event', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
 
-            expect(runtime.do).not.toHaveBeenCalled();
+            expect(runtime.doAll).toHaveBeenCalledWith([]);
         });
     });
 
