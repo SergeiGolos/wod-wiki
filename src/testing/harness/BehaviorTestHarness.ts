@@ -82,8 +82,11 @@ export class BehaviorTestHarness {
       },
 
       handle(event: IEvent) {
-        // Dispatch event through event bus
-        self._eventBus.emit(event, this);
+        // Mirror ScriptRuntime.handle(): dispatch through event bus and process returned actions
+        const actions = self._eventBus.dispatch(event, this);
+        if (actions.length > 0) {
+          this.doAll(actions);
+        }
       },
 
       pushBlock(block: IRuntimeBlock) {
@@ -266,14 +269,8 @@ export class BehaviorTestHarness {
     this._capturedEvents.push({ event, timestamp: Date.now() });
     this._handleSpy(event);
 
-    // Dispatch through event bus
-    this._eventBus.emit(event, this._mockRuntime);
-
-    // Collect actions from current block's event response
-    const block = this._stack.current;
-    if (block) {
-      // Events are handled via eventBus, actions already executed
-    }
+    // Dispatch through runtime.handle() — mirrors production entry point
+    this._mockRuntime.handle(event);
 
     return [];
   }

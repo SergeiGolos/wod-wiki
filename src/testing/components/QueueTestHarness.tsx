@@ -535,11 +535,11 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
   const handleRuntimeButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {
     if (!testRuntime) return;
     console.log(`🎮 QueueTestHarness: Runtime button click - ${eventName}`, payload);
-    testRuntime.eventBus.emit({
+    testRuntime.handle({
       name: eventName,
       timestamp: new Date(),
       data: payload || {},
-    }, testRuntime);
+    });
   }, [testRuntime]);
 
   // Build the test controls panel (left side or top)

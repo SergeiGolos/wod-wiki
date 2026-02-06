@@ -156,48 +156,13 @@ actions.push(...unmountEventActions);
 
 ---
 
-## Gap 9: Test Harnesses Use `emit()` Instead of `handle()`
+## Gap 9: ~~Test Harnesses Use `emit()` Instead of `handle()`~~ ✅ RESOLVED
 
-### Vision
-Test code should exercise the same code paths as production code.
-
-### Current Code
-Multiple test harnesses call `eventBus.emit()` directly:
-
-| File | Lines | Status |
-|------|-------|--------|
-| `TestableRuntime.ts` | 439, 451, 464, 481, 494, 511 | Safe — `emit()` → `handle()` → `ScriptRuntime.handle()` → `dispatch()`. Terminates. |
-| `ExecutionContextTestHarness.ts` | 298 | Safe — routes to real `ScriptRuntime`. |
-| `BehaviorTestHarness.ts` | 86, 270 | ⚠️ **Infinite loop** — mock `handle()` calls `emit()` → `handle()` → `emit()` → ∞ |
-| `QueueTestHarness.tsx` | 538 | Safe — routes to `TestableRuntime`. |
-
-### Reassessment
-Since `EventBus.emit()` now delegates to `runtime.handle(event)`, the circular dependency in `BehaviorTestHarness` creates an infinite recursion:
-
-```
-mockRuntime.handle(event)
-  → eventBus.emit(event, mockRuntime)
-    → mockRuntime.handle(event)   // ← same mock, infinite loop
-```
-
-This is currently masked because tests may not trigger this code path, but any test exercising `simulateEvent()` or the mock's `handle()` would stack overflow.
-
-### Fix
-
-**BehaviorTestHarness** — Change mock `handle()` to call `dispatch()` directly (mirrors `ScriptRuntime.handle()`):
-
-```typescript
-handle(event: IEvent) {
-    const actions = self._eventBus.dispatch(event, this);
-    for (const action of actions) {
-        action.do(this);
-    }
-},
-```
-
-**All harnesses** — Replace `eventBus.emit(event, runtime)` with `runtime.handle(event)` for clarity. The `emit()` → `handle()` indirection is unnecessary when you already have a runtime reference.
-
-### Severity: **Medium** (upgraded from Low) — `BehaviorTestHarness` has a latent infinite recursion bug.
+> **Fixed in:** All test harnesses now use the production entry point instead of `eventBus.emit()`:
+> - **BehaviorTestHarness**: Mock `handle()` calls `eventBus.dispatch()` + `doAll()` (mirrors `ScriptRuntime.handle()`), fixing infinite recursion. `simulateEvent()` calls `handle()` instead of `emit()`.
+> - **ExecutionContextTestHarness**: `dispatchEvent()` calls `runtime.handle()` instead of `eventBus.emit()`.
+> - **TestableRuntime**: All 6 simulate methods (`simulateTick`, `simulateNext`, `simulateReps`, `simulateTimerEvent`, `simulateRoundComplete`, `simulateEvent`) call `this.handle()` instead of `this.eventBus.emit()`.
+> - **QueueTestHarness**: Button click handler calls `testRuntime.handle()` instead of `testRuntime.eventBus.emit()`.
 
 ---
 
@@ -219,7 +184,7 @@ handle(event: IEvent) {
 | 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Open |
 | 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open (Won't Fix) |
 | 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
-| 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Medium** | Open (⚠️ infinite loop in `BehaviorTestHarness`) |
+| 9 | ~~Test harnesses use `emit()` not `handle()`~~ | ~~Testing files~~ | ~~Medium~~ | ✅ **RESOLVED** — all use `handle()`/`dispatch()` |
 | 10 | ~~Event name mismatch (`tick` vs `timer:tick`)~~ | ~~NextEvent.ts~~ | ~~High~~ | ✅ **RESOLVED** — `TickEvent.name` is now `'tick'` |
 
 ---
@@ -240,18 +205,8 @@ All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. This
 ### ~~Phase 4: Fix Event Name Mismatch (Gap 10)~~ ✅ DONE
 `TickEvent.name` renamed from `'timer:tick'` to `'tick'`. `TickEvent` moved to its own file. Imports and docs updated. All 609 tests pass.
 
-### Phase 5: Fix Test Harness Infinite Loop (Gap 9) — **HIGH PRIORITY**
-
-**Why next:** `BehaviorTestHarness` has a latent infinite recursion: mock `handle()` calls `emit()`, which calls `handle()` again. This can cause stack overflows in tests.
-
-**Tasks:**
-1. **BehaviorTestHarness** — Change mock `handle()` to call `self._eventBus.dispatch()` + process returned actions (mirrors `ScriptRuntime.handle()`)
-2. **BehaviorTestHarness** — Change `simulateEvent()` to call `this._mockRuntime.handle(event)` instead of `eventBus.emit()`
-3. **ExecutionContextTestHarness** — Replace `this.eventBus.emit(event, this.runtime)` with `this.runtime.handle(event)`
-4. **TestableRuntime** — Replace simulate methods' `eventBus.emit()` calls with `this.handle(event)` (safe but clearer)
-5. **QueueTestHarness** — Replace `testRuntime.eventBus.emit()` with `testRuntime.handle(event)`
-
-**Risk:** Medium — test behavior may change slightly if `dispatch()` scope filtering applies differently.
+### ~~Phase 5: Fix Test Harness Infinite Loop (Gap 9)~~ ✅ DONE
+All test harnesses now use `runtime.handle()` or `eventBus.dispatch()` instead of `eventBus.emit()`. BehaviorTestHarness mock `handle()` mirrors `ScriptRuntime.handle()` — calls `dispatch()` + `doAll()`. Infinite recursion bug eliminated.
 
 ### Phase 6: Add Scope Support to `subscribe()` (Gap 6) — **IMPORTANT**
 
@@ -294,7 +249,7 @@ All gaps are resolved when:
 3. **No dropped actions:** Every `dispatch()` return value is processed ✔️ (except Gap 7)
 4. **Consistent event names:** `TickEvent.name` matches behavior subscriptions ✔️
 5. **Scope-aware subscriptions:** Parent behaviors can hear child events ⬜ Phase 6
-6. **Test fidelity:** Test harnesses use the same entry points as production ⬜ Phase 5
+6. **Test fidelity:** Test harnesses use the same entry points as production ✔️
 7. **Complete lifecycle participation:** Unmount events can produce actions ⬜ Phase 7
 
 ---

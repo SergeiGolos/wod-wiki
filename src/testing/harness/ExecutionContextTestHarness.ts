@@ -289,13 +289,13 @@ export class ExecutionContextTestHarness {
   }
 
   /**
-   * Dispatch an event through the event bus.
-   * The event and any resulting actions will be recorded.
+   * Dispatch an event through the runtime.
+   * Routes through runtime.handle() to mirror the production entry point.
    * 
    * @param event The event to dispatch
    */
   dispatchEvent(event: IEvent): void {
-    this.eventBus.emit(event, this.runtime);
+    this.runtime.handle(event);
   }
 
 

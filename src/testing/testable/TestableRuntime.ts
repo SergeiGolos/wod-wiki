@@ -436,11 +436,11 @@ export class TestableRuntime implements IScriptRuntime {
    * This is typically called by the runtime loop
    */
   simulateTick(): void {
-    this.eventBus.emit({
+    this.handle({
       name: 'tick',
       timestamp: new Date(),
       data: { source: 'test-simulation' }
-    }, this);
+    });
   }
 
   /**
@@ -448,11 +448,11 @@ export class TestableRuntime implements IScriptRuntime {
    * This triggers completion for generic effort blocks
    */
   simulateNext(): void {
-    this.eventBus.emit({
+    this.handle({
       name: 'next',
       timestamp: new Date(),
       data: { source: 'test-simulation' }
-    }, this);
+    });
   }
 
   /**
@@ -461,7 +461,7 @@ export class TestableRuntime implements IScriptRuntime {
    * @param reps - Number of reps completed
    */
   simulateReps(blockId: string, reps: number): void {
-    this.eventBus.emit({
+    this.handle({
       name: 'reps:update',
       timestamp: new Date(),
       data: {
@@ -469,7 +469,7 @@ export class TestableRuntime implements IScriptRuntime {
         blockId,
         reps
       }
-    }, this);
+    });
   }
 
   /**
@@ -478,11 +478,11 @@ export class TestableRuntime implements IScriptRuntime {
    * @param data - Additional event data
    */
   simulateTimerEvent(eventType: 'timer:start' | 'timer:stop' | 'timer:pause' | 'timer:resume' | 'timer:complete', data?: any): void {
-    this.eventBus.emit({
+    this.handle({
       name: eventType,
       timestamp: new Date(),
       data: { source: 'test-simulation', ...data }
-    }, this);
+    });
   }
 
   /**
@@ -491,7 +491,7 @@ export class TestableRuntime implements IScriptRuntime {
    * @param roundNumber - Which round completed
    */
   simulateRoundComplete(blockId: string, roundNumber: number): void {
-    this.eventBus.emit({
+    this.handle({
       name: 'rounds:complete',
       timestamp: new Date(),
       data: {
@@ -499,7 +499,7 @@ export class TestableRuntime implements IScriptRuntime {
         blockId,
         round: roundNumber
       }
-    }, this);
+    });
   }
 
   /**
@@ -508,11 +508,11 @@ export class TestableRuntime implements IScriptRuntime {
    * @param data - Event data
    */
   simulateEvent(name: string, data?: any): void {
-    this.eventBus.emit({
+    this.handle({
       name,
       timestamp: new Date(),
       data: { source: 'test-simulation', ...data }
-    }, this);
+    });
   }
 
   /**
