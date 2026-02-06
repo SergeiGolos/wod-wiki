@@ -1,13 +1,15 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
+import { NextAction } from './NextAction';
 
 /**
  * Action that pops the current block from the runtime stack.
  * Handles the full lifecycle: unmount, pop, dispose, emit output.
  * 
- * Returns unmount actions followed by parent next actions for the
- * ExecutionContext to process depth-first.
+ * Returns unmount actions followed by a NextAction for the parent,
+ * decoupling the pop and next phases into distinct actions processed
+ * by the ExecutionContext.
  */
 export class PopBlockAction implements IRuntimeAction {
     readonly type = 'pop-block';
@@ -46,17 +48,16 @@ export class PopBlockAction implements IRuntimeAction {
         // SegmentOutputBehavior) during onUnmount. PopBlockAction does NOT emit its own
         // output to avoid duplicate 'completion' entries.
 
-        // Notify parent of child completion via next() with the lifecycle options
-        // This passes completedAt to the parent so it can track child completion times
+        // If a parent block exists, queue a NextAction to notify it of child completion.
+        // This decouples the pop and next steps into separate actions, ensuring each
+        // lifecycle phase (unmount → next → push) is a distinct action in the ExecutionContext.
         const parent = runtime.stack.current;
-        let nextActions: IRuntimeAction[] = [];
-        if (parent) {
-            nextActions = parent.next(runtime, lifecycleOptions);
-        }
 
-        // Return unmount actions first, then next actions.
+        // Return unmount actions first, then a NextAction for the parent (if any).
         // ExecutionContext reverse-pushes returned arrays so first element executes first:
         // unmount effects run before parent advancement.
-        return [...unmountActions, ...nextActions];
+        return parent
+            ? [...unmountActions, new NextAction(lifecycleOptions)]
+            : unmountActions;
     }
 }
