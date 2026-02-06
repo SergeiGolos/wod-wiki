@@ -15,42 +15,9 @@ The runtime should follow this flow:
 
 ---
 
-## Gap 1: `eventBus.emit()` Bypasses `handle()`
+## Gap 1: ~~`eventBus.emit()` Bypasses `handle()`~~ ✅ RESOLVED
 
-### Vision
-All external events should enter through `runtime.handle(event)`, which dispatches the event, collects actions, and executes them in a single `ExecutionContext` turn with frozen time.
-
-### Current Code
-The UI layer and tick loop call `eventBus.emit()` directly, bypassing the `handle()` method entirely.
-
-**Affected Files:**
-
-| File | Line | Call |
-|------|------|------|
-| `useRuntimeExecution.ts` | 88 | `runtime.eventBus.emit(tickEvent, runtime)` |
-| `useRuntimeExecution.ts` | 116-120 | `runtime.eventBus.emit({name: 'timer:resume', ...}, runtime)` |
-| `useRuntimeExecution.ts` | 147-151 | `runtime.eventBus.emit({name: 'timer:pause', ...}, runtime)` |
-| `useWorkbenchRuntime.ts` | 77 | `runtime.eventBus.emit(new NextEvent(), runtime)` |
-| `useWorkbenchRuntime.ts` | 104 | `runtime.eventBus.emit(new NextEvent(), runtime)` |
-| `EnhancedTimerHarness.tsx` | 148, 158, 167, 176 | Multiple `runtime.eventBus.emit(...)` calls |
-| `StackedClockDisplay.tsx` | 125 | `runtime.eventBus.emit(...)` |
-| `TimerDisplay.tsx` | 195 | `runtime.eventBus.emit(...)` |
-
-### Why This Matters
-`EventBus.emit()` bypasses `runtime.handle()`. While the `queueActions` fallback code has been removed (it now uses `runtime.do()` consistently), `emit()` callers still bypass the `handle()` entry point which creates a dedicated `ExecutionContext` with frozen clock. When called outside an active `ExecutionContext`, `runtime.do()` will create its own context — but the intent should be to use `handle()` for all external events.
-
-### Fix
-Replace all `eventBus.emit()` calls with `runtime.handle(event)`:
-
-```typescript
-// Before:
-runtime.eventBus.emit(tickEvent, runtime);
-
-// After:
-runtime.handle(tickEvent);
-```
-
-### Severity: **High** — UI code should use `handle()` for proper event entry point.
+> **Fixed in:** `eff393a` — All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. Affected files: `useRuntimeExecution.ts`, `useWorkbenchRuntime.ts`, `EnhancedTimerHarness.tsx`, `StackedClockDisplay.tsx`, `TimerDisplay.tsx`, `PlaySoundAction.ts`.
 
 ---
 
@@ -88,85 +55,15 @@ However, there's a subtle issue: the call to `parent.next()` happens in the same
 
 ---
 
-## Gap 4: `EmitEventAction` Calls `dispatch()` Instead of `handle()`
+## Gap 4: ~~`EmitEventAction` Calls `dispatch()` Instead of `handle()`~~ ✅ RESOLVED
 
-### Vision
-Internal event emission from behaviors should go through a consistent pipeline.
-
-### Current Code
-`EmitEventAction` (in `src/runtime/actions/events/EmitEventAction.ts:41`) calls `eventBus.dispatch()` directly:
-
-```typescript
-// EmitEventAction.ts:34-42
-do(runtime: IScriptRuntime): void {
-    const event: IEvent = {
-      name: this.eventName,
-      timestamp: this.timestamp,
-      data: this.data
-    };
-    runtime.eventBus.dispatch(event, runtime);  // Returns actions but doesn't execute them!
-}
-```
-
-### Why This Matters
-`dispatch()` returns `IRuntimeAction[]` but `EmitEventAction` **ignores the return value**. If any handler returns actions in response to this event, those actions are silently dropped.
-
-### Fix
-Use `runtime.handle(event)` which properly processes returned actions:
-
-```typescript
-// Before:
-runtime.eventBus.dispatch(event, runtime);
-
-// After:
-runtime.handle(event);
-```
-
-Or if we want actions to queue in the current turn:
-
-```typescript
-const actions = runtime.eventBus.dispatch(event, runtime);
-for (const action of actions) {
-    runtime.do(action);
-}
-```
-
-### Severity: **High** — Silent action loss. Any handler that returns actions from an emitted event will have those actions dropped.
+> **Fixed in:** `eff393a` — `EmitEventAction.do()` now processes actions returned by `eventBus.dispatch()` via `runtime.do()` instead of silently dropping them. Actions are pushed in reverse order for LIFO stack processing.
 
 ---
 
-## Gap 5: `BehaviorContext.emitEvent()` Calls `dispatch()` — Drops Actions
+## Gap 5: ~~`BehaviorContext.emitEvent()` Calls `dispatch()` — Drops Actions~~ ✅ RESOLVED
 
-### Vision
-When a behavior emits an event for coordination, any actions returned by handlers should be processed.
-
-### Current Code
-`BehaviorContext.emitEvent()` (in `src/runtime/BehaviorContext.ts:77`) calls `dispatch()` and ignores the returned actions:
-
-```typescript
-// BehaviorContext.ts:76-78
-emitEvent(event: IEvent): void {
-    this.runtime.eventBus.dispatch(event, this.runtime);
-    // Actions returned by dispatch() are SILENTLY DROPPED
-}
-```
-
-### Why This Matters
-Same as Gap 4 — any actions returned by handlers processing the emitted event are lost.
-
-### Fix
-Process returned actions through `runtime.do()`:
-
-```typescript
-emitEvent(event: IEvent): void {
-    const actions = this.runtime.eventBus.dispatch(event, this.runtime);
-    for (const action of actions) {
-        this.runtime.do(action);
-    }
-}
-```
-
-### Severity: **High** — Silent action loss from behavior-emitted events.
+> **Fixed in:** `eff393a` — `BehaviorContext.emitEvent()` now processes returned actions via `runtime.do()` instead of silently dropping them.
 
 ---
 
@@ -309,11 +206,11 @@ But behaviors may subscribe to `'tick'` or `'timer:tick'` depending on the behav
 
 | # | Gap | Where | Severity | Status |
 |---|-----|-------|----------|--------|
-| 1 | `eventBus.emit()` bypasses `handle()` | UI hooks, components | **High** | Open — `emit()` callers still bypass `handle()` |
+| 1 | ~~`eventBus.emit()` bypasses `handle()`~~ | UI hooks, components | ~~High~~ | ✅ **RESOLVED** — all UI calls use `handle()` |
 | 2 | ~~`NextAction` references `queueActions`~~ | NextAction.ts | ~~Medium~~ | ✅ **RESOLVED** — uses `runtime.do()` now |
 | 3 | `PopBlockAction` inlines `parent.next()` | PopBlockAction.ts | **Low** | Acceptable — properly uses LIFO stack now |
-| 4 | `EmitEventAction` drops returned actions | EmitEventAction.ts | **High** | Open |
-| 5 | `BehaviorContext.emitEvent()` drops returned actions | BehaviorContext.ts | **High** | Open |
+| 4 | ~~`EmitEventAction` drops returned actions~~ | EmitEventAction.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
+| 5 | ~~`BehaviorContext.emitEvent()` drops actions~~ | BehaviorContext.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
 | 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Open |
 | 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open |
 | 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
@@ -327,11 +224,11 @@ But behaviors may subscribe to `'tick'` or `'timer:tick'` depending on the behav
 ### ~~Phase 3: Clean Up `NextAction` (Gap 2)~~ ✅ DONE
 Removed the `queueActions` reference. `NextAction` and `EventBus.emit()` now use `runtime.do()` consistently. `ExecutionContext` uses LIFO stack (depth-first) processing.
 
-### Phase 1: Fix Action Loss (Gaps 4, 5)
-These are silent data loss bugs. Fix `EmitEventAction.do()` and `BehaviorContext.emitEvent()` to process returned actions.
+### ~~Phase 1: Fix Action Loss (Gaps 4, 5)~~ ✅ DONE
+`EmitEventAction.do()` and `BehaviorContext.emitEvent()` now process actions returned by `eventBus.dispatch()` via `runtime.do()`.
 
-### Phase 2: Route Through `handle()` (Gap 1)  
-Update all UI-layer code to use `runtime.handle(event)` instead of `eventBus.emit()`. This ensures all external events get frozen-clock execution contexts.
+### ~~Phase 2: Route Through `handle()` (Gap 1)~~ ✅ DONE
+All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. This ensures all external events get frozen-clock execution contexts.
 
 ### Phase 4: Add Scope Support to `subscribe()` (Gap 6)
 Enable behaviors to specify handler scope, fixing parent timer behavior isolation.

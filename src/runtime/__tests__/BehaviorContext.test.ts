@@ -70,7 +70,7 @@ function createMockRuntime(): IScriptRuntime {
         script: {} as any,
         errors: [],
         options: {} as any,
-        do: vi.fn().mockImplementation((action: any) => { action.do({ do: vi.fn() }); }),
+        do: vi.fn(),
         handle: vi.fn(),
         // Output tracking
         _outputStatements: outputs,
