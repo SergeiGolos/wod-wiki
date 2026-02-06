@@ -933,8 +933,10 @@ stateDiagram-v2
 
 ## Related Documents
 
+- [[runtime-state-machine.canvas|🗺️ Visual Canvas Diagram]] — Interactive canvas drawing of the state machine
 - [[03-runtime-layer]] — Runtime layer architecture overview
 - [[behavior-refactoring-guide]] — Behavior SRP analysis and refactoring plan  
+- [[runtime-alignment-gaps]] — Where current code diverges from this vision
 - [[IRuntimeBehavior]] — Behavior contract and lifecycle hooks
 - [[IBehaviorContext]] — Context API for behaviors
 - [[behavior-memory-matrix]] — Which behaviors read/write which memory types

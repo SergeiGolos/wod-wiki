@@ -1,0 +1,112 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# 🔄 Runtime Engine State Machine\n\nVisual representation of the WOD Wiki runtime lifecycle,\nblock lifecycle, and event processing pipeline.\n\n*All external events enter through `runtime.handle(event)`*\n*All stack changes happen through returned `IRuntimeAction[]`*","x":-200,"y":-760,"width":600,"height":180,"color":"4"},
+
+		{"id":"link-doc","type":"file","file":"docs/runtime-state-machine.md","x":-200,"y":-540,"width":280,"height":60,"color":"4"},
+		{"id":"link-gaps","type":"file","file":"docs/runtime-alignment-gaps.md","x":120,"y":-540,"width":280,"height":60,"color":"4"},
+
+		{"id":"section-runtime","type":"text","text":"# ═══ RUNTIME LIFECYCLE ═══\n\n*Top-level states of ScriptRuntime*","x":-800,"y":-440,"width":340,"height":80,"color":"6"},
+
+		{"id":"rt-idle","type":"text","text":"## 💤 IDLE\n\n**Stack:** Empty (count = 0)\n**Clock:** Started, running\n**EventBus:** NextEventHandler registered (global)\n**Outputs:** Empty\n\n```\nnew ScriptRuntime(script, compiler, deps)\n→ clock.start()\n→ eventBus.register('next', handler, 'global')\n```","x":-800,"y":-320,"width":340,"height":280,"color":"1"},
+
+		{"id":"rt-starting","type":"text","text":"## ⚡ STARTING\n\n**Trigger:** `runtime.do(StartWorkoutAction)`\n**Guards:** stack.count === 0, script has statements\n\n```\nStartWorkoutAction.do():\n  → WorkoutRootStrategy.build() → rootBlock\n  → runtime.do(PushBlockAction(rootBlock))\n    → stack.push(rootBlock)\n    → rootBlock.mount(runtime)\n    → CompileChildBlockAction queued\n```\n\n**Available Data:**\n• WodScript (parsed statements)\n• JitCompiler (strategy registry)\n• RuntimeClock (started)","x":-800,"y":20,"width":340,"height":380,"color":"5"},
+
+		{"id":"rt-running","type":"text","text":"## ▶️ RUNNING\n\n**Stack:** ≥ 1 block\n**Clock:** Running (provides timestamps)\n**EventBus:** Block handlers active\n**Outputs:** Accumulating\n\n**Driven by external tick events:**\nEvery 20ms → `runtime.handle(TickEvent)`\n\n**Available Data:**\n• `stack.current` — active block\n• `stack.count` — depth\n• Block memory (timer, round, display, controls)\n• Event handler registrations\n• Output statements collected so far","x":-800,"y":460,"width":340,"height":380,"color":"#e0ffe0"},
+
+		{"id":"rt-completed","type":"text","text":"## ✅ COMPLETED\n\n**Stack:** Empty (count = 0)\n**Clock:** Still running\n**Outputs:** Complete collection\n\n**Trigger:** Last PopBlockAction\nemptied the stack\n\n**Available Data:**\n• All OutputStatements[]\n• history:record events\n• Total elapsed time\n• Completion reasons","x":-800,"y":900,"width":340,"height":300,"color":"#e0f0e0"},
+
+		{"id":"rt-error","type":"text","text":"## ❌ ERROR\n\n**Stack:** May be non-empty\n**Outputs:** Partial\n\n**Trigger:** Unrecoverable error\nduring action execution\n\n**Available Data:**\n• RuntimeError[] with source, timestamp\n• Partial outputs\n• Stack state at failure","x":-400,"y":900,"width":340,"height":280,"color":"#ffe0e0"},
+
+		{"id":"section-block","type":"text","text":"# ═══ BLOCK LIFECYCLE ═══\n\n*States of each RuntimeBlock on the stack*","x":200,"y":-440,"width":340,"height":80,"color":"6"},
+
+		{"id":"bl-created","type":"text","text":"## 🔨 CREATED\n\n**Via:** JitCompiler.compile() or Strategy.build()\n\n**Available Data:**\n• behaviors[] attached\n• blockType, label, key\n• sourceIds[] (statement references)\n• Memory: NOT initialized\n• NOT on stack yet\n\n**Invariant:** Block has no context,\nno event subscriptions, no memory","x":200,"y":-320,"width":340,"height":300,"color":"1"},
+
+		{"id":"bl-mounting","type":"text","text":"## 📦 MOUNTING\n\n**Via:** `PushBlockAction → block.mount(runtime, lifecycle)`\n\n**Sequence:**\n1. Set `executionTiming.startTime`\n2. Register default 'next' handler\n3. Create `BehaviorContext(block, clock, level, runtime)`\n4. For each behavior: `behavior.onMount(ctx)`\n5. Collect returned `IRuntimeAction[]`\n\n**Available Data (in onMount):**\n• `ctx.clock` — frozen SnapshotClock\n• `ctx.block` — this block\n• `ctx.stackLevel` — depth position\n• `ctx.setMemory()` — initialize state\n• `ctx.subscribe()` — register event handlers\n• `ctx.emitOutput()` — emit outputs\n• `ctx.markComplete()` — mark done\n\n**Returns:** Actions (e.g., CompileChildBlockAction)","x":200,"y":40,"width":380,"height":500,"color":"5"},
+
+		{"id":"bl-active","type":"text","text":"## ⚡ ACTIVE\n\n**Block is `stack.current`**\n\nTick handlers fire (scope: active).\nMemory is readable/writable.\nBehaviors process events.\n\n**Available Data:**\n• All block memory (timer, round, display)\n• Event subscriptions active\n• `ctx.getMemory('timer')` → TimerState\n• `ctx.getMemory('round')` → RoundState\n• `ctx.getMemory('display')` → DisplayState\n\n**Active scope handlers fire here**","x":200,"y":600,"width":340,"height":340,"color":"#e0ffe0"},
+
+		{"id":"bl-waiting","type":"text","text":"## ⏳ WAITING FOR CHILD\n\n**Block is on stack, NOT `stack.current`**\n\nA child block sits above this block.\n\n**Scope behavior:**\n• `scope:'active'` handlers → ❌ SKIP\n• `scope:'bubble'` handlers → ✅ FIRE\n• `scope:'global'` handlers → ✅ FIRE\n\n**Available Data:**\n• Block memory still accessible\n• Timer spans still open\n• Cannot receive active-scoped events\n\n**Returns to Active when child pops**","x":600,"y":600,"width":340,"height":340,"color":"#fffff0"},
+
+		{"id":"bl-completing","type":"text","text":"## 🏁 COMPLETING\n\n**Via:** `block.markComplete(reason)`\n\n**Available Data:**\n• `isComplete = true`\n• `completionReason` set\n  - `'timer-expired'`\n  - `'rounds-complete'`\n  - `'user-advance'`\n  - `'event-triggered'`\n\n**Block remains on stack**\nuntil PopBlockAction fires","x":600,"y":980,"width":340,"height":280,"color":"#fff0e0"},
+
+		{"id":"bl-unmounting","type":"text","text":"## 🔽 UNMOUNTING\n\n**Via:** `PopBlockAction → block.unmount(runtime, lifecycle)`\n\n**Sequence:**\n1. Set `executionTiming.endTime`\n2. For each behavior: `behavior.onUnmount(ctx)`\n3. Dispatch 'unmount' event\n4. Dispose all memory entries\n5. Unregister all event handlers\n6. Dispose BehaviorContext\n\n**Available Data (in onUnmount):**\n• `ctx.clock` — frozen time at completion\n• All memory still accessible (last chance)\n• Timer elapsed calculated from spans\n• Can emit final outputs:\n  - TimerOutputBehavior → 'completion'\n  - HistoryRecordBehavior → history:record\n  - SoundCueBehavior → complete sound\n\n**Returns:** Unmount actions","x":200,"y":1000,"width":380,"height":460,"color":"#f0e0ff"},
+
+		{"id":"bl-disposed","type":"text","text":"## 🗑️ DISPOSED\n\n**Via:** `block.dispose(runtime)`\n\n**After unmount actions execute:**\n• `behavior.onDispose(ctx)` called\n• Block removed from stack\n• Context released\n• All references cleared\n\n**Block is now garbage-collectible**","x":200,"y":1520,"width":340,"height":240,"color":"#e0e0e0"},
+
+		{"id":"section-events","type":"text","text":"# ═══ EVENT HANDLING PIPELINE ═══\n\n*How external events become internal actions*","x":1100,"y":-440,"width":440,"height":80,"color":"6"},
+
+		{"id":"ev-external","type":"text","text":"## 🌐 External Events\n\n| Event | Source |\n|-------|--------|\n| `timer:tick` | UI tick loop (20ms) |\n| `next` | User button click |\n| `timer:pause` | UI pause button |\n| `timer:resume` | UI resume button |\n| `start` | Workout start |\n| `stop` | Workout stop |","x":1100,"y":-320,"width":440,"height":260,"color":"1"},
+
+		{"id":"ev-handle","type":"text","text":"## 📥 runtime.handle(event)\n\n**Entry point for ALL external events**\n\n```\nhandle(event):\n  actions = eventBus.dispatch(event, this)\n  if actions.length > 0:\n    this.do(composite-action)\n```\n\n**Creates:** Frozen-clock ExecutionContext\n**Guarantees:** All resulting actions share same timestamp","x":1100,"y":0,"width":440,"height":260,"color":"5"},
+
+		{"id":"ev-dispatch","type":"text","text":"## 📡 EventBus.dispatch()\n\n**Step 1:** Invoke UI callbacks (no filtering, no actions)\n**Step 2:** Get `activeBlockKey` = stack.current.key\n**Step 3:** Get `stackKeys` = all block keys on stack\n**Step 4:** Filter handlers by scope:\n\n```\nfor each handler:\n  if scope === 'global' → INCLUDE\n  if scope === 'bubble' && owner in stackKeys → INCLUDE  \n  if scope === 'active' && owner === activeBlockKey → INCLUDE\n  else → SKIP\n```\n\n**Step 5:** Execute eligible handlers\n**Step 6:** Collect and return all `IRuntimeAction[]`","x":1100,"y":320,"width":440,"height":380,"color":"#e0f0ff"},
+
+		{"id":"ev-turn","type":"text","text":"## ⏱️ ExecutionContext (Turn)\n\n**Frozen clock** — all actions see same `clock.now`\n**FIFO queue** — actions execute in order\n**Max 20 iterations** — prevents infinite loops\n**Re-entrant safe** — nested `.do()` queues in same turn\n\n```\nwhile queue not empty && iteration < 20:\n  action = queue.shift()\n  action.do(this)  // may queue more actions\n  iteration++\n```\n\n**Available Data:**\n• SnapshotClock (frozen at turn start)\n• RuntimeStack (push/pop via actions)\n• EventBus (for internal dispatch)\n• JitCompiler (for child compilation)","x":1100,"y":760,"width":440,"height":380,"color":"#f6f0ff"},
+
+		{"id":"section-actions","type":"text","text":"# ═══ ACTION CATALOG ═══\n\n*Stack operations produced by behaviors*","x":1650,"y":-440,"width":400,"height":80,"color":"6"},
+
+		{"id":"act-start","type":"text","text":"## StartWorkoutAction\n**Compiles root block, pushes to stack**\nGuards: stack empty, script valid","x":1650,"y":-320,"width":400,"height":80,"color":"#ffe0e0"},
+
+		{"id":"act-push","type":"text","text":"## PushBlockAction\n**Pushes block, calls mount(), queues mount actions**\nSets startTime from frozen clock","x":1650,"y":-200,"width":400,"height":80,"color":"#e0ffe0"},
+
+		{"id":"act-pop","type":"text","text":"## PopBlockAction\n**Calls unmount(), pops, disposes, notifies parent**\nSets completedAt from frozen clock\nCalls parent.next() → may push next child","x":1650,"y":-80,"width":400,"height":100,"color":"#ffe0e0"},
+
+		{"id":"act-next","type":"text","text":"## NextAction\n**Calls block.next(), queues resulting actions**\nTriggered by NextEventHandler (global scope)","x":1650,"y":60,"width":400,"height":80,"color":"#e0e0ff"},
+
+		{"id":"act-compile","type":"text","text":"## CompileChildBlockAction\n**JIT compiles statement IDs → PushBlockAction**\nReturned by ChildRunnerBehavior","x":1650,"y":180,"width":400,"height":80,"color":"#fff0e0"},
+
+		{"id":"act-skip","type":"text","text":"## SkipCurrentBlockAction\n**Marks current as complete (if not root)**","x":1650,"y":300,"width":400,"height":60,"color":"#f0e0ff"},
+
+		{"id":"act-popto","type":"text","text":"## PopToBlockAction\n**Silently pops blocks until target (no parent.next())**","x":1650,"y":400,"width":400,"height":60,"color":"#f0e0ff"},
+
+		{"id":"section-popchain","type":"text","text":"# ═══ POP → NEXT → PUSH CHAIN ═══\n\n*The critical action chain when a block completes*\n*All operations share the same frozen timestamp T₁*","x":1100,"y":1200,"width":600,"height":100,"color":"6"},
+
+		{"id":"chain-1","type":"text","text":"**1. PopBlockAction fires**\n\n```\nchild.unmount(runtime, {completedAt: T₁})\n→ behaviors emit final outputs\n→ memory disposed\n→ handlers unregistered\n```\n\n**Data:** Unmount actions from behaviors","x":1100,"y":1340,"width":280,"height":240,"color":"#ffe0e0"},
+
+		{"id":"chain-2","type":"text","text":"**2. Stack pops, child disposed**\n\n```\nstack.pop()\nchild.dispose(runtime)\n```\n\n**Data:** Parent is now stack.current","x":1100,"y":1620,"width":280,"height":180,"color":"#fff0e0"},
+
+		{"id":"chain-3","type":"text","text":"**3. parent.next() called**\n\n```\nparent.next(runtime, {completedAt: T₁})\n→ behaviors evaluate:\n  • ChildLoopBehavior → reset index?\n  • ChildRunnerBehavior → push next child?\n  • RoundAdvanceBehavior → increment round\n  • RoundCompletionBehavior → done?\n```\n\n**Data:** Actions to push next child or self-pop","x":1420,"y":1340,"width":280,"height":300,"color":"#e0ffe0"},
+
+		{"id":"chain-4","type":"text","text":"**4. New child pushed (same T₁)**\n\n```\nCompileChildBlockAction.do()\n→ JIT compile statements\n→ PushBlockAction(newChild)\n  → newChild.startTime = T₁\n  → newChild.mount()\n```\n\n**Key:** completedAt of old child ===\nstartTime of new child (no time gap!)","x":1420,"y":1680,"width":280,"height":280,"color":"#e0e0ff"},
+
+		{"id":"section-memory","type":"text","text":"# ═══ BLOCK MEMORY AT EACH STATE ═══","x":-400,"y":1340,"width":380,"height":60,"color":"6"},
+
+		{"id":"mem-mount","type":"text","text":"**After mount():**\n\n| Memory | Value | Set By |\n|--------|-------|--------|\n| `timer` | direction, durationMs?, spans:[open] | TimerInitBehavior |\n| `round` | current:1, total:N\\|undefined | RoundInitBehavior |\n| `display` | mode, label, subtitle? | DisplayInitBehavior |\n| `controls` | buttons:[...] | ButtonBehavior |\n\n| Subscriptions | Set By |\n|---------------|--------|\n| timer:tick (active) | TimerCompletionBehavior |\n| timer:pause (active) | TimerPauseBehavior |\n| timer:resume (active) | TimerPauseBehavior |","x":-400,"y":1440,"width":380,"height":380,"color":"5"},
+
+		{"id":"mem-next","type":"text","text":"**After each next():**\n\n| Change | Behavior |\n|--------|----------|\n| round.current++ | RoundAdvanceBehavior |\n| display.roundDisplay updated | RoundDisplayBehavior |\n| Completion checked | RoundCompletionBehavior |\n| Loop reset if needed | ChildLoopBehavior |\n| Next child compiled+pushed | ChildRunnerBehavior |\n| Milestone output emitted | RoundOutputBehavior |","x":-400,"y":1860,"width":380,"height":280,"color":"#e0ffe0"},
+
+		{"id":"mem-unmount","type":"text","text":"**After unmount():**\n\n| Cleanup | Detail |\n|---------|--------|\n| Timer span closed | Last open span → ended |\n| Completion output | TimerOutputBehavior |\n| History event | HistoryRecordBehavior |\n| Sound cue | SoundCueBehavior |\n| Controls cleared | ButtonBehavior → [] |\n| Memory disposed | All entries cleared |\n| Subscriptions removed | All handlers gone |\n| Context disposed | BehaviorContext → undefined |","x":-400,"y":2180,"width":380,"height":340,"color":"#f0e0ff"},
+
+		{"id":"legend","type":"text","text":"## Legend\n\n🔵 **Blue** = Idle / Created state\n🟢 **Green** = Active / Running state\n🟡 **Yellow** = Waiting / Paused state\n🟠 **Orange** = Completing / Transitioning\n🟣 **Purple** = Unmounting / Cleanup\n⚫ **Gray** = Disposed / Final\n🔴 **Red** = Error / Pop action\n\n**Arrows:** State transitions\n**Labels:** Triggering action or event","x":-200,"y":-540,"width":260,"height":320,"color":"4"}
+	],
+	"edges":[
+		{"id":"e-rt-idle-starting","fromNode":"rt-idle","fromSide":"bottom","toNode":"rt-starting","toSide":"top","label":"do(StartWorkoutAction)"},
+		{"id":"e-rt-starting-running","fromNode":"rt-starting","fromSide":"bottom","toNode":"rt-running","toSide":"top","label":"root block mounted"},
+		{"id":"e-rt-running-completed","fromNode":"rt-running","fromSide":"bottom","toNode":"rt-completed","toSide":"top","label":"stack.count === 0"},
+		{"id":"e-rt-running-error","fromNode":"rt-running","fromSide":"right","toNode":"rt-error","toSide":"left","label":"unrecoverable error"},
+		{"id":"e-rt-running-self","fromNode":"rt-running","fromSide":"right","toNode":"rt-running","toSide":"right","label":"handle(TickEvent) every 20ms"},
+
+		{"id":"e-bl-created-mounting","fromNode":"bl-created","fromSide":"bottom","toNode":"bl-mounting","toSide":"top","label":"PushBlockAction"},
+		{"id":"e-bl-mounting-active","fromNode":"bl-mounting","fromSide":"bottom","toNode":"bl-active","toSide":"top","label":"mount() complete"},
+		{"id":"e-bl-active-waiting","fromNode":"bl-active","fromSide":"right","toNode":"bl-waiting","toSide":"left","label":"child pushed on top"},
+		{"id":"e-bl-waiting-active","fromNode":"bl-waiting","fromSide":"left","toNode":"bl-active","toSide":"right","label":"child pops → parent.next()"},
+		{"id":"e-bl-active-completing","fromNode":"bl-active","fromSide":"bottom","toNode":"bl-completing","toSide":"top","label":"markComplete(reason)"},
+		{"id":"e-bl-waiting-completing","fromNode":"bl-waiting","fromSide":"bottom","toNode":"bl-completing","toSide":"right","label":"markComplete(reason)\n(while waiting)"},
+		{"id":"e-bl-completing-unmounting","fromNode":"bl-completing","fromSide":"left","toNode":"bl-unmounting","toSide":"right","label":"PopBlockAction"},
+		{"id":"e-bl-unmounting-disposed","fromNode":"bl-unmounting","fromSide":"bottom","toNode":"bl-disposed","toSide":"top","label":"dispose()"},
+
+		{"id":"e-ev-ext-handle","fromNode":"ev-external","fromSide":"bottom","toNode":"ev-handle","toSide":"top","label":"all events"},
+		{"id":"e-ev-handle-dispatch","fromNode":"ev-handle","fromSide":"bottom","toNode":"ev-dispatch","toSide":"top","label":"dispatch(event, runtime)"},
+		{"id":"e-ev-dispatch-turn","fromNode":"ev-dispatch","fromSide":"bottom","toNode":"ev-turn","toSide":"top","label":"actions[] → ExecutionContext"},
+
+		{"id":"e-ev-turn-actions","fromNode":"ev-turn","fromSide":"right","toNode":"act-push","toSide":"left","label":"execute actions"},
+
+		{"id":"e-chain-1-2","fromNode":"chain-1","fromSide":"bottom","toNode":"chain-2","toSide":"top","label":"unmount done"},
+		{"id":"e-chain-2-3","fromNode":"chain-2","fromSide":"right","toNode":"chain-3","toSide":"left","label":"parent notified"},
+		{"id":"e-chain-3-4","fromNode":"chain-3","fromSide":"bottom","toNode":"chain-4","toSide":"top","label":"next child ready"},
+
+		{"id":"e-rt-running-events","fromNode":"rt-running","fromSide":"right","toNode":"ev-external","toSide":"left","label":"external events drive processing"},
+		{"id":"e-actions-block","fromNode":"act-push","fromSide":"left","toNode":"bl-mounting","toSide":"right","label":"push & mount"},
+		{"id":"e-actions-pop","fromNode":"act-pop","fromSide":"left","toNode":"bl-unmounting","toSide":"right","label":"unmount & pop"}
+	]
+}
