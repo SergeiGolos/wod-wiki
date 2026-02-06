@@ -27,31 +27,9 @@ The runtime should follow this flow:
 
 ---
 
-## Gap 3: `PopBlockAction` Directly Calls `parent.next()` Inline
+## Gap 3: ~~`PopBlockAction` Directly Calls `parent.next()` Inline~~ ✅ RESOLVED
 
-### Vision
-Actions execute stack operations. Block lifecycle methods (`mount`, `next`, `unmount`) return actions. Those actions should be queued through `runtime.do()`.
-
-### Current Code
-`PopBlockAction` (in `src/runtime/actions/stack/PopBlockAction.ts:56-62`) calls `parent.next()` inline and then iterates the returned actions with `runtime.do()`:
-
-```typescript
-// PopBlockAction.ts:54-62
-const parent = runtime.stack.current;
-if (parent) {
-    const nextActions = parent.next(runtime, lifecycleOptions);
-    for (const action of nextActions) {
-        runtime.do(action);
-    }
-}
-```
-
-### Assessment
-This is actually **acceptable** within the vision. `PopBlockAction` is itself an action executing within an `ExecutionContext`. Calling `runtime.do()` from within an action queues the nested actions in the same turn. The `parent.next()` call is a direct lifecycle invocation, not an event dispatch — it's correctly calling behaviors which return actions.
-
-However, there's a subtle issue: the call to `parent.next()` happens in the same action as `unmount()` and `dispose()`. This means `dispose()` runs on the child **before** the parent's `next()` actions execute, which is correct but tightly couples the pop-next-push sequence.
-
-### Severity: **Low** — Works correctly within the execution model. Could be cleaner with separate actions but no functional issue.
+> **Fixed in:** `PopBlockAction` no longer calls `parent.next()` inline. Instead, after unmount/pop/dispose, it returns a `new NextAction(lifecycleOptions)` which the ExecutionContext processes as a separate action. `NextAction` was extended to accept optional `BlockLifecycleOptions` (carrying `completedAt`, clock snapshots, etc.), merging them with its own snapshot clock. This cleanly decouples the pop and next phases into distinct actions while preserving lifecycle option propagation.
 
 ---
 
@@ -85,10 +63,10 @@ const unsub = this.runtime.eventBus.register(
 );
 ```
 
-### Why This Matters
-The `TimerCompletionBehavior` on an AMRAP block subscribes to `timer:tick` events. But when a child effort block is on top of the stack, the AMRAP is not the `active` block — its tick handler won't fire with `'active'` scope.
+### Reassessment
+The `TimerCompletionBehavior` on an AMRAP block subscribes to `'tick'` events. When a child effort block is on top of the stack, the AMRAP is not the `active` block — its tick handler won't fire with `'active'` scope.
 
-Currently the code may work because tick events are emitted via `eventBus.emit()` which has different dispatch behavior, but this is fragile and doesn't align with the scoping model described in the EventBus documentation.
+The EventBus already supports `'bubble'` and `'global'` scopes (see `EventBus.dispatch()` filtering at lines 139-152). The infrastructure exists — `BehaviorContext.subscribe()` simply doesn't expose it.
 
 ### Fix
 Allow `subscribe()` to accept a scope parameter:
@@ -114,7 +92,7 @@ Then behaviors that need to hear events while children are active can use `scope
 
 ```typescript
 // TimerCompletionBehavior — needs ticks even when child is active
-ctx.subscribe('timer:tick', handler, { scope: 'bubble' });
+ctx.subscribe('tick', handler, { scope: 'bubble' });
 ```
 
 ### Severity: **High** — Timer completion on parent blocks may not fire correctly when children are active.
@@ -129,10 +107,12 @@ Memory events dispatched from `BlockContext` should follow the same pattern as o
 ### Current Code
 `BlockContext` (in `src/runtime/BlockContext.ts:76, 108, 124`) calls `runtime.eventBus.dispatch()` for memory lifecycle events (`memory:allocate`, `memory:set`, `memory:release`). These calls return actions that are ignored.
 
-### Assessment
-In practice, no handlers currently return actions for memory events — they're informational/diagnostic. But the pattern is inconsistent: if a handler were added that returns actions on memory events, those actions would be dropped.
+### Reassessment
+No handlers currently return actions for memory events — they're informational/diagnostic. The pattern is inconsistent but harmless. Processing returned actions here could also introduce subtle side effects during memory operations which are called frequently.
 
-### Severity: **Low** — No current functional impact, but inconsistent pattern.
+Recommendation: Leave as-is unless a concrete use case emerges for memory-event-driven actions. If needed, these calls could process returned actions via `runtime.do()`.
+
+### Severity: **Low** — No current functional impact, inconsistent but defensible pattern.
 
 ---
 
@@ -153,7 +133,24 @@ runtime.eventBus.dispatch({
 }, runtime);
 ```
 
-This call's return value (actions[]) is also silently ignored.
+This call's return value (`IRuntimeAction[]`) is silently ignored.
+
+### Reassessment
+The unmount dispatch is diagnostic — it notifies observers that a block was unmounted. Currently no handlers return actions for unmount events. However, the return value should either be:
+- Collected and returned as part of `unmount()`'s `IRuntimeAction[]` return, or
+- Processed through `runtime.do()` for consistency
+
+The first option is cleanest since `unmount()` already returns actions.
+
+### Fix
+```typescript
+const unmountEventActions = runtime.eventBus.dispatch({
+    name: 'unmount',
+    timestamp: runtime.clock.now,
+    data: { blockKey: this.key.toString() }
+}, runtime);
+actions.push(...unmountEventActions);
+```
 
 ### Severity: **Medium** — Unmount event handlers cannot produce actions that affect the stack.
 
@@ -167,17 +164,40 @@ Test code should exercise the same code paths as production code.
 ### Current Code
 Multiple test harnesses call `eventBus.emit()` directly:
 
-| File | Lines |
-|------|-------|
-| `TestableRuntime.ts` | 432, 444, 457, 474, 487, 504 |
-| `ExecutionContextTestHarness.ts` | 298 |
-| `BehaviorTestHarness.ts` | 80, 264 |
-| `QueueTestHarness.tsx` | 538 |
+| File | Lines | Status |
+|------|-------|--------|
+| `TestableRuntime.ts` | 439, 451, 464, 481, 494, 511 | Safe — `emit()` → `handle()` → `ScriptRuntime.handle()` → `dispatch()`. Terminates. |
+| `ExecutionContextTestHarness.ts` | 298 | Safe — routes to real `ScriptRuntime`. |
+| `BehaviorTestHarness.ts` | 86, 270 | ⚠️ **Infinite loop** — mock `handle()` calls `emit()` → `handle()` → `emit()` → ∞ |
+| `QueueTestHarness.tsx` | 538 | Safe — routes to `TestableRuntime`. |
 
-### Assessment
-Test harnesses intentionally bypass `handle()` for test isolation. However, `TestableRuntime` wraps `ScriptRuntime` and has access to `handle()`. The test harness pattern should match production.
+### Reassessment
+Since `EventBus.emit()` now delegates to `runtime.handle(event)`, the circular dependency in `BehaviorTestHarness` creates an infinite recursion:
 
-### Severity: **Low** — Test code, but using the wrong entry point may miss bugs.
+```
+mockRuntime.handle(event)
+  → eventBus.emit(event, mockRuntime)
+    → mockRuntime.handle(event)   // ← same mock, infinite loop
+```
+
+This is currently masked because tests may not trigger this code path, but any test exercising `simulateEvent()` or the mock's `handle()` would stack overflow.
+
+### Fix
+
+**BehaviorTestHarness** — Change mock `handle()` to call `dispatch()` directly (mirrors `ScriptRuntime.handle()`):
+
+```typescript
+handle(event: IEvent) {
+    const actions = self._eventBus.dispatch(event, this);
+    for (const action of actions) {
+        action.do(this);
+    }
+},
+```
+
+**All harnesses** — Replace `eventBus.emit(event, runtime)` with `runtime.handle(event)` for clarity. The `emit()` → `handle()` indirection is unnecessary when you already have a runtime reference.
+
+### Severity: **Medium** (upgraded from Low) — `BehaviorTestHarness` has a latent infinite recursion bug.
 
 ---
 
@@ -196,9 +216,28 @@ export class TickEvent implements IEvent {
 }
 ```
 
-But behaviors may subscribe to `'tick'` or `'timer:tick'` depending on the behavior. This inconsistency can cause missed events.
+### Reassessment
+All behaviors consistently subscribe to `'tick'` (not `'timer:tick'`):
 
-### Severity: **Medium** — Naming inconsistency may cause subtle handler mismatches.
+| Behavior | Subscribes to |
+|----------|---------------|
+| `TimerTickBehavior` | `'tick'` |
+| `TimerCompletionBehavior` | `'tick'` |
+| `SoundCueBehavior` | `'tick'` |
+| `IBehaviorContext` type | `BehaviorEventType = 'tick' \| 'next' \| ...` |
+
+But `TickEvent.name` is `'timer:tick'`. The EventBus dispatches by event name — handlers registered for `'tick'` will **never match** a `TickEvent` with name `'timer:tick'`.
+
+The system works today because `useRuntimeExecution` creates `new TickEvent()` and calls `runtime.handle(tickEvent)`, but the event bus matches on `tickEvent.name` = `'timer:tick'` — which means **no behavior handlers match**.
+
+This suggests tick processing is either:
+1. Happening through a different mechanism (callback-based rather than handler-based), or
+2. Broken in production and masked by tests that dispatch `'tick'` directly
+
+### Fix
+Rename `TickEvent.name` from `'timer:tick'` to `'tick'` to match what behaviors subscribe to. Also move `TickEvent` out of `NextEvent.ts` into its own file for clarity.
+
+### Severity: **High** (upgraded from Medium) — `TickEvent` name mismatch means behavior handlers for `'tick'` never fire through the production `handle()` path.
 
 ---
 
@@ -208,36 +247,99 @@ But behaviors may subscribe to `'tick'` or `'timer:tick'` depending on the behav
 |---|-----|-------|----------|--------|
 | 1 | ~~`eventBus.emit()` bypasses `handle()`~~ | UI hooks, components | ~~High~~ | ✅ **RESOLVED** — all UI calls use `handle()` |
 | 2 | ~~`NextAction` references `queueActions`~~ | NextAction.ts | ~~Medium~~ | ✅ **RESOLVED** — uses `runtime.do()` now |
-| 3 | `PopBlockAction` inlines `parent.next()` | PopBlockAction.ts | **Low** | Acceptable — properly uses LIFO stack now |
+| 3 | ~~`PopBlockAction` inlines `parent.next()`~~ | PopBlockAction.ts | ~~Low~~ | ✅ **RESOLVED** — returns `NextAction` instead |
 | 4 | ~~`EmitEventAction` drops returned actions~~ | EmitEventAction.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
 | 5 | ~~`BehaviorContext.emitEvent()` drops actions~~ | BehaviorContext.ts | ~~High~~ | ✅ **RESOLVED** — processes via `runtime.do()` |
 | 6 | `subscribe()` always uses active scope | BehaviorContext.ts | **High** | Open |
-| 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open |
+| 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open (Won't Fix) |
 | 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
-| 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Low** | Open |
-| 10 | Event name inconsistency (`tick` vs `timer:tick`) | NextEvent.ts | **Medium** | Open |
+| 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Medium** | Open (⚠️ infinite loop in `BehaviorTestHarness`) |
+| 10 | Event name mismatch (`tick` vs `timer:tick`) | NextEvent.ts | **High** | Open |
 
 ---
 
 ## Recommended Fix Order
 
-### ~~Phase 3: Clean Up `NextAction` (Gap 2)~~ ✅ DONE
-Removed the `queueActions` reference. `NextAction` and `EventBus.emit()` now use `runtime.do()` consistently. `ExecutionContext` uses LIFO stack (depth-first) processing.
-
-### ~~Phase 1: Fix Action Loss (Gaps 4, 5)~~ ✅ DONE
-`EmitEventAction.do()` and `BehaviorContext.emitEvent()` now process actions returned by `eventBus.dispatch()` via `runtime.do()`.
+### ~~Phase 1: Fix Action Loss (Gaps 2, 4, 5)~~ ✅ DONE
+Removed the `queueActions` reference. `NextAction` and `EventBus.emit()` now use `runtime.do()` consistently. `EmitEventAction.do()` and `BehaviorContext.emitEvent()` now process actions returned by `eventBus.dispatch()` via `runtime.do()`.
 
 ### ~~Phase 2: Route Through `handle()` (Gap 1)~~ ✅ DONE
 All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. This ensures all external events get frozen-clock execution contexts.
 
-### Phase 4: Add Scope Support to `subscribe()` (Gap 6)
-Enable behaviors to specify handler scope, fixing parent timer behavior isolation.
+### ~~Phase 3: Decouple Pop from Next (Gap 3)~~ ✅ DONE
+`PopBlockAction` no longer calls `parent.next()` inline. Returns `new NextAction(lifecycleOptions)` for the ExecutionContext to process as a separate action.
 
-### Phase 5: Minor Cleanups (Gaps 7, 8, 10)
-Address naming inconsistencies and remaining dispatch pattern issues.
+---
 
-### Phase 6: Test Alignment (Gap 9)
-Update test harnesses to use `handle()` where appropriate.
+### Phase 4: Fix Event Name Mismatch (Gap 10) — **HIGH PRIORITY**
+
+**Why first:** This is likely the root cause of any tick-related behavior issues. `TickEvent.name` is `'timer:tick'` but all behaviors subscribe to `'tick'`. The EventBus matches on `event.name`, so behavior handlers never fire through the production `handle()` path.
+
+**Tasks:**
+1. Rename `TickEvent.name` from `'timer:tick'` to `'tick'`
+2. Move `TickEvent` class out of `NextEvent.ts` into its own `TickEvent.ts` file
+3. Update the `BehaviorEventType` union if needed (already has `'tick'`)
+4. Verify behaviors receive tick events through `runtime.handle(new TickEvent())`
+5. Update tests that reference `'timer:tick'`
+
+**Risk:** Low — behaviors already subscribe to `'tick'`, so this fix makes production match expectations.
+
+### Phase 5: Fix Test Harness Infinite Loop (Gap 9) — **HIGH PRIORITY**
+
+**Why next:** `BehaviorTestHarness` has a latent infinite recursion: mock `handle()` calls `emit()`, which calls `handle()` again. This can cause stack overflows in tests.
+
+**Tasks:**
+1. **BehaviorTestHarness** — Change mock `handle()` to call `self._eventBus.dispatch()` + process returned actions (mirrors `ScriptRuntime.handle()`)
+2. **BehaviorTestHarness** — Change `simulateEvent()` to call `this._mockRuntime.handle(event)` instead of `eventBus.emit()`
+3. **ExecutionContextTestHarness** — Replace `this.eventBus.emit(event, this.runtime)` with `this.runtime.handle(event)`
+4. **TestableRuntime** — Replace simulate methods' `eventBus.emit()` calls with `this.handle(event)` (safe but clearer)
+5. **QueueTestHarness** — Replace `testRuntime.eventBus.emit()` with `testRuntime.handle(event)`
+
+**Risk:** Medium — test behavior may change slightly if `dispatch()` scope filtering applies differently.
+
+### Phase 6: Add Scope Support to `subscribe()` (Gap 6) — **IMPORTANT**
+
+**Why next:** Parent timer behaviors (e.g., `TimerCompletionBehavior` on an AMRAP) need to hear tick events even when a child effort block is active. This is a functional gap.
+
+**Tasks:**
+1. Update `IBehaviorContext.subscribe()` signature to accept optional `{ scope?: HandlerScope }`
+2. Update `BehaviorContext.subscribe()` implementation to pass scope to `eventBus.register()`
+3. Default scope remains `'active'` for backward compatibility
+4. Update `TimerCompletionBehavior` to use `scope: 'bubble'`
+5. Update `TimerTickBehavior` to use `scope: 'bubble'` (parent needs timer updates too)
+6. Update `SoundCueBehavior` to use appropriate scope
+7. Add tests for scope-filtered behavior subscriptions
+
+**Risk:** Medium — changing scope could cause behaviors to fire in unexpected contexts. Needs careful per-behavior analysis.
+
+### Phase 7: Unmount Event Actions (Gap 8) — **LOW PRIORITY**
+
+**Why last:** No unmount handlers currently return actions. Fix for completeness.
+
+**Tasks:**
+1. Capture return value of `runtime.eventBus.dispatch()` in `RuntimeBlock.unmount()`
+2. Push returned actions into the `actions` array that `unmount()` returns
+3. Add test verifying unmount event handlers can produce actions
+
+**Risk:** Low — additive change, no existing behavior changes.
+
+### Gap 7 — **WON'T FIX** (unless needed)
+
+`BlockContext.dispatch()` for memory events is intentionally fire-and-forget. Memory events are diagnostic — processing returned actions during high-frequency memory operations could introduce performance issues or unintended side effects. Revisit only if a concrete use case emerges.
+
+---
+
+## Completion Criteria
+
+All gaps are resolved when:
+
+1. **Single entry point:** All events enter through `runtime.handle(event)` ✔️
+2. **Action-only stack operations:** All stack changes go through actions ✔️
+3. **No dropped actions:** Every `dispatch()` return value is processed ✔️ (except Gap 7)
+4. **Consistent event names:** `TickEvent.name` matches behavior subscriptions ⬜ Phase 4
+5. **Scope-aware subscriptions:** Parent behaviors can hear child events ⬜ Phase 6
+6. **Test fidelity:** Test harnesses use the same entry points as production ⬜ Phase 5
+7. **Complete lifecycle participation:** Unmount events can produce actions ⬜ Phase 7
 
 ---
 
