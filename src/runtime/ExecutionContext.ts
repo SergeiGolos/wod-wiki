@@ -88,6 +88,7 @@ export class ExecutionContext implements IScriptRuntime {
      * Internally pushes in reverse order so the first action lands on top of the stack.
      */
     doAll(actions: IRuntimeAction[]): void {
+        if (actions.length === 0) return;
         for (let i = actions.length - 1; i >= 0; i--) {
             this._stack.push(actions[i]);
         }
