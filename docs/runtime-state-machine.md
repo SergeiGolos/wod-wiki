@@ -18,48 +18,78 @@
 
 ## Overview
 
-The WOD Wiki runtime is an **event-driven, stack-based execution engine** with **frozen-time action chains**. Rather than an explicit finite state machine, state emerges from three orthogonal concerns:
+The WOD Wiki runtime is an **event-driven, stack-based execution engine** with **frozen-time action chains**. All processing flows through a single entry point pattern:
 
-| Concern | Mechanism | Key Type |
-|---------|-----------|----------|
-| **What is executing** | Block stack (LIFO) | `RuntimeStack` |
-| **What happens next** | Action queue (FIFO within a turn) | `ExecutionContext` |
-| **When it happens** | Frozen clock snapshots | `SnapshotClock` |
+> **External Event → `handle()` → EventBus dispatch → Handlers return Actions → Actions execute in frozen ExecutionContext**
+
+### Two Categories of Inputs
+
+| Category | Examples | Entry Point | Who Produces Them |
+|----------|---------|-------------|-------------------|
+| **External Commands** | `start`, `tick`, `next`, `pause`, `resume`, `stop` | `runtime.handle(event)` | UI layer, tick loop, user interaction |
+| **Internal Actions** | `PushBlockAction`, `PopBlockAction`, `CompileChildBlockAction` | `runtime.do(action)` | Behaviors (via lifecycle hook return values) |
+
+### The Separation of Concerns
+
+**Behaviors** have two powers:
+1. **Modify block memory** — read/write the current block's state (timer spans, round counters, display data)
+2. **Return actions** — to affect the _stack_ (push children, pop self). Behaviors cannot directly push or pop blocks.
+
+**Actions** have one job:
+- Execute stack operations and block lifecycle calls (`mount`, `next`, `unmount`), which in turn invoke behaviors and may produce more actions.
+
+**Events** bridge external inputs to internal processing:
+- External events are dispatched through the EventBus, which finds eligible handlers and collects the actions they return. Those actions are then executed within a single `ExecutionContext` (frozen clock turn).
+
+### Core Architecture
 
 ```mermaid
 flowchart TD
+    subgraph "External Commands"
+        T[Tick] 
+        N[Next]
+        P[Pause/Resume]
+        S[Start/Stop]
+    end
+
     subgraph "Runtime Engine"
         direction TB
-        SR[ScriptRuntime]
-        EC[ExecutionContext]
+        H["handle(event)"]
         EB[EventBus]
+        EC[ExecutionContext]
+        SR[ScriptRuntime]
         ST[RuntimeStack]
         CK[RuntimeClock]
     end
 
-    UI[UI / Tick Loop] -->|"emit(TickEvent)"| EB
-    EB -->|"dispatch → actions[]"| SR
-    SR -->|"do(action)"| EC
+    T -->|event| H
+    N -->|event| H
+    P -->|event| H
+    S -->|event| H
+    
+    H -->|dispatch| EB
+    EB -->|"handlers → actions[]"| EC
     EC -->|"action.do(this)"| EC
     EC -->|"push/pop"| ST
     EC -->|"freeze time"| CK
     ST -->|"block lifecycle"| BK[RuntimeBlock]
     BK -->|"behavior hooks"| BH[Behaviors]
     BH -->|"return actions"| EC
+    BH -->|"modify"| MEM[Block Memory]
 ```
 
 ---
 
 ## 1. Runtime Lifecycle States
 
-The runtime itself progresses through a top-level lifecycle:
+The runtime itself progresses through a top-level lifecycle driven entirely by external commands:
 
 ```mermaid
 stateDiagram-v2
     [*] --> Idle: new ScriptRuntime()
-    Idle --> Starting: do(StartWorkoutAction)
+    Idle --> Starting: handle(StartEvent) → StartWorkoutAction
     Starting --> Running: root block pushed & mounted
-    Running --> Running: tick events process
+    Running --> Running: handle(TickEvent) processes
     Running --> Completed: stack becomes empty
     Running --> Error: unrecoverable error
     Completed --> [*]
@@ -69,18 +99,17 @@ stateDiagram-v2
         Clock started.
         Stack empty.
         EventBus initialized.
-        NextEventHandler registered.
+        NextEventHandler registered (global).
     end note
 
     note right of Running
         Root block on stack.
-        20ms tick interval active.
-        Behaviors processing events.
+        External tick events drive processing.
+        Behaviors process events, return actions.
     end note
 
     note right of Completed
         Stack is empty.
-        Clock still running.
         All outputs collected.
     end note
 ```
@@ -94,6 +123,17 @@ stateDiagram-v2
 | **Running** | ≥ 1 block | Running | Handlers from mounted blocks | Accumulating |
 | **Completed** | Empty (`count === 0`) | Running (not stopped) | Handlers cleaned up | Complete |
 | **Error** | May be non-empty | Running | May have stale handlers | Partial |
+
+### External Commands That Drive Transitions
+
+| Command | Event | Handler | Resulting Action |
+|---------|-------|---------|------------------|
+| **Start** | `start` (or direct `do()`) | — | `StartWorkoutAction` |
+| **Tick** | `timer:tick` | Timer behaviors (scope: active) | May produce `PopBlockAction` |
+| **Next** | `next` | `NextEventHandler` (scope: global) | `NextAction` |
+| **Pause** | `timer:pause` | `TimerPauseBehavior` (scope: active) | None (modifies memory only) |
+| **Resume** | `timer:resume` | `TimerPauseBehavior` (scope: active) | None (modifies memory only) |
+| **Stop** | Direct `dispose()` | — | Emergency cleanup |
 
 ### Transition: Idle → Starting → Running
 
@@ -199,7 +239,14 @@ flowchart TD
 - Memory entries are initialized (via `ctx.setMemory()` in init behaviors)
 - Returned actions are queued for execution (e.g., `CompileChildBlockAction` to push first child)
 
-### next() Detail
+### next() Detail — Dual-Purpose Trigger
+
+The `next()` method on a block serves two purposes:
+
+1. **User-triggered advance**: The user clicks "Next" → `NextEvent` → `NextEventHandler` → `NextAction` → calls `current.next()`
+2. **Child-completion notification**: `PopBlockAction` pops a child, then calls `parent.next()` to let the parent decide what comes next
+
+In both cases, behaviors respond the same way — they evaluate block state and return actions.
 
 ```mermaid
 flowchart TD
@@ -210,6 +257,10 @@ flowchart TD
     B2 --> BN[behavior_n.onNext ctx]
     BN --> CA[Collect all returned actions]
     CA --> RET[Return actions array]
+    
+    RET --> PUSH["Actions may include PushBlockAction\n(push next child)"]
+    RET --> POP["Actions may include PopBlockAction\n(self-pop if complete)"]
+    RET --> NONE["Or return [] if no state change needed"]
 ```
 
 **Expectations during next():**
@@ -250,35 +301,62 @@ flowchart TD
 
 ## 3. The Execution Turn
 
-All state changes happen within **execution turns** managed by `ExecutionContext`. A turn guarantees:
+All processing enters through one of two entry points, both leading to an `ExecutionContext`:
 
-1. **Frozen time** — all actions see the same `clock.now`
-2. **Sequential processing** — actions execute one at a time from a FIFO queue
-3. **Bounded depth** — max iterations prevent infinite loops (default: 20)
+### Entry Point 1: `handle(event)` — The Primary Path
+
+External commands enter through `handle()`, which dispatches the event, collects actions from handlers, and executes them all in a single frozen-clock turn.
 
 ```mermaid
 sequenceDiagram
-    participant C as Caller
-    participant SR as ScriptRuntime
+    participant EXT as External (UI/Tick)
+    participant SR as ScriptRuntime.handle()
+    participant EB as EventBus.dispatch()
+    participant H as Event Handlers
     participant EC as ExecutionContext
-    participant A as Action₁
-    participant A2 as Action₂
+    participant A as Actions
 
-    C->>SR: do(action₁)
+    EXT->>SR: handle(event)
+    SR->>EB: dispatch(event, runtime)
+    EB->>H: eligible handlers execute
+    H-->>EB: actions[] returned
+    EB-->>SR: collected actions[]
     SR->>EC: new ExecutionContext(frozen clock)
-    SR->>EC: execute(action₁)
+    SR->>EC: execute(composite action)
     
     rect rgb(240, 248, 255)
         note over EC: Turn begins — clock frozen
         EC->>A: action₁.do(this)
-        A->>EC: do(action₂)
-        note over EC: action₂ queued
-        EC->>A2: action₂.do(this)
+        A->>EC: do(action₂) — queued
+        EC->>A: action₂.do(this)
         note over EC: Queue empty — turn ends
     end
     
     EC-->>SR: Turn complete
-    note over SR: _activeContext = null
+```
+
+### Entry Point 2: `do(action)` — For Direct Actions
+
+Used for the initial `StartWorkoutAction` and other cases where an action is created directly rather than from an event handler. Also creates a frozen-clock turn.
+
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant SR as ScriptRuntime.do()
+    participant EC as ExecutionContext
+    participant A as Action
+
+    C->>SR: do(action)
+    SR->>EC: new ExecutionContext(frozen clock)
+    SR->>EC: execute(action)
+    
+    rect rgb(240, 248, 255)
+        note over EC: Turn begins — clock frozen
+        EC->>A: action.do(this)
+        note over EC: Queue empty — turn ends
+    end
+    
+    EC-->>SR: Turn complete
 ```
 
 ### Turn Invariants
@@ -317,31 +395,36 @@ Turn Start (initial action queued)
 
 ## 4. Event Dispatch Pipeline
 
-Events flow through the `EventBus` with **scope-based filtering** before producing actions:
+Events are the bridge between external commands and internal actions. The `handle(event)` method on the runtime orchestrates this:
+
+1. **Event received** — from UI, tick loop, or behavior coordination
+2. **EventBus.dispatch()** — finds eligible handlers based on scope filtering
+3. **Handlers return actions** — each handler may return `IRuntimeAction[]`
+4. **Actions collected** — all returned actions are gathered
+5. **Execution turn** — all actions execute in a single `ExecutionContext` with frozen clock
 
 ```mermaid
 flowchart TD
-    EV[Event emitted] --> CB[Invoke callbacks — no filtering]
-    CB --> GK[Get active block key]
-    GK --> SK[Get all stack keys]
-    SK --> FH[Filter handlers by scope]
+    EV["handle(event)"] --> DISP["EventBus.dispatch(event, runtime)"]
+    DISP --> CB["Invoke UI callbacks — no scope filtering, no actions"]
+    CB --> GK["Get active block key (stack.current)"]
+    GK --> SK["Get all stack keys"]
+    SK --> FH["Filter handlers by scope"]
     
     FH --> GL{scope: global?}
     GL -->|yes| FIRE[Include handler]
     GL -->|no| BU{scope: bubble?}
-    BU -->|yes, owner on stack| FIRE
+    BU -->|"yes, owner on stack"| FIRE
     BU -->|no| AC{scope: active?}
-    AC -->|yes, owner is current| FIRE
+    AC -->|"yes, owner is current"| FIRE
     AC -->|no| SKIP[Skip handler]
     
-    FIRE --> EX[Execute handler → actions[]]
-    EX --> ERR{Runtime errors?}
-    ERR -->|yes| STOP[Stop processing]
-    ERR -->|no| NEXT[Next handler]
+    FIRE --> EX["handler.handler(event, runtime) → actions[]"]
+    EX --> COLLECT[Collect all actions]
+    SKIP --> NEXT[Next handler]
     NEXT --> FH
     
-    STOP --> RET[Return collected actions]
-    SKIP --> NEXT
+    COLLECT --> TURN["Execute all actions in single\nExecutionContext (frozen clock)"]
 ```
 
 ### Scope Filtering Rules
@@ -361,14 +444,21 @@ flowchart TD
 
 ### Event Types Reference
 
-| Event Name | Source | Typical Handler | Actions Produced |
-|------------|--------|-----------------|------------------|
-| `tick` | UI tick loop (20ms) | `TimerTickBehavior`, `TimerCompletionBehavior`, `SoundCueBehavior` | May produce `PopBlockAction` on timer completion |
-| `next` | User button click | `NextEventHandler` (global) | `NextAction` |
-| `timer:pause` | UI pause button | `TimerPauseBehavior` | None (updates memory) |
-| `timer:resume` | UI resume button | `TimerPauseBehavior` | None (updates memory) |
-| `unmount` | `block.unmount()` | Various | Cleanup |
-| `history:record` | `HistoryRecordBehavior` | UI/analytics layer | None |
+#### External Events (triggered by UI/tick loop)
+
+| Event Name | Source | Entry Point | Handler | Actions Produced |
+|------------|--------|-------------|---------|------------------|
+| `timer:tick` | Tick loop (20ms) | `runtime.handle(tickEvent)` | `TimerCompletionBehavior`, `SoundCueBehavior` | May produce `PopBlockAction` on timer completion |
+| `next` | User button click | `runtime.handle(nextEvent)` | `NextEventHandler` (global) | `NextAction` |
+| `timer:pause` | UI pause button | `runtime.handle(pauseEvent)` | `TimerPauseBehavior` (active) | None (updates memory only) |
+| `timer:resume` | UI resume button | `runtime.handle(resumeEvent)` | `TimerPauseBehavior` (active) | None (updates memory only) |
+
+#### Internal Events (triggered by behaviors/blocks during lifecycle)
+
+| Event Name | Source | Purpose |
+|------------|--------|---------|
+| `unmount` | `block.unmount()` | Notifies listeners that a block is being removed |
+| `history:record` | `HistoryRecordBehavior` | Signals analytics layer to record data |
 
 ---
 
@@ -428,7 +518,7 @@ sequenceDiagram
 
 ## 6. Tick Loop Integration
 
-The UI drives runtime execution through a fixed-interval tick loop:
+The UI drives runtime execution by sending external `tick` events through `handle()`:
 
 ```mermaid
 stateDiagram-v2
@@ -436,8 +526,8 @@ stateDiagram-v2
     
     state "UI Control" as UC {
         Idle --> Running: start()
-        Running --> Paused: pause()
-        Paused --> Running: start() (resume)
+        Running --> Paused: pause() → handle(PauseEvent)
+        Paused --> Running: resume() → handle(ResumeEvent)
         Running --> Completed: stack.count === 0
         Running --> Error: exception caught
     }
@@ -445,7 +535,7 @@ stateDiagram-v2
     state "Running" as Running {
         [*] --> Tick
         Tick --> Process: every 20ms
-        Process --> CheckComplete: executeStep()
+        Process --> CheckComplete: handle(TickEvent)
         CheckComplete --> Tick: stack.count > 0
         CheckComplete --> [*]: stack.count === 0
     }
@@ -457,20 +547,20 @@ stateDiagram-v2
 setInterval(executeStep, 20ms)
 │
 └─ executeStep():
-    ├─ Create TickEvent (name: 'tick', timestamp: new Date())
-    ├─ runtime.eventBus.emit(tickEvent, runtime)
+    ├─ Create TickEvent (name: 'timer:tick', timestamp: new Date())
+    │
+    ├─ runtime.handle(tickEvent)          ← SINGLE ENTRY POINT
     │   │
     │   ├─ EventBus.dispatch(tickEvent, runtime):
-    │   │   ├─ Invoke callbacks (UI notifications, no scope filtering)
+    │   │   ├─ Invoke UI callbacks (no scope filtering, no actions)
     │   │   ├─ Filter handlers by scope:
     │   │   │   ├─ 'active' handlers: only if owner === current block
     │   │   │   ├─ 'bubble' handlers: if owner on stack
     │   │   │   └─ 'global' handlers: always
     │   │   ├─ Execute eligible handlers → actions[]
-    │   │   └─ Return actions
+    │   │   └─ Return collected actions
     │   │
-    │   └─ Execute returned actions via runtime.do()
-    │       └─ (within ExecutionContext turn)
+    │   └─ Execute all actions in single ExecutionContext (frozen clock)
     │
     ├─ Check: runtime.stack.count === 0?
     │   ├─ Yes → set status 'completed', clear interval
@@ -492,27 +582,36 @@ setInterval(executeStep, 20ms)
 
 ### Pause/Resume Flow
 
+Pause and Resume are external commands that enter through `handle()`:
+
 ```mermaid
 sequenceDiagram
     participant UI as UI Layer
+    participant RT as runtime.handle()
     participant EB as EventBus
     participant TPB as TimerPauseBehavior
     participant MEM as Block Memory
 
     Note over UI: User clicks Pause
     UI->>UI: clearInterval (stop ticks)
-    UI->>EB: emit({name: 'timer:pause'})
+    UI->>RT: handle({name: 'timer:pause'})
+    RT->>EB: dispatch(pauseEvent)
     EB->>TPB: handler fires (scope: active)
     TPB->>MEM: Close current TimeSpan
     TPB->>TPB: isPaused = true
+    TPB-->>EB: return [] (no stack actions needed)
 
     Note over UI: User clicks Resume
-    UI->>EB: emit({name: 'timer:resume'})
+    UI->>RT: handle({name: 'timer:resume'})
+    RT->>EB: dispatch(resumeEvent)
     EB->>TPB: handler fires (scope: active)
     TPB->>MEM: Open new TimeSpan
     TPB->>TPB: isPaused = false
+    TPB-->>EB: return [] (no stack actions needed)
     UI->>UI: setInterval (resume ticks)
 ```
+
+> **Key insight:** Pause/Resume handlers modify block memory only — they return no actions because they don't need to affect the stack. This is the correct pattern for behaviors that manage state without stack transitions.
 
 ---
 
@@ -661,10 +760,14 @@ Every 20ms:
 ### Phase 3: User Advances (Next Button)
 
 ```
-User clicks "Next":
+User clicks "Next" → External Command:
 │
-├─ EventBus receives: {name: 'next'}
-│   └─ NextEventHandler (global scope) → returns [NextAction]
+├─ runtime.handle({name: 'next'})    ← ENTRY POINT
+│   │
+│   ├─ EventBus.dispatch(nextEvent):
+│   │   └─ NextEventHandler (global scope) → returns [NextAction]
+│   │
+│   └─ Execute in ExecutionContext (frozen clock at T₁):
 │
 ├─ NextAction.do(runtime):
 │   ├─ current = Effort("10 Push-ups")
@@ -801,22 +904,23 @@ stateDiagram-v2
     
     state "Runtime" as RT {
         [*] --> Idle
-        Idle --> Running: StartWorkoutAction
+        Idle --> Running: handle(StartEvent)
         Running --> Completed: stack empty
         
         state "Running" as Running {
-            [*] --> ProcessingTick
-            ProcessingTick --> DispatchEvent: TickEvent
-            DispatchEvent --> FilterHandlers: scope check
-            FilterHandlers --> ExecuteActions: eligible handlers
-            ExecuteActions --> ProcessingTick: queue empty
+            [*] --> WaitForEvent
+            WaitForEvent --> HandleEvent: handle(event)
+            HandleEvent --> DispatchToHandlers: EventBus.dispatch()
+            DispatchToHandlers --> CollectActions: handlers return actions[]
+            CollectActions --> ExecuteInTurn: ExecutionContext(frozen clock)
+            ExecuteInTurn --> WaitForEvent: turn complete
             
-            state "Block Lifecycle" as BL {
+            state "Block Lifecycle (within turn)" as BL {
                 [*] --> BlockMounted
                 BlockMounted --> BlockActive: behaviors initialized
-                BlockActive --> ChildPushed: CompileChildBlockAction
+                BlockActive --> ChildPushed: behavior returns PushAction
                 ChildPushed --> BlockWaiting: child on top
-                BlockWaiting --> BlockActive: child pops → next()
+                BlockWaiting --> BlockActive: child pops → parent.next()
                 BlockActive --> BlockComplete: markComplete()
                 BlockComplete --> BlockUnmounted: PopBlockAction
                 BlockUnmounted --> [*]: dispose()
