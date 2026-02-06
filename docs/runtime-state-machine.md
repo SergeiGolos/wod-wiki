@@ -679,14 +679,19 @@ User clicks "Next":
     ├─ Effort.dispose()
     │
     └─ AMRAP.next(runtime, {completedAt: T₁}):    ← Parent notified
+        │
+        │  NOTE: RoundAdvanceBehavior fires on EVERY next() call,
+        │  so the round counter increments per child completion,
+        │  not per full loop through all children.
+        │
         ├─ ChildLoopBehavior:
-        │   └─ Not all children executed yet → no reset
+        │   └─ childRunner.allChildrenExecuted → false (1 of 2 done)
+        │   └─ No reset needed
         ├─ ChildRunnerBehavior:
         │   └─ childIndex=1, returns CompileChildBlockAction([squats-id])
         ├─ RoundAdvanceBehavior:
         │   └─ round: {current: 2, total: undefined}
-        ├─ RoundCompletionBehavior:
-        │   └─ total === undefined → skip (no completion)
+        ├─ (No RoundCompletionBehavior on AMRAP — timer controls completion)
         ├─ RoundDisplayBehavior:
         │   └─ display.roundDisplay: "Round 2"
         └─ RoundOutputBehavior:
