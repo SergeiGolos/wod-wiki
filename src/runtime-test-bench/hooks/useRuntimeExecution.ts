@@ -85,7 +85,7 @@ export const useRuntimeExecution = (
     try {
       // Use TickEvent for periodic updates instead of NextEvent
       const tickEvent = new TickEvent();
-      runtime.eventBus.emit(tickEvent, runtime);
+      runtime.handle(tickEvent);
       setStepCount(prev => prev + 1);
 
       // Check if runtime is complete (stack is empty after root block finishes)
@@ -113,11 +113,11 @@ export const useRuntimeExecution = (
 
     // Emit timer:resume event when resuming from paused state
     if (status === 'paused') {
-      runtime.eventBus.emit({
+      runtime.handle({
         name: 'timer:resume',
         timestamp: new Date(),
         data: {}
-      }, runtime);
+      });
     }
 
     setStatus('running');
@@ -144,11 +144,11 @@ export const useRuntimeExecution = (
     
     // Emit timer:pause event to update timer memory spans
     if (runtime) {
-      runtime.eventBus.emit({
+      runtime.handle({
         name: 'timer:pause',
         timestamp: new Date(),
         data: {}
-      }, runtime);
+      });
     }
     
     setStatus('paused');

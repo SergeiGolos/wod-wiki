@@ -38,6 +38,11 @@ export class EmitEventAction implements IRuntimeAction {
       data: this.data
     };
     
-    runtime.eventBus.dispatch(event, runtime);
+    const actions = runtime.eventBus.dispatch(event, runtime);
+    // Push returned actions in reverse order for LIFO stack processing
+    // so the first handler's action executes first
+    for (let i = actions.length - 1; i >= 0; i--) {
+      runtime.do(actions[i]);
+    }
   }
 }

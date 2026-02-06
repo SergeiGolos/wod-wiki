@@ -192,7 +192,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onNext={props.onNext}
       actions={actionState?.visible}
       onAction={(eventName, payload) => {
-        runtime.eventBus.emit({ name: eventName, timestamp: new Date(), data: payload }, runtime);
+        runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
         if (eventName === 'next') {
           props.onNext?.();
         }

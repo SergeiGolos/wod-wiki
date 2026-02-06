@@ -74,7 +74,11 @@ export class BehaviorContext implements IBehaviorContext {
     // ============================================================================
 
     emitEvent(event: IEvent): void {
-        this.runtime.eventBus.dispatch(event, this.runtime);
+        const actions = this.runtime.eventBus.dispatch(event, this.runtime);
+        // Push returned actions in reverse order for LIFO stack processing
+        for (let i = actions.length - 1; i >= 0; i--) {
+            this.runtime.do(actions[i]);
+        }
     }
 
     // ============================================================================

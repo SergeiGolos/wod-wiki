@@ -70,6 +70,8 @@ function createMockRuntime(): IScriptRuntime {
         script: {} as any,
         errors: [],
         options: {} as any,
+        do: vi.fn().mockImplementation((action: any) => { action.do({ do: vi.fn() }); }),
+        handle: vi.fn(),
         // Output tracking
         _outputStatements: outputs,
         _outputListeners: outputListeners,
@@ -118,6 +120,28 @@ describe('BehaviorContext', () => {
             const event = { name: 'timer:started', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
             expect(runtime.eventBus.dispatch).toHaveBeenCalledWith(event, runtime);
+        });
+
+        it('should process returned actions through runtime.do()', () => {
+            const mockAction1 = { type: 'test-action-1', do: vi.fn() };
+            const mockAction2 = { type: 'test-action-2', do: vi.fn() };
+            (runtime.eventBus.dispatch as any).mockReturnValueOnce([mockAction1, mockAction2]);
+
+            const event = { name: 'custom:event', timestamp: new Date(), data: {} };
+            ctx.emitEvent(event);
+
+            // Should call runtime.do() for each returned action (in reverse for LIFO)
+            expect(runtime.do).toHaveBeenCalledTimes(2);
+            expect(runtime.do).toHaveBeenCalledWith(mockAction2);
+            expect(runtime.do).toHaveBeenCalledWith(mockAction1);
+        });
+
+        it('should handle empty actions array without calling runtime.do()', () => {
+            (runtime.eventBus.dispatch as any).mockReturnValueOnce([]);
+            const event = { name: 'noop:event', timestamp: new Date(), data: {} };
+            ctx.emitEvent(event);
+
+            expect(runtime.do).not.toHaveBeenCalled();
         });
     });
 
