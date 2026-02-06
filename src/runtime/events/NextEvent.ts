@@ -1,19 +1,5 @@
 import { IEvent } from './contracts/events/IEvent';
 
-export class TickEvent implements IEvent {
-  readonly name: string = 'timer:tick';
-  readonly timestamp: Date;
-  readonly data?: unknown;
-  private static _counter = 0;
-
-  constructor(data?: unknown) {
-    const now = Date.now();
-    TickEvent._counter++;
-    this.timestamp = new Date(now + TickEvent._counter);
-    this.data = data;
-  }
-}
-
 export class NextEvent implements IEvent {
   readonly name: string = 'next';
   readonly timestamp: Date;

@@ -455,7 +455,7 @@ flowchart TD
 
 | Event Name | Source | Entry Point | Handler | Actions Produced |
 |------------|--------|-------------|---------|------------------|
-| `timer:tick` | Tick loop (20ms) | `runtime.handle(tickEvent)` | `TimerCompletionBehavior`, `SoundCueBehavior` | May produce `PopBlockAction` on timer completion |
+| `tick` | Tick loop (20ms) | `runtime.handle(tickEvent)` | `TimerCompletionBehavior`, `SoundCueBehavior` | May produce `PopBlockAction` on timer completion |
 | `next` | User button click | `runtime.handle(nextEvent)` | `NextEventHandler` (global) | `NextAction` |
 | `timer:pause` | UI pause button | `runtime.handle(pauseEvent)` | `TimerPauseBehavior` (active) | None (updates memory only) |
 | `timer:resume` | UI resume button | `runtime.handle(resumeEvent)` | `TimerPauseBehavior` (active) | None (updates memory only) |
@@ -514,8 +514,8 @@ sequenceDiagram
 |--------|------|-------------|------|
 | `StartWorkoutAction` | `start-workout` | Runtime initialization | Compiles root block, pushes to stack |
 | `PushBlockAction` | `push-block` | Behaviors, strategies | Pushes block, calls `mount()`, pushes mount actions onto stack |
-| `PopBlockAction` | `pop-block` | Completion behaviors, timer expiry | Calls `unmount()`, pops, disposes, notifies parent via `next()` |
-| `NextAction` | `next` | `NextEventHandler` on 'next' event | Calls `block.next()`, pushes resulting actions onto stack |
+| `PopBlockAction` | `pop-block` | Completion behaviors, timer expiry | Calls `unmount()`, pops, disposes, returns `NextAction` for parent |
+| `NextAction` | `next` | `NextEventHandler`, `PopBlockAction` | Calls `block.next()`, pushes resulting actions onto stack |
 | `CompileAndPushBlockAction` | `compile-and-push-block` | `ChildRunnerBehavior` | JIT compiles statement IDs, delegates to `PushBlockAction` |
 | `PushIdleBlockAction` | `push-idle-block` | Workout start/end transitions | Creates idle block via `IdleBlockStrategy`, pushes |
 | `PopToBlockAction` | `pop-to-block` | Force-complete / workout stop | Silently pops blocks until target reached (no parent.next()) |
@@ -554,7 +554,7 @@ stateDiagram-v2
 setInterval(executeStep, 20ms)
 │
 └─ executeStep():
-    ├─ Create TickEvent (name: 'timer:tick', timestamp: new Date())
+    ├─ Create TickEvent (name: 'tick', timestamp: new Date())
     │
     ├─ runtime.handle(tickEvent)          ← SINGLE ENTRY POINT
     │   │

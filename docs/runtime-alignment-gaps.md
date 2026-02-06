@@ -201,43 +201,9 @@ handle(event: IEvent) {
 
 ---
 
-## Gap 10: `TickEvent` Uses Event Name `timer:tick`, Not `tick`
+## Gap 10: ~~`TickEvent` Uses Event Name `timer:tick`, Not `tick`~~ ✅ RESOLVED
 
-### Vision
-The state machine document references `tick` events, but the code uses a different name.
-
-### Current Code
-`TickEvent` (defined in `src/runtime/events/NextEvent.ts:3-15`, co-located with `NextEvent` despite being unrelated) uses event name `'timer:tick'`:
-
-```typescript
-export class TickEvent implements IEvent {
-  readonly name: string = 'timer:tick';  // Note: "timer:tick", not "tick"
-  // ...
-}
-```
-
-### Reassessment
-All behaviors consistently subscribe to `'tick'` (not `'timer:tick'`):
-
-| Behavior | Subscribes to |
-|----------|---------------|
-| `TimerTickBehavior` | `'tick'` |
-| `TimerCompletionBehavior` | `'tick'` |
-| `SoundCueBehavior` | `'tick'` |
-| `IBehaviorContext` type | `BehaviorEventType = 'tick' \| 'next' \| ...` |
-
-But `TickEvent.name` is `'timer:tick'`. The EventBus dispatches by event name — handlers registered for `'tick'` will **never match** a `TickEvent` with name `'timer:tick'`.
-
-The system works today because `useRuntimeExecution` creates `new TickEvent()` and calls `runtime.handle(tickEvent)`, but the event bus matches on `tickEvent.name` = `'timer:tick'` — which means **no behavior handlers match**.
-
-This suggests tick processing is either:
-1. Happening through a different mechanism (callback-based rather than handler-based), or
-2. Broken in production and masked by tests that dispatch `'tick'` directly
-
-### Fix
-Rename `TickEvent.name` from `'timer:tick'` to `'tick'` to match what behaviors subscribe to. Also move `TickEvent` out of `NextEvent.ts` into its own file for clarity.
-
-### Severity: **High** (upgraded from Medium) — `TickEvent` name mismatch means behavior handlers for `'tick'` never fire through the production `handle()` path.
+> **Fixed in:** `TickEvent.name` renamed from `'timer:tick'` to `'tick'` to match behavior subscriptions. `TickEvent` moved from `NextEvent.ts` into its own `TickEvent.ts` file. Updated imports in `useRuntimeExecution.ts`, `events/index.ts`. Updated doc references in `runtime-state-machine.md` and `testing/skill.md`. All 609 unit tests pass.
 
 ---
 
@@ -254,7 +220,7 @@ Rename `TickEvent.name` from `'timer:tick'` to `'tick'` to match what behaviors 
 | 7 | `BlockContext.dispatch()` drops returned actions | BlockContext.ts | **Low** | Open (Won't Fix) |
 | 8 | `unmount()` dispatches outside action system | RuntimeBlock.ts | **Medium** | Open |
 | 9 | Test harnesses use `emit()` not `handle()` | Testing files | **Medium** | Open (⚠️ infinite loop in `BehaviorTestHarness`) |
-| 10 | Event name mismatch (`tick` vs `timer:tick`) | NextEvent.ts | **High** | Open |
+| 10 | ~~Event name mismatch (`tick` vs `timer:tick`)~~ | ~~NextEvent.ts~~ | ~~High~~ | ✅ **RESOLVED** — `TickEvent.name` is now `'tick'` |
 
 ---
 
@@ -271,18 +237,8 @@ All UI-layer `eventBus.emit()` calls replaced with `runtime.handle(event)`. This
 
 ---
 
-### Phase 4: Fix Event Name Mismatch (Gap 10) — **HIGH PRIORITY**
-
-**Why first:** This is likely the root cause of any tick-related behavior issues. `TickEvent.name` is `'timer:tick'` but all behaviors subscribe to `'tick'`. The EventBus matches on `event.name`, so behavior handlers never fire through the production `handle()` path.
-
-**Tasks:**
-1. Rename `TickEvent.name` from `'timer:tick'` to `'tick'`
-2. Move `TickEvent` class out of `NextEvent.ts` into its own `TickEvent.ts` file
-3. Update the `BehaviorEventType` union if needed (already has `'tick'`)
-4. Verify behaviors receive tick events through `runtime.handle(new TickEvent())`
-5. Update tests that reference `'timer:tick'`
-
-**Risk:** Low — behaviors already subscribe to `'tick'`, so this fix makes production match expectations.
+### ~~Phase 4: Fix Event Name Mismatch (Gap 10)~~ ✅ DONE
+`TickEvent.name` renamed from `'timer:tick'` to `'tick'`. `TickEvent` moved to its own file. Imports and docs updated. All 609 tests pass.
 
 ### Phase 5: Fix Test Harness Infinite Loop (Gap 9) — **HIGH PRIORITY**
 
@@ -336,7 +292,7 @@ All gaps are resolved when:
 1. **Single entry point:** All events enter through `runtime.handle(event)` ✔️
 2. **Action-only stack operations:** All stack changes go through actions ✔️
 3. **No dropped actions:** Every `dispatch()` return value is processed ✔️ (except Gap 7)
-4. **Consistent event names:** `TickEvent.name` matches behavior subscriptions ⬜ Phase 4
+4. **Consistent event names:** `TickEvent.name` matches behavior subscriptions ✔️
 5. **Scope-aware subscriptions:** Parent behaviors can hear child events ⬜ Phase 6
 6. **Test fidelity:** Test harnesses use the same entry points as production ⬜ Phase 5
 7. **Complete lifecycle participation:** Unmount events can produce actions ⬜ Phase 7
