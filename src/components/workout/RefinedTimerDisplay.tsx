@@ -4,7 +4,7 @@ import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/Display
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
 import { UnifiedItemRow } from '../unified/UnifiedItemRow';
-import { ActionDescriptor } from '../../runtime/actions/stack/ActionStackActions';
+import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
 
 export interface RefinedTimerDisplayProps {
     elapsedMs: number;

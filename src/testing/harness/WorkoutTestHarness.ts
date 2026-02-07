@@ -2,7 +2,6 @@ import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { MdTimerRuntime } from '@/parser/md-timer';
-import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
@@ -74,7 +73,6 @@ export class WorkoutTestHarness {
 
     // 3. Runtime dependencies
     const clock = createMockClock(_clockTime);
-    const memory = new RuntimeMemory();
     const stack = new RuntimeStack();
     const eventBus = new EventBus();
 
@@ -83,7 +81,6 @@ export class WorkoutTestHarness {
       this.script,
       this.jit,
       {
-        memory,
         stack,
         clock,
         eventBus
@@ -173,7 +170,7 @@ export class WorkoutTestHarness {
    * Check if the workout is complete (stack empty).
    */
   isComplete(): boolean {
-    return this.runtime.isComplete();
+    return this.stackDepth === 0;
   }
 
   /**

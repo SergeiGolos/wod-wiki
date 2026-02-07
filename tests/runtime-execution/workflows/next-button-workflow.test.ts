@@ -159,18 +159,6 @@ describe('Next Button Integration Tests', () => {
       expect(harness.runtime.errors[0].error).toBe(error);
       expect(harness.runtime.errors[0].source).toBe('NextAction');
     });
-
-    it('should handle memory corruption markers', () => {
-      harness.push(new MockBlock('block-1'));
-      // Simulate memory corruption detection
-      (harness.runtime.memory as any).state = 'corrupted';
-
-      const action = new NextAction();
-      action.do(harness.runtime);
-
-      // Should abort execution safely
-      expect(harness.runtime.errors).toHaveLength(0); // NextAction aborts silently if memory is invalid (pre-check)
-    });
   });
 
   describe('Sequence and Ordering', () => {
