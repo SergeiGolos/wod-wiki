@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
@@ -39,6 +39,10 @@ describe('Barbara (5 Rounds with Rest)', () => {
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push rounds block and first child on mount', () => {

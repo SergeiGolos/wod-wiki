@@ -14,6 +14,13 @@ import {
 /**
  * Hook to subscribe to the complete display stack state.
  * 
+ * @deprecated This hook relies on legacy global memory searches (`DISPLAY_STACK_STATE`).
+ * Use stack-driven hooks from '@/runtime/hooks' instead:
+ * - `useStackTimers()`
+ * - `usePrimaryTimer()`
+ * - `useStackBlocks()`
+ * - `useStackDisplayItems()`
+ * 
  * Returns the entire display state including timer stack, card stack,
  * and workout state. Use this when you need access to everything.
  * 

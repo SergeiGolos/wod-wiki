@@ -212,6 +212,10 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
 
+        // Dispose the temporary context to clean up any subscriptions
+        // registered by behaviors during onNext
+        nextContext.dispose();
+
         return actions;
     }
 

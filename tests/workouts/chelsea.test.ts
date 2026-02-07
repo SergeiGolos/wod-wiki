@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
@@ -28,6 +28,10 @@ describe('Chelsea (30-minute EMOM with 3 exercises)', () => {
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push EMOM block and first child on mount', () => {

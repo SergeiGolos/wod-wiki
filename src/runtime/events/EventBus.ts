@@ -171,4 +171,12 @@ export class EventBus implements IEventBus {
   emit(event: IEvent, runtime: IScriptRuntime): void {
     runtime.handle(event);
   }
+
+  /**
+   * Dispose of all handlers and callbacks, releasing all references.
+   */
+  dispose(): void {
+    this.handlersByEvent.clear();
+    this.callbacksByEvent.clear();
+  }
 }

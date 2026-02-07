@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { BehaviorTestHarness, MockBlock } from '../../harness';
 
@@ -16,6 +16,10 @@ describe('RuntimeStack Unit Tests', () => {
   beforeEach(() => {
     stack = new RuntimeStack();
     harness = new BehaviorTestHarness();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   describe('Lifecycle Management', () => {

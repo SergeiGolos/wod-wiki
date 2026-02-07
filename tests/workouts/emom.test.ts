@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
@@ -16,6 +16,10 @@ import { CrossFitDialect } from '@/dialects';
  */
 describe('EMOM (Every Minute on the Minute)', () => {
   let harness: WorkoutTestHarness;
+
+  afterEach(() => {
+    harness?.dispose();
+  });
 
   describe('Basic EMOM: (20) :60', () => {
     beforeEach(() => {

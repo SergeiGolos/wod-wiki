@@ -42,6 +42,9 @@ export class ScriptRuntime implements IScriptRuntime {
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
 
+    // Unsubscribe function for the global NextEventHandler
+    private _nextHandlerUnsub: (() => void) | null = null;
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -56,7 +59,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.eventBus = dependencies.eventBus;
 
         // Handle explicit next events to advance the current block once per request
-        this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
+        this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
 
         this.jit = compiler;
 
@@ -151,14 +154,44 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
-     * Emergency cleanup method that disposes all blocks in the stack.
+     * Cleanup method that properly unmounts and disposes all blocks in the stack.
      */
     public dispose(): void {
         // Stop the clock
         this.clock.stop();
+
+        // Properly unmount and dispose each block (top-down)
         while (this.stack.count > 0) {
-            this.stack.pop();
+            const block = this.stack.current;
+            if (block) {
+                try {
+                    block.unmount(this);
+                } catch (_e) {
+                    // Swallow errors during emergency cleanup
+                }
+                this.stack.pop();
+                try {
+                    block.dispose(this);
+                } catch (_e) {
+                    // Swallow errors during emergency cleanup
+                }
+            } else {
+                this.stack.pop();
+            }
         }
+
+        // Unregister the global NextEventHandler
+        if (this._nextHandlerUnsub) {
+            this._nextHandlerUnsub();
+            this._nextHandlerUnsub = null;
+        }
+
+        // Clear output state to release references
+        this._outputStatements = [];
+        this._outputListeners.clear();
+
+        // Clear the event bus
+        this.eventBus.dispose();
     }
 
     /**

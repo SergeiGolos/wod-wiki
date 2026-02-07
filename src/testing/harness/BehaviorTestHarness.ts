@@ -414,6 +414,29 @@ export class BehaviorTestHarness {
     return this;
   }
 
+  /**
+   * Dispose the harness and release all resources.
+   * Call this in afterEach() to prevent memory leaks.
+   */
+  dispose(): void {
+    // Unmount and dispose all blocks on the stack
+    while (this._stack.count > 0) {
+      const block = this._stack.current;
+      if (block) {
+        try { block.unmount(this._mockRuntime); } catch (_e) { /* cleanup */ }
+        this._stack.pop();
+        try { block.dispose(this._mockRuntime); } catch (_e) { /* cleanup */ }
+      } else {
+        this._stack.pop();
+      }
+    }
+    // Clear the event bus
+    this._eventBus.dispose();
+    // Clear captures
+    this._capturedActions = [];
+    this._capturedEvents = [];
+  }
+
   // ========== Private Helpers ==========
 
   private _recordActions(actions: IRuntimeAction[], phase: CapturedAction['phase']): void {

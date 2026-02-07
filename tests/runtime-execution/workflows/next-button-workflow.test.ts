@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { NextEvent } from '../../../src/runtime/events/NextEvent';
 import { NextEventHandler } from '../../../src/runtime/events/NextEventHandler';
 import { NextAction } from '../../../src/runtime/actions/stack/NextAction';
@@ -20,6 +20,10 @@ describe('Next Button Integration Tests', () => {
     // Push a root block to satisfy NextEventHandler's stack depth requirement (count > 1)
     harness.push(new MockBlock('root'));
     handler = new NextEventHandler('next-handler-test');
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   describe('Event Handling', () => {

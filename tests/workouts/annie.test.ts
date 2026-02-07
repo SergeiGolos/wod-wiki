@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
@@ -31,6 +31,10 @@ describe('Annie (50-40-30-20-10 Descending Scheme)', () => {
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push rep scheme block and first child on mount', () => {
@@ -112,7 +116,7 @@ describe('Annie (50-40-30-20-10 Descending Scheme)', () => {
     }
     
     const report = harness.getReport();
-    expect(report.spans.length).toBeGreaterThan(0);
+    expect(report.outputs.length).toBeGreaterThan(0);
     // Total: 2 * (50+40+30+20+10) = 300 seconds
     expect(report.elapsedTime).toBe(300 * 1000);
   });
