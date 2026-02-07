@@ -46,18 +46,18 @@ export class StartWorkoutAction implements IRuntimeAction {
 
     constructor(private readonly options: StartWorkoutOptions = {}) {}
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         // Guard: Check if workout already started (root block on stack)
         if (runtime.stack.count > 0) {
             console.warn('[StartWorkoutAction] Workout already started - stack is not empty');
-            return;
+            return [];
         }
 
         // Guard: Check for statements
         const statements = runtime.script?.statements;
         if (!statements || statements.length === 0) {
             console.warn('[StartWorkoutAction] No statements in script to start');
-            return;
+            return [];
         }
 
         // Build child groups: each top-level statement becomes its own group
@@ -83,7 +83,6 @@ export class StartWorkoutAction implements IRuntimeAction {
         };
 
         // Push root block via PushBlockAction
-        const pushAction = new PushBlockAction(rootBlock, lifecycle);
-        runtime.do(pushAction);
+        return [new PushBlockAction(rootBlock, lifecycle)];
     }
 }

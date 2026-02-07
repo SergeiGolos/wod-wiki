@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { IRuntimeBehavior, IRuntimeBlock, IRuntimeClock, IRuntimeAction } from '@/runtime/contracts';
@@ -16,6 +16,10 @@ describe('Next Lifecycle', () => {
 
     beforeEach(() => {
         harness = new BehaviorTestHarness();
+    });
+
+    afterEach(() => {
+        harness?.dispose();
     });
 
     it('should execute behavior onNext when next() is called and mark block complete', () => {

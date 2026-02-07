@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { RoundInitBehavior, RoundAdvanceBehavior, RoundCompletionBehavior } from '@/runtime/behaviors';
@@ -9,6 +9,10 @@ describe('RoundsBlock', () => {
   beforeEach(() => {
     harness = new BehaviorTestHarness()
       .withClock(new Date('2024-01-01T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should initialize round state on mount', () => {

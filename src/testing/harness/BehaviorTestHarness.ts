@@ -75,9 +75,18 @@ export class BehaviorTestHarness {
         action.do(this);
       },
 
+      doAll(actions: IRuntimeAction[]) {
+        for (const action of actions) {
+          action.do(this);
+        }
+      },
+
       handle(event: IEvent) {
-        // Dispatch event through event bus
-        self._eventBus.emit(event, this);
+        // Mirror ScriptRuntime.handle(): dispatch through event bus and process returned actions
+        const actions = self._eventBus.dispatch(event, this);
+        if (actions.length > 0) {
+          this.doAll(actions);
+        }
       },
 
       pushBlock(block: IRuntimeBlock) {
@@ -260,14 +269,8 @@ export class BehaviorTestHarness {
     this._capturedEvents.push({ event, timestamp: Date.now() });
     this._handleSpy(event);
 
-    // Dispatch through event bus
-    this._eventBus.emit(event, this._mockRuntime);
-
-    // Collect actions from current block's event response
-    const block = this._stack.current;
-    if (block) {
-      // Events are handled via eventBus, actions already executed
-    }
+    // Dispatch through runtime.handle() — mirrors production entry point
+    this._mockRuntime.handle(event);
 
     return [];
   }
@@ -409,6 +412,29 @@ export class BehaviorTestHarness {
     this._capturedEvents = [];
     this._handleSpy.mockClear();
     return this;
+  }
+
+  /**
+   * Dispose the harness and release all resources.
+   * Call this in afterEach() to prevent memory leaks.
+   */
+  dispose(): void {
+    // Unmount and dispose all blocks on the stack
+    while (this._stack.count > 0) {
+      const block = this._stack.current;
+      if (block) {
+        try { block.unmount(this._mockRuntime); } catch (_e) { /* cleanup */ }
+        this._stack.pop();
+        try { block.dispose(this._mockRuntime); } catch (_e) { /* cleanup */ }
+      } else {
+        this._stack.pop();
+      }
+    }
+    // Clear the event bus
+    this._eventBus.dispose();
+    // Clear captures
+    this._capturedActions = [];
+    this._capturedEvents = [];
   }
 
   // ========== Private Helpers ==========

@@ -212,6 +212,10 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
 
+        // Dispose the temporary context to clean up any subscriptions
+        // registered by behaviors during onNext
+        nextContext.dispose();
+
         return actions;
     }
 
@@ -240,12 +244,15 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
 
-        // Emit unmount event
-        runtime.eventBus.dispatch({
+        // Emit unmount event and capture any resulting actions
+        const unmountEventActions = runtime.eventBus.dispatch({
             name: 'unmount',
             timestamp: runtime.clock.now,
             data: { blockKey: this.key.toString() }
         }, runtime);
+        if (unmountEventActions.length > 0) {
+            actions.push(...unmountEventActions);
+        }
 
         // Dispose memory entries
         for (const [_type, entry] of this._memoryEntries) {

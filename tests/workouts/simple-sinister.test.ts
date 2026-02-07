@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericGroupStrategy } from '@/runtime/compiler/strategies/components/GenericGroupStrategy';
@@ -32,6 +32,10 @@ describe('Simple and Sinister (Sequential Timed Blocks)', () => {
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push first timed block on mount', () => {
@@ -110,7 +114,7 @@ describe('Simple and Sinister (Sequential Timed Blocks)', () => {
     harness.next();
     
     const report = harness.getReport();
-    expect(report.spans.length).toBeGreaterThan(0);
+    expect(report.outputs.length).toBeGreaterThan(0);
     // Total: 4 + 1 + 8 = 13 minutes
     expect(report.elapsedTime).toBe(13 * 60 * 1000);
   });

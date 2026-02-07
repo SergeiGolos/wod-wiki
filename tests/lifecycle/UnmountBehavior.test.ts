@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { TimerInitBehavior, TimerTickBehavior } from '@/runtime/behaviors';
@@ -8,6 +8,10 @@ describe('Unmount Lifecycle', () => {
 
     beforeEach(() => {
         harness = new BehaviorTestHarness();
+    });
+
+    afterEach(() => {
+        harness?.dispose();
     });
 
     it('should execute behavior onUnmount and remove from stack when unmounted', () => {

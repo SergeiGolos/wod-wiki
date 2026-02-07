@@ -1,7 +1,6 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { ErrorAction } from './ErrorAction';
-import { SetWorkoutStateAction } from './display/WorkoutStateActions';
 
 /**
  * Action that registers a runtime error and transitions the workout to an error state.
@@ -18,8 +17,12 @@ export class ThrowErrorAction implements IRuntimeAction {
         // Register the error in the runtime
         new ErrorAction(this.error, this.source).do(runtime);
 
-        // Transition workout state to error
-        new SetWorkoutStateAction('error').do(runtime);
+        // Emit error state via event bus so UI can react
+        runtime.eventBus.dispatch({
+            name: 'workout:error',
+            timestamp: runtime.clock.now,
+            data: { error: this.error, source: this.source }
+        }, runtime);
     }
 }
 

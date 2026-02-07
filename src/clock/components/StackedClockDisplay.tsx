@@ -6,18 +6,17 @@ import { Progress } from '@/components/ui/progress';
 import { Clock, Play, Pause, Square, Timer } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
-import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
-import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
 import {
-  useDisplayStack,
-  useCurrentTimer,
-  useCurrentCard,
-  useWorkoutState
-} from '../hooks/useDisplayStack';
-import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
+  useStackTimers,
+  usePrimaryTimer,
+  useSecondaryTimers,
+  StackTimerEntry,
+  useStackDisplayItems,
+  useStackBlocks,
+  useActiveControls
+} from '../../runtime/hooks';
 
-import { ITimerDisplayEntry, IDisplayCardEntry } from '../types/DisplayTypes';
+import { ITimerDisplayEntry, IDisplayCardEntry, IDisplayMetric } from '../types/DisplayTypes';
 import { CardComponentRegistry } from '../registry/CardComponentRegistry';
 import { FallbackCard } from '../cards/DefaultCards';
 
@@ -56,7 +55,7 @@ export interface StackedClockDisplayProps {
  * ```tsx
  * <RuntimeProvider runtime={runtime}>
  *   <StackedClockDisplay 
- *     onButtonClick={(event, payload) => runtime.eventBus.emit({ name: event, data: payload, timestamp: new Date() }, runtime)}
+ *     onButtonClick={(event, payload) => runtime.handle({ name: event, data: payload, timestamp: new Date() })}
  *   />
  * </RuntimeProvider>
  * ```
@@ -71,62 +70,154 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
   isRunning: externalIsRunning,
 }) => {
   const runtime = useRuntimeContext();
-  const displayState = useDisplayStack();
-  const currentTimer = useCurrentTimer();
-  const currentCard = useCurrentCard();
-  const workoutState = useWorkoutState();
+  
+  // Use new stack-driven hooks
+  const stackTimers = useStackTimers();
+  const primaryTimerEntry = usePrimaryTimer();
+  const secondaryTimerEntries = useSecondaryTimers();
+  const displayItems = useStackDisplayItems();
+  const activeButtons = useActiveControls();
+  const stackBlocks = useStackBlocks();
 
-  // Primary timer:
-  // 1. First entry with role='primary' (search from top/end of stack down)
-  // 2. Fallback: Top of stack (currentTimer)
-  const primaryTimer = useMemo(() => {
-    // Search from end (top) to start (bottom)
-    for (let i = displayState.timerStack.length - 1; i >= 0; i--) {
-      if (displayState.timerStack[i].role === 'primary') {
-        return displayState.timerStack[i];
+  // Helper: Derive workout state from stack presence
+  // If we have blocks, we are running (or paused). If empty, we are idle/complete.
+  // Note: True "complete" state would require checking runtime status, 
+  // but for UI purposes, empty stack after being active usually means complete.
+  // For now, we default to 'idle' if empty.
+  const workoutState = stackBlocks.length > 0 ? 'running' : 'idle';
+
+  // Helper: Map StackTimerEntry to ITimerDisplayEntry
+  const mapToDisplayEntry = useCallback((entry: StackTimerEntry): ITimerDisplayEntry => {
+    const { block, timer, isPinned } = entry;
+    
+    // Calculate timing from spans
+    let accumulatedMs = 0;
+    let startTime: number | undefined;
+    let isRunning = false;
+
+    // TimerState.spans are TimeSpan objects
+    for (const span of timer.spans) {
+      if (span.ended) {
+        accumulatedMs += (span.ended - span.started);
+      } else {
+        // Active span
+        startTime = span.started;
+        isRunning = true;
       }
     }
-    return currentTimer;
-  }, [displayState.timerStack, currentTimer]);
 
-  // Secondary timers:
-  // 1. All entries with role='secondary'
-  // 2. If no roles used anywhere, fallback to all except top
+    return {
+      id: block.key.toString(),
+      ownerId: block.key.toString(),
+      timerMemoryId: 'timer',
+      label: timer.label,
+      format: timer.direction,
+      durationMs: timer.durationMs,
+      role: isPinned ? 'primary' : 'secondary',
+      accumulatedMs,
+      startTime,
+      isRunning,
+      priority: isPinned ? 0 : 1
+    };
+  }, []);
+
+  // Primary timer: Map the hook result and attach active controls
+  const primaryTimer = useMemo(() => {
+    if (!primaryTimerEntry) return undefined;
+
+    const mapped = mapToDisplayEntry(primaryTimerEntry);
+    
+    // Attach standard UI buttons
+    // Map ButtonConfig (Memory) to IDisplayButton (UI)
+    mapped.buttons = activeButtons.map(btn => ({
+      id: btn.id,
+      label: btn.label,
+      eventName: btn.action, // Map action -> eventName
+      payload: btn.payload,
+      variant: btn.variant,
+      icon: btn.icon
+    }));
+
+    return mapped;
+  }, [primaryTimerEntry, activeButtons, mapToDisplayEntry]);
+
+  // Secondary timers: Map all secondary entries
   const secondaryTimers = useMemo(() => {
-    const explicitSecondaries = displayState.timerStack.filter(t => t.role === 'secondary');
+    return secondaryTimerEntries.map(mapToDisplayEntry);
+  }, [secondaryTimerEntries, mapToDisplayEntry]);
 
-    if (explicitSecondaries.length > 0) {
-      // If we have explicit secondaries, use them. 
-      // Also include any 'auto' roles that are NOT the primary timer.
-      const autos = displayState.timerStack.filter(t =>
-        t.role === 'auto' && t.id !== primaryTimer?.id
-      );
-      return [...explicitSecondaries, ...autos];
+  // Map ALL items to card entries (for debug + current card selection)
+  const allCardEntries = useMemo(() => {
+    if (!displayItems) return [];
+    
+    return displayItems.map(item => {
+      // Filter metrics
+      const metrics: IDisplayMetric[] = [];
+      item.fragments.forEach(f => {
+        if (['reps', 'weight', 'distance', 'calories'].includes(f.type)) {
+          metrics.push({
+            type: f.type,
+            value: f.value,
+            unit: (f as any).unit || '', 
+            label: f.type.charAt(0).toUpperCase() + f.type.slice(1)
+          });
+        }
+      });
+
+      return {
+        id: item.id,
+        ownerId: item.sourceId || 'unknown',
+        type: 'active-block' as const,
+        title: item.label || 'Active Block',
+        metrics: metrics.length > 0 ? metrics : undefined
+      } as IDisplayCardEntry;
+    });
+  }, [displayItems]);
+
+  // Current Card is the top of the stack
+  const currentCard = allCardEntries.length > 0 ? allCardEntries[allCardEntries.length - 1] : undefined;
+
+  // Map ALL timers for debug view
+  const allTimerEntries = useMemo(() => {
+    return stackTimers.map(mapToDisplayEntry);
+  }, [stackTimers, mapToDisplayEntry]);
+  
+  // Determine active round info by searching stack top-down
+  const [roundVersion, setRoundVersion] = useState(0);
+  
+  // Subscribe to round memory changes
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+    for (const block of stackBlocks) {
+        const roundEntry = block.getMemory('round');
+        if (roundEntry) {
+            unsubscribes.push(roundEntry.subscribe(() => setRoundVersion(v => v + 1)));
+        }
     }
-
-    // Fallback if no explicit roles found at all
-    const hasAnyRoles = displayState.timerStack.some(t => t.role === 'primary');
-    if (hasAnyRoles) {
-      // If we have a primary but no secondaries, show everything else
-      return displayState.timerStack.filter(t => t.id !== primaryTimer?.id);
+    return () => unsubscribes.forEach(fn => fn());
+  }, [stackBlocks]);
+  
+  const roundInfo = useMemo(() => {
+    // Search top-down for the most relevant round info
+    for (let i = stackBlocks.length - 1; i >= 0; i--) {
+        const val = (stackBlocks[i].getMemory('round')?.value) as any; // Cast as any or RoundState
+        if (val) return { current: val.current, total: val.total };
     }
-
-    // Legacy fallback: all timers except top one
-    if (displayState.timerStack.length <= 1) return [];
-    return displayState.timerStack.slice(0, -1);
-  }, [displayState.timerStack, primaryTimer]);
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stackBlocks, roundVersion]);
 
   // Handle button clicks - emit to runtime if handler provided
   const handleButtonClick = useCallback((eventName: string, payload?: Record<string, unknown>) => {
     // Call the provided handler
     onButtonClick?.(eventName, payload);
 
-    // Also emit as a runtime event
-    runtime.eventBus.emit({
+    // Also emit as a runtime event through handle()
+    runtime.handle({
       name: eventName,
       timestamp: new Date(),
       data: payload || {},
-    }, runtime);
+    });
   }, [onButtonClick, runtime]);
 
   // Determine which idle card to show when stacks are empty
@@ -169,7 +260,7 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
       {/* Primary Timer Section - The main clock display */}
       <PrimaryTimerSection
         timerEntry={primaryTimer}
-        displayState={displayState}
+        roundInfo={roundInfo}
         onButtonClick={handleButtonClick}
         onPlay={onPlay}
         onPause={onPause}
@@ -186,9 +277,9 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
       {/* Debug: Stack Visualization */}
       {showStackDebug && (
         <StackDebugView
-          timerStack={displayState.timerStack}
-          cardStack={displayState.cardStack}
-          workoutState={displayState.workoutState}
+          timerStack={allTimerEntries}
+          cardStack={allCardEntries}
+          workoutState={workoutState}
         />
       )}
     </div>
@@ -252,45 +343,24 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
   onButtonClick: _onButtonClick,
   variant,
 }) => {
-  const runtime = useRuntimeContext();
   const [now, setNow] = useState(Date.now());
 
   // Update time display periodically
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(interval);
-  }, []);
+    if (timerEntry.isRunning) {
+      const interval = setInterval(() => setNow(Date.now()), 100);
+      return () => clearInterval(interval);
+    }
+  }, [timerEntry.isRunning]);
 
-  // Get timer data from memory
-  const timerRef = useMemo(() => {
-    if (!timerEntry?.timerMemoryId) return undefined;
-
-    // Search for unified RuntimeSpan
-    const refs = searchStackMemory(runtime, {
-      ownerId: timerEntry.ownerId, // timerMemoryId might be unreliable if expecting old key
-      type: RUNTIME_SPAN_TYPE
-    });
-
-    // If we didn't find by ownerId (typical), try ID if it was passed as such?
-    // Usually timerMemoryId is the ownerId in the new system?
-    // In legacy it was 'timer:blockId'. In new system we typically search by blockId (ownerId).
-    // Let's assume timerEntry.ownerId is the blockId.
-
-    return refs[0] as TypedMemoryReference<RuntimeSpan> | undefined;
-  }, [runtime, timerEntry?.ownerId]);
-
-  const timerSpan = useMemorySubscription(timerRef);
-  const spans = timerSpan?.spans || [];
-
-  // Calculate elapsed time
+  // Calculate elapsed time from entry props (no memory search needed)
   const elapsed = useMemo(() => {
-    if (spans.length === 0) return 0;
-
-    return spans.reduce((total, span) => {
-      const end = span.ended || now;
-      return total + Math.max(0, end - span.started);
-    }, 0);
-  }, [spans, now]);
+    let t = timerEntry.accumulatedMs || 0;
+    if (timerEntry.isRunning && timerEntry.startTime) {
+      t += Math.max(0, now - timerEntry.startTime);
+    }
+    return t;
+  }, [timerEntry, now]);
 
   // Calculate display time
   const displayTime = useMemo(() => {
@@ -313,15 +383,8 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Determine if running
-  const isRunning = useMemo(() => {
-    if (timerSpan && typeof timerSpan.isActive === 'function') {
-      return timerSpan.isActive();
-    }
-    if (spans.length === 0) return false;
-    const lastSpan = spans[spans.length - 1];
-    return lastSpan && !lastSpan.ended;
-  }, [spans, timerSpan]);
+  // Determine if running from entry props
+  const isRunning = timerEntry.isRunning || false;
 
   if (variant === 'row') {
     // Mobile: Horizontal row layout
@@ -387,7 +450,7 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
  */
 interface PrimaryTimerSectionProps {
   timerEntry?: ITimerDisplayEntry;
-  displayState: ReturnType<typeof useDisplayStack>;
+  roundInfo?: { current: number; total?: number };
   onButtonClick?: (eventName: string, payload?: Record<string, unknown>) => void;
   onPlay?: () => void;
   onPause?: () => void;
@@ -397,57 +460,40 @@ interface PrimaryTimerSectionProps {
 
 const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
   timerEntry,
-  displayState,
+  roundInfo,
   onButtonClick,
   onPlay,
   onPause,
   onReset,
   isRunning: externalIsRunning,
 }) => {
-  const runtime = useRuntimeContext();
   const [now, setNow] = useState(Date.now());
 
   // Update time display every 100ms when running
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(interval);
-  }, []);
+    // Only tick if we have a running timer
+    if (timerEntry?.isRunning) {
+        const interval = setInterval(() => setNow(Date.now()), 100);
+        return () => clearInterval(interval);
+    }
+  }, [timerEntry?.isRunning]);
 
-  // Get timer data from memory if we have a timer entry
-  const timerRef = useMemo(() => {
-    if (!timerEntry?.ownerId) return undefined;
-
-    const refs = searchStackMemory(runtime, {
-      ownerId: timerEntry.ownerId,
-      type: RUNTIME_SPAN_TYPE
-    });
-
-    return refs[0] as TypedMemoryReference<RuntimeSpan> | undefined;
-  }, [runtime, timerEntry?.ownerId]);
-
-  const timerSpan = useMemorySubscription(timerRef);
-  const spans = timerSpan?.spans || [];
-
-  // Calculate elapsed time
+  // Calculate elapsed time from props
   const elapsed = useMemo(() => {
-    if (spans.length === 0) return 0;
+    if (!timerEntry) return 0;
+    
+    let t = timerEntry.accumulatedMs || 0;
+    if (timerEntry.isRunning && timerEntry.startTime) {
+      t += Math.max(0, now - timerEntry.startTime);
+    }
+    return t;
+  }, [timerEntry, now]);
 
-    return spans.reduce((total, span) => {
-      const end = span.ended || now;
-      return total + Math.max(0, end - span.started);
-    }, 0);
-  }, [spans, now]);
-
-  // Determine if timer is running
+  // Determine if timer is running (use external override or internal state)
   const isRunning = useMemo(() => {
     if (externalIsRunning !== undefined) return externalIsRunning;
-    if (timerSpan && typeof timerSpan.isActive === 'function') {
-      return timerSpan.isActive();
-    }
-    if (spans.length === 0) return false;
-    const lastSpan = spans[spans.length - 1];
-    return lastSpan && !lastSpan.ended;
-  }, [spans, externalIsRunning, timerSpan]);
+    return timerEntry?.isRunning || false;
+  }, [externalIsRunning, timerEntry]);
 
   // Calculate display time based on format
   const displayTime = useMemo(() => {
@@ -516,10 +562,10 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
             <Badge variant={isRunning ? 'default' : 'secondary'}>
               {isRunning ? 'Running' : 'Stopped'}
             </Badge>
-            {displayState.currentRound !== undefined && (
+            {roundInfo?.current !== undefined && (
               <Badge variant="outline">
-                Round {displayState.currentRound}
-                {displayState.totalRounds !== undefined && `/${displayState.totalRounds}`}
+                Round {roundInfo.current}
+                {roundInfo.total !== undefined && `/${roundInfo.total}`}
               </Badge>
             )}
           </div>

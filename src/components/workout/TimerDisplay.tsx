@@ -1,23 +1,25 @@
 /**
- * TimerDisplay - Enhanced timer display component
+ * TimerDisplay - Stack-driven timer display component
  * 
- * Uses RefinedTimerDisplay for the UI.
+ * Subscribes to runtime stack events and reads block memory directly.
+ * No global memory store — blocks own their state, stack events drive UI updates.
+ * 
+ * Timer Pinning:
+ * - Scans stack bottom-to-top for the lowest block with timer role === 'primary'
+ * - If no pinned timer exists, falls back to the leaf (top-of-stack) timer
+ * - This allows parent blocks (For Time, AMRAP) to pin their timer as the main display
  */
 
 import React, { useMemo } from 'react';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
-import { useMemorySubscription } from '../../runtime/hooks/useMemorySubscription';
-import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { RuntimeControls } from '../../runtime/models/MemoryModels';
-import { ActionDescriptor } from '../../runtime/actions/stack/ActionStackActions';
-import { MemoryTypeEnum } from '../../runtime/models/MemoryTypeEnum';
 import {
-  useTimerStack,
-  useCardStack
-} from '../../clock/hooks/useDisplayStack';
-import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
-
-import { IDisplayItem } from '../../core/models/DisplayItem';
+  usePrimaryTimer,
+  useSecondaryTimers,
+  useStackTimers,
+  useActiveControls,
+  useStackDisplayItems,
+} from '../../runtime/hooks/useStackDisplay';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 import { RefinedTimerDisplay } from './RefinedTimerDisplay';
 
@@ -54,133 +56,107 @@ export interface TimerDisplayProps {
   /** Callback when clicking a timer block (for navigation) */
   onBlockClick?: (blockKey: string) => void;
 
-  /** Enable memory-driven display stack features */
+  /** Enable stack-driven display features (requires RuntimeProvider) */
   enableDisplayStack?: boolean;
 }
 
 /**
+ * Calculate elapsed milliseconds from a TimeSpan array.
+ */
+function calculateElapsedFromSpans(spans: readonly TimeSpan[]): number {
+  const now = Date.now();
+  return spans.reduce((total, span) => {
+    const end = span.ended ?? now;
+    return total + Math.max(0, end - span.started);
+  }, 0);
+}
+
+/**
  * DisplayStackTimerDisplay - Timer with full runtime integration
- * This component MUST be rendered inside a RuntimeProvider
+ * 
+ * Subscribes to:
+ * - Stack events (push/pop) via useStackBlocks
+ * - Block timer memory via useStackTimers
+ * - Block controls memory via useActiveControls
+ * 
+ * When a block is popped from the stack, its memory subscriptions complete
+ * automatically and the stack event triggers a UI re-render.
  */
 const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
-  // These hooks require RuntimeProvider - safe to call here since we're only
-  // rendered when enableDisplayStack is true (which requires runtime)
-  const timerStack = useTimerStack();
-  const cardStack = useCardStack();
   const runtime = useRuntimeContext();
 
-  // Subscribe to runtime controls
-  const controlsRef = useMemo(() => {
-    const refs = searchStackMemory(runtime, {
-      type: 'runtime-controls',
-      ownerId: null
-    });
-    // Use the last one (most recently created/pushed) as it likely corresponds to the active block
-    return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<RuntimeControls>) : undefined;
-  }, [runtime]);
+  // Stack-driven hooks — subscribe to block memory directly
+  const primaryTimer = usePrimaryTimer();
+  const secondaryTimers = useSecondaryTimers();
+  const allTimers = useStackTimers();
+  const activeControls = useActiveControls();
+  const stackItems = useStackDisplayItems();
 
-  const controls = useMemorySubscription(controlsRef);
-
-  // Subscribe to action stack (visible actions)
-  const actionStateRef = useMemo(() => {
-    const refs = searchStackMemory(runtime, {
-      type: MemoryTypeEnum.ACTION_STACK_STATE,
-      ownerId: 'runtime'
-    });
-    return refs.length > 0 ? (refs[refs.length - 1] as TypedMemoryReference<{ visible: ActionDescriptor[] }>) : undefined;
-  }, [runtime]);
-
-  const actionState = useMemorySubscription(actionStateRef);
-
-  // Subscribe to primary-clock registry
-  const primaryClockRef = useMemo(() => {
-    const refs = searchStackMemory(runtime, {
-      type: 'registry',
-      id: 'primary-clock'
-    });
-    return refs.length > 0 ? (refs[0] as TypedMemoryReference<string>) : undefined;
-  }, [runtime]);
-
-  const primaryClockValue = useMemorySubscription(primaryClockRef);
-  const focusedBlockId = primaryClockValue || undefined;
-
-  // Primary timer is the last in stack (if display stack enabled)
-  const primaryTimer = timerStack.length > 0 ? timerStack[timerStack.length - 1] : undefined;
-
-  // Secondary timers are all except the primary
-  const secondaryTimers = timerStack.length > 1 ? timerStack.slice(0, -1) : [];
-
-  // Current activity card
-  const currentCard = cardStack.length > 0 ? cardStack[cardStack.length - 1] : undefined;
-
-  // Calculate timer states for ALL timers in the stack
-  // We want to give every card its accurate running time.
+  // Build timer states map from block memory (keyed by block key for display items)
   const timerStates = useMemo(() => {
     const map = new Map<string, { elapsed: number; duration?: number; format: 'down' | 'up' }>();
 
-    timerStack.forEach(t => {
-      // Calculate elapsed time based on timer state
-      const { accumulatedMs = 0, startTime, isRunning } = t;
-      let elapsed = accumulatedMs;
+    for (const entry of allTimers) {
+      const blockKey = entry.block.key.toString();
+      const elapsed = calculateElapsedFromSpans(entry.timer.spans);
 
-      // If this timer matches the currently active primary timer, use the LIVE elapsedMs prop
-      // This ensures smooth 60fps animation for the active block.
-      if (primaryTimer && t.id === primaryTimer.id) {
-        elapsed = props.elapsedMs;
-      } else if (isRunning && startTime !== undefined) {
-        // For other running timers (parents), calculate live time
-        // Note: This assumes the component re-renders frequently (driven by primary timer updates)
-        elapsed += Math.max(0, Date.now() - startTime);
-      }
-
-      map.set(t.ownerId, {
+      map.set(blockKey, {
         elapsed,
-        duration: t.durationMs,
-        format: t.format
+        duration: entry.timer.durationMs,
+        format: entry.timer.direction
       });
-    });
+    }
 
     return map;
-  }, [timerStack, primaryTimer, props.elapsedMs]);
+  }, [allTimers]);
 
+  // Convert primary timer to the ITimerDisplayEntry shape expected by RefinedTimerDisplay
+  const primaryTimerEntry = useMemo(() => {
+    if (!primaryTimer) return undefined;
+    const blockKey = primaryTimer.block.key.toString();
+    return {
+      id: `timer-${blockKey}`,
+      ownerId: blockKey,
+      timerMemoryId: '',
+      label: primaryTimer.timer.label,
+      format: primaryTimer.timer.direction,
+      durationMs: primaryTimer.timer.durationMs,
+      role: primaryTimer.isPinned ? 'primary' as const : 'auto' as const,
+    };
+  }, [primaryTimer]);
 
-  // Calculate stack items for display from runtime stack blocks
-  const stackItems = useMemo(() => {
-    if (!runtime) return undefined;
-
-    // Get blocks from the runtime stack
-    const blocks = runtime.stack.blocks;
-    if (!blocks || blocks.length === 0) return undefined;
-
-    const items: IDisplayItem[] = [];
-
-    // Convert stack blocks to display items
-    blocks.forEach((block, index) => {
-      // Skip root/workout container blocks without meaningful labels
-      if (block.blockType === 'Root' && !block.label) return;
-
-      const isLeaf = index === blocks.length - 1;
-
-      // Flatten fragments from block (fragments is ICodeFragment[][])
-      const fragments = block.fragments?.flat() || [];
-
-      const item: IDisplayItem = {
-        id: block.key.toString(),
-        parentId: index > 0 ? blocks[index - 1].key.toString() : null,
-        fragments: fragments,
-        depth: index, // Use index as depth for stack visualization
-        isHeader: false,
-        status: isLeaf ? 'active' : 'pending', // Leaf is active, parents are pending (still on stack)
-        sourceType: 'block',
-        sourceId: block.key.toString(),
-        label: block.label
+  // Convert secondary timers
+  const secondaryTimerEntries = useMemo(() => {
+    return secondaryTimers.map(entry => {
+      const blockKey = entry.block.key.toString();
+      return {
+        id: `timer-${blockKey}`,
+        ownerId: blockKey,
+        timerMemoryId: '',
+        label: entry.timer.label,
+        format: entry.timer.direction,
+        durationMs: entry.timer.durationMs,
+        role: entry.isPinned ? 'primary' as const : 'auto' as const,
       };
-
-      items.push(item);
     });
+  }, [secondaryTimers]);
 
-    return items.length > 0 ? items : undefined;
-  }, [runtime, runtime?.stack.blocks, timerStack]);
+  // Convert active controls to action descriptors for RefinedTimerDisplay
+  const actions = useMemo(() => {
+    return activeControls
+      .filter(btn => btn.visible && btn.enabled && btn.eventName)
+      .map(btn => ({
+        id: btn.id,
+        name: btn.label,
+        eventName: btn.eventName!,
+        ownerId: '',
+        displayLabel: btn.label,
+        isPinned: btn.isPinned,
+      }));
+  }, [activeControls]);
+
+  // The focused block is the primary timer's block
+  const focusedBlockId = primaryTimer ? primaryTimer.block.key.toString() : undefined;
 
   return (
     <RefinedTimerDisplay
@@ -190,19 +166,17 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onPause={props.onPause}
       onStop={props.onStop}
       onNext={props.onNext}
-      actions={actionState?.visible}
+      actions={actions.length > 0 ? actions : undefined}
       onAction={(eventName, payload) => {
-        runtime.eventBus.emit({ name: eventName, timestamp: new Date(), data: payload }, runtime);
+        runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
         if (eventName === 'next') {
           props.onNext?.();
         }
       }}
       isRunning={props.isRunning}
-      primaryTimer={primaryTimer}
-      secondaryTimers={secondaryTimers}
-      currentCard={currentCard}
+      primaryTimer={primaryTimerEntry}
+      secondaryTimers={secondaryTimerEntries}
 
-      controls={controls}
       stackItems={stackItems}
       compact={props.compact}
 
@@ -232,7 +206,6 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onNext={props.onNext}
       isRunning={props.isRunning}
       compact={props.compact}
-    // No stack data available in this mode
     />
   );
 };

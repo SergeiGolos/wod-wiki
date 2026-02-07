@@ -45,8 +45,8 @@ export class PlaySoundAction implements IRuntimeAction {
    * Executes the sound playback by emitting a 'sound:play' event.
    * UI components should register handlers for this event to play audio.
    */
-  do(runtime: IScriptRuntime): void {
-    runtime.eventBus.emit({
+  do(runtime: IScriptRuntime): IRuntimeAction[] {
+    const event = {
       name: 'sound:play',
       timestamp: new Date(),
       data: {
@@ -54,6 +54,7 @@ export class PlaySoundAction implements IRuntimeAction {
         volume: this.volume,
         cueId: this.cueId
       }
-    }, runtime);
+    };
+    return runtime.eventBus.dispatch(event, runtime);
   }
 }

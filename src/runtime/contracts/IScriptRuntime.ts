@@ -34,6 +34,18 @@ export interface IScriptRuntime {
     do(action: IRuntimeAction): void;
 
     /**
+     * Pushes multiple actions onto the execution stack in the correct order
+     * for LIFO processing. The first action in the array will execute first.
+     * 
+     * This method internalizes the reverse-push pattern so callers don't need
+     * to know about LIFO stack mechanics — they just pass actions in the order
+     * they want them executed.
+     * 
+     * @param actions Actions to execute, in desired execution order
+     */
+    doAll(actions: IRuntimeAction[]): void;
+
+    /**
      * Dispatches an event and executes all resulting actions in a single turn.
      */
     handle(event: IEvent): void;

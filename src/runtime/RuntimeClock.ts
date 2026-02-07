@@ -160,14 +160,19 @@ export class RuntimeClock implements IRuntimeClock {
 }
 
 /**
- * Creates a mock clock for testing with controllable time.
+ * Type for the mock clock returned by createMockClock.
  */
-export function createMockClock(initialTime: Date = new Date()): IRuntimeClock & {
+export type MockClock = IRuntimeClock & {
     /** Advance the mock time by the specified milliseconds */
     advance: (ms: number) => void;
     /** Set the mock time to a specific Date */
     setTime: (time: Date) => void;
-} {
+};
+
+/**
+ * Creates a mock clock for testing with controllable time.
+ */
+export function createMockClock(initialTime: Date = new Date()): MockClock {
     let currentTime = initialTime;
     const spans: TimeSpan[] = [];
 

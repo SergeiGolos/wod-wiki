@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 
@@ -22,6 +22,10 @@ describe('Grace (Single Exercise For Time)', () => {
       .withScript(`30 Clean & Jerk 135lb`)
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push single rep block on mount', () => {

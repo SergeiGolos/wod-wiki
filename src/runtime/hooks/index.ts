@@ -5,15 +5,20 @@
  *
  * ## Hook Categories
  *
- * ### Stack Hooks (New - Preferred for Stack Access)
- * These hooks provide reactive access to the runtime stack.
- * Use these for monitoring stack state changes and current block.
+ * ### Stack-Driven Display Hooks (Preferred)
+ * These hooks subscribe to stack events and read block memory directly.
+ * No global memory store — blocks own their state, stack events drive UI updates.
  *
  * - `useStackBlocks` - Subscribe to stack changes, returns all blocks
  * - `useCurrentBlock` - Get the current (top) block on the stack
  * - `useOutputStatements` - Subscribe to output statements for workout history
+ * - `useStackTimers` - All timers on the stack with their block context
+ * - `usePrimaryTimer` - The timer pinned to the main display (lowest pinned, or leaf)
+ * - `useSecondaryTimers` - All non-primary timers for context display
+ * - `useActiveControls` - Aggregated buttons from all stack blocks
+ * - `useStackDisplayItems` - Stack blocks as IDisplayItem[] for the fragment visualizer
  *
- * ### Behavior-Based Hooks (Preferred for Memory Access)
+ * ### Behavior-Based Hooks (For Single Block Access)
  * These hooks work directly with `IRuntimeBlock` objects and access memory
  * through the behavior-based memory system. Use these when you have direct
  * access to a block reference.
@@ -26,50 +31,55 @@
  * - `useRoundDisplay` - Formatted round display values
  *
  * ### Memory Reference Hooks
- * Low-level hook for subscribing to typed memory references. Still useful
- * when working with memory references directly.
+ * Low-level hook for subscribing to typed memory references.
  *
  * - `useMemorySubscription` - Subscribe to any TypedMemoryReference
  *
- * ### Legacy Hooks (Use Behavior-Based Hooks When Possible)
- * These hooks work with string `blockKey` and search runtime memory.
- * They are maintained for backward compatibility with components that
- * receive block keys from the display stack system.
- *
- * - `useTimerReferences` - Get timer memory references by block key
- * - `useTimerElapsed` - Calculate elapsed time by block key
- *
  * @example
  * ```tsx
- * // New: Subscribe to stack changes
- * function StackMonitor() {
- *   const blocks = useStackBlocks();
- *   const currentBlock = useCurrentBlock();
- *   return <div>Stack has {blocks.length} blocks</div>;
+ * // Stack-driven display (preferred for Clock UI)
+ * function WorkoutClock() {
+ *   const primary = usePrimaryTimer();
+ *   const secondary = useSecondaryTimers();
+ *   const controls = useActiveControls();
+ *   const items = useStackDisplayItems();
+ *
+ *   return (
+ *     <div>
+ *       <BigTimer timer={primary} />
+ *       {secondary.map(t => <SmallTimer key={t.block.key.toString()} timer={t} />)}
+ *       {controls.map(btn => <Button key={btn.id} config={btn} />)}
+ *       {items?.map(item => <StackRow key={item.id} item={item} />)}
+ *     </div>
+ *   );
  * }
  *
- * // Preferred: When you have an IRuntimeBlock reference
+ * // Single block access (preferred when you have a block reference)
  * function BlockTimer({ block }: { block: IRuntimeBlock }) {
  *   const display = useTimerDisplay(block);
  *   return <div>{display?.formatted}</div>;
  * }
- *
- * // Legacy: When you only have a blockKey string
- * function KeyBasedTimer({ blockKey }: { blockKey: string }) {
- *   const { elapsed } = useTimerElapsed(blockKey);
- *   return <div>{formatMs(elapsed)}</div>;
- * }
  * ```
  */
 
-// Stack hooks (new - preferred for stack access)
+// Stack hooks (preferred for stack access)
 export { useStackBlocks, useCurrentBlock } from './useStackBlocks';
 export { useOutputStatements } from './useOutputStatements';
+
+// Stack-driven display hooks (preferred for Clock UI)
+export {
+    useStackTimers,
+    usePrimaryTimer,
+    useSecondaryTimers,
+    useActiveControls,
+    useStackDisplayItems,
+    type StackTimerEntry
+} from './useStackDisplay';
 
 // Core memory subscription hook (stable API)
 export { useMemorySubscription } from './useMemorySubscription';
 
-// Behavior-based memory hooks (preferred)
+// Behavior-based memory hooks (for single block access)
 export {
     useBlockMemory,
     useTimerState,
@@ -80,9 +90,3 @@ export {
     type TimerDisplayValues,
     type RoundDisplayValues
 } from './useBlockMemory';
-
-// Display stack integration hooks
-// Use these when you only have a blockKey string from the display system.
-// When you have direct IRuntimeBlock access, prefer the behavior-based hooks above.
-export { useTimerReferences } from './useTimerReferences';
-export { useTimerElapsed, type UseTimerElapsedResult } from './useTimerElapsed';

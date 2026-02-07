@@ -70,6 +70,9 @@ function createMockRuntime(): IScriptRuntime {
         script: {} as any,
         errors: [],
         options: {} as any,
+        do: vi.fn(),
+        doAll: vi.fn(),
+        handle: vi.fn(),
         // Output tracking
         _outputStatements: outputs,
         _outputListeners: outputListeners,
@@ -114,10 +117,25 @@ describe('BehaviorContext', () => {
     });
 
     describe('emitEvent', () => {
-        it('should dispatch event to event bus', () => {
+        it('should dispatch event via runtime.handle()', () => {
             const event = { name: 'timer:started', timestamp: new Date(), data: {} };
             ctx.emitEvent(event);
-            expect(runtime.eventBus.dispatch).toHaveBeenCalledWith(event, runtime);
+            expect(runtime.handle).toHaveBeenCalledWith(event);
+        });
+
+        it('should delegate to runtime.handle() for action processing', () => {
+            const event = { name: 'custom:event', timestamp: new Date(), data: {} };
+            ctx.emitEvent(event);
+
+            // Should call runtime.handle() which dispatches and processes actions internally
+            expect(runtime.handle).toHaveBeenCalledWith(event);
+        });
+
+        it('should handle events with no data', () => {
+            const event = { name: 'noop:event', timestamp: new Date(), data: {} };
+            ctx.emitEvent(event);
+
+            expect(runtime.handle).toHaveBeenCalledWith(event);
         });
     });
 
@@ -178,7 +196,8 @@ describe('BehaviorContext', () => {
                     id: expect.stringContaining('behavior-'),
                     name: expect.stringContaining('BehaviorHandler-Test Block-tick'),
                 }),
-                block.key.toString()
+                block.key.toString(),
+                { scope: 'active' }
             );
         });
 

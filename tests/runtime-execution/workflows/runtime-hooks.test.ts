@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../../src/runtime/behaviors';
@@ -31,6 +31,10 @@ describe('Runtime Hooks Integration', () => {
         const script = new WodScript('', [], []);
         const compiler = new JitCompiler();
         runtime = new ScriptRuntime(script, compiler, dependencies);
+    });
+
+    afterEach(() => {
+        runtime?.dispose();
     });
 
     describe('Timer Memory Initialization', () => {

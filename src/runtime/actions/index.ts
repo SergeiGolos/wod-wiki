@@ -8,9 +8,6 @@
 // Stack actions
 export * from './stack';
 
-// Display actions  
-export * from './display';
-
 // Event actions
 export * from './events';
 

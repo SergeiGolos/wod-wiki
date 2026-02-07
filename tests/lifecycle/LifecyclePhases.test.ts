@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { IRuntimeAction } from '@/runtime/contracts';
@@ -29,6 +29,10 @@ describe('Lifecycle Phases', () => {
 
     beforeEach(() => {
         harness = new BehaviorTestHarness();
+    });
+
+    afterEach(() => {
+        harness?.dispose();
     });
 
     it('should trigger onPush during mount phase', () => {

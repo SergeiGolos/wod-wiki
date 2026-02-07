@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { WorkoutTestHarness, WorkoutTestBuilder } from '@/testing/harness/WorkoutTestHarness';
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
@@ -33,6 +33,10 @@ describe('Cindy (20-minute AMRAP)', () => {
       .withStrategy(new ChildrenStrategy())
       .withStrategy(new EffortFallbackStrategy())
       .build();
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   it('should push AMRAP block and first child on mount', () => {

@@ -1,42 +1,41 @@
-import { IRuntimeAction } from './contracts/IRuntimeAction';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SnapshotClock } from '../../RuntimeClock';
 
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
 
-  do(runtime: IScriptRuntime): void {
+  /**
+   * @param options Optional lifecycle options to pass to the block's next() method.
+   *   When provided (e.g., from PopBlockAction carrying completedAt), these options
+   *   are merged with a snapshot clock. When omitted (e.g., user-triggered next),
+   *   a fresh snapshot clock is created.
+   */
+  constructor(private readonly options?: BlockLifecycleOptions) {}
+
+  do(runtime: IScriptRuntime): IRuntimeAction[] {
     // Validate runtime state
     if (!this.validateRuntimeState(runtime)) {
-      return;
+      return [];
     }
 
     // Get current block
     const currentBlock = runtime.stack.current;
     if (!currentBlock) {
-      return;
+      return [];
     }
 
     try {
-      // Create lifecycle options with snapshot clock if clock is available
-      // This ensures any child blocks pushed during next() start at the same time
-      const lifecycleOptions = runtime.clock 
+      // Build lifecycle options: merge any provided options with a snapshot clock.
+      // The snapshot clock ensures any child blocks pushed during next() start at the same time.
+      const snapshotClock = runtime.clock 
         ? { clock: SnapshotClock.now(runtime.clock) } 
         : undefined;
+      const lifecycleOptions = { ...snapshotClock, ...this.options };
 
-      // Execute block's next logic with the snapshot clock (if available)
-      const nextActions = currentBlock.next(runtime, lifecycleOptions);
-
-      // Queue actions through the runtime's action queue instead of executing directly
-      // This ensures proper ordering when actions trigger further state changes
-      if (runtime.queueActions && nextActions.length > 0) {
-        runtime.queueActions(nextActions);
-      } else {
-        // Fallback for runtimes without queueActions (e.g., mocks)
-        for (const action of nextActions) {
-          action.do(runtime);
-        }
-      }
+      // Execute block's next logic with the lifecycle options
+      return currentBlock.next(runtime, lifecycleOptions);
 
     } catch (error) {
       // Add error to runtime errors array if available
@@ -48,6 +47,7 @@ export class NextAction implements IRuntimeAction {
           blockKey: currentBlock.key.toString()
         });
       }
+      return [];
     }
   }
 

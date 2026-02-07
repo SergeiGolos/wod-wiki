@@ -5,7 +5,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IEvent } from '../contracts/events/IEvent';
-import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { TimerInitBehavior } from '../behaviors/TimerInitBehavior';
@@ -120,14 +119,11 @@ export class EffortBlock extends RuntimeBlock {
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions = super.mount(runtime, options);
     actions.push(...this.getMetricActions());
-    actions.push(new PushStackItemAction(this.key.toString()));
     return actions;
   }
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    const actions = super.unmount(runtime, options);
-    actions.push(new PopStackItemAction(this.key.toString()));
-    return actions;
+    return super.unmount(runtime, options);
   }
 
   dispose(runtime: IScriptRuntime): void {

@@ -15,6 +15,8 @@ import { TimeSpan } from '../models/TimeSpan';
 export class TimerTickBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // Subscribe to tick events
+        // Use 'bubble' scope so parent timer blocks continue tracking time
+        // even when child blocks are active on the stack
         ctx.subscribe('tick', (_event, tickCtx) => {
             const timer = tickCtx.getMemory('timer') as TimerState | undefined;
             if (!timer) return [];
@@ -25,7 +27,7 @@ export class TimerTickBehavior implements IRuntimeBehavior {
             // Instead, UI should compute elapsed from spans
 
             return [];
-        });
+        }, { scope: 'bubble' });
 
         return [];
     }

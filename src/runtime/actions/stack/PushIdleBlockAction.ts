@@ -35,7 +35,7 @@ export class PushIdleBlockAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         // Convert old IdleBehaviorConfig to new IdleBlockConfig
         const idleConfig: IdleBlockConfig = {
             id: this.id,
@@ -80,6 +80,6 @@ export class PushIdleBlockAction implements IRuntimeAction {
         const block = this.strategy.build(runtime, idleConfig);
 
         // Delegate to PushBlockAction to handle the actual push and mount
-        new PushBlockAction(block, this.options).do(runtime);
+        return [new PushBlockAction(block, this.options)];
     }
 }

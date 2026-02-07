@@ -68,4 +68,10 @@ export interface IEventBus {
      * @param runtime - The runtime context
      */
     emit(event: IEvent, runtime: IScriptRuntime): void;
+
+    /**
+     * Dispose of all handlers and callbacks, releasing all references.
+     * Call this during runtime cleanup to prevent memory leaks.
+     */
+    dispose(): void;
 }
