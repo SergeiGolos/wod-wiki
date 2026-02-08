@@ -164,9 +164,17 @@ export class WorkoutTestHarness {
 
   /**
    * Advance the mock clock by the specified milliseconds.
+   * Also dispatches a tick event so timer-based behaviors
+   * (e.g., TimerCompletionBehavior) can check for expiration.
    */
   advanceClock(ms: number): void {
     this._mockClock.advance(ms);
+    // Dispatch tick event so timer completion behaviors fire
+    this.runtime.handle({
+      name: 'tick',
+      timestamp: this._mockClock.now,
+      data: { source: 'test-harness' }
+    });
   }
 
   /**
@@ -179,10 +187,19 @@ export class WorkoutTestHarness {
   // ========== Reporting ==========
 
   /**
-   * Check if the workout is complete (stack empty).
+   * Check if the workout is complete.
+   * Returns true if the stack is empty OR the root block has been marked complete
+   * (e.g., timer expired via TimerCompletionBehavior).
    */
   isComplete(): boolean {
-    return this.stackDepth === 0;
+    if (this.stackDepth === 0) return true;
+    // Check if the root block (bottom of stack) is marked complete
+    const blocks = this.runtime.stack.blocks; // top-first order
+    if (blocks.length > 0) {
+      const root = blocks[blocks.length - 1]; // bottom of stack
+      if (root.isComplete) return true;
+    }
+    return false;
   }
 
   /**

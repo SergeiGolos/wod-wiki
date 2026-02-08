@@ -13,7 +13,9 @@ import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 // Simple mock behavior for testing
 class MockBehavior implements IRuntimeBehavior {
   onMount() { return []; }
+  onNext() { return []; }
   onUnmount() { return []; }
+  onDispose() { }
 }
 
 describe('Factory Methods', () => {
@@ -34,7 +36,7 @@ describe('Factory Methods', () => {
 
     it('should create harness with custom clock time', () => {
       const time = new Date('2025-06-15T08:00:00Z');
-      
+
       harness = createTimerTestHarness({ clockTime: time });
 
       expect(harness.clock.now.getTime()).toBe(time.getTime());
@@ -52,7 +54,7 @@ describe('Factory Methods', () => {
   describe('createBehaviorTestHarness', () => {
     it('should create harness with behavior in stack', () => {
       const behavior = new MockBehavior();
-      
+
       harness = createBehaviorTestHarness(behavior);
 
       expect(harness.stack.count).toBe(1);
@@ -60,7 +62,7 @@ describe('Factory Methods', () => {
 
     it('should use custom block ID when provided', () => {
       const behavior = new MockBehavior();
-      
+
       harness = createBehaviorTestHarness(behavior, { blockId: 'custom-block' });
 
       expect(harness.stack.current?.key.toString()).toBe('custom-block');
@@ -69,7 +71,7 @@ describe('Factory Methods', () => {
     it('should use custom clock time when provided', () => {
       const time = new Date('2024-03-01T00:00:00Z');
       const behavior = new MockBehavior();
-      
+
       harness = createBehaviorTestHarness(behavior, { clockTime: time });
 
       expect(harness.clock.now.getTime()).toBe(time.getTime());
@@ -85,7 +87,7 @@ describe('Factory Methods', () => {
 
     it('should use custom clock time when provided', () => {
       const time = new Date('2024-05-01T00:00:00Z');
-      
+
       harness = createCompilationTestHarness([], { clockTime: time });
 
       expect(harness.clock.now.getTime()).toBe(time.getTime());
@@ -159,7 +161,7 @@ describe('Factory Methods', () => {
 
     it('should use custom clock time when provided', () => {
       const time = new Date('2024-07-01T00:00:00Z');
-      
+
       harness = createEventTestHarness({}, { clockTime: time });
 
       expect(harness.clock.now.getTime()).toBe(time.getTime());

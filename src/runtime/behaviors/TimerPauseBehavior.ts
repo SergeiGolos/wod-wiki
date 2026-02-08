@@ -76,6 +76,10 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
         return [];
     }
 
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
+
     get paused(): boolean {
         return this.isPaused;
     }

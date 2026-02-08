@@ -51,11 +51,18 @@ export class BehaviorContext implements IBehaviorContext {
     // ============================================================================
 
     subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe {
+        const self = this;
         const handler: IEventHandler = {
             id: `behavior-${this.block.key.toString()}-${eventType}-${Date.now()}`,
             name: `BehaviorHandler-${this.block.label}-${eventType}`,
             handler: (event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
-                return listener(event, this);
+                // For event callbacks, use the dispatching runtime's live clock
+                // instead of the frozen mount-time SnapshotClock. This is critical
+                // for tick handlers that need to see current time (e.g., TimerCompletionBehavior).
+                const callbackCtx: IBehaviorContext = Object.create(self, {
+                    clock: { value: _runtime.clock, enumerable: true, configurable: true }
+                });
+                return listener(event, callbackCtx);
             }
         };
 

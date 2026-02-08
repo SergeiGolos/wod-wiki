@@ -27,6 +27,10 @@ export class RoundDisplayBehavior implements IRuntimeBehavior {
         return [];
     }
 
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
+
     private updateRoundDisplay(ctx: IBehaviorContext): void {
         const round = ctx.getMemory('round') as RoundState | undefined;
         const display = ctx.getMemory('display') as DisplayState | undefined;

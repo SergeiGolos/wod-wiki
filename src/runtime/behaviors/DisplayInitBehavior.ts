@@ -1,7 +1,6 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { DisplayState } from '../memory/MemoryTypes';
 
 export interface DisplayInitConfig {
     /** Display mode */
@@ -43,5 +42,9 @@ export class DisplayInitBehavior implements IRuntimeBehavior {
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
+    }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
     }
 }

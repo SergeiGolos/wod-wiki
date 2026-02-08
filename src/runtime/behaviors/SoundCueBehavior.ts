@@ -113,4 +113,8 @@ export class SoundCueBehavior implements IRuntimeBehavior {
 
         return [];
     }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
 }

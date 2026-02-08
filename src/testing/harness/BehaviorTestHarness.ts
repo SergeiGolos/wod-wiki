@@ -49,6 +49,9 @@ export class BehaviorTestHarness {
   private _capturedActions: CapturedAction[] = [];
   private _capturedEvents: CapturedEvent[] = [];
   private _handleSpy: Mock<any>;
+  private _iteration = 0;
+  private readonly _maxIterations = 20;
+  private _actionStack: IRuntimeAction[] = [];
 
   constructor() {
     this._clock = createMockClock(new Date());
@@ -72,12 +75,14 @@ export class BehaviorTestHarness {
       errors: [],
 
       do(action: IRuntimeAction) {
-        action.do(this);
+        self._actionStack.push(action);
       },
 
       doAll(actions: IRuntimeAction[]) {
-        for (const action of actions) {
-          action.do(this);
+        if (!actions) return;
+        // Push in reverse order for LIFO (stack)
+        for (let i = actions.length - 1; i >= 0; i--) {
+          self._actionStack.push(actions[i]);
         }
       },
 
@@ -90,11 +95,11 @@ export class BehaviorTestHarness {
       },
 
       pushBlock(block: IRuntimeBlock) {
-        new PushBlockAction(block).do(this);
+        this.do(new PushBlockAction(block));
       },
 
       popBlock(lifecycle?: BlockLifecycleOptions) {
-        new PopBlockAction(lifecycle).do(this);
+        this.do(new PopBlockAction(lifecycle));
       },
 
       isComplete() {
@@ -132,7 +137,7 @@ export class BehaviorTestHarness {
           if (block) block.dispose(this as unknown as IScriptRuntime);
         }
       }
-    } as any; // Cast to any because the actual interface might have subtle differences or missing methods in this view
+    } as any;
   }
 
   // ========== Configuration API ==========
@@ -196,7 +201,11 @@ export class BehaviorTestHarness {
 
     const actions = block.mount(this._mockRuntime, resolvedOptions);
     this._recordActions(actions, 'mount');
-    this._executeActions(actions);
+
+    // Use the safe iteration-limited execution
+    this._actionStack.push(...actions);
+    this._executeActionStack();
+
     return actions;
   }
 
@@ -209,7 +218,11 @@ export class BehaviorTestHarness {
 
     const actions = block.next(this._mockRuntime, options);
     this._recordActions(actions, 'next');
-    this._executeActions(actions);
+
+    // Use the safe iteration-limited execution
+    this._actionStack.push(...actions);
+    this._executeActionStack();
+
     return actions;
   }
 
@@ -227,7 +240,10 @@ export class BehaviorTestHarness {
 
     const actions = block.unmount(this._mockRuntime, resolvedOptions);
     this._recordActions(actions, 'unmount');
-    this._executeActions(actions);
+
+    // Use the safe iteration-limited execution
+    this._actionStack.push(...actions);
+    this._executeActionStack();
 
     this._stack.pop();
     block.dispose(this._mockRuntime);
@@ -439,15 +455,35 @@ export class BehaviorTestHarness {
 
   // ========== Private Helpers ==========
 
-  private _recordActions(actions: IRuntimeAction[], phase: CapturedAction['phase']): void {
-    for (const action of actions) {
-      this._capturedActions.push({ action, timestamp: Date.now(), phase });
+  /**
+   * Executes the internal action stack using a LIFO loop with iteration limits.
+   * This prevents infinite recursion and memory bloat from circular action triggers.
+   */
+  private _executeActionStack(): void {
+    // Reset iteration counter for the start of this "turn"
+    this._iteration = 0;
+
+    while (this._actionStack.length > 0) {
+      if (this._iteration >= this._maxIterations) {
+        const errorMsg = `[BehaviorTestHarness] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`;
+        console.error(errorMsg);
+        // Clear stack on failure to prevent subsequent runs from inheriting bad state
+        this._actionStack = [];
+        throw new Error(errorMsg);
+      }
+
+      // LIFO: Pop from top
+      const action = this._actionStack.pop()!;
+      this._iteration++;
+
+      // Execute action - it may push more actions onto this._actionStack via runtime.do()
+      action.do(this._mockRuntime);
     }
   }
 
-  private _executeActions(actions: IRuntimeAction[]): void {
+  private _recordActions(actions: IRuntimeAction[], phase: CapturedAction['phase']): void {
     for (const action of actions) {
-      action.do(this._mockRuntime);
+      this._capturedActions.push({ action, timestamp: Date.now(), phase });
     }
   }
 }
