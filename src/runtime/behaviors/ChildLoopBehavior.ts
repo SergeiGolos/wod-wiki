@@ -57,6 +57,10 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
         return [];
     }
 
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
+
     /**
      * Determine if the block should loop based on timer and round state.
      */
