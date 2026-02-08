@@ -26,7 +26,7 @@ export interface ChildLoopConfig {
  * Use for AMRAP, EMOM, and other timer-based multi-round workouts.
  */
 export class ChildLoopBehavior implements IRuntimeBehavior {
-    constructor(private config: ChildLoopConfig) { }
+    constructor(private config: ChildLoopConfig) {}
 
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
@@ -36,29 +36,25 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
         // Get the ChildRunnerBehavior from the block
         const block = ctx.block as IRuntimeBlock;
         const childRunner = block.getBehavior(ChildRunnerBehavior);
-
+        
         if (!childRunner) return [];
-
+        
         // Only act if all children have been executed
         if (!childRunner.allChildrenExecuted) return [];
-
+        
         // Check if we should loop (timer running and not expired)
         if (!this.shouldLoop(ctx)) return [];
-
+        
         // Reset child index for the next iteration
         // ChildRunnerBehavior will then push the first child
         childRunner.resetChildIndex();
-
+        
         // Don't push anything - let ChildRunnerBehavior handle it
         return [];
     }
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
-    }
-
-    onDispose(_ctx: IBehaviorContext): void {
-        // No cleanup needed
     }
 
     /**
@@ -90,7 +86,7 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
             // Timer exists and not expired - continue looping
             return true;
         }
-
+        
         // Check round state - if unbounded rounds, always loop
         const round = ctx.getMemory('round') as RoundState | undefined;
         if (round) {
@@ -103,7 +99,7 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
                 return true;
             }
         }
-
+        
         return false;
     }
 }
