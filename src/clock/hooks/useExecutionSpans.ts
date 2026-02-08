@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 
@@ -31,7 +31,6 @@ export interface OutputStatementsData {
  */
 export function useOutputStatements(runtime: IScriptRuntime | null): OutputStatementsData {
   const [outputs, setOutputs] = useState<IOutputStatement[]>([]);
-  const ownerIdRef = useRef(`useOutputStatements-${crypto.randomUUID()}`);
 
   useEffect(() => {
     if (!runtime) {
@@ -129,61 +128,3 @@ export function useOutputHierarchy(runtime: IScriptRuntime | null): Map<number, 
     return depthMap;
   }, [outputs]);
 }
-
-// ============================================================================
-// Legacy compatibility exports (deprecated)
-// ============================================================================
-
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../runtime/models/RuntimeSpan';
-import { TypedMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
-
-/**
- * @deprecated Use OutputStatementsData instead
- */
-export interface TrackedSpansData {
-  /** @deprecated */
-  active: RuntimeSpan[];
-  /** @deprecated */
-  completed: RuntimeSpan[];
-  /** @deprecated */
-  byId: Map<string, RuntimeSpan>;
-  /** @deprecated */
-  byBlockId: Map<string, RuntimeSpan>;
-  /** @deprecated */
-  runtimeSpans: RuntimeSpan[];
-}
-
-/**
- * @deprecated Use useOutputStatements instead. 
- * This function now returns empty data as the tracker API has been removed.
- */
-export function useTrackedSpans(runtime: IScriptRuntime | null): TrackedSpansData {
-  // Return empty data - the tracker API is no longer available
-  return useMemo(() => ({
-    active: [],
-    completed: [],
-    byId: new Map(),
-    byBlockId: new Map(),
-    runtimeSpans: []
-  }), []);
-}
-
-/**
- * @deprecated Use useOutputStatement instead
- */
-export function useTrackedSpan(
-  runtime: IScriptRuntime | null,
-  id: string | null,
-  byBlockId: boolean = false
-): RuntimeSpan | null {
-  return null;
-}
-
-/**
- * @deprecated Use useOutputHierarchy instead
- */
-export function useSpanHierarchy(runtime: IScriptRuntime | null): Map<string, number> {
-  return useMemo(() => new Map(), []);
-}
-

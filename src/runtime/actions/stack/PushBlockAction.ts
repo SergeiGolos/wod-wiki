@@ -1,5 +1,6 @@
 import { IRuntimeAction, IRuntimeBlock, IScriptRuntime } from "@/core";
 import { BlockLifecycleOptions } from "@/runtime/contracts";
+import { RuntimeLogger } from "../../RuntimeLogger";
 
 /**
  * Action that pushes a compiled block onto the runtime stack.
@@ -49,9 +50,17 @@ export class PushBlockAction implements IRuntimeAction {
 
             // Push the block onto the stack
             runtime.stack.push(this.block);
-            
+
             // Mount the block with lifecycle options - returns actions to be executed
-            return this.block.mount(runtime, lifecycle);
+            const mountActions = this.block.mount(runtime, lifecycle);
+
+            // Log the push with behaviors
+            const parentKey = runtime.stack.blocks.length > 1
+                ? runtime.stack.blocks[1]?.key.toString()
+                : undefined;
+            RuntimeLogger.logPush(this.block, parentKey);
+
+            return mountActions;
 
         } catch (error) {
             // Check if runtime has optional setError method

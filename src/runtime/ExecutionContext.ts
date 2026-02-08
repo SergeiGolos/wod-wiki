@@ -1,7 +1,7 @@
 import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { SnapshotClock } from './RuntimeClock';
-import { Unsubscribe } from './contracts/IRuntimeStack';
+import { Unsubscribe, StackObserver } from './contracts/IRuntimeStack';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import { IEvent } from './contracts/events/IEvent';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
@@ -67,6 +67,10 @@ export class ExecutionContext implements IScriptRuntime {
 
     addOutput(output: IOutputStatement): void {
         this._runtime.addOutput(output);
+    }
+
+    subscribeToStack(observer: StackObserver): Unsubscribe {
+        return this._runtime.subscribeToStack(observer);
     }
 
     dispose(): void {

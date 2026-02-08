@@ -7,11 +7,11 @@
  */
 
 import React, { useMemo } from 'react';
-import { UnifiedItemList, runtimeSpanToDisplayItem } from '../unified';
+import { UnifiedItemList, outputStatementsToDisplayItems } from '../unified';
 import { Segment } from '../../core/models/AnalyticsModels'; // Import from proper location
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 
-import { useTrackedSpans } from '../../clock/hooks/useExecutionSpans';
+import { useOutputStatements } from '../../clock/hooks/useExecutionSpans';
 
 export interface ExecutionLogPanelProps {
   /** Active runtime for live mode (null for historical mode) */
@@ -43,7 +43,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   disableScroll = false,
   children
 }) => {
-  const { runtimeSpans } = useTrackedSpans(runtime);
+  const { outputs } = useOutputStatements(runtime);
 
   const selectedIds = useMemo(() => {
     return activeSegmentId ? new Set([activeSegmentId.toString()]) : new Set<string>();
@@ -53,10 +53,6 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
   const items = useMemo(() => {
     // Mode 1: Historical segments provided (Analytics view)
     if (historicalSegments.length > 0) {
-      // NOTE: We don't implement the segment -> displayItem conversion here yet
-      // just returning empty to avoid errors, assuming this mode is handled by AnalyticsHistoryPanel usually.
-      // If ExecutionLogPanel is NEEDED for history, we should implement segmentToDisplayItem here too or share it.
-      // For now, focusing on LIVE mode restoration which is strict requirement.
       return [];
     }
 
@@ -65,16 +61,11 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
       return [];
     }
 
-    // Convert runtime spans to display items directly
-    // This removes the intermediate 'Segment' model step for live view
-    const allSpans = runtimeSpans;
-    const spanMap = new Map(allSpans.map(s => [s.id, s]));
-
-    return allSpans
-      .map(span => runtimeSpanToDisplayItem(span, spanMap))
+    // Convert output statements to display items
+    return outputStatementsToDisplayItems(outputs)
       .sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 
-  }, [runtime, historicalSegments, runtimeSpans]);
+  }, [runtime, historicalSegments, outputs]);
 
   return (
     <div className="h-full flex flex-col bg-background">

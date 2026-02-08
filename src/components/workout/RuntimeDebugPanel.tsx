@@ -19,6 +19,7 @@ import { WorkoutContextPanel } from './WorkoutContextPanel';
 import { WodBlock } from '../../markdown-editor/types';
 import { MemoryValueDialog, useMemoryValueDialog } from '../../runtime-test-bench/components/MemoryValuePopover';
 import type { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
+import { RuntimeLogger } from '../../runtime/RuntimeLogger';
 
 type DebugTab = 'parser' | 'stack';
 
@@ -30,25 +31,25 @@ const DEBUG_TABS: { id: DebugTab; label: string }[] = [
 export interface RuntimeDebugPanelProps {
   /** Active runtime to inspect */
   runtime: ScriptRuntime | null;
-  
+
   /** Whether debug panel is visible */
   isOpen: boolean;
-  
+
   /** Callback to close the panel */
   onClose: () => void;
-  
+
   /** Highlighted block key (optional) */
   highlightedBlockKey?: string;
-  
+
   /** Whether to render embedded (no slide-out, no backdrop) */
   embedded?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Active workout block for context panel */
   activeBlock?: WodBlock | null;
-  
+
   /** Active statement IDs for highlighting in context panel */
   activeStatementIds?: Set<number>;
 }
@@ -67,19 +68,19 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   activeStatementIds = new Set()
 }) => {
   const adapter = React.useRef(new RuntimeAdapter()).current;
-  
+
   // Version counter to force snapshot recalculation on memory changes
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [activeTab, setActiveTab] = useState<DebugTab>('parser');
-  
+
   // Dialog for showing memory value details
   const { dialogData, isOpen: isDialogOpen, openDialog, closeDialog } = useMemoryValueDialog();
-  
+
   // Simple tab change handler
   const handleTabChange = (tab: DebugTab) => {
     setActiveTab(tab);
   };
-  
+
   // Convert MemoryEntry to MemoryValueData for dialog
   const openMemoryDialog = (entry: MemoryEntry) => {
     openDialog({
@@ -92,7 +93,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
       ownerLabel: entry.ownerLabel,
     });
   };
-  
+
   // Subscribe to runtime changes for live updates
   useEffect(() => {
     if (!runtime) return;
@@ -180,7 +181,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
     // Stack tab (the only remaining tab besides parser)
     // Reverse blocks to show top of stack first (most recent at top)
     const stackBlocks = [...snapshot.stack.blocks].reverse();
-    
+
     return (
       <div className="flex flex-col h-full">
         {/* Stack Summary Header */}
@@ -194,7 +195,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
             </span>
           </div>
         </div>
-        
+
         {/* Stack List with inline memory */}
         <div className="flex-1 overflow-auto">
           {stackBlocks.length === 0 ? (
@@ -213,11 +214,11 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                   pending: 'bg-gray-400',
                   error: 'bg-red-500'
                 }[block.status || 'pending'];
-                
+
                 // Get memory entries for this block
                 const blockMemory = memoryByOwner.get(block.key) || [];
                 const hasMemory = blockMemory.length > 0;
-                
+
                 return (
                   <div key={block.key}>
                     {/* Block Row */}
@@ -235,44 +236,44 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                           {isTop ? '→' : index}
                         </span>
                       </div>
-                      
+
                       {/* Status Indicator */}
                       <div className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`} />
-                      
+
                       {/* Icon */}
                       {block.icon && (
                         <span className="shrink-0">{block.icon}</span>
                       )}
-                      
+
                       {/* Block Label */}
                       <div className="flex-1 min-w-0">
                         <span className={`font-medium truncate ${isTop ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {block.label}
                         </span>
                       </div>
-                      
+
                       {/* Block Type Badge */}
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="text-[10px] px-1.5 py-0 h-4 shrink-0"
                       >
                         {block.blockType}
                       </Badge>
-                      
+
                       {/* Key (truncated) */}
                       <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[60px] shrink-0" title={block.key}>
                         {block.key.split('-').pop()}
                       </span>
                     </div>
-                    
+
                     {/* Inline Memory Entries (always shown) */}
                     {hasMemory && (
                       <div className="bg-muted/20 border-t border-border/30">
                         <table className="w-full text-[10px]">
                           <tbody>
                             {blockMemory.map(entry => (
-                              <tr 
-                                key={entry.id} 
+                              <tr
+                                key={entry.id}
                                 className="border-b border-border/20 last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
                                 onClick={() => openMemoryDialog(entry)}
                                 title="Click to view full value"
@@ -310,11 +311,10 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           <button
             key={tab.id}
             type="button"
-            className={`flex-1 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-              isActive
-                ? 'text-foreground bg-background border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex-1 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${isActive
+              ? 'text-foreground bg-background border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
             onClick={() => handleTabChange(tab.id)}
           >
             {tab.label}
@@ -350,12 +350,12 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
             </div>
           </div>
         </div>
-        
+
         {/* Memory Value Dialog */}
-        <MemoryValueDialog 
-          data={dialogData} 
-          isOpen={isDialogOpen} 
-          onClose={closeDialog} 
+        <MemoryValueDialog
+          data={dialogData}
+          isOpen={isDialogOpen}
+          onClose={closeDialog}
         />
       </>
     );
@@ -367,7 +367,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
     <>
       {/* Backdrop */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 z-40 animate-in fade-in duration-200"
           onClick={onClose}
         />
@@ -409,12 +409,12 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Memory Value Dialog */}
-      <MemoryValueDialog 
-        data={dialogData} 
-        isOpen={isDialogOpen} 
-        onClose={closeDialog} 
+      <MemoryValueDialog
+        data={dialogData}
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
       />
     </>
   );
@@ -435,6 +435,15 @@ export const DebugButton: React.FC<DebugButtonProps> = ({
   onClick,
   disabled = false
 }) => {
+  // Sync RuntimeLogger with debug mode state
+  React.useEffect(() => {
+    if (isDebugMode) {
+      RuntimeLogger.enable();
+    } else {
+      RuntimeLogger.disable();
+    }
+  }, [isDebugMode]);
+
   return (
     <Button
       variant={isDebugMode ? "default" : "ghost"}
@@ -442,7 +451,7 @@ export const DebugButton: React.FC<DebugButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className="h-9 w-9 relative"
-      title={isDebugMode ? "Close debugger" : "Open debugger"}
+      title={isDebugMode ? "Close debugger (console logging enabled)" : "Open debugger"}
     >
       <Bug className="h-[1.2rem] w-[1.2rem]" />
       {isDebugMode && (

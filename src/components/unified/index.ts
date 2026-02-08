@@ -21,6 +21,8 @@ export {
   runtimeSpanToDisplayItem,
   runtimeSpansToDisplayItems,
   blockToDisplayItem,
+  outputStatementToDisplayItem,
+  outputStatementsToDisplayItems,
   sortByStartTime,
   sortByStartTimeDesc,
   groupLinkedItems,

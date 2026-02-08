@@ -2,6 +2,7 @@ import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { NextAction } from './NextAction';
+import { RuntimeLogger } from '../../RuntimeLogger';
 
 /**
  * Action that pops the current block from the runtime stack.
@@ -43,6 +44,9 @@ export class PopBlockAction implements IRuntimeAction {
         // Dispose and cleanup
         popped.dispose(runtime);
         popped.context?.release?.();
+
+        // Log the pop
+        RuntimeLogger.logPop(popped, (popped as any).completionReason);
 
         // Output statements are emitted by block behaviors (e.g., TimerOutputBehavior,
         // SegmentOutputBehavior) during onUnmount. PopBlockAction does NOT emit its own

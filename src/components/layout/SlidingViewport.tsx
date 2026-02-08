@@ -172,9 +172,8 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
   }
 
   // Desktop Layout - Side-by-side panels with optional debug
-  // When debug is enabled: Index (1/3) + Timer (1/3) + Debug (1/3)
-  // When debug is disabled: Index (1/3) + Timer (2/3)
-  const trackTimerWidthClass = isDebugMode ? 'w-1/3' : 'w-2/3';
+  // When debug is enabled: Timer (2/3) + Debug (1/3) - debug replaces history
+  // When debug is disabled: Timer (2/3) + History (1/3)
 
   return (
     <div className={cn('h-full w-full overflow-hidden', className)}>
@@ -190,19 +189,14 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
           {planPanel}
         </div>
 
-        {/* Track View - Index (1/3) + Timer (1/3 or 2/3) + Debug (1/3 if enabled) */}
+        {/* Track View - Timer (2/3) + History/Debug (1/3) - debug replaces history when enabled */}
         <div className="w-1/3 h-full flex-shrink-0 flex">
-          <div className="w-1/3 h-full border-r border-border overflow-hidden flex-shrink-0">
-            {trackIndexPanel}
-          </div>
-          <div className={cn('h-full overflow-hidden', trackTimerWidthClass)}>
+          <div className="w-2/3 h-full overflow-hidden border-r border-border">
             {trackPrimaryPanel}
           </div>
-          {isDebugMode && trackDebugPanel && (
-            <div className="w-1/3 h-full border-l border-border overflow-hidden">
-              {trackDebugPanel}
-            </div>
-          )}
+          <div className="w-1/3 h-full overflow-hidden flex-shrink-0">
+            {isDebugMode && trackDebugPanel ? trackDebugPanel : trackIndexPanel}
+          </div>
         </div>
 
         {/* Analyze View - Index (1/3) + Timeline (2/3) */}
