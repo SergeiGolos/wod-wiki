@@ -124,26 +124,7 @@ export class BehaviorContext implements IBehaviorContext {
      * Add output to the runtime's collection and notify subscribers.
      */
     private addOutputToRuntime(output: OutputStatement): void {
-        // Use the public addOutput method if available (ScriptRuntime exposes this)
-        const runtime = this.runtime as any;
-        if (typeof runtime.addOutput === 'function') {
-            runtime.addOutput(output);
-        } else {
-            // Fallback: access internal state directly
-            if (runtime._outputStatements && Array.isArray(runtime._outputStatements)) {
-                runtime._outputStatements.push(output);
-            }
-
-            if (runtime._outputListeners && runtime._outputListeners instanceof Set) {
-                for (const listener of runtime._outputListeners) {
-                    try {
-                        listener(output);
-                    } catch (err) {
-                        console.error('[BehaviorContext] Output listener error:', err);
-                    }
-                }
-            }
-        }
+        this.runtime.addOutput(output);
     }
 
     // ============================================================================

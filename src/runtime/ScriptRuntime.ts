@@ -1,6 +1,6 @@
 import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
-import { IRuntimeStack, Unsubscribe } from './contracts/IRuntimeStack';
+import { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import type { RuntimeError } from './actions/ErrorAction';
 import { IEventBus } from './contracts/events/IEventBus';
@@ -39,6 +39,10 @@ export class ScriptRuntime implements IScriptRuntime {
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
 
+    // Stack observer tracking
+    private _stackObservers: Set<StackObserver> = new Set();
+    private _stackSubscriptionUnsub: (() => void) | null = null;
+
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
 
@@ -62,6 +66,27 @@ export class ScriptRuntime implements IScriptRuntime {
         this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
 
         this.jit = compiler;
+
+        // Bridge stack events to StackSnapshot observers
+        this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
+            if (this._stackObservers.size === 0) return;
+
+            const snapshot: StackSnapshot = {
+                type: event.type === 'initial' ? 'initial' : event.type,
+                blocks: event.type === 'initial' ? event.blocks : event.blocks,
+                affectedBlock: event.type !== 'initial' ? event.block : undefined,
+                depth: event.type === 'initial' ? event.blocks.length : event.depth,
+                clockTime: this.clock.now,
+            };
+
+            for (const observer of this._stackObservers) {
+                try {
+                    observer(snapshot);
+                } catch (err) {
+                    console.error('[RT] Stack observer error:', err);
+                }
+            }
+        });
 
         // Start the clock
         this.clock.start();
@@ -153,6 +178,29 @@ export class ScriptRuntime implements IScriptRuntime {
         }
     }
 
+    // ========== Stack Observer API ==========
+
+    /**
+     * Subscribe to stack snapshots. The observer receives a StackSnapshot
+     * on every push/pop/clear event. New subscribers immediately receive
+     * an 'initial' snapshot with the current stack state.
+     */
+    public subscribeToStack(observer: StackObserver): Unsubscribe {
+        this._stackObservers.add(observer);
+
+        // Immediate notification of current state
+        observer({
+            type: 'initial',
+            blocks: this.stack.blocks,
+            depth: this.stack.count,
+            clockTime: this.clock.now,
+        });
+
+        return () => {
+            this._stackObservers.delete(observer);
+        };
+    }
+
     /**
      * Cleanup method that properly unmounts and disposes all blocks in the stack.
      */
@@ -189,6 +237,13 @@ export class ScriptRuntime implements IScriptRuntime {
         // Clear output state to release references
         this._outputStatements = [];
         this._outputListeners.clear();
+
+        // Clear stack observers
+        this._stackObservers.clear();
+        if (this._stackSubscriptionUnsub) {
+            this._stackSubscriptionUnsub();
+            this._stackSubscriptionUnsub = null;
+        }
 
         // Clear the event bus
         this.eventBus.dispose();

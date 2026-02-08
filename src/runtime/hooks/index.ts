@@ -9,8 +9,11 @@
  * These hooks subscribe to stack events and read block memory directly.
  * No global memory store — blocks own their state, stack events drive UI updates.
  *
- * - `useStackBlocks` - Subscribe to stack changes, returns all blocks
- * - `useCurrentBlock` - Get the current (top) block on the stack
+ * - `useStackSnapshot` - Subscribe to StackSnapshot (push/pop/clear/initial)
+ * - `useSnapshotBlocks` - Current blocks from latest snapshot
+ * - `useSnapshotCurrentBlock` - Top block from latest snapshot
+ * - `useStackBlocks` - Subscribe to stack changes, returns all blocks (legacy)
+ * - `useCurrentBlock` - Get the current (top) block on the stack (legacy)
  * - `useOutputStatements` - Subscribe to output statements for workout history
  * - `useStackTimers` - All timers on the stack with their block context
  * - `usePrimaryTimer` - The timer pinned to the main display (lowest pinned, or leaf)
@@ -64,6 +67,7 @@
 
 // Stack hooks (preferred for stack access)
 export { useStackBlocks, useCurrentBlock } from './useStackBlocks';
+export { useStackSnapshot, useSnapshotBlocks, useSnapshotCurrentBlock } from './useStackSnapshot';
 export { useOutputStatements } from './useOutputStatements';
 
 // Stack-driven display hooks (preferred for Clock UI)

@@ -301,6 +301,22 @@ export class TestableRuntime implements IScriptRuntime {
     this._wrapped.addOutput(output);
   }
 
+  // ========== Stack Observer API (delegated) ==========
+
+  subscribeToStack(observer: import("@/runtime/contracts").StackObserver): import("@/runtime/contracts").Unsubscribe {
+    return this._wrapped.subscribeToStack(observer);
+  }
+
+  // ========== Block Lifecycle API (delegated) ==========
+
+  pushBlock(block: import("@/runtime/contracts/IRuntimeBlock").IRuntimeBlock, lifecycle?: import("@/runtime/contracts/IRuntimeBlock").BlockLifecycleOptions): void {
+    this._wrapped.pushBlock(block, lifecycle);
+  }
+
+  popBlock(lifecycle?: import("@/runtime/contracts/IRuntimeBlock").BlockLifecycleOptions): void {
+    this._wrapped.popBlock(lifecycle);
+  }
+
   getStatementById(id: number): any {
     return this.script.getId(id);
   }

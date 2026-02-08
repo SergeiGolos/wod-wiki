@@ -18,7 +18,7 @@ describe('RuntimeStack', () => {
         stack.push(block);
 
         expect(listener).toHaveBeenCalledWith({ type: 'initial', blocks: [] });
-        expect(listener).toHaveBeenCalledWith({ type: 'push', block, depth: 1 });
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'push', block, depth: 1 }));
     });
 
     it('should notify subscribers of pop events', () => {
@@ -32,7 +32,7 @@ describe('RuntimeStack', () => {
         stack.pop();
 
         expect(listener).toHaveBeenCalledWith({ type: 'initial', blocks: [block] });
-        expect(listener).toHaveBeenCalledWith({ type: 'pop', block, depth: 1 });
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'pop', block, depth: 0 }));
     });
 
     it('should notify subscribers of initial state', () => {
@@ -57,8 +57,8 @@ describe('RuntimeStack', () => {
         const block = createMockBlock('block-1');
         stack.push(block);
 
-        expect(l1).toHaveBeenCalledWith({ type: 'push', block, depth: 1 });
-        expect(l2).toHaveBeenCalledWith({ type: 'push', block, depth: 1 });
+        expect(l1).toHaveBeenCalledWith(expect.objectContaining({ type: 'push', block, depth: 1 }));
+        expect(l2).toHaveBeenCalledWith(expect.objectContaining({ type: 'push', block, depth: 1 }));
     });
 
     it('should not notify unsubscribed listeners', () => {
@@ -84,8 +84,9 @@ describe('RuntimeStack', () => {
 
         stack.clear();
 
-        expect(listener).toHaveBeenCalledWith({ type: 'pop', block: b2, depth: 2 });
-        expect(listener).toHaveBeenCalledWith({ type: 'pop', block: b1, depth: 1 });
+        // After popping b2, depth = 1; after popping b1, depth = 0
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'pop', block: b2, depth: 1 }));
+        expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'pop', block: b1, depth: 0 }));
         expect(stack.count).toBe(0);
     });
 });

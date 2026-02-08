@@ -11,6 +11,7 @@
 import { ICodeStatement } from '../models/CodeStatement';
 import { FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
+import { IOutputStatement } from '../models/OutputStatement';
 import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
@@ -209,6 +210,58 @@ export function blockToDisplayItem(
     startTime,
     label: block.label
   };
+}
+
+// ============================================================================
+// OutputStatement Adapter
+// ============================================================================
+
+/**
+ * Convert an IOutputStatement to IDisplayItem.
+ *
+ * OutputStatements carry fragments and stack-level depth natively,
+ * so the conversion is straightforward.
+ */
+export function outputStatementToDisplayItem(
+  output: IOutputStatement
+): IDisplayItem {
+  const fragments = output.fragments.flat();
+
+  // Map outputType → DisplayStatus
+  let status: DisplayStatus = 'completed';
+  if (output.outputType === 'segment') {
+    status = 'active';
+  }
+
+  const isHeader = fragments.some(f =>
+    f.fragmentType === FragmentType.Timer ||
+    f.fragmentType === FragmentType.Rounds ||
+    HEADER_TYPES.has(f.type.toLowerCase())
+  );
+
+  return {
+    id: output.id.toString(),
+    parentId: output.parent?.toString() ?? null,
+    fragments,
+    depth: output.stackLevel,
+    isHeader,
+    status,
+    sourceType: 'record',
+    sourceId: output.id,
+    startTime: output.timeSpan.started,
+    endTime: output.timeSpan.ended,
+    duration: output.timeSpan.duration,
+    label: fragmentsToLabel(fragments),
+  };
+}
+
+/**
+ * Convert an array of IOutputStatements to IDisplayItem array.
+ */
+export function outputStatementsToDisplayItems(
+  outputs: IOutputStatement[]
+): IDisplayItem[] {
+  return outputs.map(outputStatementToDisplayItem);
 }
 
 // ============================================================================

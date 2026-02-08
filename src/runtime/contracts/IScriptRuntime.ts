@@ -2,10 +2,9 @@ import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { RuntimeError } from '../actions/ErrorAction';
 import { IEventBus } from './events/IEventBus';
-import { IRuntimeStack, Unsubscribe } from './IRuntimeStack';
+import { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IOutputStatement } from '../../core/models/OutputStatement';
-import { ICodeStatement } from '../../core/types/core';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IEvent } from './events/IEvent';
 
@@ -112,6 +111,35 @@ export interface IScriptRuntime {
      * ```
      */
     addOutput(output: IOutputStatement): void;
+
+    // ============================================================================
+    // Stack Observer API
+    // ============================================================================
+
+    /**
+     * Subscribe to stack snapshots. The observer receives a StackSnapshot
+     * on every push/pop/clear event, containing the full stack state,
+     * the affected block, depth, and clock time.
+     * 
+     * New subscribers immediately receive an 'initial' snapshot with the
+     * current stack state.
+     * 
+     * This is the primary API for UI consumers to react to stack changes.
+     * 
+     * @param observer Callback invoked with a StackSnapshot on each stack mutation
+     * @returns Unsubscribe function to stop receiving notifications
+     * 
+     * @example
+     * ```typescript
+     * const unsubscribe = runtime.subscribeToStack((snapshot) => {
+     *   console.log(`Stack ${snapshot.type}: depth=${snapshot.depth}`);
+     *   if (snapshot.affectedBlock) {
+     *     console.log(`Affected: ${snapshot.affectedBlock.label}`);
+     *   }
+     * });
+     * ```
+     */
+    subscribeToStack(observer: StackObserver): Unsubscribe;
 
     dispose(): void;
 }

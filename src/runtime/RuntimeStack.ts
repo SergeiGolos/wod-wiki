@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { BlockKey } from '../core/models/BlockKey';
 
-import { IRuntimeStack, StackListener } from './contracts/IRuntimeStack';
+import { IRuntimeStack, StackListener, StackEvent } from './contracts/IRuntimeStack';
 
 /**
  * Lightweight runtime stack that only maintains state.
@@ -35,13 +35,13 @@ export class RuntimeStack implements IRuntimeStack {
 
   public push(block: IRuntimeBlock): void {
     this._blocks.push(block);
-    this.notify({ type: 'push', block, depth: this._blocks.length });
+    this.notify({ type: 'push', block, depth: this._blocks.length, blocks: this.blocks });
   }
 
   public pop(): IRuntimeBlock | undefined {
     const block = this._blocks.pop();
     if (block) {
-      this.notify({ type: 'pop', block, depth: this._blocks.length + 1 });
+      this.notify({ type: 'pop', block, depth: this._blocks.length, blocks: this.blocks });
     }
     return block;
   }
@@ -67,7 +67,7 @@ export class RuntimeStack implements IRuntimeStack {
     };
   }
 
-  private notify(event: any): void {
+  private notify(event: StackEvent): void {
     for (const listener of this._listeners) {
       try {
         listener(event);

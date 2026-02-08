@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { useTrackedSpans } from '@/clock/hooks/useExecutionSpans';
-import { UnifiedItemList, runtimeSpansToDisplayItems } from '@/components/unified';
+import { useOutputStatements } from '@/clock/hooks/useExecutionSpans';
+import { UnifiedItemList, outputStatementsToDisplayItems } from '@/components/unified';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -25,7 +25,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   showActive = true,
   compact = false
 }) => {
-  const { runtimeSpans } = useTrackedSpans(runtime);
+  const { outputs } = useOutputStatements(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
 
   // Interval for timestamp updates (10Hz)
@@ -41,29 +41,28 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     if (!runtime) return { items: [], activeItemId: null };
     void updateVersion; // Dependency to force re-calc for timers
 
-    // Sort by startTime
-    const sortedSpans = [...runtimeSpans].sort((a, b) => a.startTime - b.startTime);
+    // Convert output statements to display items
+    let displayItems = outputStatementsToDisplayItems(outputs);
 
-    // Convert to IDisplayItem array using adapter
-    let displayItems = runtimeSpansToDisplayItems(sortedSpans);
+    // Sort by start time
+    displayItems = [...displayItems].sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 
     // Filter out active items if showActive is false
     if (!showActive) {
       displayItems = displayItems.filter(item => item.status !== 'active');
     }
 
-    // Determine active item (last active one) OR last item if none active (for auto-scroll in history mode)
+    // Determine active item (last active one) OR last item if none active
     let activeItemId: string | null = null;
     const activeItems = displayItems.filter(item => item.status === 'active');
     if (activeItems.length > 0) {
       activeItemId = activeItems[activeItems.length - 1].id;
     } else if (displayItems.length > 0) {
-      // If no active items (e.g. history only), target the last item for scrolling
       activeItemId = displayItems[displayItems.length - 1].id;
     }
 
     return { items: displayItems, activeItemId };
-  }, [runtime, runtimeSpans, updateVersion, showActive]);
+  }, [runtime, outputs, updateVersion, showActive]);
 
   return (
     <UnifiedItemList
