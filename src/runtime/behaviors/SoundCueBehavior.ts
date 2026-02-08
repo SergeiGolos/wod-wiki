@@ -61,6 +61,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
         }
 
         // Subscribe to timer tick for countdown sounds
+        // Use 'bubble' scope so countdown cues play even when child blocks are active
         const countdownCues = this.config.cues.filter(c => c.trigger === 'countdown');
         if (countdownCues.length > 0) {
             const playedSeconds = new Set<number>();
@@ -90,7 +91,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
                 }
 
                 return [];
-            });
+            }, { scope: 'bubble' });
         }
 
         return [];
@@ -111,5 +112,9 @@ export class SoundCueBehavior implements IRuntimeBehavior {
         }
 
         return [];
+    }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
     }
 }

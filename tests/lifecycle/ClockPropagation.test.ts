@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from 'bun:test';
+﻿import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { SnapshotClock, createMockClock } from '@/runtime/RuntimeClock';
 import { BehaviorTestHarness, MockBlock } from '../harness';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
@@ -36,6 +36,10 @@ describe('Clock Propagation Integration', () => {
 
     beforeEach(() => {
         harness = new BehaviorTestHarness().withClock(initialTime);
+    });
+
+    afterEach(() => {
+        harness?.dispose();
     });
 
     describe('SnapshotClock in lifecycle options', () => {

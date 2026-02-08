@@ -35,6 +35,8 @@ export class TimerCompletionBehavior implements IRuntimeBehavior {
         }
 
         // Subscribe to tick events to check for completion
+        // Use 'bubble' scope so parent timer blocks can still check completion
+        // even when child blocks are active on the stack
         ctx.subscribe('tick', (_event, tickCtx) => {
             const timer = tickCtx.getMemory('timer') as TimerState | undefined;
             if (!timer) return [];
@@ -52,7 +54,7 @@ export class TimerCompletionBehavior implements IRuntimeBehavior {
             }
 
             return [];
-        });
+        }, { scope: 'bubble' });
 
         return [];
     }
@@ -63,5 +65,9 @@ export class TimerCompletionBehavior implements IRuntimeBehavior {
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
+    }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
     }
 }

@@ -72,7 +72,7 @@ describe('Time Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function));
+            expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function), { scope: 'bubble' });
         });
     });
 });
@@ -302,7 +302,7 @@ describe('Output Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function));
+            expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function), { scope: 'bubble' });
         });
 
         it('should emit sound output on unmount for complete triggers', async () => {

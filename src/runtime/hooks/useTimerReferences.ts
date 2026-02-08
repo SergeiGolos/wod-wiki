@@ -6,9 +6,8 @@ import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../models/RuntimeSpan';
 /**
  * Timer memory references for a specific block.
  * 
- * Note: This interface is used by the display stack integration layer.
- * The `timeSpans` and `isRunning` fields are no longer populated directly;
- * use `timerState.get()` to access the unified TimerState model.
+ * @deprecated Use `useTimerState(block)` from `useBlockMemory` instead.
+ * This hook is maintained for backward compatibility only.
  */
 export interface TimerReferences {
   /** No longer populated - use timerState.get().spans instead */
@@ -22,55 +21,38 @@ export interface TimerReferences {
 /**
  * Hook to retrieve timer memory references for a specific block by key.
  * 
- * This is a low-level hook used by `useTimerElapsed` to bridge the display
- * stack system (which uses string blockKeys) to the memory system.
- * 
- * ## When to Use This Hook
- * 
- * Most consumers should use `useTimerElapsed(blockKey)` instead, which
- * provides computed elapsed time. Use this hook only when you need direct
- * access to the memory reference for advanced subscription patterns.
- * 
- * ## Timer State Contents
- * - spans: TimeSpan[] (start/stop times)
- * - isRunning: boolean
- * - format: 'up' | 'down' | 'time'
- * - durationMs: number (for countdown)
+ * @deprecated Use `useTimerState(block)` or `useTimerDisplay(block)` instead.
+ * This hook searches the runtime stack for a block with the given key and
+ * returns its timer memory. Prefer direct block access when possible.
  * 
  * @param blockKey The block key to search for timer references
  * @returns Object containing timerState reference
- * 
- * @example
- * ```tsx
- * const { timerState } = useTimerReferences(blockKey);
- * 
- * if (timerState) {
- *   const state = timerState.get();
- *   console.log(`Running: ${state?.isRunning}, Spans: ${state?.spans.length}`);
- * }
- * ```
  */
 export function useTimerReferences(blockKey: string): TimerReferences {
   const runtime = useRuntimeContext();
 
   return useMemo(() => {
-    // Search for the unified RuntimeSpan using the constant type
-    // The 'type' field in memory allocation is `runtime-span`
-    // We filter by ownerId which is the blockKey
-    const timerStateRefs = runtime.memory.search({
-      id: null,
-      ownerId: blockKey,
-      type: RUNTIME_SPAN_TYPE,
-      visibility: null
-    });
+    // Find the block on the stack by key
+    const block = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
+    
+    if (!block) {
+      return {
+        timeSpans: undefined,
+        isRunning: undefined,
+        timerState: undefined
+      };
+    }
 
-    const timerStateRef = timerStateRefs[0] as TypedMemoryReference<RuntimeSpan> | undefined;
+    // Access timer memory through the block's memory system
+    const timerEntry = block.getMemory('timer');
+    
+    // The timerEntry conforms to IMemoryEntry, not TypedMemoryReference.
+    // Wrap it for backward compatibility if it exists.
+    const timerStateRef = timerEntry ? (timerEntry as unknown as TypedMemoryReference<RuntimeSpan>) : undefined;
 
     return {
-      // Legacy fields - no longer supported, return undefined
       timeSpans: undefined,
       isRunning: undefined,
-      // New unified state
       timerState: timerStateRef
     };
   }, [runtime, blockKey]);

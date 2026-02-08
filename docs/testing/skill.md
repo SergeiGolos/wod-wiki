@@ -612,7 +612,7 @@ describe('Timer Block Compilation', () => {
 
     // 5. Dispatch tick event
     harness.dispatchEvent({
-      name: 'timer:tick',
+      name: 'tick',
       timestamp: harness.clock.now,
       data: { elapsed: 5000 }
     });
@@ -636,7 +636,7 @@ describe('Timer Block Compilation', () => {
       .toBe(new Date('2024-01-01T12:00:05Z').getTime());
     
     // Event dispatched
-    expect(harness.wasEventDispatched('timer:tick')).toBe(true);
+    expect(harness.wasEventDispatched('tick')).toBe(true);
   });
 
   it('should handle timer completion', () => {

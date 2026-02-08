@@ -1,0 +1,74 @@
+﻿bun test v1.3.4 (5eb2145b)
+bun : 
+At line:1 char:1
++ bun test x:\wod-wiki\src\runt
+ime\behaviors\__tests__\integra
+tion\loop ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~
+    + CategoryInfo          :  
+   NotSpecified: (:String) []  
+  , RemoteException
+    + FullyQualifiedErrorId :  
+   NativeCommandError
+ 
+src\runtime\behaviors\__tests__
+\integration\loop-block.test.ts
+:
+(pass) Loop Block Integration 
+> Round Tracking > should 
+initialize at round 1
+(pass) Loop Block Integration 
+> Round Tracking > should 
+advance round on next()
+(pass) Loop Block Integration 
+> Round Tracking > should mark 
+complete when rounds exceed 
+total
+(pass) Loop Block Integration 
+> Round Tracking > should not 
+complete for unbounded rounds
+(pass) Loop Block Integration 
+> Round Tracking > should 
+update roundDisplay on each 
+advance
+(pass) Loop Block Integration 
+> Output Emission > should 
+update round memory on advance 
+(no event emission)
+(pass) Loop Block Integration 
+> Output Emission > should 
+emit milestone output on round 
+advance
+(pass) Loop Block Integration 
+> Output Emission > should 
+emit completion output with 
+correct round count
+(pass) Loop Block Integration 
+> Output Emission > should 
+record history on unmount
+(pass) Loop Block Integration 
+> Display State > should 
+initialize display with 
+correct mode
+(pass) Loop Block Integration 
+> Display State > should set 
+initial roundDisplay on mount
+(pass) Loop Block Integration 
+> Display State > should 
+handle unbounded rounds in 
+display
+(pass) Loop Block Integration 
+> Edge Cases > should handle 
+start round other than 1
+(pass) Loop Block Integration 
+> Edge Cases > should complete 
+immediately if startRound > 
+totalRounds
+
+ 14 pass
+ 0 fail
+ 18 expect() calls
+Ran 14 tests across 1 file. 
+[519.00ms]

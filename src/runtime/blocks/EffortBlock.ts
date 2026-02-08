@@ -1,11 +1,10 @@
 import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IEvent } from '../contracts/events/IEvent';
-import { PushStackItemAction, PopStackItemAction } from '../actions/stack/StackActions';
+import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { TimerInitBehavior } from '../behaviors/TimerInitBehavior';
@@ -33,37 +32,41 @@ class EffortCompletionBehavior implements IRuntimeBehavior {
     this._forceComplete = true;
   }
 
-  onEvent(event: IEvent, _block: IRuntimeBlock): IRuntimeAction[] {
-    // Set force complete flag when 'next' event received, but DON'T return actions
-    // The actual completion happens in onNext() which is called by NextAction
-    if (event.name === 'next') {
+  onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+    // Set force complete flag when 'next' event received
+    // The actual completion happens in onNext()
+    ctx.subscribe('next', () => {
       this._forceComplete = true;
-    }
+      return [];
+    });
     return [];
   }
 
-  onPush(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
-  
-  onNext(block: IRuntimeBlock, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  onNext(ctx: IBehaviorContext): IRuntimeAction[] {
     if (this._isComplete) {
       return [];
     }
 
     if (this.checkComplete() || this._forceComplete) {
       this._isComplete = true;
-      const now = options?.now ?? new Date();
+      const now = ctx.clock.now;
       // Mark block as complete - stack will pop it during sweep
-      block.markComplete('target-achieved');
+      ctx.markComplete('target-achieved');
       return [
-        new EmitEventAction('block:complete', { blockId: block.key.toString() }, now)
+        new EmitEventAction('block:complete', { blockId: ctx.block.key.toString() }, now)
       ];
     }
 
     return [];
   }
 
-  onPop(_block: IRuntimeBlock, _options?: BlockLifecycleOptions): IRuntimeAction[] { return []; }
-  onDispose(_block: IRuntimeBlock): void { }
+  onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
+    return [];
+  }
+
+  onDispose(_ctx: IBehaviorContext): void {
+    // No explicit cleanup needed
+  }
 }
 
 /**
@@ -120,14 +123,11 @@ export class EffortBlock extends RuntimeBlock {
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions = super.mount(runtime, options);
     actions.push(...this.getMetricActions());
-    actions.push(new PushStackItemAction(this.key.toString()));
     return actions;
   }
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
-    const actions = super.unmount(runtime, options);
-    actions.push(new PopStackItemAction(this.key.toString()));
-    return actions;
+    return super.unmount(runtime, options);
   }
 
   dispose(runtime: IScriptRuntime): void {

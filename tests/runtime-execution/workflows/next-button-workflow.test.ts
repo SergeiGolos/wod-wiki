@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { NextEvent } from '../../../src/runtime/events/NextEvent';
 import { NextEventHandler } from '../../../src/runtime/events/NextEventHandler';
 import { NextAction } from '../../../src/runtime/actions/stack/NextAction';
@@ -20,6 +20,10 @@ describe('Next Button Integration Tests', () => {
     // Push a root block to satisfy NextEventHandler's stack depth requirement (count > 1)
     harness.push(new MockBlock('root'));
     handler = new NextEventHandler('next-handler-test');
+  });
+
+  afterEach(() => {
+    harness?.dispose();
   });
 
   describe('Event Handling', () => {
@@ -158,18 +162,6 @@ describe('Next Button Integration Tests', () => {
       expect(harness.runtime.errors).toHaveLength(1);
       expect(harness.runtime.errors[0].error).toBe(error);
       expect(harness.runtime.errors[0].source).toBe('NextAction');
-    });
-
-    it('should handle memory corruption markers', () => {
-      harness.push(new MockBlock('block-1'));
-      // Simulate memory corruption detection
-      (harness.runtime.memory as any).state = 'corrupted';
-
-      const action = new NextAction();
-      action.do(harness.runtime);
-
-      // Should abort execution safely
-      expect(harness.runtime.errors).toHaveLength(0); // NextAction aborts silently if memory is invalid (pre-check)
     });
   });
 

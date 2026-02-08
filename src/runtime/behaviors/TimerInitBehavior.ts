@@ -48,4 +48,8 @@ export class TimerInitBehavior implements IRuntimeBehavior {
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
     }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
 }

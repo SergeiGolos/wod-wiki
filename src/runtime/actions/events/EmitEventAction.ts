@@ -31,13 +31,13 @@ export class EmitEventAction implements IRuntimeAction {
     public readonly timestamp: Date = new Date()
   ) {}
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IScriptRuntime): IRuntimeAction[] {
     const event: IEvent = {
       name: this.eventName,
       timestamp: this.timestamp,
       data: this.data
     };
     
-    runtime.eventBus.dispatch(event, runtime);
+    return runtime.eventBus.dispatch(event, runtime);
   }
 }

@@ -28,7 +28,11 @@ describe('NextAction', () => {
         set: vi.fn()
       },
       errors: [],
-      handle: vi.fn()
+      handle: vi.fn(),
+      do: vi.fn().mockImplementation((a: any) => { a.do(mockRuntime); }),
+      doAll: vi.fn().mockImplementation((actions: any[]) => {
+        for (const a of actions) { a.do(mockRuntime); }
+      })
     } as any;
   });
 
@@ -51,24 +55,23 @@ describe('NextAction', () => {
     expect(mockCurrentBlock.next).toHaveBeenCalled();
   });
 
-  it('should execute multiple actions returned by block.next(runtime)', () => {
+  it('should return actions returned by block.next(runtime)', () => {
     const mockAction1 = { do: vi.fn() };
     const mockAction2 = { do: vi.fn() };
     mockCurrentBlock.next.mockReturnValue([mockAction1, mockAction2]);
 
-    action.do(mockRuntime);
+    const result = action.do(mockRuntime);
 
-    expect(mockAction1.do).toHaveBeenCalledWith(mockRuntime);
-    expect(mockAction2.do).toHaveBeenCalledWith(mockRuntime);
+    expect(result).toEqual([mockAction1, mockAction2]);
   });
 
-  it('should handle single action returned by block.next(runtime)', () => {
+  it('should return single action returned by block.next(runtime)', () => {
     const mockAction = { do: vi.fn() };
     mockCurrentBlock.next.mockReturnValue([mockAction]);
 
-    action.do(mockRuntime);
+    const result = action.do(mockRuntime);
 
-    expect(mockAction.do).toHaveBeenCalledWith(mockRuntime);
+    expect(result).toEqual([mockAction]);
   });
 
   it('should handle no current block gracefully', () => {
@@ -109,7 +112,7 @@ describe('NextAction', () => {
     expect(() => action.do(incompleteRuntime)).not.toThrow();
   });
 
-  it('should handle action execution errors gracefully', () => {
+  it('should return actions even if they would throw when executed', () => {
     const mockAction = {
       do: vi.fn().mockImplementation(() => {
         throw new Error('Action execution failed');
@@ -117,8 +120,8 @@ describe('NextAction', () => {
     };
     mockCurrentBlock.next.mockReturnValue([mockAction]);
 
-    expect(() => action.do(mockRuntime)).not.toThrow();
-    expect(mockAction.do).toHaveBeenCalled();
+    const result = action.do(mockRuntime);
+    expect(result).toEqual([mockAction]);
   });
 
   it('should execute within performance targets', () => {

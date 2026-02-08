@@ -15,15 +15,15 @@ export class CompileAndPushBlockAction implements IRuntimeAction {
         public readonly options: BlockLifecycleOptions = {}
     ) { }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         if (!this.statementIds || this.statementIds.length === 0) {
-            return;
+            return [];
         }
 
         // Resolve child IDs to statements (lazy JIT resolution)
         const childStatements = runtime.script.getIds(this.statementIds);
         if (childStatements.length === 0) {
-            return;
+            return [];
         }
 
         try {
@@ -31,14 +31,14 @@ export class CompileAndPushBlockAction implements IRuntimeAction {
             const compiledBlock = runtime.jit.compile(childStatements, runtime);
 
             if (!compiledBlock) {
-                return;
+                return [];
             }
 
             // Delegate to PushBlockAction
-            const pushAction = new PushBlockAction(compiledBlock, this.options);
-            pushAction.do(runtime);
+            return [new PushBlockAction(compiledBlock, this.options)];
         } catch (error) {
             console.error(`CompileAndPushBlockAction: Compilation failed`, error);
+            return [];
         }
     }
 }

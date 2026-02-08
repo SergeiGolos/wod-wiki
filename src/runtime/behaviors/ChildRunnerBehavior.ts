@@ -25,32 +25,33 @@ class CompileChildBlockAction implements IRuntimeAction {
         this.payload = { statementIds };
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IScriptRuntime): IRuntimeAction[] {
         if (this.statementIds.length === 0) {
-            return;
+            return [];
         }
 
         const script = runtime.script;
         const compiler = runtime.jit;
 
         if (!script || !compiler) {
-            return;
+            return [];
         }
 
         // Get statements for these IDs - use O(1) lookup if available
         const statements = this.statementIds
-            .map(id => runtime.getStatementById?.(id) ?? script.statements.find(s => s.id === id))
+            .map(id => script.getId(id))
             .filter((s): s is NonNullable<typeof s> => s !== undefined);
 
         if (statements.length === 0) {
-            return;
+            return [];
         }
 
-        // Compile and push via PushBlockAction
-        const block = compiler.compile(statements, runtime);
+        // Compile and return PushBlockAction
+        const block = compiler.compile(statements as any, runtime);
         if (block) {
-            runtime.do(new PushBlockAction(block));
+            return [new PushBlockAction(block)];
         }
+        return [];
     }
 }
 
@@ -67,7 +68,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
 
     constructor(private config: ChildRunnerConfig) { }
 
-    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
+    onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
         // Push first child on mount
         if (this.config.childGroups.length > 0) {
             const firstGroup = this.config.childGroups[0];
@@ -77,7 +78,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+    onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
         // Push next child if available
         if (this.childIndex < this.config.childGroups.length) {
             const nextGroup = this.config.childGroups[this.childIndex];
@@ -91,6 +92,10 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
         return [];
+    }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
     }
 
     /**

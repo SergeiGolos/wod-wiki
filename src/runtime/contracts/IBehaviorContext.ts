@@ -6,6 +6,8 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 
+import { HandlerScope } from './events/IEventBus';
+
 /**
  * Unsubscribe function returned by subscribe().
  */
@@ -20,6 +22,19 @@ export type BehaviorEventType = 'tick' | 'next' | 'timer:complete' | 'pause' | '
  * Listener function for behavior event subscriptions.
  */
 export type BehaviorEventListener = (event: IEvent, ctx: IBehaviorContext) => IRuntimeAction[];
+
+/**
+ * Options for subscribing to events.
+ */
+export interface SubscribeOptions {
+    /**
+     * Handler scope for this subscription.
+     * - `'active'` (default): Only fires when this block is the active (top-of-stack) block
+     * - `'bubble'`: Fires when this block is anywhere on the stack (parent hears child events)
+     * - `'global'`: Always fires regardless of stack state
+     */
+    scope?: HandlerScope;
+}
 
 /**
  * Options for emitting an output statement.
@@ -99,23 +114,32 @@ export interface IBehaviorContext {
      * Subscribe to runtime events.
      * 
      * Subscriptions are automatically cleaned up when the block unmounts.
-     * The listener will only fire when this block is the active block (or for global events).
+     * By default, the listener only fires when this block is the active block.
+     * Use `{ scope: 'bubble' }` to receive events when a child block is active
+     * (e.g., parent timer tracking ticks while children execute).
      * 
      * @param eventType The event type to subscribe to ('tick', 'next', etc.)
      * @param listener The callback to invoke when the event fires
+     * @param options Optional settings including handler scope
      * @returns Unsubscribe function (usually not needed as cleanup is automatic)
      * 
      * @example
      * ```typescript
      * onMount(ctx) {
-     *   ctx.subscribe('tick', (event, ctx) => {
-     *     // Handle tick
+     *   // Active scope (default) — only fires when this block is on top
+     *   ctx.subscribe('next', (event, ctx) => {
      *     return [];
      *   });
+     *   
+     *   // Bubble scope — fires even when a child block is active
+     *   ctx.subscribe('tick', (event, ctx) => {
+     *     // Track timer even when child effort blocks are executing
+     *     return [];
+     *   }, { scope: 'bubble' });
      * }
      * ```
      */
-    subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener): Unsubscribe;
+    subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe;
 
     // ============================================================================
     // Event Emission

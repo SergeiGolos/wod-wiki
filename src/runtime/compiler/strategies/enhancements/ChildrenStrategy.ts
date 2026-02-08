@@ -46,11 +46,14 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
         // Check if we have a timer (for AMRAP-style unbounded looping)
         const hasTimer = builder.hasBehavior(TimerInitBehavior);
+        // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
+        // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
+        const hasRoundsFromStrategy = builder.hasBehavior(RoundInitBehavior);
 
-        // Add child loop behavior FIRST for timer-based blocks
+        // Add child loop behavior FIRST for timer-based OR multi-round blocks
         // This behavior must run before ChildRunnerBehavior so it can
         // reset the child index before ChildRunner checks it
-        if (hasTimer && !builder.hasBehavior(ChildLoopBehavior)) {
+        if ((hasTimer || hasRoundsFromStrategy) && !builder.hasBehavior(ChildLoopBehavior)) {
             builder.addBehavior(new ChildLoopBehavior({ childGroups }));
         }
 

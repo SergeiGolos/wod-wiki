@@ -3,7 +3,8 @@ export { EventBus } from './EventBus';
 export type { EventHandlerRegistration } from './EventBus';
 
 // Events
-export { NextEvent, TickEvent } from './NextEvent';
+export { NextEvent } from './NextEvent';
+export { TickEvent } from './TickEvent';
 export { NextEventHandler } from './NextEventHandler';
 
 // Memory events

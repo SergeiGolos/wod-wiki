@@ -2,14 +2,13 @@ import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { MdTimerRuntime } from '@/parser/md-timer';
-import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
-import { createMockClock } from '@/runtime/RuntimeClock';
+import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
 import { WodScript } from '@/parser/WodScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 import { ICodeFragment } from '@/core/models/CodeFragment';
-import { RuntimeSpan } from '@/runtime/models/RuntimeSpan';
+import { IOutputStatement } from '@/core/models/OutputStatement';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { DialectRegistry } from '@/services/DialectRegistry';
 import { IDialect } from '@/core/models/Dialect';
@@ -34,8 +33,8 @@ export interface WorkoutReport {
   isComplete: boolean;
   /** All fragments collected during execution */
   fragments: ICodeFragment[][];
-  /** All execution spans */
-  spans: RuntimeSpan[];
+  /** All output statements generated during execution */
+  outputs: IOutputStatement[];
 }
 
 /**
@@ -58,6 +57,7 @@ export class WorkoutTestHarness {
   private _restTaken = 0;
   private _exerciseReps: Record<string, number> = {};
   private _collectedFragments: ICodeFragment[][] = [];
+  private _mockClock: MockClock;
 
   constructor(
     scriptText: string,
@@ -74,7 +74,7 @@ export class WorkoutTestHarness {
 
     // 3. Runtime dependencies
     const clock = createMockClock(_clockTime);
-    const memory = new RuntimeMemory();
+    this._mockClock = clock;
     const stack = new RuntimeStack();
     const eventBus = new EventBus();
 
@@ -83,7 +83,6 @@ export class WorkoutTestHarness {
       this.script,
       this.jit,
       {
-        memory,
         stack,
         clock,
         eventBus
@@ -151,29 +150,56 @@ export class WorkoutTestHarness {
     }
   }
 
+  /**
+   * Dispose the harness and release all resources.
+   * Call this in afterEach() to prevent memory leaks.
+   */
+  dispose(): void {
+    this.runtime.dispose();
+    this._collectedFragments = [];
+    this._exerciseReps = {};
+  }
+
   // ========== Clock Operations ==========
 
   /**
    * Advance the mock clock by the specified milliseconds.
+   * Also dispatches a tick event so timer-based behaviors
+   * (e.g., TimerCompletionBehavior) can check for expiration.
    */
   advanceClock(ms: number): void {
-    this.runtime.clock.advance(ms);
+    this._mockClock.advance(ms);
+    // Dispatch tick event so timer completion behaviors fire
+    this.runtime.handle({
+      name: 'tick',
+      timestamp: this._mockClock.now,
+      data: { source: 'test-harness' }
+    });
   }
 
   /**
    * Get the current clock time.
    */
   get clockTime(): number {
-    return this.runtime.clock.now;
+    return this._mockClock.now.getTime();
   }
 
   // ========== Reporting ==========
 
   /**
-   * Check if the workout is complete (stack empty).
+   * Check if the workout is complete.
+   * Returns true if the stack is empty OR the root block has been marked complete
+   * (e.g., timer expired via TimerCompletionBehavior).
    */
   isComplete(): boolean {
-    return this.runtime.isComplete();
+    if (this.stackDepth === 0) return true;
+    // Check if the root block (bottom of stack) is marked complete
+    const blocks = this.runtime.stack.blocks; // top-first order
+    if (blocks.length > 0) {
+      const root = blocks[blocks.length - 1]; // bottom of stack
+      if (root.isComplete) return true;
+    }
+    return false;
   }
 
   /**
@@ -184,12 +210,12 @@ export class WorkoutTestHarness {
       roundsCompleted: this._roundsCompleted,
       partialReps: this._partialReps,
       currentRound: this._currentRound,
-      elapsedTime: this.runtime.clock.now - this._clockTime.getTime(),
+      elapsedTime: this._mockClock.now.getTime() - this._clockTime.getTime(),
       totalReps: { ...this._exerciseReps },
       restTaken: this._restTaken,
       isComplete: this.isComplete(),
       fragments: this._collectedFragments,
-      spans: this.runtime.tracker?.getAllSpans() ?? []
+      outputs: this.runtime.getOutputStatements()
     };
   }
 
@@ -234,7 +260,7 @@ export class WorkoutTestHarness {
   private _collectFragments(): void {
     const current = this.currentBlock;
     if (current?.fragments) {
-      this._collectedFragments.push(current.fragments);
+      this._collectedFragments.push(...current.fragments);
     }
   }
 }

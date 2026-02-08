@@ -57,21 +57,38 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
         return [];
     }
 
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
+
     /**
      * Determine if the block should loop based on timer and round state.
      */
     private shouldLoop(ctx: IBehaviorContext): boolean {
-        // Check timer state - if timer exists and is not expired, we can loop
+        // If the block is already marked complete (e.g., by TimerCompletionBehavior),
+        // never loop — the workout is done.
+        const block = ctx.block as IRuntimeBlock;
+        if (block.isComplete) {
+            return false;
+        }
+
+        // Check timer state by computing elapsed from spans
         const timer = ctx.getMemory('timer') as TimerState | undefined;
         if (timer) {
-            // Timer exists - loop while timer is running and not expired
-            if (timer.isRunning && !timer.isComplete) {
-                return true;
+            // For countdown timers, check if duration has been exceeded
+            if (timer.direction === 'down' && timer.durationMs) {
+                const now = ctx.clock.now.getTime();
+                let elapsed = 0;
+                for (const span of timer.spans) {
+                    const end = span.ended ?? now;
+                    elapsed += end - span.started;
+                }
+                if (elapsed >= timer.durationMs) {
+                    return false; // Timer expired - stop looping
+                }
             }
-            // Timer expired - don't loop
-            if (timer.isComplete) {
-                return false;
-            }
+            // Timer exists and not expired - continue looping
+            return true;
         }
         
         // Check round state - if unbounded rounds, always loop

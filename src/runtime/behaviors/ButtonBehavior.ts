@@ -67,6 +67,10 @@ export class ButtonBehavior implements IRuntimeBehavior {
         return [];
     }
 
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
+
     /**
      * Update a specific button's state dynamically.
      * Call this from other behaviors to enable/disable buttons.

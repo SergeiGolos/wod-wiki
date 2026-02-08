@@ -47,4 +47,8 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
         // Round data is included via HistoryRecordBehavior's history:record event.
         return [];
     }
+
+    onDispose(_ctx: IBehaviorContext): void {
+        // No cleanup needed
+    }
 }
