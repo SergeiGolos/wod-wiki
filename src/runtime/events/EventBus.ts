@@ -2,6 +2,7 @@ import { IEvent } from '../contracts/events/IEvent';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEventHandler } from '../contracts/events/IEventHandler';
 import { IEventBus, EventCallback, HandlerScope, EventHandlerOptions } from '../contracts/events/IEventBus';
+import { RuntimeLogger } from '../RuntimeLogger';
 
 export type EventHandlerRegistration = {
   handler: IEventHandler;
@@ -45,7 +46,7 @@ export class EventBus implements IEventBus {
     options: EventHandlerOptions = {}
   ): () => void {
     const { priority = 0, scope = 'active' } = options;
-    
+
     const list = this.handlersByEvent.get(eventName) ?? [];
     const updated = [...list, { handler, ownerId, priority, scope }];
     // Keep deterministic order: higher priority first, then insertion
@@ -164,6 +165,9 @@ export class EventBus implements IEventBus {
         console.error(`EventBus handler error for ${event.name}:`, error);
       }
     }
+
+    // Log events that produce actions (skip no-op ticks)
+    RuntimeLogger.logEvent(event, actions);
 
     return actions;
   }

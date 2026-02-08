@@ -12,6 +12,7 @@ import { IMemoryEntry } from './memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
 import { SimpleMemoryEntry } from './memory/SimpleMemoryEntry';
+import { RuntimeLogger } from './RuntimeLogger';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -119,6 +120,9 @@ export class RuntimeBlock implements IRuntimeBlock {
             // Create new SimpleMemoryEntry
             this._memoryEntries.set(type, new SimpleMemoryEntry(type, value));
         }
+
+        // Log memory update
+        RuntimeLogger.logMemoryUpdate(this.key.toString(), type, value);
     }
 
     // ============================================================================
@@ -152,7 +156,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         this._runtime = runtime;
-        
+
         // Use provided clock or fall back to runtime clock
         const clock = options?.clock ?? runtime.clock;
         this.executionTiming.startTime = options?.startTime ?? clock.now;
@@ -192,7 +196,7 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         // Use provided clock or fall back to existing context clock
         const clock = options?.clock ?? this._behaviorContext.clock;
-        
+
         // Create a fresh context for this next() call with the appropriate clock
         // This ensures all behaviors in this next() chain see the same frozen time
         const nextContext = new BehaviorContext(
@@ -215,6 +219,9 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Dispose the temporary context to clean up any subscriptions
         // registered by behaviors during onNext
         nextContext.dispose();
+
+        // Log the next call with resulting actions
+        RuntimeLogger.logNext(this, actions);
 
         return actions;
     }
