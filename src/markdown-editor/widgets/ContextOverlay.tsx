@@ -4,13 +4,13 @@
 
 import { editor as monacoEditor } from 'monaco-editor';
 import { ReactMonacoWidget } from './ReactMonacoWidget';
-import { ContextPanel, ContextPanelProps } from '../components/ContextPanel';
+import { WorkoutContextPanel, WorkoutContextPanelProps } from '@/components/workout/WorkoutContextPanel';
 import { WodBlock } from '../types';
 
 /**
  * Overlay widget that shows WOD block context on the right side of editor
  */
-export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps> 
+export class ContextOverlay extends ReactMonacoWidget<WorkoutContextPanelProps> 
   implements monacoEditor.IOverlayWidget {
   
   private onAddStatement?: (text: string) => void;
@@ -73,13 +73,14 @@ export class ContextOverlay extends ReactMonacoWidget<ContextPanelProps>
       this.onDeleteStatement = callbacks.onDeleteStatement;
     }
     
-    this.renderComponent(ContextPanel, {
+    this.renderComponent(WorkoutContextPanel, {
       block: this.block,
-      compact: false,
-      showEditor: true,
+      mode: 'edit',
       onAddStatement: this.onAddStatement,
       onEditStatement: this.onEditStatement,
-      onDeleteStatement: this.onDeleteStatement
+      onDeleteStatement: this.onDeleteStatement,
+      showErrors: true,
+      showMetadata: false
     });
   }
   
