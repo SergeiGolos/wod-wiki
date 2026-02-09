@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Clock, Play, Pause, Square, Timer } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
+import { formatDurationSmart } from '@/lib/formatTime';
 import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
 import {
   useStackTimers,
@@ -370,18 +371,8 @@ const SecondaryTimerCard: React.FC<SecondaryTimerCardProps> = ({
     return elapsed;
   }, [timerEntry, elapsed]);
 
-  // Format time compactly
-  const formatTimeCompact = (ms: number): string => {
-    const totalSeconds = Math.floor(Math.abs(ms) / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // Format time compactly - consolidated from lib/formatTime.ts
+  const formatTimeCompact = (ms: number): string => formatDurationSmart(ms);
 
   // Determine if running from entry props
   const isRunning = timerEntry.isRunning || false;
@@ -513,19 +504,8 @@ const PrimaryTimerSection: React.FC<PrimaryTimerSectionProps> = ({
     return 0;
   }, [timerEntry, elapsed]);
 
-  // Format time for display
-  const formatTime = (ms: number): string => {
-    const totalSeconds = Math.floor(Math.abs(ms) / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const centiseconds = Math.floor((Math.abs(ms) % 1000) / 10);
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
-  };
+  // Format time for display - consolidated from lib/formatTime.ts
+  const formatTime = (ms: number): string => formatDurationSmart(ms);
 
   // No timer entry - show placeholder
   if (!timerEntry) {

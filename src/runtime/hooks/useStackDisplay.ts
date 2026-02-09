@@ -223,16 +223,27 @@ export function useStackDisplayItems(): IDisplayItem[] | undefined {
 
         const items: IDisplayItem[] = [];
 
-        blocks.forEach((block, index) => {
+        // Stack is typically [Root, ..., Leaf]
+        // But if the upstream hook returns [Leaf, ..., Root], we need to know.
+        // Based on user report: blocks seems to be [Leaf, ..., Root].
+        // We want [Root, ..., Leaf].
+
+        // Let's assume we need to reverse whatever we got to flip the order.
+        // If current output is Leaf->Root, reversing gives Root->Leaf.
+
+        const orderedBlocks = [...blocks].reverse();
+
+        orderedBlocks.forEach((block, index) => {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            const isLeaf = index === blocks.length - 1;
+            // Leaf is the LAST item in this visual list
+            const isLeaf = index === orderedBlocks.length - 1;
             const fragments = block.fragments?.flat() ?? [];
 
             items.push({
                 id: block.key.toString(),
-                parentId: index > 0 ? blocks[index - 1].key.toString() : null,
+                parentId: index > 0 ? orderedBlocks[index - 1].key.toString() : null,
                 fragments,
                 depth: index,
                 isHeader: false,

@@ -9,6 +9,8 @@ import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { TimerInitBehavior } from '../behaviors/TimerInitBehavior';
 import { DisplayInitBehavior } from '../behaviors/DisplayInitBehavior';
+import { TimerPauseBehavior } from '../behaviors/TimerPauseBehavior';
+
 
 /**
  * EffortBlock Configuration
@@ -118,6 +120,7 @@ export class EffortBlock extends RuntimeBlock {
       label: 'Segment Timer',
       role: 'secondary'
     }));
+    this.behaviors.push(new TimerPauseBehavior());
   }
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {

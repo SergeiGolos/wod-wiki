@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { RuntimeProvider } from '../../runtime/context/RuntimeContext';
+import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../runtime/behaviors';
@@ -249,16 +250,6 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
   onRecalculate,
   timerType
 }) => {
-  const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return 'running';
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
   const calculateElapsed = (): number => {
     if (timeSpans.length === 0) return 0;
 
@@ -269,17 +260,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
     }, 0);
   };
 
-  const formatElapsedTime = (ms: number): string => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
+  const formatElapsedTime = formatDurationSmart;
 
   const elapsedMs = calculateElapsed();
   const elapsedDisplay = timerType === 'countdown'

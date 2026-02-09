@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTimeMMSS } from '../../lib/formatTime';
 import { StatusFooterProps } from '../types/interfaces';
 
 /**
@@ -36,13 +37,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
     }
   };
 
-  const formatElapsedTime = (ms?: number) => {
-    if (!ms) return '--:--';
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  const formatElapsedTime = (ms?: number) => formatTimeMMSS(ms || 0);
 
   const formatCursor = (line?: number, column?: number) => {
     if (line === undefined || column === undefined) return '--:--';

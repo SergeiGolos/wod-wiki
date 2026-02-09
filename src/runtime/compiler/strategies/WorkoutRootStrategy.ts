@@ -162,7 +162,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         const buttons = config.executionButtons ?? [
             { id: 'pause', label: 'Pause', action: 'timer:pause' },
-            { id: 'next', label: 'Next', action: 'block:next' },
+            { id: 'next', label: 'Next', action: 'next' },
             { id: 'stop', label: 'Stop', action: 'workout:stop' }
         ];
 

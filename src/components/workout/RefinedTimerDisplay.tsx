@@ -3,6 +3,7 @@ import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
+import { formatTimeMMSS } from '../../lib/formatTime';
 import { UnifiedItemRow } from '../unified/UnifiedItemRow';
 import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
 
@@ -35,12 +36,7 @@ export interface RefinedTimerDisplayProps {
     }>;
 }
 
-const formatTime = (ms: number): string => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+const formatTime = formatTimeMMSS;
 
 /**
  * Timer Pill for card display
@@ -148,6 +144,7 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
             'elapsed': false
         }
     };
+
 
     return (
         <div className={`flex flex-col h-full w-full max-w-6xl mx-auto ${compact ? 'p-2' : 'p-4 gap-4'}`}>
@@ -293,6 +290,6 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

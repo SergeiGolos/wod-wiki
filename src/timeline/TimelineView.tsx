@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, Brush } from 'recharts';
 import { Zap, Activity, Wind, Gauge, Dumbbell, CheckSquare, Layers } from 'lucide-react';
 import { AnalyticsGroup, Segment, AnalyticsGraphConfig } from '../core/models/AnalyticsModels';
+import { formatSecondsMMSS } from '../lib/formatTime';
 
 interface TimelineViewProps {
   rawData: any[];
@@ -14,9 +15,7 @@ interface TimelineViewProps {
 // --- Helper Components ---
 
 const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return formatSecondsMMSS(seconds);
 };
 
 const formatDuration = (seconds: number) => {

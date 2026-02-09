@@ -60,16 +60,7 @@ export interface TimerDisplayProps {
   enableDisplayStack?: boolean;
 }
 
-/**
- * Calculate elapsed milliseconds from a TimeSpan array.
- */
-function calculateElapsedFromSpans(spans: readonly TimeSpan[]): number {
-  const now = Date.now();
-  return spans.reduce((total, span) => {
-    const end = span.ended ?? now;
-    return total + Math.max(0, end - span.started);
-  }, 0);
-}
+
 
 /**
  * DisplayStackTimerDisplay - Timer with full runtime integration
@@ -92,13 +83,56 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   const activeControls = useActiveControls();
   const stackItems = useStackDisplayItems();
 
-  // Build timer states map from block memory (keyed by block key for display items)
+  // ---------------------------------------------------------------------------
+  // Ticking Logic for Open Spans
+  // ---------------------------------------------------------------------------
+  const [now, setNow] = React.useState(Date.now());
+
+  // Check if ANY timer is running (has an open span)
+  const isAnyTimerRunning = useMemo(() => {
+    return allTimers.some(t => t.timer.spans.some(s => s.ended === undefined));
+  }, [allTimers]);
+
+  // Run animation frame loop only when needed
+  React.useEffect(() => {
+    if (!isAnyTimerRunning) return;
+
+    let frameId: number;
+    const update = () => {
+      setNow(Date.now());
+      frameId = requestAnimationFrame(update);
+    };
+
+    update();
+    return () => cancelAnimationFrame(frameId);
+  }, [isAnyTimerRunning]);
+
+  // ---------------------------------------------------------------------------
+  // Data Derivation (using `now`)
+  // ---------------------------------------------------------------------------
+
+  // Calculate elapsed time for a set of spans relative to `now`
+  const getElapsed = (spans: readonly TimeSpan[]) => {
+    return spans.reduce((total, span) => {
+      const end = span.ended ?? now;
+      return total + Math.max(0, end - span.started);
+    }, 0);
+  };
+
+  // 1. Primary Timer Elapsed
+  // Note: We use the memory-derived elapsed time, overriding props.elapsedMs
+  const primaryElapsedMs = useMemo(() => {
+    if (!primaryTimer) return 0;
+    return getElapsed(primaryTimer.timer.spans);
+  }, [primaryTimer, now]);
+
+  // 2. Timer States for Stack Items
   const timerStates = useMemo(() => {
     const map = new Map<string, { elapsed: number; duration?: number; format: 'down' | 'up' }>();
 
     for (const entry of allTimers) {
       const blockKey = entry.block.key.toString();
-      const elapsed = calculateElapsedFromSpans(entry.timer.spans);
+      const elapsed = getElapsed(entry.timer.spans);
 
       map.set(blockKey, {
         elapsed,
@@ -108,9 +142,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
     }
 
     return map;
-  }, [allTimers]);
+  }, [allTimers, now]);
 
-  // Convert primary timer to the ITimerDisplayEntry shape expected by RefinedTimerDisplay
+  // Convert primary timer to Display Entry
   const primaryTimerEntry = useMemo(() => {
     if (!primaryTimer) return undefined;
     const blockKey = primaryTimer.block.key.toString();
@@ -141,7 +175,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
     });
   }, [secondaryTimers]);
 
-  // Convert active controls to action descriptors for RefinedTimerDisplay
+  // Convert active controls
   const actions = useMemo(() => {
     return activeControls
       .filter(btn => btn.visible && btn.enabled && btn.eventName)
@@ -160,7 +194,9 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
   return (
     <RefinedTimerDisplay
-      elapsedMs={props.elapsedMs}
+      // Use our calculated elapsed time instead of props.elapsedMs
+      elapsedMs={primaryElapsedMs}
+      // Pass other props
       hasActiveBlock={props.hasActiveBlock}
       onStart={props.onStart}
       onPause={props.onPause}
@@ -169,17 +205,31 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       actions={actions.length > 0 ? actions : undefined}
       onAction={(eventName, payload) => {
         runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
-        if (eventName === 'next') {
-          props.onNext?.();
+
+        switch (eventName) {
+          case 'next':
+          case 'block:next':
+            props.onNext?.();
+            break;
+          case 'timer:pause':
+            props.onPause?.();
+            break;
+          case 'timer:resume':
+          case 'timer:start':
+            props.onStart?.();
+            break;
+          case 'workout:stop':
+            props.onStop?.();
+            break;
         }
       }}
-      isRunning={props.isRunning}
+      // If any timer is running, the display should look alive
+      isRunning={isAnyTimerRunning}
+
       primaryTimer={primaryTimerEntry}
       secondaryTimers={secondaryTimerEntries}
-
       stackItems={stackItems}
       compact={props.compact}
-
       focusedBlockId={focusedBlockId}
       timerStates={timerStates}
     />

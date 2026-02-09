@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, ArrowRight } from '@phosphor-icons/react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
+import { formatTimePrecise, formatTimeHHMMSS } from '../../lib/formatTime';
 import { cn } from '@/lib/utils';
 
 export interface DigitalClockProps {
@@ -57,18 +58,14 @@ export const DigitalClock: React.FC<DigitalClockProps> = ({
     return elapsed;
   }, [timerType, duration, elapsed]);
 
-  // Format time for digital display
+  // Format time for digital display - use canonical formatter
   const formatTime = (ms: number): string => {
     const totalSeconds = Math.floor(Math.abs(ms) / 1000);
     const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = Math.floor((Math.abs(ms) % 1000) / 10);
-
     if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      return formatTimeHHMMSS(ms);
     }
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+    return formatTimePrecise(ms);
   };
 
   // Calculate progress percentage for countdown

@@ -1,0 +1,102 @@
+{
+  "settingsVersion": "1.14.0",
+  "highlightColor": "#ffd700",
+  "sidebarPosition": "right",
+  "highlights": {
+    "docs/UI-component-deep-dive.opus.md": [
+      {
+        "id": "2q01zwxgz",
+        "text": "**Analyze**",
+        "tags": [],
+        "line": 44,
+        "startOffset": 2050,
+        "endOffset": 2065,
+        "filePath": "docs/UI-component-deep-dive.opus.md",
+        "footnoteCount": 1,
+        "footnoteContents": [
+          "\"Analyze\" is a bad term, lets rename this to \"Review\""
+        ],
+        "createdAt": 1770652325596,
+        "isNativeComment": false,
+        "type": "highlight"
+      },
+      {
+        "id": "sdcdshfi2",
+        "text": "**QueueTestHarness**",
+        "tags": [],
+        "line": 103,
+        "startOffset": 5400,
+        "endOffset": 5424,
+        "filePath": "docs/UI-component-deep-dive.opus.md",
+        "footnoteCount": 1,
+        "footnoteContents": [
+          "Remove this, and any testing screen / test associated with it."
+        ],
+        "createdAt": 1770652461936,
+        "isNativeComment": false,
+        "type": "highlight"
+      }
+    ]
+  },
+  "collections": {},
+  "groupingMode": "none",
+  "taskSecondaryGroupingMode": "none",
+  "sortMode": "none",
+  "tabSettings": {
+    "current": {
+      "groupingMode": "none",
+      "sortMode": "none",
+      "commentsExpanded": true,
+      "searchExpanded": false,
+      "selectedTags": [],
+      "selectedCollections": [],
+      "selectedSpecialFilters": []
+    }
+  },
+  "showFilenames": true,
+  "showTimestamps": true,
+  "showHighlightActions": true,
+  "showToolbar": true,
+  "autoToggleFold": false,
+  "useInlineFootnotes": false,
+  "selectTextOnCommentClick": false,
+  "excludeExcalidraw": true,
+  "excludedFiles": [],
+  "fileFilters": [],
+  "fileFilterMode": "exclude",
+  "dateFormat": "YYYY-MM-DD HH:mm",
+  "minimumCharacterCount": 0,
+  "highlightFontSize": 11,
+  "detailsFontSize": 11,
+  "commentFontSize": 11,
+  "highlightFontWeight": 400,
+  "taskFontWeight": 400,
+  "detectHtmlComments": false,
+  "detectAdjacentNativeComments": true,
+  "customPatterns": [],
+  "customColors": {
+    "yellow": "#ffd700",
+    "red": "#ff6b6b",
+    "teal": "#4ecdc4",
+    "blue": "#45b7d1",
+    "green": "#96ceb4"
+  },
+  "customColorNames": {
+    "yellow": "",
+    "red": "",
+    "teal": "",
+    "blue": "",
+    "green": ""
+  },
+  "showCurrentNoteTab": true,
+  "showAllNotesTab": true,
+  "showCollectionsTab": true,
+  "showTasksTab": false,
+  "showCompletedTasks": true,
+  "showTaskContext": true,
+  "taskDateFormat": "YYYY-MM-DD",
+  "showCurrentNoteTasksSection": true,
+  "showOnlyCurrentNoteTasks": false,
+  "displayModes": [],
+  "currentDisplayModeId": null
+}
