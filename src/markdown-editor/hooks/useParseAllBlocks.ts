@@ -6,6 +6,7 @@
 import { useEffect, useRef } from 'react';
 import { WodBlock } from '../types';
 import { sharedParser } from '../../parser/parserInstance';
+import { parseWodBlock } from '../utils/parseWodBlock';
 
 /**
  * Parse all blocks and update their statements in place
@@ -31,20 +32,13 @@ export function useParseAllBlocks(
       }
 
       try {
-        const script = parserRef.current.read(block.content);
-        const statements = script.statements || [];
-        const errors = (script.errors || []).map((err: any) => ({
-          line: err.token?.startLine,
-          column: err.token?.startColumn,
-          message: err.message || 'Parse error',
-          severity: 'error' as const
-        }));
+        const result = parseWodBlock(block.content, parserRef.current);
 
         // Update block with parsed data
         updateBlock(block.id, {
-          statements,
-          errors,
-          state: errors.length > 0 ? 'error' : 'parsed'
+          statements: result.statements,
+          errors: result.errors,
+          state: result.success ? 'parsed' : 'error'
         });
 
         parsedBlocksRef.current.add(block.id);

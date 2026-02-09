@@ -6,7 +6,7 @@
  * 
  * PLAN:    [Editor 2/3][EditorIndex 1/3]
  * TRACK:   [TimerIndex 1/3][Timer 2/3]
- * ANALYZE: [AnalyticsIndex 1/3][Timeline 2/3]
+ * REVIEW:  [AnalyticsIndex 1/3][Timeline 2/3]
  * 
  * Responsive behavior:
  * - Desktop (≥1024px): Full sliding strip with side-by-side panels
@@ -33,7 +33,7 @@ import { SlidingViewport } from './SlidingViewport';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
-import { RuntimeLifecycleProvider } from './RuntimeProvider';
+import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
@@ -42,7 +42,7 @@ import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/Anal
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TrackPanelIndex, TrackPanelPrimary } from '../workbench/TrackPanel';
-import { AnalyzePanelIndex, AnalyzePanelPrimary } from '../workbench/AnalyzePanel';
+import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
 
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
@@ -333,9 +333,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     />
   );
 
-  // Analyze Index: AnalyticsIndexPanel
-  const analyzeIndexPanel = (
-    <AnalyzePanelIndex
+  // Review Index: AnalyticsIndexPanel
+  const reviewIndexPanel = (
+    <ReviewPanelIndex
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={handleSelectAnalyticsSegment}
@@ -344,9 +344,9 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     />
   );
 
-  // Analyze Primary: TimelineView
-  const analyzePrimaryPanel = (
-    <AnalyzePanelPrimary
+  // Review Primary: TimelineView
+  const reviewPrimaryPanel = (
+    <ReviewPanelPrimary
       rawData={analyticsData}
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
@@ -431,15 +431,15 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
               {!isMobile && 'Track'}
             </Button>
             <Button
-              variant={viewMode === 'analyze' ? 'default' : 'ghost'}
+              variant={viewMode === 'review' ? 'default' : 'ghost'}
               size={isMobile ? 'icon' : 'sm'}
-              onClick={() => setViewMode('analyze')}
-              className={cn('gap-2', viewMode !== 'analyze' && 'text-muted-foreground hover:text-foreground')}
-              aria-label={isMobile ? "Switch to Analyze view" : undefined}
-              title={isMobile ? "Switch to Analyze view" : undefined}
+              onClick={() => setViewMode('review')}
+              className={cn('gap-2', viewMode !== 'review' && 'text-muted-foreground hover:text-foreground')}
+              aria-label={isMobile ? "Switch to Review view" : undefined}
+              title={isMobile ? "Switch to Review view" : undefined}
             >
               <BarChart2 className="h-4 w-4" />
-              {!isMobile && 'Analyze'}
+              {!isMobile && 'Review'}
             </Button>
 
             <div className="h-6 w-px bg-border mx-2" />
@@ -470,8 +470,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
             trackIndexPanel={trackIndexPanel}
             trackPrimaryPanel={trackPrimaryPanel}
             trackDebugPanel={trackDebugPanel}
-            analyzeIndexPanel={analyzeIndexPanel}
-            analyzePrimaryPanel={analyzePrimaryPanel}
+            reviewIndexPanel={reviewIndexPanel}
+            reviewPrimaryPanel={reviewPrimaryPanel}
             isDebugMode={isDebugMode}
           />
         </div>

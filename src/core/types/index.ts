@@ -88,9 +88,8 @@ export type {
 } from './clock';
 
 // Fragment types
+// Note: FragmentTypeString and FragmentColorMap moved to src/views/runtime/fragmentColorMap.ts
 export type {
-  FragmentTypeString,
-  FragmentColorMap,
   ParseError,
   FragmentVisualizerProps,
 } from './fragments';

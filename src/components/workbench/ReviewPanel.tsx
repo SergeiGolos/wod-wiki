@@ -4,7 +4,7 @@ import { TimelineView } from '../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 
-export interface AnalyzePanelProps {
+export interface ReviewPanelProps {
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number) => void;
@@ -13,7 +13,7 @@ export interface AnalyzePanelProps {
   rawData: AnalyticsDataPoint[];
 }
 
-export const AnalyzePanelIndex: React.FC<Pick<AnalyzePanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'mobile' | 'groups'>> = ({
+export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'mobile' | 'groups'>> = ({
   segments,
   selectedSegmentIds,
   onSelectSegment,
@@ -29,7 +29,7 @@ export const AnalyzePanelIndex: React.FC<Pick<AnalyzePanelProps, 'segments' | 's
   />
 );
 
-export const AnalyzePanelPrimary: React.FC<Pick<AnalyzePanelProps, 'rawData' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
+export const ReviewPanelPrimary: React.FC<Pick<ReviewPanelProps, 'rawData' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
   rawData,
   segments,
   selectedSegmentIds,

@@ -57,7 +57,7 @@ export interface TimerDisplayProps {
   /** Callback when clicking a timer block (for navigation) */
   onBlockClick?: (blockKey: string) => void;
 
-  /** Enable stack-driven display features (requires RuntimeProvider) */
+  /** Enable stack-driven display features (requires RuntimeLifecycleProvider) */
   enableDisplayStack?: boolean;
 }
 
@@ -67,7 +67,7 @@ export interface TimerDisplayProps {
  * DisplayStackTimerDisplay - Timer with full runtime integration
  * 
  * Subscribes to:
- * - Stack events (push/pop) via useStackBlocks
+ * - Stack events (push/pop) via useSnapshotBlocks
  * - Block timer memory via useStackTimers
  * - Block controls memory via useActiveControls
  * 

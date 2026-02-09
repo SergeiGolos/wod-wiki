@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useRuntimeLifecycle } from '../layout/RuntimeProvider';
+import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';

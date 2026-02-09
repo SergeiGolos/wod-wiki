@@ -25,10 +25,10 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
-import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeContext';
+import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 
 // Re-export hooks for backward compatibility
-export { useRuntimeLifecycle, useRuntime } from './useRuntime';
+export { useRuntimeLifecycle, useRuntime } from './useRuntimeLifecycle';
 
 /**
  * Props for RuntimeLifecycleProvider

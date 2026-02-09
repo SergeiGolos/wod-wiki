@@ -12,7 +12,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export type ViewMode = 'plan' | 'track' | 'analyze';
+export type ViewMode = 'plan' | 'track' | 'review';
 
 export interface SlidingViewportProps {
   /** Current view mode */
@@ -29,9 +29,9 @@ export interface SlidingViewportProps {
   trackPrimaryPanel: React.ReactNode;  // TimerDisplay (2/3)
   trackDebugPanel?: React.ReactNode;   // RuntimeDebugPanel (optional 1/3)
 
-  /** Analyze view panels */
-  analyzeIndexPanel: React.ReactNode;  // AnalyticsIndexPanel (1/3)
-  analyzePrimaryPanel: React.ReactNode; // TimelineView (2/3)
+  /** Review view panels */
+  reviewIndexPanel: React.ReactNode;  // AnalyticsIndexPanel (1/3)
+  reviewPrimaryPanel: React.ReactNode; // TimelineView (2/3)
 
   /** Whether debug mode is enabled */
   isDebugMode?: boolean;
@@ -46,7 +46,7 @@ export interface SlidingViewportProps {
 const viewOffsets: Record<ViewMode, string> = {
   plan: '0%',
   track: '-33.333%',
-  analyze: '-66.666%',
+  review: '-66.666%',
 };
 
 /**
@@ -59,8 +59,8 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
   trackIndexPanel,
   trackPrimaryPanel,
   trackDebugPanel,
-  analyzeIndexPanel,
-  analyzePrimaryPanel,
+  reviewIndexPanel,
+  reviewPrimaryPanel,
   isDebugMode = false,
   className,
 }) => {
@@ -87,12 +87,12 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'ArrowLeft') {
           e.preventDefault();
-          if (currentView === 'analyze') onViewChange('track');
+          if (currentView === 'review') onViewChange('track');
           else if (currentView === 'track') onViewChange('plan');
         } else if (e.key === 'ArrowRight') {
           e.preventDefault();
           if (currentView === 'plan') onViewChange('track');
-          else if (currentView === 'track') onViewChange('analyze');
+          else if (currentView === 'track') onViewChange('review');
         }
       }
     };
@@ -122,9 +122,9 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             {trackPrimaryPanel}
           </div>
 
-          {/* Analyze View - Full Screen Timeline */}
+          {/* Review View - Full Screen Timeline */}
           <div className="w-1/3 h-full flex-shrink-0">
-            {analyzePrimaryPanel}
+            {reviewPrimaryPanel}
           </div>
         </div>
       </div>
@@ -157,13 +157,13 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
             </div>
           </div>
 
-          {/* Analyze View - Stacked */}
+          {/* Review View - Stacked */}
           <div className="w-1/3 h-full flex-shrink-0 flex flex-col">
             <div className="flex-1 overflow-hidden">
-              {analyzePrimaryPanel}
+              {reviewPrimaryPanel}
             </div>
             <div className="h-1/3 border-t border-border overflow-hidden">
-              {analyzeIndexPanel}
+              {reviewIndexPanel}
             </div>
           </div>
         </div>
@@ -199,13 +199,13 @@ export const SlidingViewport: React.FC<SlidingViewportProps> = ({
           </div>
         </div>
 
-        {/* Analyze View - Index (1/3) + Timeline (2/3) */}
+        {/* Review View - Index (1/3) + Timeline (2/3) */}
         <div className="w-1/3 h-full flex-shrink-0 flex">
           <div className="w-1/3 h-full border-r border-border overflow-hidden">
-            {analyzeIndexPanel}
+            {reviewIndexPanel}
           </div>
           <div className="w-2/3 h-full overflow-hidden">
-            {analyzePrimaryPanel}
+            {reviewPrimaryPanel}
           </div>
         </div>
       </div>

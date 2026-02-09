@@ -50,27 +50,6 @@
  * const after = testRuntime.snapshot('after');
  * const diff = testRuntime.diff(before, after);
  * ```
- * 
- * ## Queue-Based Testing
- * 
- * For interactive testing with step-by-step execution:
- * 
- * ```typescript
- * import { QueueTestHarness, TestTemplate } from '@/testing';
- * 
- * // Use built-in templates or create custom ones
- * const customTemplate: TestTemplate = {
- *   id: 'my-test',
- *   name: 'My Test',
- *   description: 'Test custom behavior',
- *   wodScript: '5 Pullups',
- *   queue: [
- *     { type: 'push', label: 'Push Block', statementIndex: 0 },
- *     { type: 'mount', label: 'Mount' },
- *     { type: 'next', label: 'Advance' }
- *   ]
- * };
- * ```
  */
 
 // Core testing classes
@@ -98,11 +77,7 @@ export {
 export {
   SnapshotDiffViewer,
   SnapshotDiffSummary,
-  ModifiedValuesViewer,
-  QueueTestHarness,
-  type QueueTestHarnessProps,
-  type QueueAction,
-  type TestTemplate
+  ModifiedValuesViewer
 } from './components';
 
 // Test setup actions

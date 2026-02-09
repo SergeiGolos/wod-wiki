@@ -4,7 +4,7 @@
  * Supports three modes:
  * 1. Edit Mode - Shows statements with edit/delete buttons
  * 2. Run Mode - Shows active statements in read-only with real-time execution tracking
- * 3. Analysis Mode - Shows completed statements with historical metrics from repository
+ * 3. Review Mode - Shows completed statements with historical metrics from repository
  * 
  * Consolidated from separate WorkoutContextPanel and ContextPanel components.
  * Features optional display of parse errors, block metadata, and timer dialogs.
@@ -16,7 +16,7 @@ import { EditableStatementList } from '../../markdown-editor/components/Editable
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 
-export type WorkoutContextMode = 'edit' | 'run' | 'analyze';
+export type WorkoutContextMode = 'edit' | 'run' | 'review';
 
 export interface WorkoutContextPanelProps {
   /** The workout block to display */
@@ -146,7 +146,7 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
             <div className="text-muted-foreground italic">
               {mode === 'edit' && '// No parsed statements available'}
               {mode === 'run' && '// Waiting for workout to start'}
-              {mode === 'analyze' && '// No data available'}
+              {mode === 'review' && '// No data available'}
               {mobile && block.state !== 'parsing' && '// No workout content yet'}
             </div>
           )}

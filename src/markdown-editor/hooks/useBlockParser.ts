@@ -7,6 +7,7 @@ import { WodBlock, ParseError } from '../types';
 import { sharedParser } from '../../parser/parserInstance';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeStatement } from '../../core/models/CodeStatement';
+import { parseWodBlock } from '../utils/parseWodBlock';
 
 export interface UseBlockParserOptions {
   /** Debounce delay (default: 500ms) */
@@ -77,22 +78,11 @@ export function useBlockParser(
     setStatus('parsing');
 
     try {
-      const script = parserRef.current.read(block.content);
+      const result = parseWodBlock(block.content, parserRef.current);
       
-      // Extract statements
-      const parsedStatements = script.statements || [];
-      
-      // Extract errors
-      const parseErrors: ParseError[] = (script.errors || []).map((err: any) => ({
-        line: err.token?.startLine,
-        column: err.token?.startColumn,
-        message: err.message || 'Parse error',
-        severity: 'error' as const
-      }));
-
-      setStatements(parsedStatements);
-      setErrors(parseErrors);
-      setStatus(parseErrors.length > 0 ? 'error' : 'success');
+      setStatements(result.statements);
+      setErrors(result.errors);
+      setStatus(result.success ? 'success' : 'error');
     } catch (error: any) {
       console.error('[useBlockParser] Parse error:', error);
       const errorMsg = error?.message || 'Unknown parse error';

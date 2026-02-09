@@ -79,7 +79,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
     setResults(prev => [...prev, result]);
-    setViewMode('analyze');
+    setViewMode('review');
   }, []);
 
   const value = {

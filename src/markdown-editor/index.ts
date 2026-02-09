@@ -22,6 +22,9 @@ export {
   extractBlockContent
 } from './utils/blockDetection';
 
+export { parseWodBlock } from './utils/parseWodBlock';
+export type { ParseResult } from './utils/parseWodBlock';
+
 // Hooks
 export { useWodBlocks } from './hooks/useWodBlocks';
 export type {

@@ -1,33 +1,13 @@
 /**
  * Fragment types for WOD Wiki
  * 
- * Type definitions for fragment visualization and manipulation
- * including fragment color maps, visualizer props, and metadata.
+ * Type definitions for fragment visualization and manipulation.
+ * 
+ * Note: FragmentTypeString and FragmentColorMap have been moved to
+ * src/views/runtime/fragmentColorMap.ts as the canonical source.
  */
 
 import type { ICodeFragment } from './core';
-
-/**
- * Fragment type for color mapping
- */
-export type FragmentTypeString = 
-  | 'timer' 
-  | 'rep' 
-  | 'effort' 
-  | 'distance' 
-  | 'rounds' 
-  | 'action' 
-  | 'increment' 
-  | 'lap' 
-  | 'text' 
-  | 'resistance';
-
-/**
- * Color map for fragment types
- */
-export type FragmentColorMap = {
-  readonly [key in FragmentTypeString]: string;
-};
 
 /**
  * Parse error for fragment visualization
