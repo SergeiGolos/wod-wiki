@@ -20,6 +20,7 @@ import {
   useStackDisplayItems,
 } from '../../runtime/hooks/useStackDisplay';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { calculateDuration } from '../../lib/timeUtils';
 
 import { RefinedTimerDisplay } from './RefinedTimerDisplay';
 
@@ -111,19 +112,11 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   // Data Derivation (using `now`)
   // ---------------------------------------------------------------------------
 
-  // Calculate elapsed time for a set of spans relative to `now`
-  const getElapsed = (spans: readonly TimeSpan[]) => {
-    return spans.reduce((total, span) => {
-      const end = span.ended ?? now;
-      return total + Math.max(0, end - span.started);
-    }, 0);
-  };
-
   // 1. Primary Timer Elapsed
   // Note: We use the memory-derived elapsed time, overriding props.elapsedMs
   const primaryElapsedMs = useMemo(() => {
     if (!primaryTimer) return 0;
-    return getElapsed(primaryTimer.timer.spans);
+    return calculateDuration(primaryTimer.timer.spans, now);
   }, [primaryTimer, now]);
 
   // 2. Timer States for Stack Items
@@ -132,7 +125,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 
     for (const entry of allTimers) {
       const blockKey = entry.block.key.toString();
-      const elapsed = getElapsed(entry.timer.spans);
+      const elapsed = calculateDuration(entry.timer.spans, now);
 
       map.set(blockKey, {
         elapsed,

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
+import { calculateDuration } from '../../lib/timeUtils';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../runtime/behaviors';
@@ -250,19 +251,9 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
   onRecalculate,
   timerType
 }) => {
-  const calculateElapsed = (): number => {
-    if (timeSpans.length === 0) return 0;
-
-    return timeSpans.reduce((total, span) => {
-      // span is TimeSpan class
-      const end = span.ended || Date.now();
-      return total + Math.max(0, end - span.started);
-    }, 0);
-  };
-
   const formatElapsedTime = formatDurationSmart;
 
-  const elapsedMs = calculateElapsed();
+  const elapsedMs = calculateDuration(timeSpans, Date.now());
   const elapsedDisplay = timerType === 'countdown'
     ? `-${formatElapsedTime(elapsedMs)}`
     : formatElapsedTime(elapsedMs);
