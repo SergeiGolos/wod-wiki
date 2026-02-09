@@ -334,9 +334,11 @@ export class RuntimeBlock implements IRuntimeBlock {
     // ============================================================================
 
     get fragments(): ICodeFragment[][] {
-        // Return fragments from fragment memory if available, wrapped in array of arrays
+        // Return fragment groups directly from memory — preserves multi-group structure
         const fragmentEntry = this.getMemory('fragment');
-        return fragmentEntry?.value.fragments ? [[...fragmentEntry.value.fragments]] : [];
+        return fragmentEntry?.value.groups?.length
+            ? fragmentEntry.value.groups.map(g => [...g])
+            : [];
     }
 
     /**

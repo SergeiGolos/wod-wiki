@@ -53,8 +53,7 @@ describe('RuntimeBlock Fragment Methods', () => {
 
         // Set fragments in memory using the public setMemoryValue method
         const fragmentState: FragmentState = {
-            fragments: allFragments,
-            template: ''
+            groups: [allFragments]
         };
         block.setMemoryValue('fragment', fragmentState);
     });

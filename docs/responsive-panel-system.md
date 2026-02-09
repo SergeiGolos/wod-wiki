@@ -58,6 +58,156 @@ The `PanelGrid` component consumes `useScreenMode()` and switches its flex strat
 
 ---
 
+## Panel Inventory
+
+Each view is composed of one or more panels. This section documents what each panel renders, its intent, and how it should adapt its internal layout when the available span changes across screen modes.
+
+> **Key concept:** The panel system controls *how much space* a panel gets (`1/3`, `2/3`, `full`, or `50%` on tablet). Individual panels are responsible for *how they render* within that space. Some panels already accept `mobile` or `compact` props — the new system formalizes when those activate.
+
+### Plan View — `PlanPanel`
+
+**Component:** `PlanPanel.tsx` → wraps `MarkdownEditorBase` (Monaco Editor)
+**Default span:** `3` (full-screen)
+**Intent:** The authoring surface. Users write and edit WOD workout definitions here. Monaco's inline view zones render WOD block previews directly in the editor.
+
+| Screen Mode | Layout | Adaptations |
+|-------------|--------|-------------|
+| Desktop (full) | Full viewport width | Standard Monaco editor, all features visible |
+| Tablet (full) | Full viewport width | Same as desktop — Monaco handles its own responsive sizing |
+| Mobile (full) | Full viewport width, stacked | Monaco minimap hidden (already configured via editor options), smaller font feasible |
+
+**Resize strategy:** None required — Monaco auto-fills its container. The editor already has `height="100%"` and uses a container ref for sizing.
+
+---
+
+### Track View — `TrackPanelPrimary`
+
+**Component:** `TrackPanelPrimary` → wraps `TimerDisplay` → wraps `RefinedTimerDisplay`
+**Default span:** `2` (2/3 width)
+**Intent:** The active workout display. Shows the main timer ring, execution stack cards, transport controls (play/pause/stop/next), and action buttons from the runtime.
+
+**Internal layout (RefinedTimerDisplay):**
+- **Left column:** Stack cards (`UnifiedItemRow` list with timer pills) — the live execution stack
+- **Right column:** Large circular timer ring with progress arc + transport controls below
+- Grid: `grid-cols-1 lg:grid-cols-[minmax(280px,35%)_1fr]` — already switches to single-column on narrow widths
+
+| Screen Mode | Span | Adaptations |
+|-------------|------|-------------|
+| Desktop 2/3 | `flex: 2` | Full two-column layout: stack cards on left, timer ring on right. Timer ring at `lg:w-96 lg:h-96`. |
+| Desktop full | `flex: 3` (expanded) | Same two-column layout but with more horizontal room. Timer ring stays centered. |
+| Tablet 50% | `flex: 1` | **Trigger `compact` mode.** At 50% tablet width (~384-512px), the `lg:` breakpoint won't fire. Falls back to single-column: stack cards stacked above timer. Timer ring at `sm:w-48 sm:h-48`. |
+| Mobile stack | Full width | **Already handled.** `compact=true` passed via `isMobile`. On mobile, `TrackPanelPrimary` embeds a `TimerIndexPanel` *inside* itself (the history log scrolls on top, timer docks at bottom). The separate `TrackPanelIndex` panel is hidden on mobile. |
+
+**Resize strategy:**
+- The `compact` prop on `TimerDisplay` controls small vs. large timer ring and single-column layout
+- The `lg:` CSS breakpoint inside `RefinedTimerDisplay` naturally handles the column flip
+- **What to hide at narrow spans:** Nothing — the grid gracefully degrades to single-column
+- **What changes:** Timer ring size scales down, button sizes use `sm:` variants, padding tightens
+
+**Existing responsive props:** `compact` (boolean), `isMobile` (boolean)
+
+---
+
+### Track View — `TrackPanelIndex`
+
+**Component:** `TrackPanelIndex` → wraps `TimerIndexPanel` → wraps `RuntimeHistoryLog`
+**Default span:** `1` (1/3 width)
+**Intent:** Live execution history — a chronological, indented log of completed workout operations. Scrolls with auto-follow during active execution. This panel is the *sidebar context* during a workout.
+
+| Screen Mode | Span | Adaptations |
+|-------------|------|-------------|
+| Desktop 1/3 | `flex: 1` | Full history log, auto-scroll enabled, desktop styling. |
+| Desktop full | `flex: 3` (expanded) | History log fills viewport — useful for reviewing long workout history. |
+| Tablet 50% | `flex: 1` | Same as desktop 1/3 behavior — `RuntimeHistoryLog` is a single-column list, it adapts naturally. Passes `mobile=false` (tablet is wide enough). |
+| Mobile stack | **Hidden as standalone panel** | On mobile, `TrackPanelPrimary` embeds a copy of `TimerIndexPanel` inside itself (scrollable area above the timer). The standalone `TrackPanelIndex` is not rendered as a separate stacked panel. |
+
+**Resize strategy:**
+- The list is inherently single-column and flexible — no special resize needed
+- **Mobile exception:** This panel is *not shown separately* on mobile. Instead, `TrackPanelPrimary` includes an inline copy. The `ViewDescriptor` for Track on mobile should only emit the primary panel.
+- **Debug mode swap:** On desktop, when debug mode is active, this panel is swapped for `RuntimeDebugPanel` in the same 1/3 slot.
+
+**Existing responsive props:** `mobile` (boolean), `autoScroll` (boolean)
+
+---
+
+### Track View — `RuntimeDebugPanel`
+
+**Component:** `RuntimeDebugPanel.tsx`
+**Default span:** `1` (1/3 width, replaces `TrackPanelIndex` when debug mode active)
+**Intent:** Developer inspection tool — shows the runtime stack with inline memory inspection, parser output, and block metadata. Only visible when `isDebugMode=true`.
+
+| Screen Mode | Span | Adaptations |
+|-------------|------|-------------|
+| Desktop 1/3 | `flex: 1` | Embedded mode (`embedded=true`). Two tabs: Parser, Stack. Memory values shown inline with dialog on click. |
+| Desktop full | `flex: 3` (expanded) | Full-width debug view — stack and parser side-by-side feasible. |
+| Tablet 50% | `flex: 1` | Same as desktop 1/3. The panel is a scrollable list — adapts naturally. |
+| Mobile | **Not shown** | Debug panel is hidden on mobile (`!isMobile && <DebugButton>` in header). If supported in future, would need significant redesign. |
+
+**Resize strategy:** Minimal — the panel is a scrollable list with collapsible sections. Content adapts naturally to available width.
+
+**Existing responsive props:** `embedded` (boolean), `className` (string)
+
+---
+
+### Review View — `ReviewPanelPrimary`
+
+**Component:** `ReviewPanelPrimary` → wraps `TimelineView`
+**Default span:** `2` (2/3 width)
+**Intent:** Post-workout analytics visualization. Renders a timeline chart showing workout segments over time with interactive selection and filtering.
+
+| Screen Mode | Span | Adaptations |
+|-------------|------|-------------|
+| Desktop 2/3 | `flex: 2` | Full timeline chart with interactive hover, segment selection. Adequate width for multi-bar charts. |
+| Desktop full | `flex: 3` (expanded) | Timeline stretches to fill — more data resolution visible. |
+| Tablet 50% | `flex: 1` | Timeline at ~50% viewport width. Chart should still render but with **reduced tick density** on the x-axis. Consider hiding legend if it overlaps. |
+| Mobile stack | Full width, scrollable | Full-width chart within the stacked panel. Adequate room since it's 100% width. Touch-friendly selection targets. |
+
+**Resize strategy:**
+- The `TimelineView` component should use container-aware sizing (e.g., `ResizeObserver` or `responsiveContainer` from a charting library) to adapt chart density to available width
+- **What to hide at narrow spans:** Dense axis labels, secondary legends
+- **What to resize:** Bar widths, tick intervals, tooltip positioning
+
+**Existing responsive props:** None currently — relies on parent container width
+
+---
+
+### Review View — `ReviewPanelIndex`
+
+**Component:** `ReviewPanelIndex` → wraps `AnalyticsIndexPanel`
+**Default span:** `1` (1/3 width)
+**Intent:** Segment selection sidebar for the analytics view. Shows a chronological list of workout segments (efforts, rests, groups) with toggleable selection that syncs with the timeline chart. Uses the `UnifiedItemList` visualization system.
+
+| Screen Mode | Span | Adaptations |
+|-------------|------|-------------|
+| Desktop 1/3 | `flex: 1` | Full segment list with group headers, elapsed times, and fragment visualization. |
+| Desktop full | `flex: 3` (expanded) | Segment list fills viewport — useful for very long segment lists. |
+| Tablet 50% | `flex: 1` | Same as desktop — the list is single-column and width-flexible. |
+| Mobile stack | Full width, scrollable | List renders at full viewport width within the stacked panel. Passes `mobile=true` for larger touch targets and simplified row layout. |
+
+**Resize strategy:**
+- The list is inherently single-column — no special resize needed
+- **Mobile:** Passes `mobile=true` which increases padding, font sizes, and touch target areas in `AnalyticsIndexPanel`
+- **What to hide at narrow spans:** Nothing — the list is already compact
+
+**Existing responsive props:** `mobile` (boolean)
+
+---
+
+### Summary: Panel Resize Contracts
+
+| Panel | Existing `mobile` prop | Existing `compact` prop | Needs new resize work | Critical adaptations |
+|-------|----------------------|------------------------|----------------------|---------------------|
+| `PlanPanel` | ✗ | ✗ | No | Monaco auto-fills |
+| `TrackPanelPrimary` | ✓ (`isMobile`) | ✓ (`compact`) | Trigger compact on tablet 50% | Timer ring size, column→single-column |
+| `TrackPanelIndex` | ✓ (`mobile`) | ✗ | No (skip on mobile) | Embedded inside primary on mobile |
+| `RuntimeDebugPanel` | ✗ | ✗ | No (hidden on mobile) | N/A |
+| `ReviewPanelPrimary` | ✗ | ✗ | **Yes — chart density** | Axis labels, bar widths at narrow spans |
+| `ReviewPanelIndex` | ✓ (`mobile`) | ✗ | No | Touch targets on mobile |
+
+> **Migration note:** Today, the `isMobile` boolean is a single flag. The new `useScreenMode()` hook should replace it with the three-way `ScreenMode` type. Components should adapt their internal layout based on *both* the screen mode AND their current span (since a 1/3 panel on desktop is similar in width to a 50% panel on tablet).
+
+---
+
 ## Architecture Overview
 
 ### Current Pain Points
@@ -259,18 +409,18 @@ interface PanelLayoutState {
 
 ## File Map
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/layout/panel-system/types.ts` | **NEW** | Core type definitions |
-| `src/components/layout/panel-system/PanelShell.tsx` | **NEW** | Panel wrapper with expand/collapse |
-| `src/components/layout/panel-system/PanelGrid.tsx` | **NEW** | Flex layout engine |
-| `src/components/layout/panel-system/usePanelLayout.ts` | **NEW** | Panel span state hook |
-| `src/components/layout/panel-system/viewDescriptors.ts` | **NEW** | Default view configurations |
-| `src/components/layout/panel-system/ResponsiveViewport.tsx` | **NEW** | New sliding viewport |
-| `src/components/layout/panel-system/index.ts` | **NEW** | Barrel export |
-| `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Add panel layout state |
-| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Use new panel system |
-| `src/components/layout/SlidingViewport.tsx` | **DEPRECATE** | Keep for reference, unused |
+| File                                                        | Action        | Purpose                                                        |
+| ----------------------------------------------------------- | ------------- | -------------------------------------------------------------- |
+| `src/components/layout/panel-system/types.ts`               | **NEW**       | Core type definitions                                          |
+| `src/components/layout/panel-system/PanelShell.tsx`         | **NEW**       | Panel wrapper with expand/collapse                             |
+| `src/components/layout/panel-system/PanelGrid.tsx`          | **NEW**       | Flex layout engine                                             |
+| `src/components/layout/panel-system/usePanelLayout.ts`      | **NEW**       | Panel span state hook                                          |
+| `src/components/layout/panel-system/viewDescriptors.ts`     | **NEW**       | Default view configurations                                    |
+| `src/components/layout/panel-system/ResponsiveViewport.tsx` | **NEW**       | New sliding viewport                                           |
+| `src/components/layout/panel-system/index.ts`               | **NEW**       | Barrel export                                                  |
+| `src/components/layout/WorkbenchContext.tsx`                | **MODIFY**    | Add panel layout state                                         |
+| `src/components/layout/UnifiedWorkbench.tsx`                | **MODIFY**    | Use new panel system                                           |
+| `src/components/layout/SlidingViewport.tsx`                 | **DEPRECATE** | ==Keep for reference, unused==^[Do not keep, remove this com]  |
 
 ## Future Extensibility
 

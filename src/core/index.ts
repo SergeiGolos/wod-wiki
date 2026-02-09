@@ -1,6 +1,12 @@
 // Export types only (interfaces and type aliases) from centralized types
 export * from './types';
 
+// Export contracts
+export type { IFragmentSource, FragmentFilter } from './contracts/IFragmentSource';
+
+// Export utilities
+export { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './utils/fragmentPrecedence';
+
 // Export classes (not just types) from models
 export { BlockKey } from './models/BlockKey';
 export { FragmentType } from './models/CodeFragment';

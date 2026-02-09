@@ -69,7 +69,7 @@ This eliminates the `IDisplayItem` adapter layer, standardizes fragment preceden
 | Level       | Interface          | Role                      | Fragment Source                                                                                                                                                                                  |
 | ----------- | ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Parser**  | `ICodeStatement`   | Static parsed script      | `fragments: ICodeFragment[]` — flat 1D, all `origin: 'parser'`                                                                                                                                   |
-| **Runtime** | `IRuntimeBlock`    | Executing block on stack  | `fragments?: ICodeFragment[][]` — nominally 2D per-round, but actually `[[...flat]]` from `FragmentMemory`. **Plus** typed `Memory` entries (`timer`, `round`, etc.) with parallel runtime state |
+| **Runtime** | `IRuntimeBlock`    | Executing block on stack  | `fragments: ICodeFragment[][]` — 2D per-group from `FragmentMemory`. Groups are preserved end-to-end from strategy → builder → memory → getter. **Plus** typed `Memory` entries (`timer`, `round`, etc.) with parallel runtime state |
 | **Output**  | `IOutputStatement` | Execution result snapshot | `fragments: ICodeFragment[]` — merged parser + runtime, extends `ICodeStatement`                                                                                                                 |
 | **Display** | `IDisplayItem`     | Adapter target for UI     | `fragments: ICodeFragment[]` — flat 1D, always `.flat()`'d — **to be eliminated**                                                                                                              |
 
@@ -86,15 +86,15 @@ Additionally, `RuntimeSpan` (used by analytics) mirrors the same `ICodeFragment[
 │   hasFragment(type): boolean                                             │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ IRuntimeBlock                                                            │
-│   fragments?: ICodeFragment[][]       ← 2D (per-round), but in practice │
-│                                         always [[...flat]] from memory   │
+│   fragments: ICodeFragment[][]        ← 2D groups from FragmentMemory   │
+│                                         groups preserved end-to-end      │
 │   findFragment(type): T | undefined   ← iterates 2D                     │
 │   filterFragments(type): T[]                                             │
 │   hasFragment(type): boolean                                             │
 │   context.memory:                                                        │
 │     'timer'  → TimerState { spans, durationMs, direction, label }       │
 │     'round'  → RoundState { current, total }                             │
-│     'fragment' → FragmentState { fragments: ICodeFragment[] }            │
+│     'fragment' → FragmentState { groups: ICodeFragment[][] }             │
 │     'completion' → CompletionState                                       │
 │     'display' → DisplayState                                             │
 │     'controls' → ButtonsState                                            │
@@ -194,38 +194,48 @@ This produces:
 
 Currently `findFragment(FragmentType.Rep)` returns the **first** one. There is no mechanism to ask for "the most relevant rep fragment for the current round."
 
-### 3.4 Broken Fragment Flow in Compilation (Critical Bug)
+### 3.4 ~~Broken Fragment Flow in Compilation (Critical Bug)~~ — FIXED in Phase 0
 
-`BlockBuilder.setFragments()` stores fragments, but `BlockBuilder.build()` passes them as an 8th constructor argument to `RuntimeBlock`, which only accepts 7 parameters:
+~~`BlockBuilder.setFragments()` stores fragments, but `BlockBuilder.build()` passes them as an 8th constructor argument to `RuntimeBlock`, which only accepts 7 parameters.~~
+
+**Fixed**: `BlockBuilder.build()` now allocates fragment memory after construction:
 
 ```typescript
-// BlockBuilder.ts
+// BlockBuilder.ts — AFTER fix
 build(): IRuntimeBlock {
-    return new RuntimeBlock(
-        this.runtime,
-        this.sourceIds,
+    const block = new RuntimeBlock(
+        this.runtime, this.sourceIds,
         Array.from(this.behaviors.values()),
-        this.context,
-        this.key,
-        this.blockType,
-        this.label,
-        this.fragments  // ← 8th arg, SILENTLY IGNORED
+        this.context, this.key, this.blockType, this.label
     );
+
+    // Allocate fragment memory preserving group structure from strategies
+    if (this.fragments && this.fragments.length > 0) {
+        block.setMemoryValue('fragment', { groups: this.fragments });
+    }
+
+    return block;
 }
 ```
 
-`RuntimeBlock`'s `fragments` getter reads from `FragmentMemory`:
+`FragmentState` now stores fragment groups as `ICodeFragment[][]`, preserving the multi-group structure produced by fragment distributors:
+
+```typescript
+export interface FragmentState {
+    readonly groups: readonly (readonly ICodeFragment[])[];
+}
+```
+
+`RuntimeBlock`'s `fragments` getter returns the stored groups directly:
 
 ```typescript
 get fragments(): ICodeFragment[][] {
     const fragmentEntry = this.getMemory('fragment');
-    return fragmentEntry?.value.fragments ? [[...fragmentEntry.value.fragments]] : [];
+    return fragmentEntry?.value.groups?.length
+        ? fragmentEntry.value.groups.map(g => [...g])
+        : [];
 }
 ```
-
-Unless a behavior explicitly calls `block.setMemoryValue('fragment', { fragments: [...] })`, the block has **zero fragments**. The strategies call `builder.setFragments(fragmentGroups)` but the data never arrives.
-
-**Consequence**: `SegmentOutputBehavior.onUnmount()` calls `ctx.block.fragments?.flat()` and gets `[]`, meaning output statements are often emitted with empty fragment arrays. The UI falls back to `label` strings.
 
 ### 3.5 UI Components Must Know Source Type
 
@@ -498,22 +508,28 @@ export class ParsedCodeStatement extends CodeStatement implements IFragmentSourc
 
 **Key design change**: `IRuntimeBlock` does **not** implement `IFragmentSource`. Instead, fragment data lives in the memory system — the same way timer, round, and completion state already do. The memory entries themselves implement `IFragmentSource` and can be bound directly to UI components via the existing `useBlockMemory` hook.
 
-#### Two Fragment Memory Visibility Levels
+#### Fragment Memory — Groups Stored Natively (Phase 0 Implementation)
+
+Rather than separate `fragment:group:N` memory entries, `FragmentState` stores the multi-group structure directly:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ RuntimeBlock Memory                                                 │
 │                                                                     │
-│  ┌─ INTERNAL (private) ─────────────────────────────────────────┐   │
-│  │  'fragment:group:0'  → ICodeFragment[] (parser fragments)    │   │
-│  │  'fragment:group:1'  → ICodeFragment[] (inherited fragments) │   │
-│  │  'fragment:group:N'  → ICodeFragment[] (per-round groups)    │   │
-│  └──────────────────────────────────────────────┬────────────────┘   │
-│                                                 │ aggregates         │
-│  ┌─ PUBLIC ─────────────────────────────────────▼────────────────┐   │
+│  ┌─ FRAGMENT MEMORY ────────────────────────────────────────────┐   │
+│  │  'fragment' → FragmentState {                                 │   │
+│  │    groups: [                                                  │   │
+│  │      ICodeFragment[],  // group 0 (e.g., parser fragments)   │   │
+│  │      ICodeFragment[],  // group 1 (e.g., inherited)          │   │
+│  │      ICodeFragment[],  // group N (e.g., per-round)          │   │
+│  │    ]                                                          │   │
+│  │  }                                                            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─ FUTURE: PUBLIC DISPLAY (Phase 1) ──────────────────────────┐   │
 │  │  'fragment:display'  → DisplayFragmentMemory                  │   │
 │  │                        implements IFragmentSource             │   │
-│  │                        subscribes to internal groups +        │   │
+│  │                        reads from 'fragment' groups +         │   │
 │  │                        timer/round memory for synthesis       │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
@@ -527,13 +543,34 @@ export class ParsedCodeStatement extends CodeStatement implements IFragmentSourc
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-#### New Memory Types
+#### FragmentState (Updated in Phase 0)
 
 ```typescript
-// Added to MemoryType union and MemoryTypeMap:
+export interface FragmentState {
+    /** Fragment groups — each inner array is a semantic group (e.g., per-round fragments) */
+    readonly groups: readonly (readonly ICodeFragment[])[];
+}
+```
 
-/** Internal fragment group — one per compilation group */
-export type FragmentGroupType = `fragment:group:${number}`;
+#### FragmentMemory (Updated in Phase 0)
+
+```typescript
+export class FragmentMemory extends BaseMemoryEntry<'fragment', FragmentState> {
+    constructor(initialGroups: ICodeFragment[][] = []) {
+        super('fragment', { groups: initialGroups });
+    }
+
+    addFragment(fragment: ICodeFragment, groupIndex: number = 0): void { ... }
+    addGroup(fragments: ICodeFragment[]): void { ... }
+    clear(): void { ... }
+    setGroups(groups: ICodeFragment[][]): void { ... }
+}
+```
+
+#### Future: New Memory Types (Phase 1)
+
+```typescript
+// To be added in Phase 1:
 
 /** Public display fragment source */
 export type FragmentDisplayType = 'fragment:display';
@@ -541,37 +578,14 @@ export type FragmentDisplayType = 'fragment:display';
 // The MemoryType union becomes:
 export type MemoryType = 
   | 'timer' | 'round' | 'fragment' | 'completion' | 'display' | 'controls'
-  | FragmentGroupType     // 'fragment:group:0', 'fragment:group:1', ...
   | FragmentDisplayType;  // 'fragment:display'
 ```
 
-#### Internal Fragment Memory (`FragmentGroupMemory`)
-
-Each `fragment:group:N` is a private memory entry holding one group from the `ICodeFragment[][]` that strategies produce. Behaviors and strategies read/write these directly.
-
-```typescript
-/**
- * Stores a single fragment group. Used internally by strategies.
- * One entry per group index in the ICodeFragment[][] layout.
- */
-export class FragmentGroupMemory 
-  extends BaseMemoryEntry<FragmentGroupType, FragmentState> {
-  
-  constructor(groupIndex: number, initialFragments: ICodeFragment[] = []) {
-    super(`fragment:group:${groupIndex}` as FragmentGroupType, {
-      fragments: initialFragments 
-    });
-  }
-
-  addFragment(fragment: ICodeFragment): void {
-    this.update({ fragments: [...this._value.fragments, fragment] });
-  }
-
-  setFragments(fragments: ICodeFragment[]): void {
-    this.update({ fragments });
-  }
-}
-```
+> **Design note**: The original proposal had separate `fragment:group:N` memory entries per group.
+> Instead, we store all groups in a single `'fragment'` memory entry as `groups: ICodeFragment[][]`.
+> This is simpler (no new memory types needed for Phase 0), preserves the group structure, and 
+> the existing `FragmentMemory` class handles it naturally. The Phase 1 `DisplayFragmentMemory` 
+> will read from this single entry and aggregate with runtime state.
 
 #### Public Display Fragment Memory (`DisplayFragmentMemory`)
 
@@ -996,34 +1010,48 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 
 ## 9. Migration Plan
 
-### Phase 0: Fix the Fragment Pipeline Bug (Prerequisites)
+### Phase 0: Fix the Fragment Pipeline Bug (Prerequisites) ✅
 
-**Must do first** — fragments must actually reach the block's memory.
+**Completed** — fragments now reach the block's memory with group structure preserved.
 
-| Task                                                        | File                                   | Change                                                                                     |
-| ----------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Fix `BlockBuilder.build()` to allocate fragment memory      | `src/runtime/compiler/BlockBuilder.ts` | Replace 8th-arg with memory allocation: allocate `FragmentGroupMemory` per group in `build()` |
-| Fix `OutputStatement.findFragment` type parameter           | `src/core/models/OutputStatement.ts`   | Change `type: string` to `type: FragmentType` to match `ICodeStatement`                     |
+| Task                                                        | File                                   | Change                                                                                     | Status |
+| ----------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------ |
+| Fix `BlockBuilder.build()` to allocate fragment memory      | `src/runtime/compiler/BlockBuilder.ts` | Removed silently-dropped 8th arg. `build()` now calls `block.setMemoryValue('fragment', { groups: this.fragments })` preserving the `ICodeFragment[][]` structure | ✅ Done |
+| Fix `OutputStatement.findFragment` type parameter           | `src/core/models/OutputStatement.ts`   | Changed `type: string` to `type: FragmentType` on `findFragment`, `filterFragments`, `hasFragment` | ✅ Done |
+| Update `FragmentState` to hold `ICodeFragment[][]`          | `src/runtime/memory/MemoryTypes.ts`    | Changed `fragments: readonly ICodeFragment[]` to `groups: readonly (readonly ICodeFragment[])[]` | ✅ Done |
+| Update `FragmentMemory` for group-based storage             | `src/runtime/memory/FragmentMemory.ts` | Constructor takes `ICodeFragment[][]`, added `addGroup()`, `setGroups()`, group-indexed `addFragment()` | ✅ Done |
+| Update `RuntimeBlock.fragments` getter                      | `src/runtime/RuntimeBlock.ts`          | Returns stored groups directly instead of wrapping flat array as `[[...flat]]` | ✅ Done |
 
 ### Phase 1: Define Interfaces & Memory Types
 
 | Task                                                          | File                                         |
-| ------------------------------------------------------------- | -------------------------------------------- |
-| Create `IFragmentSource` interface                            | `src/core/contracts/IFragmentSource.ts`      |
-| Create `resolveFragmentPrecedence()` utility                  | `src/core/utils/fragmentPrecedence.ts`       |
-| Create `FragmentFilter` type                                  | `src/core/contracts/IFragmentSource.ts`      |
-| Add `FragmentGroupType` and `FragmentDisplayType` to `MemoryType` | `src/runtime/memory/MemoryTypes.ts`      |
-| Create `FragmentGroupMemory` (internal, private)              | `src/runtime/memory/FragmentGroupMemory.ts`  |
-| Create `DisplayFragmentMemory` (public, implements `IFragmentSource`) | `src/runtime/memory/DisplayFragmentMemory.ts` |
-| Export from `src/core/index.ts` and `src/core-entry.ts`       | respective index files                       |
+| ------------------------------------------------------------- | -------------------------------------------- | ------ |
+| Create `IFragmentSource` interface                            | `src/core/contracts/IFragmentSource.ts`      | ✅ Done |
+| Create `resolveFragmentPrecedence()` utility                  | `src/core/utils/fragmentPrecedence.ts`       | ✅ Done |
+| Create `FragmentFilter` type                                  | `src/core/contracts/IFragmentSource.ts`      | ✅ Done |
+| Add `FragmentDisplayType` to `MemoryType`                     | `src/runtime/memory/MemoryTypes.ts`          | ✅ Done |
+| Create `DisplayFragmentMemory` (public, implements `IFragmentSource`) | `src/runtime/memory/DisplayFragmentMemory.ts` | ✅ Done |
+| Export from `src/core/index.ts` and `src/core-entry.ts`       | respective index files                       | ✅ Done |
+
+> **Note**: `FragmentGroupMemory` is no longer needed as a separate class. Phase 0 stores all
+> groups in a single `FragmentMemory` entry with `groups: ICodeFragment[][]`. The `DisplayFragmentMemory`
+> reads from this single entry and auto-syncs via subscription.
+>
+> **Implementation details**:
+> - `IFragmentSource` and `FragmentFilter` defined in `src/core/contracts/IFragmentSource.ts`
+> - `resolveFragmentPrecedence()`, `selectBestTier()`, `ORIGIN_PRECEDENCE` in `src/core/utils/fragmentPrecedence.ts`
+> - `FragmentDisplayState` added to `MemoryTypes.ts` with `fragments` (raw) and `resolved` (precedence-resolved) arrays
+> - `MemoryType` union extended with `'fragment:display'`; `MemoryTypeMap` maps it to `FragmentDisplayState`
+> - `DisplayFragmentMemory` subscribes to source `FragmentMemory` for reactive updates
+> - Tests: 20 tests in `fragmentPrecedence.test.ts`, 22 tests in `DisplayFragmentMemory.test.ts` — all passing
 
 ### Phase 2: Implement on Parser & Output Models
 
-| Task | File | Risk |
-|------|------|------|
-| `CodeStatement implements IFragmentSource` | `src/core/models/CodeStatement.ts` | Low — trivial delegation |
+| Task                                         | File                                 | Risk                             |
+| -------------------------------------------- | ------------------------------------ | -------------------------------- |
+| `CodeStatement implements IFragmentSource`   | `src/core/models/CodeStatement.ts`   | Low — trivial delegation         |
 | `OutputStatement implements IFragmentSource` | `src/core/models/OutputStatement.ts` | Low — already has flat fragments |
-| `RuntimeSpan implements IFragmentSource` | `src/runtime/models/RuntimeSpan.ts` | Low — mirrors OutputStatement |
+| `RuntimeSpan implements IFragmentSource`     | `src/runtime/models/RuntimeSpan.ts`  | Low — mirrors OutputStatement    |
 
 > **Note**: `IRuntimeBlock` is NOT modified. No new methods, no `IFragmentSource` implementation, no `getFragmentSource()`. The `DisplayFragmentMemory` entry in the block's memory is the `IFragmentSource`.
 
@@ -1031,9 +1059,8 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 
 | Task | File | Risk |
 |------|------|------|
-| Add `allocateFragmentGroup(index, fragments)` to `BlockBuilder` | `src/runtime/compiler/BlockBuilder.ts` | Low |
-| `build()` allocates internal groups + public `DisplayFragmentMemory` | `src/runtime/compiler/BlockBuilder.ts` | Medium — replaces broken 8th-arg |
-| Update 5 strategies to use `allocateFragmentGroup()` | `src/runtime/compiler/strategies/` | Low — pattern is identical |
+| `build()` allocates `DisplayFragmentMemory` from stored groups | `src/runtime/compiler/BlockBuilder.ts` | Medium — fragment memory already allocated in Phase 0 |
+| Update 5 strategies to use `DisplayFragmentMemory` if needed   | `src/runtime/compiler/strategies/`     | Low — pattern is identical |
 
 ### Phase 4: Create Hooks & Update UI Bindings
 

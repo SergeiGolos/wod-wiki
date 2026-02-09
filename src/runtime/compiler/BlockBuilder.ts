@@ -99,15 +99,21 @@ export class BlockBuilder {
         if (!this.context) throw new Error("BlockContext is required");
         if (!this.key) throw new Error("BlockKey is required");
 
-        return new RuntimeBlock(
+        const block = new RuntimeBlock(
             this.runtime,
             this.sourceIds,
             Array.from(this.behaviors.values()),
             this.context,
             this.key,
             this.blockType,
-            this.label,
-            this.fragments
+            this.label
         );
+
+        // Allocate fragment memory preserving group structure from strategies
+        if (this.fragments && this.fragments.length > 0) {
+            block.setMemoryValue('fragment', { groups: this.fragments });
+        }
+
+        return block;
     }
 }

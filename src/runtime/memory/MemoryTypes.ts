@@ -47,12 +47,28 @@ export interface RoundState {
 /**
  * Fragment state stored in memory.
  * 
- * A collection of fragments hosted by the current block that should be 
- * inherited by its children in the runtime hierarchy.
+ * Fragment groups represent semantic groupings from compilation (e.g., per-round,
+ * per-interval). Each inner array is one group produced by the fragment distributor.
+ * This preserves the multi-dimensional structure through the entire pipeline:
+ * Parser → Strategy → BlockBuilder → FragmentMemory → RuntimeBlock.fragments
  */
 export interface FragmentState {
-    /** Collection of fragments to be passed down */
+    /** Fragment groups — each inner array is a semantic group (e.g., per-round fragments) */
+    readonly groups: readonly (readonly ICodeFragment[])[];
+}
+
+/**
+ * Display-ready fragment state stored in memory.
+ * 
+ * Produced by applying precedence resolution to raw fragment groups.
+ * The `resolved` array contains fragments after per-type precedence
+ * selection (user > runtime > compiler > parser).
+ */
+export interface FragmentDisplayState {
+    /** All raw fragments flattened from groups (before precedence) */
     readonly fragments: readonly ICodeFragment[];
+    /** Precedence-resolved fragments ready for display */
+    readonly resolved: readonly ICodeFragment[];
 }
 
 /**
@@ -144,7 +160,7 @@ export interface ButtonsState {
 /**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'fragment' | 'completion' | 'display' | 'controls';
+export type MemoryType = 'timer' | 'round' | 'fragment' | 'fragment:display' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
@@ -157,6 +173,7 @@ export interface MemoryTypeMap {
     timer: TimerState;
     round: RoundState;
     fragment: FragmentState;
+    'fragment:display': FragmentDisplayState;
     completion: CompletionState;
     display: DisplayState;
     controls: ButtonsState;

@@ -75,10 +75,10 @@ describe('Memory Implementations', () => {
             const mockFragment: any = { fragmentType: 'text', image: 'test' };
 
             fragment.addFragment(mockFragment);
-            expect(fragment.value.fragments).toContain(mockFragment);
+            expect(fragment.value.groups[0]).toContain(mockFragment);
 
             fragment.clear();
-            expect(fragment.value.fragments.length).toBe(0);
+            expect(fragment.value.groups.length).toBe(0);
         });
     });
 });

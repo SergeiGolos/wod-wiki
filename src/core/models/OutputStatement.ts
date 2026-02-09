@@ -1,5 +1,5 @@
 import { ICodeStatement } from './CodeStatement';
-import { ICodeFragment } from './CodeFragment';
+import { ICodeFragment, FragmentType } from './CodeFragment';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
@@ -150,7 +150,7 @@ export class OutputStatement implements IOutputStatement {
      * Find the first fragment of a given type, optionally matching a predicate.
      */
     findFragment<T extends ICodeFragment = ICodeFragment>(
-        type: string,
+        type: FragmentType,
         predicate?: (f: ICodeFragment) => boolean
     ): T | undefined {
         return this.fragments.find(
@@ -162,7 +162,7 @@ export class OutputStatement implements IOutputStatement {
      * Get all fragments of a given type.
      */
     filterFragments<T extends ICodeFragment = ICodeFragment>(
-        type: string
+        type: FragmentType
     ): T[] {
         return this.fragments.filter(f => f.fragmentType === type) as T[];
     }
@@ -170,7 +170,7 @@ export class OutputStatement implements IOutputStatement {
     /**
      * Check if a fragment of a given type exists.
      */
-    hasFragment(type: string): boolean {
+    hasFragment(type: FragmentType): boolean {
         return this.fragments.some(f => f.fragmentType === type);
     }
 

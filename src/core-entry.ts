@@ -74,3 +74,11 @@ export * from './runtime/compiler/fragments/TextFragment';
 // Fragment types
 export { FragmentType } from './core/models/CodeFragment';
 export type { ICodeFragment } from './core/models/CodeFragment';
+
+// Fragment contracts & utilities
+export type { IFragmentSource, FragmentFilter } from './core/contracts/IFragmentSource';
+export { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/fragmentPrecedence';
+
+// Fragment memory
+export { DisplayFragmentMemory } from './runtime/memory/DisplayFragmentMemory';
+export type { FragmentDisplayState } from './runtime/memory/MemoryTypes';
