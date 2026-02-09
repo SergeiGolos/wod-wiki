@@ -1298,16 +1298,16 @@ Both create their own `MdTimerRuntime` instances. `useParseAllBlocks` iterates b
 
 | Priority | Action | Impact |
 |----------|--------|--------|
-| 🔴 | Delete `WodWorkbench.tsx` + `RuntimeLayout.tsx` | -354 lines, resolves workbench confusion |
-| 🔴 | Delete `layout/PlanPanel.tsx` | -405 lines, only `workbench/PlanPanel` is used |
-| 🔴 | Delete `RuntimeHistoryPanel.tsx`, `ExecutionLogPanel.tsx`, `AnalyticsHistoryPanel.tsx` | -273 lines, dead duplicates |
-| 🔴 | Delete deprecated `useTimerReferences` hook | Dead code returning `undefined` |
+| ✅ 🔴 | Delete `WodWorkbench.tsx` + `RuntimeLayout.tsx` | -354 lines, resolves workbench confusion |
+| ✅ 🔴 | Delete `layout/PlanPanel.tsx` | -405 lines, only `workbench/PlanPanel` is used |
+| ✅ 🔴 | Delete `RuntimeHistoryPanel.tsx`, `ExecutionLogPanel.tsx`, `AnalyticsHistoryPanel.tsx` | -273 lines, dead duplicates |
+| ✅ 🔴 | Delete deprecated `useTimerReferences` hook | Dead code returning `undefined` |
 
 ### 10.2 Short-Term Refactoring
 
 | Priority | Action                                                                                   | Impact                                                            |
 | -------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 🟡       | Consolidate 15+ inline time formatters into `lib/formatTime.ts`                          | Eliminates most pervasive duplication, fixes ms/sec inconsistency |
+| ✅ 🟡   | Consolidate 15+ inline time formatters into `lib/formatTime.ts`                          | Eliminates most pervasive duplication, fixes ms/sec inconsistency |
 | 🟡       | Merge `WorkoutContextPanel` + `ContextPanel` into one configurable component             | -70% shared code                                                  |
 | 🟡       | Consolidate timer elapsed hooks (`useTimerElapsed` + `useTimerDisplay` + `useStopwatch`) | Eliminates 3 parallel implementations                             |
 | 🟡       | Unify `useOutputStatements` (delete simpler runtime version, keep richer clock version)  | Resolves same-name collision                                      |
@@ -1319,22 +1319,142 @@ Both create their own `MdTimerRuntime` instances. `useParseAllBlocks` iterates b
 | Priority | Action | Impact |
 |----------|--------|--------|
 | 🟢 | Rename `RuntimeProvider` variants for clarity (lifecycle vs injection) | Reduces developer confusion |
-| 🟢 | Create `MdTimerRuntime` singleton | Eliminates 5 independent parser instantiations |
-| 🟢 | Standardize `FragmentVisualizer` import paths to barrel export | Consistent import conventions |
-| 🟢 | Move `getFragmentIcon()` to co-locate with `getFragmentColorClasses()` | Better module cohesion |
-| 🟢 | Have `EditableStatementList` use `StatementDisplay` internally | -40 lines of duplicated rendering |
-| 🟢 | Evaluate `StackedClockDisplay` (733 lines) for retirement | Largest component, test-only usage |
-| 🟢 | Extract shared test bench hook from `RuntimeTestBench` + `BlockTestBench` | -80 lines of duplicate runtime setup |
+| ✅ 🟢 | Create `MdTimerRuntime` singleton | Eliminates 5 independent parser instantiations |
+| ✅ 🟢 | Standardize `FragmentVisualizer` import paths to barrel export | Consistent import conventions |
+| ✅ 🟢 | Move `getFragmentIcon()` to co-locate with `getFragmentColorClasses()` | Better module cohesion — **ALREADY CO-LOCATED** |
+| ✅ 🟢 | Have `EditableStatementList` use `StatementDisplay` internally | -40 lines of duplicated rendering — **ALREADY IMPLEMENTED** |
+| ✅ 🟢 | Evaluate `StackedClockDisplay` (733 lines) for retirement | Largest component, test-only usage — **DEPRECATED, scheduled for removal** |
+| ✅ 🟢 | Extract shared test bench hook from `RuntimeTestBench` + `BlockTestBench` | -80 lines of duplicate runtime setup — **ALREADY SHARING `useTestBenchRuntime`** |
 
-### 10.4 Design Observations (from Gemini cross-reference)
+### 10.4 Design Observations & Architecture Validation
 
-These recommendations from the Gemini audit are validated by this analysis:
+These observations from the Gemini audit have been validated through code analysis:
 
-1. **`TimerDisplay` separation is already done correctly** — `TimerDisplay` (data/subscription layer) wraps `RefinedTimerDisplay` (pure UI). The separation exists but could be formalized by extracting the subscription logic into a dedicated hook (e.g., `useRuntimeTimerState`) that returns the exact prop shape `RefinedTimerDisplay` expects.
+#### 10.4.1 Subscription & Data Flow Patterns
 
-2. **`FragmentVisualizer` is correctly stateless** — confirmed `React.memo` wrapped with no internal state. Safe to use across Plan, Track, and Analyze views.
+**Status: Validated ✅**
 
-3. **Editor decoupling** — `MarkdownEditor` / `MarkdownEditorBase` are tightly coupled to WOD-specific hooks (`useWodBlocks`, `useWodDecorations`, `useParseAllBlocks`). If generic markdown support is ever needed, these would need to be abstracted into a pluggable `LanguageFeatureProvider` pattern. Currently acceptable since WOD editing is the sole use case.
+##### `TimerDisplay` Separation Pattern
+`TimerDisplay` (subscription/data layer) correctly wraps `RefinedTimerDisplay` (pure UI). This layering is architecturally sound:
+- **Data Layer** (`TimerDisplay`): Subscribes to runtime stack events, calculates elapsed time, manages timer state
+- **Presentation Layer** (`RefinedTimerDisplay`): Pure function receiving `{ elapsedMs, primaryTimer, secondaryTimers, stackItems, ... }`
+- **Opportunity**: Extract subscription logic into dedicated `useRuntimeTimerState()` hook that returns complete prop shape for `RefinedTimerDisplay`
+- **Benefit**: Would enable:
+  - Easier testing of timer calculations without DOM
+  - Reusable timer state logic in other contexts (e.g., clock anchors, card systems)
+  - Clear contract between data & UI layers
+
+##### Stack Subscription Hooks
+Multiple hooks subscribe to runtime stack with similar patterns:
+- `useStackBlocks()` → `IRuntimeBlock[]` + event subscriptions
+- `useStackSnapshot()` → Current top-of-stack block state
+- `useOutputStatements()` → Execution span history with rate-limited polling
+
+**Recommendation**: Standardize on `useStackSnapshot()` as the canonical subscription source, with optional filters (e.g., `{ includeHistory: true }`)
+
+#### 10.4.2 Component Composition & Reusability
+
+**Status: Partially Optimized ✅**
+
+##### `FragmentVisualizer` — Correctly Stateless ✅
+Confirmed `React.memo` wrapped with zero internal state:
+- Safe to use across Plan (editor overlay), Track (execution display), and Analyze (timeline details)
+- Props contract is stable: `fragments`, `error`, `size`, `filter`, `compact`
+- Handles three size variants correctly: `compact` | `normal` | `focused`
+- No external dependencies beyond Tailwind CSS
+
+**Why this matters**: This is the de facto visualization atom across all views. Its purity ensures consistent rendering and enables aggressive memoization.
+
+##### Panel Consolidation Opportunities
+**Status: Not Yet Implemented ❌**
+
+Two overlapping context panels exist with ~70% shared code:
+- `WorkoutContextPanel` (in `src/components/workout/`): Used in workbench overlay, full workflow modes (edit/run/analyze)
+- `ContextPanel` (in `src/markdown-editor/components/`): Monaco widget integration, additional statement editing
+
+**Current separation rationale**: 
+- `WorkoutContextPanel` targets workbench integration (full-screen overlay)
+- `ContextPanel` targets editor-embedded use (Monaco widget positioning)
+
+**Consolidation path**:
+```typescript
+// Future: Single unified component
+interface UnifiedContextPanelProps {
+  block: WodBlock | null;
+  mode: 'edit' | 'run' | 'analyze';
+  layout: 'overlay' | 'widget' | 'sidebar';  // layout mode
+  callbacks: { onStart?, onEdit?, onDelete?, onAddStatement? };
+  className?: string;
+}
+
+// Monaco integration via factory
+function createMonacoContextWidget(editor, block) {
+  return new ContextOverlay(editor, <UnifiedContextPanel ... />);
+}
+```
+
+#### 10.4.3 Editor & Language Feature Decoupling
+
+**Status: Tightly Coupled (Acceptable for Current Scope) ✅**
+
+`MarkdownEditor` / `MarkdownEditorBase` dependencies on WOD-specific layers:
+
+```
+MarkdownEditorBase
+  ├── useWodBlocks()              // Parse WOD syntax
+  ├── useWodDecorations()         // Visual overlays (glyph margin, color coding)
+  ├── useParseAllBlocks()         // Full document parsing
+  ├── useSmartIncrement()         // WOD metric value automation
+  ├── useMarkdownEditorSetup()    // Monaco configuration
+  └── useRegisterCommand()        // WOD-specific commands
+```
+
+**Current design is appropriate because**:
+- WOD editing is the sole use case of `MarkdownEditor` in this codebase
+- Generic markdown support is not a stated requirement
+- Decoupling would add significant abstraction cost
+
+**Future-proofing (if generic markdown is needed)**:
+Implement `LanguageFeatureProvider` pattern:
+
+```typescript
+interface LanguageFeature {
+  tokenizer: Tokenizer;
+  parser: Parser;
+  decorationStrategy: DecorationStrategy;
+  commandRegistry: CommandRegistry;
+}
+
+<MarkdownEditorBase
+  languageFeature={WodLanguageFeature}  // Pluggable
+  // ... other props
+/>
+```
+
+This would allow WOD, Markdown, or any other syntax without core editor changes.
+
+#### 10.4.4 Summary of Architecture Strengths
+
+| Pattern | Status | Notes |
+|---------|--------|-------|
+| Subscription layering | ✅ Strong | Clear separation between data & UI (e.g., `TimerDisplay` → `RefinedTimerDisplay`) |
+| Stateless atoms | ✅ Strong | `FragmentVisualizer`, `TimeUnit` are pure functions |
+| Adapter pattern | ✅ Strong | Display items normalize parser/runtime/analytics data |
+| Provider stack | ✅ Sound | Multiple context providers (theme, command, workbench, runtime, audio) are modular |
+| Hook composition | ⚠️ Moderate | 15+ timer-related hooks exist; consolidation would improve clarity |
+| Component reusability | ⚠️ Moderate | Panel overlaps (70%+ code sharing) suggest consolidation opportunity |
+| Editor decoupling | ✅ Acceptable | WOD-specific coupling is fine given current scope; future pattern provided above |
+
+#### 10.4.5 Testing Architecture Notes
+
+**Status: Mature & Comprehensive ✅**
+
+- `BehaviorTestHarness`: Lightweight harness for unit testing individual behaviors
+- `RuntimeTestBuilder`: Builder pattern for integration testing strategies
+- Storybook integration tests (`play` functions) for UI component interaction
+- Consistent use of `MockBlock` for isolated behavior testing
+
+**Current strength**: These patterns allow testing without mocking the entire runtime, enabling fast iteration on behavior logic.
 
 ---
 
@@ -1342,24 +1462,30 @@ These recommendations from the Gemini audit are validated by this analysis:
 
 Files ranked by redundancy involvement (higher = more urgent to refactor):
 
-| Severity | File                                                   | Issues                                                           |
-| -------- | ------------------------------------------------------ | ---------------------------------------------------------------- |
-| 🔴🔴🔴   | `clock/components/StackedClockDisplay.tsx`             | 733 lines, test-only, 2 inline formatters, parallel timer system |
-| 🔴🔴     | `components/layout/WodWorkbench.tsx`                   | 323 lines, dead code, broken runtime                             |
-| 🔴🔴     | `components/layout/PlanPanel.tsx`                      | 405 lines, dead code                                             |
-| 🔴🔴     | `runtime/hooks/useTimerElapsed.ts`                     | Duplicates `useTimerDisplay` core logic                          |
-| 🔴🔴     | `clock/hooks/useStopwatch.ts`                          | 3rd implementation of elapsed calculation                        |
-| 🔴       | `clock/hooks/useDisplayStack.ts`                       | Deprecated, replacements exist                                   |
-| 🔴       | `clock/hooks/useExecutionSpans.ts`                     | Name collision with `runtime/hooks/useOutputStatements`          |
-| 🔴       | `components/workout/ExecutionLogPanel.tsx`             | Dead dup of `RuntimeHistoryLog`                                  |
-| 🔴       | `components/workout/AnalyticsHistoryPanel.tsx`         | Dead dup of `AnalyticsIndexPanel`                                |
-| 🟡       | `components/workout/RefinedTimerDisplay.tsx`           | Inline formatTime dup                                            |
-| 🟡       | `markdown-editor/components/EditableStatementList.tsx` | Re-implements StatementDisplay rendering                         |
-| 🟡       | `markdown-editor/components/ContextPanel.tsx`          | 70% overlap with WorkoutContextPanel                             |
-| 🟡       | `runtime/hooks/useStackBlocks.ts`                      | Duplicates `useStackSnapshot` functionality                      |
-| 🟡       | `timeline/TimelineView.tsx`                            | 2 inline formatters                                              |
-| 🟢       | `views/runtime/FragmentVisualizer.tsx`                 | Inconsistent import paths                                        |
-| 🟢       | `core/types/fragments.ts`                              | Duplicate type definitions                                       |
+| Status | Severity | File                                                   | Issues                                                           |
+| ------ | -------- | ------------------------------------------------------ | ---------------------------------------------------------------- |
+| ✅     | ~~🔴~~   | `components/layout/WodWorkbench.tsx`                   | 323 lines, dead code, broken runtime — **DELETED**              |
+| ✅     | ~~🔴~~   | `components/layout/PlanPanel.tsx`                      | 405 lines, dead code — **DELETED**                              |
+| ✅     | ~~🔴~~   | `components/workout/ExecutionLogPanel.tsx`             | Dead dup of `RuntimeHistoryLog` — **DELETED**                   |
+| ✅     | ~~🔴~~   | `components/workout/AnalyticsHistoryPanel.tsx`         | Dead dup of `AnalyticsIndexPanel` — **DELETED**                 |
+| ✅     | ~~🔴~~   | `runtime/hooks/useTimerReferences.ts`                  | Deprecated, no usages — **DELETED**                             |
+| ✅     | 🟢       | `lib/formatTime.ts`                                    | **CREATED** — Consolidates 15+ inline formatters                |
+| ✅     | ~~🔴~~   | `clock/components/StackedClockDisplay.tsx`             | 733 lines, test-only — **DEPRECATED, scheduled for removal**    |
+| ✅     | 🟢       | `parser/parserInstance.ts`                             | **CREATED** — Shared parser singleton, now used in all test files |
+| ✅     | 🟢       | `components/fragments/StatementDisplay.tsx`            | Import path standardized to use barrel export                    |
+| ✅     | ~~🟡~~   | `markdown-editor/components/EditableStatementList.tsx` | Now properly uses `StatementDisplay` — **RESOLVED**              |
+| ✅     | 🟢       | `views/runtime/fragmentColorMap.ts`                    | `getFragmentIcon` + `getFragmentColorClasses` co-located — **ALREADY DONE** |
+| ✅     | 🟢       | `runtime-test-bench/hooks/useTestBenchRuntime.ts`      | Shared hook already in use — **ALREADY DONE**                   |
+| 🔴🔴     |         | `runtime/hooks/useTimerElapsed.ts`                     | Duplicates `useTimerDisplay` core logic                          |
+| 🔴🔴     |         | `clock/hooks/useStopwatch.ts`                          | 3rd implementation of elapsed calculation (needs consolidation)  |
+| 🔴       |         | `clock/hooks/useDisplayStack.ts`                       | Deprecated, replacements exist                                   |
+| 🔴       |         | `clock/hooks/useExecutionSpans.ts`                     | Name collision with `runtime/hooks/useOutputStatements`          |
+| 🟡       |         | `components/workout/RefinedTimerDisplay.tsx`           | Now using consolidated `formatTime.ts`                           |
+| 🟡       |         | `markdown-editor/components/ContextPanel.tsx`          | 70% overlap with `WorkoutContextPanel`                           |
+| 🟡       |         | `components/workout/WorkoutContextPanel.tsx`           | 70% overlap with `ContextPanel`                                  |
+| 🟡       |         | `runtime/hooks/useStackBlocks.ts`                      | Duplicates `useStackSnapshot` functionality                      |
+| 🟡       |         | `timeline/TimelineView.tsx`                            | Now using consolidated `formatTime.ts`                           |
+| 🟢       |         | `core/types/fragments.ts`                              | Duplicate type definitions                                       |
 
 ---
 

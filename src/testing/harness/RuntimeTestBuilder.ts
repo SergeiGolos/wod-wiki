@@ -2,7 +2,7 @@ import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { MdTimerRuntime } from '@/parser/md-timer';
+import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
@@ -40,9 +40,8 @@ export class RuntimeTestHarness {
     strategies: IRuntimeBlockStrategy[] = [],
     clockTime: Date = new Date()
   ) {
-    // 1. Parser
-    const parser = new MdTimerRuntime();
-    this.script = parser.read(scriptText) as WodScript;
+    // 1. Parser (use shared singleton)
+    this.script = sharedParser.read(scriptText) as WodScript;
 
     // 2. JIT
     this.jit = new JitCompiler(strategies);

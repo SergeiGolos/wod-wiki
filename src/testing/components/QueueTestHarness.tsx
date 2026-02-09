@@ -22,7 +22,7 @@ import { RuntimeClock } from '@/runtime/RuntimeClock';
 import { EventBus } from '@/runtime/events/EventBus';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { WodScript, IScript } from '@/parser/WodScript';
-import { MdTimerRuntime } from '@/parser/md-timer';
+import { sharedParser } from '@/parser/parserInstance';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
@@ -171,8 +171,7 @@ function createStandardCompiler(): JitCompiler {
 function parseScript(source: string): IScript | null {
   if (!source.trim()) return null;
   try {
-    const parser = new MdTimerRuntime();
-    return parser.read(source);
+    return sharedParser.read(source);
   } catch (e) {
     console.error('Parse error:', e);
     return null;

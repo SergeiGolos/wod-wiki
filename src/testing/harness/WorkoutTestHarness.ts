@@ -1,7 +1,7 @@
 import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { MdTimerRuntime } from '@/parser/md-timer';
+import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
@@ -65,9 +65,8 @@ export class WorkoutTestHarness {
     private _clockTime: Date = new Date(),
     dialectRegistry?: DialectRegistry
   ) {
-    // 1. Parser
-    const parser = new MdTimerRuntime();
-    this.script = parser.read(scriptText) as WodScript;
+    // 1. Parser (use shared singleton)
+    this.script = sharedParser.read(scriptText) as WodScript;
 
     // 2. JIT (with optional dialect registry)
     this.jit = new JitCompiler(strategies, dialectRegistry);

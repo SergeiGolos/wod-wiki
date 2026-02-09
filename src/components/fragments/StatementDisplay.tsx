@@ -10,7 +10,7 @@
 import React from 'react';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ICodeFragment } from '../../core/models/CodeFragment';
-import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
+import { FragmentVisualizer } from './index';
 import { cn } from '../../lib/utils';
 
 export interface StatementDisplayProps {
