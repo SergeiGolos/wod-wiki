@@ -2,42 +2,7 @@
   "settingsVersion": "1.14.0",
   "highlightColor": "#ffd700",
   "sidebarPosition": "right",
-  "highlights": {
-    "docs/UI-component-deep-dive.opus.md": [
-      {
-        "id": "2q01zwxgz",
-        "text": "**Analyze**",
-        "tags": [],
-        "line": 44,
-        "startOffset": 2050,
-        "endOffset": 2065,
-        "filePath": "docs/UI-component-deep-dive.opus.md",
-        "footnoteCount": 1,
-        "footnoteContents": [
-          "\"Analyze\" is a bad term, lets rename this to \"Review\""
-        ],
-        "createdAt": 1770652325596,
-        "isNativeComment": false,
-        "type": "highlight"
-      },
-      {
-        "id": "sdcdshfi2",
-        "text": "**QueueTestHarness**",
-        "tags": [],
-        "line": 103,
-        "startOffset": 5400,
-        "endOffset": 5424,
-        "filePath": "docs/UI-component-deep-dive.opus.md",
-        "footnoteCount": 1,
-        "footnoteContents": [
-          "Remove this, and any testing screen / test associated with it."
-        ],
-        "createdAt": 1770652461936,
-        "isNativeComment": false,
-        "type": "highlight"
-      }
-    ]
-  },
+  "highlights": {},
   "collections": {},
   "groupingMode": "none",
   "taskSecondaryGroupingMode": "none",
