@@ -4,14 +4,5 @@
  * Export all hooks related to the clock display system.
  */
 
-// Display stack hooks
-export {
-  useDisplayStack,
-  useCurrentTimer,
-  useCurrentCard,
-  useWorkoutState,
-  useRoundsInfo,
-  useIsTimerStackEmpty,
-  useTimerStack,
-  useCardStack,
-} from './useDisplayStack';
+// useDisplayStack and related hooks have been removed (deprecated legacy API)
+// Use runtime/hooks for modern subscription patterns

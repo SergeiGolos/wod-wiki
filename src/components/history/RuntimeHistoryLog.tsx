@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { useOutputStatements } from '@/clock/hooks/useExecutionSpans';
+import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
 import { UnifiedItemList, outputStatementsToDisplayItems } from '@/components/unified';
 
 export interface RuntimeHistoryLogProps {

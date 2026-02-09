@@ -1470,20 +1470,22 @@ Files ranked by redundancy involvement (higher = more urgent to refactor):
 | ✅     | ~~🔴~~   | `components/workout/AnalyticsHistoryPanel.tsx`         | Dead dup of `AnalyticsIndexPanel` — **DELETED**                 |
 | ✅     | ~~🔴~~   | `runtime/hooks/useTimerReferences.ts`                  | Deprecated, no usages — **DELETED**                             |
 | ✅     | 🟢       | `lib/formatTime.ts`                                    | **CREATED** — Consolidates 15+ inline formatters                |
-| ✅     | ~~🔴~~   | `clock/components/StackedClockDisplay.tsx`             | 733 lines, test-only — **DEPRECATED, scheduled for removal**    |
+| ✅     | ~~🔴~~   | `clock/components/StackedClockDisplay.tsx`             | 733 lines, test-only — **DELETED**                              |
+| ✅     | ~~🔴~~   | `clock/hooks/useDisplayStack.ts`                       | Deprecated legacy API — **DELETED**                             |
+| ✅     | ~~🔴~~   | `clock/hooks/useExecutionSpans.ts`                     | Deprecated re-export — **DELETED**                              |
+| ✅     | ~~🔴~~   | `runtime/hooks/useStackBlocks.ts`                      | Deprecated alias — **DELETED**, use `useSnapshotBlocks`         |
+| ✅     | ~~🔴~~   | `markdown-editor/components/ContextPanel.tsx`          | Unused, deprecated — **DELETED**, use `WorkoutContextPanel`     |
 | ✅     | 🟢       | `parser/parserInstance.ts`                             | **CREATED** — Shared parser singleton, now used in all test files |
 | ✅     | 🟢       | `components/fragments/StatementDisplay.tsx`            | Import path standardized to use barrel export                    |
+| ✅     | 🟢       | `runtime/hooks/useStackDisplay.ts`                     | Updated to use `useSnapshotBlocks` directly                      |
+| ✅     | 🟢       | `components/history/RuntimeHistoryLog.tsx`             | Updated import to use `runtime/hooks/useOutputStatements`        |
 | ✅     | ~~🟡~~   | `markdown-editor/components/EditableStatementList.tsx` | Now properly uses `StatementDisplay` — **RESOLVED**              |
 | ✅     | 🟢       | `views/runtime/fragmentColorMap.ts`                    | `getFragmentIcon` + `getFragmentColorClasses` co-located — **ALREADY DONE** |
 | ✅     | 🟢       | `runtime-test-bench/hooks/useTestBenchRuntime.ts`      | Shared hook already in use — **ALREADY DONE**                   |
 | 🔴🔴     |         | `runtime/hooks/useTimerElapsed.ts`                     | Duplicates `useTimerDisplay` core logic                          |
 | 🔴🔴     |         | `clock/hooks/useStopwatch.ts`                          | 3rd implementation of elapsed calculation (needs consolidation)  |
-| 🔴       |         | `clock/hooks/useDisplayStack.ts`                       | Deprecated, replacements exist                                   |
-| 🔴       |         | `clock/hooks/useExecutionSpans.ts`                     | Name collision with `runtime/hooks/useOutputStatements`          |
 | 🟡       |         | `components/workout/RefinedTimerDisplay.tsx`           | Now using consolidated `formatTime.ts`                           |
-| 🟡       |         | `markdown-editor/components/ContextPanel.tsx`          | 70% overlap with `WorkoutContextPanel`                           |
-| 🟡       |         | `components/workout/WorkoutContextPanel.tsx`           | 70% overlap with `ContextPanel`                                  |
-| 🟡       |         | `runtime/hooks/useStackBlocks.ts`                      | Duplicates `useStackSnapshot` functionality                      |
+| 🟡       |         | `components/workout/WorkoutContextPanel.tsx`           | Consider further feature consolidation                           |
 | 🟡       |         | `timeline/TimelineView.tsx`                            | Now using consolidated `formatTime.ts`                           |
 | 🟢       |         | `core/types/fragments.ts`                              | Duplicate type definitions                                       |
 

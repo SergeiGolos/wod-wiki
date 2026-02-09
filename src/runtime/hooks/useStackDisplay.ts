@@ -2,7 +2,7 @@
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
 import { IDisplayItem } from '../../core/models/DisplayItem';
-import { useStackBlocks } from './useStackBlocks';
+import { useSnapshotBlocks } from './useStackSnapshot';
 
 // ============================================================================
 // Stack-Driven Timer Hooks
@@ -31,7 +31,7 @@ export interface StackTimerEntry {
  * @returns Array of stack timer entries
  */
 export function useStackTimers(): StackTimerEntry[] {
-    const blocks = useStackBlocks();
+    const blocks = useSnapshotBlocks();
     const [version, setVersion] = useState(0);
 
     // Subscribe to timer memory changes on all blocks
@@ -135,7 +135,7 @@ export function useSecondaryTimers(): StackTimerEntry[] {
  * @returns Array of active button configurations
  */
 export function useActiveControls(): ButtonConfig[] {
-    const blocks = useStackBlocks();
+    const blocks = useSnapshotBlocks();
     const [version, setVersion] = useState(0);
 
     // Subscribe to controls memory changes on all blocks
@@ -216,7 +216,7 @@ export function useActiveControls(): ButtonConfig[] {
  * @returns Array of display items derived from the stack, or undefined if empty
  */
 export function useStackDisplayItems(): IDisplayItem[] | undefined {
-    const blocks = useStackBlocks();
+    const blocks = useSnapshotBlocks();
 
     return useMemo(() => {
         if (blocks.length === 0) return undefined;

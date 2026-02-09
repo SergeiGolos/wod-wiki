@@ -79,10 +79,7 @@
  */
 
 // Components
-/** @deprecated StackedClockDisplay is test-only and will be removed. Use TimerDisplay instead. */
-export { StackedClockDisplay } from './components/StackedClockDisplay';
-/** @deprecated StackedClockDisplay is test-only and will be removed. Use TimerDisplay instead. */
-export type { StackedClockDisplayProps } from './components/StackedClockDisplay';
+// StackedClockDisplay has been removed - use TimerDisplay from '@/components/workout/TimerDisplay' instead
 
 // Legacy components (for backward compatibility)
 export { ClockAnchor } from './anchors/ClockAnchor';
@@ -100,17 +97,7 @@ export type {
 } from './types/DisplayTypes';
 export { createDefaultDisplayState } from './types/DisplayTypes';
 
-// Hooks
-export {
-  useDisplayStack,
-  useCurrentTimer,
-  useCurrentCard,
-  useWorkoutState,
-  useRoundsInfo,
-  useIsTimerStackEmpty,
-  useTimerStack,
-  useCardStack,
-} from './hooks/useDisplayStack';
+// Hooks (useDisplayStack and related hooks have been removed - deprecated legacy API)
 
 // Card Components
 export {

@@ -39,8 +39,7 @@ export type {
 export { WodBlockManager } from './components/WodBlockManager';
 export type { WodBlockManagerProps } from './components/WodBlockManager';
 
-export { ContextPanel } from './components/ContextPanel';
-export type { ContextPanelProps } from './components/ContextPanel';
+// ContextPanel has been removed - use WorkoutContextPanel from '@/components/workout/WorkoutContextPanel' instead
 
 export { FragmentEditor } from './components/FragmentEditor';
 export type { FragmentEditorProps } from './components/FragmentEditor';
