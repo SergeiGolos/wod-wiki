@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { WodBlock, ParseError } from '../types';
+import { sharedParser } from '../../parser/parserInstance';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 
@@ -55,7 +56,7 @@ export function useBlockParser(
   // Initialize parser for this block
   useEffect(() => {
     if (block && !parserRef.current) {
-      parserRef.current = new MdTimerRuntime();
+      parserRef.current = sharedParser;
     }
     
     return () => {

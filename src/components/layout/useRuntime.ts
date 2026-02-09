@@ -1,18 +1,24 @@
 /**
- * useRuntime hook - Access runtime context from child components
+ * useRuntimeLifecycle hook - Access runtime lifecycle context from child components
+ * 
+ * This hook provides access to the full runtime lifecycle (creation, disposal, error tracking).
+ * For accessing a pre-created IScriptRuntime instance, use useScriptRuntime() instead.
  */
 
 import { useContext } from 'react';
-import { RuntimeContext, type RuntimeContextState } from './RuntimeContext';
+import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeContext';
 
 /**
- * Hook to access runtime context
- * @throws Error if used outside RuntimeProvider
+ * Hook to access runtime lifecycle context
+ * @throws Error if used outside RuntimeLifecycleProvider
  */
-export const useRuntime = (): RuntimeContextState => {
-  const context = useContext(RuntimeContext);
+export const useRuntimeLifecycle = (): RuntimeLifecycleState => {
+  const context = useContext(RuntimeLifecycleContext);
   if (!context) {
-    throw new Error('useRuntime must be used within a RuntimeProvider');
+    throw new Error('useRuntimeLifecycle must be used within a RuntimeLifecycleProvider');
   }
   return context;
 };
+
+/** @deprecated Use useRuntimeLifecycle instead */
+export const useRuntime = useRuntimeLifecycle;

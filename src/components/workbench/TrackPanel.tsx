@@ -1,7 +1,7 @@
 import React from 'react';
 import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
-import { RuntimeProvider as ClockRuntimeProvider } from '../../runtime/context/RuntimeContext';
+import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { WodIndexPanel } from '../layout/WodIndexPanel';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
@@ -106,7 +106,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
   );
 
   const content = runtime ? (
-    <ClockRuntimeProvider runtime={runtime}>
+    <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex flex-col h-full overflow-hidden">
         {isMobile && (
           <div
@@ -130,7 +130,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
           {timerDisplay}
         </div>
       </div>
-    </ClockRuntimeProvider>
+    </ScriptRuntimeProvider>
   ) : (
     selectedBlock ? timerDisplay : (
       <div className="h-full w-full bg-background p-4 flex flex-col items-center justify-center">

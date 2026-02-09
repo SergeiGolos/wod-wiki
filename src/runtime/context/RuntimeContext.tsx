@@ -3,11 +3,18 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 /**
  * React Context for providing IScriptRuntime to components.
- * Components can use useRuntimeContext() to access runtime memory and state.
+ * 
+ * This is a simple dependency injection context — it passes a pre-created
+ * IScriptRuntime instance to children. No lifecycle management.
+ * 
+ * For lifecycle management (creation, disposal, error tracking),
+ * use RuntimeLifecycleProvider from '@/components/layout/RuntimeProvider' instead.
+ * 
+ * Components can use useScriptRuntime() to access runtime memory and state.
  */
-const RuntimeContext = createContext<IScriptRuntime | undefined>(undefined);
+const ScriptRuntimeContext = createContext<IScriptRuntime | undefined>(undefined);
 
-export interface RuntimeProviderProps {
+export interface ScriptRuntimeProviderProps {
   runtime: IScriptRuntime;
   children: ReactNode;
 }
@@ -23,34 +30,42 @@ export interface RuntimeProviderProps {
  * runtime.execute(script);
  * 
  * return (
- *   <RuntimeProvider runtime={runtime}>
+ *   <ScriptRuntimeProvider runtime={runtime}>
  *     <ClockAnchor blockKey="block-001" />
- *   </RuntimeProvider>
+ *   </ScriptRuntimeProvider>
  * );
  * ```
  */
-export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
+export const ScriptRuntimeProvider: React.FC<ScriptRuntimeProviderProps> = ({
   runtime,
   children
 }) => {
   return (
-    <RuntimeContext.Provider value={runtime}>
+    <ScriptRuntimeContext.Provider value={runtime}>
       {children}
-    </RuntimeContext.Provider>
+    </ScriptRuntimeContext.Provider>
   );
 };
 
 /**
  * Hook to access the IScriptRuntime from context.
- * Must be used within a RuntimeProvider.
+ * Must be used within a ScriptRuntimeProvider.
  * 
- * @throws Error if called outside RuntimeProvider
+ * @throws Error if called outside ScriptRuntimeProvider
  * @returns IScriptRuntime instance
  */
-export function useRuntimeContext(): IScriptRuntime {
-  const runtime = useContext(RuntimeContext);
+export function useScriptRuntime(): IScriptRuntime {
+  const runtime = useContext(ScriptRuntimeContext);
   if (!runtime) {
-    throw new Error('useRuntimeContext must be used within RuntimeProvider');
+    throw new Error('useScriptRuntime must be used within ScriptRuntimeProvider');
   }
   return runtime;
 }
+
+// Backward-compatible aliases
+/** @deprecated Use ScriptRuntimeProviderProps instead */
+export type RuntimeProviderProps = ScriptRuntimeProviderProps;
+/** @deprecated Use ScriptRuntimeProvider instead */
+export const RuntimeProvider = ScriptRuntimeProvider;
+/** @deprecated Use useScriptRuntime instead */
+export const useRuntimeContext = useScriptRuntime;

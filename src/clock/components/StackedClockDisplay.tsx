@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Clock, Play, Pause, Square, Timer } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import { formatDurationSmart } from '@/lib/formatTime';
-import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
+import { useScriptRuntime } from '../../runtime/context/RuntimeContext';
 import {
   useStackTimers,
   usePrimaryTimer,
@@ -60,6 +60,10 @@ export interface StackedClockDisplayProps {
  *   />
  * </RuntimeProvider>
  * ```
+ * 
+ * @deprecated This component is 700+ lines and used only in test harnesses.
+ * Use TimerDisplay from '@/components/workout/TimerDisplay' instead.
+ * Scheduled for removal in a future release.
  */
 export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
   className,
@@ -70,7 +74,7 @@ export const StackedClockDisplay: React.FC<StackedClockDisplayProps> = ({
   onReset,
   isRunning: externalIsRunning,
 }) => {
-  const runtime = useRuntimeContext();
+  const runtime = useScriptRuntime();
   
   // Use new stack-driven hooks
   const stackTimers = useStackTimers();

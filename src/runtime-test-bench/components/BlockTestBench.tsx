@@ -5,14 +5,8 @@ import { MemoryPanel } from './MemoryPanel';
 import { BlockTestControls } from './BlockTestControls';
 import { ResultsTable } from './ResultsTable';
 import { useTestBenchContext } from '../context/TestBenchContext';
-import { useRuntimeExecution } from '../hooks/useRuntimeExecution';
-import { RuntimeAdapter } from '../adapters/RuntimeAdapter';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { globalParser, globalCompiler } from '../services/testbench-services';
-import { RuntimeStack } from '../../runtime/RuntimeStack';
-import { RuntimeClock } from '../../runtime/RuntimeClock';
-import { EventBus } from '../../runtime/events/EventBus';
-import { StartWorkoutAction } from '../../runtime/actions/stack/StartWorkoutAction';
+import { useTestBenchRuntime } from '../hooks/useTestBenchRuntime';
+import { globalParser } from '../services/testbench-services';
 
 interface BlockTestBenchProps {
   initialScript?: string;
@@ -26,12 +20,11 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
   const { state, dispatch } = useTestBenchContext();
   const { code, snapshot, selectedLine } = state;
 
-  // Local runtime state
-  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
   const [viewMode, setViewMode] = useState<'stack' | 'memory'>('stack');
 
-  const adapter = new RuntimeAdapter();
-  const execution = useRuntimeExecution(runtime);
+  const { runtime, execution, compileScript, updateSnapshot, resetRuntime } = useTestBenchRuntime({
+    dispatch,
+  });
   const { status } = execution;
 
   // Initialize script
@@ -40,21 +33,6 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       dispatch({ type: 'SET_CODE', payload: initialScript });
     }
   }, [initialScript, code, dispatch]);
-
-  const updateSnapshot = () => {
-    if (runtime) {
-      const newSnapshot = adapter.createSnapshot(runtime);
-      dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
-    }
-  };
-
-  // Update snapshot when execution status changes
-  useEffect(() => {
-    if (status === 'running' && runtime) {
-      const interval = setInterval(updateSnapshot, 100);
-      return () => clearInterval(interval);
-    }
-  }, [status, runtime]);
 
   // Extract WOD content from markdown code blocks
   const extractWodContent = (text: string): string => {
@@ -72,28 +50,8 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
 
     // Extract WOD content from markdown if present
     const wodContent = extractWodContent(code);
-
-    // Create new runtime with proper initialization
     const script = globalParser.read(wodContent);
-    const dependencies = {
-      stack: new RuntimeStack(),
-      clock: new RuntimeClock(),
-      eventBus: new EventBus(),
-    };
-    const newRuntime = new ScriptRuntime(script as any, globalCompiler, dependencies);
-    
-    // Initialize the workout by pushing root block via StartWorkoutAction
-    newRuntime.do(new StartWorkoutAction());
-
-    if (newRuntime.stack.count > 0) {
-      setRuntime(newRuntime);
-
-      // Update snapshot after runtime is initialized
-      setTimeout(() => {
-        const newSnapshot = adapter.createSnapshot(newRuntime);
-        dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
-      }, 0);
-    }
+    compileScript(script);
   };
 
   const handleRestart = () => {
@@ -101,9 +59,9 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       execution.stop();
       runtime.dispose();
     }
-    setRuntime(null);
-    dispatch({ type: 'SET_SNAPSHOT', payload: null });
-    handleStart();
+    resetRuntime();
+    // Re-start after reset
+    setTimeout(() => handleStart(), 0);
   };
 
   const handleNext = () => {
@@ -112,8 +70,6 @@ export const BlockTestBench: React.FC<BlockTestBenchProps> = ({
       return;
     }
 
-    // Use runtime.handle() for proper ExecutionContext wrapping
-    // This ensures actions are executed in a turn with frozen clock
     const nextEvent = {
       name: 'next',
       timestamp: new Date(),

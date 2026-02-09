@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 import { WodBlock } from '../types';
-import { MdTimerRuntime } from '../../parser/md-timer';
+import { sharedParser } from '../../parser/parserInstance';
 
 /**
  * Parse all blocks and update their statements in place
@@ -14,7 +14,7 @@ export function useParseAllBlocks(
   blocks: WodBlock[],
   updateBlock: (id: string, updates: Partial<WodBlock>) => void
 ) {
-  const parserRef = useRef<MdTimerRuntime>(new MdTimerRuntime());
+  const parserRef = useRef(sharedParser);
   const parsedBlocksRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {

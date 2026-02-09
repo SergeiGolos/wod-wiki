@@ -6,7 +6,7 @@ import { ExerciseHoverProvider } from './ExerciseHoverProvider';
 import { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 import type { IScript } from "@/parser/WodScript";
-import { MdTimerRuntime } from '../parser/md-timer';
+import { sharedParser } from '../parser/parserInstance';
 
 // Global registry to track registered languages and themes
 const registeredLanguages = new Set<string>();
@@ -23,7 +23,7 @@ export class WodWikiSyntaxInitializer {
   theme: string = "wod-wiki-theme";
   objectCode: IScript | undefined;
   hints: monaco.languages.InlayHint[] = [];
-  runtime = new MdTimerRuntime();
+  runtime = sharedParser;
   monacoInstance: typeof monaco | undefined;
   contentChangeDisposable: monaco.IDisposable[] = [];
   exerciseProvider: ExerciseSuggestionProvider;

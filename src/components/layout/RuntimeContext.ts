@@ -1,5 +1,11 @@
 /**
- * RuntimeContext - Shared context definition for runtime management
+ * RuntimeLifecycleContext - Shared context definition for runtime lifecycle management
+ * 
+ * This context manages the full lifecycle of ScriptRuntime instances:
+ * creation, initialization, disposal, and error tracking.
+ * 
+ * For simple runtime injection (passing a pre-created IScriptRuntime to children),
+ * use ScriptRuntimeContext from '@/runtime/context/RuntimeContext' instead.
  */
 
 import { createContext } from 'react';
@@ -7,9 +13,9 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { WodBlock } from '../../markdown-editor/types';
 
 /**
- * Runtime context state interface
+ * Runtime lifecycle context state interface
  */
-export interface RuntimeContextState {
+export interface RuntimeLifecycleState {
   /** Current active runtime instance (null if none) */
   runtime: ScriptRuntime | null;
   
@@ -26,4 +32,10 @@ export interface RuntimeContextState {
   disposeRuntime: () => void;
 }
 
-export const RuntimeContext = createContext<RuntimeContextState | undefined>(undefined);
+export const RuntimeLifecycleContext = createContext<RuntimeLifecycleState | undefined>(undefined);
+
+// Backward-compatible aliases
+/** @deprecated Use RuntimeLifecycleState instead */
+export type RuntimeContextState = RuntimeLifecycleState;
+/** @deprecated Use RuntimeLifecycleContext instead */
+export const RuntimeContext = RuntimeLifecycleContext;

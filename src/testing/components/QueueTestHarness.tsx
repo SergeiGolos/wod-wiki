@@ -34,8 +34,8 @@ import { HistoryStrategy } from '@/runtime/compiler/strategies/enhancements/Hist
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 import { SnapshotDiffViewer, SnapshotDiffSummary } from './SnapshotDiffViewer';
-import { RuntimeProvider } from '@/runtime/context/RuntimeContext';
-import { StackedClockDisplay } from '@/clock/components/StackedClockDisplay';
+import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
+import { TimerDisplay } from '@/components/workout/TimerDisplay';
 
 // ==================== Types ====================
 
@@ -792,13 +792,18 @@ export const QueueTestHarness: React.FC<QueueTestHarnessProps> = ({
       </div>
 
       {underlyingRuntime ? (
-        <RuntimeProvider runtime={underlyingRuntime}>
-          <StackedClockDisplay
-            className="w-full"
-            showStackDebug={true}
-            onButtonClick={handleRuntimeButtonClick}
+        <ScriptRuntimeProvider runtime={underlyingRuntime}>
+          <TimerDisplay
+            elapsedMs={0}
+            hasActiveBlock={true}
+            isRunning={false}
+            onStart={() => handleRuntimeButtonClick?.('start')}
+            onPause={() => handleRuntimeButtonClick?.('pause')}
+            onStop={() => handleRuntimeButtonClick?.('stop')}
+            onNext={() => handleRuntimeButtonClick?.('next')}
+            enableDisplayStack={true}
           />
-        </RuntimeProvider>
+        </ScriptRuntimeProvider>
       ) : (
         <div className="flex flex-col items-center justify-center h-64 text-slate-400">
           <div className="text-6xl mb-4">🏃</div>

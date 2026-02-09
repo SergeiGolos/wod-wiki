@@ -1,20 +1,22 @@
 /**
- * RuntimeProvider - React context for managing ScriptRuntime lifecycle
+ * RuntimeLifecycleProvider - React context for managing ScriptRuntime lifecycle
  * 
- * This provider decouples runtime management from UI state (WorkbenchContext).
- * It handles:
+ * This provider manages the full lifecycle of ScriptRuntime instances:
  * - Runtime creation via IRuntimeFactory
  * - Automatic disposal when runtime changes
  * - Clean lifecycle management
  * 
+ * For simple runtime injection (passing a pre-created IScriptRuntime to children),
+ * use ScriptRuntimeProvider from '@/runtime/context/RuntimeContext' instead.
+ * 
  * Usage:
  * ```tsx
- * <RuntimeProvider factory={runtimeFactory}>
+ * <RuntimeLifecycleProvider factory={runtimeFactory}>
  *   <App />
- * </RuntimeProvider>
+ * </RuntimeLifecycleProvider>
  * 
  * // In child components:
- * const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
+ * const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
  * ```
  */
 
@@ -23,15 +25,15 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
-import { RuntimeContext, type RuntimeContextState } from './RuntimeContext';
+import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeContext';
 
-// Re-export useRuntime for backward compatibility
-export { useRuntime } from './useRuntime';
+// Re-export hooks for backward compatibility
+export { useRuntimeLifecycle, useRuntime } from './useRuntime';
 
 /**
- * Props for RuntimeProvider
+ * Props for RuntimeLifecycleProvider
  */
-interface RuntimeProviderProps {
+interface RuntimeLifecycleProviderProps {
   /** Factory for creating runtime instances */
   factory: IRuntimeFactory;
 
@@ -40,14 +42,14 @@ interface RuntimeProviderProps {
 }
 
 /**
- * RuntimeProvider Component
+ * RuntimeLifecycleProvider Component
  * 
  * Manages the lifecycle of ScriptRuntime instances:
  * - Creates runtimes via injected factory
  * - Automatically disposes old runtime when new one is created
  * - Cleans up on unmount
  */
-export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
+export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> = ({
   factory,
   children
 }) => {
@@ -139,7 +141,7 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
     };
   }, []); // Empty deps - only run on unmount
 
-  const value: RuntimeContextState = {
+  const value: RuntimeLifecycleState = {
     runtime,
     isInitializing,
     error,
@@ -148,10 +150,13 @@ export const RuntimeProvider: React.FC<RuntimeProviderProps> = ({
   };
 
   return (
-    <RuntimeContext.Provider value={value}>
+    <RuntimeLifecycleContext.Provider value={value}>
       {children}
-    </RuntimeContext.Provider>
+    </RuntimeLifecycleContext.Provider>
   );
 };
 
-export default RuntimeProvider;
+/** @deprecated Use RuntimeLifecycleProvider instead */
+export const RuntimeProvider = RuntimeLifecycleProvider;
+
+export default RuntimeLifecycleProvider;

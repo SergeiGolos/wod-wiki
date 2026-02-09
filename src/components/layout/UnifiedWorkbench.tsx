@@ -33,7 +33,7 @@ import { SlidingViewport } from './SlidingViewport';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
-import { RuntimeProvider } from './RuntimeProvider';
+import { RuntimeLifecycleProvider } from './RuntimeProvider';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
@@ -494,9 +494,9 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
       <CommandProvider>
         <WorkbenchProvider initialContent={props.initialContent}>
           <AudioProvider>
-            <RuntimeProvider factory={runtimeFactory}>
+            <RuntimeLifecycleProvider factory={runtimeFactory}>
               <UnifiedWorkbenchContent {...props} />
-            </RuntimeProvider>
+            </RuntimeLifecycleProvider>
           </AudioProvider>
         </WorkbenchProvider>
       </CommandProvider>

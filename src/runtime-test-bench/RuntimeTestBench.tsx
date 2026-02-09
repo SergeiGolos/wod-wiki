@@ -1,17 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useTestBenchShortcuts } from './hooks/useTestBenchShortcuts';
-import { useRuntimeExecution } from './hooks/useRuntimeExecution';
+import { useTestBenchRuntime } from './hooks/useTestBenchRuntime';
 import { RuntimeTestBenchProps } from './types/interfaces';
-import { ScriptRuntime } from '../runtime/ScriptRuntime';
-import { RuntimeAdapter } from './adapters/RuntimeAdapter';
-import { globalParser, globalCompiler } from './services/testbench-services';
-import { WodScript } from '../parser/WodScript';
+import { globalParser } from './services/testbench-services';
 import { TestBenchProvider, useTestBenchContext } from './context/TestBenchContext';
 import { TestBenchLayout } from './components/TestBenchLayout';
-import { RuntimeStack } from '../runtime/RuntimeStack';
-import { RuntimeClock } from '../runtime/RuntimeClock';
-import { EventBus } from '../runtime/events/EventBus';
-import { StartWorkoutAction } from '../runtime/actions/stack/StartWorkoutAction';
 
 /**
  * Inner component to consume context and hooks
@@ -24,15 +17,13 @@ const RuntimeTestBenchInner: React.FC<{
   const { code, parseResults } = state;
 
   const parser = globalParser;
-  const compiler = globalCompiler;
 
-  const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
-  const adapter = new RuntimeAdapter();
+  const { runtime, execution, compile, updateSnapshot, resetRuntime } = useTestBenchRuntime({
+    dispatch,
+  });
+  const { status, elapsedTime } = execution;
 
   const parseTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const execution = useRuntimeExecution(runtime);
-  const { status, elapsedTime } = execution;
 
   const handleCodeChange = (newCode: string) => {
     dispatch({ type: 'SET_CODE', payload: newCode });
@@ -97,20 +88,6 @@ const RuntimeTestBenchInner: React.FC<{
     };
   }, []);
 
-  const updateSnapshot = () => {
-    if (runtime) {
-      const newSnapshot = adapter.createSnapshot(runtime);
-      dispatch({ type: 'SET_SNAPSHOT', payload: newSnapshot });
-    }
-  };
-
-  useEffect(() => {
-    if (status === 'running' && runtime) {
-      const interval = setInterval(updateSnapshot, 100);
-      return () => clearInterval(interval);
-    }
-  }, [status, runtime]);
-
   const handleCompile = useCallback(() => {
     try {
       if (parseResults.statements.length === 0) {
@@ -125,23 +102,9 @@ const RuntimeTestBenchInner: React.FC<{
         return;
       }
 
-      const dependencies = {
-        stack: new RuntimeStack(),
-        clock: new RuntimeClock(),
-        eventBus: new EventBus(),
-      };
+      const newRuntime = compile(code, parseResults.statements as any, parseResults.errors as any);
 
-      const tempRuntime = new ScriptRuntime(
-        new WodScript(code, parseResults.statements as any, parseResults.errors as any),
-        compiler,
-        dependencies
-      );
-
-      // Initialize the workout by pushing root block via StartWorkoutAction
-      tempRuntime.do(new StartWorkoutAction());
-
-      // Verify root block was pushed successfully
-      if (tempRuntime.stack.count === 0) {
+      if (!newRuntime) {
         dispatch({
           type: 'ADD_LOG', payload: {
             id: Date.now().toString(),
@@ -153,19 +116,15 @@ const RuntimeTestBenchInner: React.FC<{
         return;
       }
 
-      const rootBlock = tempRuntime.stack.current;
-      setRuntime(tempRuntime);
-
+      const rootBlock = newRuntime.stack.current;
       dispatch({
         type: 'ADD_LOG', payload: {
           id: Date.now().toString(),
           timestamp: Date.now(),
-          message: `Compilation successful. Root block type: ${rootBlock?.blockType}, Stack depth: ${tempRuntime.stack.count}`,
+          message: `Compilation successful. Root block type: ${rootBlock?.blockType}, Stack depth: ${newRuntime.stack.count}`,
           level: 'success'
         }
       });
-
-      updateSnapshot();
     } catch (error: any) {
       dispatch({
         type: 'ADD_LOG', payload: {
@@ -176,7 +135,7 @@ const RuntimeTestBenchInner: React.FC<{
         }
       });
     }
-  }, [parseResults, code, compiler]);
+  }, [parseResults, code, compile, dispatch]);
 
   // Only re-compile when the parse timestamp changes
   useEffect(() => {
@@ -258,9 +217,7 @@ const RuntimeTestBenchInner: React.FC<{
   }, [execution.stop]);
 
   const handleReset = useCallback(() => {
-    execution.reset();
-    setRuntime(null);
-    dispatch({ type: 'SET_SNAPSHOT', payload: null });
+    resetRuntime();
 
     dispatch({
       type: 'ADD_LOG', payload: {
@@ -270,7 +227,7 @@ const RuntimeTestBenchInner: React.FC<{
         level: 'info'
       }
     });
-  }, [execution.reset]);
+  }, [resetRuntime, dispatch]);
 
   useTestBenchShortcuts({
     onPlay: status === 'idle' ? handleExecute : undefined,

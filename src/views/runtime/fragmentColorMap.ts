@@ -1,4 +1,5 @@
-// Fragment color mapping utility for visualization
+// Fragment visual styling utilities for visualization
+// Contains both color mapping and icon mapping for fragment types
 
 export type FragmentType = 
   | 'timer' 
@@ -43,4 +44,31 @@ export function getFragmentColorClasses(type: string): string {
   
   // Return mapped color or fallback for unknown types
   return fragmentColorMap[normalizedType] || 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+}
+
+/**
+ * Icon/emoji map for each fragment type
+ */
+const fragmentIconMap: Record<string, string> = {
+  'timer': '⏱️',
+  'duration': '⏱️',
+  'rounds': '🔄',
+  'resistance': '💪',
+  'weight': '💪',
+  'distance': '📏',
+  'action': '▶️',
+  'rest': '⏸️',
+  'effort': '🏃',
+  'increment': '↕️',
+  'text': '📝',
+  'ellapsed': '⏱️',
+};
+
+/**
+ * Get icon/emoji for a fragment type
+ * @param type - Fragment type string (case-insensitive)
+ * @returns Emoji icon for the type, or null if no icon is defined
+ */
+export function getFragmentIcon(type: string): string | null {
+  return fragmentIconMap[type.toLowerCase()] || null;
 }

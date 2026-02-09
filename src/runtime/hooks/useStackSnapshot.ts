@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRuntimeContext } from '../context/RuntimeContext';
+import { useScriptRuntime } from '../context/RuntimeContext';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { StackSnapshot } from '../contracts/IRuntimeStack';
 
@@ -36,7 +36,7 @@ import { StackSnapshot } from '../contracts/IRuntimeStack';
  * ```
  */
 export function useStackSnapshot(): StackSnapshot {
-  const runtime = useRuntimeContext();
+  const runtime = useScriptRuntime();
   const [snapshot, setSnapshot] = useState<StackSnapshot>({
     type: 'initial',
     blocks: runtime.stack.blocks,

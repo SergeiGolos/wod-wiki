@@ -79,7 +79,9 @@
  */
 
 // Components
+/** @deprecated StackedClockDisplay is test-only and will be removed. Use TimerDisplay instead. */
 export { StackedClockDisplay } from './components/StackedClockDisplay';
+/** @deprecated StackedClockDisplay is test-only and will be removed. Use TimerDisplay instead. */
 export type { StackedClockDisplayProps } from './components/StackedClockDisplay';
 
 // Legacy components (for backward compatibility)

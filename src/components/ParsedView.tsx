@@ -1,19 +1,7 @@
 import React, { useMemo } from 'react';
-import { Lexer, IRecognitionException } from 'chevrotain';
-import { allTokens } from '../parser/timer.tokens';
-import { MdTimerParse } from '../parser/timer.parser';
-import { MdTimerInterpreter } from '../parser/timer.visitor';
-import { ICodeStatement } from '../core/models/CodeStatement';
+import { sharedParser } from '../parser/parserInstance';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
-
-/**
- * Extended parser type for Chevrotain runtime-generated methods
- */
-interface ExtendedParser extends MdTimerParse {
-  wodMarkdown(): unknown;
-  errors: IRecognitionException[];
-}
 
 interface ParsedViewProps {
   wodscript: string;
@@ -33,24 +21,13 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
     const trimmedScript = wodscript.trim();
 
     try {
-      const lexer = new Lexer(allTokens);
-      const lexingResult = lexer.tokenize(trimmedScript);
+      const script = sharedParser.read(trimmedScript);
       
-      if (lexingResult.errors.length > 0) {
-        throw new Error(`Lexing errors: ${lexingResult.errors.map(e => e.message).join(', ')}`);
+      if (script.errors && script.errors.length > 0) {
+        throw new Error(`Parsing errors: ${script.errors.map((e: any) => e.message).join(', ')}`);
       }
 
-      const parser = new MdTimerParse(lexingResult.tokens) as ExtendedParser;
-      const cst = parser.wodMarkdown();
-
-      if (parser.errors.length > 0) {
-        throw new Error(`Parsing errors: ${parser.errors.map((e) => e.message).join(', ')}`);
-      }
-
-      const interpreter = new MdTimerInterpreter();
-      const statements = interpreter.visit(cst) as ICodeStatement[];
-      
-      return { statements, error: null };
+      return { statements: script.statements, error: null };
     } catch (e) {
       return { statements: [], error: e as Error };
     }

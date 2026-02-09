@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useRuntime } from '../layout/RuntimeProvider';
+import { useRuntimeLifecycle } from '../layout/RuntimeProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
@@ -21,7 +21,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     completeWorkout: (results: WorkoutResults) => void,
     startWorkout: (block: WodBlock) => void
 ) => {
-    const { runtime, initializeRuntime, disposeRuntime } = useRuntime();
+    const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
     const execution = useRuntimeExecution(runtime);
 
     // Register Global Audio Handler when runtime is available

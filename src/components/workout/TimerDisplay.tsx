@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { useRuntimeContext } from '../../runtime/context/RuntimeContext';
+import { useScriptRuntime } from '../../runtime/context/RuntimeContext';
 import {
   usePrimaryTimer,
   useSecondaryTimers,
@@ -74,7 +74,7 @@ export interface TimerDisplayProps {
  * automatically and the stack event triggers a UI re-render.
  */
 const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
-  const runtime = useRuntimeContext();
+  const runtime = useScriptRuntime();
 
   // Stack-driven hooks — subscribe to block memory directly
   const primaryTimer = usePrimaryTimer();

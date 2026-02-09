@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { RuntimeProvider } from '../../runtime/context/RuntimeContext';
+import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
@@ -224,11 +224,11 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   };
 
   return (
-    <RuntimeProvider runtime={runtime}>
+    <ScriptRuntimeProvider runtime={runtime}>
       <div className="enhanced-timer-harness">
         {children(harness)}
       </div>
-    </RuntimeProvider>
+    </ScriptRuntimeProvider>
   );
 };
 

@@ -1,11 +1,11 @@
 /**
  * EditableStatementList - Unified component for viewing and editing workout statements
- * Combines the functionality of FragmentVisualizer and FragmentEditor
+ * Delegates rendering to StatementDisplay for consistent visualization.
  */
 
 import React, { useMemo } from 'react';
 import { ICodeStatement } from '../../core/models/CodeStatement';
-import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
+import { StatementDisplay } from '../../components/fragments/StatementDisplay';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandStrategy } from '../../components/command-palette/types';
 
@@ -29,81 +29,62 @@ export interface EditableStatementListProps {
   activeStatementIds?: Set<number>;
 }
 
-interface StatementItemProps {
-  statement: ICodeStatement;
-  originalIndex: number;
-  onEdit: (index: number, text: string) => void;
-  onDelete: (index: number) => void;
-  readonly?: boolean;
-  isGrouped?: boolean;
-  isActive?: boolean;
-}
-
 interface LinkedGroup {
   id: string;
   statements: ICodeStatement[];
 }
 
 /**
- * Individual statement row
+ * Hook to create edit/delete action buttons for a statement
  */
-const StatementItem: React.FC<StatementItemProps> = ({
-  statement,
-  originalIndex,
-  onEdit,
-  onDelete,
-  readonly = false,
-  isGrouped = false,
-  isActive = false
-}) => {
+function useStatementActions(
+  onEdit: ((index: number, text: string) => void) | undefined,
+  onDelete: ((index: number) => void) | undefined,
+  readonly: boolean
+) {
   const { setStrategy, setIsOpen } = useCommandPalette();
 
-  const handleEdit = () => {
-    const text = getStatementText(statement);
-    const strategy: CommandStrategy = {
-      id: `edit-${statement.id}`,
-      getCommands: () => [],
-      handleInput: (newText) => {
-        onEdit(originalIndex, newText);
-        return true;
-      },
-      placeholder: "Edit statement...",
-      initialInputValue: text
+  const createActions = (statement: ICodeStatement, originalIndex: number) => {
+    if (readonly) return undefined;
+
+    const handleEdit = () => {
+      const text = getStatementText(statement);
+      const strategy: CommandStrategy = {
+        id: `edit-${statement.id}`,
+        getCommands: () => [],
+        handleInput: (newText) => {
+          onEdit?.(originalIndex, newText);
+          return true;
+        },
+        placeholder: "Edit statement...",
+        initialInputValue: text
+      };
+      setStrategy(strategy);
+      setIsOpen(true);
     };
-    setStrategy(strategy);
-    setIsOpen(true);
+
+    return (
+      <>
+        <button
+          onClick={handleEdit}
+          className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
+          title="Edit this line"
+        >
+          ✏️
+        </button>
+        <button
+          onClick={() => onDelete?.(originalIndex)}
+          className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+          title="Delete this line"
+        >
+          ×
+        </button>
+      </>
+    );
   };
 
-  const containerClass = isGrouped
-    ? `flex items-center gap-2 p-2 hover:bg-accent/5 transition-colors ${isActive ? 'bg-primary/10' : ''}`
-    : `flex items-center gap-2 p-2 bg-card rounded border border-border hover:border-primary/50 transition-colors ${isActive ? 'bg-primary/10 border-primary' : ''}`;
-
-  return (
-    <div className={containerClass}>
-      <div className="flex-1 min-w-0">
-        <FragmentVisualizer fragments={statement.fragments || []} />
-      </div>
-      {!readonly && (
-        <div className="flex gap-1 shrink-0">
-          <button
-            onClick={handleEdit}
-            className="px-2 py-1 text-xs bg-background border border-border text-foreground rounded hover:bg-accent hover:text-accent-foreground"
-            title="Edit this line"
-          >
-            ✏️
-          </button>
-          <button
-            onClick={() => onDelete(originalIndex)}
-            className="px-2 py-1 text-xs bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
-            title="Delete this line"
-          >
-            ×
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+  return createActions;
+}
 
 /**
  * Group of linked statements (e.g. EMOM + exercises)
@@ -111,11 +92,9 @@ const StatementItem: React.FC<StatementItemProps> = ({
 const StatementGroupItem: React.FC<{ 
   group: LinkedGroup, 
   statements: ICodeStatement[],
-  onEdit: (index: number, text: string) => void,
-  onDelete: (index: number) => void,
-  readonly?: boolean,
+  createActions: (stmt: ICodeStatement, index: number) => React.ReactNode,
   activeStatementIds?: Set<number>
-}> = ({ group, statements, onEdit, onDelete, readonly, activeStatementIds }) => {
+}> = ({ group, statements, createActions, activeStatementIds }) => {
   return (
     <div className="bg-card rounded border border-border overflow-hidden mb-2 hover:border-primary/50 transition-colors">
       {group.statements.map((stmt, i) => {
@@ -123,14 +102,11 @@ const StatementGroupItem: React.FC<{
         const isActive = activeStatementIds?.has(stmt.id) ?? false;
         return (
           <div key={stmt.id} className={i < group.statements.length - 1 ? "border-b border-border" : ""}>
-            <StatementItem 
-              statement={stmt} 
-              originalIndex={index}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              readonly={readonly}
+            <StatementDisplay
+              statement={stmt}
               isGrouped={true}
               isActive={isActive}
+              actions={createActions(stmt, index)}
             />
           </div>
         );
@@ -157,6 +133,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
   readonly = false,
   activeStatementIds = new Set()
 }) => {
+  const createActions = useStatementActions(onEditStatement, onDeleteStatement, readonly);
   
   // Group statements logic
   const groups = useMemo(() => {
@@ -223,9 +200,7 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
               <StatementGroupItem
                 group={group}
                 statements={statements}
-                onEdit={onEditStatement!}
-                onDelete={onDeleteStatement!}
-                readonly={readonly}
+                createActions={createActions}
                 activeStatementIds={activeStatementIds}
               />
             </div>
@@ -236,13 +211,10 @@ export const EditableStatementList: React.FC<EditableStatementListProps> = ({
           const isActive = activeStatementIds.has(stmt.id);
           return (
             <div key={stmt.id} style={indentStyle}>
-              <StatementItem
+              <StatementDisplay
                 statement={stmt}
-                originalIndex={index}
-                onEdit={onEditStatement!}
-                onDelete={onDeleteStatement!}
-                readonly={readonly}
                 isActive={isActive}
+                actions={createActions(stmt, index)}
               />
             </div>
           );

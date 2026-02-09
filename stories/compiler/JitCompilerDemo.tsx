@@ -13,7 +13,7 @@ import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/comp
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
 import { WorkoutRootStrategy } from '../../src/runtime/compiler/strategies/WorkoutRootStrategy';
-import { RuntimeProvider } from '../../src/runtime/context/RuntimeContext';
+import { ScriptRuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';
@@ -823,7 +823,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   const statements = runtime?.script?.statements || [];
 
   return (
-    <RuntimeProvider runtime={runtime}>
+    <ScriptRuntimeProvider runtime={runtime}>
       <div className="p-4 max-w-7xl mx-auto">
 
         {/* Top Section: Workout Setup (left) and Parsed Workout (right) */}
@@ -946,7 +946,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
         )}
       </div>
       </div>
-    </RuntimeProvider>
+    </ScriptRuntimeProvider>
   );
 };
 

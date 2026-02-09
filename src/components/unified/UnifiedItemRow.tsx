@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { FragmentVisualizer } from '@/views/runtime/FragmentVisualizer';
+import { FragmentVisualizer } from '@/components/fragments';
 import { IDisplayItem, isActiveItem, isCompletedItem, VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
 export interface UnifiedItemRowProps {

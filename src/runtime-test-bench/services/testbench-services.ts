@@ -1,4 +1,4 @@
-import { MdTimerRuntime } from '../../parser/md-timer';
+import { sharedParser } from '../../parser/parserInstance';
 import { JitCompiler } from '../../runtime/compiler/JitCompiler';
 // Composable Strategies
 
@@ -25,7 +25,7 @@ import { EffortFallbackStrategy } from '../../runtime/compiler/strategies/fallba
  * const script = globalParser.read(codeString);
  * ```
  */
-export const globalParser = new MdTimerRuntime();
+export const globalParser = sharedParser;
 
 /**
  * Global compiler instance with all strategies registered.

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { RuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
+import { ScriptRuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior } from '../../../src/runtime/behaviors';
@@ -163,9 +163,9 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
   };
 
   return (
-    <RuntimeProvider runtime={runtime}>
+    <ScriptRuntimeProvider runtime={runtime}>
       {children(harness)}
-    </RuntimeProvider>
+    </ScriptRuntimeProvider>
   );
 };
 

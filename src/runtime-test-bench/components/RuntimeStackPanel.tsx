@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { RuntimeStackPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
-import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
+import { FragmentVisualizer } from '../../components/fragments';
 
 /**
  * RuntimeStackPanel component - displays hierarchical runtime block execution

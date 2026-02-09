@@ -1,11 +1,11 @@
 import { Range } from 'monaco-editor';
 import { InlineWidgetCard, WodBlockContent } from '../inline-cards/types';
 import { CARD_TYPE_CONFIGS } from '../inline-cards/config';
-import { MdTimerRuntime } from '../../parser/md-timer';
+import { sharedParser } from '../../parser/parserInstance';
 import { ICodeStatement } from '../../core/types/core';
 import { ICardParserStrategy } from './ICardParserStrategy';
 
-const wodParser = new MdTimerRuntime();
+const wodParser = sharedParser;
 
 export class WodBlockParser implements ICardParserStrategy {
   parse(lines: string[], _existingCards: InlineWidgetCard[]): InlineWidgetCard<WodBlockContent>[] {

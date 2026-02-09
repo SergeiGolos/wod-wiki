@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { calculateDuration } from '../../lib/timeUtils';
 
 export interface TimeValue {
     value: string;
@@ -11,15 +12,8 @@ export const useTimespan = (timeSpans: TimeSpan[]) => {
 
     useEffect(() => {
         const calculateTime = () => {
-            const milliseconds = timeSpans.reduce((total, span) => {
-                if (!span.started) {
-                    return total;
-                }
-                const start = span.started;
-                // Use ended if available, otherwise current time
-                const stop = span.ended ?? Date.now();
-                return total + (stop - start);
-            }, 0);
+            // Use shared calculateDuration utility
+            const milliseconds = calculateDuration(timeSpans, Date.now());
 
             const totalSeconds = Math.floor(milliseconds / 1000);
             const days = Math.floor(totalSeconds / 86400);

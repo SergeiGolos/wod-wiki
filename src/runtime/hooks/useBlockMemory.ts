@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../memory/MemoryTypes';
 import { formatDurationSmart } from '../../lib/formatTime';
+import { calculateDuration } from '../../lib/timeUtils';
 
 /**
  * React hook to subscribe to a specific memory type on a block.
@@ -107,28 +108,13 @@ export interface TimerDisplayValues {
 }
 
 /**
- * Calculate elapsed time from timer spans.
- */
-function calculateElapsed(spans: readonly { started: number; ended?: number }[], now: number): number {
-    return spans.reduce((total, span) => {
-        const end = span.ended ?? now;
-        return total + Math.max(0, end - span.started);
-    }, 0);
-}
-
-/**
- * Format milliseconds as MM:SS or HH:MM:SS.
- */
-function formatTime(ms: number): string {
-    return formatDurationSmart(ms);
-}
-
-/**
  * Hook for derived timer display values.
  * 
  * Computes elapsed time, remaining time, and formatted display strings
  * from the raw timer state. Uses requestAnimationFrame for smooth 60fps
  * updates when the timer is running.
+ * 
+ * Consolidated with useTimerElapsed - both now share calculateDuration utility.
  * 
  * @param block The runtime block
  * @returns Derived timer display values or null if no timer
@@ -184,11 +170,11 @@ export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayV
         };
     }, [isRunning]);
 
-    // Compute derived values
+    // Compute derived values using shared utilities
     return useMemo(() => {
         if (!timer) return null;
 
-        const elapsed = calculateElapsed(timer.spans, now);
+        const elapsed = calculateDuration(timer.spans, now);
         const remaining = timer.durationMs !== undefined
             ? Math.max(0, timer.durationMs - elapsed)
             : undefined;
@@ -205,7 +191,7 @@ export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayV
             isRunning,
             direction: timer.direction,
             isComplete,
-            formatted: formatTime(displayMs)
+            formatted: formatDurationSmart(displayMs)
         };
     }, [timer, now, isRunning]);
 }

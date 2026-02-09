@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ICodeFragment } from '../../core/models/CodeFragment';
-import { getFragmentColorClasses } from './fragmentColorMap';
+import { getFragmentColorClasses, getFragmentIcon } from './fragmentColorMap';
 import { cn } from '../../lib/utils';
 import { VisualizerSize, VisualizerFilter } from '../../core/models/DisplayItem';
 import type { ParseError } from './types';
@@ -23,31 +23,6 @@ export interface FragmentVisualizerProps {
 
   /** @deprecated Use size='compact' instead */
   compact?: boolean;
-}
-
-/**
- * Get icon/emoji for fragment type
- */
-export function getFragmentIcon(type: string): string | null {
-  const iconMap: Record<string, string> = {
-    'timer': '⏱️',
-    'duration': '⏱️',
-    'rounds': '🔄',
-    // 'rep': '×',
-    // 'reps': '×',
-    'resistance': '💪',
-    'weight': '💪',
-    'distance': '📏',
-    'action': '▶️',
-    'rest': '⏸️',
-    'effort': '🏃',
-    // 'lap': '+',
-    'increment': '↕️',
-    'text': '📝',
-    'ellapsed': '⏱️', // Add missing icon for 'ellapsed' if needed, though type might be different
-  };
-
-  return iconMap[type.toLowerCase()] || null;
 }
 
 /**

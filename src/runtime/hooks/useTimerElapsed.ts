@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useRuntimeContext } from '../context/RuntimeContext';
+import { useScriptRuntime } from '../context/RuntimeContext';
 import { TimeSpan } from '../models/TimeSpan';
 import { TimerState } from '../memory/MemoryTypes';
+import { calculateDuration } from '../../lib/timeUtils';
 
 
 /**
@@ -60,7 +61,7 @@ export interface UseTimerElapsedResult {
  * ```
  */
 export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
-  const runtime = useRuntimeContext();
+  const runtime = useScriptRuntime();
   
   // Find the block from the stack by key
   const block = useMemo(() => {
@@ -112,19 +113,10 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
 
   const [now, setNow] = useState(Date.now());
 
-  // Calculate elapsed time
+  // Calculate elapsed time using shared utility
   const elapsed = useMemo(() => {
     if (timeSpans.length === 0) return 0;
-
-    return timeSpans.reduce((total, span) => {
-      // span.started should be present. TimeSpan uses number timestamps (epoch ms)
-      if (typeof span.started !== 'number') return total;
-
-      // If no end time, timer is running - use current time
-      const end = span.ended ?? now;
-      const start = span.started;
-      return total + Math.max(0, end - start);
-    }, 0);
+    return calculateDuration(timeSpans, now);
   }, [timeSpans, now]);
 
   // Animation frame for running timers

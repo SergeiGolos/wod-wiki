@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { FragmentVisualizer } from '../../src/views/runtime/FragmentVisualizer';
+import { FragmentVisualizer } from '../../src/components/fragments';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import type { ParseError } from '../../src/views/runtime/types';
 
