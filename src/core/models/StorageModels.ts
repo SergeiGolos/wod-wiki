@@ -1,4 +1,4 @@
-import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
+import { IOutputStatement } from './OutputStatement';
 
 /**
  * Represents the outcome of running a workout.
@@ -9,7 +9,7 @@ export interface WodResult {
   documentTitle: string;   // Snapshot of title in case doc is deleted
   timestamp: number;       // When the workout session finished (set by finishSession)
   duration: number;        // Total milliseconds
-  logs: RuntimeSpan[];   // The detailed runtime logs (splits, reps)
+  logs: IOutputStatement[];   // The detailed runtime logs (splits, reps)
   metadata: {
     user?: string;
     notes?: string;

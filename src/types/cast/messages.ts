@@ -2,10 +2,10 @@
 
 import { IDisplayStackState as ImportedDisplayStackState, ITimerDisplayEntry as ImportedTimerDisplayEntry, IDisplayCardEntry as ImportedDisplayCardEntry } from '@/clock/types/DisplayTypes';
 import { RuntimeMetric } from '@/runtime/models/RuntimeMetric';
-import { RuntimeSpan } from '@/runtime/models/RuntimeSpan';
+import { IOutputStatement } from '@/core/models/OutputStatement';
 
 // Re-export for backward compatibility
-export type ExecutionRecord = RuntimeSpan;
+export type ExecutionRecord = IOutputStatement;
 
 // Re-export imported types to ensure they are available if needed
 export type IDisplayStackState = ImportedDisplayStackState;

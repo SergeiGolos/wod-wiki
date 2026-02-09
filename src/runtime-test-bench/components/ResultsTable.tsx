@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
-import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
+import { IOutputStatement } from '../../core/models/OutputStatement';
 import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
 interface ResultsTableProps {
@@ -13,19 +13,19 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
     return <div className="p-4 text-gray-500">No execution data available</div>;
   }
 
-  // Filter for execution spans (mapped to 'span' type by RuntimeAdapter)
-  const spans = snapshot.memory.entries
+  // Filter for execution output entries (mapped to 'span' type by RuntimeAdapter)
+  const outputs = snapshot.memory.entries
     .filter(entry => entry.type === 'span')
-    .map(entry => entry.value as RuntimeSpan)
-    .sort((a, b) => a.startTime - b.startTime);
+    .map(entry => entry.value as IOutputStatement)
+    .sort((a, b) => (a.timeSpan?.started ?? 0) - (b.timeSpan?.started ?? 0));
 
-  if (spans.length === 0) {
+  if (outputs.length === 0) {
     return <div className="p-4 text-gray-500">No execution history recorded</div>;
   }
 
   // Helper to format metrics from fragments
-  const formatMetric = (span: RuntimeSpan) => {
-    const flat = span.fragments.flat();
+  const formatMetric = (output: IOutputStatement) => {
+    const flat = output.fragments;
     const parts = [];
 
     for (const f of flat) {
@@ -60,22 +60,23 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {spans.map((span) => {
-            // Check if span's blockId matches a block with the highlighted line
+          {outputs.map((output) => {
+            // Check if output's sourceBlockKey matches a block with the highlighted line
             const matchesLine = highlightedLine !== undefined &&
               snapshot?.stack.blocks.some(block =>
-                block.key === span.blockId && block.lineNumber === highlightedLine
+                block.key === output.sourceBlockKey && block.lineNumber === highlightedLine
               );
 
-            const label = fragmentsToLabel(span.fragments);
-            const type = span.fragments.flat().find(f => f.fragmentType === 'rounds' || f.fragmentType === 'timer' || f.fragmentType === 'effort')?.type || 'group';
+            const label = fragmentsToLabel(output.fragments);
+            const type = output.fragments.find(f => f.fragmentType === 'rounds' || f.fragmentType === 'timer' || f.fragmentType === 'effort')?.type || 'group';
+            const isOpen = output.timeSpan && !output.timeSpan.ended;
 
             return (
-              <tr key={span.id} className={`
-              ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : span.isActive() ? 'bg-blue-50' : ''}
+              <tr key={output.id} className={`
+              ${matchesLine ? 'bg-blue-200 dark:bg-blue-900/50 ring-2 ring-blue-400' : isOpen ? 'bg-blue-50' : ''}
             `}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                  {span.blockId.substring(0, 8)}
+                  {output.sourceBlockKey.substring(0, 8)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {type}
@@ -84,10 +85,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
                   {label}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatMetric(span)}
+                  {formatMetric(output)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {span.endTime ? `${(span.total() / 1000).toFixed(2)}s` : 'Running...'}
+                  {output.timeSpan?.ended ? `${(output.timeSpan.duration / 1000).toFixed(2)}s` : 'Running...'}
                 </td>
               </tr>
             );

@@ -1,7 +1,8 @@
 # WOD Wiki — Fragment Overhaul & Standardization
 
-> **Status**: Proposed / Draft  
+> **Status**: In Progress — Phase 0 & Phase 1 complete, RuntimeSpan eliminated  
 > **Created**: 2026-02-09  
+> **Updated**: 2025-02-10  
 > **Sources**: Consolidated from Gemini and Opus proposals  
 > **Scope**: Core data pipeline (`CodeStatement` → `RuntimeBlock` → `OutputStatement`) & UI Rendering  
 > **Objective**: Define a unified fragment interface that standardizes fragment access, precedence resolution, and multi-fragment-per-type handling across all levels of the runtime pipeline — and eliminates `IDisplayItem` as an intermediate adapter target.
@@ -73,7 +74,7 @@ This eliminates the `IDisplayItem` adapter layer, standardizes fragment preceden
 | **Output**  | `IOutputStatement` | Execution result snapshot | `fragments: ICodeFragment[]` — merged parser + runtime, extends `ICodeStatement`                                                                                                                 |
 | **Display** | `IDisplayItem`     | Adapter target for UI     | `fragments: ICodeFragment[]` — flat 1D, always `.flat()`'d — **to be eliminated**                                                                                                              |
 
-Additionally, `RuntimeSpan` (used by analytics) mirrors the same `ICodeFragment[][]` pattern as `IRuntimeBlock`.
+Additionally, `RuntimeSpan` previously existed as a parallel tracking model mirroring `IRuntimeBlock`'s fragment storage. It has been **deleted** — see [Remove RuntimeSpan](remove-runtime-span.opus.md). Block memory is now the sole live state, and `OutputStatement` is the sole completed record.
 
 ### 2.2 Fragment Storage Shapes
 
@@ -109,14 +110,14 @@ Additionally, `RuntimeSpan` (used by analytics) mirrors the same `ICodeFragment[
 │ IDisplayItem (adapter target)                                            │
 │   fragments: ICodeFragment[]          ← flat 1D, always .flat()'d       │
 │   status: DisplayStatus                                                  │
-│   sourceType: 'statement' | 'block' | 'span' | 'record'                │
+│   sourceType: 'statement' | 'block' | 'record'                         │
 │   label?: string                      ← fallback when fragments empty   │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.3 Adapter/Conversion Pipeline
 
-The display adapter layer in `src/core/adapters/displayItemAdapters.ts` maintains **four separate conversion paths**:
+The display adapter layer in `src/core/adapters/displayItemAdapters.ts` maintains **three conversion paths** (previously four — `runtimeSpanToDisplayItem()` was removed with `RuntimeSpan`):
 
 ```
 ICodeStatement[]  ─── statementToDisplayItem()  ──┐
@@ -124,16 +125,16 @@ ICodeStatement[]  ─── statementToDisplayItem()  ──┐
 IRuntimeBlock     ─── blockToDisplayItem()        ──┤      │
                       block.fragments.flat()        │      │
                                                     │      ▼
-IOutputStatement ─── outputStatementToDisplayItem() ┤  UnifiedItemList
-                                                    │      │
-RuntimeSpan      ─── runtimeSpanToDisplayItem()   ──┘      ▼
-                      span.fragments.flat()              UnifiedItemRow
+IOutputStatement ─── outputStatementToDisplayItem() ┘  UnifiedItemList
+                                                            │
+                                                            ▼
+                                                      UnifiedItemRow
                                                             │
                                                             ▼
                                                       FragmentVisualizer
 ```
 
-**Key observation**: Every adapter does the same thing — extracts `fragments`, `.flat()`s them, and puts them into `IDisplayItem.fragments`. The real differences are:
+**Key observation**: Every adapter does the same thing — extracts `fragments`, `.flat()`s them, and puts them into `IDisplayItem.fragments`. (The `runtimeSpanToDisplayItem()` adapter was deleted as part of the [RuntimeSpan removal](remove-runtime-span.opus.md).) The real differences are:
 - **Depth calculation** (parent chain vs. stackIndex vs. stackLevel)
 - **Status mapping** (pending/active vs. always-active vs. outputType mapping)
 - **Timing extraction** (absent vs. startTime vs. timeSpan)
@@ -243,7 +244,7 @@ get fragments(): ICodeFragment[][] {
 
 ### 3.6 IDisplayItem is Redundant
 
-The four-adapter pipeline (`statementToDisplayItem`, `blockToDisplayItem`, `outputStatementToDisplayItem`, `runtimeSpanToDisplayItem`) exists solely to flatten fragments into a common `IDisplayItem` shape. But every adapter does the same thing: extract fragments, `.flat()` them, stuff them into `IDisplayItem.fragments`. The differences (depth, status, timing) are display-context concerns, not fragment concerns. With `IFragmentSource` as the rendering contract, the entire `IDisplayItem` layer becomes dead weight.
+The adapter pipeline (`statementToDisplayItem`, `blockToDisplayItem`, `outputStatementToDisplayItem`) exists solely to flatten fragments into a common `IDisplayItem` shape. (The fourth adapter, `runtimeSpanToDisplayItem`, was deleted with `RuntimeSpan` — see [Remove RuntimeSpan](remove-runtime-span.opus.md).) Every adapter does the same thing: extract fragments, `.flat()` them, stuff them into `IDisplayItem.fragments`. The differences (depth, status, timing) are display-context concerns, not fragment concerns. With `IFragmentSource` as the rendering contract, the entire `IDisplayItem` layer becomes dead weight.
 
 ---
 
@@ -255,7 +256,7 @@ The four-adapter pipeline (`statementToDisplayItem`, `blockToDisplayItem`, `outp
 /**
  * Unified contract for any data object that provides displayable fragments.
  * 
- * Implemented by CodeStatement, RuntimeBlock, OutputStatement, RuntimeSpan.
+ * Implemented by CodeStatement, OutputStatement, and DisplayFragmentMemory.
  * Consumed directly by UI components — no IDisplayItem adapter layer.
  * 
  * All fragment access goes through this interface, ensuring:
@@ -856,12 +857,12 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ BEFORE: 4 adapters converting to IDisplayItem                   │
+│ BEFORE: 4 adapters converting to IDisplayItem (now 3)           │
 │                                                                  │
 │ CodeStatement  ─→ statementToDisplayItem()  ─→ IDisplayItem ─→ UI│
 │ RuntimeBlock   ─→ blockToDisplayItem()      ─→ IDisplayItem ─→ UI│
 │ OutputStatement─→ outputToDisplayItem()      ─→ IDisplayItem ─→ UI│
-│ RuntimeSpan    ─→ spanToDisplayItem()        ─→ IDisplayItem ─→ UI│
+│ ~~RuntimeSpan  ─→ spanToDisplayItem()~~      (DELETED)           │
 ├──────────────────────────────────────────────────────────────────┤
 │ AFTER: UI binds directly to IFragmentSource                     │
 │                                                                  │
@@ -869,7 +870,6 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
 │ RuntimeBlock.memory['fragment:display']     ─────────────────→ UI│
 │   (DisplayFragmentMemory implements IFragmentSource)             │
 │ OutputStatement (implements IFragmentSource) ────────────────→ UI│
-│ RuntimeSpan (implements IFragmentSource)     ────────────────→ UI│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -881,14 +881,13 @@ The `IFragmentSource` interface already has `id` for React keys. Display layout 
 
 ### 8.1 The Problem with IDisplayItem
 
-The current pipeline has four adapters converting different source types to `IDisplayItem`:
+The current pipeline has three adapters converting different source types to `IDisplayItem` (previously four — `runtimeSpanToDisplayItem()` was removed with `RuntimeSpan`):
 
 ```typescript
 // Every adapter does the same thing: extract fragments, .flat(), stuff into IDisplayItem
 const fragments = block.fragments?.flat() ?? [createLabelFragment(...)];  // blockToDisplayItem
 const fragments = output.fragments.flat();                                 // outputToDisplayItem
 fragments: statement.fragments;                                            // statementToDisplayItem
-const fragments = span.fragments.flat();                                   // spanToDisplayItem
 ```
 
 `IDisplayItem` was an intermediate data bag to normalize all these sources. But with `IFragmentSource`, every source already speaks the same language. The adapter layer is dead weight.
@@ -897,7 +896,7 @@ const fragments = span.fragments.flat();                                   // sp
 
 The UI renders `IFragmentSource` directly. No conversion step. No intermediate data structure.
 
-**Before** (4 adapters → `IDisplayItem` → UI):
+**Before** (3 adapters → `IDisplayItem` → UI):
 
 ```tsx
 function renderItem(item: IDisplayItem) {
@@ -1051,7 +1050,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | -------------------------------------------- | ------------------------------------ | -------------------------------- |
 | `CodeStatement implements IFragmentSource`   | `src/core/models/CodeStatement.ts`   | Low — trivial delegation         |
 | `OutputStatement implements IFragmentSource` | `src/core/models/OutputStatement.ts` | Low — already has flat fragments |
-| `RuntimeSpan implements IFragmentSource`     | `src/runtime/models/RuntimeSpan.ts`  | Low — mirrors OutputStatement    |
+| ~~`RuntimeSpan implements IFragmentSource`~~ | ~~`src/runtime/models/RuntimeSpan.ts`~~ | **N/A — RuntimeSpan deleted** |
 
 > **Note**: `IRuntimeBlock` is NOT modified. No new methods, no `IFragmentSource` implementation, no `getFragmentSource()`. The `DisplayFragmentMemory` entry in the block's memory is the `IFragmentSource`.
 
@@ -1078,7 +1077,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | Remove `statementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
 | Remove `blockToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
 | Remove `outputStatementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
-| Remove `runtimeSpanToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
+| ~~Remove `runtimeSpanToDisplayItem()`~~ | ~~`src/core/adapters/displayItemAdapters.ts`~~ | ✅ Already deleted (RuntimeSpan removal) |
 | Remove `IDisplayItem` interface | `src/core/models/DisplayItem.ts` | Medium — verify no remaining consumers |
 | Update `AnalyticsIndexPanel` to use `IFragmentSource` | `src/components/layout/AnalyticsIndexPanel.tsx` | Medium |
 | Migrate `TimerDisplay` to bind to `fragment:display` memory | `src/components/workout/TimerDisplay.tsx` | High — live timer |
@@ -1127,9 +1126,9 @@ Both classify fragment intent. `MetricBehavior` (`Defined`, `Hint`, `Collected`,
 
 > USER: B, i don't wnat MetricBehavior, instead mergethose into FragmentOrigin
 
-### Q5: Should `RuntimeSpan` also implement `IFragmentSource`?
+### Q5: ~~Should `RuntimeSpan` also implement `IFragmentSource`?~~ — Resolved
 
-**Yes.** `RuntimeSpan` has the same 2D fragment storage pattern as `RuntimeBlock`. It implements `IFragmentSource` directly (it has no memory system, just static fragment arrays). This eliminates the runtime span adapter entirely — no adapter, no `IDisplayItem`, just `IFragmentSource`.
+**Moot.** `RuntimeSpan` has been **deleted entirely** — see [Remove RuntimeSpan plan](remove-runtime-span.opus.md). The entire tracker system (~926 lines) was eliminated. `OutputStatement` is now the sole completed-execution record, and block memory is the sole live state. No span adapter, no span model, no span tracking infrastructure.
 
 ### Q6: Per-round fragment resolution?
 

@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../../src/runtime/behaviors';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../../../src/runtime/models/RuntimeSpan';
 import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 import { RuntimeMemory } from '../../../src/runtime/RuntimeMemory';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';

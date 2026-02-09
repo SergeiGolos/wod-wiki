@@ -1,13 +1,13 @@
 import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement } from "@/core";
 import { IBlockContext, RuntimeError } from "@/core-entry";
 import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, TypedMemoryReference } from "@/runtime/contracts";
-import { RuntimeSpan } from "@/runtime/models";
+import { IOutputStatement } from "@/core/models/OutputStatement";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";
 
 
 // Re-export for backward compatibility
-export type ExecutionRecord = RuntimeSpan;
+export type ExecutionRecord = IOutputStatement;
 
 /**
  * Snapshot of runtime state at a point in time

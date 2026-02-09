@@ -1,21 +1,19 @@
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { LocalStorageProvider } from './storage/LocalStorageProvider';
 import { WodResult } from '../core/models/StorageModels';
-import { RuntimeSpan, RUNTIME_SPAN_TYPE } from '../runtime/models/RuntimeSpan';
+import { IOutputStatement } from '../core/models/OutputStatement';
 import { v4 as uuidv4 } from 'uuid';
-import { IEvent } from '../runtime/contracts/events/IEvent';
 
 /**
  * Service to manage execution logging and persistence.
- * Connects to the EventBus for memory change notifications.
+ * Subscribes to the runtime's output stream to capture completed blocks.
  */
 export class ExecutionLogService {
   private currentResult: WodResult | null = null;
   private currentRuntime: IScriptRuntime | null = null;
-  private readonly ownerId = 'execution-log-service';
 
-  // Map for O(1) span lookup by id
-  private spanMap: Map<string, RuntimeSpan> = new Map();
+  // Map for O(1) output lookup by id
+  private outputMap: Map<number, IOutputStatement> = new Map();
 
   // Incremental duration tracking for performance
   private earliestStart: number = Infinity;
@@ -25,12 +23,15 @@ export class ExecutionLogService {
   private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly SAVE_DEBOUNCE_MS = 1000; // Save at most once per second
 
+  // Unsubscribe function for output stream
+  private unsubscribeOutput?: () => void;
+
   constructor(private storage: LocalStorageProvider) { }
 
   /**
    * Initialize logging for a runtime session.
-   * Creates a new result container and subscribes to memory events
-   * via the EventBus to track execution spans in real-time.
+   * Creates a new result container and subscribes to the runtime's
+   * output stream to track execution results in real-time.
    *
    * @param runtime - The runtime instance to track
    * @param documentId - ID of the workout document (defaults to 'scratchpad')
@@ -40,7 +41,7 @@ export class ExecutionLogService {
     this.cleanup();
 
     // Reset incremental tracking
-    this.spanMap.clear();
+    this.outputMap.clear();
     this.earliestStart = Infinity;
     this.latestEnd = 0;
 
@@ -53,30 +54,22 @@ export class ExecutionLogService {
       duration: 0,
       logs: [],
       metadata: {},
-      schemaVersion: 1
+      schemaVersion: 2
     };
 
     this.currentRuntime = runtime;
 
-    // Subscribe to memory events via EventBus
-    const handleMemoryEvent = (event: IEvent) => {
-      const data = event.data as { ref: { type: string }; value: unknown; oldValue?: unknown };
-      if (data?.ref?.type === RUNTIME_SPAN_TYPE) {
-        this.handleSpanUpdate(data.value as RuntimeSpan);
-      }
-    };
-
-    runtime.eventBus.on('memory:set', handleMemoryEvent, this.ownerId);
-    runtime.eventBus.on('memory:allocate', handleMemoryEvent, this.ownerId);
+    // Subscribe to output stream — each OutputStatement is a completed block record
+    this.unsubscribeOutput = runtime.subscribeToOutput((output: IOutputStatement) => {
+      this.handleOutput(output);
+    });
   }
 
   /**
    * Returns the most recent historical logs from storage.
-   * Historical logs should NOT be allocated into runtime memory to avoid
-   * duplicate allocations and memory ownership violations.
-   * @returns Array of historical spans (both models)
+   * @returns Array of historical output statements
    */
-  async getHistoricalLogs(): Promise<RuntimeSpan[]> {
+  async getHistoricalLogs(): Promise<IOutputStatement[]> {
     const latest = await this.storage.getLatestResult();
     if (latest && latest.logs.length > 0) {
       return latest.logs;
@@ -84,41 +77,39 @@ export class ExecutionLogService {
     return [];
   }
 
-  private handleSpanUpdate(span: RuntimeSpan | null) {
-    if (!span) return;
+  private handleOutput(output: IOutputStatement) {
+    if (!this.currentResult) return;
 
-    // We only care about persisting the span when it's updated or finished.
-    // Since we are persisting the *entire* log history, we can just update our local copy.
+    // Use Map for O(1) lookup instead of array search
+    this.outputMap.set(output.id, output);
 
-    if (this.currentResult) {
-      // Use Map for O(1) lookup instead of array search
-      this.spanMap.set(span.id, span);
+    // Update logs array from map (maintains insertion order)
+    this.currentResult.logs = Array.from(this.outputMap.values());
 
-      // Update logs array from map (maintains insertion order)
-      this.currentResult.logs = Array.from(this.spanMap.values());
-
-      // Update min/max incrementally for O(1) duration calculation
-      this.earliestStart = Math.min(this.earliestStart, span.startTime);
-      const endTime = span.endTime ?? Date.now();
-      this.latestEnd = Math.max(this.latestEnd, endTime);
-
-      // Calculate duration from cached values
-      if (this.earliestStart !== Infinity) {
-        this.currentResult.duration = this.latestEnd - this.earliestStart;
-      }
-
-      // Debounce persistence to avoid excessive localStorage writes
-      if (this.saveDebounceTimer) {
-        clearTimeout(this.saveDebounceTimer);
-      }
-
-      this.saveDebounceTimer = setTimeout(() => {
-        if (this.currentResult) {
-          this.storage.saveResult(this.currentResult);
-        }
-        this.saveDebounceTimer = null;
-      }, this.SAVE_DEBOUNCE_MS);
+    // Update min/max incrementally for O(1) duration calculation
+    const startTime = output.timeSpan.started;
+    if (startTime !== undefined) {
+      this.earliestStart = Math.min(this.earliestStart, startTime);
     }
+    const endTime = output.timeSpan.ended ?? Date.now();
+    this.latestEnd = Math.max(this.latestEnd, endTime);
+
+    // Calculate duration from cached values
+    if (this.earliestStart !== Infinity) {
+      this.currentResult.duration = this.latestEnd - this.earliestStart;
+    }
+
+    // Debounce persistence to avoid excessive localStorage writes
+    if (this.saveDebounceTimer) {
+      clearTimeout(this.saveDebounceTimer);
+    }
+
+    this.saveDebounceTimer = setTimeout(() => {
+      if (this.currentResult) {
+        this.storage.saveResult(this.currentResult);
+      }
+      this.saveDebounceTimer = null;
+    }, this.SAVE_DEBOUNCE_MS);
   }
 
   /**
@@ -149,15 +140,14 @@ export class ExecutionLogService {
       this.saveDebounceTimer = null;
     }
 
-    // Unregister from EventBus
-    if (this.currentRuntime?.eventBus) {
-      this.currentRuntime.eventBus.unregisterByOwner(this.ownerId);
-    }
+    // Unsubscribe from output stream
+    this.unsubscribeOutput?.();
+    this.unsubscribeOutput = undefined;
 
     // Reset state
     this.currentResult = null;
     this.currentRuntime = null;
-    this.spanMap.clear();
+    this.outputMap.clear();
     this.earliestStart = Infinity;
     this.latestEnd = 0;
   }

@@ -12,7 +12,6 @@ import { ICodeStatement } from '../models/CodeStatement';
 import { FragmentType } from '../models/CodeFragment';
 import { IDisplayItem, DisplayStatus } from '../models/DisplayItem';
 import { IOutputStatement } from '../models/OutputStatement';
-import { RuntimeSpan } from '../../runtime/models/RuntimeSpan';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { createLabelFragment, fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
 
@@ -103,80 +102,6 @@ export function statementsToDisplayItems(
 }
 
 
-
-// ============================================================================
-// RuntimeSpan Adapter
-// ============================================================================
-
-/**
- * Convert a RuntimeSpan to IDisplayItem
- * 
- * @param span The runtime span
- */
-export function runtimeSpanToDisplayItem(
-  span: RuntimeSpan,
-  allSpans?: Map<string, RuntimeSpan>
-): IDisplayItem {
-  const fragments = span.fragments.flat();
-
-  // Map status
-  let status: DisplayStatus = 'completed';
-  if (span.isActive()) {
-    status = 'active';
-  } else if (span.status) {
-    status = span.status as DisplayStatus;
-  }
-
-  // Determine if header based on fragments
-  const isHeader = fragments.some(f =>
-    f.fragmentType === FragmentType.Timer ||
-    f.fragmentType === FragmentType.Rounds ||
-    HEADER_TYPES.has(f.type.toLowerCase())
-  );
-
-  // Calculate depth
-  let depth = 0;
-  if (allSpans) {
-    let currentParentId = span.parentSpanId;
-    const visited = new Set<string>();
-    visited.add(span.id);
-
-    while (currentParentId && !visited.has(currentParentId)) {
-      visited.add(currentParentId);
-      const parent = allSpans.get(currentParentId);
-      if (parent) {
-        depth++;
-        currentParentId = parent.parentSpanId;
-      } else {
-        break;
-      }
-      if (depth > 20) break;
-    }
-  }
-
-  return {
-    id: span.id,
-    parentId: span.parentSpanId || null,
-    fragments,
-    depth,
-    isHeader,
-    status,
-    sourceType: 'span',
-    sourceId: span.id,
-    startTime: span.startTime,
-    endTime: span.endTime,
-    duration: span.total(),
-    label: fragmentsToLabel(span.fragments)
-  };
-}
-
-/**
- * Convert an array of RuntimeSpans to IDisplayItem array
- */
-export function runtimeSpansToDisplayItems(spans: RuntimeSpan[]): IDisplayItem[] {
-  const spanMap = new Map(spans.map(s => [s.id, s]));
-  return spans.map(span => runtimeSpanToDisplayItem(span, spanMap));
-}
 
 // ============================================================================
 // RuntimeBlock Adapter (for active stack)

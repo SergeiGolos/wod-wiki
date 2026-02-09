@@ -15,7 +15,7 @@ export interface FragmentFilter {
 /**
  * Unified contract for any data object that provides displayable fragments.
  *
- * Implemented by CodeStatement, RuntimeBlock, OutputStatement, RuntimeSpan.
+ * Implemented by CodeStatement, OutputStatement, and DisplayFragmentMemory.
  * Consumed directly by UI components — no IDisplayItem adapter layer.
  *
  * All fragment access goes through this interface, ensuring:
