@@ -306,32 +306,6 @@ export class MockBlock implements IRuntimeBlock {
     return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
   }
 
-  findFragment<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType,
-    predicate?: (f: ICodeFragment) => boolean
-  ): T | undefined {
-    for (const group of this.fragments) {
-      const found = group.find(f => f.fragmentType === type && (!predicate || predicate(f)));
-      if (found) return found as T;
-    }
-    return undefined;
-  }
-
-  filterFragments<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType
-  ): T[] {
-    const result: T[] = [];
-    for (const group of this.fragments) {
-      const found = group.filter(f => f.fragmentType === type);
-      result.push(...(found as T[]));
-    }
-    return result;
-  }
-
-  hasFragment(type: FragmentType): boolean {
-    return this.fragments.some(group => group.some(f => f.fragmentType === type));
-  }
-
   // ============================================================================
   // Block-Owned Memory (required by IRuntimeBlock interface)
   // ============================================================================

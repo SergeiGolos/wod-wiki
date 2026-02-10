@@ -4,6 +4,8 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { BlockContext } from "../../BlockContext";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "@/core/models/CodeFragment";
+import { FragmentMemory } from "../../memory/FragmentMemory";
+import { DisplayFragmentMemory } from "../../memory/DisplayFragmentMemory";
 
 describe("BlockBuilder Fragment Memory Allocation", () => {
     const runtime = {
@@ -44,42 +46,47 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
             .build();
     }
 
-    it("should make fragments accessible on the built block via .fragments getter", () => {
+    it("should make fragments accessible via fragment memory", () => {
         const block = buildWithFragments([[timerFragment, actionFragment]]);
 
-        // Fragments should be accessible via the getter (reads from memory)
-        expect(block.fragments).toBeDefined();
-        expect(block.fragments.length).toBeGreaterThan(0);
-        
-        const flat = block.fragments.flat();
+        // Fragments should be accessible via getMemory('fragment')
+        const mem = block.getMemory('fragment');
+        expect(mem).toBeDefined();
+        const flat = mem!.value.groups.flat();
         expect(flat).toHaveLength(2);
         expect(flat).toContainEqual(timerFragment);
         expect(flat).toContainEqual(actionFragment);
     });
 
-    it("should support findFragment on the built block", () => {
+    it("should support getFragment via display memory on the built block", () => {
         const block = buildWithFragments([[timerFragment, actionFragment]]);
 
-        const found = block.findFragment(FragmentType.Timer);
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem).toBeDefined();
+        const found = (displayMem as any).getFragment(FragmentType.Timer);
         expect(found).toBeDefined();
         expect(found?.value).toBe(60000);
     });
 
-    it("should support filterFragments on the built block", () => {
+    it("should support getAllFragmentsByType via display memory on the built block", () => {
         const block = buildWithFragments([[timerFragment, repFragment, actionFragment]]);
 
-        const timers = block.filterFragments(FragmentType.Timer);
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem).toBeDefined();
+        const timers = (displayMem as any).getAllFragmentsByType(FragmentType.Timer);
         expect(timers).toHaveLength(1);
 
-        const actions = block.filterFragments(FragmentType.Action);
+        const actions = (displayMem as any).getAllFragmentsByType(FragmentType.Action);
         expect(actions).toHaveLength(1);
     });
 
-    it("should support hasFragment on the built block", () => {
+    it("should support hasFragment via display memory on the built block", () => {
         const block = buildWithFragments([[timerFragment]]);
 
-        expect(block.hasFragment(FragmentType.Timer)).toBe(true);
-        expect(block.hasFragment(FragmentType.Distance)).toBe(false);
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem).toBeDefined();
+        expect((displayMem as any).hasFragment(FragmentType.Timer)).toBe(true);
+        expect((displayMem as any).hasFragment(FragmentType.Distance)).toBe(false);
     });
 
     it("should preserve multi-group structure in memory", () => {
@@ -94,10 +101,11 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(mem!.value.groups[0]).toHaveLength(2);
         expect(mem!.value.groups[1]).toHaveLength(1);
 
-        // And accessible via the fragments getter
-        expect(block.fragments).toHaveLength(2);
-        expect(block.fragments[0]).toHaveLength(2);
-        expect(block.fragments[1]).toHaveLength(1);
+        // Groups accessible via fragment memory
+        const fragMem = block.getMemory('fragment');
+        expect(fragMem!.value.groups).toHaveLength(2);
+        expect(fragMem!.value.groups[0]).toHaveLength(2);
+        expect(fragMem!.value.groups[1]).toHaveLength(1);
     });
 
     it("should allocate fragment memory in the block's memory system", () => {
@@ -114,7 +122,6 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
     it("should handle empty fragment groups gracefully", () => {
         const block = buildWithFragments([]);
 
-        expect(block.fragments).toEqual([]);
         expect(block.hasMemory('fragment')).toBe(false);
     });
 
@@ -129,7 +136,142 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
             .setLabel("Test Block")
             .build();
 
-        expect(block.fragments).toEqual([]);
-        expect(block.hasFragment(FragmentType.Timer)).toBe(false);
+        expect(block.hasMemory('fragment')).toBe(false);
+    });
+
+    // ========================================================================
+    // Phase 3: DisplayFragmentMemory allocation
+    // ========================================================================
+
+    it("should allocate DisplayFragmentMemory ('fragment:display') alongside FragmentMemory", () => {
+        const block = buildWithFragments([[timerFragment, actionFragment]]);
+
+        expect(block.hasMemory('fragment')).toBe(true);
+        expect(block.hasMemory('fragment:display')).toBe(true);
+
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem).toBeDefined();
+        expect(displayMem!.value.fragments).toHaveLength(2);
+        expect(displayMem!.value.resolved).toHaveLength(2);
+    });
+
+    it("should allocate FragmentMemory as a proper FragmentMemory instance (not SimpleMemoryEntry)", () => {
+        const block = buildWithFragments([[timerFragment]]);
+
+        const fragmentMem = block.getMemory('fragment');
+        expect(fragmentMem).toBeDefined();
+        // FragmentMemory has setGroups, addGroup, addFragment methods
+        expect(typeof (fragmentMem as any).setGroups).toBe('function');
+        expect(typeof (fragmentMem as any).addGroup).toBe('function');
+        expect(typeof (fragmentMem as any).addFragment).toBe('function');
+    });
+
+    it("should not allocate DisplayFragmentMemory when no fragments are set", () => {
+        const blockKey = new BlockKey();
+        const context = new BlockContext(runtime, blockKey.toString());
+
+        const block = new BlockBuilder(runtime)
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType("Test")
+            .setLabel("Test Block")
+            .build();
+
+        expect(block.hasMemory('fragment')).toBe(false);
+        expect(block.hasMemory('fragment:display')).toBe(false);
+    });
+
+    it("should not allocate DisplayFragmentMemory when empty fragment groups are set", () => {
+        const block = buildWithFragments([]);
+
+        expect(block.hasMemory('fragment')).toBe(false);
+        expect(block.hasMemory('fragment:display')).toBe(false);
+    });
+
+    it("should have DisplayFragmentMemory react to FragmentMemory updates", () => {
+        const block = buildWithFragments([[timerFragment]]);
+
+        const fragmentMem = block.getMemory('fragment') as unknown as FragmentMemory;
+        const displayMem = block.getMemory('fragment:display');
+
+        // Initial state: 1 fragment
+        expect(displayMem!.value.fragments).toHaveLength(1);
+
+        // Add a fragment to the source FragmentMemory
+        fragmentMem.addFragment(actionFragment);
+
+        // DisplayFragmentMemory should auto-update
+        expect(displayMem!.value.fragments).toHaveLength(2);
+        expect(displayMem!.value.resolved).toHaveLength(2);
+    });
+
+    it("should apply precedence resolution in DisplayFragmentMemory", () => {
+        const parserTimer: ICodeFragment = {
+            type: 'timer',
+            fragmentType: FragmentType.Timer,
+            value: 600000,
+            origin: 'parser'
+        };
+        const runtimeTimer: ICodeFragment = {
+            type: 'timer',
+            fragmentType: FragmentType.Timer,
+            value: 432000,
+            origin: 'runtime'
+        };
+
+        const block = buildWithFragments([[parserTimer, runtimeTimer, actionFragment]]);
+
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem).toBeDefined();
+
+        // rawFragments should contain all 3
+        expect(displayMem!.value.fragments).toHaveLength(3);
+
+        // resolved should contain runtime timer (higher precedence) + action
+        const resolved = displayMem!.value.resolved;
+        expect(resolved).toHaveLength(2); // runtime timer wins over parser timer
+        const timerResolved = resolved.find(f => f.fragmentType === FragmentType.Timer);
+        expect(timerResolved?.origin).toBe('runtime');
+    });
+
+    it("should preserve multi-group structure in FragmentMemory and flatten in DisplayFragmentMemory", () => {
+        const group1 = [timerFragment, actionFragment];
+        const group2 = [repFragment];
+        const block = buildWithFragments([group1, group2]);
+
+        // FragmentMemory preserves groups
+        const fragmentMem = block.getMemory('fragment');
+        expect(fragmentMem!.value.groups).toHaveLength(2);
+        expect(fragmentMem!.value.groups[0]).toHaveLength(2);
+        expect(fragmentMem!.value.groups[1]).toHaveLength(1);
+
+        // DisplayFragmentMemory flattens for display
+        const displayMem = block.getMemory('fragment:display');
+        expect(displayMem!.value.fragments).toHaveLength(3);
+        expect(displayMem!.value.resolved).toHaveLength(3);
+    });
+
+    it("should implement IFragmentSource on DisplayFragmentMemory", () => {
+        const block = buildWithFragments([[timerFragment, actionFragment, repFragment]]);
+
+        const displayMem = block.getMemory('fragment:display') as unknown as DisplayFragmentMemory;
+        expect(displayMem).toBeDefined();
+
+        // IFragmentSource methods
+        const all = displayMem.getDisplayFragments();
+        expect(all).toHaveLength(3);
+
+        const timer = displayMem.getFragment(FragmentType.Timer);
+        expect(timer).toBeDefined();
+        expect(timer!.value).toBe(60000);
+
+        const byType = displayMem.getAllFragmentsByType(FragmentType.Action);
+        expect(byType).toHaveLength(1);
+        expect(byType[0].value).toBe('Run');
+
+        expect(displayMem.hasFragment(FragmentType.Rep)).toBe(true);
+        expect(displayMem.hasFragment(FragmentType.Distance)).toBe(false);
+
+        expect(displayMem.rawFragments).toHaveLength(3);
     });
 });

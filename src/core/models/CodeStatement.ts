@@ -1,5 +1,8 @@
 import { CodeMetadata } from "./CodeMetadata";
 import { ICodeFragment, FragmentType } from "./CodeFragment";
+import { IFragmentSource, FragmentFilter } from "../contracts/IFragmentSource";
+import { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from "../utils/fragmentPrecedence";
+
 export interface ICodeStatement {  
   id: number;
   parent?: number;
@@ -10,29 +13,9 @@ export interface ICodeStatement {
   
   // Semantic hints from dialect processing
   hints?: Set<string>;
-
-  /**
-   * Find the first fragment of a given type, optionally matching a predicate.
-   */
-  findFragment<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType,
-    predicate?: (f: ICodeFragment) => boolean
-  ): T | undefined;
-
-  /**
-   * Get all fragments of a given type.
-   */
-  filterFragments<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType
-  ): T[];
-
-  /**
-   * Check if a fragment of a given type exists.
-   */
-  hasFragment(type: FragmentType): boolean;
 }
 
-export abstract class CodeStatement implements ICodeStatement {
+export abstract class CodeStatement implements ICodeStatement, IFragmentSource {
   abstract id: number;
   abstract parent?: number;
   abstract children: number[][];
@@ -40,23 +23,35 @@ export abstract class CodeStatement implements ICodeStatement {
   abstract fragments: ICodeFragment[];
   abstract isLeaf?: boolean;
 
-  findFragment<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType,
-    predicate?: (f: ICodeFragment) => boolean
-  ): T | undefined {
-    return this.fragments.find(
-      f => f.fragmentType === type && (!predicate || predicate(f))
-    ) as T | undefined;
-  }
-
-  filterFragments<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType
-  ): T[] {
-    return this.fragments.filter(f => f.fragmentType === type) as T[];
-  }
+  // ── IFragmentSource ─────────────────────────────────────────────
 
   hasFragment(type: FragmentType): boolean {
     return this.fragments.some(f => f.fragmentType === type);
+  }
+
+  getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
+    return resolveFragmentPrecedence([...this.fragments], filter);
+  }
+
+  getFragment(type: FragmentType): ICodeFragment | undefined {
+    const all = this.getAllFragmentsByType(type);
+    return all.length > 0 ? all[0] : undefined;
+  }
+
+  getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
+    const ofType = this.fragments.filter(f => f.fragmentType === type);
+    if (ofType.length === 0) return [];
+
+    // Sort by precedence (highest first = lowest rank number first)
+    return [...ofType].sort((a, b) => {
+      const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
+      const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
+      return rankA - rankB;
+    });
+  }
+
+  get rawFragments(): ICodeFragment[] {
+    return [...this.fragments];
   }
 }
 

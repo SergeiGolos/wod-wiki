@@ -4,7 +4,6 @@ import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IBlockContext } from '../../runtime/contracts/IBlockContext';
-import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * Configuration for method interception behavior
@@ -166,10 +165,6 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.context;
   }
 
-  get fragments(): ICodeFragment[][] | undefined {
-    return this._wrapped.fragments;
-  }
-
   get isComplete(): boolean {
     return this._wrapped.isComplete;
   }
@@ -264,23 +259,6 @@ export class TestableBlock implements IRuntimeBlock {
     behaviorType: new (...args: any[]) => B
   ): B | undefined {
     return this._wrapped.getBehavior(behaviorType);
-  }
-
-  findFragment<T extends ICodeFragment = ICodeFragment>(
-    type: string | number,
-    predicate?: (f: ICodeFragment) => boolean
-  ): T | undefined {
-    return this._wrapped.findFragment?.(type as any, predicate);
-  }
-
-  filterFragments<T extends ICodeFragment = ICodeFragment>(
-    type: string | number
-  ): T[] {
-    return this._wrapped.filterFragments?.(type as any) ?? [];
-  }
-
-  hasFragment(type: string | number): boolean {
-    return this._wrapped.hasFragment?.(type as any) ?? false;
   }
 
   // ========== Private Helpers ==========

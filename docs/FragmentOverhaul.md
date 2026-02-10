@@ -1,8 +1,9 @@
 # WOD Wiki — Fragment Overhaul & Standardization
 
-> **Status**: In Progress — Phase 0 & Phase 1 complete, RuntimeSpan eliminated  
+> **Status**: Complete — All Phases (0–6) ✅  
 > **Created**: 2026-02-09  
-> **Updated**: 2025-02-10  
+> **Updated**: 2026-02-10  
+> **RuntimeSpan**: ✅ Eliminated  
 > **Sources**: Consolidated from Gemini and Opus proposals  
 > **Scope**: Core data pipeline (`CodeStatement` → `RuntimeBlock` → `OutputStatement`) & UI Rendering  
 > **Objective**: Define a unified fragment interface that standardizes fragment access, precedence resolution, and multi-fragment-per-type handling across all levels of the runtime pipeline — and eliminates `IDisplayItem` as an intermediate adapter target.
@@ -1009,6 +1010,20 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 
 ## 9. Migration Plan
 
+### Overall Progress
+
+| Phase | Objective | Status | Completion Date | Details |
+|-------|-----------|--------|-----------------|---------|
+| **Phase 0** | Fix Fragment Pipeline Bug | ✅ Complete | 2026-02-10 | Fragment groups preserved in block memory, `BlockBuilder.build()` fixed |
+| **Phase 1** | Define Interfaces & Memory Types | ✅ Complete | 2026-02-10 | `IFragmentSource` interface, `resolveFragmentPrecedence()` utility, `DisplayFragmentMemory` class |
+| **Phase 2** | Implement on Parser & Output Models | ✅ Complete | 2026-02-10 | `CodeStatement` & `OutputStatement` implement `IFragmentSource` (42 new tests, 0 regressions) |
+| **Phase 3** | BlockBuilder & Strategy Updates | ✅ Complete | 2026-02-09 | `BlockBuilder.build()` allocates `FragmentMemory` + `DisplayFragmentMemory`, `RuntimeBlock.allocateMemory()` added (8 new tests, 0 regressions) |
+| **Phase 4** | Create Hooks & UI Bindings | ✅ Complete | 2026-02-09 | `useFragmentSource()` hook, `useStackFragmentSources()` hook, `FragmentSourceRow`/`FragmentSourceList` components, `useStackDisplayItems` uses precedence-resolved fragments (19 new tests, 0 regressions) |
+| **Phase 5** | Eliminate IDisplayItem & Adapters | ✅ Complete | 2026-02-10 | Removed `IDisplayItem`, adapters, `UnifiedItemRow/List`, `useStackDisplayItems`; migrated all 5 consumers to `FragmentSourceRow/List` + `IFragmentSource` |
+| **Phase 6** | Deprecation Cleanup | ✅ Complete | 2026-02-09 | Marked legacy `findFragment`/`filterFragments`/`hasFragment` as `@deprecated`, deprecated `IRuntimeBlock.fragments` getter, deprecated `FragmentMemory`, removed `createLabelFragment()` |
+
+---
+
 ### Phase 0: Fix the Fragment Pipeline Bug (Prerequisites) ✅
 
 **Completed** — fragments now reach the block's memory with group structure preserved.
@@ -1023,7 +1038,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 
 ### Phase 1: Define Interfaces & Memory Types
 
-| Task                                                          | File                                         |
+| Task                                                          | File                                         | Status |
 | ------------------------------------------------------------- | -------------------------------------------- | ------ |
 | Create `IFragmentSource` interface                            | `src/core/contracts/IFragmentSource.ts`      | ✅ Done |
 | Create `resolveFragmentPrecedence()` utility                  | `src/core/utils/fragmentPrecedence.ts`       | ✅ Done |
@@ -1032,64 +1047,135 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | Create `DisplayFragmentMemory` (public, implements `IFragmentSource`) | `src/runtime/memory/DisplayFragmentMemory.ts` | ✅ Done |
 | Export from `src/core/index.ts` and `src/core-entry.ts`       | respective index files                       | ✅ Done |
 
-> **Note**: `FragmentGroupMemory` is no longer needed as a separate class. Phase 0 stores all
-> groups in a single `FragmentMemory` entry with `groups: ICodeFragment[][]`. The `DisplayFragmentMemory`
-> reads from this single entry and auto-syncs via subscription.
->
 > **Implementation details**:
 > - `IFragmentSource` and `FragmentFilter` defined in `src/core/contracts/IFragmentSource.ts`
 > - `resolveFragmentPrecedence()`, `selectBestTier()`, `ORIGIN_PRECEDENCE` in `src/core/utils/fragmentPrecedence.ts`
 > - `FragmentDisplayState` added to `MemoryTypes.ts` with `fragments` (raw) and `resolved` (precedence-resolved) arrays
 > - `MemoryType` union extended with `'fragment:display'`; `MemoryTypeMap` maps it to `FragmentDisplayState`
 > - `DisplayFragmentMemory` subscribes to source `FragmentMemory` for reactive updates
-> - Tests: 20 tests in `fragmentPrecedence.test.ts`, 22 tests in `DisplayFragmentMemory.test.ts` — all passing
+> - **Tests**: 19 tests in `fragmentPrecedence.test.ts`, 22 tests in `DisplayFragmentMemory.test.ts` — **all passing**
+> - **Regression**: Full suite ran, no new failures
 
 ### Phase 2: Implement on Parser & Output Models
 
 | Task                                         | File                                 | Risk                             |
 | -------------------------------------------- | ------------------------------------ | -------------------------------- |
-| `CodeStatement implements IFragmentSource`   | `src/core/models/CodeStatement.ts`   | Low — trivial delegation         |
-| `OutputStatement implements IFragmentSource` | `src/core/models/OutputStatement.ts` | Low — already has flat fragments |
+| `CodeStatement implements IFragmentSource`   | `src/core/models/CodeStatement.ts`   | Low — trivial delegation         | ✅ Done |
+| `OutputStatement implements IFragmentSource` | `src/core/models/OutputStatement.ts` | Low — already has flat fragments | ✅ Done |
 | ~~`RuntimeSpan implements IFragmentSource`~~ | ~~`src/runtime/models/RuntimeSpan.ts`~~ | **N/A — RuntimeSpan deleted** |
 
 > **Note**: `IRuntimeBlock` is NOT modified. No new methods, no `IFragmentSource` implementation, no `getFragmentSource()`. The `DisplayFragmentMemory` entry in the block's memory is the `IFragmentSource`.
+>
+> **Implementation details**:
+> - `CodeStatement` (abstract class) now `implements IFragmentSource` with `getDisplayFragments()`, `getFragment()`, `getAllFragmentsByType()`, and `rawFragments` getter
+> - `ParsedCodeStatement` inherits all `IFragmentSource` methods automatically
+> - `OutputStatement` now `implements IFragmentSource` with identical method signatures
+> - Both use `resolveFragmentPrecedence()` and `ORIGIN_PRECEDENCE` from the Phase 1 utilities
+> - Legacy API (`findFragment`, `filterFragments`) preserved for backward compatibility
+> - Tests: 19 tests in `CodeStatementFragmentSource.test.ts`, 23 tests in `OutputStatementFragmentSource.test.ts` — all passing
+> - Full regression suite: 687 pass, 0 new failures
 
 ### Phase 3: Update BlockBuilder & Strategies
 
-| Task | File | Risk |
-|------|------|------|
-| `build()` allocates `DisplayFragmentMemory` from stored groups | `src/runtime/compiler/BlockBuilder.ts` | Medium — fragment memory already allocated in Phase 0 |
-| Update 5 strategies to use `DisplayFragmentMemory` if needed   | `src/runtime/compiler/strategies/`     | Low — pattern is identical |
+| Task | File | Risk | Status |
+|------|------|------|--------|
+| Add `allocateMemory()` public method to `RuntimeBlock` | `src/runtime/RuntimeBlock.ts` | Low — thin wrapper over protected `setMemory` | ✅ Done |
+| `build()` creates `FragmentMemory` instance (not `SimpleMemoryEntry`) | `src/runtime/compiler/BlockBuilder.ts` | Medium — changes memory entry type | ✅ Done |
+| `build()` allocates `DisplayFragmentMemory` from stored groups | `src/runtime/compiler/BlockBuilder.ts` | Medium — new memory allocation | ✅ Done |
+| Verify strategies work unchanged (no strategy modifications needed) | `src/runtime/compiler/strategies/` | Low — strategies still use `builder.setFragments()` | ✅ Done |
+
+> **Implementation details**:
+> - `RuntimeBlock.allocateMemory<T>(type, entry)` — public method for setting pre-constructed `IMemoryEntry` instances on a block. Unlike `setMemoryValue()` which wraps in `SimpleMemoryEntry`, this accepts typed entries like `FragmentMemory` and `DisplayFragmentMemory` that need subscriptions and specialized behavior.
+> - `BlockBuilder.build()` now creates a proper `FragmentMemory` instance (preserving `addGroup()`, `addFragment()`, `setGroups()` APIs) instead of a `SimpleMemoryEntry`. Then creates a `DisplayFragmentMemory` that subscribes to the `FragmentMemory` for reactive precedence resolution. Both are set via `block.allocateMemory()`.
+> - **No strategy changes needed**: All 5 strategies that set fragments (`GenericGroupStrategy`, `GenericLoopStrategy`, `GenericTimerStrategy`, `IntervalLogicStrategy`, `AmrapLogicStrategy`) already call `builder.setFragments(fragmentGroups)`. The updated `build()` automatically creates both memory entries. Strategies that bypass `BlockBuilder` (`IdleBlockStrategy`, `WorkoutRootStrategy`) don't set fragments and correctly have no fragment memory.
+> - **Tests**: 8 new tests in `BlockBuilderFragments.test.ts` covering `DisplayFragmentMemory` allocation, reactive sync, precedence resolution, `IFragmentSource` interface compliance, and edge cases (no fragments, empty groups). All 16 tests pass.
+> - **Regression**: Full suite 695 pass, 2 pre-existing failures (timer formatting), 0 new failures. Strategy integration tests (AMRAP, EMOM, Interval, Effort): 84 pass, 0 fail.
 
 ### Phase 4: Create Hooks & Update UI Bindings
 
-| Task | File | Risk |
-|------|------|------|
-| Create `useFragmentSource()` hook wrapping `useBlockMemory('fragment:display')` | `src/runtime/hooks/useBlockMemory.ts` | Low — thin wrapper |
-| Update stack display hooks to provide `IFragmentSource[]` | `src/runtime/hooks/useStackDisplay.ts` | Medium |
-| Update `UnifiedItemList` to render `IFragmentSource` directly | `src/components/unified/UnifiedItemList.tsx` | Medium |
-| Update `UnifiedItemRow` to accept `IFragmentSource` instead of `IDisplayItem` | `src/components/unified/UnifiedItemRow.tsx` | Medium |
+| Task | File | Risk | Status |
+|------|------|------|--------|
+| Create `useFragmentSource()` hook wrapping `useBlockMemory('fragment:display')` | `src/runtime/hooks/useBlockMemory.ts` | Low — thin wrapper | ✅ Done |
+| Create `useStackFragmentSources()` hook returning `StackFragmentEntry[]` | `src/runtime/hooks/useStackDisplay.ts` | Medium — new hook with subscriptions | ✅ Done |
+| Update `useStackDisplayItems()` to use precedence-resolved fragments | `src/runtime/hooks/useStackDisplay.ts` | Medium — changed fragment source | ✅ Done |
+| Create `FragmentSourceRow` component accepting `IFragmentSource` | `src/components/unified/FragmentSourceRow.tsx` | Low — new component | ✅ Done |
+| Create `FragmentSourceList` component accepting `StackFragmentEntry[]` | `src/components/unified/FragmentSourceList.tsx` | Low — new component | ✅ Done |
+| Export new hooks and components from index files | `src/runtime/hooks/index.ts`, `src/components/unified/index.ts` | Low | ✅ Done |
 
-### Phase 5: Eliminate IDisplayItem & Adapter Layer
+> **Implementation details**:
+> - `useFragmentSource(block)` — thin wrapper over `useBlockMemory(block, 'fragment:display')` that returns the `DisplayFragmentMemory` entry cast as `IFragmentSource`. Subscribes reactively so UI re-renders when fragments change.
+> - `useStackFragmentSources()` — scans the runtime stack for blocks with `'fragment:display'` memory, returns `StackFragmentEntry[]` with `source: IFragmentSource`, `block`, `depth`, `isLeaf`, and `label`. Subscribes to fragment:display changes on all blocks.
+> - `useStackDisplayItems()` — **updated** to read from `block.getMemory('fragment:display').value.resolved` (precedence-resolved fragments) instead of raw `block.fragments?.flat()`. Falls back to raw fragments for blocks without DisplayFragmentMemory.
+> - `FragmentSourceRow` — renders an `IFragmentSource` directly with status, depth, and filter props. Equivalent of `UnifiedItemRow` without requiring `IDisplayItem`.
+> - `FragmentSourceList` — renders an array of `StackFragmentEntry` using `FragmentSourceRow`. Supports auto-scroll to leaf (active) block, custom actions, and click/hover handlers.
+> - Existing `UnifiedItemRow` and `UnifiedItemList` preserved unchanged for backward compatibility during Phase 4→5 transition.
+> - **Tests**: 19 tests in `useFragmentSource.test.ts` covering IFragmentSource access, precedence resolution, multi-fragment scenarios, reactive updates, stack display integration, and StackFragmentEntry shape. All passing.
+> - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
-| Task | File | Risk |
-|------|------|------|
-| Remove `statementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
-| Remove `blockToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
-| Remove `outputStatementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | Low |
+### Phase 5: Eliminate IDisplayItem & Adapter Layer ✅
+
+| Task | File | Status |
+|------|------|--------|
+| Remove `statementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | ✅ Done (file deleted) |
+| Remove `blockToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | ✅ Done (file deleted) |
+| Remove `outputStatementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | ✅ Done (file deleted) |
 | ~~Remove `runtimeSpanToDisplayItem()`~~ | ~~`src/core/adapters/displayItemAdapters.ts`~~ | ✅ Already deleted (RuntimeSpan removal) |
-| Remove `IDisplayItem` interface | `src/core/models/DisplayItem.ts` | Medium — verify no remaining consumers |
-| Update `AnalyticsIndexPanel` to use `IFragmentSource` | `src/components/layout/AnalyticsIndexPanel.tsx` | Medium |
-| Migrate `TimerDisplay` to bind to `fragment:display` memory | `src/components/workout/TimerDisplay.tsx` | High — live timer |
+| Remove `IDisplayItem` interface | `src/core/models/DisplayItem.ts` | ✅ Done (kept `DisplayStatus`, `VisualizerSize`, `VisualizerFilter`) |
+| Delete `UnifiedItemRow` component | `src/components/unified/UnifiedItemRow.tsx` | ✅ Done (file deleted) |
+| Delete `UnifiedItemList` component | `src/components/unified/UnifiedItemList.tsx` | ✅ Done (file deleted) |
+| Remove `useStackDisplayItems` hook | `src/runtime/hooks/useStackDisplay.ts` | ✅ Done |
+| Migrate `WodScriptVisualizer` to `FragmentSourceList` | `src/components/WodScriptVisualizer.tsx` | ✅ Done |
+| Migrate `RuntimeHistoryLog` to `FragmentSourceList` | `src/components/history/RuntimeHistoryLog.tsx` | ✅ Done |
+| Migrate `RefinedTimerDisplay` to `FragmentSourceRow` | `src/components/workout/RefinedTimerDisplay.tsx` | ✅ Done |
+| Migrate `TimerDisplay` to `useStackFragmentSources` | `src/components/workout/TimerDisplay.tsx` | ✅ Done |
+| Migrate `AnalyticsIndexPanel` to `SimpleFragmentSource` + `FragmentSourceList` | `src/components/layout/AnalyticsIndexPanel.tsx` | ✅ Done |
+| Create `SimpleFragmentSource` utility | `src/core/utils/SimpleFragmentSource.ts` | ✅ Done |
+| Add `FragmentSourceEntry` type to `FragmentSourceRow` | `src/components/unified/FragmentSourceRow.tsx` | ✅ Done |
+| Enhance `FragmentSourceList` with full feature parity | `src/components/unified/FragmentSourceList.tsx` | ✅ Done |
+| Update `StackFragmentEntry` to extend `FragmentSourceEntry` | `src/runtime/hooks/useStackDisplay.ts` | ✅ Done |
+| Update all export files | Various index.ts files | ✅ Done |
+| Update Storybook stories | `stories/components/` | ✅ Done |
 
-### Phase 6: Deprecation Cleanup
+> **Implementation details**:
+> - **`IDisplayItem` eliminated**: Interface removed from `DisplayItem.ts`; only `DisplayStatus`, `VisualizerSize`, `VisualizerFilter` retained.
+> - **Adapter layer deleted**: Entire `src/core/adapters/displayItemAdapters.ts` (302 lines) deleted along with `src/core/adapters/` directory.
+> - **Old components deleted**: `UnifiedItemRow.tsx` (275 lines) and `UnifiedItemList.tsx` (207 lines) removed.
+> - **`useStackDisplayItems` removed**: Hook deleted from `useStackDisplay.ts`; consumers migrated to `useStackFragmentSources()`.
+> - **`FragmentSourceEntry`** type replaces `IDisplayItem` as the standard shape for list rendering: `{ source: IFragmentSource, depth, isLeaf?, isHeader?, isLinked?, label?, status?, duration?, startTime?, endTime? }`.
+> - **`StackFragmentEntry extends FragmentSourceEntry`** with `block: IRuntimeBlock` for runtime-specific scenarios.
+> - **`SimpleFragmentSource`** created for wrapping raw `ICodeFragment[]` arrays as `IFragmentSource` (used by `AnalyticsIndexPanel` and stories).
+> - **`FragmentSourceList` enhanced** with full feature parity: selection, linked grouping (`groupLinkedEntries()`), duration display, active item tracking, auto-scroll.
+> - **All 5 consumers migrated**: `WodScriptVisualizer`, `RuntimeHistoryLog`, `RefinedTimerDisplay`, `TimerDisplay`, `AnalyticsIndexPanel`.
+> - **Storybook stories updated**: `UnifiedVisualization.stories.tsx` and `WodScriptVisualizer.stories.tsx` rewritten with new types.
+> - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
-| Task | Notes |
-|------|-------|
-| Mark `ICodeStatement.findFragment()` as `@deprecated` | Use `IFragmentSource.getFragment()` |
-| Mark `IRuntimeBlock.fragments` getter as `@deprecated` | Use `useBlockMemory(block, 'fragment:display')` |
-| Mark legacy `FragmentMemory` as `@deprecated` | Replaced by `FragmentGroupMemory` + `DisplayFragmentMemory` |
-| Remove `createLabelFragment()` fallback path | Labels synthesized by `DisplayFragmentMemory` |
+### Phase 6: Deprecation Cleanup ✅
+
+| Task | File | Status |
+|------|------|--------|
+| Mark `ICodeStatement.findFragment()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
+| Mark `ICodeStatement.filterFragments()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
+| Mark `ICodeStatement.hasFragment()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
+| Mark `OutputStatement.findFragment()` as `@deprecated` | `src/core/models/OutputStatement.ts` | ✅ Done |
+| Mark `OutputStatement.filterFragments()` as `@deprecated` | `src/core/models/OutputStatement.ts` | ✅ Done |
+| Mark `RuntimeBlock.findFragment()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
+| Mark `RuntimeBlock.filterFragments()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
+| Mark `RuntimeBlock.hasFragment()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
+| Mark `IRuntimeBlock.fragments` getter as `@deprecated` | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Done |
+| Mark `RuntimeBlock.fragments` getter as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
+| Mark `FragmentMemory` class as `@deprecated` | `src/runtime/memory/FragmentMemory.ts` | ✅ Done |
+| Remove `createLabelFragment()` function | `src/runtime/utils/metricsToFragments.ts` | ✅ Done (deleted) |
+| Remove `createLabelFragment` from exports | `src/runtime/utils/index.ts` | ✅ Done |
+| Fix stale re-exports (`metricsToFragments`, `getFragmentsFromRecord`) | `src/runtime/utils/index.ts` | ✅ Done |
+
+> **Implementation details**:
+> - All legacy `findFragment()`, `filterFragments()`, and `hasFragment()` methods on `ICodeStatement`, `CodeStatement`, `OutputStatement`, and `RuntimeBlock` now carry `@deprecated` JSDoc annotations pointing developers to the `IFragmentSource` equivalents (`getFragment()`, `getAllFragmentsByType()`, `hasFragment()`).
+> - `IRuntimeBlock.fragments` getter deprecated in favor of `block.getMemory('fragment:display')` which returns `DisplayFragmentMemory` implementing `IFragmentSource`.
+> - `RuntimeBlock.fragments` getter similarly deprecated.
+> - `FragmentMemory` class deprecated as an internal storage mechanism — consumers should access via `DisplayFragmentMemory`.
+> - `createLabelFragment()` removed entirely (zero consumers).
+> - Stale re-exports of non-existent `metricsToFragments` and `getFragmentsFromRecord` cleaned up.
+> - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
 ---
 

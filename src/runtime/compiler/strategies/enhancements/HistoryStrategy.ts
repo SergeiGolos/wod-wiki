@@ -32,8 +32,12 @@ export class HistoryStrategy implements IRuntimeBlockStrategy {
         }
 
         const statement = statements[0];
-        const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer);
-        const roundsFragment = statement.findFragment<RoundsFragment>(FragmentType.Rounds);
+        const timerFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Timer
+        ) as TimerFragment | undefined;
+        const roundsFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Rounds
+        ) as RoundsFragment | undefined;
 
         // Determine block type for history context
         let _label = "Block";

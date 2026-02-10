@@ -49,7 +49,7 @@ export interface BlockMatcher {
  * 
  * // Use factory for dynamic creation
  * mockJit.whenMatches(
- *   (stmts) => stmts.some(s => s.hasFragment('effort')),
+ *   (stmts) => stmts.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Effort)),
  *   (stmts, runtime) => new MockBlock(`effort-${stmts[0].id}`, [])
  * );
  * 
@@ -122,7 +122,7 @@ export class MockJitCompiler extends JitCompiler {
    * @example
    * ```typescript
    * mockJit.whenMatches(
-   *   (stmts) => stmts.some(s => s.hasFragment('timer')),
+   *   (stmts) => stmts.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Timer)),
    *   new MockBlock('timer', [])
    * );
    * ```

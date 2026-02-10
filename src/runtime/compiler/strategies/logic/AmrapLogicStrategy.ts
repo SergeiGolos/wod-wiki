@@ -57,7 +57,9 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const statement = statements[0];
-        const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer);
+        const timerFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Timer
+        ) as TimerFragment | undefined;
         const durationMs = timerFragment?.value || 0;
 
         // Block metadata

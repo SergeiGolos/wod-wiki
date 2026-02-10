@@ -1,6 +1,8 @@
 import { ICodeStatement } from './CodeStatement';
 import { ICodeFragment, FragmentType } from './CodeFragment';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { IFragmentSource, FragmentFilter } from '../contracts/IFragmentSource';
+import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from '../utils/fragmentPrecedence';
 
 /**
  * Output statement types indicating what kind of result this represents.
@@ -105,7 +107,7 @@ export interface OutputStatementOptions {
  * Concrete implementation of IOutputStatement.
  * Created by the runtime when a block unmounts.
  */
-export class OutputStatement implements IOutputStatement {
+export class OutputStatement implements IOutputStatement, IFragmentSource {
     private static nextId = 1000000; // Start at a high number to avoid collision with parsed statement IDs
 
     readonly id: number;
@@ -146,25 +148,27 @@ export class OutputStatement implements IOutputStatement {
         };
     }
 
-    /**
-     * Find the first fragment of a given type, optionally matching a predicate.
-     */
-    findFragment<T extends ICodeFragment = ICodeFragment>(
-        type: FragmentType,
-        predicate?: (f: ICodeFragment) => boolean
-    ): T | undefined {
-        return this.fragments.find(
-            f => f.fragmentType === type && (!predicate || predicate(f))
-        ) as T | undefined;
+    // ── IFragmentSource ─────────────────────────────────────────────
+
+    getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
+        return resolveFragmentPrecedence([...this.fragments], filter);
     }
 
-    /**
-     * Get all fragments of a given type.
-     */
-    filterFragments<T extends ICodeFragment = ICodeFragment>(
-        type: FragmentType
-    ): T[] {
-        return this.fragments.filter(f => f.fragmentType === type) as T[];
+    getFragment(type: FragmentType): ICodeFragment | undefined {
+        const all = this.getAllFragmentsByType(type);
+        return all.length > 0 ? all[0] : undefined;
+    }
+
+    getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
+        const ofType = this.fragments.filter(f => f.fragmentType === type);
+        if (ofType.length === 0) return [];
+
+        // Sort by precedence (highest first = lowest rank number first)
+        return [...ofType].sort((a, b) => {
+            const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
+            const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
+            return rankA - rankB;
+        });
     }
 
     /**
@@ -172,6 +176,10 @@ export class OutputStatement implements IOutputStatement {
      */
     hasFragment(type: FragmentType): boolean {
         return this.fragments.some(f => f.fragmentType === type);
+    }
+
+    get rawFragments(): ICodeFragment[] {
+        return [...this.fragments];
     }
 
     /**

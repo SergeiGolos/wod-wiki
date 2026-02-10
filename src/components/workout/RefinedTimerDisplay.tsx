@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
-import { IDisplayItem, VisualizerFilter } from '../../core/models/DisplayItem';
+import { VisualizerFilter } from '../../core/models/DisplayItem';
 import { formatTimeMMSS } from '../../lib/formatTime';
-import { UnifiedItemRow } from '../unified/UnifiedItemRow';
+import { FragmentSourceRow } from '../unified/FragmentSourceRow';
 import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
+import { StackFragmentEntry } from '../../runtime/hooks/useStackDisplay';
 
 export interface RefinedTimerDisplayProps {
     elapsedMs: number;
@@ -22,7 +23,7 @@ export interface RefinedTimerDisplayProps {
     compact?: boolean;
 
     controls?: RuntimeControls;
-    stackItems?: IDisplayItem[];
+    stackItems?: StackFragmentEntry[];
     actions?: ActionDescriptor[];
 
     /** ID of the block that should be focused/displayed on the main timer */
@@ -167,19 +168,22 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                     lg:h-full lg:overflow-y-auto lg:pr-2
                     ${compact ? 'order-1 w-full flex-1 overflow-y-auto min-h-0' : 'order-1'}
                 `}>
-                    {stackItems && stackItems.map((item) => {
-                        // Get state for this item
-                        const state = timerStates?.get(String(item.sourceId));
-                        // Fallback if not found (e.g. root) might be '00:00'
+                    {stackItems && stackItems.map((entry) => {
+                        // Get state for this entry's block
+                        const blockKey = entry.block.key.toString();
+                        const state = timerStates?.get(blockKey);
 
-                        const isFocused = item.sourceId === (focusedBlockId || primaryTimer?.ownerId);
+                        const isFocused = blockKey === (focusedBlockId || primaryTimer?.ownerId);
 
                         return (
-                            <div key={item.id} className="transition-all duration-300">
-                                <UnifiedItemRow
-                                    item={item}
+                            <div key={String(entry.source.id)} className="transition-all duration-300">
+                                <FragmentSourceRow
+                                    source={entry.source}
+                                    status={entry.isLeaf ? 'active' : 'pending'}
+                                    depth={entry.depth}
                                     size="focused"
                                     filter={stackFilter}
+                                    label={entry.label}
                                     className={`
                                         shadow-md border rounded-lg pr-3
                                         ${isFocused

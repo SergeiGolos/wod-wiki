@@ -23,12 +23,12 @@ function createMockBlock(options: {
     fragments?: ICodeFragment[][];
 } = {}): IRuntimeBlock {
     const key = new BlockKey(options.key ?? `test-block-${Date.now()}`);
+    const fragmentGroups = options.fragments;
 
     return {
         key,
         label: options.label ?? 'Test Block',
         sourceIds: options.sourceIds ?? [1],
-        fragments: options.fragments,
         blockType: 'test',
         context: { release: vi.fn() },
         isComplete: false,
@@ -44,7 +44,9 @@ function createMockBlock(options: {
             const startTime = this.executionTiming?.startTime?.getTime() ?? Date.now();
             const endTime = this.executionTiming?.completedAt?.getTime() ?? Date.now();
             const timeSpan = new TimeSpan(startTime, endTime);
-            const fragments = this.fragments?.flat() ?? [];
+            // Access fragments through memory (new API)
+            const fragmentMem = this.getMemory?.('fragment');
+            const fragments = fragmentMem?.value?.groups?.flat() ?? [];
 
             const output = new OutputStatement({
                 outputType: 'completion',
@@ -63,12 +65,17 @@ function createMockBlock(options: {
         markComplete: vi.fn(),
 
         getBehavior: vi.fn().mockReturnValue(undefined),
-        findFragment: vi.fn().mockReturnValue(undefined),
-        filterFragments: vi.fn().mockReturnValue([]),
-        hasFragment: vi.fn().mockReturnValue(false),
 
-        hasMemory: vi.fn().mockReturnValue(false),
-        getMemory: vi.fn().mockReturnValue(undefined),
+        hasMemory: vi.fn().mockImplementation((type: string) => {
+            if (type === 'fragment' && fragmentGroups) return true;
+            return false;
+        }),
+        getMemory: vi.fn().mockImplementation((type: string) => {
+            if (type === 'fragment' && fragmentGroups) {
+                return { type: 'fragment', value: { groups: fragmentGroups } };
+            }
+            return undefined;
+        }),
         getMemoryTypes: vi.fn().mockReturnValue([]),
     } as unknown as IRuntimeBlock;
 }

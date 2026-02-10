@@ -1,20 +1,22 @@
 /**
  * AnalyticsIndexPanel - Segment selection for Analyze view
  * 
- * Renamed from AnalyticsHistoryPanel to follow the *IndexPanel naming convention.
- * 
  * Key Features:
  * - Oldest-first, newest-last ordering (chronological)
  * - Clickable segments for filtering analytics
- * - Uses unified visualization system with FragmentVisualizer
+ * - Uses IFragmentSource directly — no IDisplayItem adapter layer
  * - Read-only historical data with power/HR metrics
+ *
+ * @see docs/FragmentOverhaul.md - Phase 5
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { UnifiedItemList, IDisplayItem } from '../unified';
+import { FragmentSourceList } from '../unified/FragmentSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from '../unified/FragmentSourceRow';
 import { cn } from '../../lib/utils';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
+import { SimpleFragmentSource } from '../../core/utils/SimpleFragmentSource';
 
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
@@ -135,13 +137,13 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
 }
 
 /**
- * Convert segment to IDisplayItem for unified visualization
+ * Convert segment to FragmentSourceEntry for unified visualization.
  */
-function segmentToDisplayItem(
+function segmentToEntry(
   segment: Segment, 
   allSegments: Map<number, Segment>,
   groups: AnalyticsGroup[]
-): IDisplayItem {
+): FragmentSourceEntry {
   const type = segment.type.toLowerCase();
   
   // Use depth directly if available, otherwise calculate
@@ -173,23 +175,19 @@ function segmentToDisplayItem(
   const fragments = (isSeparator && !isRoot) ? [] : segmentToFragments(segment, groups);
   
   return {
-    id: segment.id.toString(),
-    parentId: segment.parentId?.toString() ?? null,
-    fragments,
+    source: new SimpleFragmentSource(segment.id, fragments),
     depth,
     isHeader,
-    status: 'completed',
-    sourceType: 'record',
-    sourceId: segment.id,
+    status: 'completed' as FragmentSourceStatus,
+    duration: segment.duration,
     startTime: segment.startTime,
     endTime: segment.endTime,
-    duration: segment.duration,
-    label: segment.name
+    label: segment.name,
   };
 }
 
 /**
- * AnalyticsIndexPanel Component - Uses unified visualization system
+ * AnalyticsIndexPanel Component - Uses IFragmentSource directly
  */
 export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   segments,
@@ -199,42 +197,41 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   groups = [],
   className = ''
 }) => {
-  // Convert segments to display items (sorted oldest-first)
-  const items = useMemo(() => {
+  // Convert segments to FragmentSourceEntry[] (sorted oldest-first)
+  const entries = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
     const segmentMap = new Map(segments.map(s => [s.id, s]));
     
-    const displayItems = sorted.map(segment => 
-      segmentToDisplayItem(segment, segmentMap, groups)
+    const displayEntries = sorted.map(segment => 
+      segmentToEntry(segment, segmentMap, groups)
     );
     
     // Add end marker if we have data
     if (sorted.length > 0) {
       const lastSegment = sorted[sorted.length - 1];
-      displayItems.push({
-        id: 'workout-end',
-        parentId: null,
-        fragments: [{
-          type: 'end',
-          fragmentType: FragmentType.Action,
-          value: 'end',
-          image: 'End'
-        }, {
-          type: 'timer',
-          fragmentType: FragmentType.Timer,
-          value: lastSegment.endTime,
-          image: formatElapsedTime(lastSegment.endTime)
-        }],
+      displayEntries.push({
+        source: new SimpleFragmentSource('workout-end', [
+          {
+            type: 'end',
+            fragmentType: FragmentType.Action,
+            value: 'end',
+            image: 'End'
+          },
+          {
+            type: 'timer',
+            fragmentType: FragmentType.Timer,
+            value: lastSegment.endTime,
+            image: formatElapsedTime(lastSegment.endTime)
+          }
+        ]),
         depth: 0,
         isHeader: true,
-        status: 'completed',
-        sourceType: 'record',
-        sourceId: 'end',
-        startTime: lastSegment.endTime
+        status: 'completed' as FragmentSourceStatus,
+        startTime: lastSegment.endTime,
       });
     }
     
-    return displayItems;
+    return displayEntries;
   }, [segments, groups]);
 
   // Convert selected IDs to string set
@@ -259,11 +256,11 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
         </div>
       )}
       
-      {/* Unified Item List */}
-      <UnifiedItemList
-        items={items}
+      {/* Fragment Source List */}
+      <FragmentSourceList
+        entries={entries}
         selectedIds={selectedIds}
-        compact={!mobile}
+        size={mobile ? 'normal' : 'compact'}
         showDurations
         autoScroll={false}
         groupLinked={false}

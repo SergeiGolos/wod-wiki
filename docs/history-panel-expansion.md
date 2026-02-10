@@ -1,7 +1,7 @@
 # History Panel & Analyze View Expansion
 
 > **Companion to:** [`responsive-panel-system.md`](./responsive-panel-system.md)
-> **Scope:** Expand the view strip from **3 views** (`Plan | Track | Review`) to a **dynamic 5-view** system: `History | Plan | Track | Review | Analyze` — where `Analyze` conditionally replaces `Plan | Track | Review` based on selection mode.
+> **Scope:** Expand the view strip from **3 views** (`Plan | Track | Review`) to a **dynamic 5-view** system: `History | Plan | Track | Review | Analyze` — where `Analyze` conditionally replaces `Plan | Track | Review` based on selection mode. The workbench supports two **content provider modes** — one powered by history browsing, the other by a static workout injection.
 
 ---
 
@@ -16,6 +16,134 @@ The History panel is the new entry point of the workbench. It presents a browsab
 | **Multiple entries selected** | `History → Analyze` | 2-view strip (comparative analysis) |
 
 This creates a **context-sensitive sliding strip** — the number and identity of views changes based on the user's intent.
+
+---
+
+## Content Provider Modes
+
+The workbench must support two fundamentally different ways of loading workout content. This distinction is the **highest-level branching point** in the system — it determines which views exist, whether selection is possible, and what the landing view is.
+
+### Why Two Modes?
+
+The current `UnifiedWorkbench` accepts `initialContent?: string` and wraps everything in a `WorkbenchProvider`. Storybook stories use this to inject a static workout (e.g., `franMarkdown`) that can't be swapped at runtime. In production, the workbench should browse and select from stored history. These are two distinct content delivery strategies that must coexist.
+
+### Mode: `HistoryContentProvider`
+
+**When:** Production app, any context where the user has access to stored workout history.
+
+| Aspect | Behavior |
+|--------|----------|
+| **Landing view** | `History` |
+| **Available views** | `History`, `Plan`, `Track`, `Review`, `Analyze` |
+| **Content source** | Selected from browsable history (persistence layer) |
+| **Selection** | Single or multi-select via checkboxes |
+| **Multi-select** | Enables `Analyze` view, hides `Plan \| Track \| Review` |
+| **Strip modes** | `history-only`, `single-select`, `multi-select` |
+| **New workout** | User creates via Plan editor, saved to history on completion |
+
+```tsx
+// Production usage
+<WorkbenchProvider mode="history" historyStore={indexedDBStore}>
+  <UnifiedWorkbenchContent />
+</WorkbenchProvider>
+```
+
+### Mode: `StaticContentProvider`
+
+**When:** Storybook stories, embedded demos, documentation examples, any context where a specific workout is pre-loaded and cannot be changed.
+
+| Aspect | Behavior |
+|--------|----------|
+| **Landing view** | `Plan` (same as current behavior) |
+| **Available views** | `Plan`, `Track`, `Review` only |
+| **Content source** | Injected `initialContent` string — a single workout |
+| **Selection** | Not applicable — only one workout exists |
+| **Multi-select** | Impossible — `Analyze` is never available |
+| **Strip modes** | `static` only (fixed 3-view strip) |
+| **History tab** | Not shown |
+| **Reload** | Not possible — content is immutable |
+
+```tsx
+// Storybook / demo usage
+<WorkbenchProvider mode="static" initialContent={franMarkdown}>
+  <UnifiedWorkbenchContent />
+</WorkbenchProvider>
+```
+
+### Provider Interface
+
+```ts
+// The content provider abstraction
+type ContentProviderMode = 'history' | 'static';
+
+interface ContentProviderConfig {
+  mode: ContentProviderMode;
+
+  // History mode props
+  historyStore?: IHistoryStore;    // required when mode='history'
+
+  // Static mode props
+  initialContent?: string;         // required when mode='static'
+}
+
+// Discriminated union for type safety
+type ContentProvider =
+  | { mode: 'history'; historyStore: IHistoryStore }
+  | { mode: 'static'; initialContent: string };
+```
+
+### Impact on Strip Behavior
+
+| Content Provider | Available StripModes | History Tab | Analyze Tab | Landing View |
+|-----------------|---------------------|-------------|-------------|-------------|
+| `HistoryContentProvider` | `history-only`, `single-select`, `multi-select` | ✓ Shown | ✓ (on multi-select) | `history` |
+| `StaticContentProvider` | `static` | ✗ Hidden | ✗ Never | `plan` |
+
+### How It Flows Through the System
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  WorkbenchProvider                       │
+│         mode: 'history' | 'static'                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  if mode === 'history':                                 │
+│    → contentProvider = HistoryContentProvider            │
+│    → useHistorySelection() active                       │
+│    → Landing view: 'history'                            │
+│    → Strip reacts to selection state                    │
+│    → Nav tabs: dynamic based on selectionMode           │
+│                                                         │
+│  if mode === 'static':                                  │
+│    → contentProvider = StaticContentProvider             │
+│    → useHistorySelection() NOT mounted                  │
+│    → Landing view: 'plan'                               │
+│    → Strip: fixed 3-view (Plan | Track | Review)        │
+│    → Nav tabs: static [Plan, Track, Review]             │
+│    → Content: initialContent loaded into editor         │
+│    → ViewMode type constrained to 'plan'|'track'|'rev'  │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Existing Storybook Compatibility
+
+Today's stories pass `initialContent` and get the full `UnifiedWorkbench`. The migration path:
+
+1. `UnifiedWorkbench` gains a `mode` prop (defaults to `'static'` for backward compatibility)
+2. Existing stories continue to work unchanged — they get `mode='static'` implicitly
+3. The production app wrapper sets `mode='history'` and provides a `historyStore`
+4. No Storybook story changes are needed
+
+```ts
+// Current (continues to work):
+<UnifiedWorkbench initialContent={franMarkdown} />
+// ↑ Internally: mode='static', History tab hidden, Analyze unavailable
+
+// Future production:
+<UnifiedWorkbench mode="history" historyStore={store} />
+// ↑ History tab shown, full selection model active
+```
 
 ---
 
@@ -270,7 +398,7 @@ The current `SlidingViewport` (and its planned replacement `ResponsiveViewport`)
 ### Strip Configurations
 
 ```ts
-type StripMode = 'history-only' | 'single-select' | 'multi-select';
+type StripMode = 'history-only' | 'single-select' | 'multi-select' | 'static';
 
 interface StripConfiguration {
   mode: StripMode;
@@ -306,8 +434,20 @@ const stripConfigs: Record<StripMode, StripConfiguration> = {
       analyze: '-50%',
     },
   },
+  'static': {
+    mode: 'static',
+    views: [planView, trackView, reviewView],
+    stripWidth: '300%',
+    offsets: {
+      plan: '0%',
+      track: '-33.333%',
+      review: '-66.666%',
+    },
+  },
 };
 ```
+
+> **Note:** The `static` strip mode is identical to the current `SlidingViewport` behavior — 3 views, fixed 300% width, same offsets. This ensures backward compatibility for Storybook and demo contexts.
 
 ### Strip Transitions
 
@@ -344,9 +484,15 @@ The existing `ViewMode` type must expand to include the new views:
 // Before:
 type ViewMode = 'plan' | 'track' | 'review';
 
-// After:
+// After (full set):
 type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze';
+
+// Constrained by provider mode:
+type StaticViewMode = 'plan' | 'track' | 'review';           // static mode only
+type HistoryViewMode = ViewMode;                              // all views available
 ```
+
+> **Runtime constraint:** In `static` mode, `setViewMode()` should reject `'history'` and `'analyze'`. The nav bar never renders tabs for these views, so this is a safety guard, not a UX-facing concern.
 
 ### Impact on WorkbenchContext
 
@@ -354,13 +500,19 @@ type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze';
 interface WorkbenchContextState {
   // ... existing fields ...
 
-  // New: History selection state
-  historySelection: HistorySelectionState;
+  // New: Content provider mode
+  contentMode: ContentProviderMode;  // 'history' | 'static'
+
+  // New: History selection state (null when contentMode='static')
+  historySelection: HistorySelectionState | null;
+
+  // Derived: Current strip mode
+  stripMode: StripMode;
 
   // Updated: viewMode now includes 'history' and 'analyze'
   viewMode: ViewMode;
 
-  // New actions
+  // New actions (no-op when contentMode='static')
   selectHistoryEntry: (id: string) => void;
   deselectHistoryEntry: (id: string) => void;
   toggleHistoryEntry: (id: string) => void;
@@ -443,6 +595,8 @@ Tab transitions should animate smoothly — tabs sliding in/out rather than popp
 
 ## Hook: `useHistorySelection`
 
+This hook is **only mounted** when `contentMode='history'`. In static mode, the workbench skips this hook entirely — no selection state, no strip mode derivation.
+
 ```ts
 function useHistorySelection() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -496,22 +650,55 @@ function useHistorySelection() {
 }
 ```
 
+### Hook: `useStripMode`
+
+A top-level hook that returns the active `StripMode` based on the content provider mode:
+
+```ts
+function useStripMode(contentMode: ContentProviderMode): StripMode {
+  const historySelection = useHistorySelection(); // only called in history mode
+
+  if (contentMode === 'static') {
+    return 'static';  // always fixed 3-view strip
+  }
+
+  return historySelection.stripMode;
+}
+```
+
+> In practice, the conditional hook call is handled via the provider pattern — `HistoryContentProvider` renders `useHistorySelection` internally, while `StaticContentProvider` hardcodes `stripMode='static'`.
+
 ---
 
 ## Tasks
 
-### Phase 0: History Data Layer
+### Phase 0: Content Provider Infrastructure
 
-- [ ] **Task H0: Define `HistoryEntry` and storage interface**
+- [ ] **Task H0a: Define `ContentProviderMode` and `ContentProvider` types**
+  File: `src/types/content-provider.ts`
+  Define: `ContentProviderMode`, `ContentProvider` (discriminated union), `IHistoryStore` interface
+  These types gate every downstream decision (strip mode, available views, landing view).
+  → Verify: Types compile, importable from other modules
+
+- [ ] **Task H0b: Define `HistoryEntry` and history types**
   File: `src/types/history.ts`
-  Define: `HistoryEntry`, `HistoryFilters`, `HistorySelectionState`, `SelectionMode`, `StripMode`
+  Define: `HistoryEntry`, `HistoryFilters`, `HistorySelectionState`, `SelectionMode`, `StripMode` (now includes `'static'`)
   Storage interface: `IHistoryStore` with `getEntries(filters)`, `getEntry(id)`, `saveEntry(entry)`, `deleteEntry(id)`
   → Verify: Types compile, importable from other modules
+
+- [ ] **Task H0c: Add `mode` prop to `WorkbenchProvider`**
+  File: `src/components/layout/WorkbenchContext.tsx`
+  Add: `mode: ContentProviderMode` prop (default: `'static'` for backward compatibility)
+  Add: `contentMode` to context state, `stripMode` derived field
+  When `mode='static'`: `historySelection = null`, `stripMode = 'static'`, `viewMode` defaults to `'plan'`
+  When `mode='history'`: `historySelection` initialized, `stripMode` derived from selection, `viewMode` defaults to `'history'`
+  → Verify: Existing Storybook stories render unchanged (they don't pass `mode`, so default `'static'` kicks in)
 
 - [ ] **Task H1: Implement `useHistorySelection` hook**
   File: `src/hooks/useHistorySelection.ts`
   Manages: `selectedIds`, `selectionMode`, `stripMode`, `calendarDate`, `filters`
   Actions: `toggleEntry`, `selectAll`, `clearSelection`, `setCalendarDate`, `setFilters`
+  Only mounted when `contentMode='history'`
   → Verify: Unit test — toggle adds/removes, mode transitions correctly, strip mode derives from selection count
 
 ### Phase 1: History Panel Components
@@ -556,11 +743,12 @@ function useHistorySelection() {
 
 ### Phase 3: Dynamic Strip Integration
 
-- [ ] **Task H6: Expand `ViewMode` type**
+- [ ] **Task H6: Expand `ViewMode` type + add `StripMode` routing**
   File: `src/components/layout/SlidingViewport.tsx` (and future `ResponsiveViewport.tsx`)
   Update: `ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze'`
-  Update: `viewOffsets` to be dynamic based on `StripMode`
-  → Verify: Type compiles, existing 3-view usage still works
+  Add: `StaticViewMode` subset type for static mode constraint
+  Update: `viewOffsets` to be dynamic based on `StripMode` (including `'static'` which maps to current 3-view behavior)
+  → Verify: Type compiles, existing 3-view usage still works in `static` mode, new modes work in `history` mode
 
 - [ ] **Task H7: Implement `StripMode`-aware viewport**
   File: `src/components/layout/panel-system/DynamicViewport.tsx` (or update `ResponsiveViewport.tsx`)
@@ -571,33 +759,48 @@ function useHistorySelection() {
 
 - [ ] **Task H8: Wire History selection into `WorkbenchContext`**
   File: `src/components/layout/WorkbenchContext.tsx`
-  Add: `historySelection: HistorySelectionState` to context
-  Add: History-related actions to context value
+  Add: `historySelection: HistorySelectionState | null` to context (null when static)
+  Add: History-related actions to context value (no-op stubs in static mode)
   Connect: `selectionMode` changes trigger `viewMode` and strip reconfiguration
-  → Verify: Selecting 1 entry loads content into Plan. Selecting 2+ switches to multi-select strip.
+  Guard: In static mode, `historySelection` stays null, selection actions are no-ops
+  → Verify: Selecting 1 entry loads content into Plan. Selecting 2+ switches to multi-select strip. Static mode ignores selection.
 
-- [ ] **Task H9: Update navigation bar for dynamic tabs**
+- [ ] **Task H9: Update navigation bar for mode-aware dynamic tabs**
   File: `src/components/layout/UnifiedWorkbench.tsx` (nav section)
   Update: Tab bar reads from current `StripConfiguration.views` instead of hardcoded tabs
-  Animate: Tabs entering/leaving with CSS transitions
+  In static mode: Render exactly `[Plan, Track, Review]` tabs — no History, no Analyze
+  In history mode: Tabs change dynamically based on `selectionMode`
+  Animate: Tabs entering/leaving with CSS transitions (history mode only)
   Update: Keyboard nav (Ctrl+Arrow) respects the current strip's view order
-  → Verify: Tabs change dynamically on selection mode change. Keyboard nav works in all modes.
+  → Verify: Static mode shows 3 tabs always. History mode tabs change on selection.
 
 ### Phase 4: Integration
 
-- [ ] **Task H10: Wire `HistoryPanel` into `UnifiedWorkbench`**
-  Connect `HistoryPanel` as the first view in the strip
-  Ensure History is the **default view** on app launch (replaces Plan as landing)
+- [ ] **Task H10: Wire `HistoryPanel` into `UnifiedWorkbench` (history mode only)**
+  Connect `HistoryPanel` as the first view in the strip — only mounted when `contentMode='history'`
+  In history mode: History is the **default view** on app launch (replaces Plan as landing)
+  In static mode: History panel is not rendered; Plan remains the landing view
   Load selected entry's `rawContent` into the Plan editor when in single-select mode
   Dispose runtime when switching away from Track (existing behavior, extended to new flow)
-  → Verify: Full flow — launch → History → select 1 → Plan visible → start workout → Track → finish → Review → back to History
+  → Verify:
+    - History mode: launch → History → select 1 → Plan visible → Track → Review → back to History
+    - Static mode: launch → Plan → Track → Review (unchanged behavior, no History tab)
 
-- [ ] **Task H11: Test multi-select → Analyze flow**
+- [ ] **Task H11: Test multi-select → Analyze flow (history mode only)**
   Select 2+ entries → verify Plan/Track/Review hidden
   Verify Analyze panel shows correct selected entries
   Deselect to 1 → verify Plan/Track/Review reappear
   Deselect all → verify only History visible
   → Verify: All transitions smooth, no stale state, runtime cleaned up properly
+  → Verify: This entire flow is unreachable in static mode (Analyze never available)
+
+- [ ] **Task H11b: Verify static mode backward compatibility**
+  Run all existing Storybook stories — they must render unchanged
+  Verify: No History tab visible in any story
+  Verify: No Analyze tab visible in any story
+  Verify: Plan is the landing view, 3-view strip works as before
+  Verify: `initialContent` flows into editor correctly
+  → Verify: Zero regressions in static mode
 
 ### Phase 5: Polish
 
@@ -619,15 +822,16 @@ function useHistorySelection() {
 
 | File | Action | Purpose |
 |------|--------|---------|
+| `src/types/content-provider.ts` | **NEW** | Content provider mode types, `IHistoryStore` interface |
 | `src/types/history.ts` | **NEW** | History entry types, filter types, selection types |
-| `src/hooks/useHistorySelection.ts` | **NEW** | Selection state management hook |
+| `src/hooks/useHistorySelection.ts` | **NEW** | Selection state management hook (history mode only) |
 | `src/components/workbench/HistoryPanel.tsx` | **NEW** | History panel — responsive calendar + list |
 | `src/components/history/CalendarWidget.tsx` | **NEW** | Month-view calendar component |
 | `src/components/history/HistoryPostList.tsx` | **NEW** | Selectable post list component |
 | `src/components/workbench/AnalyzePanel.tsx` | **NEW** | Placeholder comparative analysis panel |
-| `src/components/layout/SlidingViewport.tsx` | **MODIFY** | Expand `ViewMode`, dynamic strip width |
-| `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Add history selection state + actions |
-| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Wire History/Analyze panels, dynamic nav tabs |
+| `src/components/layout/SlidingViewport.tsx` | **MODIFY** | Expand `ViewMode`, `StripMode`, dynamic strip width |
+| `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Add `contentMode`, history selection state, mode-aware defaults |
+| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Add `mode` prop, wire History/Analyze conditionally, mode-aware nav |
 | `src/components/layout/panel-system/viewDescriptors.ts` | **MODIFY** | Add History + Analyze view descriptors |
 | `src/components/layout/panel-system/types.ts` | **MODIFY** | Add `StripMode`, `StripConfiguration` types |
 
@@ -662,9 +866,13 @@ This document **extends** the responsive panel system, not replaces it. Here's h
 
 ## Notes
 
-- The History panel is the **new default landing view** — the app opens to History, not Plan
+- The History panel is the **default landing view in history mode** — the app opens to History, not Plan
+- In **static mode**, Plan remains the landing view — History and Analyze do not exist
+- **Backward compatibility is paramount** — existing Storybook stories must work without any changes. The `mode` prop defaults to `'static'`, preserving the current 3-view behavior.
 - Stored posts need a persistence layer (localStorage, IndexedDB, or API) — out of scope for this doc but required before `H0`
 - The `HistoryEntry.rawContent` is the markdown that gets loaded into the Plan editor on single-select
 - The calendar widget should be lightweight — no heavy date-picker library; a simple grid is sufficient
 - Multi-select → Analyze transition should feel like a "mode switch," not a jarring layout change
 - The Analyze panel is intentionally minimal (placeholder) — detailed analytics design is a separate effort
+- The content provider mode is a **compile-time decision per mount point**, not a runtime toggle — you don't switch from static to history while the app is running
+- `UnifiedWorkbench` continues to accept `initialContent` for both modes. In history mode, `initialContent` could seed an empty editor for new workout creation. In static mode, it's the sole content source.

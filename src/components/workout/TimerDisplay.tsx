@@ -17,7 +17,7 @@ import {
   useSecondaryTimers,
   useStackTimers,
   useActiveControls,
-  useStackDisplayItems,
+  useStackFragmentSources,
 } from '../../runtime/hooks/useStackDisplay';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { calculateDuration } from '../../lib/timeUtils';
@@ -82,7 +82,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   const secondaryTimers = useSecondaryTimers();
   const allTimers = useStackTimers();
   const activeControls = useActiveControls();
-  const stackItems = useStackDisplayItems();
+  const stackItems = useStackFragmentSources();
 
   // ---------------------------------------------------------------------------
   // Ticking Logic for Open Spans

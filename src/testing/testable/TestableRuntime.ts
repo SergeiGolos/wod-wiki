@@ -163,7 +163,6 @@ class StubBlock implements IRuntimeBlock {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
     this.label = config.label ?? config.key;    
-    this.fragments = [];
     this.context = new StubBlockContext(config.key);
   }
 
@@ -172,9 +171,6 @@ class StubBlock implements IRuntimeBlock {
   unmount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   dispose(): void { }
   getBehavior<T>(_type: any): T | undefined { return undefined; }
-  findFragment<T>(_type: any): T | undefined { return undefined; }
-  filterFragments(): any[] { return []; }
-  hasFragment(): boolean { return false; }
   hasMemory(): boolean { return false; }
   getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
   getMemoryTypes(): import("@/runtime/memory/MemoryTypes").MemoryType[] { return []; }

@@ -46,8 +46,8 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
         // Ignore runtime-generated fragments when checking for match
-        const hasTimer = statement.findFragment(FragmentType.Timer, f => f.origin !== 'runtime') !== undefined;
-        const hasRounds = statement.findFragment(FragmentType.Rounds, f => f.origin !== 'runtime') !== undefined;
+        const hasTimer = statement.fragments.some(f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime');
+        const hasRounds = statement.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime');
         return !hasTimer && !hasRounds;
     }
 

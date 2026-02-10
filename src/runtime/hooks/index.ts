@@ -17,7 +17,7 @@
  * - `usePrimaryTimer` - The timer pinned to the main display (lowest pinned, or leaf)
  * - `useSecondaryTimers` - All non-primary timers for context display
  * - `useActiveControls` - Aggregated buttons from all stack blocks
- * - `useStackDisplayItems` - Stack blocks as IDisplayItem[] for the fragment visualizer
+ * - `useStackFragmentSources` - Stack blocks as IFragmentSource[] (preferred)
  *
  * ### Behavior-Based Hooks (For Single Block Access)
  * These hooks work directly with `IRuntimeBlock` objects and access memory
@@ -30,6 +30,7 @@
  * - `useDisplayState` - Get display state from a block
  * - `useTimerDisplay` - Formatted timer display with 60fps animation
  * - `useRoundDisplay` - Formatted round display values
+ * - `useFragmentSource` - Get IFragmentSource from a block's fragment:display memory
  *
  * ### Memory Reference Hooks
  * Low-level hook for subscribing to typed memory references.
@@ -43,14 +44,14 @@
  *   const primary = usePrimaryTimer();
  *   const secondary = useSecondaryTimers();
  *   const controls = useActiveControls();
- *   const items = useStackDisplayItems();
+ *   const items = useStackFragmentSources();
  *
  *   return (
  *     <div>
  *       <BigTimer timer={primary} />
  *       {secondary.map(t => <SmallTimer key={t.block.key.toString()} timer={t} />)}
  *       {controls.map(btn => <Button key={btn.id} config={btn} />)}
- *       {items?.map(item => <StackRow key={item.id} item={item} />)}
+ *       {items?.map(item => <StackRow key={String(item.source.id)} entry={item} />)}
  *     </div>
  *   );
  * }
@@ -73,8 +74,9 @@ export {
     usePrimaryTimer,
     useSecondaryTimers,
     useActiveControls,
-    useStackDisplayItems,
-    type StackTimerEntry
+    useStackFragmentSources,
+    type StackTimerEntry,
+    type StackFragmentEntry
 } from './useStackDisplay';
 
 // Core memory subscription hook (stable API)
@@ -88,6 +90,7 @@ export {
     useDisplayState,
     useTimerDisplay,
     useRoundDisplay,
+    useFragmentSource,
     type TimerDisplayValues,
     type RoundDisplayValues
 } from './useBlockMemory';

@@ -42,7 +42,9 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         }
 
         const statement = statements[0];
-        const roundsFragment = statement.findFragment<RoundsFragment>(FragmentType.Rounds);
+        const roundsFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Rounds
+        ) as RoundsFragment | undefined;
 
         if (!roundsFragment) return;
 

@@ -1,4 +1,3 @@
-import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
@@ -104,6 +103,16 @@ export class RuntimeBlock implements IRuntimeBlock {
      * Set a typed memory entry (protected - called by strategies/behaviors).
      */
     protected setMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
+        this._memoryEntries.set(type, entry);
+    }
+
+    /**
+     * Allocate a typed memory entry on this block.
+     * Unlike setMemoryValue (which wraps in SimpleMemoryEntry), this accepts
+     * a pre-constructed IMemoryEntry — use for specialized entries like
+     * FragmentMemory and DisplayFragmentMemory that need subscriptions.
+     */
+    allocateMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
         this._memoryEntries.set(type, entry);
     }
 
@@ -330,57 +339,8 @@ export class RuntimeBlock implements IRuntimeBlock {
     }
 
     // ============================================================================
-    // Fragment Access (for output generation)
+    // Utilities
     // ============================================================================
-
-    get fragments(): ICodeFragment[][] {
-        // Return fragment groups directly from memory — preserves multi-group structure
-        const fragmentEntry = this.getMemory('fragment');
-        return fragmentEntry?.value.groups?.length
-            ? fragmentEntry.value.groups.map(g => [...g])
-            : [];
-    }
-
-    /**
-     * Find the first fragment of a given type, optionally matching a predicate.
-     */
-    findFragment<T extends ICodeFragment = ICodeFragment>(
-        type: FragmentType,
-        predicate?: (f: ICodeFragment) => boolean
-    ): T | undefined {
-        for (const group of this.fragments) {
-            for (const fragment of group) {
-                if (fragment.fragmentType === type) {
-                    if (!predicate || predicate(fragment)) {
-                        return fragment as T;
-                    }
-                }
-            }
-        }
-        return undefined;
-    }
-
-    /**
-     * Get all fragments of a given type.
-     */
-    filterFragments<T extends ICodeFragment = ICodeFragment>(type: FragmentType): T[] {
-        const result: T[] = [];
-        for (const group of this.fragments) {
-            for (const fragment of group) {
-                if (fragment.fragmentType === type) {
-                    result.push(fragment as T);
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Check if a fragment of a given type exists.
-     */
-    hasFragment(type: FragmentType): boolean {
-        return this.findFragment(type) !== undefined;
-    }
 
     /**
      * Get all memory types owned by this block.

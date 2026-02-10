@@ -20,9 +20,21 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
         this.label = options?.label;
     }
 
+    private getFragments(ctx: IBehaviorContext): ICodeFragment[] {
+        // Try ctx.getMemory first (available in behavior context), fall back to block
+        const getMemFn = (ctx as any).getMemory ?? ctx.block.getMemory?.bind(ctx.block);
+        if (!getMemFn) return [];
+        
+        const displayMem = getMemFn('fragment:display');
+        if (displayMem && 'getDisplayFragments' in displayMem) {
+            return (displayMem as any).getDisplayFragments();
+        }
+        const fragmentMem = getMemFn('fragment');
+        return fragmentMem?.value?.groups?.flat() ?? fragmentMem?.groups?.flat() ?? [];
+    }
+
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Get fragments from block if available
-        const fragments = ctx.block.fragments?.flat() ?? [];
+        const fragments = this.getFragments(ctx);
 
         // Emit segment started output
         ctx.emitOutput('segment', fragments as ICodeFragment[], {
@@ -37,8 +49,7 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Get fragments from block if available
-        const fragments = ctx.block.fragments?.flat() ?? [];
+        const fragments = this.getFragments(ctx);
 
         // Emit completion output
         ctx.emitOutput('completion', fragments as ICodeFragment[], {

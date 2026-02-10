@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
-import { IDisplayItem } from '../../core/models/DisplayItem';
+import { IFragmentSource } from '../../core/contracts/IFragmentSource';
+import { FragmentSourceEntry } from '../../components/unified/FragmentSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
 
 // ============================================================================
@@ -200,60 +201,97 @@ export function useActiveControls(): ButtonConfig[] {
 }
 
 // ============================================================================
-// Stack-Driven Display Items Hook
+// Stack-Driven Fragment Source Hook
 // ============================================================================
 
 /**
- * Converts the runtime stack into display items for the UI.
+ * Represents a fragment source on the stack with layout context.
  *
- * Each block on the stack becomes a display item with:
- * - Its fragments (for rendering with the fragment visualizer)
- * - Its status (active for leaf, pending for parents)
- * - Its label and identity
- *
- * The stack naturally provides hierarchy: index 0 is root, last is leaf.
- *
- * @returns Array of display items derived from the stack, or undefined if empty
+ * Extends the generic FragmentSourceEntry with a block reference for
+ * runtime-specific scenarios (accessing memory, dispatching events).
  */
-export function useStackDisplayItems(): IDisplayItem[] | undefined {
+export interface StackFragmentEntry extends FragmentSourceEntry {
+    /** The owning runtime block */
+    block: IRuntimeBlock;
+}
+
+/**
+ * Hook that converts the runtime stack into an array of IFragmentSource entries.
+ *
+ * Each block on the stack with a `'fragment:display'` memory entry produces a
+ * `StackFragmentEntry` containing the `IFragmentSource` and layout context
+ * (depth, leaf status, label).
+ *
+ * This is the preferred way for UI components to access fragment data from
+ * the stack, replacing `useStackDisplayItems()` which returns `IDisplayItem[]`.
+ *
+ * @returns Array of stack fragment entries, or undefined if no blocks on stack
+ *
+ * @example
+ * ```tsx
+ * function StackView() {
+ *   const entries = useStackFragmentSources();
+ *   if (!entries) return null;
+ *
+ *   return entries.map(entry => (
+ *     <FragmentVisualizer
+ *       key={entry.source.id}
+ *       fragments={entry.source.getDisplayFragments()}
+ *     />
+ *   ));
+ * }
+ * ```
+ */
+export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
     const blocks = useSnapshotBlocks();
+    const [version, setVersion] = useState(0);
+
+    // Subscribe to fragment:display memory changes on all blocks
+    useEffect(() => {
+        const unsubscribes: (() => void)[] = [];
+
+        for (const block of blocks) {
+            const displayEntry = block.getMemory('fragment:display');
+            if (displayEntry) {
+                const unsub = displayEntry.subscribe(() => {
+                    setVersion(v => v + 1);
+                });
+                unsubscribes.push(unsub);
+            }
+        }
+
+        return () => {
+            unsubscribes.forEach(fn => fn());
+        };
+    }, [blocks]);
 
     return useMemo(() => {
         if (blocks.length === 0) return undefined;
 
-        const items: IDisplayItem[] = [];
-
-        // Stack is typically [Root, ..., Leaf]
-        // But if the upstream hook returns [Leaf, ..., Root], we need to know.
-        // Based on user report: blocks seems to be [Leaf, ..., Root].
-        // We want [Root, ..., Leaf].
-
-        // Let's assume we need to reverse whatever we got to flip the order.
-        // If current output is Leaf->Root, reversing gives Root->Leaf.
-
+        const entries: StackFragmentEntry[] = [];
         const orderedBlocks = [...blocks].reverse();
 
         orderedBlocks.forEach((block, index) => {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            // Leaf is the LAST item in this visual list
-            const isLeaf = index === orderedBlocks.length - 1;
-            const fragments = block.fragments?.flat() ?? [];
+            // Get the DisplayFragmentMemory entry (implements IFragmentSource)
+            const displayEntry = block.getMemory('fragment:display');
+            if (!displayEntry) return;
 
-            items.push({
-                id: block.key.toString(),
-                parentId: index > 0 ? orderedBlocks[index - 1].key.toString() : null,
-                fragments,
+            const source = displayEntry as unknown as IFragmentSource;
+            const isLeaf = index === orderedBlocks.length - 1;
+
+            entries.push({
+                source,
+                block,
                 depth: index,
-                isHeader: false,
-                status: isLeaf ? 'active' : 'pending',
-                sourceType: 'block',
-                sourceId: block.key.toString(),
+                isLeaf,
                 label: block.label
             });
         });
 
-        return items.length > 0 ? items : undefined;
-    }, [blocks]);
+        return entries.length > 0 ? entries : undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [blocks, version]);
 }

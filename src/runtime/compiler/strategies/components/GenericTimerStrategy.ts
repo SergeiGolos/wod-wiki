@@ -36,10 +36,9 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
 
         // Match if timer fragment exists, ignoring runtime-generated ones
-        return statements[0].findFragment(
-            FragmentType.Timer,
-            f => f.origin !== 'runtime'
-        ) !== undefined;
+        return statements[0].fragments.some(
+            f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime'
+        );
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -49,10 +48,9 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         }
 
         const statement = statements[0];
-        const timerFragment = statement.findFragment<TimerFragment>(
-            FragmentType.Timer,
-            f => f.origin !== 'runtime'
-        );
+        const timerFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime'
+        ) as TimerFragment | undefined;
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;

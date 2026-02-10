@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../memory/MemoryTypes';
+import { IFragmentSource } from '../../core/contracts/IFragmentSource';
 import { formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
 
@@ -239,4 +240,43 @@ export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayV
             progress
         };
     }, [round, display?.roundDisplay]);
+}
+
+/**
+ * Hook for subscribing to the display fragment source from a block.
+ *
+ * Returns the `IFragmentSource` interface from the block's `'fragment:display'`
+ * memory entry (`DisplayFragmentMemory`). The returned source provides
+ * precedence-resolved fragments that update reactively when the underlying
+ * fragment memory or runtime state changes.
+ *
+ * This is the primary hook for UI components that need to render fragments
+ * from a runtime block with proper origin precedence (user > runtime > compiler > parser).
+ *
+ * @param block The runtime block (can be undefined)
+ * @returns The IFragmentSource for the block, or undefined if no fragment:display memory
+ *
+ * @example
+ * ```tsx
+ * function BlockView({ block }: { block: IRuntimeBlock }) {
+ *   const source = useFragmentSource(block);
+ *   if (!source) return null;
+ *
+ *   const fragments = source.getDisplayFragments();
+ *   return <FragmentVisualizer fragments={fragments} />;
+ * }
+ * ```
+ */
+export function useFragmentSource(block: IRuntimeBlock | undefined): IFragmentSource | undefined {
+    // Subscribe to the display state for reactivity (triggers re-render on changes)
+    const displayState = useBlockMemory(block, 'fragment:display');
+
+    // Return the memory entry itself as IFragmentSource (it implements the interface)
+    return useMemo(() => {
+        if (!block || !displayState) return undefined;
+        const entry = block.getMemory('fragment:display');
+        if (!entry) return undefined;
+        // DisplayFragmentMemory implements IFragmentSource
+        return entry as unknown as IFragmentSource;
+    }, [block, displayState]);
 }

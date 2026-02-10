@@ -8,6 +8,10 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
  * Stores fragments as a 2D array where each inner array is a semantic group
  * (e.g., per-round fragments, per-interval fragments). This preserves the
  * multi-group structure produced by fragment distributors during compilation.
+ * 
+ * This is internal storage infrastructure. Consumers should access fragments
+ * through `DisplayFragmentMemory` (which implements `IFragmentSource`) via
+ * `block.getMemory('fragment:display')` for precedence resolution and reactive subscriptions.
  */
 export class FragmentMemory extends BaseMemoryEntry<'fragment', FragmentState> {
     constructor(initialGroups: ICodeFragment[][] = []) {

@@ -24,19 +24,6 @@ class TestStatement implements ICodeStatement {
     this.meta = config.meta ?? { line: 1, column: 1, offset: 0, length: 0 };
   }
 
-  findFragment<T extends ICodeFragment = ICodeFragment>(
-    type: FragmentType,
-    predicate?: (f: ICodeFragment) => boolean
-  ): T | undefined {
-    return this.fragments.find(
-      f => f.fragmentType === type && (!predicate || predicate(f))
-    ) as T | undefined;
-  }
-
-  filterFragments<T extends ICodeFragment = ICodeFragment>(type: FragmentType): T[] {
-    return this.fragments.filter(f => f.fragmentType === type) as T[];
-  }
-
   hasFragment(type: FragmentType): boolean {
     return this.fragments.some(f => f.fragmentType === type);
   }

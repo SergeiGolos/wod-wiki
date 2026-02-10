@@ -3,8 +3,6 @@
  */
 
 export { 
-  metricsToFragments, 
   metricToFragment, 
-  createLabelFragment,
-  getFragmentsFromRecord 
+  fragmentsToLabel 
 } from './metricsToFragments';

@@ -16,5 +16,6 @@ export { CodeStatement, ParsedCodeStatement } from './models/CodeStatement';
 export { Duration, SpanDuration } from './models/Duration';
 export type { IDialect, InheritanceMode, InheritanceRule, DialectAnalysis } from './models/Dialect';
 export * from './models/DisplayItem';
+export { SimpleFragmentSource } from './utils/SimpleFragmentSource';
 export { OutputStatement } from './models/OutputStatement';
 export type { IOutputStatement } from './models/OutputStatement';

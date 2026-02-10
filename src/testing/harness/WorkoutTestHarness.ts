@@ -258,8 +258,15 @@ export class WorkoutTestHarness {
 
   private _collectFragments(): void {
     const current = this.currentBlock;
-    if (current?.fragments) {
-      this._collectedFragments.push(...current.fragments);
+    if (!current) return;
+    const displayMem = current.getMemory('fragment:display');
+    if (displayMem && 'getDisplayFragments' in displayMem) {
+      this._collectedFragments.push((displayMem as any).getDisplayFragments());
+    } else {
+      const fragmentMem = current.getMemory('fragment');
+      if (fragmentMem?.value?.groups) {
+        this._collectedFragments.push(...fragmentMem.value.groups);
+      }
     }
   }
 }

@@ -56,27 +56,6 @@ export function metricToFragment(metric: MetricValue): ICodeFragment {
   };
 }
 
-/**
- * Create a label fragment when no fragments are available.
- */
-export function createLabelFragment(label: string, type: string): ICodeFragment {
-  const typeMapping: Record<string, FragmentType> = {
-    'timer': FragmentType.Timer,
-    'rounds': FragmentType.Rounds,
-    'effort': FragmentType.Effort,
-    'group': FragmentType.Action,
-    'interval': FragmentType.Timer,
-    'amrap': FragmentType.Timer,
-    'emom': FragmentType.Timer,
-  };
-
-  return {
-    type: type.toLowerCase(),
-    fragmentType: typeMapping[type.toLowerCase()] || FragmentType.Text,
-    value: label,
-    image: label,
-  };
-}
 
 /**
  * Extract a human-readable label from an array of fragments.

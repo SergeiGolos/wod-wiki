@@ -59,8 +59,12 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const statement = statements[0];
-        const timerFragment = statement.findFragment<TimerFragment>(FragmentType.Timer);
-        const roundsFragment = statement.findFragment<RoundsFragment>(FragmentType.Rounds);
+        const timerFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Timer
+        ) as TimerFragment | undefined;
+        const roundsFragment = statement.fragments.find(
+            f => f.fragmentType === FragmentType.Rounds
+        ) as RoundsFragment | undefined;
 
         const intervalMs = timerFragment?.value || 60000; // Default 1 minute
         const totalRounds = typeof roundsFragment?.value === 'number'

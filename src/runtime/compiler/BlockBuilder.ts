@@ -5,6 +5,8 @@ import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment } from "../../core/models/CodeFragment";
+import { FragmentMemory } from "../memory/FragmentMemory";
+import { DisplayFragmentMemory } from "../memory/DisplayFragmentMemory";
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -111,7 +113,16 @@ export class BlockBuilder {
 
         // Allocate fragment memory preserving group structure from strategies
         if (this.fragments && this.fragments.length > 0) {
-            block.setMemoryValue('fragment', { groups: this.fragments });
+            const fragmentMemory = new FragmentMemory(this.fragments);
+            block.allocateMemory('fragment', fragmentMemory);
+
+            // Allocate display fragment memory — subscribes to FragmentMemory
+            // for reactive precedence resolution (IFragmentSource for UI binding)
+            const displayMemory = new DisplayFragmentMemory(
+                block.key.toString(),
+                fragmentMemory
+            );
+            block.allocateMemory('fragment:display', displayMemory);
         }
 
         return block;

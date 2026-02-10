@@ -3,7 +3,6 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IBlockContext } from './IBlockContext';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IMemoryEntry } from '../memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { IRuntimeClock } from './IRuntimeClock';
@@ -79,13 +78,6 @@ export interface IRuntimeBlock {
      * e.g., "Round 1 of 3", "21 Reps", "For Time"
      */
     readonly label: string;
-
-    /**
-     * Fragment groups associated with this block. Each inner array represents one execution bucket
-     * (e.g., per round or per interval). Runtime recording can append to these groups to preserve
-     * iteration-specific data.
-     */
-    readonly fragments?: ICodeFragment[][];
 
     /**
      * The execution context for this block.
@@ -165,26 +157,6 @@ export interface IRuntimeBlock {
      * @returns The behavior instance or undefined if not found
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
-
-    /**
-     * Find the first fragment of a given type, optionally matching a predicate.
-     */
-    findFragment<T extends ICodeFragment = ICodeFragment>(
-        type: FragmentType,
-        predicate?: (f: ICodeFragment) => boolean
-    ): T | undefined;
-
-    /**
-     * Get all fragments of a given type.
-     */
-    filterFragments<T extends ICodeFragment = ICodeFragment>(
-        type: FragmentType
-    ): T[];
-
-    /**
-     * Check if a fragment of a given type exists.
-     */
-    hasFragment(type: FragmentType): boolean;
 
     // ============================================================================
     // Block-Owned Memory
