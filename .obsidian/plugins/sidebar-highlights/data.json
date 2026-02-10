@@ -20,7 +20,8 @@
         "isNativeComment": false,
         "type": "highlight"
       }
-    ]
+    ],
+    "docs/content-provider-system.md": []
   },
   "collections": {},
   "groupingMode": "none",
@@ -28,6 +29,15 @@
   "sortMode": "none",
   "tabSettings": {
     "current": {
+      "groupingMode": "none",
+      "sortMode": "none",
+      "commentsExpanded": true,
+      "searchExpanded": false,
+      "selectedTags": [],
+      "selectedCollections": [],
+      "selectedSpecialFilters": []
+    },
+    "all": {
       "groupingMode": "none",
       "sortMode": "none",
       "commentsExpanded": true,

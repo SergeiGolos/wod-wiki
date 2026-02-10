@@ -3,6 +3,8 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
 import { ChildRunnerBehavior } from '@/runtime/behaviors';
+import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
 describe('RootBlock Child Execution', () => {
     let harness: ExecutionContextTestHarness;
@@ -46,20 +48,14 @@ describe('RootBlock Child Execution', () => {
             child3
         );
 
-        // Create and mount root
+        // Create root block and push via PushBlockAction
+        // ExecutionContext processes the full chain:
+        // PushBlockAction → mount → ChildRunnerBehavior → CompileChildBlockAction → PushBlockAction(child)
         const rootBlock = workoutRootStrategy.build(harness.runtime, {
             childGroups
         });
 
-        harness.stack.push(rootBlock);
-        
-        harness.executeAction({
-            type: 'mount-root',
-            do: (runtime) => {
-                const actions = rootBlock.mount(runtime);
-                actions.forEach(action => action.do(runtime));
-            }
-        });
+        harness.executeAction(new PushBlockAction(rootBlock));
 
         // Expectations: First child should be pushed
         expect(harness.mockJit.compileCalls).toHaveLength(1);
@@ -73,7 +69,7 @@ describe('RootBlock Child Execution', () => {
     });
 
     it('should push next child when current completes', () => {
-        // Scenario: Child completes, root.next() called
+        // Scenario: Child completes (pops), root.next() called automatically
         const harness = new ExecutionContextTestHarness({
             statements: [
                 { id: 1, source: 'Exercise 1' },
@@ -98,29 +94,22 @@ describe('RootBlock Child Execution', () => {
             child2
         );
 
-        // Mount root (pushes child-1)
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(action => action.do(harness.runtime));
-
+        // Mount root via PushBlockAction (pushes child-1)
+        harness.executeAction(new PushBlockAction(rootBlock));
         expect(harness.stack.count).toBe(2); // root + child1
 
-        // Clear recordings to isolate next() behavior
+        // Clear recordings to isolate next behavior
         harness.clearRecordings();
 
-        // Execute: Call next() to push second child
-        harness.executeAction({
-            type: 'root-next',
-            do: (runtime) => {
-                const actions = rootBlock.next(runtime);
-                actions.forEach(action => action.do(runtime));
-            }
-        });
+        // Simulate child-1 completing by popping it
+        // PopBlockAction pops child-1 → returns [NextAction] for parent root
+        // NextAction calls root.next() → ChildRunnerBehavior pushes child-2
+        harness.executeAction(new PopBlockAction());
 
         // Expectations: Second child compiled and pushed
         expect(harness.mockJit.compileCalls).toHaveLength(1);
         expect(harness.mockJit.lastCompileCall?.statements[0].id).toBe(2);
-        expect(harness.stack.count).toBe(3); // root + child-1 + child-2
+        expect(harness.stack.count).toBe(2); // root + child-2 (child-1 was popped)
         expect(harness.stack.current).toBe(child2);
         
         harness.dispose();
@@ -132,8 +121,7 @@ describe('RootBlock Child Execution', () => {
             childGroups: []
         });
 
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
+        harness.executeAction(new PushBlockAction(rootBlock));
 
         // Expectations: No compilation, no child pushed
         expect(harness.mockJit.compileCalls).toHaveLength(0);
@@ -142,6 +130,13 @@ describe('RootBlock Child Execution', () => {
 
     it('should mark completion when all children executed', () => {
         // Scenario: Last child completes
+        const harness = new ExecutionContextTestHarness({
+            statements: [
+                { id: 1, source: 'Exercise 1' },
+                { id: 2, source: 'Exercise 2' }
+            ]
+        });
+
         const rootBlock = workoutRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
@@ -149,29 +144,31 @@ describe('RootBlock Child Execution', () => {
         const child1 = new MockBlock('child-1', []);
         const child2 = new MockBlock('child-2', []);
         
-        harness.mockJit.whenMatches(() => true, (stmts) => {
-            if (stmts.some(s => s.id === 1)) return child1;
-            if (stmts.some(s => s.id === 2)) return child2;
-            return new MockBlock('fallback', []);
-        });
+        harness.mockJit.whenMatches(
+            (stmts) => stmts.some(s => s.id === 1),
+            child1
+        );
+        harness.mockJit.whenMatches(
+            (stmts) => stmts.some(s => s.id === 2),
+            child2
+        );
 
-        harness.stack.push(rootBlock);
-        
-        // Mount: pushes child 1
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(a => a.do(harness.runtime));
-        
-        // Next: pushes child 2
-        const next1Actions = rootBlock.next(harness.runtime);
-        next1Actions.forEach(a => a.do(harness.runtime));
+        // Mount root: pushes child-1
+        harness.executeAction(new PushBlockAction(rootBlock));
+        expect(harness.stack.count).toBe(2); // root + child-1
 
-        // Next: all children done
-        const next2Actions = rootBlock.next(harness.runtime);
+        // Pop child-1 → root.next() → pushes child-2
+        harness.executeAction(new PopBlockAction());
+        expect(harness.stack.count).toBe(2); // root + child-2
 
-        // Expectations: No more children to push
+        // Pop child-2 → root.next() → no more children → no pop (root stays)
+        harness.executeAction(new PopBlockAction());
+
+        // Expectations: All children executed
         const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
         expect(childRunner.allChildrenExecuted).toBe(true);
-        expect(next2Actions.length).toBe(0);
+        
+        harness.dispose();
     });
 
     it('should handle single child group', () => {
@@ -187,15 +184,12 @@ describe('RootBlock Child Execution', () => {
         const child1 = new MockBlock('child-1', []);
         harness.mockJit.whenMatches(() => true, child1);
 
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(a => a.do(harness.runtime));
-
+        // Mount root: pushes child-1
+        harness.executeAction(new PushBlockAction(rootBlock));
         expect(harness.stack.count).toBe(2);
 
-        // Next should not push anything (all children done)
-        const nextActions = rootBlock.next(harness.runtime);
-        expect(nextActions.length).toBe(0);
+        // Pop child-1 → root.next() → no more children
+        harness.executeAction(new PopBlockAction());
         
         const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
         expect(childRunner.allChildrenExecuted).toBe(true);
@@ -231,9 +225,8 @@ describe('RootBlock Child Execution', () => {
             group2Block
         );
 
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(a => a.do(harness.runtime));
+        // Mount root via PushBlockAction - processes entire chain
+        harness.executeAction(new PushBlockAction(rootBlock));
 
         // First group should be compiled with statements 1 and 2
         expect(harness.mockJit.compileCalls).toHaveLength(1);
@@ -253,12 +246,9 @@ describe('RootBlock Child Execution', () => {
 
         // Don't mock anything - let it fall through
         
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
-        
-        // Should not throw error
+        // Should not throw error when child IDs don't resolve
         expect(() => {
-            mountActions.forEach(a => a.do(harness.runtime));
+            harness.executeAction(new PushBlockAction(rootBlock));
         }).not.toThrow();
 
         // May still compile (with empty statements or fallback)

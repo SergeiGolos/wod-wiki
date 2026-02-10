@@ -10,7 +10,9 @@ import {
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
-    TimerInitBehavior
+    TimerInitBehavior,
+    TimerCompletionBehavior,
+    PopOnNextBehavior
 } from "../../../behaviors";
 
 /**
@@ -49,11 +51,22 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
         const hasRoundsFromStrategy = builder.hasBehavior(RoundInitBehavior);
+        // Check if a countdown timer controls completion (AMRAP pattern)
+        // TimerCompletionBehavior is only added for countdown timers with a duration
+        const hasCountdownCompletion = builder.hasBehavior(TimerCompletionBehavior);
+
+        // Remove PopOnNextBehavior if present — children manage advancement,
+        // not simple pop-on-next. GenericTimerStrategy adds PopOnNextBehavior
+        // for countup timers, but when children exist, ChildRunnerBehavior
+        // and RoundCompletionBehavior handle completion instead.
+        if (builder.hasBehavior(PopOnNextBehavior)) {
+            builder.removeBehavior(PopOnNextBehavior);
+        }
 
         // Add child loop behavior FIRST for timer-based OR multi-round blocks
         // This behavior must run before ChildRunnerBehavior so it can
         // reset the child index before ChildRunner checks it
-        if ((hasTimer || hasRoundsFromStrategy) && !builder.hasBehavior(ChildLoopBehavior)) {
+        if ((hasCountdownCompletion || hasRoundsFromStrategy) && !builder.hasBehavior(ChildLoopBehavior)) {
             builder.addBehavior(new ChildLoopBehavior({ childGroups }));
         }
 
@@ -62,8 +75,8 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
         // Add default round handling if not already present
         if (!builder.hasBehavior(RoundInitBehavior)) {
-            if (hasTimer) {
-                // Timer-based: unbounded rounds (AMRAP pattern)
+            if (hasCountdownCompletion) {
+                // Countdown timer (AMRAP pattern): unbounded rounds, timer controls completion
                 builder.addBehavior(new RoundInitBehavior({
                     totalRounds: undefined, // Unbounded
                     startRound: 1
@@ -71,7 +84,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
                 builder.addBehavior(new RoundAdvanceBehavior());
                 // No RoundCompletionBehavior - timer controls completion
             } else {
-                // No timer: single pass through children
+                // Single pass through children (no timer, or countup "for time" timer)
                 builder.addBehavior(new RoundInitBehavior({
                     totalRounds: 1,
                     startRound: 1

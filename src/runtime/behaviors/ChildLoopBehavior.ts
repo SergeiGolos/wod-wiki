@@ -86,9 +86,12 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
                 if (elapsed >= timer.durationMs) {
                     return false; // Timer expired - stop looping
                 }
+                // Countdown timer still running - continue looping (AMRAP pattern)
+                return true;
             }
-            // Timer exists and not expired - continue looping
-            return true;
+            // Countup timer (direction='up'): don't auto-loop based on timer.
+            // Fall through to round-based check below so that bounded rounds
+            // (e.g., "for time" single pass) can stop looping.
         }
         
         // Check round state - if unbounded rounds, always loop
