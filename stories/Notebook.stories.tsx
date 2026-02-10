@@ -28,7 +28,7 @@ export const Default: Story = {
   args: {
     provider: notebookProvider,
     showToolbar: false,
-    theme: 'wod-dark',
+    theme: 'system',
   },
 };
 
@@ -54,7 +54,7 @@ export const Seeded: Story = {
   args: {
     provider: notebookProvider,
     showToolbar: false,
-    theme: 'wod-dark',
+    theme: 'system',
   },
   play: async () => {
     const existing = await notebookProvider.getEntries();
