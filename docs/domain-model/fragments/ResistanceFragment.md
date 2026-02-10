@@ -42,25 +42,14 @@ constructor(
 2pood Kettlebell            # 2 pood (kettlebell unit)
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`ResistanceFragmentCompiler` converts to `MetricValue`:
+`ResistanceFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class ResistanceFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'resistance';
-  
-  compile(fragment: ResistanceFragment): MetricValue[] {
-    const amount = typeof fragment.value.amount === 'string' 
-      ? Number(fragment.value.amount) 
-      : fragment.value.amount;
-    return [{
-      type: MetricValueType.Resistance,
-      value: amount,
-      unit: fragment.value.units
-    }];
-  }
-}
+const resistanceFragment = block.getFragment(FragmentType.Resistance);
+const amount = resistanceFragment?.value?.amount; // number | undefined
+const units = resistanceFragment?.value?.units;   // "#", "kg", "lb", etc.
 ```
 
 ## Supported Units

@@ -10,10 +10,14 @@
 
 ## Behavior Stack
 
-### Block: WorkoutRoot
-- `SegmentOutputBehavior` (mount: emit label, unmount: close with total time)
+### Block: SessionRoot (renamed from WorkoutRoot — this is the section container)
+- `SegmentOutputBehavior` (mount: emit section label, unmount: close with total time)
 - `HistoryRecordBehavior` (unmount: emit history:record event)
-- `ChildRunnerBehavior` (push EMOM, then idle)
+- `ChildRunnerBehavior` (mount: push WaitingToStart, then push EMOM on first next(), then mark complete and pop on final next())
+
+### Block: WaitingToStart (pre-workout idle block)
+- `SegmentOutputBehavior` (mount: emit "Ready to Start" message)
+- `PopOnNextBehavior` (user clicks next → pop, trigger root to push EMOM block)
 
 ### Block: EMOM (parent with bounded round state + interval timer)
 - `TimerInitBehavior` (down, primary — countdown from :60 per interval)
@@ -73,6 +77,8 @@
 
 ## Key Patterns
 
+✅ **Session lifecycle:** SessionRoot → WaitingToStart → EMOM → Session ends  
+✅ WaitingToStart block idles until user clicks next (gate before workout begins)  
 ✅ EMOM emits `segment` on mount with interval timer info  
 ✅ EMOM emits `milestone` on each round advance (round 2, 3, ... 30)  
 ✅ Interval beep fires on `tick` when `:60` (or interval) elapsed  
@@ -80,7 +86,12 @@
 ✅ `RoundCompletionBehavior` fires when `round.current > round.total`  
 ✅ Children reset (`childIndex=0`) on each round boundary  
 ✅ Once final round complete, EMOM pops  
-✅ History records all 30 rounds completed
+✅ History records all 30 rounds completed  
+✅ **RestBlockBehavior (NEW):** When child completes early, EMOM generates Rest block for remaining interval time  
+   - Rest block countdown timer runs until interval expires  
+   - Rest block auto-completes and pops back to EMOM  
+   - EMOM's next `next()` call advances round and pushes next child  
+✅ **Session termination:** When EMOM pops and childIndex ≥ children.length, SessionRoot marks complete and pops (session ends)
 
 ---
 

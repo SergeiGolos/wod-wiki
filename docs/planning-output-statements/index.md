@@ -65,10 +65,21 @@ When a child block pops, `PopBlockAction` fires `NextAction` on the parent. The 
 
 | Order | Behavior | What it checks / does |
 |------:|----------|----------------------|
+| 0 | `RestBlockBehavior` (if parent has timer) | If timer exists → generate and push Rest block, return early (skip other behaviors) |
 | 1 | `RoundAdvanceBehavior` | If `allChildrenCompleted` → `round.current += 1` |
 | 2 | `RoundCompletionBehavior` | If `round.current > round.total` → `markComplete`, return `PopBlockAction` |
 | 3 | `ChildLoopBehavior` | If `allChildrenExecuted` && `shouldLoop()` → `childIndex = 0` (reset) |
 | 4 | `ChildRunnerBehavior` | If `childIndex < children.length` → compile & push next child, `childIndex += 1` |
+
+**New Rest Block Behavior (Timer-based Parents Only):**
+- When a child completes and parent has a timer (AMRAP, EMOM, Sequential), parent checks `RestBlockBehavior` first
+- If rest needed, push Rest block with countdown timer
+- Rest auto-completes on timer expiration, pops back to parent
+- Parent's next `next()` call proceeds with normal behavior chain (advance round, push next child, etc.)
+
+**SessionRoot Special Behavior:**
+- When WaitingToStart pops → Root pushes first workout block
+- When last workout block pops → Root detects `childIndex >= children.length` → marks complete and pops (session ends)
 
 ### Key State Variables Per Block
 

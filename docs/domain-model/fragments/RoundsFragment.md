@@ -41,29 +41,13 @@ constructor(
 3 Rounds                     # 3 rounds explicit
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`RoundsFragmentCompiler` converts to `MetricValue`:
+`RoundsFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class RoundsFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'rounds';
-  
-  compile(fragment: RoundsFragment): MetricValue[] {
-    if (typeof fragment.value === 'string') {
-      return [{
-        type: MetricValueType.Rounds,
-        value: undefined,
-        unit: fragment.value  // "AMRAP", "EMOM", etc.
-      }];
-    }
-    return [{
-      type: MetricValueType.Rounds,
-      value: fragment.value,
-      unit: ''
-    }];
-  }
-}
+const roundsFragment = block.getFragment(FragmentType.Rounds);
+const count = roundsFragment?.value; // number | string
 ```
 
 ## Runtime Behaviors

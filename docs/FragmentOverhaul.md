@@ -1172,7 +1172,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | Remove `FragmentMemory` class | `src/runtime/memory/FragmentMemory.ts` | ✅ Removed |
 | Remove `createLabelFragment()` function | `src/runtime/utils/metricsToFragments.ts` | ✅ Removed |
 | Remove `createLabelFragment` from exports | `src/runtime/utils/index.ts` | ✅ Done |
-| Fix stale re-exports (`metricsToFragments`, `getFragmentsFromRecord`) | `src/runtime/utils/index.ts` | ✅ Done |
+| Remove `metricsToFragments.ts` entirely | `src/runtime/utils/metricsToFragments.ts` | ✅ Replaced by `fragmentUtils.ts` |
 
 > **Implementation details**:
 > - All legacy `findFragment()`, `filterFragments()`, and `hasFragment()` methods were **fully removed** from `ICodeStatement`, `CodeStatement`, `OutputStatement`, `IRuntimeBlock`, and `RuntimeBlock`. Callers migrated to `IFragmentSource` equivalents (`getFragment()`, `getAllFragmentsByType()`, `hasFragment()` on `IFragmentSource`).
@@ -1182,7 +1182,9 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 > - Production caller migration: strategies use `statement.fragments.find()` / `statement.fragments.some()` on the 1D `ICodeStatement.fragments` array; `SegmentOutputBehavior` uses `ctx.getMemory('fragment:display')`.
 > - Test cleanup: deleted `RuntimeBlockFragments.test.ts`, `CodeStatementFragments.test.ts`, removed legacy compat tests from `OutputStatementFragments.test.ts`, updated all mock blocks (test harness `MockBlock`, `FakeRuntimeBlock`).
 > - `createLabelFragment()` removed entirely (zero consumers).
-> - Stale re-exports of non-existent `metricsToFragments` and `getFragmentsFromRecord` cleaned up.
+> - `metricsToFragments.ts` fully removed and replaced by `fragmentUtils.ts` (only `fragmentsToLabel` retained).
+> - `RuntimeMetric`, `MetricValue`, `MetricValueType`, `MetricEntry` types fully removed. Cast protocol migrated to `ICodeFragment[]`.
+> - `FragmentCompilationManager` and `FragmentCompilers` deleted (zero live consumers).
 > - **Regression**: Full suite 696 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
 ---

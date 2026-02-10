@@ -10,10 +10,14 @@
 
 ## Behavior Stack
 
-### Block: WorkoutRoot
-- `SegmentOutputBehavior` (mount: emit label, unmount: close with total time)
+### Block: SessionRoot (renamed from WorkoutRoot — this is the section container)
+- `SegmentOutputBehavior` (mount: emit section label, unmount: close with total time)
 - `HistoryRecordBehavior` (unmount: emit history:record event)
-- `ChildRunnerBehavior` (push Loop, then idle)
+- `ChildRunnerBehavior` (mount: push WaitingToStart, then push Loop on first next(), then mark complete and pop on final next())
+
+### Block: WaitingToStart (pre-workout idle block)
+- `SegmentOutputBehavior` (mount: emit "Ready to Start" message)
+- `PopOnNextBehavior` (user clicks next → pop, trigger root to push first workout block)
 
 ### Block: Loop (parent with round state)
 - `RoundInitBehavior` (mount: initialize `round={current:1, total:3}`)
@@ -79,13 +83,16 @@
 
 ## Key Patterns
 
+✅ **Session lifecycle:** SessionRoot → WaitingToStart → Loop → Session ends  
+✅ WaitingToStart block idles until user clicks next (gate before workout begins)  
 ✅ Loop emits `milestone` on initial mount with reps from repScheme[0]  
 ✅ Loop emits `milestone` on each round advance with updated reps  
 ✅ Children receive merged fragments including rep count per round  
 ✅ `RoundAdvanceBehavior` only fires after `allChildrenCompleted` is true  
 ✅ `ChildLoopBehavior` resets `childIndex` to 0 when all executed  
 ✅ On final round, `RoundCompletionBehavior` fires and pops Loop  
-✅ Loop completion shows final round count (3/3)
+✅ Loop completion shows final round count (3/3)  
+✅ **Session termination:** When Loop pops and childIndex ≥ children.length, SessionRoot marks complete and pops (session ends)
 
 ---
 

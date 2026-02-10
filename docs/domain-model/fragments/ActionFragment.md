@@ -60,24 +60,14 @@ Actions starting with `!` are pinned and persist in display:
 [:complete]              # Completion marker
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`ActionFragmentCompiler` converts to `MetricValue`:
+`ActionFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class ActionFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'action';
-  
-  compile(fragment: ActionFragment): MetricValue[] {
-    const label = fragment.value?.toString().trim();
-    if (!label) return [];
-    return [{
-      type: MetricValueType.Action,
-      value: undefined,
-      unit: `action:${label}`
-    }];
-  }
-}
+// Fragments flow directly through the pipeline
+const actionFragment = block.getFragment(FragmentType.Action);
+const label = actionFragment?.image; // "AMRAP", "For Time", etc.
 ```
 
 ## Usage Examples

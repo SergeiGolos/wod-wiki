@@ -53,22 +53,13 @@ new RepFragment(undefined);  // origin: 'user'
 21-15-9 Thrusters        # Rep scheme (parsed as multiple RepFragments)
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`RepFragmentCompiler` converts to `MetricValue`:
+`RepFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class RepFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'rep';
-  
-  compile(fragment: RepFragment): MetricValue[] {
-    return [{
-      type: MetricValueType.Repetitions,
-      value: fragment.value,
-      unit: ''
-    }];
-  }
-}
+const repFragment = block.getFragment(FragmentType.Rep);
+const count = repFragment?.value; // number | undefined
 ```
 
 ## Collectible Pattern

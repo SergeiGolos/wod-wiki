@@ -56,7 +56,7 @@ The `CastManager` orchestrates cast sessions, managing connections between the w
 
 import { IScriptRuntime } from '../../runtime/IScriptRuntime';
 import { IDisplayStackState } from '../../clock/types/DisplayTypes';
-import { RuntimeMetric } from '../../runtime/RuntimeMetric';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
 import { CastSession, CastSessionConfig, CastSessionState } from './CastSession';
 import { CastProtocol, CastMessage } from './CastProtocol';
@@ -348,7 +348,7 @@ export class CastManager {
   /**
    * Handle metrics received from receiver (including heart rate)
    */
-  private handleMetricsReceived(metrics: RuntimeMetric[]): void {
+  private handleMetricsReceived(metrics: ICodeFragment[]): void {
     if (!this.runtime?.metrics) return;
     
     // Add received metrics to collector
@@ -364,7 +364,7 @@ export class CastManager {
    */
   private handleWorkoutComplete(payload: {
     executionLog: ExecutionRecord[];
-    metrics: RuntimeMetric[];
+    metrics: ICodeFragment[];
     heartRateData: HeartRateDataPoint[];
   }): void {
     // Merge execution log
@@ -499,7 +499,7 @@ interface HeartRateDataPoint {
 // src/services/cast/CastSession.ts
 
 import { v4 as uuidv4 } from 'uuid';
-import { RuntimeMetric } from '../../runtime/RuntimeMetric';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 import { ExecutionRecord } from '../../runtime/models/ExecutionRecord';
 
 export interface CastSessionConfig {
@@ -507,7 +507,7 @@ export interface CastSessionConfig {
   targetName: string;
   workoutScript: string;
   onStateChange: (state: CastSessionState) => void;
-  onMetricsReceived: (metrics: RuntimeMetric[]) => void;
+  onMetricsReceived: (metrics: ICodeFragment[]) => void;
   onWorkoutComplete: (data: WorkoutCompleteData) => void;
 }
 
@@ -530,7 +530,7 @@ export interface CastUser {
 
 export interface WorkoutCompleteData {
   executionLog: ExecutionRecord[];
-  metrics: RuntimeMetric[];
+  metrics: ICodeFragment[];
   heartRateData: HeartRateDataPoint[];
   completionTime: number;
 }

@@ -41,24 +41,13 @@ very hard Burpees           # Multi-word effort
 moderate pace               # Moderate effort
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`EffortFragmentCompiler` converts to `MetricValue`:
+`EffortFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class EffortFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'effort';
-  
-  compile(fragment: EffortFragment): MetricValue[] {
-    const label = fragment.value?.toString().trim();
-    if (!label) return [];
-    return [{
-      type: MetricValueType.Effort,
-      value: undefined,
-      unit: `effort:${label}`
-    }];
-  }
-}
+const effortFragment = block.getFragment(FragmentType.Effort);
+const level = effortFragment?.value; // "easy", "hard", etc.
 ```
 
 ## Common Effort Levels

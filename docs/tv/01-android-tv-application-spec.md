@@ -33,11 +33,10 @@ shared/               # Shared TypeScript/React code
 │   ├── IScriptRuntime.ts
 │   ├── IEvent.ts
 │   ├── IRuntimeAction.ts
-│   ├── RuntimeMetric.ts
 │   └── ...
 ├── models/           # Shared data models
 │   ├── DisplayTypes.ts
-│   ├── MetricValue.ts
+│   ├── CodeFragment.ts
 │   └── ExecutionRecord.ts
 └── utils/            # Shared utilities
     └── formatTime.ts

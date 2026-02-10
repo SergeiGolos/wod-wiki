@@ -73,22 +73,13 @@ get direction(): 'up' | 'down' {
 5:00^ Warm-up               # 5 min count-up (stops at 5:00)
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`TimerFragmentCompiler` converts to `MetricValue`:
+`TimerFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class TimerFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'duration';
-  
-  compile(fragment: TimerFragment): MetricValue[] {
-    return [{
-      type: MetricValueType.Time,
-      value: fragment.value,
-      unit: 'ms'
-    }];
-  }
-}
+const timerFragment = block.getFragment(FragmentType.Timer);
+const durationMs = timerFragment?.value; // number | undefined (ms)
 ```
 
 ## Runtime Behaviors

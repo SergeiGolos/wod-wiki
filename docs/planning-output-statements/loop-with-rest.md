@@ -10,10 +10,14 @@
 
 ## Behavior Stack
 
-### Block: WorkoutRoot
-- `SegmentOutputBehavior` (mount: emit label, unmount: close with total time)
+### Block: SessionRoot (renamed from WorkoutRoot — this is the section container)
+- `SegmentOutputBehavior` (mount: emit section label, unmount: close with total time)
 - `HistoryRecordBehavior` (unmount: emit history:record event)
-- `ChildRunnerBehavior` (push Loop, then idle)
+- `ChildRunnerBehavior` (mount: push WaitingToStart, then push Loop on first next(), then mark complete and pop on final next())
+
+### Block: WaitingToStart (pre-workout idle block)
+- `SegmentOutputBehavior` (mount: emit "Ready to Start" message)
+- `PopOnNextBehavior` (user clicks next → pop, trigger root to push first workout block)
 
 ### Block: Loop (parent with bounded round state)
 - `RoundInitBehavior` (mount: initialize `round={current:1, total:5}`)
@@ -85,13 +89,16 @@
 
 ## Key Patterns
 
+✅ **Session lifecycle:** SessionRoot → WaitingToStart → Loop → Session ends  
+✅ WaitingToStart block idles until user clicks next (gate before workout begins)  
 ✅ Rest is treated as a regular child (just another leaf block)  
 ✅ Rest timer auto-completes on tick when 3:00 elapsed  
 ✅ `RoundAdvanceBehavior` fires after all 5 children executed (including rest)  
 ✅ Each round advance shows updated round count (1/5 → 2/5 → ... → 5/5)  
 ✅ `ChildLoopBehavior` resets `childIndex=0` after rest completes  
 ✅ On final round, `RoundCompletionBehavior` pops Loop after 5th child (rest)  
-✅ History records 5 complete rounds with all exercise completions
+✅ History records 5 complete rounds with all exercise completions  
+✅ **Session termination:** When Loop pops and childIndex ≥ children.length, SessionRoot marks complete and pops (session ends)
 
 ---
 

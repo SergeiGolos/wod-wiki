@@ -1,61 +1,37 @@
-# Planning: Output Statement Expectations
+# Planning: Output Statement Expectations — ARCHIVED
 
-> **Purpose**: Step-through execution tables for each workout type, defining what `OutputStatement`s the runtime should produce at each lifecycle event. Use these tables to validate compiler strategies, write integration tests, and catch missing or duplicate outputs.
+> **⚠️ This document has been split into type-specific guides.** See [planning-output-statements/index.md](./planning-output-statements/index.md) for the new organization.
 
-## Output Statement Model Reference
+## Quick Navigation
 
-| Property            | Description                                                           |
-| ------------------- | --------------------------------------------------------------------- |
-| `outputType`        | `'segment'` · `'completion'` · `'milestone'` · `'metric'` · `'label'` |
-| `timeSpan`          | `{ start, end }` timestamps for the output window                     |
-| `fragments`         | Merged parser + runtime fragments attached to the output              |
-| `sourceStatementId` | Links back to the parsed `CodeStatement.id`                           |
-| `sourceBlockKey`    | Runtime block key that emitted this output                            |
-| `stackLevel`        | Depth in the runtime stack when emitted                               |
-
-### Behavior → Output Mapping
-
-| Behavior | Lifecycle | Output Type | Content |
-|---|---|---|---|
-| `SegmentOutputBehavior` | `onMount` | `segment` | Display fragments (effort, reps, resistance, timer, etc.) |
-| `SegmentOutputBehavior` | `onUnmount` | `completion` | Same fragments with closed `timeSpan` |
-| `RoundOutputBehavior` | `onNext` | `milestone` | Round fragment (current / total) |
-| `SoundCueBehavior` | `onMount` / tick / `onUnmount` | `milestone` | `SoundFragment` (start beep, countdown, completion) |
-| `HistoryRecordBehavior` | `onUnmount` | _(event)_ | `history:record` event with elapsed, rounds, etc. |
+- 📃 **[Index & Overview](./planning-output-statements/index.md)** — All patterns, quick reference
+- 📃 **[For Time (single)](./planning-output-statements/for-time-single.md)** — Grace, Karen  
+- 📃 **[For Time (rep-scheme)](./planning-output-statements/for-time-rep-scheme.md)** — Fran, Annie, Diane  
+- 📃 **[AMRAP](./planning-output-statements/amrap.md)** — Cindy  
+- 📃 **[EMOM](./planning-output-statements/emom.md)** — Chelsea, EMOM Lifting, ABC  
+- 📃 **[Sequential Timers](./planning-output-statements/sequential-timers.md)** — Simple and Sinister  
+- 📃 **[Fixed-round Loop](./planning-output-statements/fixed-round-loop.md)** — Helen, Nancy  
+- 📃 **[Loop + Rest](./planning-output-statements/loop-with-rest.md)** — Barbara  
 
 ---
 
-## Legend
+## Changes in New Structure
 
-- **Step** — sequential execution step number; `→` prefix = auto-triggered parent `next()` after child pop
-- **Event** — lifecycle trigger (`mount`, `next`, `tick`, `unmount`, `→next` = parent receives control)
-- **Block** — which runtime block is active
-- **Stack** — runtime stack depth
-- **Output Type** — expected `OutputStatementType`
-- **Fragments** — key fragments on the output
-- **State Changes** — parent variable mutations and resulting action on `→next` rows
-- **Expected?** — ✅ confirmed / ❓ needs validation / ❌ known gap
+Each type-specific document now includes:
 
-### Parent `next()` Behavior Chain (execution order)
+✅ **Behavior Stack** — Which behaviors are active on each block type in that workflow  
+✅ **State Variable Tracking** — Explicit documentation of parent state changes on `→next()` calls  
+✅ **Expanded Step-Through Tables** — Detailed sequence showing how state flows through execution  
+✅ **Block-by-Block Patterns** — Clear explanation of differences between types  
+✅ **Open Questions** — Type-specific validation questions  
 
-When a child block pops, `PopBlockAction` fires `NextAction` on the parent. The parent runs:
-
-| Order | Behavior | What it checks / does |
-|------:|----------|----------------------|
-| 1 | `RoundAdvanceBehavior` | If `allChildrenCompleted` → `round.current += 1` |
-| 2 | `RoundCompletionBehavior` | If `round.current > round.total` → `markComplete`, return `PopBlockAction` |
-| 3 | `ChildLoopBehavior` | If `allChildrenExecuted` && `shouldLoop()` → `childIndex = 0` (reset) |
-| 4 | `ChildRunnerBehavior` | If `childIndex < children.length` → compile & push next child, `childIndex += 1` |
-
-**Key state variables per parent block:**
-- `round.current` / `round.total` — round counter
-- `childIndex` — pointer to next child to push (0-based)
-- `allChildrenExecuted` — `childIndex >= children.length`
-- `allChildrenCompleted` — `allChildrenExecuted && !dispatchedThisCall`
-
-Fill in the **Expected?** column as you validate each step.
+All **shared references** (OutputStatement model, Behavior→Output mapping, Legend, Parent `next()` chain) are in [index.md](./planning-output-statements/index.md) and linked from each type document.
 
 ---
+
+## Archive: Original Consolidated Document
+
+This file is kept for historical reference. All content has been reorganized and expanded in the new structure above.
 
 ## 1. Fran — `(21-15-9) Thrusters 95lb / Pullups`
 

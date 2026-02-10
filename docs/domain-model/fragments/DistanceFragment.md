@@ -42,25 +42,14 @@ constructor(
 5km Bike                    # 5 kilometers
 ```
 
-## Compiler Integration
+## Analytics Integration
 
-`DistanceFragmentCompiler` converts to `MetricValue`:
+`DistanceFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-class DistanceFragmentCompiler implements IFragmentCompiler {
-  readonly type = 'distance';
-  
-  compile(fragment: DistanceFragment): MetricValue[] {
-    const amount = typeof fragment.value.amount === 'string' 
-      ? Number(fragment.value.amount) 
-      : fragment.value.amount;
-    return [{
-      type: MetricValueType.Distance,
-      value: amount,
-      unit: fragment.value.units
-    }];
-  }
-}
+const distanceFragment = block.getFragment(FragmentType.Distance);
+const amount = distanceFragment?.value?.amount; // number | undefined
+const units = distanceFragment?.value?.units;   // "m", "km", "mi", etc.
 ```
 
 ## Supported Units

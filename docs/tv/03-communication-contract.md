@@ -370,7 +370,7 @@ interface CastStopMessage {
     reason: 'user-requested' | 'workout-complete' | 'error' | 'timeout';
     
     /** Final metrics to sync (if stopping mid-workout) */
-    finalMetrics?: RuntimeMetric[];
+    finalMetrics?: ICodeFragment[];
   };
 }
 ```
@@ -496,7 +496,7 @@ interface MetricsUpdateMessage {
   timestamp: number;
   payload: {
     /** Runtime metric */
-    metric: RuntimeMetric;
+    metric: ICodeFragment;
     
     /** Source user (for multi-user) */
     userId?: string;
@@ -516,7 +516,7 @@ interface MetricsBatchMessage {
   timestamp: number;
   payload: {
     /** Batch of metrics */
-    metrics: RuntimeMetric[];
+    metrics: ICodeFragment[];
     
     /** Heart rate data points (high-frequency) */
     heartRateData: HeartRateDataPoint[];
@@ -575,7 +575,7 @@ interface WorkoutCompleteMessage {
     executionLog: ExecutionRecord[];
     
     /** All collected metrics */
-    metrics: RuntimeMetric[];
+    metrics: ICodeFragment[];
     
     /** Complete heart rate data */
     heartRateData: HeartRateDataPoint[];
@@ -754,32 +754,16 @@ export interface IDisplayCardEntry {
   priority?: number;
 }
 
-// From src/runtime/RuntimeMetric.ts
-export interface RuntimeMetric {
-  exerciseId: string;
-  values: MetricValue[];
-  timeSpans: TimeSpan[];
+// From src/core/models/CodeFragment.ts
+export interface ICodeFragment {
+  readonly fragmentType: FragmentType;
+  readonly type: string;
+  readonly value?: unknown;
+  readonly image?: string;
+  readonly origin?: FragmentOrigin;
+  readonly behavior?: MetricBehavior;
+  readonly meta?: CodeMetadata;
 }
-
-export type MetricValue = {
-  type: MetricType;
-  value: number | undefined;
-  unit: string;
-};
-
-export type MetricType = 
-  | 'repetitions' 
-  | 'resistance' 
-  | 'distance' 
-  | 'timestamp' 
-  | 'rounds' 
-  | 'time' 
-  | 'calories' 
-  | 'action' 
-  | 'effort' 
-  | 'heart_rate' 
-  | 'cadence' 
-  | 'power';
 
 // From src/runtime/models/ExecutionRecord.ts
 export interface ExecutionRecord {
@@ -791,7 +775,7 @@ export interface ExecutionRecord {
   startTime: number;
   endTime?: number;
   status: 'active' | 'completed' | 'failed';
-  metrics: RuntimeMetric[];
+  metrics: ICodeFragment[];
 }
 ```
 
@@ -1217,5 +1201,5 @@ This package can be:
 - [01-android-tv-application-spec.md](01-android-tv-application-spec.md) - Android TV app specification
 - [02-web-application-updates.md](02-web-application-updates.md) - Web app updates specification
 - [DisplayTypes.ts](../../src/clock/types/DisplayTypes.ts) - Display state types
-- [RuntimeMetric.ts](../../src/runtime/RuntimeMetric.ts) - Metric types
+- [CodeFragment.ts](../../src/core/models/CodeFragment.ts) - Fragment types
 - [ExecutionRecord.ts](../../src/runtime/models/ExecutionRecord.ts) - Execution log types

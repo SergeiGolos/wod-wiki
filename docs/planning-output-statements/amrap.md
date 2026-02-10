@@ -10,10 +10,14 @@
 
 ## Behavior Stack
 
-### Block: WorkoutRoot
-- `SegmentOutputBehavior` (mount: emit label, unmount: close with total time)
+### Block: SessionRoot (renamed from WorkoutRoot — this is the section container)
+- `SegmentOutputBehavior` (mount: emit section label, unmount: close with total time)
 - `HistoryRecordBehavior` (unmount: emit history:record event)
-- `ChildRunnerBehavior` (push AMRAP, then idle)
+- `ChildRunnerBehavior` (mount: push WaitingToStart, then push AMRAP on first next(), then mark complete and pop on final next())
+
+### Block: WaitingToStart (pre-workout idle block)
+- `SegmentOutputBehavior` (mount: emit "Ready to Start" message)
+- `PopOnNextBehavior` (user clicks next → pop, trigger root to push AMRAP block)
 
 ### Block: AMRAP (parent with unbounded round state + countdown timer)
 - `TimerInitBehavior` (down, primary — countdown from 20:00)
@@ -73,13 +77,19 @@
 ## Key Patterns
 
 ✅ AMRAP emits `segment` on mount with timer info  
+✅ **Session lifecycle:** SessionRoot → WaitingToStart → AMRAP → Session ends  
+✅ WaitingToStart block idles until user clicks next (gate before workout begins)  
+✅ AMRAP emits `segment` on mount with timer info  
 ✅ AMRAP emits `milestone` on each round advance (round 2, 3, 4, ...)  
 ✅ `RoundAdvanceBehavior` increments rounds unbounded (no total)  
 ✅ `ChildLoopBehavior.shouldLoop()` returns true while timer running  
 ✅ When timer expires (on tick), `TimerCompletionBehavior` marks complete  
 ✅ Children reset (`childIndex=0`) on each round boundary  
 ✅ Loop stops pushing new children once timer expires  
-✅ History records final round count achieved within time
+✅ History records final round count achieved within time  
+✅ **RestBlockBehavior (NEW):** When configured, AMRAP may generate Rest blocks between exercises when child pops  
+   - ⚠️ **NEEDS CLARIFICATION:** When does RestBlockBehavior fire? Always? Configurable? Based on remaining interval time?  
+✅ **Session termination:** When AMRAP pops and childIndex ≥ children.length, SessionRoot marks complete and pops (session ends)
 
 ---
 

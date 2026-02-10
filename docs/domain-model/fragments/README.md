@@ -12,10 +12,10 @@ Fragments are the atomic data units that flow through the WOD Wiki pipeline. The
 │  Source Text ──► Parser ──► Compiler ──► Runtime ──► Analytics           │
 │                    │           │            │            │               │
 │                    ▼           ▼            ▼            ▼               │
-│              FragmentType  MetricValue  ICodeFragment  Aggregates        │
-│              origin:parser    ↓        origin:runtime     ↓              │
-│                    │      Behaviors        │         Reports             │
-│                    └─────────┬─────────────┘                             │
+│              FragmentType  ICodeFragment ICodeFragment  Aggregates       │
+│              origin:parser origin:compiler origin:runtime  ↓             │
+│                    │           │            │         Reports             │
+│                    └───────────┴────────────┘                             │
 │                              ▼                                           │
 │                       Output Stream                                      │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -80,15 +80,15 @@ Fragments with `origin: 'user'` support runtime value collection:
 - **DistanceFragment**: `?m` syntax for unknown distance
 - **ResistanceFragment**: `?#` syntax for unknown weight
 
-### Metric Fragments
+### Measurable Fragments
 
-Fragments compiled to `MetricValue` for aggregation:
+Fragments that carry quantifiable values for analytics:
 
-- TimerFragment → `MetricValueType.Time`
-- RepFragment → `MetricValueType.Repetitions`
-- DistanceFragment → `MetricValueType.Distance`
-- ResistanceFragment → `MetricValueType.Resistance`
-- RoundsFragment → `MetricValueType.Rounds`
+- TimerFragment → `FragmentType.Timer`
+- RepFragment → `FragmentType.Rep`
+- DistanceFragment → `FragmentType.Distance`
+- ResistanceFragment → `FragmentType.Resistance`
+- RoundsFragment → `FragmentType.Rounds`
 
 ### Control Fragments
 
