@@ -44,11 +44,13 @@ export interface ResponsiveViewportProps {
 
 /**
  * Calculate viewport offset based on current view index
+ * Percentages are relative to the strip's own width (N * 100% of viewport),
+ * so each view offset is -(index / N) * 100%.
  */
 const viewOffsets: Record<ViewMode, string> = {
   plan: '0%',
-  track: '-100%',
-  review: '-200%',
+  track: '-33.333%',
+  review: '-66.667%',
 };
 
 /**
@@ -78,9 +80,11 @@ export function ResponsiveViewport({
   }, [views, currentView]);
 
   // Calculate transform offset
+  // translateX percentage is relative to the strip's own width (views.length * 100% of viewport).
+  // To shift by one viewport width, we need (100 / views.length)% of the strip.
   const translateX = useMemo(() => {
-    return `-${viewIndex * 100}%`;
-  }, [viewIndex]);
+    return `-${viewIndex * (100 / views.length)}%`;
+  }, [viewIndex, views.length]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
