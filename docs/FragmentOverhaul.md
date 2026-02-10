@@ -1020,7 +1020,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | **Phase 3** | BlockBuilder & Strategy Updates | ✅ Complete | 2026-02-09 | `BlockBuilder.build()` allocates `FragmentMemory` + `DisplayFragmentMemory`, `RuntimeBlock.allocateMemory()` added (8 new tests, 0 regressions) |
 | **Phase 4** | Create Hooks & UI Bindings | ✅ Complete | 2026-02-09 | `useFragmentSource()` hook, `useStackFragmentSources()` hook, `FragmentSourceRow`/`FragmentSourceList` components, `useStackDisplayItems` uses precedence-resolved fragments (19 new tests, 0 regressions) |
 | **Phase 5** | Eliminate IDisplayItem & Adapters | ✅ Complete | 2026-02-10 | Removed `IDisplayItem`, adapters, `UnifiedItemRow/List`, `useStackDisplayItems`; migrated all 5 consumers to `FragmentSourceRow/List` + `IFragmentSource` |
-| **Phase 6** | Deprecation Cleanup | ✅ Complete | 2026-02-09 | Marked legacy `findFragment`/`filterFragments`/`hasFragment` as `@deprecated`, deprecated `IRuntimeBlock.fragments` getter, deprecated `FragmentMemory`, removed `createLabelFragment()` |
+| **Phase 6** | Legacy API Removal | ✅ Complete | 2026-02-09 | Removed `findFragment`/`filterFragments`/`hasFragment` from `ICodeStatement`/`CodeStatement`/`OutputStatement`/`IRuntimeBlock`/`RuntimeBlock`; removed `IRuntimeBlock.fragments` 2D getter; removed `FragmentMemory`; removed `createLabelFragment()`; migrated all callers to `IFragmentSource` equivalents |
 
 ---
 
@@ -1149,33 +1149,41 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 > - **Storybook stories updated**: `UnifiedVisualization.stories.tsx` and `WodScriptVisualizer.stories.tsx` rewritten with new types.
 > - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
-### Phase 6: Deprecation Cleanup ✅
+### Phase 6: Legacy API Removal ✅
 
 | Task | File | Status |
 |------|------|--------|
-| Mark `ICodeStatement.findFragment()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
-| Mark `ICodeStatement.filterFragments()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
-| Mark `ICodeStatement.hasFragment()` as `@deprecated` | `src/core/models/CodeStatement.ts` | ✅ Done |
-| Mark `OutputStatement.findFragment()` as `@deprecated` | `src/core/models/OutputStatement.ts` | ✅ Done |
-| Mark `OutputStatement.filterFragments()` as `@deprecated` | `src/core/models/OutputStatement.ts` | ✅ Done |
-| Mark `RuntimeBlock.findFragment()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
-| Mark `RuntimeBlock.filterFragments()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
-| Mark `RuntimeBlock.hasFragment()` as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
-| Mark `IRuntimeBlock.fragments` getter as `@deprecated` | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Done |
-| Mark `RuntimeBlock.fragments` getter as `@deprecated` | `src/runtime/RuntimeBlock.ts` | ✅ Done |
-| Mark `FragmentMemory` class as `@deprecated` | `src/runtime/memory/FragmentMemory.ts` | ✅ Done |
-| Remove `createLabelFragment()` function | `src/runtime/utils/metricsToFragments.ts` | ✅ Done (deleted) |
+| Remove `findFragment()` from `ICodeStatement` | `src/core/models/ICodeStatement.ts` | ✅ Removed |
+| Remove `filterFragments()` from `ICodeStatement` | `src/core/models/ICodeStatement.ts` | ✅ Removed |
+| Remove `hasFragment()` from `ICodeStatement` | `src/core/models/ICodeStatement.ts` | ✅ Removed |
+| Remove `findFragment()` from `CodeStatement` | `src/core/models/CodeStatement.ts` | ✅ Removed |
+| Remove `filterFragments()` from `CodeStatement` | `src/core/models/CodeStatement.ts` | ✅ Removed |
+| Remove `hasFragment()` from `CodeStatement` | `src/core/models/CodeStatement.ts` | ✅ Removed |
+| Remove `findFragment()` from `OutputStatement` | `src/core/models/OutputStatement.ts` | ✅ Removed |
+| Remove `filterFragments()` from `OutputStatement` | `src/core/models/OutputStatement.ts` | ✅ Removed |
+| Remove `findFragment()` from `IRuntimeBlock` | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Removed |
+| Remove `filterFragments()` from `IRuntimeBlock` | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Removed |
+| Remove `hasFragment()` from `IRuntimeBlock` | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Removed |
+| Remove `findFragment()` from `RuntimeBlock` | `src/runtime/RuntimeBlock.ts` | ✅ Removed |
+| Remove `filterFragments()` from `RuntimeBlock` | `src/runtime/RuntimeBlock.ts` | ✅ Removed |
+| Remove `hasFragment()` from `RuntimeBlock` | `src/runtime/RuntimeBlock.ts` | ✅ Removed |
+| Remove `IRuntimeBlock.fragments` 2D getter | `src/runtime/contracts/IRuntimeBlock.ts` | ✅ Removed |
+| Remove `RuntimeBlock.fragments` 2D getter | `src/runtime/RuntimeBlock.ts` | ✅ Removed |
+| Remove `FragmentMemory` class | `src/runtime/memory/FragmentMemory.ts` | ✅ Removed |
+| Remove `createLabelFragment()` function | `src/runtime/utils/metricsToFragments.ts` | ✅ Removed |
 | Remove `createLabelFragment` from exports | `src/runtime/utils/index.ts` | ✅ Done |
 | Fix stale re-exports (`metricsToFragments`, `getFragmentsFromRecord`) | `src/runtime/utils/index.ts` | ✅ Done |
 
 > **Implementation details**:
-> - All legacy `findFragment()`, `filterFragments()`, and `hasFragment()` methods on `ICodeStatement`, `CodeStatement`, `OutputStatement`, and `RuntimeBlock` now carry `@deprecated` JSDoc annotations pointing developers to the `IFragmentSource` equivalents (`getFragment()`, `getAllFragmentsByType()`, `hasFragment()`).
-> - `IRuntimeBlock.fragments` getter deprecated in favor of `block.getMemory('fragment:display')` which returns `DisplayFragmentMemory` implementing `IFragmentSource`.
-> - `RuntimeBlock.fragments` getter similarly deprecated.
-> - `FragmentMemory` class deprecated as an internal storage mechanism — consumers should access via `DisplayFragmentMemory`.
+> - All legacy `findFragment()`, `filterFragments()`, and `hasFragment()` methods were **fully removed** from `ICodeStatement`, `CodeStatement`, `OutputStatement`, `IRuntimeBlock`, and `RuntimeBlock`. Callers migrated to `IFragmentSource` equivalents (`getFragment()`, `getAllFragmentsByType()`, `hasFragment()` on `IFragmentSource`).
+> - `IRuntimeBlock.fragments` 2D getter **removed**. Callers migrated to `block.getMemory('fragment:display')` which returns `DisplayFragmentMemory` implementing `IFragmentSource`.
+> - `RuntimeBlock.fragments` 2D getter similarly **removed**.
+> - `FragmentMemory` class **removed** as an internal storage mechanism — consumers access via `DisplayFragmentMemory`.
+> - Production caller migration: strategies use `statement.fragments.find()` / `statement.fragments.some()` on the 1D `ICodeStatement.fragments` array; `SegmentOutputBehavior` uses `ctx.getMemory('fragment:display')`.
+> - Test cleanup: deleted `RuntimeBlockFragments.test.ts`, `CodeStatementFragments.test.ts`, removed legacy compat tests from `OutputStatementFragments.test.ts`, updated all mock blocks (test harness `MockBlock`, `FakeRuntimeBlock`).
 > - `createLabelFragment()` removed entirely (zero consumers).
 > - Stale re-exports of non-existent `metricsToFragments` and `getFragmentsFromRecord` cleaned up.
-> - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
+> - **Regression**: Full suite 696 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
 ---
 

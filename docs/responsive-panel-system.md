@@ -87,7 +87,7 @@ Each view is composed of one or more panels. This section documents what each pa
 **Intent:** The active workout display. Shows the main timer ring, execution stack cards, transport controls (play/pause/stop/next), and action buttons from the runtime.
 
 **Internal layout (RefinedTimerDisplay):**
-- **Left column:** Stack cards (`UnifiedItemRow` list with timer pills) — the live execution stack
+- **Left column:** Stack cards (`FragmentSourceRow` list with timer pills) — the live execution stack
 - **Right column:** Large circular timer ring with progress arc + transport controls below
 - Grid: `grid-cols-1 lg:grid-cols-[minmax(280px,35%)_1fr]` — already switches to single-column on narrow widths
 
@@ -175,7 +175,7 @@ Each view is composed of one or more panels. This section documents what each pa
 
 **Component:** `ReviewPanelIndex` → wraps `AnalyticsIndexPanel`
 **Default span:** `1` (1/3 width)
-**Intent:** Segment selection sidebar for the analytics view. Shows a chronological list of workout segments (efforts, rests, groups) with toggleable selection that syncs with the timeline chart. Uses the `UnifiedItemList` visualization system.
+**Intent:** Segment selection sidebar for the analytics view. Shows a chronological list of workout segments (efforts, rests, groups) with toggleable selection that syncs with the timeline chart. Uses the `FragmentSourceList` visualization system.
 
 | Screen Mode | Span | Adaptations |
 |-------------|------|-------------|
