@@ -288,8 +288,9 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                     id: block.key.toString(),
                     getDisplayFragments: () => [],
                     getFragment: () => undefined,
-                    getFragments: () => [],
-                    getAllFragments: () => []
+                    getAllFragmentsByType: () => [],
+                    hasFragment: () => false,
+                    rawFragments: [],
                 } as IFragmentSource;
             } else {
                 source = displayEntry as unknown as IFragmentSource;
