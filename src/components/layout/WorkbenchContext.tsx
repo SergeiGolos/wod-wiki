@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
-import { ViewMode } from './SlidingViewport';
+import type { ViewMode } from './panel-system/ResponsiveViewport';
+import type { PanelLayoutState } from './panel-system/types';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
- * 
+ *
  * DECOUPLED: Runtime management has been moved to RuntimeProvider.
  * This context now focuses solely on:
  * - Document state (content, blocks, active/selected block)
  * - View mode navigation
  * - Workout results collection
- * 
+ * - Panel layout state (for responsive panel system)
+ *
  * Components needing runtime should use useRuntime() from RuntimeProvider.
  */
 
@@ -19,14 +21,17 @@ interface WorkbenchContextState {
   content: string;
   blocks: WodBlock[];
   activeBlockId: string | null; // Cursor location
-  
-  // Execution State  
+
+  // Execution State
   selectedBlockId: string | null; // Target for execution
   viewMode: ViewMode;
-  
+
   // Results State
   results: WorkoutResults[];
-  
+
+  // Panel Layout State (per-view)
+  panelLayouts: Record<string, PanelLayoutState>;
+
   // Actions
   setContent: (content: string) => void;
   setBlocks: (blocks: WodBlock[]) => void;
@@ -35,6 +40,10 @@ interface WorkbenchContextState {
   setViewMode: (mode: ViewMode) => void;
   startWorkout: (block: WodBlock) => void;
   completeWorkout: (results: WorkoutResults) => void;
+
+  // Panel Layout Actions
+  expandPanel: (viewId: string, panelId: string) => void;
+  collapsePanel: (viewId: string) => void;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextState | undefined>(undefined);
@@ -52,9 +61,9 @@ interface WorkbenchProviderProps {
   initialContent?: string;
 }
 
-export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({ 
-  children, 
-  initialContent = '' 
+export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
+  children,
+  initialContent = ''
 }) => {
   // Document State
   const [content, setContent] = useState(initialContent);
@@ -67,6 +76,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
+
+  // Panel Layout State (per-view)
+  const [panelLayouts, setPanelLayouts] = useState<Record<string, PanelLayoutState>>({});
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -82,6 +94,48 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setViewMode('review');
   }, []);
 
+  // Panel Layout Actions
+  const expandPanel = useCallback((viewId: string, panelId: string) => {
+    setPanelLayouts(prev => {
+      const viewLayout = prev[viewId] || {
+        viewId,
+        panelSpans: {},
+        expandedPanelId: null,
+      };
+
+      // Store previous spans if not already expanded
+      const previousSpans = viewLayout.expandedPanelId ? viewLayout.panelSpans : { ...viewLayout.panelSpans };
+
+      return {
+        ...prev,
+        [viewId]: {
+          ...viewLayout,
+          panelSpans: {
+            ...previousSpans,
+            [panelId]: 3, // Set to full-screen
+          },
+          expandedPanelId: panelId,
+        },
+      };
+    });
+  }, []);
+
+  const collapsePanel = useCallback((viewId: string) => {
+    setPanelLayouts(prev => {
+      const viewLayout = prev[viewId];
+      if (!viewLayout) return prev;
+
+      return {
+        ...prev,
+        [viewId]: {
+          ...viewLayout,
+          expandedPanelId: null,
+          // Spans remain as they were before expansion
+        },
+      };
+    });
+  }, []);
+
   const value = {
     content,
     blocks,
@@ -89,13 +143,16 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     selectedBlockId,
     viewMode,
     results,
+    panelLayouts,
     setContent,
     setBlocks,
     setActiveBlockId,
     selectBlock,
     setViewMode,
     startWorkout,
-    completeWorkout
+    completeWorkout,
+    expandPanel,
+    collapsePanel,
   };
 
   return (
