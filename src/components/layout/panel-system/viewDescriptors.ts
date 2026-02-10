@@ -35,8 +35,8 @@ export function createPlanView(planPanel: React.ReactNode): ViewDescriptor {
  * Track View - Live workout execution
  *
  * Two panels:
- * - Timer (2/3 width) - Primary timer display
  * - History (1/3 width) - Execution history log (hidden on mobile, embedded in primary)
+ * - Timer (2/3 width) - Primary timer display
  */
 export function createTrackView(
   timerPanel: React.ReactNode,
@@ -50,19 +50,19 @@ export function createTrackView(
     icon: React.createElement(Timer, { className: 'w-4 h-4' }),
     panels: [
       {
-        id: 'timer',
-        title: 'Timer',
-        icon: React.createElement(Timer, { className: 'w-4 h-4' }),
-        defaultSpan: 2, // 2/3 width
-        content: timerPanel,
-      },
-      {
         id: isDebugMode ? 'debug' : 'history',
         title: isDebugMode ? 'Debug' : 'History',
         icon: React.createElement(Timer, { className: 'w-4 h-4' }),
         defaultSpan: 1, // 1/3 width
         content: isDebugMode && debugPanel ? debugPanel : historyPanel,
         hideOnMobile: true, // Embedded in timer panel on mobile
+      },
+      {
+        id: 'timer',
+        title: 'Timer',
+        icon: React.createElement(Timer, { className: 'w-4 h-4' }),
+        defaultSpan: 2, // 2/3 width
+        content: timerPanel,
       },
     ],
   };

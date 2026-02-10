@@ -59,6 +59,9 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString());
 
+        // Filter out runtime-generated fragments
+        const userFragments = statement.fragments.filter(f => f.origin !== 'runtime');
+
         // Configure block
         builder
             .setSourceIds(statements.map(s => s.id))
@@ -66,6 +69,11 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             .setKey(blockKey)
             .setBlockType('effort')
             .setLabel(label);
+
+        // Set fragments to ensure fragment:display memory is allocated
+        if (userFragments.length > 0) {
+            builder.setFragments([userFragments]);
+        }
 
         // Add behaviors
         // Completion Aspect: complete on user advance

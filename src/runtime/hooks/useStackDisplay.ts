@@ -277,9 +277,24 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
 
             // Get the DisplayFragmentMemory entry (implements IFragmentSource)
             const displayEntry = block.getMemory('fragment:display');
-            if (!displayEntry) return;
 
-            const source = displayEntry as unknown as IFragmentSource;
+            // Create fallback source for blocks without fragment:display memory
+            let source: IFragmentSource;
+            if (!displayEntry) {
+                // Fallback: create synthetic fragment source from block label
+                if (!block.label) return; // Skip blocks with no display entry AND no label
+
+                source = {
+                    id: block.key.toString(),
+                    getDisplayFragments: () => [],
+                    getFragment: () => undefined,
+                    getFragments: () => [],
+                    getAllFragments: () => []
+                } as IFragmentSource;
+            } else {
+                source = displayEntry as unknown as IFragmentSource;
+            }
+
             const isLeaf = index === orderedBlocks.length - 1;
 
             entries.push({
