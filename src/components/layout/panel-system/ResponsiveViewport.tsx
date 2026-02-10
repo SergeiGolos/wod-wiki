@@ -13,9 +13,9 @@
 
 import React, { useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import type { ViewDescriptor } from './panel-system/types';
-import { PanelGrid } from './panel-system/PanelGrid';
-import { useScreenMode } from './panel-system/useScreenMode';
+import type { ViewDescriptor } from './types';
+import { PanelGrid } from './PanelGrid';
+import { useScreenMode } from './useScreenMode';
 
 export type ViewMode = 'plan' | 'track' | 'review';
 
