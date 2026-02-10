@@ -57,10 +57,11 @@ export class NextAction implements IRuntimeAction {
       return false;
     }
 
-    // Check for runtime errors
-    if (runtime.errors && runtime.errors.length > 0) {
-      return false;
-    }
+    // Note: We intentionally do NOT check runtime.errors here.
+    // The errors array is append-only and never cleared, so a single
+    // transient error would permanently halt all block advancement.
+    // Errors are logged and tracked separately; NextAction should
+    // continue to function so the user can still advance.
 
     return true;
   }

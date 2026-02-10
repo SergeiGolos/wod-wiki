@@ -23,7 +23,8 @@ import {
     DisplayInitBehavior,
     TimerOutputBehavior,
     HistoryRecordBehavior,
-    SoundCueBehavior
+    SoundCueBehavior,
+    SegmentOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -126,6 +127,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new RoundOutputBehavior());
+        builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
 
         // =====================================================================

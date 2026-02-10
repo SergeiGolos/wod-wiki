@@ -5,8 +5,6 @@ import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock'
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
-import { IEventHandler } from './contracts/events/IEventHandler';
-import { IEvent } from './contracts/events/IEvent';
 import { IMemoryEntry } from './memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
@@ -139,25 +137,15 @@ export class RuntimeBlock implements IRuntimeBlock {
     // ============================================================================
 
     /**
-     * Register default event handler for 'next' events.
+     * Register default event handlers for block-level events.
+     * 
+     * Note: 'next' events are handled globally by NextEventHandler
+     * registered in ScriptRuntime. Per-block 'next' handlers are not
+     * needed and were removed to avoid unnecessary handler registrations.
      */
     protected registerDefaultHandler(): void {
-        if (!this._runtime?.eventBus?.register) return;
-
-        const handler: IEventHandler = {
-            id: `handler-next-${this.key.toString()}`,
-            name: `NextHandler-${this.label}`,
-            handler: (_event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
-                // Skip 'next' events - handled by NextAction directly
-                // This handler is kept for other events if needed
-                return [];
-            }
-        };
-
-        const unsub = this._runtime.eventBus.register('next', handler, this.key.toString());
-        if (unsub) {
-            this._eventUnsubscribers.push(unsub);
-        }
+        // No per-block handlers currently needed.
+        // The global NextEventHandler in ScriptRuntime handles 'next' events.
     }
 
     /**

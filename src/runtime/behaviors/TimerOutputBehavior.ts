@@ -52,13 +52,23 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
 
         const elapsed = timer ? calculateElapsed(timer, now) : 0;
 
-        const fragments: ICodeFragment[] = [{
+        // Start with the block's display fragments (label, effort, reps, etc.)
+        // so the output carries meaningful content for the history panel.
+        const displayMem = ctx.getMemory('fragment:display') as any;
+        const sourceFragments: ICodeFragment[] = displayMem?.resolved
+            ? [...displayMem.resolved]
+            : [];
+
+        // Append the runtime duration fragment
+        const durationFragment: ICodeFragment = {
             type: 'duration',
             fragmentType: FragmentType.Timer,
             value: elapsed,
             image: formatDuration(elapsed),
             origin: 'runtime'
-        } as ICodeFragment];
+        } as ICodeFragment;
+
+        const fragments = [...sourceFragments, durationFragment];
 
         ctx.emitOutput('completion', fragments, {
             label: `${timer?.label ?? ctx.block.label} - ${formatDuration(elapsed)}`

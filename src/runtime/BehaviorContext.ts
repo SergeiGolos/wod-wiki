@@ -97,8 +97,31 @@ export class BehaviorContext implements IBehaviorContext {
     ): void {
         const now = this.clock.now;
 
+        // Derive TimeSpan from block's timer memory for accurate duration tracking.
+        // Without this, outputs always have 0 duration which breaks the history
+        // and analytics panels.
+        const timerState = this.getMemory('timer') as import('./memory/MemoryTypes').TimerState | undefined;
+        let startTime = now.getTime();
+        const endTime = now.getTime();
+
+        if (timerState && timerState.spans.length > 0) {
+            // Use the earliest span start as the output start time
+            startTime = timerState.spans[0].started;
+        }
+
+        // If the caller provided no fragments, pull display fragments from the
+        // block's fragment:display memory so the output carries the source
+        // label, effort, rep, etc. fragments that the UI needs to render.
+        let effectiveFragments = fragments;
+        if (effectiveFragments.length === 0) {
+            const displayMem = this.getMemory('fragment:display') as import('./memory/MemoryTypes').FragmentDisplayState | undefined;
+            if (displayMem && displayMem.resolved.length > 0) {
+                effectiveFragments = [...displayMem.resolved];
+            }
+        }
+
         // Tag fragments with source block and timestamp
-        const taggedFragments = fragments.map(f => ({
+        const taggedFragments = effectiveFragments.map(f => ({
             ...f,
             sourceBlockKey: f.sourceBlockKey ?? this.block.key.toString(),
             timestamp: f.timestamp ?? now
@@ -107,7 +130,7 @@ export class BehaviorContext implements IBehaviorContext {
         // Create the output statement
         const output = new OutputStatement({
             outputType: type,
-            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+            timeSpan: new TimeSpan(startTime, endTime),
             sourceBlockKey: this.block.key.toString(),
             sourceStatementId: this.block.sourceIds?.[0],
             stackLevel: this.stackLevel,
@@ -115,8 +138,6 @@ export class BehaviorContext implements IBehaviorContext {
         });
 
         // Add to runtime's output collection and notify subscribers
-        // We access the private fields via the runtime interface
-        // The runtime exposes subscribeToOutput() but we need addOutput() for internal use
         this.addOutputToRuntime(output);
     }
 

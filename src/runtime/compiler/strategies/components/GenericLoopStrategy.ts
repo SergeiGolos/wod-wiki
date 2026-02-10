@@ -16,7 +16,8 @@ import {
     RoundDisplayBehavior,
     RoundOutputBehavior,
     DisplayInitBehavior,
-    HistoryRecordBehavior
+    HistoryRecordBehavior,
+    SegmentOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -98,6 +99,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // Output Aspect
         // =====================================================================
         builder.addBehavior(new RoundOutputBehavior());
+        builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
     }
 }

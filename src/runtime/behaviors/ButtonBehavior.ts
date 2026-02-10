@@ -36,7 +36,7 @@ export interface ControlsConfig {
  * ```typescript
  * new ButtonBehavior({
  *   buttons: [
- *     { id: 'next', label: 'Next', variant: 'primary', visible: true, enabled: true, eventName: 'block:next' },
+ *     { id: 'next', label: 'Next', variant: 'primary', visible: true, enabled: true, eventName: 'next' },
  *     { id: 'pause', label: 'Pause', variant: 'secondary', visible: true, enabled: true, eventName: 'timer:pause' }
  *   ]
  * })

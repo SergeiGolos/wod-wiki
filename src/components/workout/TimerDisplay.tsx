@@ -197,13 +197,16 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onNext={props.onNext}
       actions={actions.length > 0 ? actions : undefined}
       onAction={(eventName, payload) => {
+        // Dispatch the event to the runtime's event bus.
+        // For 'next' events, this goes through NextEventHandler → NextAction
+        // which handles block advancement directly.
         runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
 
+        // For non-runtime events, delegate to the appropriate prop callback.
+        // Note: 'next' is NOT delegated to props.onNext() because the
+        // runtime.handle() call above already advances the block. Calling
+        // props.onNext() would double-dispatch and skip a block.
         switch (eventName) {
-          case 'next':
-          case 'block:next':
-            props.onNext?.();
-            break;
           case 'timer:pause':
             props.onPause?.();
             break;

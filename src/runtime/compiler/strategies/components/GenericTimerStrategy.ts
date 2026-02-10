@@ -17,7 +17,8 @@ import {
     DisplayInitBehavior,
     TimerOutputBehavior,
     PopOnNextBehavior,
-    SoundCueBehavior
+    SoundCueBehavior,
+    SegmentOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -118,5 +119,6 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // Output Aspect
         // =====================================================================
         builder.addBehavior(new TimerOutputBehavior());
+        builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }
