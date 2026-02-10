@@ -22,13 +22,15 @@ export interface HistoryPostListProps {
   enriched?: boolean;
 }
 
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
   return secs > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${mins}:00`;
 }
 
-function formatDate(date: Date, enriched: boolean): string {
+function formatDate(timestamp: number, enriched: boolean): string {
+  const date = new Date(timestamp);
   if (enriched) {
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -93,14 +95,18 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                     'font-medium truncate text-sm',
                     isSelected ? 'text-foreground' : 'text-foreground/80',
                   )}>
-                    {entry.name}
+                    {entry.title}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(entry.date, enriched)}</span>
-                  <span>·</span>
-                  <span>{formatDuration(entry.duration)}</span>
+                  <span>{formatDate(entry.updatedAt, enriched)}</span>
+                  {entry.results && (
+                    <>
+                      <span>·</span>
+                      <span>{formatDuration(entry.results.duration)}</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Tags (shown in enriched mode or when space allows) */}
@@ -114,13 +120,6 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                         #{tag}
                       </span>
                     ))}
-                  </div>
-                )}
-
-                {/* Summary (shown only in enriched mode) */}
-                {enriched && entry.workoutType && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {entry.workoutType}
                   </div>
                 )}
               </div>

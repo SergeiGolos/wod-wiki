@@ -40,7 +40,7 @@ import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
-import type { ContentProviderMode } from '../../types/content-provider';
+import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -55,6 +55,7 @@ const runtimeFactory = new RuntimeFactory(globalCompiler);
 export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
   mode?: ContentProviderMode;
+  provider?: IContentProvider;
 }
 
 // --- Main Workbench Content ---
@@ -558,7 +559,7 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <CommandProvider>
-        <WorkbenchProvider initialContent={props.initialContent} mode={props.mode}>
+        <WorkbenchProvider initialContent={props.initialContent} mode={props.mode} provider={props.provider}>
           <AudioProvider>
             <RuntimeLifecycleProvider factory={runtimeFactory}>
               <UnifiedWorkbenchContent {...props} />
