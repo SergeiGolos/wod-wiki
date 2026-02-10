@@ -1,6 +1,6 @@
 # Fixed-Round Loop
 
-**Pattern**: `WorkoutRoot > Loop(N-rounds) > Exercises`
+**Pattern**: `SessionRoot > [WaitingToStart, Loop(N-rounds) > Exercises]`
 
 **Workouts**: Helen (3 rounds: Run / KB Swings / Pullups), Nancy (5 rounds: Run / Overhead Squats)
 
@@ -45,35 +45,39 @@
 
 ## Helen — `(3) 400m Run / 21 KB Swings 53lb / 12 Pullups`
 
-**Blocks**: `WorkoutRoot > Loop(3) > [Run, KBSwings, Pullups]`
+**Blocks**: `SessionRoot > [WaitingToStart, Loop(3) > [Run, KBSwings, Pullups]]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Helen" | Root.childIndex: 0→1, push Loop | ✅ |
-| 2 | mount | Loop(3) | 1 | `milestone` | rounds: 1/3 | round={1,3}, childIndex: 0→1, push Run | ✅ |
-| 3 | mount | Run | 2 | `segment` | effort: "Run", distance: "400m" | _(leaf)_ | ✅ |
-| 4 | unmount | Run | 2 | `completion` | effort: "Run", timeSpan: closed | | ✅ |
-| →5 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<3). ChildRunner: childIndex 1→2, push KBSwings | ✅ |
-| 6 | mount | KBSwings | 2 | `segment` | effort: "KB Swings", 53lb, reps: 21 | _(leaf, same per round)_ | ✅ |
-| 7 | unmount | KBSwings | 2 | `completion` | effort: "KB Swings", timeSpan: closed | | ✅ |
-| →8 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Pullups | ✅ |
-| 9 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 12 | _(leaf, same per round)_ | ✅ |
-| 10 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →11 | →next | Loop(3) | 1 | `milestone` | rounds: 2/3 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Run | ✅ |
-| 12 | mount | Run | 2 | `segment` | effort: "Run", distance: "400m" | _(leaf, identical to round 1)_ | ✅ |
-| 13 | unmount | Run | 2 | `completion` | effort: "Run", timeSpan: closed | | ✅ |
-| →14 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push KBSwings | ✅ |
-| 15 | mount | KBSwings | 2 | `segment` | effort: "KB Swings", 53lb, reps: 21 | _(leaf)_ | ✅ |
-| 16 | unmount | KBSwings | 2 | `completion` | effort: "KB Swings", timeSpan: closed | | ✅ |
-| →17 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Pullups | ✅ |
-| 18 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 12 | _(leaf)_ | ✅ |
-| 19 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →20 | →next | Loop(3) | 1 | `milestone` | rounds: 3/3 | RoundAdv: round 2→3. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Run | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Helen" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push Loop | ✅ |
+| 6 | mount | Loop(3) | 1 | `milestone` | rounds: 1/3 | round={1,3}, childIndex: 0→1, push Run | ✅ |
+| 7 | mount | Run | 2 | `segment` | effort: "Run", distance: "400m" | _(leaf)_ | ✅ |
+| 8 | unmount | Run | 2 | `completion` | effort: "Run", timeSpan: closed | | ✅ |
+| →9 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<3). ChildRunner: childindex 1→2, push KBSwings | ✅ |
+| 10 | mount | KBSwings | 2 | `segment` | effort: "KB Swings", 53lb, reps: 21 | _(leaf, same per round)_ | ✅ |
+| 11 | unmount | KBSwings | 2 | `completion` | effort: "KB Swings", timeSpan: closed | | ✅ |
+| →12 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childindex 2→3, push Pullups | ✅ |
+| 13 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 12 | _(leaf, same per round)_ | ✅ |
+| 14 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →15 | →next | Loop(3) | 1 | `milestone` | rounds: 2/3 | RoundAdv: round 1→2. ChildLoop: reset childindex=0. ChildRunner: childindex 0→1, push Run | ✅ |
+| 16 | mount | Run | 2 | `segment` | effort: "Run", distance: "400m" | _(leaf, identical to round 1)_ | ✅ |
+| 17 | unmount | Run | 2 | `completion` | effort: "Run", timeSpan: closed | | ✅ |
+| →18 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childindex 1→2, push KBSwings | ✅ |
+| 19 | mount | KBSwings | 2 | `segment` | effort: "KB Swings", 53lb, reps: 21 | _(leaf)_ | ✅ |
+| 20 | unmount | KBSwings | 2 | `completion` | effort: "KB Swings", timeSpan: closed | | ✅ |
+| →21 | →next | Loop(3) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childindex 2→3, push Pullups | ✅ |
+| 22 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 12 | _(leaf)_ | ✅ |
+| 23 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →24 | →next | Loop(3) | 1 | `milestone` | rounds: 3/3 | RoundAdv: round 2→3. ChildLoop: reset childindex=0. ChildRunner: childindex 0→1, push Run | ✅ |
 | ...repeat final round... | | | | | | | |
 | →N | →next | Loop(3) | 1 | — | _(after round 3, last child)_ | RoundAdv: round 3→4. RoundCompl: 4>3 → markComplete, pop Loop | ✅ |
 | N+1 | unmount | Loop(3) | 1 | `completion` | rounds: 3/3 | | ✅ |
-| →N+2 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: no more children → idle | ✅ |
-| N+3 | unmount | WorkoutRoot | 0 | `completion` | label: "Helen", timeSpan: total | history:record event | ✅ |
+| →N+2 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childindex 2 >= 2 → no more children, markComplete → pop SessionRoot | ✅ |
+| N+3 | unmount | SessionRoot | 0 | `completion` | label: "Helen", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: ~22 (1 root + 1 loop milestone + 6 per round × 3 + loop milestone × 2 + completions)
 

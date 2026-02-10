@@ -1,6 +1,6 @@
 # Sequential Timers
 
-**Pattern**: `WorkoutRoot > [Timer, Rest, Timer, ...]`
+**Pattern**: `SessionRoot > [WaitingToStart, Timer > Timer > ...]`
 
 **Workouts**: Simple and Sinister (5:00 KB Swings / 1:00 Rest / 10:00 Turkish Getups)
 
@@ -46,26 +46,30 @@
 
 ## Simple and Sinister — `5:00 100 KB Swings / 1:00 Rest / 10:00 10 Turkish Getups`
 
-**Blocks**: `WorkoutRoot > [Timer(5:00, KBSwings), Rest(1:00), Timer(10:00, TGU)]`
+**Blocks**: `SessionRoot > [WaitingToStart, Timer(5:00, KBSwings), Rest(1:00), Timer(10:00, TGU)]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Simple and Sinister" | Root.childIndex: 0→1, push Timer(5:00) | ✅ |
-| 2 | mount | Timer(5:00) | 1 | `segment` | timer: 5:00 countdown, effort: "KB Swings", reps: 100, 70lb | timer starts | ✅ |
-| 3 | mount | Timer(5:00) | 1 | `milestone` | sound: start-beep | SoundCue.onMount | ✅ |
-| 4 | tick | Timer(5:00) | 1 | `milestone` | sound: completion-beep | TimerCompl: elapsed ≥ 5:00 → markComplete | ✅ |
-| 5 | unmount | Timer(5:00) | 1 | `completion` | timer: 5:00 elapsed, effort: "KB Swings", timeSpan: closed | | ✅ |
-| →6 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push Rest(1:00) | ✅ |
-| 7 | mount | Rest(1:00) | 1 | `segment` | timer: 1:00 countdown, label: "Rest" | timer starts | ✅ |
-| 8 | tick | Rest(1:00) | 1 | `milestone` | sound: rest-over-beep | TimerCompl: elapsed ≥ 1:00 → markComplete | ✅ |
-| 9 | unmount | Rest(1:00) | 1 | `completion` | timer: 1:00 elapsed, timeSpan: closed | | ✅ |
-| →10 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 2→3, push Timer(10:00) | ✅ |
-| 11 | mount | Timer(10:00) | 1 | `segment` | timer: 10:00 countdown, effort: "Turkish Getups", reps: 10, 70lb | timer starts | ✅ |
-| 12 | mount | Timer(10:00) | 1 | `milestone` | sound: start-beep | SoundCue.onMount | ✅ |
-| 13 | tick | Timer(10:00) | 1 | `milestone` | sound: completion-beep | TimerCompl: elapsed ≥ 10:00 → markComplete | ✅ |
-| 14 | unmount | Timer(10:00) | 1 | `completion` | timer: 10:00 elapsed, effort: "Turkish Getups", timeSpan: closed | | ✅ |
-| →15 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 3 >= 3 → no more children, idle | ✅ |
-| 16 | unmount | WorkoutRoot | 0 | `completion` | label: "S&S", timeSpan: total | history:record event | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Simple and Sinister" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push Timer(5:00) | ✅ |
+| 6 | mount | Timer(5:00) | 1 | `segment` | timer: 5:00 countdown, effort: "KB Swings", reps: 100, 70lb | timer starts | ✅ |
+| 7 | mount | Timer(5:00) | 1 | `milestone` | sound: start-beep | SoundCue.onMount | ✅ |
+| 8 | tick | Timer(5:00) | 1 | `milestone` | sound: completion-beep | TimerCompl: elapsed ≥ 5:00 → markComplete | ✅ |
+| 9 | unmount | Timer(5:00) | 1 | `completion` | timer: 5:00 elapsed, effort: "KB Swings", timeSpan: closed | | ✅ |
+| →10 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 2→3, push Rest(1:00) | ✅ |
+| 11 | mount | Rest(1:00) | 1 | `segment` | timer: 1:00 countdown, label: "Rest" | timer starts | ✅ |
+| 12 | tick | Rest(1:00) | 1 | `milestone` | sound: rest-over-beep | TimerCompl: elapsed ≥ 1:00 → markComplete | ✅ |
+| 13 | unmount | Rest(1:00) | 1 | `completion` | timer: 1:00 elapsed, timeSpan: closed | | ✅ |
+| →14 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 3→4, push Timer(10:00) | ✅ |
+| 15 | mount | Timer(10:00) | 1 | `segment` | timer: 10:00 countdown, effort: "Turkish Getups", reps: 10, 70lb | timer starts | ✅ |
+| 16 | mount | Timer(10:00) | 1 | `milestone` | sound: start-beep | SoundCue.onMount | ✅ |
+| 17 | tick | Timer(10:00) | 1 | `milestone` | sound: completion-beep | TimerCompl: elapsed ≥ 10:00 → markComplete | ✅ |
+| 18 | unmount | Timer(10:00) | 1 | `completion` | timer: 10:00 elapsed, effort: "Turkish Getups", timeSpan: closed | | ✅ |
+| →19 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 4 >= 4 → no more children, markComplete → pop SessionRoot | ✅ |
+| 20 | unmount | SessionRoot | 0 | `completion` | label: "S&S", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: ~14 (1 root + 2 per timer segment + 1 beep + 1 completion per timer/rest × 3 + beeps)
 

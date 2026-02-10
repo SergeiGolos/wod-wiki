@@ -1,6 +1,6 @@
 # AMRAP (As Many Rounds As Possible)
 
-**Pattern**: `WorkoutRoot > AMRAP(countdown-timer) > Exercises`
+**Pattern**: `SessionRoot > [WaitingToStart, AMRAP(countdown-timer) > Exercises]`
 
 **Workouts**: Cindy (20:00 AMRAP with 5 Pullups / 10 Pushups / 15 Air Squats)
 
@@ -47,28 +47,32 @@
 
 ## Cindy — `20:00 AMRAP / 5 Pullups / 10 Pushups / 15 Air Squats`
 
-**Blocks**: `WorkoutRoot > AMRAP(20:00) > [Pullups, Pushups, Squats]`
+**Blocks**: `SessionRoot > [WaitingToStart, AMRAP(20:00) > [Pullups, Pushups, Squats]]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Cindy" | Root.childIndex: 0→1, push AMRAP | ✅ |
-| 2 | mount | AMRAP(20:00) | 1 | `segment` | timer: 20:00 countdown | round={1,∞}, timer starts, childIndex: 0→1, push Pullups | ✅ |
-| 3 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 5 | _(leaf)_ | ✅ |
-| 4 | next | Pullups | 2 | — | _(user clicks next)_ | PopOnNext → pop | ✅ |
-| 5 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →6 | →next | AMRAP(20:00) | 1 | — | _(parent receives control)_ | RoundAdv: skip (not all executed). ChildRunner: childIndex 1→2, push Pushups | ✅ |
-| 7 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 10 | _(leaf)_ | ✅ |
-| 8 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
-| →9 | →next | AMRAP(20:00) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Squats | ✅ |
-| 10 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 15 | _(leaf)_ | ✅ |
-| 11 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
-| →12 | →next | AMRAP(20:00) | 1 | `milestone` | rounds: 2 (unbounded, no cap) | RoundAdv: round 1→2. ChildLoop: timer running → reset childIndex=0. ChildRunner: childIndex 0→1, push Pullups | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Cindy" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push AMRAP | ✅ |
+| 6 | mount | AMRAP(20:00) | 1 | `segment` | timer: 20:00 countdown | round={1,∞}, timer starts, childIndex: 0→1, push Pullups | ✅ |
+| 7 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 5 | _(leaf)_ | ✅ |
+| 8 | next | Pullups | 2 | — | _(user clicks next)_ | PopOnNext → pop | ✅ |
+| 9 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →10 | →next | AMRAP(20:00) | 1 | — | _(parent receives control)_ | RoundAdv: skip (not all executed). ChildRunner: childIndex 1→2, push Pushups | ✅ |
+| 11 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 10 | _(leaf)_ | ✅ |
+| 12 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
+| →13 | →next | AMRAP(20:00) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Squats | ✅ |
+| 14 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 15 | _(leaf)_ | ✅ |
+| 15 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
+| →16 | →next | AMRAP(20:00) | 1 | `milestone` | rounds: 2 (unbounded, no cap) | RoundAdv: round 1→2. ChildLoop: timer running → reset childIndex=0. ChildRunner: childIndex 0→1, push Pullups | ✅ |
 | _(user continues round 2 of exercises)_ | | | | | | | |
 | N | tick | AMRAP(20:00) | 1 | — | _(timer ticking, elapsed increases)_ | | ✅ |
 | N+1 | tick | AMRAP(20:00) | 1 | `milestone` | sound: completion-beep | TimerCompletion: elapsed ≥ 20:00 → markComplete | ✅ |
 | N+2 | unmount | AMRAP(20:00) | 1 | `completion` | timer: 20:00 elapsed, rounds: final count | | ✅ |
-| →N+3 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: no more children → idle | ✅ |
-| N+4 | unmount | WorkoutRoot | 0 | `completion` | label: "Cindy", timeSpan: total | history:record event | ✅ |
+| →N+3 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 2 >= 2 → no more children, markComplete → pop SessionRoot | ✅ |
+| N+4 | unmount | SessionRoot | 0 | `completion` | label: "Cindy", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: 2 per exercise × 3 × N rounds + round milestones + completion beep + completions
 

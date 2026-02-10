@@ -1,6 +1,6 @@
 # EMOM (Every Minute On the Minute)
 
-**Pattern**: `WorkoutRoot > EMOM(N × interval-timer) > Exercises`
+**Pattern**: `SessionRoot > [WaitingToStart, EMOM(N × interval-timer) > Exercises]`
 
 **Workouts**: Chelsea (30 @ :60 EMOM), EMOM Lifting (15 @ :60 EMOM), ABC (20 @ 1:00 EMOM)
 
@@ -48,28 +48,32 @@
 
 ## Chelsea — `(30) :60 EMOM / 5 Pullups / 10 Pushups / 15 Air Squats`
 
-**Blocks**: `WorkoutRoot > EMOM(30×:60) > [Pullups, Pushups, Squats]`
+**Blocks**: `SessionRoot > [WaitingToStart, EMOM(30×:60) > [Pullups, Pushups, Squats]]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Chelsea" | Root.childIndex: 0→1, push EMOM | ✅ |
-| 2 | mount | EMOM(30×:60) | 1 | `segment` | timer: :60 countdown, rounds: 1/30 | round={1,30}, timer starts @:60, childIndex: 0→1, push Pullups | ✅ |
-| 3 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 5 | _(leaf)_ | ✅ |
-| 4 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →5 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pushups | ✅ |
-| 6 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 10 | _(leaf)_ | ✅ |
-| 7 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
-| →8 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Squats | ✅ |
-| 9 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 15 | _(leaf)_ | ✅ |
-| 10 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
-| →11 | →next | EMOM(30×:60) | 1 | `milestone` | rounds: 2/30 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Pullups | ✅ |
-| 12 | tick | EMOM(30×:60) | 1 | `milestone` | sound: interval-beep | TimerCompl: interval :60 elapsed, timer resets for round 2 | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Chelsea" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push EMOM | ✅ |
+| 6 | mount | EMOM(30×:60) | 1 | `segment` | timer: :60 countdown, rounds: 1/30 | round={1,30}, timer starts @:60, childIndex: 0→1, push Pullups | ✅ |
+| 7 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 5 | _(leaf)_ | ✅ |
+| 8 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →9 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pushups | ✅ |
+| 10 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 10 | _(leaf)_ | ✅ |
+| 11 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
+| →12 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Squats | ✅ |
+| 13 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 15 | _(leaf)_ | ✅ |
+| 14 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
+| →15 | →next | EMOM(30×:60) | 1 | `milestone` | rounds: 2/30 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Pullups | ✅ |
+| 16 | tick | EMOM(30×:60) | 1 | `milestone` | sound: interval-beep | TimerCompl: interval :60 elapsed, timer resets for round 2 | ✅ |
 | _(user continues round 2 exercises while new :60 timer starts)_ | | | | | | | |
 | ...repeat interval... | | | | | | | |
 | →N | →next | EMOM(30×:60) | 1 | — | _(after round 30, last child)_ | RoundAdv: round 30→31. RoundCompl: 31>30 → markComplete, pop EMOM | ✅ |
 | N+1 | unmount | EMOM(30×:60) | 1 | `completion` | rounds: 30/30, timer: final | | ✅ |
-| →N+2 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: no more children → idle | ✅ |
-| N+3 | unmount | WorkoutRoot | 0 | `completion` | label: "Chelsea", timeSpan: total | history:record event | ✅ |
+| →N+2 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 2 >= 2 → no more children, markComplete → pop SessionRoot | ✅ |
+| N+3 | unmount | SessionRoot | 0 | `completion` | label: "Chelsea", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: ~8 per round × 30 + root overhead
 

@@ -1,6 +1,6 @@
 # For Time (Single Exercise)
 
-**Pattern**: `WorkoutRoot > Exercise`
+**Pattern**: `SessionRoot > [WaitingToStart, Exercise]`
 
 **Workouts**: Grace (30 Clean & Jerk 135lb), Karen (150 Wall Ball Shots 20lb)
 

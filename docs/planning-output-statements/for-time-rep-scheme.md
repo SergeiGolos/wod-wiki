@@ -1,6 +1,6 @@
 # For Time (Descending Rep-Scheme)
 
-**Pattern**: `WorkoutRoot > Loop(repScheme) > Exercises`
+**Pattern**: `SessionRoot > [WaitingToStart, Loop(repScheme) > Exercises]`
 
 **Workouts**: Fran (21-15-9 Thrusters/Pullups), Annie (50-40-30-20-10 DUs/Situps), Diane (21-15-9 Deadlift/HSPU)
 
@@ -47,35 +47,39 @@
 
 ## Fran — `(21-15-9) Thrusters 95lb / Pullups`
 
-**Blocks**: `WorkoutRoot > Loop(21-15-9) > [Thrusters, Pullups]`
+**Blocks**: `SessionRoot > [WaitingToStart, Loop(21-15-9) > [Thrusters, Pullups]]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Fran" | Root.childIndex: 0→1, push Loop | ✅ |
-| 2 | mount | Loop(21-15-9) | 1 | `milestone` | rounds: 1/3, reps: 21 | round={1,3}, childIndex: 0→1, push Thrusters | ✅ |
-| 3 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 21 | _(leaf)_ | ✅ |
-| 4 | next | Thrusters | 2 | — | _(user clicks next)_ | PopOnNext → pop Thrusters | ✅ |
-| 5 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
-| →6 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<2). ChildRunner: childIndex 1→2, push Pullups | ✅ |
-| 7 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 21 | _(leaf)_ | ✅ |
-| 8 | next | Pullups | 2 | — | _(user clicks next)_ | PopOnNext → pop Pullups | ✅ |
-| 9 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →10 | →next | Loop(21-15-9) | 1 | `milestone` | rounds: 2/3, reps: 15 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Thrusters | ✅ |
-| 11 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 15 | _(leaf, reps updated)_ | ✅ |
-| 12 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
-| →13 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pullups | ✅ |
-| 14 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 15 | _(leaf)_ | ✅ |
-| 15 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →16 | →next | Loop(21-15-9) | 1 | `milestone` | rounds: 3/3, reps: 9 | RoundAdv: round 2→3. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Thrusters | ✅ |
-| 17 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 9 | _(leaf, reps updated)_ | ✅ |
-| 18 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
-| →19 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pullups | ✅ |
-| 20 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 9 | _(leaf)_ | ✅ |
-| 21 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →22 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: round 3→4. RoundCompl: 4>3 → markComplete, pop Loop | ✅ |
-| 23 | unmount | Loop(21-15-9) | 1 | `completion` | rounds: 3/3 complete | | ✅ |
-| →24 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1 >= 1 → no more children, idle | ✅ |
-| 25 | unmount | WorkoutRoot | 0 | `completion` | label: "Fran", timeSpan: total | history:record event | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Fran" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 1→2, push Loop | ✅ |
+| 6 | mount | Loop(21-15-9) | 1 | `milestone` | rounds: 1/3, reps: 21 | round={1,3}, childIndex: 0→1, push Thrusters | ✅ |
+| 7 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 21 | _(leaf)_ | ✅ |
+| 8 | next | Thrusters | 2 | — | _(user clicks next)_ | PopOnNext → pop Thrusters | ✅ |
+| 9 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
+| →10 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<2). ChildRunner: childIndex 1→2, push Pullups | ✅ |
+| 11 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 21 | _(leaf)_ | ✅ |
+| 12 | next | Pullups | 2 | — | _(user clicks next)_ | PopOnNext → pop Pullups | ✅ |
+| 13 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →14 | →next | Loop(21-15-9) | 1 | `milestone` | rounds: 2/3, reps: 15 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Thrusters | ✅ |
+| 15 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 15 | _(leaf, reps updated)_ | ✅ |
+| 16 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
+| →17 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pullups | ✅ |
+| 18 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 15 | _(leaf)_ | ✅ |
+| 19 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →20 | →next | Loop(21-15-9) | 1 | `milestone` | rounds: 3/3, reps: 9 | RoundAdv: round 2→3. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Thrusters | ✅ |
+| 21 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", 95lb, reps: 9 | _(leaf, reps updated)_ | ✅ |
+| 22 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | | ✅ |
+| →23 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pullups | ✅ |
+| 24 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 9 | _(leaf)_ | ✅ |
+| 25 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →26 | →next | Loop(21-15-9) | 1 | — | _(parent receives control)_ | RoundAdv: round 3→4. RoundCompl: 4>3 → markComplete, pop Loop | ✅ |
+| 27 | unmount | Loop(21-15-9) | 1 | `completion` | rounds: 3/3 complete | | ✅ |
+| →28 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childIndex 2 >= 2 → no more children, markComplete → pop SessionRoot | ✅ |
+| 29 | unmount | SessionRoot | 0 | `completion` | label: "Fran", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: ~16 (1 root segment + 1 loop milestone + 2 cycles of 3 children {segment, completion} + 2 loop milestones + final completions)
 

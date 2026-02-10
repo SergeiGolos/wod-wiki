@@ -1,6 +1,6 @@
 # Loop with Rest
 
-**Pattern**: `WorkoutRoot > Loop(N) > [Exercises..., Rest(timer)]`
+**Pattern**: `SessionRoot > [WaitingToStart, Loop(N) > [Exercises..., Rest(timer)]]`
 
 **Workouts**: Barbara (5 rounds: Pullups / Pushups / Situps / Squats / 3:00 Rest)
 
@@ -51,37 +51,41 @@
 
 ## Barbara — `(5) 20 Pullups / 30 Pushups / 40 Situps / 50 Squats / 3:00 Rest`
 
-**Blocks**: `WorkoutRoot > Loop(5) > [Pullups, Pushups, Situps, Squats, Rest(3:00)]`
+**Blocks**: `SessionRoot > [WaitingToStart, Loop(5) > [Pullups, Pushups, Situps, Squats, Rest(3:00)]]`
 
 | Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
 |---:|---|---|---:|---|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Barbara" | Root.childIndex: 0→1, push Loop | ✅ |
-| 2 | mount | Loop(5) | 1 | `milestone` | rounds: 1/5 | round={1,5}, childIndex: 0→1, push Pullups | ✅ |
-| 3 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 20 | _(leaf)_ | ✅ |
-| 4 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
-| →5 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<5). ChildRunner: childIndex 1→2, push Pushups | ✅ |
-| 6 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 30 | _(leaf)_ | ✅ |
-| 7 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
-| →8 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=2<5). ChildRunner: childIndex 2→3, push Situps | ✅ |
-| 9 | mount | Situps | 2 | `segment` | effort: "Situps", reps: 40 | _(leaf)_ | ✅ |
-| 10 | unmount | Situps | 2 | `completion` | effort: "Situps", timeSpan: closed | | ✅ |
-| →11 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=3<5). ChildRunner: childIndex 3→4, push Squats | ✅ |
-| 12 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 50 | _(leaf)_ | ✅ |
-| 13 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
-| →14 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=4<5). ChildRunner: childIndex 4→5, push Rest(3:00) | ✅ |
-| 15 | mount | Rest(3:00) | 2 | `segment` | timer: 3:00 countdown, label: "Rest" | timer starts | ✅ |
-| 16 | tick | Rest(3:00) | 2 | `milestone` | sound: rest-over-beep | TimerCompl: 3:00 elapsed → markComplete | ✅ |
-| 17 | unmount | Rest(3:00) | 2 | `completion` | timer: 3:00 elapsed, timeSpan: closed | | ✅ |
-| →18 | →next | Loop(5) | 1 | `milestone` | rounds: 2/5 | RoundAdv: round 1→2 (now childIdx=5 >= 5, so allExecuted). ChildLoop: reset childIndex=0. ChildRunner: childindex 0→1, push Pullups | ✅ |
-| 19 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 20 | _(leaf, round 2)_ | ✅ |
-| 20 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| 1 | mount | SessionRoot | 0 | `segment` | label: "Barbara" | Root.childIndex: 0→1, push WaitingToStart | ✅ |
+| 2 | mount | WaitingToStart | 1 | `segment` | label: "Ready to Start" | _(idle until user clicks next)_ | ✅ |
+| 3 | next | WaitingToStart | 1 | — | _(user clicks next)_ | PopOnNext → pop WaitingToStart | ✅ |
+| 4 | unmount | WaitingToStart | 1 | `completion` | label: "Ready to Start", timeSpan: closed | | ✅ |
+| →5 | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childindex 1→2, push Loop | ✅ |
+| 6 | mount | Loop(5) | 1 | `milestone` | rounds: 1/5 | round={1,5}, childindex: 0→1, push Pullups | ✅ |
+| 7 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 20 | _(leaf)_ | ✅ |
+| 8 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →9 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=1<5). ChildRunner: childindex 1→2, push Pushups | ✅ |
+| 10 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 30 | _(leaf)_ | ✅ |
+| 11 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
+| →12 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=2<5). ChildRunner: childindex 2→3, push Situps | ✅ |
+| 13 | mount | Situps | 2 | `segment` | effort: "Situps", reps: 40 | _(leaf)_ | ✅ |
+| 14 | unmount | Situps | 2 | `completion` | effort: "Situps", timeSpan: closed | | ✅ |
+| →15 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=3<5). ChildRunner: childindex 3→4, push Squats | ✅ |
+| 16 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 50 | _(leaf)_ | ✅ |
+| 17 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
+| →18 | →next | Loop(5) | 1 | — | _(parent receives control)_ | RoundAdv: skip (childIdx=4<5). ChildRunner: childindex 4→5, push Rest(3:00) | ✅ |
+| 19 | mount | Rest(3:00) | 2 | `segment` | timer: 3:00 countdown, label: "Rest" | timer starts | ✅ |
+| 20 | tick | Rest(3:00) | 2 | `milestone` | sound: rest-over-beep | TimerCompl: 3:00 elapsed → markComplete | ✅ |
+| 21 | unmount | Rest(3:00) | 2 | `completion` | timer: 3:00 elapsed, timeSpan: closed | | ✅ |
+| →22 | →next | Loop(5) | 1 | `milestone` | rounds: 2/5 | RoundAdv: round 1→2 (now childIdx=5 >= 5, so allExecuted). ChildLoop: reset childindex=0. ChildRunner: childindex 0→1, push Pullups | ✅ |
+| 23 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 20 | _(leaf, round 2)_ | ✅ |
+| 24 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
 | _(repeat next 3 exercises + rest for round 2)_ | | | | | | | |
-| →N | →next | Loop(5) | 1 | `milestone` | rounds: 5/5 | RoundAdv: round 5→6. ChildLoop: reset childIndex=0. ChildRunner: childindex 0→1, push Pullups | ✅ |
+| →N | →next | Loop(5) | 1 | `milestone` | rounds: 5/5 | RoundAdv: round 5→5. ChildLoop: reset childindex=0. ChildRunner: childindex 0→1, push Pullups | ✅ |
 | _(last round exercises + rest)_ | | | | | | | |
 | →(N+M) | →next | Loop(5) | 1 | — | _(after round 5, last child)_ | RoundAdv: round 5→6. RoundCompl: 6>5 → markComplete, pop Loop | ✅ |
 | N+M+1 | unmount | Loop(5) | 1 | `completion` | rounds: 5/5 | | ✅ |
-| →(N+M+2) | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: no more children → idle | ✅ |
-| N+M+3 | unmount | WorkoutRoot | 0 | `completion` | label: "Barbara", timeSpan: total | history:record event | ✅ |
+| →(N+M+2) | →next | SessionRoot | 0 | — | _(root receives control)_ | ChildRunner: childindex 2 >= 2 → no more children, markComplete → pop SessionRoot | ✅ |
+| N+M+3 | unmount | SessionRoot | 0 | `completion` | label: "Barbara", timeSpan: total | history:record event, **session ends** | ✅ |
 
 **Total expected outputs**: ~16 per round × 5 + root (80+ outputs)
 
