@@ -9,6 +9,10 @@ import { BlockKey } from "@/core/models/BlockKey";
 // New aspect-based behaviors
 import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
 import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
+import { TimerInitBehavior } from "../../../behaviors/TimerInitBehavior";
+import { TimerTickBehavior } from "../../../behaviors/TimerTickBehavior";
+import { TimerPauseBehavior } from "../../../behaviors/TimerPauseBehavior";
+import { TimerOutputBehavior } from "../../../behaviors/TimerOutputBehavior";
 
 
 
@@ -34,8 +38,14 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
  * EffortFallbackStrategy handles simple effort blocks (e.g., "10 Push-ups").
  * 
  * These blocks have no timer and no rounds - they complete when the user advances.
+ * However, they DO track elapsed time via a secondary countup timer so that
+ * the stack display can show how long each effort takes.
  * 
  * ## Behaviors Applied:
+ * - **TimerInitBehavior** (Time): Countup timer with 'secondary' role
+ * - **TimerTickBehavior** (Time): Manages timer spans
+ * - **TimerPauseBehavior** (Time): Supports pause/resume
+ * - **TimerOutputBehavior** (Output): Emits elapsed time on completion
  * - **PopOnNextBehavior** (Completion): Marks block complete on next()
  * - **SegmentOutputBehavior** (Output): Emits segment/completion outputs
  */
@@ -76,10 +86,21 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         }
 
         // Add behaviors
+        // Time Aspect: track elapsed time with a secondary countup timer
+        // Role is 'secondary' so effort timers don't steal primary display from parent
+        builder.addBehavior(new TimerInitBehavior({
+            direction: 'up',
+            role: 'secondary',
+            label
+        }));
+        builder.addBehavior(new TimerTickBehavior());
+        builder.addBehavior(new TimerPauseBehavior());
+
         // Completion Aspect: complete on user advance
         builder.addBehavior(new PopOnNextBehavior());
 
-        // Output Aspect: emit segment/completion outputs
+        // Output Aspect: emit elapsed time and segment/completion outputs
+        builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }
