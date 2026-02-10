@@ -65,6 +65,7 @@ class CompileChildBlockAction implements IRuntimeAction {
  */
 export class ChildRunnerBehavior implements IRuntimeBehavior {
     private childIndex = 0;
+    private _dispatchedOnLastNext = false;
 
     constructor(private config: ChildRunnerConfig) { }
 
@@ -79,10 +80,13 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
     }
 
     onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
+        this._dispatchedOnLastNext = false;
+        
         // Push next child if available
         if (this.childIndex < this.config.childGroups.length) {
             const nextGroup = this.config.childGroups[this.childIndex];
             this.childIndex++;
+            this._dispatchedOnLastNext = true;
             return [new CompileChildBlockAction(nextGroup)];
         }
 
@@ -99,10 +103,26 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
     }
 
     /**
-     * Check if all children have been executed.
+     * Check if all children have been dispatched (CompileChildBlockAction returned).
+     * Note: This becomes true as soon as the last child is dispatched,
+     * even before it has actually completed execution.
      */
     get allChildrenExecuted(): boolean {
         return this.childIndex >= this.config.childGroups.length;
+    }
+
+    /**
+     * Check if all children have completed execution.
+     * This is true only when all children have been dispatched AND
+     * the most recent onNext() call did NOT dispatch a new child
+     * (meaning the last dispatched child has completed and returned
+     * control to the parent via next()).
+     * 
+     * Use this instead of allChildrenExecuted when you need to know
+     * if children are truly done (e.g., for round advancement).
+     */
+    get allChildrenCompleted(): boolean {
+        return this.allChildrenExecuted && !this._dispatchedOnLastNext;
     }
 
     /**
@@ -110,5 +130,6 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
      */
     resetChildIndex(): void {
         this.childIndex = 0;
+        this._dispatchedOnLastNext = false;
     }
 }

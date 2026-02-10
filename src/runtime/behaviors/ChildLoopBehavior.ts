@@ -39,7 +39,10 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
         
         if (!childRunner) return [];
         
-        // Only act if all children have been executed
+        // Only act if all children have been dispatched.
+        // Use allChildrenExecuted (not allChildrenCompleted) because ChildLoopBehavior
+        // runs BEFORE ChildRunnerBehavior in the behavior chain and needs to reset
+        // the child index before ChildRunner checks it.
         if (!childRunner.allChildrenExecuted) return [];
         
         // Check if we should loop (timer running and not expired)

@@ -27,12 +27,13 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
         if (!round) return [];
 
         // If the block has children, only advance the round when all children
-        // have been executed (i.e., a full cycle). This prevents round
-        // increment on every intermediate child completion.
+        // have truly completed (not just dispatched). allChildrenCompleted
+        // returns true only when the last dispatched child has popped and
+        // the subsequent next() call finds nothing more to push.
         const block = ctx.block as IRuntimeBlock;
         if (typeof block.getBehavior === 'function') {
             const childRunner = block.getBehavior(ChildRunnerBehavior);
-            if (childRunner && !childRunner.allChildrenExecuted) {
+            if (childRunner && !childRunner.allChildrenCompleted) {
                 return [];
             }
         }
