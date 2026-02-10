@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import { Edit, Timer, BarChart2 } from 'lucide-react';
-import type { ViewDescriptor } from './types';
+import { Edit, Timer, BarChart2, Calendar, BarChart3 } from 'lucide-react';
+import type { ViewDescriptor, PanelSpan } from './types';
+import type { StripMode } from '@/types/history';
 
 /**
  * Plan View - Editor for authoring workout definitions
@@ -119,4 +120,54 @@ export function getAllViews(
     createTrackView(timerPanel, historyPanel, debugPanel, isDebugMode),
     createReviewView(indexPanel, timelinePanel),
   ];
+}
+
+/**
+ * History View - Browse and select stored workout entries
+ *
+ * The History panel's default span is dynamic based on the strip mode:
+ * - history-only: full screen (3)
+ * - single-select / multi-select: sidebar (1)
+ */
+export function createHistoryView(
+  historyBrowserPanel: React.ReactNode,
+  stripMode: StripMode = 'history-only',
+): ViewDescriptor {
+  const span: PanelSpan = stripMode === 'history-only' ? 3 : 1;
+  return {
+    id: 'history',
+    label: 'History',
+    icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+    panels: [
+      {
+        id: 'history-browser',
+        title: 'History',
+        icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+        defaultSpan: span,
+        content: historyBrowserPanel,
+      },
+    ],
+  };
+}
+
+/**
+ * Analyze View - Comparative analysis of multiple selected entries (placeholder)
+ *
+ * Single full-width panel containing the AnalyzePanel component.
+ */
+export function createAnalyzeView(analyzePanel: React.ReactNode): ViewDescriptor {
+  return {
+    id: 'analyze',
+    label: 'Analyze',
+    icon: React.createElement(BarChart3, { className: 'w-4 h-4' }),
+    panels: [
+      {
+        id: 'analyze-main',
+        title: 'Analyze',
+        icon: React.createElement(BarChart3, { className: 'w-4 h-4' }),
+        defaultSpan: 3,
+        content: analyzePanel,
+      },
+    ],
+  };
 }
