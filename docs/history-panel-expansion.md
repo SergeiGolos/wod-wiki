@@ -555,11 +555,11 @@ const analyzeView: ViewDescriptor = {
 
 ### History Panel Default Span by Strip Mode
 
-| Strip Mode | History Default Span | Rationale |
-|-----------|---------------------|-----------|
-| `history-only` | `3` (full) | Only view — takes all space |
-| `single-select` | `1` (1/3) | Sidebar role, entry already loaded into Plan |
-| `multi-select` | `1` (1/3) | Sidebar role, Analyze is the primary view |
+| Strip Mode      | History Default Span | Rationale                                    |
+| --------------- | -------------------- | -------------------------------------------- |
+| `history-only`  | `3` (full)           | Only view — takes all space                  |
+| `single-select` | `1` (1/3)            | Sidebar role, entry already loaded into Plan |
+| `multi-select`  | `1` (1/3)            | Sidebar role, Analyze is the primary view    |
 
 This means the History panel's `defaultSpan` is **dynamic** — set by the strip configuration, not hardcoded in the `ViewDescriptor`. The `ViewDescriptor` for History should accept a span override:
 
@@ -583,11 +583,11 @@ function getHistoryView(stripMode: StripMode): ViewDescriptor {
 
 The navigation bar (view tabs) must adapt to the current strip mode:
 
-| Strip Mode | Visible Tabs | Behavior |
-|-----------|-------------|----------|
-| `history-only` | `[ History ]` | Single tab, no navigation arrows |
+| Strip Mode      | Visible Tabs                          | Behavior                           |
+| --------------- | ------------------------------------- | ---------------------------------- |
+| `history-only`  | `[ History ]`                         | Single tab, no navigation arrows   |
 | `single-select` | `[ History · Plan · Track · Review ]` | 4 tabs, keyboard navigation active |
-| `multi-select` | `[ History · Analyze ]` | 2 tabs, keyboard navigation active |
+| `multi-select`  | `[ History · Analyze ]`               | 2 tabs, keyboard navigation active |
 
 Tab transitions should animate smoothly — tabs sliding in/out rather than popping.
 
