@@ -29,7 +29,6 @@ import { AudioToggle } from '../audio/AudioToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
-import { SlidingViewport } from './SlidingViewport';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
 import type { ViewMode } from './panel-system/ResponsiveViewport';

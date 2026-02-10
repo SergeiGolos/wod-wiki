@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
-import { ViewMode } from './SlidingViewport';
+import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
 
 /**
