@@ -50,6 +50,10 @@ function createMockBlock(id: string): IRuntimeBlock {
         unmount: vi.fn().mockReturnValue([]),
         dispose: vi.fn(),
         getBehavior: vi.fn().mockReturnValue(undefined),
+        hasMemory: vi.fn().mockReturnValue(false),
+        getMemory: vi.fn().mockReturnValue(undefined),
+        getMemoryTypes: vi.fn().mockReturnValue([]),
+        setMemoryValue: vi.fn(),
         isComplete: false,
         markComplete: vi.fn(),
     };
@@ -204,8 +208,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
 
             const mockBlock = createMockBlock('test-block');
             runtime.pushBlock(mockBlock);
-
-            const current = runtime.stack.current!;
 
             // Get the wrapped block and check calls
             const wrapped = wrappedBlocks.get('test-block');

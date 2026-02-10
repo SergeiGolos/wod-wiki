@@ -73,6 +73,13 @@ export class BehaviorTestHarness {
       jit: {} as unknown as IScriptRuntime['jit'], // Not used in behavior tests
       script: {} as unknown as IScriptRuntime['script'], // Not used in behavior tests
       errors: [],
+      options: { maxActionDepth: 20 },
+      tracker: {
+        recordMetric: () => { },
+        recordRound: () => { },
+        getMetric: () => undefined,
+        getRounds: () => undefined
+      },
 
       do(action: IRuntimeAction) {
         self._actionStack.push(action);
@@ -314,7 +321,7 @@ export class BehaviorTestHarness {
    * If no ownerId is provided, checks the current block's context first,
    * then falls back to the harness memory store.
    */
-  getMemory<T>(type: string, ownerId?: string): T | undefined {
+  getMemory<T = any>(type: string, ownerId?: string): T | undefined {
     // If no ownerId provided, try current block's context first
     if (!ownerId) {
       const currentBlock = this._stack.current;

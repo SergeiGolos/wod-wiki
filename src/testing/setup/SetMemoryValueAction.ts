@@ -5,12 +5,12 @@
  * Useful for setting up block state before testing lifecycle operations.
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
-import { 
-  ITestSetupAction, 
-  TestSetupActionJSON, 
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import {
+  ITestSetupAction,
+  TestSetupActionJSON,
   TestSetupActionFactory,
-  TestSetupActionParamSchema 
+  TestSetupActionParamSchema
 } from './ITestSetupAction';
 
 export interface SetMemoryValueParams {
@@ -29,36 +29,33 @@ export interface SetMemoryValueParams {
 export class SetMemoryValueAction implements ITestSetupAction {
   readonly type = 'setMemoryValue';
   readonly targetBlockKey?: string;
-  
+
   constructor(
     private readonly params: SetMemoryValueParams
   ) {
     this.targetBlockKey = params.ownerId;
   }
-  
+
   get description(): string {
     return `Set ${this.params.memoryType} for "${this.params.ownerId}" to ${JSON.stringify(this.params.value)}`;
   }
-  
+
   apply(runtime: IScriptRuntime): void {
-    const refs = runtime.memory.search({
-      type: this.params.memoryType,
-      ownerId: this.params.ownerId,
-      id: null,
-      visibility: null
-    });
-    
-    for (const ref of refs) {
-      runtime.memory.set(ref as any, this.params.value);
+    const block = runtime.stack.blocks.find(b => b.key.toString() === this.params.ownerId);
+    if (!block) {
+      console.warn(`SetMemoryValueAction: Block "${this.params.ownerId}" not found in stack.`);
+      return;
     }
-    
-    if (refs.length === 0) {
+
+    if (block.hasMemory(this.params.memoryType as any)) {
+      block.setMemoryValue(this.params.memoryType as any, this.params.value);
+    } else {
       console.warn(
-        `SetMemoryValueAction: No memory found for type="${this.params.memoryType}", owner="${this.params.ownerId}"`
+        `SetMemoryValueAction: No memory found for type="${this.params.memoryType}" on block "${this.params.ownerId}"`
       );
     }
   }
-  
+
   toJSON(): TestSetupActionJSON {
     return {
       type: this.type,

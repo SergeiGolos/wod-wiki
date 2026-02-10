@@ -1,4 +1,4 @@
-import { IEvent } from './contracts/events/IEvent';
+import { IEvent } from '../contracts/events/IEvent';
 
 export class NextEvent implements IEvent {
   readonly name: string = 'next';

@@ -5,12 +5,12 @@
  * Useful for testing timer-dependent logic at specific time points.
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
-import { 
-  ITestSetupAction, 
-  TestSetupActionJSON, 
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import {
+  ITestSetupAction,
+  TestSetupActionJSON,
   TestSetupActionFactory,
-  TestSetupActionParamSchema 
+  TestSetupActionParamSchema
 } from './ITestSetupAction';
 
 export interface SetTimerStateParams {
@@ -35,13 +35,13 @@ export interface SetTimerStateParams {
 export class SetTimerStateAction implements ITestSetupAction {
   readonly type = 'setTimerState';
   readonly targetBlockKey: string;
-  
+
   constructor(
     private readonly params: SetTimerStateParams
   ) {
     this.targetBlockKey = params.blockKey;
   }
-  
+
   get description(): string {
     const parts: string[] = [];
     if (this.params.elapsedMs !== undefined) {
@@ -55,32 +55,23 @@ export class SetTimerStateAction implements ITestSetupAction {
     }
     return `Set timer state for "${this.params.blockKey}": ${parts.join(', ')}`;
   }
-  
+
   apply(runtime: IScriptRuntime): void {
-    const refs = runtime.memory.search({
-      type: 'timer:state',
-      ownerId: this.params.blockKey,
-      id: null,
-      visibility: null
-    });
-    
-    if (refs.length === 0) {
-      // Also try 'timer' type
-      const altRefs = runtime.memory.search({
-        type: 'timer',
-        ownerId: this.params.blockKey,
-        id: null,
-        visibility: null
-      });
-      refs.push(...altRefs);
+    const block = runtime.stack.blocks.find(b => b.key.toString() === this.params.blockKey);
+    if (!block) {
+      console.warn(`SetTimerStateAction: Block "${this.params.blockKey}" not found in stack.`);
+      return;
     }
-    
-    for (const ref of refs) {
-      const currentValue = runtime.memory.get(ref as any);
+
+    // Try 'timer:state' then 'timer'
+    const entry = block.getMemory('timer:state' as any) || block.getMemory('timer' as any);
+
+    if (entry) {
+      const currentValue = entry.value;
       const newValue = typeof currentValue === 'object' && currentValue !== null
         ? { ...currentValue }
         : {};
-      
+
       if (this.params.elapsedMs !== undefined) {
         (newValue as any).elapsedMs = this.params.elapsedMs;
         (newValue as any).elapsed = this.params.elapsedMs;
@@ -101,16 +92,16 @@ export class SetTimerStateAction implements ITestSetupAction {
         (newValue as any).isStarted = this.params.isStarted;
         (newValue as any).started = this.params.isStarted;
       }
-      
-      runtime.memory.set(ref as any, newValue);
+
+      block.setMemoryValue(entry.type as any, newValue);
       return; // Found and set, done
     }
-    
+
     console.warn(
       `SetTimerStateAction: No timer state found for block "${this.params.blockKey}"`
     );
   }
-  
+
   toJSON(): TestSetupActionJSON {
     return {
       type: this.type,

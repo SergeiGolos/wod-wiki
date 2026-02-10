@@ -2,6 +2,7 @@ import { IProjectionEngine } from '../IProjectionEngine';
 import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
 import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
+import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
  * Projection engine for calculating volume-based metrics.
@@ -75,7 +76,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
       name: "Total Volume",
       value: totalVolume,
       unit: "kg",
-      timeSpan: { start: now, stop: now },
+      timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: {
         exerciseName: definition.name,
         totalSets,

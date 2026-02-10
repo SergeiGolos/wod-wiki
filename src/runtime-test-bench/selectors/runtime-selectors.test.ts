@@ -15,6 +15,7 @@ import { RuntimeSelectors, runtimeSelectors } from './runtime-selectors';
 import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import type { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
+import { BlockKey } from '../../core/models/BlockKey';
 
 describe('RuntimeSelectors', () => {
   describe('Singleton Instance', () => {
@@ -38,10 +39,10 @@ describe('RuntimeSelectors', () => {
 
     it('should transform single block into RuntimeStackBlock', () => {
       const mockBlock: IRuntimeBlock = {
-        key: 'block-1',
+        key: new BlockKey('block-1'),
         blockType: 'workout',
         sourceIds: [1, 2, 3]
-      };
+      } as any;
 
       const mockRuntime = createMockRuntime([mockBlock]);
       const blocks = runtimeSelectors.selectBlocks(mockRuntime);
@@ -62,10 +63,10 @@ describe('RuntimeSelectors', () => {
 
     it('should mark only the last block as active', () => {
       const mockBlocks: IRuntimeBlock[] = [
-        { key: 'block-1', blockType: 'workout', sourceIds: [1] },
-        { key: 'block-2', blockType: 'timer', sourceIds: [2] },
-        { key: 'block-3', blockType: 'exercise', sourceIds: [3] }
-      ];
+        { key: new BlockKey('block-1'), blockType: 'workout', sourceIds: [1] },
+        { key: new BlockKey('block-2'), blockType: 'timer', sourceIds: [2] },
+        { key: new BlockKey('block-3'), blockType: 'exercise', sourceIds: [3] }
+      ] as any;
 
       const mockRuntime = createMockRuntime(mockBlocks);
       const blocks = runtimeSelectors.selectBlocks(mockRuntime);
@@ -77,10 +78,10 @@ describe('RuntimeSelectors', () => {
 
     it('should assign parent keys correctly', () => {
       const mockBlocks: IRuntimeBlock[] = [
-        { key: 'block-1', blockType: 'workout', sourceIds: [1] },
-        { key: 'block-2', blockType: 'timer', sourceIds: [2] },
-        { key: 'block-3', blockType: 'exercise', sourceIds: [3] }
-      ];
+        { key: new BlockKey('block-1'), blockType: 'workout', sourceIds: [1] },
+        { key: new BlockKey('block-2'), blockType: 'timer', sourceIds: [2] },
+        { key: new BlockKey('block-3'), blockType: 'exercise', sourceIds: [3] }
+      ] as any;
 
       const mockRuntime = createMockRuntime(mockBlocks);
       const blocks = runtimeSelectors.selectBlocks(mockRuntime);
@@ -91,7 +92,7 @@ describe('RuntimeSelectors', () => {
     });
 
     it('should map all block types correctly', () => {
-      const blockTypes: Array<[string, string, string]> = [
+      const blockTypes: Array<[string, string, string | undefined]> = [
         ['workout', '#3B82F6', '🏋️'],
         ['timer', '#F59E0B', '⏱️'],
         ['rounds', '#8B5CF6', '🔄'],
@@ -103,10 +104,10 @@ describe('RuntimeSelectors', () => {
 
       for (const [type, expectedColor, expectedIcon] of blockTypes) {
         const mockBlock: IRuntimeBlock = {
-          key: `block-${type}`,
+          key: new BlockKey(`block-${type}`),
           blockType: type,
           sourceIds: []
-        };
+        } as any;
 
         const mockRuntime = createMockRuntime([mockBlock]);
         const blocks = runtimeSelectors.selectBlocks(mockRuntime);
@@ -130,7 +131,8 @@ describe('RuntimeSelectors', () => {
         ownerId: 'owner-1',
         type: 'metric',
         value: () => 42,
-        visibility: 'public'
+        visibility: 'public',
+        subscriptions: []
       };
 
       const mockRuntime = createMockRuntimeWithMemory([mockRef]);
@@ -167,7 +169,8 @@ describe('RuntimeSelectors', () => {
           ownerId: 'owner-test',
           type: 'metric',
           value: () => value,
-          visibility: 'public'
+          visibility: 'public',
+          subscriptions: []
         };
 
         const mockRuntime = createMockRuntimeWithMemory([mockRef]);
@@ -178,7 +181,7 @@ describe('RuntimeSelectors', () => {
     });
 
     it('should map memory types correctly', () => {
-      const typeTests: Array<[string, string, string]> = [
+      const typeTests: Array<[any, string, string]> = [
         ['metric', 'metric', '📊'],
         ['MetricValue', 'metric', '📊'],
         ['timer-state', 'timer-state', '⏱️'],
@@ -194,9 +197,10 @@ describe('RuntimeSelectors', () => {
         const mockRef: IMemoryReference = {
           id: 'mem-test',
           ownerId: 'owner-test',
-          type: inputType,
+          type: inputType as any,
           value: () => 0,
-          visibility: 'public'
+          visibility: 'public',
+          subscriptions: []
         };
 
         const mockRuntime = createMockRuntimeWithMemory([mockRef]);
@@ -213,7 +217,8 @@ describe('RuntimeSelectors', () => {
         ownerId: 'owner-test',
         type: 'metric',
         value: () => undefined,
-        visibility: 'public'
+        visibility: 'public',
+        subscriptions: []
       };
 
       const mockRuntime = createMockRuntimeWithMemory([mockRef]);
@@ -232,10 +237,10 @@ describe('RuntimeSelectors', () => {
 
     it('should return "executing" when stack has blocks', () => {
       const mockBlock: IRuntimeBlock = {
-        key: 'block-1',
+        key: new BlockKey('block-1'),
         blockType: 'workout',
         sourceIds: [1]
-      };
+      } as any;
 
       const mockRuntime = createMockRuntime([mockBlock]);
       const status = runtimeSelectors.selectStatus(mockRuntime);
@@ -244,9 +249,9 @@ describe('RuntimeSelectors', () => {
 
     it('should return "executing" when stack has multiple blocks', () => {
       const mockBlocks: IRuntimeBlock[] = [
-        { key: 'block-1', blockType: 'workout', sourceIds: [1] },
-        { key: 'block-2', blockType: 'timer', sourceIds: [2] }
-      ];
+        { key: new BlockKey('block-1'), blockType: 'workout', sourceIds: [1] },
+        { key: new BlockKey('block-2'), blockType: 'timer', sourceIds: [2] }
+      ] as any;
 
       const mockRuntime = createMockRuntime(mockBlocks);
       const status = runtimeSelectors.selectStatus(mockRuntime);
@@ -277,17 +282,17 @@ function createMockRuntime(blocks: IRuntimeBlock[]): ScriptRuntime {
 function createMockRuntimeWithMemory(memoryRefs: IMemoryReference[]): ScriptRuntime {
   // Create a mock block with the memory references attached
   const mockBlock = {
-    key: 'mock-block',
+    key: new BlockKey('mock-block'),
     blockType: 'workout',
     sourceIds: [],
     context: {
       references: memoryRefs
     }
   };
-  
+
   return {
     stack: {
-      blocks: [mockBlock] as readonly IRuntimeBlock[]
+      blocks: [mockBlock] as unknown as readonly IRuntimeBlock[]
     }
   } as unknown as ScriptRuntime;
 }

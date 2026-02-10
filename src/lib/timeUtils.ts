@@ -41,7 +41,7 @@ export const formatTime = (ms: number): string => {
  * @param now Current timestamp (defaults to Date.now())
  * @returns Total duration in milliseconds
  */
-export const calculateDuration = (spans: (TimeSpan | { started: number, ended?: number } | { start: number | Date, stop?: number | Date })[], now: number = Date.now()): number => {
+export const calculateDuration = (spans: ReadonlyArray<TimeSpan | { started: number, ended?: number } | { start: number | Date, stop?: number | Date }>, now: number = Date.now()): number => {
   if (!spans || !Array.isArray(spans)) return 0;
   return spans.reduce((total, span) => {
     // Handle canonical TimeSpan or raw objects with 'started'/'ended'

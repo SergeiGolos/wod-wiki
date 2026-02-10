@@ -13,7 +13,11 @@ import { IEvent } from './events/IEvent';
  */
 export type OutputListener = (output: IOutputStatement) => void;
 
+import { RuntimeStackOptions } from './IRuntimeOptions';
+
 export interface IScriptRuntime {
+    options: RuntimeStackOptions;
+    tracker?: any; // Added for backward compatibility with tracking actions
     script: WodScript;
 
     eventBus: IEventBus;

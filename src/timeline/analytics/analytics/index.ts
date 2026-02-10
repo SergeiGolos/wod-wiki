@@ -6,8 +6,8 @@
  */
 
 // Core interfaces
-export { IProjectionEngine } from './IProjectionEngine';
-export { ProjectionResult } from './ProjectionResult';
+export type { IProjectionEngine } from './IProjectionEngine';
+export type { ProjectionResult } from './ProjectionResult';
 
 // Services
 export { AnalysisService } from './AnalysisService';

@@ -26,7 +26,7 @@ function frag(
 function makeTimeSpan(): TimeSpan {
     const start = new Date('2024-01-01T12:00:00Z');
     const end = new Date('2024-01-01T12:10:00Z');
-    return new TimeSpan(start, end);
+    return new TimeSpan(start.getTime(), end.getTime());
 }
 
 /**

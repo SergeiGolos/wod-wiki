@@ -5,12 +5,12 @@
  * Commonly used to test effort blocks at various completion stages.
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
-import { 
-  ITestSetupAction, 
-  TestSetupActionJSON, 
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import {
+  ITestSetupAction,
+  TestSetupActionJSON,
   TestSetupActionFactory,
-  TestSetupActionParamSchema 
+  TestSetupActionParamSchema
 } from './ITestSetupAction';
 
 export interface SetEffortStateParams {
@@ -31,13 +31,13 @@ export interface SetEffortStateParams {
 export class SetEffortStateAction implements ITestSetupAction {
   readonly type = 'setEffortState';
   readonly targetBlockKey: string;
-  
+
   constructor(
     private readonly params: SetEffortStateParams
   ) {
     this.targetBlockKey = params.blockKey;
   }
-  
+
   get description(): string {
     const parts: string[] = [];
     if (this.params.currentReps !== undefined) {
@@ -51,23 +51,24 @@ export class SetEffortStateAction implements ITestSetupAction {
     }
     return `Set effort state for "${this.params.blockKey}": ${parts.join(', ')}`;
   }
-  
+
   apply(runtime: IScriptRuntime): void {
     // Try multiple memory type variations
     const memoryTypes = ['effort:state', 'effort', 'metric:reps'];
-    
+
+    const block = runtime.stack.blocks.find(b => b.key.toString() === this.params.blockKey);
+    if (!block) {
+      console.warn(`SetEffortStateAction: Block "${this.params.blockKey}" not found in stack.`);
+      return;
+    }
+
     for (const memoryType of memoryTypes) {
-      const refs = runtime.memory.search({
-        type: memoryType,
-        ownerId: this.params.blockKey,
-        id: null,
-        visibility: null
-      });
-      
-      for (const ref of refs) {
-        const currentValue = runtime.memory.get(ref as any);
+      const entry = block.getMemory(memoryType as any);
+
+      if (entry) {
+        const currentValue = entry.value;
         let newValue: any;
-        
+
         // Handle different memory shapes
         if (typeof currentValue === 'object' && currentValue !== null) {
           newValue = { ...currentValue };
@@ -93,18 +94,18 @@ export class SetEffortStateAction implements ITestSetupAction {
             isComplete: this.params.isComplete ?? false
           };
         }
-        
-        runtime.memory.set(ref as any, newValue);
+
+        block.setMemoryValue(memoryType as any, newValue);
         return; // Found and set, done
       }
     }
-    
+
     console.warn(
       `SetEffortStateAction: No effort state found for block "${this.params.blockKey}". ` +
       `Looked for types: ${memoryTypes.join(', ')}`
     );
   }
-  
+
   toJSON(): TestSetupActionJSON {
     return {
       type: this.type,

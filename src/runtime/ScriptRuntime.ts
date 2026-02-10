@@ -46,6 +46,10 @@ export class ScriptRuntime implements IScriptRuntime {
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
 
+    public get tracker(): any {
+        return this.options.tracker;
+    }
+
     // Unsubscribe function for the global NextEventHandler
     private _nextHandlerUnsub: (() => void) | null = null;
 

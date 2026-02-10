@@ -53,7 +53,7 @@
  */
 
 // Core testing classes
-export { 
+export {
   TestableBlock,
   createTestableBlock,
   type TestableBlockConfig,
@@ -61,7 +61,7 @@ export {
   type MethodCall,
   type MemoryOperation,
   type StackOperation
-} from './TestableBlock';
+} from '../../testing/testable/TestableBlock';
 
 export {
   TestableRuntime,
@@ -71,14 +71,14 @@ export {
   type InitialStackEntry,
   type RuntimeSnapshot,
   type SnapshotDiff
-} from './TestableRuntime';
+} from '../../testing/testable/TestableRuntime';
 
 // Visualization components
 export {
   SnapshotDiffViewer,
   SnapshotDiffSummary,
   ModifiedValuesViewer
-} from './components';
+} from '../../testing/components';
 
 // Test setup actions
-export * from './actions';
+export * from '../../testing/setup';

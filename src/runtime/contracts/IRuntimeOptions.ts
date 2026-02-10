@@ -83,6 +83,7 @@ export interface DebugLogEvent {
 export const DEFAULT_RUNTIME_OPTIONS: Required<Omit<IRuntimeOptions, 'blockWrapperFactory' | 'onDebugLog' | 'defaultTestableConfig'>> = {
     debugMode: false,
     enableLogging: false,
+    maxActionDepth: 20,
 };
 
 export interface RuntimeStackTracker {

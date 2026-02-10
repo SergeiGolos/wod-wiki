@@ -36,11 +36,9 @@ export type {
   IRuntimeBlockStrategy,
   ScriptRuntime,
   RuntimeBlock,
-  RuntimeAction,
   RuntimeMemory,
   RuntimeStack,
   JitCompiler,
-  RuntimeBlockStrategy,
   ICodeStatement as RuntimeCodeStatement,
 } from './runtime';
 

@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { BehaviorTestHarness, CapturedAction } from '@/testing/harness/BehaviorTestHarness';
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
 
 // Mock Action for testing
 class TestAction implements IRuntimeAction {
-  constructor(public name: string) {}
+  readonly type = 'test-action';
+  constructor(public name: string) { }
   do(_runtime: IScriptRuntime): void {
     // No-op
   }
@@ -121,7 +122,7 @@ describe('BehaviorTestHarness', () => {
 
       const events = harness.findEvents(eventName);
       expect(events).toHaveLength(1);
-      expect(events[0].data.foo).toBe('bar');
+      expect((events[0].data as any).foo).toBe('bar');
     });
 
     it('should call handleSpy on event', () => {

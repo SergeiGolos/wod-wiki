@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { FragmentType } from '../../src/core/models/CodeFragment';
-import { RoundsFragment } from '../../src/fragments/RoundsFragment';
+import { RoundsFragment } from '../../src/runtime/compiler/fragments/RoundsFragment';
 
 describe('Syntax Features Regression Tests', () => {
   const parser = new MdTimerRuntime();
@@ -27,7 +27,7 @@ describe('Syntax Features Regression Tests', () => {
     // Documenting that [Rest] is invalid without colon
     it('fails to parse action without colon [Rest]', () => {
       const result = parse('[Rest]');
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors!.length).toBeGreaterThan(0);
     });
   });
 
@@ -82,12 +82,12 @@ describe('Syntax Features Regression Tests', () => {
     });
 
     it('parses named rounds (AMRAP)', () => {
-        const result = parse('(AMRAP)');
-        expect(result.errors).toHaveLength(0);
-        const fragment = result.statements[0].fragments[0] as RoundsFragment;
-        expect(fragment.fragmentType).toBe(FragmentType.Rounds);
-        expect(fragment.value).toBe('AMRAP');
-      });
+      const result = parse('(AMRAP)');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0] as RoundsFragment;
+      expect(fragment.fragmentType).toBe(FragmentType.Rounds);
+      expect(fragment.value).toBe('AMRAP');
+    });
   });
 
   describe('Metrics', () => {
@@ -115,10 +115,10 @@ describe('Syntax Features Regression Tests', () => {
     });
 
     it('parses trend ^', () => {
-        const result = parse('^');
-        expect(result.errors).toHaveLength(0);
-        const fragment = result.statements[0].fragments[0];
-        expect(fragment.fragmentType).toBe(FragmentType.Increment);
+      const result = parse('^');
+      expect(result.errors).toHaveLength(0);
+      const fragment = result.statements[0].fragments[0];
+      expect(fragment.fragmentType).toBe(FragmentType.Increment);
     });
   });
 

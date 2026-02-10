@@ -51,6 +51,8 @@ export class ExecutionContext implements IScriptRuntime {
     get script() { return this._runtime.script; }
     get eventBus() { return this._runtime.eventBus; }
     get stack() { return this._runtime.stack; }
+    get options() { return this._runtime.options; }
+    get tracker() { return this._runtime.tracker; }
     get jit() { return this._runtime.jit; }
     get errors() { return this._runtime.errors; }
 
@@ -156,7 +158,7 @@ export class ExecutionContext implements IScriptRuntime {
             // Execute the action using THIS context as the runtime.
             // Actions can return child actions OR call runtime.do() (both work).
             const childActions = action.do(this);
-            
+
             // If the action returned child actions, push them onto the stack
             // in reverse order for correct LIFO execution (first returned = first executed)
             if (childActions && childActions.length > 0) {

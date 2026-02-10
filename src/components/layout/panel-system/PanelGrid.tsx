@@ -5,7 +5,6 @@
  * Handles responsive transitions between desktop, tablet, and mobile layouts.
  */
 
-import React from 'react';
 import { cn } from '@/lib/utils';
 import type { PanelDescriptor, PanelLayoutState, ScreenMode } from './types';
 import { PanelShell } from './PanelShell';

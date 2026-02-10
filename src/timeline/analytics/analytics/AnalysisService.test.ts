@@ -16,7 +16,7 @@ class MockProjectionEngine implements IProjectionEngine {
       name: 'Mock Result',
       value: 100,
       unit: 'test',
-      timeSpan: { start: new Date(), stop: new Date() },
+      timeSpan: { start: new Date(), stop: new Date() } as any,
     }];
   }
 }

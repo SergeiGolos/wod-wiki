@@ -19,7 +19,6 @@ import {
   useActiveControls,
   useStackFragmentSources,
 } from '../../runtime/hooks/useStackDisplay';
-import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { calculateDuration } from '../../lib/timeUtils';
 
 import { TimerStackView } from './TimerStackView';

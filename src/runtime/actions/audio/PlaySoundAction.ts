@@ -1,5 +1,5 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 
 /**
  * Action for playing sounds during workout execution.

@@ -10,7 +10,7 @@
  * - Are applied before the test operation runs
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 
 /**
  * Interface for test setup actions that modify runtime state

@@ -124,18 +124,18 @@ class StubBlockContext implements IBlockContext {
   set<T>(_reference: TypedMemoryReference<T>, _value: T): void { }
   release(): void { }
   isReleased(): boolean { return false; }
-  getOrCreateAnchor(): any { 
-    return { 
-      id: '', 
-      type: '', 
-      ownerId: this.ownerId, 
-      visibility: 'public', 
-      get: () => ({ searchCriteria: {} }), 
-      set: () => {}, 
-      subscribe: () => (() => {}),
+  getOrCreateAnchor(): any {
+    return {
+      id: '',
+      type: '',
+      ownerId: this.ownerId,
+      visibility: 'public',
+      get: () => ({ searchCriteria: {} }),
+      set: () => { },
+      subscribe: () => (() => { }),
       value: () => ({ searchCriteria: {} }),
       subscriptions: []
-    } as any; 
+    } as any;
   }
 }
 
@@ -162,7 +162,7 @@ class StubBlock implements IRuntimeBlock {
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
-    this.label = config.label ?? config.key;    
+    this.label = config.label ?? config.key;
     this.context = new StubBlockContext(config.key);
   }
 
@@ -254,6 +254,14 @@ export class TestableRuntime implements IScriptRuntime {
 
   get eventBus(): IEventBus {
     return this._wrapped.eventBus;
+  }
+
+  get options(): import("@/runtime/contracts/IRuntimeOptions").RuntimeStackOptions {
+    return this._wrapped.options;
+  }
+
+  get tracker(): any {
+    return this._wrapped.tracker;
   }
 
   // ========== IScriptRuntime Methods (delegated) ==========

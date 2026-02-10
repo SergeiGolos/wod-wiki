@@ -1,16 +1,16 @@
 import { CodeMetadata } from "./CodeMetadata";
 import { ICodeFragment, FragmentType } from "./CodeFragment";
 import { IFragmentSource, FragmentFilter } from "../contracts/IFragmentSource";
-import { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from "../utils/fragmentPrecedence";
+import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from "../utils/fragmentPrecedence";
 
-export interface ICodeStatement {  
+export interface ICodeStatement {
   id: number;
   parent?: number;
   children: number[][];
   fragments: ICodeFragment[];
   isLeaf?: boolean;
   meta: CodeMetadata;
-  
+
   // Semantic hints from dialect processing
   hints?: Set<string>;
 }

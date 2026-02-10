@@ -5,12 +5,12 @@
  * This is commonly needed to test mid-execution scenarios.
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
-import { 
-  ITestSetupAction, 
-  TestSetupActionJSON, 
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import {
+  ITestSetupAction,
+  TestSetupActionJSON,
   TestSetupActionFactory,
-  TestSetupActionParamSchema 
+  TestSetupActionParamSchema
 } from './ITestSetupAction';
 
 export interface SetLoopIndexParams {
@@ -29,48 +29,50 @@ export interface SetLoopIndexParams {
 export class SetLoopIndexAction implements ITestSetupAction {
   readonly type = 'setLoopIndex';
   readonly targetBlockKey: string;
-  
+
   constructor(
     private readonly params: SetLoopIndexParams
   ) {
     this.targetBlockKey = params.blockKey;
   }
-  
+
   get description(): string {
-    const total = this.params.totalIterations 
-      ? ` of ${this.params.totalIterations}` 
+    const total = this.params.totalIterations
+      ? ` of ${this.params.totalIterations}`
       : '';
     return `Set loop index to ${this.params.currentIndex}${total} for "${this.params.blockKey}"`;
   }
-  
+
   apply(runtime: IScriptRuntime): void {
     // Try to find loop state memory
     const memoryTypes = ['loop:state', 'rounds:state', 'iterator:state'];
-    
+
+    const block = runtime.stack.blocks.find(b => b.key.toString() === this.params.blockKey);
+    if (!block) {
+      console.warn(`SetLoopIndexAction: Block "${this.params.blockKey}" not found in stack.`);
+      return;
+    }
+
     for (const memoryType of memoryTypes) {
-      const refs = runtime.memory.search({
-        type: memoryType,
-        ownerId: this.params.blockKey,
-        id: null,
-        visibility: null
-      });
-      
-      for (const ref of refs) {
-        const currentValue = runtime.memory.get(ref as any);
+      const entry = block.getMemory(memoryType as any);
+
+      if (entry) {
+        const currentValue = entry.value;
         const newValue = typeof currentValue === 'object' && currentValue !== null
           ? { ...currentValue, currentIndex: this.params.currentIndex }
           : { currentIndex: this.params.currentIndex, total: this.params.totalIterations };
-        runtime.memory.set(ref as any, newValue);
+
+        block.setMemoryValue(memoryType as any, newValue);
         return; // Found and set, done
       }
     }
-    
+
     console.warn(
       `SetLoopIndexAction: No loop state found for block "${this.params.blockKey}". ` +
       `Looked for types: ${memoryTypes.join(', ')}`
     );
   }
-  
+
   toJSON(): TestSetupActionJSON {
     return {
       type: this.type,

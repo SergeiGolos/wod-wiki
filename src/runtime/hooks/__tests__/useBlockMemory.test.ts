@@ -244,7 +244,7 @@ describe('useTimerDisplay', () => {
 
         expect(result.current?.elapsed).toBe(3000);
         expect(result.current?.isRunning).toBe(false);
-        expect(result.current?.formatted).toBe('0:03');
+        expect(result.current?.formatted).toBe('00:03');
     });
 
     it('should calculate remaining time for countdown', () => {
@@ -264,7 +264,7 @@ describe('useTimerDisplay', () => {
         expect(result.current?.remaining).toBe(57000); // 60s - 3s
         expect(result.current?.isComplete).toBe(false);
         expect(result.current?.direction).toBe('down');
-        expect(result.current?.formatted).toBe('0:57'); // Shows remaining for countdown
+        expect(result.current?.formatted).toBe('00:57'); // Shows remaining for countdown
     });
 
     it('should detect running timer', () => {

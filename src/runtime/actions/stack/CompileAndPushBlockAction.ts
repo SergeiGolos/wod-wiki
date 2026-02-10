@@ -1,6 +1,6 @@
-import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
+import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { PushBlockAction } from './PushBlockAction';
 
 /**

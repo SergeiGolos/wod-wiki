@@ -28,6 +28,10 @@ class ClockCaptureBehavior implements IRuntimeBehavior {
         this.unmountClock = ctx.clock.now;
         return [];
     }
+
+    onDispose(): void {
+        // No cleanup needed for test behavior
+    }
 }
 
 describe('Clock Propagation Integration', () => {
@@ -46,7 +50,7 @@ describe('Clock Propagation Integration', () => {
         it('should use snapshot clock time for mount when provided', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             const snapshotTime = new Date('2024-01-01T12:05:00.000Z');
             const snapshot = SnapshotClock.at(harness.clock, snapshotTime);
 
@@ -59,7 +63,7 @@ describe('Clock Propagation Integration', () => {
         it('should use snapshot clock time for next when provided', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             harness.push(block);
             harness.mount();
 
@@ -77,7 +81,7 @@ describe('Clock Propagation Integration', () => {
         it('should use snapshot clock time for unmount when provided', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             harness.push(block);
             harness.mount();
 
@@ -94,7 +98,7 @@ describe('Clock Propagation Integration', () => {
         it('should maintain consistent time across multiple next calls with same snapshot', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             harness.push(block);
             harness.mount();
 
@@ -118,7 +122,7 @@ describe('Clock Propagation Integration', () => {
         it('should use real clock when no snapshot provided', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             harness.push(block);
             harness.mount();
 
@@ -136,7 +140,7 @@ describe('Clock Propagation Integration', () => {
         it('should propagate same frozen time through mount-next-unmount chain', () => {
             const behavior = new ClockCaptureBehavior();
             const block = new MockBlock('test-block', [behavior]);
-            
+
             const chainTime = new Date('2024-01-01T15:30:00.000Z');
             const snapshot = SnapshotClock.at(harness.clock, chainTime);
 

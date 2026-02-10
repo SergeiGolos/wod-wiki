@@ -5,12 +5,12 @@
  * Useful for simulating parent block memory that children should inherit.
  */
 
-import { IScriptRuntime } from '../../IScriptRuntime';
-import { 
-  ITestSetupAction, 
-  TestSetupActionJSON, 
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import {
+  ITestSetupAction,
+  TestSetupActionJSON,
   TestSetupActionFactory,
-  TestSetupActionParamSchema 
+  TestSetupActionParamSchema
 } from './ITestSetupAction';
 
 export interface AllocateTestMemoryParams {
@@ -31,26 +31,30 @@ export interface AllocateTestMemoryParams {
 export class AllocateTestMemoryAction implements ITestSetupAction {
   readonly type = 'allocateTestMemory';
   readonly targetBlockKey?: string;
-  
+
   constructor(
     private readonly params: AllocateTestMemoryParams
   ) {
     this.targetBlockKey = params.ownerId;
   }
-  
+
   get description(): string {
     return `Allocate ${this.params.visibility} ${this.params.type} for "${this.params.ownerId}" = ${JSON.stringify(this.params.value)}`;
   }
-  
+
   apply(runtime: IScriptRuntime): void {
-    runtime.memory.allocate(
-      this.params.type,
-      this.params.ownerId,
-      this.params.value,
-      this.params.visibility
-    );
+    const block = runtime.stack.blocks.find(b => b.key.toString() === this.params.ownerId);
+    if (block) {
+      block.context.allocate(
+        this.params.type,
+        this.params.value,
+        this.params.visibility
+      );
+    } else {
+      console.warn(`AllocateTestMemoryAction: Block "${this.params.ownerId}" not found in stack.`);
+    }
   }
-  
+
   toJSON(): TestSetupActionJSON {
     return {
       type: this.type,
@@ -75,11 +79,11 @@ export const AllocateTestMemoryActionFactory: TestSetupActionFactory = {
   paramSchema: [
     { name: 'type', type: 'string', label: 'Memory Type', required: true, defaultValue: 'metric:reps' },
     { name: 'ownerId', type: 'string', label: 'Owner ID', required: true, defaultValue: 'test-parent' },
-    { 
-      name: 'visibility', 
-      type: 'select', 
-      label: 'Visibility', 
-      required: true, 
+    {
+      name: 'visibility',
+      type: 'select',
+      label: 'Visibility',
+      required: true,
       defaultValue: 'public',
       options: [
         { value: 'public', label: 'Public (inheritable)' },
