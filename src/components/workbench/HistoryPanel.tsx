@@ -14,6 +14,8 @@ import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { CalendarWidget } from '../history/CalendarWidget';
 import { HistoryPostList } from '../history/HistoryPostList';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { HistoryEntry, HistoryFilters, StripMode } from '@/types/history';
 import type { PanelSpan } from '../layout/panel-system/types';
 
@@ -42,6 +44,10 @@ export interface HistoryPanelProps {
   onFiltersChange?: (filters: Partial<HistoryFilters>) => void;
   /** Current strip mode for layout hints */
   stripMode?: StripMode;
+  /** Handler for creating a new workout entry */
+  onCreateNewEntry?: () => void;
+  /** Whether the create button should be shown */
+  canCreate?: boolean;
 }
 
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -54,6 +60,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   calendarDate,
   onCalendarDateChange,
   onDateSelect,
+  onCreateNewEntry,
+  canCreate = false,
 }) => {
   // Derive entry dates for calendar highlighting
   const entryDates = useMemo(() => {
@@ -83,6 +91,17 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             entryDates={entryDates}
             compact
           />
+          {canCreate && onCreateNewEntry && (
+            <Button
+              onClick={onCreateNewEntry}
+              className="w-full mt-3 gap-2"
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+              New Workout
+            </Button>
+          )}
         </div>
         <div className="flex-1">
           <HistoryPostList
@@ -109,6 +128,19 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           onDateSelect={onDateSelect}
           entryDates={entryDates}
         />
+
+        {/* Create New Workout Button */}
+        {canCreate && onCreateNewEntry && (
+          <Button
+            onClick={onCreateNewEntry}
+            className="w-full gap-2"
+            variant="outline"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            New Workout
+          </Button>
+        )}
 
         {/* Bulk Actions (expanded only) */}
         {isExpanded && (
