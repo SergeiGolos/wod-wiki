@@ -19,6 +19,12 @@ This creates a **context-sensitive sliding strip** — the number and identity o
 
 ---
 
+## UI Update Layer
+
+A thin UI update layer sits between the content provider and the responsive viewport. It takes the current provider mode (`history` vs `static`) plus the derived selection state and produces a strip configuration and landing view. The viewport listens only to this configuration (views, width, offsets), while the navigation bar reflects the same view set. This keeps selection logic isolated while the panel system simply reacts to updated strip metadata.
+
+---
+
 ## Content Provider Modes
 
 The workbench must support two fundamentally different ways of loading workout content. This distinction is the **highest-level branching point** in the system — it determines which views exist, whether selection is possible, and what the landing view is.
