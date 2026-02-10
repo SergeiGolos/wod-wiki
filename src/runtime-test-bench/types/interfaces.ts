@@ -182,10 +182,14 @@ export interface RuntimeStackBlock {
 
   // Metrics (legacy format)
   metrics?: Record<string, MetricValue>;
-  
+
   // Fragments for unified visualization (new format)
   // These are the pre-defined metrics in fragment format for consistent display
   fragments?: ICodeFragment[];
+
+  // Fragment groups for multi-line display (from FragmentMemory)
+  // Each inner array is a semantic group (e.g., per-round fragments from + linked statements)
+  fragmentGroups?: ICodeFragment[][];
 
   // Source
   sourceIds: number[];

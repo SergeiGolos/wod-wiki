@@ -78,16 +78,26 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
         )}
 
         {/* Label */}
-        <span className={`flex-shrink-0 truncate max-w-[120px] ${
-          block.status === 'complete' ? 'line-through opacity-60' : ''
-        }`}>
+        <span className={`flex-shrink-0 truncate max-w-[120px] ${block.status === 'complete' ? 'line-through opacity-60' : ''
+          }`}>
           {block.label}
         </span>
 
         {/* Metrics - Use FragmentVisualizer if fragments available, else fall back to legacy */}
         {showMetrics && (
           <div className="flex-1 min-w-0">
-            {block.fragments && block.fragments.length > 0 ? (
+            {block.fragmentGroups && block.fragmentGroups.length > 1 ? (
+              <div className="flex flex-col">
+                {block.fragmentGroups.filter(g => g.length > 0).map((group, i, arr) => (
+                  <div
+                    key={i}
+                    className={`${i < arr.length - 1 ? 'border-b border-border/20 pb-0.5 mb-0.5' : ''}`}
+                  >
+                    <FragmentVisualizer fragments={[...group]} className="gap-0.5" />
+                  </div>
+                ))}
+              </div>
+            ) : block.fragments && block.fragments.length > 0 ? (
               <FragmentVisualizer fragments={block.fragments} className="gap-0.5" />
             ) : block.metrics && Object.keys(block.metrics).length > 0 ? (
               <div className="flex gap-1 text-[10px] text-muted-foreground">

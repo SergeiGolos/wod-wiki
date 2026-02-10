@@ -297,12 +297,18 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
 
             const isLeaf = index === orderedBlocks.length - 1;
 
+            // Get raw fragment groups from block memory for multi-line display
+            const fragmentEntry = block.getMemory('fragment');
+            const groups = fragmentEntry?.value?.groups;
+            const fragmentGroups = groups && groups.length > 1 ? groups : undefined;
+
             entries.push({
                 source,
                 block,
                 depth: index,
                 isLeaf,
-                label: block.label
+                label: block.label,
+                fragmentGroups,
             });
         });
 

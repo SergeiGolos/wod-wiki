@@ -184,6 +184,7 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                                     size="focused"
                                     filter={stackFilter}
                                     label={entry.label}
+                                    fragmentGroups={entry.fragmentGroups}
                                     className={`
                                         shadow-md border rounded-lg pr-3
                                         ${isFocused

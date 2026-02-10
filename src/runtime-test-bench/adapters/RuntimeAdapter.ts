@@ -70,6 +70,13 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       // Extract fragments from source statements if available
       const fragments = this.extractBlockFragments(runtime, block);
 
+      // Extract fragment groups from block memory for multi-line display
+      const fragmentEntry = block.getMemory('fragment');
+      const groups = fragmentEntry?.value?.groups;
+      const fragmentGroups = groups && groups.length > 1
+        ? groups.map((g: readonly ICodeFragment[]) => [...g])
+        : undefined;
+
       return {
         key: block.key.toString(),
         blockType,
@@ -84,6 +91,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         status,
         metrics: {}, // TODO: Extract actual metrics
         fragments,
+        fragmentGroups,
         sourceIds: block.sourceIds,
         lineNumber: block.sourceIds.length > 0 ? block.sourceIds[0] : undefined,
         metadata: {
@@ -94,7 +102,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       };
     });
   }
-  
+
   /**
    * Extracts fragments from block's source statements for unified visualization
    */
@@ -103,7 +111,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
     if (!block.sourceIds || block.sourceIds.length === 0) {
       return undefined;
     }
-    
+
     // Access the statements through the runtime if available
     // For now, return undefined - the panels will fall back to label display
     // This can be enhanced later when statement lookup is available in runtime

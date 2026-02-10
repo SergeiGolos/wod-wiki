@@ -5,6 +5,10 @@
  * adapter layer. Layout metadata (depth, active status) is provided via
  * props rather than baked into an intermediate data structure.
  *
+ * Supports multi-group rendering: when a block has multiple fragment groups
+ * (from `+` linked statements), each group is displayed as a separate line
+ * within the same row container.
+ *
  * @see docs/FragmentOverhaul.md - Phase 5: Eliminate IDisplayItem
  */
 
@@ -12,6 +16,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { FragmentVisualizer } from '@/components/fragments';
 import { IFragmentSource } from '@/core/contracts/IFragmentSource';
+import { ICodeFragment } from '@/core/models/CodeFragment';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
 export type FragmentSourceStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
@@ -44,6 +49,8 @@ export interface FragmentSourceEntry {
     startTime?: number;
     /** End time in milliseconds */
     endTime?: number;
+    /** Raw fragment groups from block memory for multi-line display */
+    fragmentGroups?: readonly (readonly ICodeFragment[])[];
 }
 
 export interface FragmentSourceRowProps {
@@ -71,6 +78,8 @@ export interface FragmentSourceRowProps {
     duration?: number;
     /** Render custom actions (e.g., timer pill, buttons) */
     actions?: React.ReactNode;
+    /** Raw fragment groups for multi-line rendering within a single row */
+    fragmentGroups?: readonly (readonly ICodeFragment[])[];
     /** Click handler */
     onClick?: (source: IFragmentSource) => void;
     /** Hover handler */
@@ -155,6 +164,7 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     showDuration = false,
     duration,
     actions,
+    fragmentGroups,
     onClick,
     onHover,
     className
@@ -229,9 +239,27 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
             {/* Status indicator dot */}
             <StatusDot status={status} size={size} />
 
-            {/* Main content: fragments */}
+            {/* Main content: fragments (multi-group or single line) */}
             <div className="flex-1 min-w-0">
-                {fragments.length > 0 ? (
+                {fragmentGroups && fragmentGroups.length > 1 ? (
+                    <div className="flex flex-col">
+                        {fragmentGroups.filter(g => g.length > 0).map((group, i, arr) => (
+                            <div
+                                key={i}
+                                className={cn(
+                                    i < arr.length - 1 && 'border-b border-border/20 pb-0.5 mb-0.5'
+                                )}
+                            >
+                                <FragmentVisualizer
+                                    fragments={[...group]}
+                                    size={size}
+                                    filter={filter}
+                                    className={cn("inline-flex", currentConfig.fontSize)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ) : fragments.length > 0 ? (
                     <FragmentVisualizer
                         fragments={fragments}
                         size={size}

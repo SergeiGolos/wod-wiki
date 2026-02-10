@@ -193,6 +193,7 @@ export const FragmentSourceList: React.FC<FragmentSourceListProps> = ({
                     label={entry.label}
                     showDuration={showDurations}
                     duration={duration}
+                    fragmentGroups={entry.fragmentGroups}
                     actions={renderActions?.(entry)}
                     onClick={onSelectionChange || onClick ? handleClick : undefined}
                     onHover={onHover ? handleHover : undefined}
