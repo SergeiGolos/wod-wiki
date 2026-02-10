@@ -43,6 +43,7 @@ import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/Anal
 import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
+import { useCreateWorkoutEntry } from '../../hooks/useCreateWorkoutEntry';
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TrackPanelIndex, TrackPanelPrimary } from '../workbench/TrackPanel';
 import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
@@ -80,6 +81,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     stripMode,
     historySelection,
     historyEntries,
+    provider,
     setContent,
     setBlocks,
     setActiveBlockId,
@@ -89,6 +91,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     completeWorkout,
     expandPanel,
     collapsePanel,
+    setHistoryEntries,
   } = useWorkbench();
 
   // Local UI state
@@ -140,6 +143,26 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     handleNext,
     handleStartWorkoutAction
   } = useWorkbenchRuntime(viewMode, selectedBlock, completeWorkout, startWorkout);
+
+  // Use create workout entry hook
+  const { createNewEntry, canCreate } = useCreateWorkoutEntry({
+    provider,
+    historySelection,
+    setHistoryEntries,
+    setViewMode,
+    setContent,
+  });
+
+  // Load history entries on mount when in history mode
+  useEffect(() => {
+    if (contentMode === 'history') {
+      provider.getEntries().then(entries => {
+        setHistoryEntries(entries);
+      }).catch(err => {
+        console.error('Failed to load history entries:', err);
+      });
+    }
+  }, [contentMode, provider, setHistoryEntries]);
 
   // Initialize runtime when entering track view with selected block
   // Use a ref to prevent re-initialization loops if selectedBlock reference changes but ID is same
@@ -381,6 +404,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       calendarDate={historySelection.calendarDate}
       onCalendarDateChange={historySelection.setCalendarDate}
       stripMode={stripMode}
+      onCreateNewEntry={createNewEntry}
+      canCreate={canCreate}
     />
   ) : null;
 
