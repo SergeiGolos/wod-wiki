@@ -44,15 +44,20 @@ export class StaticContentProvider implements IContentProvider {
     return id === STATIC_ID ? this.entry : null;
   }
 
-  async saveEntry(): Promise<HistoryEntry> {
+  async saveEntry(
+    _entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
+  ): Promise<HistoryEntry> {
     throw new Error('Static provider is read-only');
   }
 
-  async updateEntry(): Promise<HistoryEntry> {
+  async updateEntry(
+    _id: string,
+    _patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title'>>
+  ): Promise<HistoryEntry> {
     throw new Error('Static provider is read-only');
   }
 
-  async deleteEntry(): Promise<void> {
+  async deleteEntry(_id: string): Promise<void> {
     throw new Error('Static provider is read-only');
   }
 }

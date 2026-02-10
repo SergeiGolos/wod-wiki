@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
-import type { ContentProviderMode } from '../../types/content-provider';
+import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
+import { StaticContentProvider } from '../../services/content/StaticContentProvider';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -35,6 +36,9 @@ interface WorkbenchContextState {
 
   // Panel Layout State (per-view)
   panelLayouts: Record<string, PanelLayoutState>;
+
+  // Content Provider
+  provider: IContentProvider;
 
   // Content Provider Mode
   contentMode: ContentProviderMode;
@@ -77,13 +81,19 @@ interface WorkbenchProviderProps {
   children: React.ReactNode;
   initialContent?: string;
   mode?: ContentProviderMode;
+  provider?: IContentProvider;
 }
 
 export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   children,
   initialContent = '',
-  mode = 'static',
+  mode: _mode = 'static',
+  provider: externalProvider,
 }) => {
+  // Resolve provider: use external if given, else auto-create from mode + initialContent
+  const provider = externalProvider ?? new StaticContentProvider(initialContent);
+  const resolvedMode = provider.mode;
+
   // Document State
   const [content, setContent] = useState(initialContent);
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
@@ -91,7 +101,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [viewMode, setViewModeRaw] = useState<ViewMode>(mode === 'history' ? 'history' : 'plan');
+  const [viewMode, setViewModeRaw] = useState<ViewMode>(resolvedMode === 'history' ? 'history' : 'plan');
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
@@ -104,20 +114,20 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // History selection (only active when mode='history')
   const historySelectionHook = useHistorySelection();
-  const historySelection = mode === 'history' ? historySelectionHook : null;
+  const historySelection = resolvedMode === 'history' ? historySelectionHook : null;
 
   // Derive strip mode from content mode + selection state
-  const stripMode: StripMode = mode === 'static'
+  const stripMode: StripMode = resolvedMode === 'static'
     ? 'static'
     : historySelectionHook.stripMode;
 
   // Guard viewMode setter: reject 'history' and 'analyze' in static mode
   const setViewMode = useCallback((newMode: ViewMode) => {
-    if (mode === 'static' && (newMode === 'history' || newMode === 'analyze')) {
+    if (resolvedMode === 'static' && (newMode === 'history' || newMode === 'analyze')) {
       return; // Safety guard — these views don't exist in static mode
     }
     setViewModeRaw(newMode);
-  }, [mode]);
+  }, [resolvedMode]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -131,7 +141,23 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const completeWorkout = useCallback((result: WorkoutResults) => {
     setResults(prev => [...prev, result]);
     setViewMode('review');
-  }, []);
+
+    // Auto-save if provider supports writing
+    if (provider.capabilities.canWrite) {
+      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+      provider.saveEntry({
+        title,
+        rawContent: content,
+        tags: [],
+        results: {
+          completedAt: result.endTime,
+          duration: result.duration,
+          logs: [],
+        },
+      }).catch(err => console.error('Failed to auto-save workout:', err));
+    }
+  }, [provider, content, setViewMode]);
 
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {
@@ -183,7 +209,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     viewMode,
     results,
     panelLayouts,
-    contentMode: mode,
+    provider,
+    contentMode: resolvedMode,
     stripMode,
     historySelection,
     historyEntries,

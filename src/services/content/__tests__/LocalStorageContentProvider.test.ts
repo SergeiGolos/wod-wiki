@@ -84,9 +84,9 @@ describe('LocalStorageContentProvider', () => {
 
   describe('getEntries', () => {
     it('should return all entries sorted by updatedAt desc', async () => {
-      const e1 = await provider.saveEntry({ title: 'A', rawContent: '', tags: [] });
-      const e2 = await provider.saveEntry({ title: 'B', rawContent: '', tags: [] });
-      const e3 = await provider.saveEntry({ title: 'C', rawContent: '', tags: [] });
+      await provider.saveEntry({ title: 'A', rawContent: '', tags: [] });
+      await provider.saveEntry({ title: 'B', rawContent: '', tags: [] });
+      await provider.saveEntry({ title: 'C', rawContent: '', tags: [] });
 
       const entries = await provider.getEntries();
       expect(entries).toHaveLength(3);
@@ -99,7 +99,7 @@ describe('LocalStorageContentProvider', () => {
       const now = Date.now();
       // Save entries at different "times" by manually setting updatedAt
       const old = await provider.saveEntry({ title: 'Old', rawContent: '', tags: [] });
-      const recent = await provider.saveEntry({ title: 'Recent', rawContent: '', tags: [] });
+      await provider.saveEntry({ title: 'Recent', rawContent: '', tags: [] });
 
       // Manually set old entry's updatedAt to 10 days ago
       const oldEntry = await provider.getEntry(old.id);
@@ -117,7 +117,7 @@ describe('LocalStorageContentProvider', () => {
 
     it('should filter by daysBack', async () => {
       const now = Date.now();
-      const e1 = await provider.saveEntry({ title: 'Today', rawContent: '', tags: [] });
+      await provider.saveEntry({ title: 'Today', rawContent: '', tags: [] });
       const e2 = await provider.saveEntry({ title: 'Old', rawContent: '', tags: [] });
 
       // Set e2 to 30 days ago
