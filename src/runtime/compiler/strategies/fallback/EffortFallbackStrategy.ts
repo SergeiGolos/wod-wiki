@@ -35,11 +35,15 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
 }
 
 /**
- * EffortFallbackStrategy handles simple effort blocks (e.g., "10 Push-ups").
+ * EffortFallbackStrategy handles simple leaf effort blocks (e.g., "10 Push-ups").
  * 
- * These blocks have no timer and no rounds - they complete when the user advances.
- * However, they DO track elapsed time via a secondary countup timer so that
+ * These blocks have no timer, no rounds, and no children — they complete when
+ * the user advances. They track elapsed time via a secondary countup timer so
  * the stack display can show how long each effort takes.
+ * 
+ * Blocks WITH children are excluded from this strategy and handled by
+ * GenericGroupStrategy + ChildrenStrategy instead, which properly push child
+ * blocks onto the stack via ChildRunnerBehavior.
  * 
  * ## Behaviors Applied:
  * - **TimerInitBehavior** (Time): Countup timer with 'secondary' role
@@ -58,7 +62,10 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         // Ignore runtime-generated fragments when checking for match
         const hasTimer = statement.fragments.some(f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime');
         const hasRounds = statement.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime');
-        return !hasTimer && !hasRounds;
+        // Exclude blocks with children — those are parent blocks handled by
+        // GenericGroupStrategy + ChildrenStrategy, not simple leaf efforts
+        const hasChildren = statement.children && statement.children.length > 0;
+        return !hasTimer && !hasRounds && !hasChildren;
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {

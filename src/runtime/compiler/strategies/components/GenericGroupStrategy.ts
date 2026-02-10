@@ -24,7 +24,7 @@ import {
  * - Output: HistoryRecord
  */
 export class GenericGroupStrategy implements IRuntimeBlockStrategy {
-    priority = 40; // Lower than GenericTimer/GenericLoop (50) to let them define identity first
+    priority = 50; // Same as GenericTimer/GenericLoop; runs before ChildrenStrategy (same priority, registered earlier)
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         return statements && statements.length > 0 && statements[0].children && statements[0].children.length > 0;

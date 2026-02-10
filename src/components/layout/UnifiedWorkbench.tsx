@@ -5,7 +5,7 @@
  * viewport sliding across a horizontal strip of panels:
  * 
  * PLAN:    [Editor 2/3][EditorIndex 1/3]
- * TRACK:   [TimerIndex 1/3][Timer 2/3]
+ * TRACK:   [Timer 2/3][TimerIndex 1/3]
  * REVIEW:  [AnalyticsIndex 1/3][Timeline 2/3]
  * 
  * Responsive behavior:
