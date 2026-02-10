@@ -383,10 +383,11 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     />
   ) : null;
 
+  const historySelectedIds = historySelection?.selectedIds;
   const selectedEntries = useMemo(() => {
-    if (!historySelection) return [];
-    return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
-  }, [historyEntries, historySelection?.selectedIds]);
+    if (!historySelectedIds) return [];
+    return historyEntries.filter(e => historySelectedIds.has(e.id));
+  }, [historyEntries, historySelectedIds]);
 
   const analyzePanelContent = contentMode === 'history' ? (
     <AnalyzePanel selectedEntries={selectedEntries} />

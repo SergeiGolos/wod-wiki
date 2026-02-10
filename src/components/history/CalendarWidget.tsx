@@ -153,7 +153,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
               )}
               aria-label={`${day} ${monthLabel}${hasEntry ? ' (has entries)' : ''}`}
             >
-              {hasEntry && !compact ? day : hasEntry ? day : '·'}
+              {hasEntry ? day : '·'}
             </button>
           );
         })}
