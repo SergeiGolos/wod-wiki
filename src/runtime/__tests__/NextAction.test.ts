@@ -84,13 +84,13 @@ describe('NextAction', () => {
     expect(() => action.do(mockRuntime)).not.toThrow();
   });
 
-  it('should set error state when runtime has errors', () => {
+  it('should still execute next() even when runtime has errors', () => {
     mockRuntime.errors = [{ error: new Error('Existing error'), source: 'test' }];
 
     action.do(mockRuntime);
 
-    // Should not attempt to execute when runtime has errors
-    expect(mockCurrentBlock.next).not.toHaveBeenCalled();
+    // NextAction no longer blocks on sticky errors — advancement must continue
+    expect(mockCurrentBlock.next).toHaveBeenCalled();
   });
 
   it('should add to errors array when block.next(runtime) throws exception', () => {

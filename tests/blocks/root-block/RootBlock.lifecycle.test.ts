@@ -7,6 +7,8 @@ import {
     ChildRunnerBehavior,
     HistoryRecordBehavior
 } from '@/runtime/behaviors';
+import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
 describe('RootBlock Lifecycle', () => {
     let harness: ExecutionContextTestHarness;
@@ -35,15 +37,9 @@ describe('RootBlock Lifecycle', () => {
         const child = new MockBlock('child', []);
         harness.mockJit.whenMatches(() => true, child);
 
-        harness.stack.push(rootBlock);
-        
-        harness.executeAction({
-            type: 'mount-root',
-            do: (runtime) => {
-                const actions = rootBlock.mount(runtime);
-                actions.forEach(action => action.do(runtime));
-            }
-        });
+        // Use PushBlockAction to properly process the full action chain:
+        // PushBlockAction → mount → behaviors → CompileChildBlockAction → PushBlockAction(child)
+        harness.executeAction(new PushBlockAction(rootBlock));
 
         // Expectations: All behaviors called onMount
         // Timer initialized in memory on root block, controls initialized, first child pushed
@@ -95,20 +91,14 @@ describe('RootBlock Lifecycle', () => {
             child2
         );
 
-        harness.stack.push(rootBlock);
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(a => a.do(harness.runtime));
+        // Mount root via PushBlockAction (pushes child-1)
+        harness.executeAction(new PushBlockAction(rootBlock));
+        expect(harness.stack.count).toBe(2); // root + child1
 
         harness.clearRecordings();
 
-        // Execute next
-        harness.executeAction({
-            type: 'root-next',
-            do: (runtime) => {
-                const actions = rootBlock.next(runtime);
-                actions.forEach(action => action.do(runtime));
-            }
-        });
+        // Pop child-1 → NextAction → root.next() → ChildRunner pushes child-2
+        harness.executeAction(new PopBlockAction());
 
         // Expectations: ChildRunner pushes next child
         expect(harness.mockJit.compileCalls).toHaveLength(1);

@@ -3,6 +3,8 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
 import { ChildRunnerBehavior } from '@/runtime/behaviors';
+import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
 describe('RootBlock Integration: Complete Workout', () => {
     let harness: ExecutionContextTestHarness;
@@ -45,44 +47,16 @@ describe('RootBlock Integration: Complete Workout', () => {
             squats
         );
 
-        // Execute workflow
-        harness.stack.push(rootBlock);
-        
-        harness.executeAction({
-            type: 'mount-root',
-            do: (runtime) => {
-                const actions = rootBlock.mount(runtime);
-                actions.forEach(a => a.do(runtime));
-            }
-        });
-
+        // Mount root via PushBlockAction (pushes pushups as first child)
+        harness.executeAction(new PushBlockAction(rootBlock));
         expect(harness.stack.count).toBe(2); // root + pushups
 
-        // Pushups complete - simulate pop and next
-        harness.executeAction({
-            type: 'complete-pushups',
-            do: (runtime) => {
-                const current = runtime.stack.pop();
-                current?.dispose(runtime);
-                
-                const actions = rootBlock.next(runtime);
-                actions.forEach(a => a.do(runtime));
-            }
-        });
-
+        // Pushups complete - PopBlockAction pops child, NextAction advances to squats
+        harness.executeAction(new PopBlockAction());
         expect(harness.stack.count).toBe(2); // root + squats
 
         // Squats complete
-        harness.executeAction({
-            type: 'complete-squats',
-            do: (runtime) => {
-                const current = runtime.stack.pop();
-                current?.dispose(runtime);
-                
-                const actions = rootBlock.next(runtime);
-                actions.forEach(a => a.do(runtime));
-            }
-        });
+        harness.executeAction(new PopBlockAction());
 
         // Expectations
         const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
@@ -321,23 +295,18 @@ describe('RootBlock Integration: Complete Workout', () => {
         // Pre-mount state
         expect(rootBlock.executionTiming.startTime).toBeUndefined();
 
-        harness.stack.push(rootBlock);
-        
-        // Mount
-        const mountActions = rootBlock.mount(harness.runtime);
-        mountActions.forEach(a => a.do(harness.runtime));
+        // Mount via PushBlockAction
+        harness.executeAction(new PushBlockAction(rootBlock));
 
         // Post-mount state
         expect(rootBlock.executionTiming.startTime).toBeDefined();
         expect(harness.stack.count).toBe(2);
 
-        // Advance through children
-        harness.stack.pop()?.dispose(harness.runtime);
-        const next1 = rootBlock.next(harness.runtime);
-        next1.forEach(a => a.do(harness.runtime));
+        // Pop child-1 → NextAction → root.next() → pushes child-2
+        harness.executeAction(new PopBlockAction());
 
-        harness.stack.pop()?.dispose(harness.runtime);
-        rootBlock.next(harness.runtime);
+        // Pop child-2 → NextAction → root.next() → no more children
+        harness.executeAction(new PopBlockAction());
 
         // Pre-unmount state
         const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;

@@ -53,12 +53,11 @@ describe('RuntimeBlock Lifecycle', () => {
     });
 
     describe('mount', () => {
-        it('should register default event handlers', () => {
+        it('should not register per-block event handlers (handled at runtime level)', () => {
             block.mount(runtime);
 
-            // Should register 'next' handler only (event dispatcher removed)
-            expect(eventBus.register).toHaveBeenCalledTimes(1);
-            expect(eventBus.register).toHaveBeenCalledWith('next', expect.any(Object), expect.any(String));
+            // Per-block event handlers were removed — event routing is handled by ScriptRuntime
+            expect(eventBus.register).not.toHaveBeenCalled();
         });
 
         it('should call behaviors.onMount with context', () => {
@@ -119,15 +118,12 @@ describe('RuntimeBlock Lifecycle', () => {
             expect(block.hasMemory('timer')).toBe(false);
         });
 
-        it('should unregister event handlers', () => {
-            const unsubscribe = vi.fn();
-            (eventBus.register as any).mockReturnValue(unsubscribe);
-
+        it('should handle unmount without event handler cleanup (no per-block handlers)', () => {
             block.mount(runtime);
             block.unmount(runtime);
 
-            // 1 call to unsubscribe for the 'next' handler
-            expect(unsubscribe).toHaveBeenCalledTimes(1);
+            // No per-block event handlers to unsubscribe — event routing is at runtime level
+            expect(eventBus.register).not.toHaveBeenCalled();
         });
     });
 });
