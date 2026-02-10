@@ -10,28 +10,28 @@
 import React from 'react';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ICodeFragment } from '../../core/models/CodeFragment';
-import { FragmentVisualizer } from './index';
+import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { cn } from '../../lib/utils';
 
 export interface StatementDisplayProps {
   /** Statement to display (includes fragments) */
   statement: ICodeStatement;
-  
+
   /** Whether this statement is currently active */
   isActive?: boolean;
-  
+
   /** Whether this is part of a group (removes outer border) */
   isGrouped?: boolean;
-  
+
   /** Compact mode for smaller displays */
   compact?: boolean;
-  
+
   /** Additional actions to render on the right */
   actions?: React.ReactNode;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Click handler */
   onClick?: () => void;
 }
@@ -51,12 +51,12 @@ export const StatementDisplay: React.FC<StatementDisplayProps> = ({
   const containerClass = cn(
     'flex items-center gap-2 transition-colors',
     compact ? 'p-1.5' : 'p-2',
-    isGrouped 
+    isGrouped
       ? cn('hover:bg-accent/5', isActive && 'bg-primary/10')
       : cn(
-          'bg-card rounded border border-border hover:border-primary/50',
-          isActive && 'bg-primary/10 border-primary'
-        ),
+        'bg-card rounded border border-border hover:border-primary/50',
+        isActive && 'bg-primary/10 border-primary'
+      ),
     onClick && 'cursor-pointer',
     className
   );
@@ -64,8 +64,8 @@ export const StatementDisplay: React.FC<StatementDisplayProps> = ({
   return (
     <div className={containerClass} onClick={onClick}>
       <div className="flex-1 min-w-0">
-        <FragmentVisualizer 
-          fragments={statement.fragments || []} 
+        <FragmentVisualizer
+          fragments={statement.fragments || []}
           className={compact ? 'gap-0.5' : 'gap-1'}
         />
       </div>
@@ -84,37 +84,37 @@ export const StatementDisplay: React.FC<StatementDisplayProps> = ({
 export interface BlockDisplayProps {
   /** Block label/name */
   label: string;
-  
+
   /** Block type (e.g., 'timer', 'rounds', 'effort') */
   blockType: string;
-  
+
   /** Pre-defined metrics from the block */
   metrics?: ICodeFragment[];
-  
+
   /** Status of the block */
   status?: 'pending' | 'active' | 'running' | 'complete';
-  
+
   /** Nesting depth for indentation */
   depth?: number;
-  
+
   /** Whether this block is highlighted */
   isHighlighted?: boolean;
-  
+
   /** Whether this block is currently active */
   isActive?: boolean;
-  
+
   /** Compact mode for smaller displays */
   compact?: boolean;
-  
+
   /** Additional actions to render on the right */
   actions?: React.ReactNode;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Click handler */
   onClick?: () => void;
-  
+
   /** Hover handlers */
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -164,10 +164,10 @@ export const BlockDisplay: React.FC<BlockDisplayProps> = ({
       {depth > 0 && (
         <div
           className="flex-shrink-0 border-l border-border/30"
-          style={{ 
-            width: `${depth * 12}px`, 
+          style={{
+            width: `${depth * 12}px`,
             height: '16px',
-            marginRight: '4px' 
+            marginRight: '4px'
           }}
         />
       )}
@@ -186,8 +186,8 @@ export const BlockDisplay: React.FC<BlockDisplayProps> = ({
       {/* Metrics as fragments */}
       {metrics && metrics.length > 0 && (
         <div className="flex-1 min-w-0">
-          <FragmentVisualizer 
-            fragments={metrics} 
+          <FragmentVisualizer
+            fragments={metrics}
             className={compact ? 'gap-0.5' : 'gap-1'}
           />
         </div>
@@ -209,10 +209,10 @@ export const BlockDisplay: React.FC<BlockDisplayProps> = ({
 export interface FragmentListProps {
   /** Fragments to display */
   fragments: ICodeFragment[];
-  
+
   /** Compact mode */
   compact?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -230,8 +230,8 @@ export const FragmentList: React.FC<FragmentListProps> = ({
   }
 
   return (
-    <FragmentVisualizer 
-      fragments={fragments} 
+    <FragmentVisualizer
+      fragments={fragments}
       className={cn(compact ? 'gap-0.5' : 'gap-1', className)}
     />
   );

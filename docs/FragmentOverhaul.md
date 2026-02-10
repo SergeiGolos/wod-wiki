@@ -1098,9 +1098,9 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | Create `useFragmentSource()` hook wrapping `useBlockMemory('fragment:display')` | `src/runtime/hooks/useBlockMemory.ts` | Low — thin wrapper | ✅ Done |
 | Create `useStackFragmentSources()` hook returning `StackFragmentEntry[]` | `src/runtime/hooks/useStackDisplay.ts` | Medium — new hook with subscriptions | ✅ Done |
 | Update `useStackDisplayItems()` to use precedence-resolved fragments | `src/runtime/hooks/useStackDisplay.ts` | Medium — changed fragment source | ✅ Done |
-| Create `FragmentSourceRow` component accepting `IFragmentSource` | `src/components/unified/FragmentSourceRow.tsx` | Low — new component | ✅ Done |
-| Create `FragmentSourceList` component accepting `StackFragmentEntry[]` | `src/components/unified/FragmentSourceList.tsx` | Low — new component | ✅ Done |
-| Export new hooks and components from index files | `src/runtime/hooks/index.ts`, `src/components/unified/index.ts` | Low | ✅ Done |
+| Create `FragmentSourceRow` component accepting `IFragmentSource` | `src/components/fragments/FragmentSourceRow.tsx` | Low — new component | ✅ Done |
+| Create `FragmentSourceList` component accepting `StackFragmentEntry[]` | `src/components/fragments/FragmentSourceList.tsx` | Low — new component | ✅ Done |
+| Export new hooks and components from index files | `src/runtime/hooks/index.ts`, `src/components/fragments/index.ts` | Low | ✅ Done |
 
 > **Implementation details**:
 > - `useFragmentSource(block)` — thin wrapper over `useBlockMemory(block, 'fragment:display')` that returns the `DisplayFragmentMemory` entry cast as `IFragmentSource`. Subscribes reactively so UI re-renders when fragments change.
@@ -1121,17 +1121,17 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 | Remove `outputStatementToDisplayItem()` | `src/core/adapters/displayItemAdapters.ts` | ✅ Done (file deleted) |
 | ~~Remove `runtimeSpanToDisplayItem()`~~ | ~~`src/core/adapters/displayItemAdapters.ts`~~ | ✅ Already deleted (RuntimeSpan removal) |
 | Remove `IDisplayItem` interface | `src/core/models/DisplayItem.ts` | ✅ Done (kept `DisplayStatus`, `VisualizerSize`, `VisualizerFilter`) |
-| Delete `UnifiedItemRow` component | `src/components/unified/UnifiedItemRow.tsx` | ✅ Done (file deleted) |
-| Delete `UnifiedItemList` component | `src/components/unified/UnifiedItemList.tsx` | ✅ Done (file deleted) |
+| Delete `UnifiedItemRow` component | `src/components/fragments/UnifiedItemRow.tsx` | ✅ Done (file deleted) |
+| Delete `UnifiedItemList` component | `src/components/fragments/UnifiedItemList.tsx` | ✅ Done (file deleted) |
 | Remove `useStackDisplayItems` hook | `src/runtime/hooks/useStackDisplay.ts` | ✅ Done |
 | Migrate `WodScriptVisualizer` to `FragmentSourceList` | `src/components/WodScriptVisualizer.tsx` | ✅ Done |
 | Migrate `RuntimeHistoryLog` to `FragmentSourceList` | `src/components/history/RuntimeHistoryLog.tsx` | ✅ Done |
-| Migrate `RefinedTimerDisplay` to `FragmentSourceRow` | `src/components/workout/RefinedTimerDisplay.tsx` | ✅ Done |
+| Migrate `TimerStackView` to `FragmentSourceRow` | `src/components/workout/TimerStackView.tsx` | ✅ Done |
 | Migrate `TimerDisplay` to `useStackFragmentSources` | `src/components/workout/TimerDisplay.tsx` | ✅ Done |
 | Migrate `AnalyticsIndexPanel` to `SimpleFragmentSource` + `FragmentSourceList` | `src/components/layout/AnalyticsIndexPanel.tsx` | ✅ Done |
 | Create `SimpleFragmentSource` utility | `src/core/utils/SimpleFragmentSource.ts` | ✅ Done |
-| Add `FragmentSourceEntry` type to `FragmentSourceRow` | `src/components/unified/FragmentSourceRow.tsx` | ✅ Done |
-| Enhance `FragmentSourceList` with full feature parity | `src/components/unified/FragmentSourceList.tsx` | ✅ Done |
+| Add `FragmentSourceEntry` type to `FragmentSourceRow` | `src/components/fragments/FragmentSourceRow.tsx` | ✅ Done |
+| Enhance `FragmentSourceList` with full feature parity | `src/components/fragments/FragmentSourceList.tsx` | ✅ Done |
 | Update `StackFragmentEntry` to extend `FragmentSourceEntry` | `src/runtime/hooks/useStackDisplay.ts` | ✅ Done |
 | Update all export files | Various index.ts files | ✅ Done |
 | Update Storybook stories | `stories/components/` | ✅ Done |
@@ -1145,7 +1145,7 @@ function WorkoutItemList({ sources }: { sources: IFragmentSource[] }) {
 > - **`StackFragmentEntry extends FragmentSourceEntry`** with `block: IRuntimeBlock` for runtime-specific scenarios.
 > - **`SimpleFragmentSource`** created for wrapping raw `ICodeFragment[]` arrays as `IFragmentSource` (used by `AnalyticsIndexPanel` and stories).
 > - **`FragmentSourceList` enhanced** with full feature parity: selection, linked grouping (`groupLinkedEntries()`), duration display, active item tracking, auto-scroll.
-> - **All 5 consumers migrated**: `WodScriptVisualizer`, `RuntimeHistoryLog`, `RefinedTimerDisplay`, `TimerDisplay`, `AnalyticsIndexPanel`.
+> - **All 5 consumers migrated**: `WodScriptVisualizer`, `RuntimeHistoryLog`, `TimerStackView`, `TimerDisplay`, `AnalyticsIndexPanel`.
 > - **Storybook stories updated**: `UnifiedVisualization.stories.tsx` and `WodScriptVisualizer.stories.tsx` rewritten with new types.
 > - **Regression**: Full suite 714 pass, 2 pre-existing failures (timer formatting), 0 new failures.
 
@@ -1207,7 +1207,7 @@ Timer fragments are special — the parser produces a "target duration" (`10:00`
 - **B)** Both shown with different visual treatments: `07:23 / 10:00`
 - **C)** Introduce `FragmentType.TimerTarget` vs `FragmentType.TimerElapsed` subtypes
 
-**Recommendation**: Option A for now. The circular progress ring in `RefinedTimerDisplay` already shows both values visually (arc + text). Fragment-level display should show the "current truth."
+**Recommendation**: Option A for now. The circular progress ring in `TimerStackView` already shows both values visually (arc + text). Fragment-level display should show the "current truth."
 
 ### Q4: `MetricBehavior` vs `FragmentOrigin` overlap?
 

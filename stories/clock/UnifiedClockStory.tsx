@@ -1,5 +1,5 @@
 import React from 'react';
-import { EnhancedTimerHarness, MemoryCard, TimerControls } from '../../src/clock/components/EnhancedTimerHarness';
+import { TimerHarness, MemoryCard, TimerControls, TimerHarnessResult } from '../../src/clock/components/TimerHarness';
 import { DigitalClock } from '../../src/clock/components/DigitalClock';
 import { TimeSpan } from '../../src/runtime/models/TimeSpan';
 
@@ -53,13 +53,13 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Clock Display - Left (Half Width) */}
         <div className="lg:col-span-1">
-          <EnhancedTimerHarness
+          <TimerHarness
             timerType={config.timerType}
             durationMs={config.durationMs}
             autoStart={config.autoStart}
             timeSpans={config.timeSpans}
           >
-            {({ blockKey }) => (
+            {({ blockKey }: TimerHarnessResult) => (
               <DigitalClock
                 blockKey={blockKey}
                 title={config.title}
@@ -73,21 +73,21 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                 nextCardLabel="Rest Period - 2:00"
               />
             )}
-          </EnhancedTimerHarness>
+          </TimerHarness>
         </div>
 
         {/* Memory and Controls - Right (Half Width) */}
         <div className="lg:col-span-1 space-y-6">
-          <EnhancedTimerHarness
+          <TimerHarness
             timerType={config.timerType}
             durationMs={config.durationMs}
             autoStart={config.autoStart}
             timeSpans={config.timeSpans}
           >
-            {({ memoryRefs, controls, isRunning, recalculateElapsed, blockKey }) => (
+            {({ controls, isRunning, recalculateElapsed, blockKey, timerState }: TimerHarnessResult) => (
               <>
                 <MemoryCard
-                  timeSpans={memoryRefs.timeSpans.get()}
+                  timeSpans={[...(timerState?.spans || [])]}
                   isRunning={isRunning}
                   blockKey={blockKey}
                   onRecalculate={recalculateElapsed}
@@ -104,7 +104,7 @@ export const UnifiedClockStory: React.FC<UnifiedClockStoryProps> = ({ config }) 
                 />
               </>
             )}
-          </EnhancedTimerHarness>
+          </TimerHarness>
         </div>
       </div>
 

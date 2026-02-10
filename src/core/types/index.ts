@@ -82,8 +82,8 @@ export type {
   WorkoutType,
   DigitalClockProps,
   ClockAnchorProps,
-  EnhancedTimerHarnessResult,
-  EnhancedTimerHarnessProps,
+  TimerHarnessResult,
+  TimerHarnessProps,
   TimeSpan,
 } from './clock';
 

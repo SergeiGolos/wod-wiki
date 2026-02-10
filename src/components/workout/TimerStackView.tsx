@@ -4,11 +4,11 @@ import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/Display
 import { RuntimeControls } from '../../runtime/models/MemoryModels';
 import { VisualizerFilter } from '../../core/models/DisplayItem';
 import { formatTimeMMSS } from '../../lib/formatTime';
-import { FragmentSourceRow } from '../unified/FragmentSourceRow';
+import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
 import { StackFragmentEntry } from '../../runtime/hooks/useStackDisplay';
 
-export interface RefinedTimerDisplayProps {
+export interface TimerStackViewProps {
     elapsedMs: number;
     hasActiveBlock: boolean;
     onStart: () => void;
@@ -61,7 +61,7 @@ const CardTimerPill: React.FC<{
     );
 };
 
-export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
+export const TimerStackView: React.FC<TimerStackViewProps> = ({
     elapsedMs,
     onStart,
     onPause,

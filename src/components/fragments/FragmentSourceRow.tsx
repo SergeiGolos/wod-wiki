@@ -14,7 +14,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { FragmentVisualizer } from '@/components/fragments';
+import { FragmentVisualizer } from '../../views/runtime/FragmentVisualizer';
 import { IFragmentSource } from '@/core/contracts/IFragmentSource';
 import { ICodeFragment } from '@/core/models/CodeFragment';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';

@@ -770,7 +770,7 @@ const elapsed = timerFragment?.value as number ?? 0;
 
 | Task | File | Risk |
 |------|------|------|
-| Remove source-type branching from `UnifiedItemRow` | `src/components/unified/UnifiedItemRow.tsx` | Low |
+| Remove source-type branching from `UnifiedItemRow` | `src/components/fragments/UnifiedItemRow.tsx` | Low |
 | Update `AnalyticsIndexPanel.segmentToFragments()` | `src/components/layout/AnalyticsIndexPanel.tsx` | Medium |
 | Migrate `TimerDisplay` to use `IFragmentSource` | `src/components/workout/TimerDisplay.tsx` | High — live timer rendering |
 | Remove ad-hoc fragment merging in `RuntimeHistoryLog` | `src/components/history/RuntimeHistoryLog.tsx` | Medium |

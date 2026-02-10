@@ -4,13 +4,13 @@ This document covers the architecture of the Storybook Playground, focusing on h
 
 ## 1. System Overview
 
-The Playground (`UnifiedWorkbench`) is a self-contained environment that connects a specialized **Harness** (manages Runtime lifecycle) to a set of **Visualizers** (Timer, History, Stack). It uses a "Sliding Viewport" architecture to switch between **Plan** (Editor), **Track** (Execution), and **Analyze** (History) modes.
+The Playground (`Workbench`) is a self-contained environment that connects a specialized **Harness** (manages Runtime lifecycle) to a set of **Visualizers** (Timer, History, Stack). It uses a "Sliding Viewport" architecture to switch between **Plan** (Editor), **Track** (Execution), and **Analyze** (History) modes.
 
 ### Core Architecture
 
 ```mermaid
 graph TD
-    User[User Interaction] --> WB[UnifiedWorkbench]
+    User[User Interaction] --> WB[Workbench]
     WB -->|Manages| Runtime[ScriptRuntime]
     WB -->|Render| Panels
     
@@ -179,7 +179,7 @@ stateDiagram-v2
 
 ## 5. Summary of Key Components
 
-*   **`UnifiedWorkbench`**: The container. Orchestrates the view modes.
+*   **`Workbench`**: The container. Orchestrates the view modes.
 *   **`useWorkbenchRuntime`**: The brain. Manages the `ScriptRuntime` instance.
 *   **`TimerDisplay`**: The reactive view. Subscribes to the stack to show what is happening *now*.
 *   **`RuntimeHistoryLog`**: The passive view. Polls the runtime to show what *happened*.

@@ -22,7 +22,7 @@ import {
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { calculateDuration } from '../../lib/timeUtils';
 
-import { RefinedTimerDisplay } from './RefinedTimerDisplay';
+import { TimerStackView } from './TimerStackView';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -64,7 +64,7 @@ export interface TimerDisplayProps {
 
 
 /**
- * DisplayStackTimerDisplay - Timer with full runtime integration
+ * StackIntegratedTimer - Timer with full runtime integration
  * 
  * Subscribes to:
  * - Stack events (push/pop) via useSnapshotBlocks
@@ -74,7 +74,7 @@ export interface TimerDisplayProps {
  * When a block is popped from the stack, its memory subscriptions complete
  * automatically and the stack event triggers a UI re-render.
  */
-const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
+const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const runtime = useScriptRuntime();
 
   // Stack-driven hooks — subscribe to block memory directly
@@ -186,7 +186,7 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   const focusedBlockId = primaryTimer ? primaryTimer.block.key.toString() : undefined;
 
   return (
-    <RefinedTimerDisplay
+    <TimerStackView
       // Use our calculated elapsed time instead of props.elapsedMs
       elapsedMs={primaryElapsedMs}
       // Pass other props
@@ -238,12 +238,12 @@ const DisplayStackTimerDisplay: React.FC<TimerDisplayProps> = (props) => {
 export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   // If display stack is enabled (runtime available), render with runtime hooks
   if (props.enableDisplayStack) {
-    return <DisplayStackTimerDisplay {...props} />;
+    return <StackIntegratedTimer {...props} />;
   }
 
   // Render without runtime dependencies (fallback)
   return (
-    <RefinedTimerDisplay
+    <TimerStackView
       elapsedMs={props.elapsedMs}
       hasActiveBlock={props.hasActiveBlock}
       onStart={props.onStart}

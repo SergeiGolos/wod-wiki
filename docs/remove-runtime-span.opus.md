@@ -216,7 +216,7 @@ All consumers already have equivalent adapters for `OutputStatement`.
 - `src/testing/testable/TestableRuntime.ts` — `ExecutionRecord` type alias → `IOutputStatement`
 - `src/services/ExecutionLogService.ts` — Complete rewrite: EventBus `memory:set` subscription → `runtime.subscribeToOutput()`
 - `src/core/adapters/displayItemAdapters.ts` — Deleted `runtimeSpanToDisplayItem()` and `runtimeSpansToDisplayItems()`
-- `src/components/unified/index.ts` — Removed span adapter re-exports
+- `src/components/fragments/index.ts` — Removed span adapter re-exports
 - `src/runtime-test-bench/components/ResultsTable.tsx` — Complete rewrite using `IOutputStatement`
 - `src/runtime/models/index.ts` — Removed `RuntimeSpan`, `SpanStatus`, `SpanMetadata`, `TimerDisplayConfig` exports
 - `tests/runtime-execution/workflows/runtime-hooks.test.ts` — Removed unused `RuntimeSpan` import

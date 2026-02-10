@@ -2,7 +2,7 @@
  * Clock types for WOD Wiki
  * 
  * Type definitions for clock and timer components including
- * DigitalClock, ClockAnchor, and EnhancedTimerHarness.
+ * DigitalClock, ClockAnchor, and TimerHarness.
  */
 
 import { TypedMemoryReference } from './runtime';
@@ -90,9 +90,9 @@ export interface ClockAnchorProps {
 }
 
 /**
- * Result object returned by EnhancedTimerHarness
+ * Result object returned by TimerHarness
  */
-export interface EnhancedTimerHarnessResult {
+export interface TimerHarnessResult {
   /** Script runtime instance */
   runtime: ScriptRuntime;
 
@@ -125,9 +125,9 @@ export interface EnhancedTimerHarnessResult {
 }
 
 /**
- * Props for the EnhancedTimerHarness component
+ * Props for the TimerHarness component (harness with memory + controls)
  */
-export interface EnhancedTimerHarnessProps {
+export interface TimerHarnessProps {
   /** Timer type: 'down' or 'up' */
   timerType: 'down' | 'up';
 
@@ -141,7 +141,7 @@ export interface EnhancedTimerHarnessProps {
   timeSpans?: TimeSpan[];
 
   /** Children to render with runtime context */
-  children: (harness: EnhancedTimerHarnessResult) => React.ReactNode;
+  children: (harness: TimerHarnessResult) => React.ReactNode;
 }
 
 /**

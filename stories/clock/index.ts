@@ -14,16 +14,16 @@ export { default as CountUpTimers } from './CountUpTimers.stories';
 export { UnifiedClockStory } from './UnifiedClockStory';
 export type { UnifiedClockStoryConfig } from './UnifiedClockStory';
 
-// Enhanced harness components
+// Timer harness components
 export {
-  EnhancedTimerHarness,
+  TimerHarness,
   MemoryCard,
   TimerControls
-} from '../../src/clock/components/EnhancedTimerHarness';
+} from '../../src/clock/components/TimerHarness';
 export type {
-  EnhancedTimerHarnessProps,
-  EnhancedTimerHarnessResult
-} from '../../src/clock/components/EnhancedTimerHarness';
+  TimerHarnessProps,
+  TimerHarnessResult
+} from '../../src/clock/components/TimerHarness';
 
 // Digital Clock component
 export { DigitalClock } from '../../src/clock/components/DigitalClock';
@@ -48,7 +48,7 @@ export { default as TimerControl } from './TimerControl.stories';
  * - CountdownTimers.stories.tsx (all countdown scenarios)
  * - CountUpTimers.stories.tsx (all count up scenarios)
  * - UnifiedClockStory.tsx (shared wrapper component)
- * - EnhancedTimerHarness.tsx (enhanced harness with memory + controls)
+ * - TimerHarness.tsx (harness with memory + controls)
  *
  * Each new story includes:
  * - Clock display

@@ -14,7 +14,7 @@ Include a **"Notebook"** Storybook story that runs the full `LocalStorageContent
 
 ```
               ┌──────────────────────────┐
-              │    UnifiedWorkbench      │
+              │    Workbench      │
               │  (accepts IContentProvider)│
               └────────────┬─────────────┘
                            │
@@ -196,8 +196,8 @@ The existing `LocalStorageProvider` stores `WodResult` under `wodwiki:results:*`
   - Backward compat: keep `initialContent?` prop — if given without provider, auto-create `StaticContentProvider` internally
   → Verify: Existing stories compile unchanged
 
-- [ ] **Task 9: Update `UnifiedWorkbench` to accept provider**
-  File: `src/components/layout/UnifiedWorkbench.tsx`
+- [ ] **Task 9: Update `Workbench` to accept provider**
+  File: `src/components/layout/Workbench.tsx`
   - Accept `provider?: IContentProvider` prop
   - If no provider but `initialContent` present → auto-create `StaticContentProvider` (backward compat)
   - Pass provider down to `WorkbenchProvider`
@@ -216,19 +216,19 @@ The existing `LocalStorageProvider` stores `WodResult` under `wodwiki:results:*`
 - [ ] **Task 11: Create `Notebook` story with persistent LocalStorage provider**
   File: `stories/Notebook.stories.tsx`
 
-  This story is the primary dev/demo surface for history-mode. It wraps `UnifiedWorkbench` with a real `LocalStorageContentProvider` so that **all data persists in the browser's localStorage across sessions**.
+  This story is the primary dev/demo surface for history-mode. It wraps `Workbench` with a real `LocalStorageContentProvider` so that **all data persists in the browser's localStorage across sessions**.
 
   ```tsx
-  import { UnifiedWorkbench } from '@/components/layout/UnifiedWorkbench';
+  import { Workbench } from '@/components/layout/Workbench';
   import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
   import type { Meta, StoryObj } from '@storybook/react';
 
   // Singleton — same instance across hot reloads
   const notebookProvider = new LocalStorageContentProvider();
 
-  const meta: Meta<typeof UnifiedWorkbench> = {
+  const meta: Meta<typeof Workbench> = {
     title: 'Notebook',
-    component: UnifiedWorkbench,
+    component: Workbench,
     parameters: {
       layout: 'fullscreen',
       docs: {
@@ -321,7 +321,7 @@ The existing `LocalStorageProvider` stores `WodResult` under `wodwiki:results:*`
 | `src/services/content/__tests__/LocalStorageContentProvider.test.ts` | **NEW** | Unit tests |
 | `src/hooks/useAutoSave.ts` | **NEW** | Auto-save on workout completion |
 | `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Accept `IContentProvider`, expose in context |
-| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Accept provider prop, backward-compat wrapper |
+| `src/components/layout/Workbench.tsx` | **MODIFY** | Accept provider prop, backward-compat wrapper |
 | `stories/Notebook.stories.tsx` | **NEW** | Persistent history-mode Storybook story |
 
 ---

@@ -1,13 +1,13 @@
-import { UnifiedWorkbench } from '@/components/layout/UnifiedWorkbench';
+import { Workbench } from '@/components/layout/Workbench';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import type { Meta, StoryObj } from '@storybook/react';
 
 // Singleton — same instance across hot reloads
 const notebookProvider = new LocalStorageContentProvider();
 
-const meta: Meta<typeof UnifiedWorkbench> = {
+const meta: Meta<typeof Workbench> = {
   title: 'Notebook',
-  component: UnifiedWorkbench,
+  component: Workbench,
   parameters: {
     layout: 'fullscreen',
     docs: {

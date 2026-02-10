@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from './md-timer';
-import { ResistanceFragment } from '../../fragments/ResistanceFragment';
+import { ResistanceFragment } from '../runtime/compiler/fragments/ResistanceFragment';
 import { FragmentType } from '../core/models/CodeFragment';
 
 const parse = (source: string) => new MdTimerRuntime().read(source);

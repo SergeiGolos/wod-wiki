@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { UnifiedWorkbench } from '../../src/components/layout/UnifiedWorkbench';
+import { Workbench } from '../../src/components/layout/Workbench';
 
 import simpleAndSinisterMarkdown from '../../wod/simple-and-sinister.md?raw';
 import kbAxeHeavyMarkdown from '../../wod/kb-axe-heavy.md?raw';
 import kbAxeLiteMarkdown from '../../wod/kb-axe-lite.md?raw';
 
-const meta: Meta<typeof UnifiedWorkbench> = {
+const meta: Meta<typeof Workbench> = {
   title: 'Examples/StrongFirst',
-  component: UnifiedWorkbench,
+  component: Workbench,
   args: {
     showToolbar: false,
     showContextOverlay: false,

@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { FragmentSourceList } from '@/components/unified/FragmentSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/unified/FragmentSourceRow';
+import { FragmentSourceList } from '@/components/fragments/FragmentSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/fragments/FragmentSourceRow';
 import { IFragmentSource } from '@/core/contracts/IFragmentSource';
 import { FragmentType } from '@/core/models/CodeFragment';
 import { VisualizerSize } from '@/core/models/DisplayItem';

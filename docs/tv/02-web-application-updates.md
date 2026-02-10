@@ -951,7 +951,7 @@ const CastingStatus: React.FC<CastingStatusProps> = ({ session, onStop }) => {
 Update the Track View layout to include the cast button and show casting indicators:
 
 ```tsx
-// src/components/layout/UnifiedWorkbench.tsx (partial update)
+// src/components/layout/Workbench.tsx (partial update)
 
 // Add import
 import { CastButton } from '../cast/CastButton';
@@ -1057,7 +1057,7 @@ export function useWorkoutCompletion() {
 Update the analytics view to display heart rate data from cast sessions:
 
 ```typescript
-// Addition to UnifiedWorkbench analytics configuration
+// Addition to Workbench analytics configuration
 
 const standardMetrics: Record<string, AnalyticsGraphConfig> = {
   'power': { /* existing */ },

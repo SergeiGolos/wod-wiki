@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { SnapshotClock, createMockClock } from '@/runtime/RuntimeClock';
 import { BehaviorTestHarness, MockBlock } from '../harness';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';

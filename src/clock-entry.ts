@@ -14,8 +14,8 @@
 export { DigitalClock } from './clock/components/DigitalClock';
 export type { DigitalClockProps } from './clock/components/DigitalClock';
 
-export { EnhancedTimerHarness } from './clock/components/EnhancedTimerHarness';
-export type { EnhancedTimerHarnessProps, EnhancedTimerHarnessResult } from './clock/components/EnhancedTimerHarness';
+export { TimerHarness } from './clock/components/TimerHarness';
+export type { TimerHarnessProps, TimerHarnessResult } from './clock/components/TimerHarness';
 
 export { TimeDisplay } from './clock/components/TimeDisplay';
 export { TimeUnit } from './clock/components/TimeUnit';

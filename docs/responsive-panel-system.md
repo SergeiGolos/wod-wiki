@@ -214,7 +214,7 @@ Each view is composed of one or more panels. This section documents what each pa
 - `SlidingViewport` hardcodes 3 views at `w-1/3` each with fixed inner layouts (`w-2/3 + w-1/3`)
 - No panel-level abstraction — inner panel sizes are CSS classes baked into the viewport
 - `WorkbenchContext` manages doc state but doesn't own panel layout state or content lifecycle
-- Runtime cleanup on view change is handled ad-hoc in `UnifiedWorkbench` with manual `useEffect` chains
+- Runtime cleanup on view change is handled ad-hoc in `Workbench` with manual `useEffect` chains
 - Mobile layout is a completely separate code path with duplicated logic
 
 ### Target Architecture
@@ -322,7 +322,7 @@ interface PanelLayoutState {
   - `panelLayouts: Record<string, PanelLayoutState>` (per-view layout state)
   - `expandPanel(viewId, panelId)` / `collapsePanel(viewId)` actions
   - `content` is already state ✓ — ensure `setContent` properly resets view when new workout loads
-  - Auto-dispose runtime when `viewMode` changes away from `'track'` (move the current `useEffect` from `UnifiedWorkbench` into context or a dedicated hook)
+  - Auto-dispose runtime when `viewMode` changes away from `'track'` (move the current `useEffect` from `Workbench` into context or a dedicated hook)
   → Verify: Context provides layout state, no regressions in existing view switching
 
 - [ ] **Task 6: Define `ViewDescriptor` configurations**
@@ -350,8 +350,8 @@ interface PanelLayoutState {
   - Keyboard navigation (Ctrl+Arrow) still works
   → Verify: 3 views slide correctly, inner panels show with correct proportions
 
-- [ ] **Task 8: Wire panels into `UnifiedWorkbench`**
-  File: `src/components/layout/UnifiedWorkbench.tsx`
+- [ ] **Task 8: Wire panels into `Workbench`**
+  File: `src/components/layout/Workbench.tsx`
   Replace `<SlidingViewport>` with `<ResponsiveViewport>`:
   - Build `ViewDescriptor[]` from existing panel JSX (`planPanel`, `trackPrimaryPanel`, etc.)
   - Pass panel content as `PanelDescriptor.content`
@@ -380,7 +380,7 @@ interface PanelLayoutState {
 ### Phase 5: Runtime Lifecycle Cleanup
 
 - [ ] **Task 11: Centralize runtime cleanup on view transitions**
-  Move the runtime init/dispose logic from `UnifiedWorkbench`'s manual `useEffect` into a hook or the context:
+  Move the runtime init/dispose logic from `Workbench`'s manual `useEffect` into a hook or the context:
   - When `viewMode` changes FROM `'track'` → auto-call `disposeRuntime()`
   - When `viewMode` changes TO `'track'` AND `selectedBlockId` exists → auto-call `initializeRuntime()`
   - When new content is loaded (external tooling) → reset `viewMode` to `'plan'`, dispose runtime
@@ -419,7 +419,7 @@ interface PanelLayoutState {
 | `src/components/layout/panel-system/ResponsiveViewport.tsx` | **NEW**       | New sliding viewport                                           |
 | `src/components/layout/panel-system/index.ts`               | **NEW**       | Barrel export                                                  |
 | `src/components/layout/WorkbenchContext.tsx`                | **MODIFY**    | Add panel layout state                                         |
-| `src/components/layout/UnifiedWorkbench.tsx`                | **MODIFY**    | Use new panel system                                           |
+| `src/components/layout/Workbench.tsx`                | **MODIFY**    | Use new panel system                                           |
 | `src/components/layout/SlidingViewport.tsx`                 | **DEPRECATE** | ==Keep for reference, unused==^[Do not keep, remove this com]  |
 
 ## Future Extensibility

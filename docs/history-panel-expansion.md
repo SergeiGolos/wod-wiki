@@ -31,7 +31,7 @@ The workbench must support two fundamentally different ways of loading workout c
 
 ### Why Two Modes?
 
-The current `UnifiedWorkbench` accepts `initialContent?: string` and wraps everything in a `WorkbenchProvider`. Storybook stories use this to inject a static workout (e.g., `franMarkdown`) that can't be swapped at runtime. In production, the workbench should browse and select from stored history. These are two distinct content delivery strategies that must coexist.
+The current `Workbench` accepts `initialContent?: string` and wraps everything in a `WorkbenchProvider`. Storybook stories use this to inject a static workout (e.g., `franMarkdown`) that can't be swapped at runtime. In production, the workbench should browse and select from stored history. These are two distinct content delivery strategies that must coexist.
 
 ### Mode: `HistoryContentProvider`
 
@@ -50,7 +50,7 @@ The current `UnifiedWorkbench` accepts `initialContent?: string` and wraps every
 ```tsx
 // Production usage
 <WorkbenchProvider mode="history" historyStore={indexedDBStore}>
-  <UnifiedWorkbenchContent />
+  <WorkbenchContent />
 </WorkbenchProvider>
 ```
 
@@ -72,7 +72,7 @@ The current `UnifiedWorkbench` accepts `initialContent?: string` and wraps every
 ```tsx
 // Storybook / demo usage
 <WorkbenchProvider mode="static" initialContent={franMarkdown}>
-  <UnifiedWorkbenchContent />
+  <WorkbenchContent />
 </WorkbenchProvider>
 ```
 
@@ -134,20 +134,20 @@ type ContentProvider =
 
 ### Existing Storybook Compatibility
 
-Today's stories pass `initialContent` and get the full `UnifiedWorkbench`. The migration path:
+Today's stories pass `initialContent` and get the full `Workbench`. The migration path:
 
-1. `UnifiedWorkbench` gains a `mode` prop (defaults to `'static'` for backward compatibility)
+1. `Workbench` gains a `mode` prop (defaults to `'static'` for backward compatibility)
 2. Existing stories continue to work unchanged — they get `mode='static'` implicitly
 3. The production app wrapper sets `mode='history'` and provides a `historyStore`
 4. No Storybook story changes are needed
 
 ```ts
 // Current (continues to work):
-<UnifiedWorkbench initialContent={franMarkdown} />
+<Workbench initialContent={franMarkdown} />
 // ↑ Internally: mode='static', History tab hidden, Analyze unavailable
 
 // Future production:
-<UnifiedWorkbench mode="history" historyStore={store} />
+<Workbench mode="history" historyStore={store} />
 // ↑ History tab shown, full selection model active
 ```
 
@@ -772,7 +772,7 @@ function useStripMode(contentMode: ContentProviderMode): StripMode {
   → Verify: Selecting 1 entry loads content into Plan. Selecting 2+ switches to multi-select strip. Static mode ignores selection.
 
 - [ ] **Task H9: Update navigation bar for mode-aware dynamic tabs**
-  File: `src/components/layout/UnifiedWorkbench.tsx` (nav section)
+  File: `src/components/layout/Workbench.tsx` (nav section)
   Update: Tab bar reads from current `StripConfiguration.views` instead of hardcoded tabs
   In static mode: Render exactly `[Plan, Track, Review]` tabs — no History, no Analyze
   In history mode: Tabs change dynamically based on `selectionMode`
@@ -782,7 +782,7 @@ function useStripMode(contentMode: ContentProviderMode): StripMode {
 
 ### Phase 4: Integration
 
-- [ ] **Task H10: Wire `HistoryPanel` into `UnifiedWorkbench` (history mode only)**
+- [ ] **Task H10: Wire `HistoryPanel` into `Workbench` (history mode only)**
   Connect `HistoryPanel` as the first view in the strip — only mounted when `contentMode='history'`
   In history mode: History is the **default view** on app launch (replaces Plan as landing)
   In static mode: History panel is not rendered; Plan remains the landing view
@@ -837,7 +837,7 @@ function useStripMode(contentMode: ContentProviderMode): StripMode {
 | `src/components/workbench/AnalyzePanel.tsx` | **NEW** | Placeholder comparative analysis panel |
 | `src/components/layout/SlidingViewport.tsx` | **MODIFY** | Expand `ViewMode`, `StripMode`, dynamic strip width |
 | `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Add `contentMode`, history selection state, mode-aware defaults |
-| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Add `mode` prop, wire History/Analyze conditionally, mode-aware nav |
+| `src/components/layout/Workbench.tsx` | **MODIFY** | Add `mode` prop, wire History/Analyze conditionally, mode-aware nav |
 | `src/components/layout/panel-system/viewDescriptors.ts` | **MODIFY** | Add History + Analyze view descriptors |
 | `src/components/layout/panel-system/types.ts` | **MODIFY** | Add `StripMode`, `StripConfiguration` types |
 
@@ -881,4 +881,4 @@ This document **extends** the responsive panel system, not replaces it. Here's h
 - Multi-select → Analyze transition should feel like a "mode switch," not a jarring layout change
 - The Analyze panel is intentionally minimal (placeholder) — detailed analytics design is a separate effort
 - The content provider mode is a **compile-time decision per mount point**, not a runtime toggle — you don't switch from static to history while the app is running
-- `UnifiedWorkbench` continues to accept `initialContent` for both modes. In history mode, `initialContent` could seed an empty editor for new workout creation. In static mode, it's the sole content source.
+- `Workbench` continues to accept `initialContent` for both modes. In history mode, `initialContent` could seed an empty editor for new workout creation. In static mode, it's the sole content source.

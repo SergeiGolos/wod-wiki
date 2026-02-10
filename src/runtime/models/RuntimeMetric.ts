@@ -41,13 +41,20 @@ export type MetricValue = {
   unit: string;
 };
 
-/**
- * Represents a time span with start and stop times.
- * Used to track when values were recorded during workout execution.
- */
 export interface TimeSpan {
   start: Date;
   stop: Date;
+}
+
+/**
+ * Composite metric object returned by compilers.
+ */
+export interface RuntimeMetric {
+  exerciseId: string;
+  sourceId?: string;
+  behavior: MetricBehavior;
+  values: MetricValue[];
+  timeSpans: TimeSpan[];
 }
 
 

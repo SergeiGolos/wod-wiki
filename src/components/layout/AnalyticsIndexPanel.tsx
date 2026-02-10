@@ -11,8 +11,8 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { FragmentSourceList } from '../unified/FragmentSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from '../unified/FragmentSourceRow';
+import { FragmentSourceList } from '../fragments/FragmentSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from '../fragments/FragmentSourceRow';
 import { cn } from '../../lib/utils';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';

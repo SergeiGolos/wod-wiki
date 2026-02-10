@@ -230,8 +230,8 @@ The existing provider remains untouched. Over time, migration logic could merge 
   - Backward compat: if existing code passes `initialContent`, wrap in a deprecation warning at dev time
   → Verify: Existing code compiles after updating call sites
 
-- [ ] **Task 9: Update `UnifiedWorkbench` to accept provider**
-  File: `src/components/layout/UnifiedWorkbench.tsx`
+- [ ] **Task 9: Update `Workbench` to accept provider**
+  File: `src/components/layout/Workbench.tsx`
   Changes:
   - Accept `provider?: IContentProvider` prop
   - If `provider` not given but `initialContent` is → auto-create `StaticContentProvider(initialContent)` internally (backward compat)
@@ -276,7 +276,7 @@ The existing provider remains untouched. Over time, migration logic could merge 
 | `src/services/content/__tests__/StaticContentProvider.test.ts` | **NEW** | Unit tests |
 | `src/services/content/__tests__/LocalStorageContentProvider.test.ts` | **NEW** | Unit tests |
 | `src/components/layout/WorkbenchContext.tsx` | **MODIFY** | Accept `IContentProvider`, expose in context |
-| `src/components/layout/UnifiedWorkbench.tsx` | **MODIFY** | Accept provider prop, backward-compat wrapper |
+| `src/components/layout/Workbench.tsx` | **MODIFY** | Accept provider prop, backward-compat wrapper |
 | `src/hooks/useAutoSave.ts` | **NEW** | Hook to auto-save on workout completion |
 
 ---

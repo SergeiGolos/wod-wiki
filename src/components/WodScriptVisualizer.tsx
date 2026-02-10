@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
-import { FragmentSourceList } from './unified/FragmentSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from './unified/FragmentSourceRow';
+import { FragmentSourceList } from './fragments/FragmentSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from './fragments/FragmentSourceRow';
 import { IFragmentSource } from '../core/contracts/IFragmentSource';
 import { FragmentType } from '../core/models/CodeFragment';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';

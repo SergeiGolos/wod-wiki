@@ -13,7 +13,7 @@ import { RegisterEventHandlerAction } from '../../runtime/actions/events/Registe
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 
 /**
- * Hook to encapsulate UnifiedWorkbench runtime logic.
+ * Hook to encapsulate Workbench runtime logic.
  */
 export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>(
     _viewMode: string,

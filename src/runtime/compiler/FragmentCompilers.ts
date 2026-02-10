@@ -1,16 +1,16 @@
 import { IFragmentCompiler } from "./FragmentCompilationManager";
 import { MetricValue, MetricValueType } from "../models/RuntimeMetric";
-import { ActionFragment } from "../fragments/ActionFragment";
-import { DistanceFragment } from "../fragments/DistanceFragment";
-import { EffortFragment } from "../fragments/EffortFragment";
-import { IncrementFragment } from "../fragments/IncrementFragment";
-import { GroupFragment } from "../fragments/GroupFragment";
-import { RepFragment } from "../fragments/RepFragment";
-import { ResistanceFragment } from "../fragments/ResistanceFragment";
-import { RoundsFragment } from "../fragments/RoundsFragment";
-import { TextFragment } from "../fragments/TextFragment";
-import { TimerFragment } from "../fragments/TimerFragment";
-import { IScriptRuntime } from "./IScriptRuntime";
+import { ActionFragment } from "./fragments/ActionFragment";
+import { DistanceFragment } from "./fragments/DistanceFragment";
+import { EffortFragment } from "./fragments/EffortFragment";
+import { IncrementFragment } from "./fragments/IncrementFragment";
+import { GroupFragment } from "./fragments/GroupFragment";
+import { RepFragment } from "./fragments/RepFragment";
+import { ResistanceFragment } from "./fragments/ResistanceFragment";
+import { RoundsFragment } from "./fragments/RoundsFragment";
+import { TextFragment } from "./fragments/TextFragment";
+import { TimerFragment } from "./fragments/TimerFragment";
+import { IScriptRuntime } from "../contracts/IScriptRuntime";
 
 export class ActionFragmentCompiler implements IFragmentCompiler {
     readonly type = 'action';

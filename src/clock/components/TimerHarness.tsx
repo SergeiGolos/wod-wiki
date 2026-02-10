@@ -10,12 +10,11 @@ import { WodScript } from '../../parser/WodScript';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { TimerState } from '../../runtime/memory/MemoryTypes';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
-import { RuntimeMemory } from '../../runtime/RuntimeMemory';
 import { RuntimeStack } from '../../runtime/RuntimeStack';
 import { RuntimeClock } from '../../runtime/RuntimeClock';
 import { EventBus } from '../../runtime/events/EventBus';
 
-export interface EnhancedTimerHarnessResult {
+export interface TimerHarnessResult {
   runtime: ScriptRuntime;
   blockKey: string;
   block: IRuntimeBlock;
@@ -31,7 +30,7 @@ export interface EnhancedTimerHarnessResult {
   recalculateElapsed: () => void;
 }
 
-export interface EnhancedTimerHarnessProps {
+export interface TimerHarnessProps {
   /** Timer type: 'countdown' or 'countup' */
   timerType: 'countdown' | 'countup';
   /** Initial duration in milliseconds */
@@ -41,18 +40,18 @@ export interface EnhancedTimerHarnessProps {
   /** Optional: Pre-configured time spans for complex scenarios */
   timeSpans?: TimeSpan[];
   /** Children to render with runtime context */
-  children: (harness: EnhancedTimerHarnessResult) => React.ReactNode;
+  children: (harness: TimerHarnessResult) => React.ReactNode;
 }
 
 /**
- * Enhanced Timer Test Harness with memory visualization and controls
+ * Timer Test Harness with memory visualization and controls
  *
  * Uses the new behavior-based timer system with:
  * - TimerInitBehavior for state initialization
  * - TimerTickBehavior for time updates
  * - TimerPauseBehavior for pause/resume events
  */
-export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
+export const TimerHarness: React.FC<TimerHarnessProps> = ({
   timerType,
   durationMs,
   autoStart = false,
@@ -67,13 +66,11 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     const jitCompiler = new JitCompiler([]);
 
     // Create dependencies
-    const memory = new RuntimeMemory();
     const stack = new RuntimeStack();
     const clock = new RuntimeClock();
     const eventBus = new EventBus();
 
     return new ScriptRuntime(emptyScript, jitCompiler, {
-      memory,
       stack,
       clock,
       eventBus
@@ -83,7 +80,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
   // Create block with new behavior-based timer system
   const { block, blockKey, timerState } = useMemo(() => {
     const direction = timerType === 'countdown' ? 'down' : 'up';
-    
+
     // Use new aspect-based behaviors
     const behaviors = [
       new TimerInitBehavior({
@@ -208,7 +205,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
     };
   }, [block, blockKey, runtime]);
 
-  const harness: EnhancedTimerHarnessResult = {
+  const harness: TimerHarnessResult = {
     runtime,
     blockKey,
     block,
@@ -226,7 +223,7 @@ export const EnhancedTimerHarness: React.FC<EnhancedTimerHarnessProps> = ({
 
   return (
     <ScriptRuntimeProvider runtime={runtime}>
-      <div className="enhanced-timer-harness">
+      <div className="timer-harness">
         {children(harness)}
       </div>
     </ScriptRuntimeProvider>

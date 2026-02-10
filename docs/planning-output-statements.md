@@ -4,14 +4,14 @@
 
 ## Output Statement Model Reference
 
-| Property | Description |
-|---|---|
-| `outputType` | `'segment'` · `'completion'` · `'milestone'` · `'metric'` · `'label'` |
-| `timeSpan` | `{ start, end }` timestamps for the output window |
-| `fragments` | Merged parser + runtime fragments attached to the output |
-| `sourceStatementId` | Links back to the parsed `CodeStatement.id` |
-| `sourceBlockKey` | Runtime block key that emitted this output |
-| `stackLevel` | Depth in the runtime stack when emitted |
+| Property            | Description                                                           |
+| ------------------- | --------------------------------------------------------------------- |
+| `outputType`        | `'segment'` · `'completion'` · `'milestone'` · `'metric'` · `'label'` |
+| `timeSpan`          | `{ start, end }` timestamps for the output window                     |
+| `fragments`         | Merged parser + runtime fragments attached to the output              |
+| `sourceStatementId` | Links back to the parsed `CodeStatement.id`                           |
+| `sourceBlockKey`    | Runtime block key that emitted this output                            |
+| `stackLevel`        | Depth in the runtime stack when emitted                               |
 
 ### Behavior → Output Mapping
 
@@ -44,29 +44,30 @@ Fill in the **Expected?** column as you validate each step.
 **Pattern**: Descending rep-scheme loop (3 rounds: 21, 15, 9) with child exercises  
 **Blocks**: `WorkoutRoot > Loop(21-15-9) > [Thrusters, Pullups]`
 
-| Step | Event | Block | Stack Depth | Output Type | Fragments | Expected? |
-|---:|---|---|---:|---|---|---|
-| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Fran" | |
-| 2 | mount | Loop(21-15-9) | 1 | `segment` | rounds: 1/3, reps: 21 | |
-| 3 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", resistance: "95lb", reps: 21 | |
-| 4 | mount | Thrusters | 2 | `milestone` | sound: start-beep | |
-| 5 | next | Thrusters | 2 | — | _(user completes thrusters)_ | |
-| 6 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | |
-| 7 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 21 | |
-| 8 | next | Pullups | 2 | — | _(user completes pullups)_ | |
-| 9 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | |
-| 10 | next | Loop(21-15-9) | 1 | `milestone` | rounds: 2/3, reps: 15 | |
-| 11 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", resistance: "95lb", reps: 15 | |
-| 12 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | |
-| 13 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 15 | |
-| 14 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | |
-| 15 | next | Loop(21-15-9) | 1 | `milestone` | rounds: 3/3, reps: 9 | |
-| 16 | mount | Thrusters | 2 | `segment` | effort: "Thrusters", resistance: "95lb", reps: 9 | |
-| 17 | unmount | Thrusters | 2 | `completion` | effort: "Thrusters", timeSpan: closed | |
-| 18 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 9 | |
-| 19 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | |
-| 20 | unmount | Loop(21-15-9) | 1 | `completion` | rounds: 3/3 complete | |
-| 21 | unmount | WorkoutRoot | 0 | `completion` | label: "Fran", timeSpan: total | |
+| Step | Event   | Block         | Stack Depth | Output Type  | Fragments                                                                     | Expected? |
+| ---: | ------- | ------------- | ----------: | ------------ | ----------------------------------------------------------------------------- | --------- |
+|    1 | mount   | WorkoutRoot   |           0 | `segment`    | label: "Fran"                                                                 |           |
+|    2 | mount   | Loop(21-15-9) |           1 | `milestone`  | rounds: 1/3, reps: 21                                                         |           |
+|      |         |               |             |              |                                                                               |           |
+|    3 | mount   | Thrusters     |           2 | `segment`    | effort: "Thrusters", resistance: "95lb", reps: 21<br>--next child push action |           |
+|    5 | next    | Thrusters     |           2 | —            | _(user completes thrusters)_                                                  |           |
+|    6 | unmount | Thrusters     |           2 | `completion` | effort: "Thrusters", timeSpan: closed                                         |           |
+|      | mext    | Loop(21-15-9) |             |              | --next child push action                                                      |           |
+|    7 | mount   | Pullups       |           2 | `segment`    | effort: "Pullups", reps: 21                                                   |           |
+|    8 | next    | Pullups       |           2 | —            | _(user completes pullups)_                                                    |           |
+|    9 | unmount | Pullups       |           2 | `completion` | effort: "Pullups", timeSpan: closed                                           |           |
+|   10 | next    | Loop(21-15-9) |           1 | `milestone`  | rounds: 2/3, reps: 15<br>--next child push action                             |           |
+|   11 | mount   | Thrusters     |           2 | `segment`    | effort: "Thrusters", resistance: "95lb", reps: 15                             |           |
+|   12 | unmount | Thrusters     |           2 | `completion` | effort: "Thrusters", timeSpan: closed                                         |           |
+|   13 | mount   | Pullups       |           2 | `segment`    | effort: "Pullups", reps: 15                                                   |           |
+|   14 | unmount | Pullups       |           2 | `completion` | effort: "Pullups", timeSpan: closed                                           |           |
+|   15 | next    | Loop(21-15-9) |           1 | `milestone`  | rounds: 3/3, reps: 9                                                          |           |
+|   16 | mount   | Thrusters     |           2 | `segment`    | effort: "Thrusters", resistance: "95lb", reps: 9                              |           |
+|   17 | unmount | Thrusters     |           2 | `completion` | effort: "Thrusters", timeSpan: closed                                         |           |
+|   18 | mount   | Pullups       |           2 | `segment`    | effort: "Pullups", reps: 9                                                    |           |
+|   19 | unmount | Pullups       |           2 | `completion` | effort: "Pullups", timeSpan: closed                                           |           |
+|   20 | unmount | Loop(21-15-9) |           1 | `completion` | rounds: 3/3 complete                                                          |           |
+|   21 | unmount | WorkoutRoot   |           0 | `completion` | label: "Fran", timeSpan: total                                                |           |
 
 **Total expected outputs**: ~21  
 **Notes**:  

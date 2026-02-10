@@ -1,5 +1,5 @@
 /**
- * UnifiedWorkbench - Responsive workbench combining desktop and mobile views
+ * Workbench - Responsive workbench combining desktop and mobile views
  * 
  * This component implements the "sliding viewport" model where the app is a
  * viewport sliding across a horizontal strip of panels:
@@ -53,14 +53,14 @@ import { AnalyzePanel } from '../workbench/AnalyzePanel';
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
-export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
+export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
 }
 
 // --- Main Workbench Content ---
-const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
+const WorkbenchContent: React.FC<WorkbenchProps> = ({
   initialContent,
   theme: propTheme,
   ...editorProps
@@ -603,7 +603,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 };
 
 // --- Exported Component with Providers ---
-export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
+export const Workbench: React.FC<WorkbenchProps> = (props) => {
   const defaultTheme = useMemo(() => {
     if (props.theme === 'vs-dark' || props.theme === 'wod-dark') return 'dark';
     if (props.theme === 'vs' || props.theme === 'wod-light') return 'light';
@@ -616,7 +616,7 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
         <WorkbenchProvider initialContent={props.initialContent} mode={props.mode} provider={props.provider}>
           <AudioProvider>
             <RuntimeLifecycleProvider factory={runtimeFactory}>
-              <UnifiedWorkbenchContent {...props} />
+              <WorkbenchContent {...props} />
             </RuntimeLifecycleProvider>
           </AudioProvider>
         </WorkbenchProvider>
@@ -625,4 +625,4 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
   );
 };
 
-export default UnifiedWorkbench;
+export default Workbench;

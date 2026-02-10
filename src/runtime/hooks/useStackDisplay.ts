@@ -1,8 +1,8 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
 import { IFragmentSource } from '../../core/contracts/IFragmentSource';
-import { FragmentSourceEntry } from '../../components/unified/FragmentSourceRow';
+import { FragmentSourceEntry } from '../../components/fragments/FragmentSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
 
 // ============================================================================
