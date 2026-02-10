@@ -30,6 +30,9 @@ import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { SlidingViewport } from './SlidingViewport';
+import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
+import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
+import type { ViewMode } from './panel-system/ResponsiveViewport';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
@@ -60,7 +63,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
 
-  // Consume Workbench Context (document state, view mode)
+  // Consume Workbench Context (document state, view mode, panel layouts)
   const {
     content,
     blocks,
@@ -68,13 +71,16 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     selectedBlockId,
     viewMode,
     results: _results,
+    panelLayouts,
     setContent,
     setBlocks,
     setActiveBlockId,
     selectBlock: _selectBlock,
     setViewMode,
     startWorkout,
-    completeWorkout
+    completeWorkout,
+    expandPanel,
+    collapsePanel,
   } = useWorkbench();
 
   // Local UI state
@@ -355,6 +361,23 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     />
   );
 
+  // --- Build View Descriptors ---
+  const viewDescriptors = useMemo(() => {
+    return [
+      createPlanView(planPanel),
+      createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
+      createReviewView(reviewIndexPanel, reviewPrimaryPanel),
+    ];
+  }, [
+    planPanel,
+    trackPrimaryPanel,
+    trackIndexPanel,
+    trackDebugPanel,
+    isDebugMode,
+    reviewIndexPanel,
+    reviewPrimaryPanel,
+  ]);
+
   return (
     <>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
@@ -461,18 +484,15 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
           </div>
         </div>
 
-        {/* Main Content - Sliding Viewport */}
+        {/* Main Content - Responsive Viewport */}
         <div className="flex-1 overflow-hidden">
-          <SlidingViewport
+          <ResponsiveViewport
+            views={viewDescriptors}
             currentView={viewMode}
             onViewChange={setViewMode}
-            planPanel={planPanel}
-            trackIndexPanel={trackIndexPanel}
-            trackPrimaryPanel={trackPrimaryPanel}
-            trackDebugPanel={trackDebugPanel}
-            reviewIndexPanel={reviewIndexPanel}
-            reviewPrimaryPanel={reviewPrimaryPanel}
-            isDebugMode={isDebugMode}
+            panelLayouts={panelLayouts}
+            onExpandPanel={expandPanel}
+            onCollapsePanel={collapsePanel}
           />
         </div>
       </div>
