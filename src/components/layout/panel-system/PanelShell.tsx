@@ -9,6 +9,7 @@ import React from 'react';
 import { Maximize2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PanelSpan } from './types';
+import { PanelSizeProvider } from './PanelSizeContext';
 
 export interface PanelShellProps {
   /** Unique panel identifier */
@@ -116,9 +117,11 @@ export function PanelShell({
         </div>
       )}
 
-      {/* Panel Content */}
+      {/* Panel Content — wrapped in PanelSizeProvider for container-aware sizing */}
       <div className="flex-1 overflow-hidden">
-        {children}
+        <PanelSizeProvider>
+          {children}
+        </PanelSizeProvider>
       </div>
     </div>
   );

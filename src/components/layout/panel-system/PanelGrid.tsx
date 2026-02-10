@@ -96,8 +96,6 @@ export function PanelGrid({
         'flex h-full w-full',
         // Flex direction based on screen mode
         screenMode === 'mobile' ? 'flex-col overflow-y-auto' : 'flex-row overflow-hidden',
-        // Smooth transitions
-        'transition-all duration-300 ease-in-out',
         className
       )}
       data-screen-mode={screenMode}
@@ -110,11 +108,16 @@ export function PanelGrid({
         // Calculate flex value
         const flexValue = getPanelFlexValue(currentSpan, screenMode, isExpanded);
 
+        // Hide the PanelShell header when this is the only panel in view
+        // (expand/collapse has no meaning and title is redundant with the view tab)
+        const isSolePanel = visiblePanels.length === 1;
+
         return (
           <div
             key={panel.id}
             className={cn(
-              'transition-all duration-300 ease-in-out',
+              // Only transition flex changes (panel expand/collapse), not layout-breaking properties
+              'transition-[flex,opacity] duration-300 ease-in-out',
               // Mobile-specific styles
               screenMode === 'mobile' && 'min-h-[50vh] w-full',
               // Hide siblings when one panel is expanded
@@ -133,6 +136,7 @@ export function PanelGrid({
               onExpand={() => onExpandPanel(panel.id)}
               onCollapse={onCollapsePanel}
               className="h-full"
+              hideHeader={isSolePanel}
             >
               {panel.content}
             </PanelShell>

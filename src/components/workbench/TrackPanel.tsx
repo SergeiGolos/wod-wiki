@@ -5,6 +5,7 @@ import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { WodIndexPanel } from '../layout/WodIndexPanel';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
+import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
@@ -13,7 +14,6 @@ export interface TrackPanelProps {
   activeSegmentIds: Set<number>;
   activeStatementIds: Set<number>;
   hoveredBlockKey: string | null;
-  isMobile: boolean;
   documentItems: any[];
   activeBlockId: string | undefined;
   onBlockHover: (blockKey: string | null) => void;
@@ -26,31 +26,30 @@ export interface TrackPanelProps {
   onNext: () => void;
 }
 
-export const TrackPanelIndex: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'isMobile' | 'execution'>> = ({
+export const TrackPanelIndex: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
   runtime,
   activeSegmentIds,
   activeStatementIds,
   hoveredBlockKey,
-  isMobile,
   execution
-}) => (
-  <TimerIndexPanel
-    runtime={runtime as any}
-    activeSegmentIds={activeSegmentIds}
-    activeStatementIds={activeStatementIds}
-    highlightedBlockKey={hoveredBlockKey}
-    autoScroll={execution.status === 'running'}
-    mobile={isMobile}
-    workoutStartTime={execution.startTime}
-    className="h-full"
-  />
-);
+}) => {
+  return (
+    <TimerIndexPanel
+      runtime={runtime as any}
+      activeSegmentIds={activeSegmentIds}
+      activeStatementIds={activeStatementIds}
+      highlightedBlockKey={hoveredBlockKey}
+      autoScroll={execution.status === 'running'}
+      workoutStartTime={execution.startTime}
+      className="h-full"
+    />
+  );
+};
 
 export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
   runtime,
   execution,
   selectedBlock,
-  isMobile,
   documentItems,
   activeBlockId,
   onBlockHover,
@@ -65,6 +64,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
   activeStatementIds,
   hoveredBlockKey
 }) => {
+  const { isCompact } = usePanelSize();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const lastScrollTopRef = React.useRef(0);
   const [isUserScrolledUp, setIsUserScrolledUp] = React.useState(false);
@@ -98,7 +98,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
       onStop={onStop}
       onNext={onNext}
       isRunning={execution.status === 'running'}
-      compact={isMobile}
+      compact={isCompact}
       onBlockHover={onBlockHover}
       onBlockClick={onBlockClick}
       enableDisplayStack={!!runtime}
@@ -108,7 +108,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
   const content = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex flex-col h-full overflow-hidden">
-        {isMobile && (
+        {isCompact && (
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
@@ -120,13 +120,12 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
               activeStatementIds={activeStatementIds}
               highlightedBlockKey={hoveredBlockKey}
               autoScroll={execution.status === 'running' && !isUserScrolledUp}
-              mobile={isMobile}
               workoutStartTime={execution.startTime}
               className="overflow-visible"
             />
           </div>
         )}
-        <div className={isMobile ? "shrink-0 bg-background z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]" : "h-full"}>
+        <div className={isCompact ? "shrink-0 bg-background z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]" : "h-full"}>
           {timerDisplay}
         </div>
       </div>
@@ -151,7 +150,6 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
                 }
               }}
               onBlockHover={onBlockHover}
-              mobile={isMobile}
             />
           </div>
         </div>

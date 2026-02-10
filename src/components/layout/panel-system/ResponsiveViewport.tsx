@@ -1,21 +1,21 @@
 /**
- * ResponsiveViewport - Replacement for SlidingViewport
+ * ResponsiveViewport - Stacked view container with show/hide transitions
  *
  * Core component for the unified responsive layout with improved panel system.
- * Implements the "sliding viewport" mental model with composable panels.
+ * All views are rendered as stacked layers; only the active view is visible.
+ * This avoids CSS transform/positioning bugs that plague sliding-strip approaches.
  *
  * Features:
- * - Sliding view transitions (Plan → Track → Review)
+ * - Instant view switching (Plan → Track → Review)
  * - Composable panel system with PanelGrid
  * - Screen-mode-aware layouts (desktop, tablet, mobile)
  * - Keyboard navigation (Ctrl+Arrow keys)
  */
 
-import React, { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { ViewDescriptor } from './types';
 import { PanelGrid } from './PanelGrid';
-import { useScreenMode } from './useScreenMode';
 
 export type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze';
 
@@ -46,13 +46,13 @@ export interface ResponsiveViewportProps {
 }
 
 /**
- * ResponsiveViewport - Sliding viewport with composable panel system
+ * ResponsiveViewport - Stacked viewport with composable panel system
  *
  * Layout:
- * - Horizontal strip of views (Plan, Track, Review)
- * - Each view contains a PanelGrid with its panels
- * - Smooth sliding transitions between views
- * - Keyboard navigation support
+ * - Views are absolutely positioned and stacked on top of each other
+ * - Only the active view is visible (via visibility + z-index)
+ * - Inactive views stay mounted to preserve internal state (scroll, timers)
+ * - Keyboard navigation support (Ctrl+Arrow)
  */
 export function ResponsiveViewport({
   views,
@@ -63,20 +63,11 @@ export function ResponsiveViewport({
   onCollapsePanel,
   className,
 }: ResponsiveViewportProps) {
-  const screenMode = useScreenMode();
-
-  // Find current view index
+  // Find current view index (for keyboard navigation)
   const viewIndex = useMemo(() => {
     const idx = views.findIndex((v) => v.id === currentView);
     return idx >= 0 ? idx : 0;
   }, [views, currentView]);
-
-  // Calculate transform offset
-  // translateX percentage is relative to the strip's own width (views.length * 100% of viewport).
-  // To shift by one viewport width, we need (100 / views.length)% of the strip.
-  const translateX = useMemo(() => {
-    return `-${viewIndex * (100 / views.length)}%`;
-  }, [viewIndex, views.length]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -103,50 +94,46 @@ export function ResponsiveViewport({
 
   return (
     <div className={cn('relative w-full h-full overflow-hidden', className)}>
-      {/* Sliding Strip Container */}
-      <div
-        className={cn(
-          'absolute inset-0 flex',
-          'transition-transform duration-500 ease-in-out'
-        )}
-        style={{
-          width: `${views.length * 100}%`,
-          transform: `translateX(${translateX})`,
-        }}
-      >
-        {/* Render each view */}
-        {views.map((view) => {
-          // Get layout state for this view (or create default)
-          const layoutState = panelLayouts[view.id] || {
-            viewId: view.id,
-            panelSpans: view.panels.reduce(
-              (acc, panel) => {
-                acc[panel.id] = panel.defaultSpan;
-                return acc;
-              },
-              {} as Record<string, number>
-            ),
-            expandedPanelId: null,
-          };
+      {/* Stacked view layers — active view is visible, others hidden */}
+      {views.map((view) => {
+        const isActive = view.id === currentView;
 
-          return (
-            <div
-              key={view.id}
-              className="flex-shrink-0 h-full"
-              style={{ width: `${100 / views.length}%` }}
-              data-view-id={view.id}
-            >
-              <PanelGrid
-                panels={view.panels}
-                layoutState={layoutState}
-                onExpandPanel={(panelId) => onExpandPanel(view.id, panelId)}
-                onCollapsePanel={() => onCollapsePanel(view.id)}
-                className="h-full"
-              />
-            </div>
-          );
-        })}
-      </div>
+        // Get layout state for this view (or create default)
+        const layoutState = panelLayouts[view.id] || {
+          viewId: view.id,
+          panelSpans: view.panels.reduce(
+            (acc, panel) => {
+              acc[panel.id] = panel.defaultSpan;
+              return acc;
+            },
+            {} as Record<string, number>
+          ),
+          expandedPanelId: null,
+        };
+
+        return (
+          <div
+            key={view.id}
+            className={cn(
+              'absolute inset-0 bg-background',
+              isActive ? 'z-10' : 'z-0 pointer-events-none'
+            )}
+            style={{
+              overflow: 'hidden',
+              visibility: isActive ? 'visible' : 'hidden',
+            }}
+            data-view-id={view.id}
+          >
+            <PanelGrid
+              panels={view.panels}
+              layoutState={layoutState}
+              onExpandPanel={(panelId) => onExpandPanel(view.id, panelId)}
+              onCollapsePanel={() => onCollapsePanel(view.id)}
+              className="h-full"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -14,10 +14,14 @@ import type { HistoryEntry } from '@/types/history';
 export interface HistoryPostListProps {
   /** Workout entries to display */
   entries: HistoryEntry[];
-  /** Currently selected entry IDs */
+  /** Currently selected entry IDs (checkboxes) */
   selectedIds: Set<string>;
-  /** Toggle selection callback */
+  /** Toggle checkbox selection callback */
   onToggle: (id: string) => void;
+  /** Open entry for viewing callback (row click) */
+  onOpen?: (id: string) => void;
+  /** Currently active/open entry ID */
+  activeEntryId?: string | null;
   /** Show enriched metadata (for full-span mode) */
   enriched?: boolean;
 }
@@ -48,6 +52,8 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   entries,
   selectedIds,
   onToggle,
+  onOpen,
+  activeEntryId,
   enriched = false,
 }) => {
   if (entries.length === 0) {
@@ -62,24 +68,30 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
     <div className="divide-y divide-border">
       {entries.map(entry => {
         const isSelected = selectedIds.has(entry.id);
+        const isActive = entry.id === activeEntryId;
 
         return (
           <button
             key={entry.id}
-            onClick={() => onToggle(entry.id)}
+            onClick={() => onOpen ? onOpen(entry.id) : onToggle(entry.id)}
             className={cn(
               'w-full text-left px-3 py-2 transition-colors',
               'hover:bg-muted/50',
               isSelected && 'bg-primary/10',
+              isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
             )}
           >
             <div className="flex items-start gap-2">
-              {/* Checkbox */}
-              <div className={cn(
-                'mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors',
+              {/* Checkbox — clicking stops propagation to row, toggles selection */}
+              <div
+                role="checkbox"
+                aria-checked={isSelected}
+                onClick={(e) => { e.stopPropagation(); onToggle(entry.id); }}
+                className={cn(
+                'mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
                 isSelected
                   ? 'bg-primary border-primary text-primary-foreground'
-                  : 'border-muted-foreground/40',
+                  : 'border-muted-foreground/40 hover:border-primary/60',
               )}>
                 {isSelected && (
                   <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">

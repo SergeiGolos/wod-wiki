@@ -17,6 +17,7 @@ import { cn } from '../../lib/utils';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
 import { SimpleFragmentSource } from '../../core/utils/SimpleFragmentSource';
+import { usePanelSize } from './panel-system/PanelSizeContext';
 
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
@@ -30,9 +31,6 @@ export interface AnalyticsIndexPanelProps {
   
   /** Callback when segment is clicked */
   onSelectSegment?: (segmentId: number) => void;
-  
-  /** Whether to render in mobile mode */
-  mobile?: boolean;
   
   /** Additional CSS classes */
   className?: string;
@@ -193,10 +191,11 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   segments,
   selectedSegmentIds = new Set(),
   onSelectSegment,
-  mobile = false,
   groups = [],
   className = ''
 }) => {
+  const { isCompact: mobile } = usePanelSize();
+
   // Convert segments to FragmentSourceEntry[] (sorted oldest-first)
   const entries = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);

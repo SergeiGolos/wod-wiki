@@ -11,3 +11,4 @@ export * from './PanelShell';
 export * from './PanelGrid';
 export * from './viewDescriptors';
 export * from './ResponsiveViewport';
+export * from './PanelSizeContext';

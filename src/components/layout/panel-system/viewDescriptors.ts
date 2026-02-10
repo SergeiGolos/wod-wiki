@@ -125,15 +125,14 @@ export function getAllViews(
 /**
  * History View - Browse and select stored workout entries
  *
- * The History panel's default span is dynamic based on the strip mode:
- * - history-only: full screen (3)
- * - single-select / multi-select: sidebar (1)
+ * With the stacked viewport approach, each view owns the full screen.
+ * The History panel always uses span 3 (full width).
  */
 export function createHistoryView(
   historyBrowserPanel: React.ReactNode,
-  stripMode: StripMode = 'history-only',
+  _stripMode: StripMode = 'history-only',
 ): ViewDescriptor {
-  const span: PanelSpan = stripMode === 'history-only' ? 3 : 1;
+  const span: PanelSpan = 3;
   return {
     id: 'history',
     label: 'History',

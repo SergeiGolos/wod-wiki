@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { Timer, Hash } from 'lucide-react';
+import { usePanelSize } from './panel-system/PanelSizeContext';
 
 export interface WodIndexPanelProps {
   /** Document structure items */
@@ -17,9 +18,6 @@ export interface WodIndexPanelProps {
   
   /** Callback when a block is hovered */
   onBlockHover: (blockId: string | null) => void;
-
-  /** Whether to render in mobile mode */
-  mobile?: boolean;
 }
 
 /**
@@ -47,8 +45,8 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
   highlightedBlockId,
   onBlockClick,
   onBlockHover,
-  mobile = false
 }) => {
+  const { isCompact: mobile } = usePanelSize();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Filter out paragraphs as requested

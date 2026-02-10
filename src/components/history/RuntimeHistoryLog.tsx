@@ -12,7 +12,6 @@ export interface RuntimeHistoryLogProps {
   activeStatementIds?: Set<number>;
   highlightedBlockKey?: string | null;
   autoScroll?: boolean;
-  mobile?: boolean;
   className?: string;
   workoutStartTime?: number | null;
   /** Whether to show active items (default: true) */

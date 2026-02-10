@@ -8,23 +8,20 @@ export interface ReviewPanelProps {
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number) => void;
-  mobile: boolean;
   groups: AnalyticsGroup[];
   rawData: AnalyticsDataPoint[];
 }
 
-export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'mobile' | 'groups'>> = ({
+export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
   segments,
   selectedSegmentIds,
   onSelectSegment,
-  mobile,
   groups
 }) => (
   <AnalyticsIndexPanel
     segments={segments}
     selectedSegmentIds={selectedSegmentIds}
     onSelectSegment={onSelectSegment}
-    mobile={mobile}
     groups={groups}
   />
 );

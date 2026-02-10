@@ -24,9 +24,6 @@ export interface TimerIndexPanelProps {
   /** Whether to auto-scroll to newest entries */
   autoScroll?: boolean;
 
-  /** Whether to render in mobile mode */
-  mobile?: boolean;
-
   /** Additional CSS classes */
   className?: string;
 
@@ -45,7 +42,6 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   activeStatementIds,
   highlightedBlockKey,
   autoScroll = true,
-  mobile = false,
   className = '',
   workoutStartTime
 }) => {
@@ -55,7 +51,6 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       activeStatementIds={activeStatementIds}
       highlightedBlockKey={highlightedBlockKey}
       autoScroll={autoScroll}
-      mobile={mobile}
       className={className}
       workoutStartTime={workoutStartTime}
       showActive={false}

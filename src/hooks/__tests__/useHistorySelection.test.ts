@@ -22,7 +22,7 @@ describe('useHistorySelection', () => {
     expect(result.current.stripMode).toBe('history-only');
   });
 
-  it('should toggle an entry to selected', () => {
+  it('should toggle an entry to selected (checkbox, stays history-only)', () => {
     const { result } = renderHook(() => useHistorySelection());
 
     act(() => {
@@ -32,7 +32,8 @@ describe('useHistorySelection', () => {
     expect(result.current.selectedIds.has('entry-1')).toBe(true);
     expect(result.current.selectedIds.size).toBe(1);
     expect(result.current.selectionMode).toBe('single');
-    expect(result.current.stripMode).toBe('single-select');
+    // 1 checkbox does NOT trigger single-select strip mode — that requires openEntry
+    expect(result.current.stripMode).toBe('history-only');
   });
 
   it('should toggle an entry off', () => {
@@ -65,7 +66,7 @@ describe('useHistorySelection', () => {
     expect(result.current.stripMode).toBe('multi-select');
   });
 
-  it('should transition from multi back to single when deselecting to 1', () => {
+  it('should transition from multi back to history-only when deselecting to 1', () => {
     const { result } = renderHook(() => useHistorySelection());
 
     act(() => {
@@ -82,7 +83,8 @@ describe('useHistorySelection', () => {
 
     expect(result.current.selectedIds.size).toBe(1);
     expect(result.current.selectionMode).toBe('single');
-    expect(result.current.stripMode).toBe('single-select');
+    // 1 checkbox → still history-only (not single-select)
+    expect(result.current.stripMode).toBe('history-only');
   });
 
   it('should selectAll with given IDs', () => {
@@ -149,5 +151,63 @@ describe('useHistorySelection', () => {
 
     expect(result.current.filters.workoutType).toBe('AMRAP');
     expect(result.current.filters.tags).toEqual(['strength']);
+  });
+
+  it('should set activeEntryId and single-select strip mode on openEntry', () => {
+    const { result } = renderHook(() => useHistorySelection());
+
+    act(() => {
+      result.current.openEntry('entry-1');
+    });
+
+    expect(result.current.activeEntryId).toBe('entry-1');
+    expect(result.current.stripMode).toBe('single-select');
+  });
+
+  it('should clear activeEntryId on closeEntry', () => {
+    const { result } = renderHook(() => useHistorySelection());
+
+    act(() => {
+      result.current.openEntry('entry-1');
+    });
+    act(() => {
+      result.current.closeEntry();
+    });
+
+    expect(result.current.activeEntryId).toBeNull();
+    expect(result.current.stripMode).toBe('history-only');
+  });
+
+  it('should clear activeEntryId on clearSelection', () => {
+    const { result } = renderHook(() => useHistorySelection());
+
+    act(() => {
+      result.current.openEntry('entry-1');
+    });
+    act(() => {
+      result.current.clearSelection();
+    });
+
+    expect(result.current.activeEntryId).toBeNull();
+    expect(result.current.stripMode).toBe('history-only');
+  });
+
+  it('should prioritize multi-select over active entry', () => {
+    const { result } = renderHook(() => useHistorySelection());
+
+    act(() => {
+      result.current.openEntry('entry-1');
+    });
+    expect(result.current.stripMode).toBe('single-select');
+
+    act(() => {
+      result.current.toggleEntry('entry-2');
+    });
+    act(() => {
+      result.current.toggleEntry('entry-3');
+    });
+
+    // 2+ checked overrides activeEntry
+    expect(result.current.stripMode).toBe('multi-select');
   });
 });

@@ -16,6 +16,7 @@ import { CalendarWidget } from '../history/CalendarWidget';
 import { HistoryPostList } from '../history/HistoryPostList';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import type { HistoryEntry, HistoryFilters, StripMode } from '@/types/history';
 import type { PanelSpan } from '../layout/panel-system/types';
 
@@ -24,10 +25,14 @@ export interface HistoryPanelProps {
   span?: PanelSpan;
   /** History entries to display */
   entries: HistoryEntry[];
-  /** Currently selected entry IDs */
+  /** Currently selected entry IDs (checkboxes) */
   selectedIds: Set<string>;
-  /** Toggle entry selection */
+  /** Toggle checkbox selection */
   onToggleEntry: (id: string) => void;
+  /** Open entry for viewing (row click → slide to Plan) */
+  onOpenEntry?: (id: string) => void;
+  /** Currently active/open entry ID */
+  activeEntryId?: string | null;
   /** Select all visible entries */
   onSelectAll?: (ids: string[]) => void;
   /** Clear all selections */
@@ -55,6 +60,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   entries,
   selectedIds,
   onToggleEntry,
+  onOpenEntry,
+  activeEntryId,
   onSelectAll,
   onClearSelection,
   calendarDate,
@@ -76,8 +83,9 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
   const visibleIds = useMemo(() => entries.map(e => e.id), [entries]);
 
-  const isCompact = span === 1;
-  const isExpanded = span === 3;
+  const { isCompact: containerCompact, isFull } = usePanelSize();
+  const isCompact = containerCompact || span === 1;
+  const isExpanded = isFull || span === 3;
 
   // Compact (1/3): Single column, calendar + scrolling list
   if (isCompact) {
@@ -108,6 +116,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             entries={entries}
             selectedIds={selectedIds}
             onToggle={onToggleEntry}
+            onOpen={onOpenEntry}
+            activeEntryId={activeEntryId}
           />
         </div>
       </div>
@@ -175,6 +185,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           entries={entries}
           selectedIds={selectedIds}
           onToggle={onToggleEntry}
+          onOpen={onOpenEntry}
+          activeEntryId={activeEntryId}
           enriched={isExpanded}
         />
       </div>

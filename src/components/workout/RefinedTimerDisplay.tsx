@@ -160,13 +160,12 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
             `}</style>
 
             {/* Main Content Area */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(280px,35%)_1fr] gap-4 lg:gap-8 items-center lg:items-start overflow-hidden">
+            <div className={`flex-1 min-h-0 grid grid-cols-1 ${compact ? '' : 'lg:grid-cols-[minmax(280px,35%)_1fr] lg:gap-8 lg:items-start'} gap-4 items-center overflow-hidden`}>
 
                 {/* Left Panel - Stack View - CENTERED content */}
                 <div className={`
                     flex flex-col gap-3 justify-center
-                    lg:h-full lg:overflow-y-auto lg:pr-2
-                    ${compact ? 'order-1 w-full flex-1 overflow-y-auto min-h-0' : 'order-1'}
+                    ${compact ? 'order-1 w-full flex-1 overflow-y-auto min-h-0' : 'order-1 lg:h-full lg:overflow-y-auto lg:pr-2'}
                 `}>
                     {stackItems && stackItems.map((entry) => {
                         // Get state for this entry's block
@@ -215,15 +214,15 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                     ${compact ? 'order-2 shrink-0 py-2' : 'order-1 lg:order-2'}
                 `}>
                     {/* Header Label - Shows what the BIG timer is focused on */}
-                    <div className="text-center mb-4 sm:mb-8 shrink-0">
-                        <h2 className="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-200">
+                    <div className={`text-center ${compact ? 'mb-4' : 'mb-4 sm:mb-8'} shrink-0`}>
+                        <h2 className={`${compact ? 'text-lg' : 'text-lg sm:text-xl'} font-bold text-slate-700 dark:text-slate-200`}>
                             {effectivePrimaryTimer?.label || "Timer"}
                         </h2>
                     </div>
 
                     <div className="relative flex items-center justify-center">
-                        {/* Main Timer Circle */}
-                        <div className="relative w-[min(12rem,75vw)] h-[min(12rem,75vw)] sm:w-48 sm:h-48 lg:w-96 lg:h-96 flex items-center justify-center z-10 transition-all">
+                        {/* Main Timer Circle — sizes driven by compact prop (container-aware) */}
+                        <div className={`relative flex items-center justify-center z-10 transition-all ${compact ? 'w-[min(12rem,75vw)] h-[min(12rem,75vw)]' : 'w-48 h-48 lg:w-96 lg:h-96'}`}>
                             {/* SVG Background Ring */}
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
                                 <circle
@@ -244,13 +243,13 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                             {/* Inner Circle / Content */}
                             <button
                                 onClick={isRunning ? onPause : onStart}
-                                className="relative z-10 w-[min(10rem,65vw)] h-[min(10rem,65vw)] sm:w-40 sm:h-40 lg:w-80 lg:h-80 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800"
+                                className={`relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-80 lg:h-80'}`}
                             >
-                                <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl sm:text-5xl' : 'text-5xl sm:text-7xl lg:text-8xl'}`}>
+                                <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-8xl'}`}>
                                     {formatTime(displayTimeMs)}
                                 </span>
                                 <div className="mt-2 text-blue-500 group-hover:text-blue-600 transition-colors">
-                                    {isRunning ? <Pause className="w-10 h-10 lg:w-16 lg:h-16 title-pause" /> : <Play className="w-10 h-10 lg:w-16 lg:h-16 ml-2 title-play" />}
+                                    {isRunning ? <Pause className={`title-pause ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-16 lg:h-16'}`} /> : <Play className={`ml-2 title-play ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-16 lg:h-16'}`} />}
                                 </div>
                             </button>
                         </div>
@@ -258,25 +257,25 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                     </div>
 
                     {/* Controls Row (Below Timer) */}
-                    <div className="flex items-center gap-3 sm:gap-6 mt-4 sm:mt-8 flex-wrap justify-center px-2">
+                    <div className={`flex items-center ${compact ? 'gap-3 mt-4' : 'gap-3 sm:gap-6 mt-4 sm:mt-8'} flex-wrap justify-center px-2`}>
                         <button
                             onClick={onStop}
                             className="group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
                             title="Stop Workout"
                         >
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-colors">
+                            <div className={`flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
                                 <StopCircle className="w-6 h-6" />
                             </div>
                             <span className="text-xs font-medium uppercase tracking-wider">Stop</span>
                         </button>
 
                         {actions && actions.length > 0 ? (
-                            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
+                            <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2 sm:gap-3'} flex-wrap justify-center`}>
                                 {actions.map(action => (
                                     <button
                                         key={action.id}
                                         onClick={() => onAction?.(action.eventName, action.payload)}
-                                        className={`px-3 sm:px-4 py-2 min-h-[44px] sm:min-h-[48px] rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-all border ${action.isPinned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-500' : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400'} hover:-translate-y-0.5`}
+                                        className={`${compact ? 'px-3 py-2 min-h-[44px] text-xs' : 'px-3 sm:px-4 py-2 min-h-[44px] sm:min-h-[48px] text-xs sm:text-sm'} rounded-full font-semibold shadow-sm transition-all border ${action.isPinned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-500' : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400'} hover:-translate-y-0.5`}
                                         title={action.displayLabel || action.name}
                                     >
                                         {action.displayLabel || action.name}
@@ -286,10 +285,10 @@ export const RefinedTimerDisplay: React.FC<RefinedTimerDisplayProps> = ({
                         ) : (
                             <button
                                 onClick={onNext}
-                                className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all"
+                                className={`flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
                                 title="Next Block"
                             >
-                                <SkipForward className="w-6 h-6 sm:w-8 sm:h-8" />
+                                <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />
                             </button>
                         )}
                     </div>

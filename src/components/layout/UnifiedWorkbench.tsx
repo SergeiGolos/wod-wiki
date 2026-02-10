@@ -153,6 +153,27 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     setContent,
   });
 
+  // Handle opening a history entry for viewing (row click → load content → slide to Plan)
+  const handleOpenEntry = useCallback(async (id: string) => {
+    if (!historySelection) return;
+
+    // Mark this entry as active in selection state
+    historySelection.openEntry(id);
+
+    // Load the entry's content into the editor
+    try {
+      const entry = await provider.getEntry(id);
+      if (entry) {
+        setContent(entry.rawContent);
+      }
+    } catch (err) {
+      console.error('Failed to load entry:', err);
+    }
+
+    // Navigate to Plan view
+    setViewMode('plan');
+  }, [historySelection, provider, setContent, setViewMode]);
+
   // Load history entries on mount when in history mode
   useEffect(() => {
     if (contentMode === 'history') {
@@ -330,7 +351,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
       hoveredBlockKey={hoveredBlockKey}
-      isMobile={isMobile}
       execution={execution}
     />
   );
@@ -341,7 +361,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       runtime={runtime}
       execution={execution}
       selectedBlock={selectedBlock}
-      isMobile={isMobile}
       documentItems={documentItems}
       activeBlockId={_activeBlockId || undefined}
       onBlockHover={handleBlockHover}
@@ -376,7 +395,6 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={handleSelectAnalyticsSegment}
-      mobile={isMobile}
       groups={analyticsGroups}
     />
   );
@@ -395,10 +413,12 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   // --- History & Analyze Panels (only for history mode) ---
   const historyBrowserPanel = contentMode === 'history' && historySelection ? (
     <HistoryPanel
-      span={stripMode === 'history-only' ? 3 : 1}
+      span={3}
       entries={historyEntries}
       selectedIds={historySelection.selectedIds}
       onToggleEntry={historySelection.toggleEntry}
+      onOpenEntry={handleOpenEntry}
+      activeEntryId={historySelection.activeEntryId}
       onSelectAll={historySelection.selectAll}
       onClearSelection={historySelection.clearSelection}
       calendarDate={historySelection.calendarDate}
@@ -418,6 +438,15 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
   const analyzePanelContent = contentMode === 'history' ? (
     <AnalyzePanel selectedEntries={selectedEntries} />
   ) : null;
+
+  // Auto-navigate back to History when all selections are cleared
+  // (dropping back to history-only means no entry is open and nothing is checked)
+  useEffect(() => {
+    if (contentMode !== 'history') return;
+    if (stripMode === 'history-only' && viewMode !== 'history') {
+      setViewMode('history');
+    }
+  }, [stripMode, contentMode]);
 
   // --- Build View Descriptors ---
   const viewDescriptors = useMemo(() => {
@@ -557,7 +586,7 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
         </div>
 
         {/* Main Content - Responsive Viewport */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ResponsiveViewport
             views={viewDescriptors}
             currentView={viewMode}

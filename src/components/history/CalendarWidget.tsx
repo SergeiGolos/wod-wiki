@@ -12,6 +12,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePanelSize } from '@/components/layout/panel-system/PanelSizeContext';
 
 export interface CalendarWidgetProps {
   /** Currently viewed month */
@@ -50,8 +51,10 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   onDateSelect,
   entryDates = new Set(),
   selectedDate,
-  compact = false,
+  compact: compactProp = false,
 }) => {
+  const { isCompact: containerCompact } = usePanelSize();
+  const compact = compactProp || containerCompact;
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
