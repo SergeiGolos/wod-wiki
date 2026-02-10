@@ -20,7 +20,7 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Timer, Edit, BarChart2, Plus, Github } from 'lucide-react';
+import { Plus, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -30,7 +30,7 @@ import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
-import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
+import { createPlanView, createTrackView, createReviewView, createHistoryView, createAnalyzeView } from './panel-system/viewDescriptors';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import { cn, hashCode } from '../../lib/utils';
 import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
@@ -40,17 +40,21 @@ import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
+import type { ContentProviderMode } from '../../types/content-provider';
 
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TrackPanelIndex, TrackPanelPrimary } from '../workbench/TrackPanel';
 import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
+import { HistoryPanel } from '../workbench/HistoryPanel';
+import { AnalyzePanel } from '../workbench/AnalyzePanel';
 
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
 export interface UnifiedWorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
+  mode?: ContentProviderMode;
 }
 
 // --- Main Workbench Content ---
@@ -71,6 +75,10 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     viewMode,
     results: _results,
     panelLayouts,
+    contentMode,
+    stripMode,
+    historySelection,
+    historyEntries,
     setContent,
     setBlocks,
     setActiveBlockId,
@@ -360,14 +368,69 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     />
   );
 
+  // --- History & Analyze Panels (only for history mode) ---
+  const historyBrowserPanel = contentMode === 'history' && historySelection ? (
+    <HistoryPanel
+      span={stripMode === 'history-only' ? 3 : 1}
+      entries={historyEntries}
+      selectedIds={historySelection.selectedIds}
+      onToggleEntry={historySelection.toggleEntry}
+      onSelectAll={historySelection.selectAll}
+      onClearSelection={historySelection.clearSelection}
+      calendarDate={historySelection.calendarDate}
+      onCalendarDateChange={historySelection.setCalendarDate}
+      stripMode={stripMode}
+    />
+  ) : null;
+
+  const selectedEntries = useMemo(() => {
+    if (!historySelection) return [];
+    return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
+  }, [historyEntries, historySelection?.selectedIds]);
+
+  const analyzePanelContent = contentMode === 'history' ? (
+    <AnalyzePanel selectedEntries={selectedEntries} />
+  ) : null;
+
   // --- Build View Descriptors ---
   const viewDescriptors = useMemo(() => {
-    return [
-      createPlanView(planPanel),
-      createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
-      createReviewView(reviewIndexPanel, reviewPrimaryPanel),
-    ];
+    if (contentMode === 'static') {
+      // Static mode: Plan | Track | Review (unchanged)
+      return [
+        createPlanView(planPanel),
+        createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
+        createReviewView(reviewIndexPanel, reviewPrimaryPanel),
+      ];
+    }
+
+    // History mode: strip depends on selection mode
+    switch (stripMode) {
+      case 'history-only':
+        return [
+          createHistoryView(historyBrowserPanel, stripMode),
+        ];
+      case 'single-select':
+        return [
+          createHistoryView(historyBrowserPanel, stripMode),
+          createPlanView(planPanel),
+          createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
+          createReviewView(reviewIndexPanel, reviewPrimaryPanel),
+        ];
+      case 'multi-select':
+        return [
+          createHistoryView(historyBrowserPanel, stripMode),
+          createAnalyzeView(analyzePanelContent),
+        ];
+      default:
+        return [
+          createPlanView(planPanel),
+          createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
+          createReviewView(reviewIndexPanel, reviewPrimaryPanel),
+        ];
+    }
   }, [
+    contentMode,
+    stripMode,
     planPanel,
     trackPrimaryPanel,
     trackIndexPanel,
@@ -375,6 +438,8 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
     isDebugMode,
     reviewIndexPanel,
     reviewPrimaryPanel,
+    historyBrowserPanel,
+    analyzePanelContent,
   ]);
 
   return (
@@ -429,40 +494,21 @@ const UnifiedWorkbenchContent: React.FC<UnifiedWorkbenchProps> = ({
 
             {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
 
-            {/* View Mode Buttons */}
-            <Button
-              variant={viewMode === 'plan' ? 'default' : 'ghost'}
-              size={isMobile ? 'icon' : 'sm'}
-              onClick={() => setViewMode('plan')}
-              className={cn('gap-2', viewMode !== 'plan' && 'text-muted-foreground hover:text-foreground')}
-              aria-label={isMobile ? "Switch to Plan view" : undefined}
-              title={isMobile ? "Switch to Plan view" : undefined}
-            >
-              <Edit className="h-4 w-4" />
-              {!isMobile && 'Plan'}
-            </Button>
-            <Button
-              variant={viewMode === 'track' ? 'default' : 'ghost'}
-              size={isMobile ? 'icon' : 'sm'}
-              onClick={() => setViewMode('track')}
-              className={cn('gap-2', viewMode !== 'track' && 'text-muted-foreground hover:text-foreground')}
-              aria-label={isMobile ? "Switch to Track view" : undefined}
-              title={isMobile ? "Switch to Track view" : undefined}
-            >
-              <Timer className="h-4 w-4" />
-              {!isMobile && 'Track'}
-            </Button>
-            <Button
-              variant={viewMode === 'review' ? 'default' : 'ghost'}
-              size={isMobile ? 'icon' : 'sm'}
-              onClick={() => setViewMode('review')}
-              className={cn('gap-2', viewMode !== 'review' && 'text-muted-foreground hover:text-foreground')}
-              aria-label={isMobile ? "Switch to Review view" : undefined}
-              title={isMobile ? "Switch to Review view" : undefined}
-            >
-              <BarChart2 className="h-4 w-4" />
-              {!isMobile && 'Review'}
-            </Button>
+            {/* View Mode Buttons — dynamically built from current viewDescriptors */}
+            {viewDescriptors.map(view => (
+              <Button
+                key={view.id}
+                variant={viewMode === view.id ? 'default' : 'ghost'}
+                size={isMobile ? 'icon' : 'sm'}
+                onClick={() => setViewMode(view.id as ViewMode)}
+                className={cn('gap-2', viewMode !== view.id && 'text-muted-foreground hover:text-foreground')}
+                aria-label={isMobile ? `Switch to ${view.label} view` : undefined}
+                title={isMobile ? `Switch to ${view.label} view` : undefined}
+              >
+                {view.icon}
+                {!isMobile && view.label}
+              </Button>
+            ))}
 
             <div className="h-6 w-px bg-border mx-2" />
 
@@ -511,7 +557,7 @@ export const UnifiedWorkbench: React.FC<UnifiedWorkbenchProps> = (props) => {
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <CommandProvider>
-        <WorkbenchProvider initialContent={props.initialContent}>
+        <WorkbenchProvider initialContent={props.initialContent} mode={props.mode}>
           <AudioProvider>
             <RuntimeLifecycleProvider factory={runtimeFactory}>
               <UnifiedWorkbenchContent {...props} />

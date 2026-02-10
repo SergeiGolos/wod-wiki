@@ -94,3 +94,14 @@ export interface PanelLayoutActions {
   /** Manually set a panel's span */
   setSpan: (viewId: string, panelId: string, span: PanelSpan) => void;
 }
+
+/**
+ * Strip configuration — defines the views and layout for a given strip mode.
+ * Used by the ResponsiveViewport to dynamically adjust the sliding strip.
+ */
+export interface StripConfiguration {
+  mode: import('@/types/history').StripMode;
+  views: ViewDescriptor[];
+  stripWidth: string;
+  offsets: Record<string, string>;
+}

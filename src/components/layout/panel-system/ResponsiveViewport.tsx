@@ -17,7 +17,10 @@ import type { ViewDescriptor } from './types';
 import { PanelGrid } from './PanelGrid';
 import { useScreenMode } from './useScreenMode';
 
-export type ViewMode = 'plan' | 'track' | 'review';
+export type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze';
+
+/** Constrained type for static mode — only the original 3 views */
+export type StaticViewMode = 'plan' | 'track' | 'review';
 
 export interface ResponsiveViewportProps {
   /** All view descriptors */
@@ -41,17 +44,6 @@ export interface ResponsiveViewportProps {
   /** Additional CSS classes */
   className?: string;
 }
-
-/**
- * Calculate viewport offset based on current view index
- * Percentages are relative to the strip's own width (N * 100% of viewport),
- * so each view offset is -(index / N) * 100%.
- */
-const viewOffsets: Record<ViewMode, string> = {
-  plan: '0%',
-  track: '-33.333%',
-  review: '-66.667%',
-};
 
 /**
  * ResponsiveViewport - Sliding viewport with composable panel system

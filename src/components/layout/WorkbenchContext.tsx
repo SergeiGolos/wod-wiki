@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
+import type { ContentProviderMode } from '../../types/content-provider';
+import type { HistoryEntry, StripMode } from '../../types/history';
+import { useHistorySelection } from '../../hooks/useHistorySelection';
+import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -32,6 +36,19 @@ interface WorkbenchContextState {
   // Panel Layout State (per-view)
   panelLayouts: Record<string, PanelLayoutState>;
 
+  // Content Provider Mode
+  contentMode: ContentProviderMode;
+
+  // Strip mode (derived from content mode + selection)
+  stripMode: StripMode;
+
+  // History selection (null when contentMode='static')
+  historySelection: UseHistorySelectionReturn | null;
+
+  // History entries (empty when contentMode='static')
+  historyEntries: HistoryEntry[];
+  setHistoryEntries: (entries: HistoryEntry[]) => void;
+
   // Actions
   setContent: (content: string) => void;
   setBlocks: (blocks: WodBlock[]) => void;
@@ -59,11 +76,13 @@ export const useWorkbench = () => {
 interface WorkbenchProviderProps {
   children: React.ReactNode;
   initialContent?: string;
+  mode?: ContentProviderMode;
 }
 
 export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   children,
-  initialContent = ''
+  initialContent = '',
+  mode = 'static',
 }) => {
   // Document State
   const [content, setContent] = useState(initialContent);
@@ -72,13 +91,33 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('plan');
+  const [viewMode, setViewModeRaw] = useState<ViewMode>(mode === 'history' ? 'history' : 'plan');
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
 
   // Panel Layout State (per-view)
   const [panelLayouts, setPanelLayouts] = useState<Record<string, PanelLayoutState>>({});
+
+  // History entries (managed externally, stored here for context sharing)
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+
+  // History selection (only active when mode='history')
+  const historySelectionHook = useHistorySelection();
+  const historySelection = mode === 'history' ? historySelectionHook : null;
+
+  // Derive strip mode from content mode + selection state
+  const stripMode: StripMode = mode === 'static'
+    ? 'static'
+    : historySelectionHook.stripMode;
+
+  // Guard viewMode setter: reject 'history' and 'analyze' in static mode
+  const setViewMode = useCallback((newMode: ViewMode) => {
+    if (mode === 'static' && (newMode === 'history' || newMode === 'analyze')) {
+      return; // Safety guard — these views don't exist in static mode
+    }
+    setViewModeRaw(newMode);
+  }, [mode]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -144,6 +183,11 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     viewMode,
     results,
     panelLayouts,
+    contentMode: mode,
+    stripMode,
+    historySelection,
+    historyEntries,
+    setHistoryEntries,
     setContent,
     setBlocks,
     setActiveBlockId,
