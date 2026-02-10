@@ -1,8 +1,7 @@
 /**
- * Runtime utilities for metrics and fragment conversion
+ * Runtime utilities for fragment operations
  */
 
-export { 
-  metricToFragment, 
-  fragmentsToLabel 
-} from './metricsToFragments';
+export {
+  fragmentsToLabel
+} from './fragmentUtils';

@@ -1,9 +1,8 @@
 /**
  * Fragment to Display Metric Converter
  * 
- * Transforms ICodeFragment arrays into IDisplayMetric format for the Clock UI.
- * This decouples the display layer from the RuntimeMetric type, allowing
- * the UI to work directly with fragments.
+ * Transforms ICodeFragment arrays into IDisplayMetric format for the Clock UI,
+ * allowing the UI to work directly with fragments.
  * 
  * Part of Phase 1 metrics consolidation: Fragment-based architecture.
  */
@@ -21,7 +20,7 @@ import { MetricBehavior } from '../../types/MetricBehavior';
 export function fragmentToDisplayMetric(fragment: ICodeFragment): IDisplayMetric {
   // Use the fragment's image if available, otherwise construct from value and type
   const displayImage = fragment.image || formatFragmentValue(fragment);
-  
+
   return {
     type: fragment.fragmentType,
     value: fragment.value as string | number,
@@ -53,18 +52,18 @@ export function fragmentsToDisplayMetrics(
   behaviorFilter?: MetricBehavior[]
 ): IDisplayMetric[] {
   // Flatten if nested
-  const flat = Array.isArray(fragments[0]) 
+  const flat = Array.isArray(fragments[0])
     ? (fragments as ICodeFragment[][]).flat()
     : (fragments as ICodeFragment[]);
-  
+
   // Filter by behavior if specified
   let filtered = flat;
   if (behaviorFilter && behaviorFilter.length > 0) {
-    filtered = flat.filter(f => 
+    filtered = flat.filter(f =>
       f.behavior && behaviorFilter.includes(f.behavior)
     );
   }
-  
+
   // Convert to display metrics
   return filtered.map(fragmentToDisplayMetric);
 }
@@ -96,9 +95,9 @@ function formatFragmentValue(fragment: ICodeFragment): string {
   if (fragment.value === undefined || fragment.value === null) {
     return '';
   }
-  
+
   const value = fragment.value;
-  
+
   // Handle different fragment types
   switch (fragment.fragmentType) {
     case FragmentType.Timer:
@@ -107,23 +106,23 @@ function formatFragmentValue(fragment: ICodeFragment): string {
         return formatDuration(value);
       }
       return String(value);
-      
+
     case FragmentType.Rep:
       return `${value} reps`;
-      
+
     case FragmentType.Resistance:
       return `${value}`;
-      
+
     case FragmentType.Distance:
       return `${value}`;
-      
+
     case FragmentType.Rounds:
       return `Round ${value}`;
-      
+
     case FragmentType.Effort:
     case FragmentType.Action:
       return String(value);
-      
+
     default:
       return String(value);
   }
@@ -161,7 +160,7 @@ function formatDuration(ms: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }

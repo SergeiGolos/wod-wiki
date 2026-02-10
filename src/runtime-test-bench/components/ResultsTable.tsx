@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
 import { IOutputStatement } from '../../core/models/OutputStatement';
-import { fragmentsToLabel } from '../../runtime/utils/metricsToFragments';
+import { fragmentsToLabel } from '../../runtime/utils/fragmentUtils';
 
 interface ResultsTableProps {
   snapshot: ExecutionSnapshot | null;

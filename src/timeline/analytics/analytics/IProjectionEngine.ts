@@ -11,7 +11,7 @@ import type { ICodeFragment } from '../../../core/models/CodeFragment';
  * Each engine implements a specific type of analysis (e.g., volume, power, intensity)
  * and can be registered with the AnalysisService to run as part of a projection suite.
  * 
- * Phase 2 Update: Engines now support both RuntimeMetric (legacy) and ICodeFragment (new)
+ * Engines work directly with ICodeFragment for metrics analysis.
  * paths for metrics consolidation.
  */
 export interface IProjectionEngine {

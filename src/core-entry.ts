@@ -18,8 +18,6 @@ export { CodeStatement } from './core/models/CodeStatement';
 export { OutputStatement } from './core/models/OutputStatement';
 export type { IOutputStatement } from './core/models/OutputStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
-// Note: Metric and MetricValue removed in Phase 3. Use ICodeFragment instead.
-export type { MetricValue, MetricValueType } from './runtime/models/RuntimeMetric';
 
 // Parser
 export * from './parser/timer.parser';

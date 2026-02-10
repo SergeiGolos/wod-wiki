@@ -1,7 +1,7 @@
 // src/types/cast/messages.ts
 
 import { IDisplayStackState as ImportedDisplayStackState, ITimerDisplayEntry as ImportedTimerDisplayEntry, IDisplayCardEntry as ImportedDisplayCardEntry } from '@/clock/types/DisplayTypes';
-import { RuntimeMetric } from '@/runtime/models/RuntimeMetric';
+import type { ICodeFragment } from '@/core/models/CodeFragment';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 
 // Re-export for backward compatibility
@@ -186,7 +186,7 @@ export interface CastStopMessage extends CastMessage {
   payload: {
     initiatedBy: 'caster' | 'receiver';
     reason: 'user-requested' | 'workout-complete' | 'error' | 'timeout';
-    finalMetrics?: RuntimeMetric[];
+    finalMetrics?: ICodeFragment[];
   };
 }
 
@@ -245,7 +245,7 @@ export type EventName =
 export interface MetricsUpdateMessage extends CastMessage {
   type: 'metrics-update';
   payload: {
-    metric: RuntimeMetric;
+    metric: ICodeFragment;
     userId?: string;
   };
 }
@@ -253,7 +253,7 @@ export interface MetricsUpdateMessage extends CastMessage {
 export interface MetricsBatchMessage extends CastMessage {
   type: 'metrics-batch';
   payload: {
-    metrics: RuntimeMetric[];
+    metrics: ICodeFragment[];
     heartRateData: HeartRateDataPoint[];
     batchStartTime: number;
     batchEndTime: number;
@@ -275,7 +275,7 @@ export interface WorkoutCompleteMessage extends CastMessage {
     completionTime: number;
     totalDuration: number;
     executionLog: ExecutionRecord[];
-    metrics: RuntimeMetric[];
+    metrics: ICodeFragment[];
     heartRateData: HeartRateDataPoint[];
     summary: WorkoutSummary;
   };

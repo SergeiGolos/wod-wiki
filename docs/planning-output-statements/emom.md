@@ -1,0 +1,91 @@
+# EMOM (Every Minute On the Minute)
+
+**Pattern**: `WorkoutRoot > EMOM(N × interval-timer) > Exercises`
+
+**Workouts**: Chelsea (30 @ :60 EMOM), EMOM Lifting (15 @ :60 EMOM), ABC (20 @ 1:00 EMOM)
+
+**Characteristics**: Fixed-round loop with per-interval countdown timer. Timer is primary (drives round boundaries). Exercises complete within the interval, then reset for next round.
+
+---
+
+## Behavior Stack
+
+### Block: WorkoutRoot
+- `SegmentOutputBehavior` (mount: emit label, unmount: close with total time)
+- `HistoryRecordBehavior` (unmount: emit history:record event)
+- `ChildRunnerBehavior` (push EMOM, then idle)
+
+### Block: EMOM (parent with bounded round state + interval timer)
+- `TimerInitBehavior` (down, primary — countdown from :60 per interval)
+- `TimerTickBehavior` (listen to tick events)
+- `TimerCompletionBehavior` (onTick: if interval elapsed, markComplete for this interval)
+- `RoundInitBehavior` (mount: initialize `round={current:1, total:30}`)
+- `RoundAdvanceBehavior` (onNext: if all children executed, `round.current += 1`)
+- `RoundCompletionBehavior` (onNext: if `round.current > round.total`, pop)
+- `ChildLoopBehavior` (onNext: if all executed && rounds remain && timer allows, reset `childIndex=0`)
+- `ChildRunnerBehavior` (onNext: if children remain, push next child)
+
+### Block: Exercise (leaf effort block, same as for-time-single)
+- `SegmentOutputBehavior` (mount: emit effort/reps, unmount: completion)
+- `PopOnNextBehavior` (user advance → pop)
+
+---
+
+## State Variables
+
+| Variable | Type | Owner | Lifecycle |
+|----------|------|-------|-----------|
+| `timer` (primary) | `TimerState: { elapsed, durationMs:60000 or 1000, direction:'down' }` | EMOM | Starts on mount, resets after interval complete, repeats for each round |
+| `round.current` | `1 → 2 → 3 → ... → 30` | EMOM | Increments on `→next` when all children executed, bounded by total |
+| `round.total` | `30` or `20` (constant) | EMOM | Set at mount |
+| `childIndex` | `0 → 1 → 2 → 3 → 0 → 1 → ...` | EMOM | Cycles through exercises, resets each round |
+
+---
+
+## Chelsea — `(30) :60 EMOM / 5 Pullups / 10 Pushups / 15 Air Squats`
+
+**Blocks**: `WorkoutRoot > EMOM(30×:60) > [Pullups, Pushups, Squats]`
+
+| Step | Event | Block | Depth | Output | Fragments | State Changes | Expected? |
+|---:|---|---|---:|---|---|---|---|
+| 1 | mount | WorkoutRoot | 0 | `segment` | label: "Chelsea" | Root.childIndex: 0→1, push EMOM | ✅ |
+| 2 | mount | EMOM(30×:60) | 1 | `segment` | timer: :60 countdown, rounds: 1/30 | round={1,30}, timer starts @:60, childIndex: 0→1, push Pullups | ✅ |
+| 3 | mount | Pullups | 2 | `segment` | effort: "Pullups", reps: 5 | _(leaf)_ | ✅ |
+| 4 | unmount | Pullups | 2 | `completion` | effort: "Pullups", timeSpan: closed | | ✅ |
+| →5 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 1→2, push Pushups | ✅ |
+| 6 | mount | Pushups | 2 | `segment` | effort: "Pushups", reps: 10 | _(leaf)_ | ✅ |
+| 7 | unmount | Pushups | 2 | `completion` | effort: "Pushups", timeSpan: closed | | ✅ |
+| →8 | →next | EMOM(30×:60) | 1 | — | _(parent receives control)_ | RoundAdv: skip. ChildRunner: childIndex 2→3, push Squats | ✅ |
+| 9 | mount | Squats | 2 | `segment` | effort: "Air Squats", reps: 15 | _(leaf)_ | ✅ |
+| 10 | unmount | Squats | 2 | `completion` | effort: "Air Squats", timeSpan: closed | | ✅ |
+| →11 | →next | EMOM(30×:60) | 1 | `milestone` | rounds: 2/30 | RoundAdv: round 1→2. ChildLoop: reset childIndex=0. ChildRunner: childIndex 0→1, push Pullups | ✅ |
+| 12 | tick | EMOM(30×:60) | 1 | `milestone` | sound: interval-beep | TimerCompl: interval :60 elapsed, timer resets for round 2 | ✅ |
+| _(user continues round 2 exercises while new :60 timer starts)_ | | | | | | | |
+| ...repeat interval... | | | | | | | |
+| →N | →next | EMOM(30×:60) | 1 | — | _(after round 30, last child)_ | RoundAdv: round 30→31. RoundCompl: 31>30 → markComplete, pop EMOM | ✅ |
+| N+1 | unmount | EMOM(30×:60) | 1 | `completion` | rounds: 30/30, timer: final | | ✅ |
+| →N+2 | →next | WorkoutRoot | 0 | — | _(root receives control)_ | ChildRunner: no more children → idle | ✅ |
+| N+3 | unmount | WorkoutRoot | 0 | `completion` | label: "Chelsea", timeSpan: total | history:record event | ✅ |
+
+**Total expected outputs**: ~8 per round × 30 + root overhead
+
+---
+
+## Key Patterns
+
+✅ EMOM emits `segment` on mount with interval timer info  
+✅ EMOM emits `milestone` on each round advance (round 2, 3, ... 30)  
+✅ Interval beep fires on `tick` when `:60` (or interval) elapsed  
+✅ Timer resets for each new round  
+✅ `RoundCompletionBehavior` fires when `round.current > round.total`  
+✅ Children reset (`childIndex=0`) on each round boundary  
+✅ Once final round complete, EMOM pops  
+✅ History records all 30 rounds completed
+
+---
+
+## Open Questions
+
+- [ ] Does the interval timer reset automatically on round advance, or must user manually advance to trigger reset?
+- [ ] If user doesn't complete exercises before interval expires, does the workout pause or auto-advance to next round?
+- [ ] Should the interval-beep be a separate `milestone` or combined with the round-advance `milestone`?
