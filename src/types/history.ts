@@ -3,28 +3,65 @@
  *
  * Type definitions for the history panel expansion:
  * - HistoryEntry: A stored workout post
- * - HistoryFilters: Filter criteria for browsing
+ * - EntryQuery: Query criteria for browsing
+ * - ProviderCapabilities: What a content provider can do
+ * - HistoryFilters: Filter criteria for browsing (legacy, used by UI)
  * - HistorySelectionState: Full selection state
  * - SelectionMode: Derived from selection count
  * - StripMode: Controls which views appear in the strip
  */
+
+import type { IOutputStatement } from '../core/models/OutputStatement';
 
 /**
  * A stored workout entry in the history.
  */
 export interface HistoryEntry {
   id: string;
-  name: string;
-  date: Date;
-  duration: number;       // seconds
+  title: string;
+  createdAt: number;                   // Unix ms — immutable
+  updatedAt: number;                   // Unix ms — bumped on edit
+
+  // Source
+  rawContent: string;                  // Original markdown
+
+  // Execution results (optional — present after completion)
+  results?: {
+    completedAt: number;
+    duration: number;                  // ms
+    logs: IOutputStatement[];
+  };
+
+  // Metadata
   tags: string[];
-  workoutType: string;
-  results?: Record<string, unknown>;
-  rawContent: string;     // original markdown
+  notes?: string;
+  schemaVersion: number;               // For future migration
 }
 
 /**
- * Filter criteria for browsing history entries.
+ * Query criteria for browsing history entries via IContentProvider.
+ */
+export interface EntryQuery {
+  dateRange?: { start: number; end: number };  // Unix ms
+  daysBack?: number;                            // Sugar: "last N days"
+  tags?: string[];
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Capabilities that a content provider supports.
+ */
+export interface ProviderCapabilities {
+  canWrite: boolean;
+  canDelete: boolean;
+  canFilter: boolean;
+  canMultiSelect: boolean;
+  supportsHistory: boolean;            // false → hides History tab
+}
+
+/**
+ * Filter criteria for browsing history entries (legacy, used by UI selection hook).
  */
 export interface HistoryFilters {
   workoutType: string | null;

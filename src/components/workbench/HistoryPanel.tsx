@@ -59,7 +59,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const entryDates = useMemo(() => {
     const dates = new Set<string>();
     entries.forEach(entry => {
-      const d = entry.date instanceof Date ? entry.date : new Date(entry.date);
+      const d = new Date(entry.updatedAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       dates.add(key);
     });

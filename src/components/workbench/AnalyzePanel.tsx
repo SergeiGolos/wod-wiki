@@ -40,9 +40,9 @@ export const AnalyzePanel: React.FC<AnalyzePanelProps> = ({
               {selectedEntries.map(entry => (
                 <li key={entry.id} className="flex items-baseline gap-2 text-sm">
                   <span className="text-muted-foreground">•</span>
-                  <span className="text-foreground">{entry.name}</span>
+                  <span className="text-foreground">{entry.title}</span>
                   <span className="text-muted-foreground text-xs">
-                    — {(entry.date instanceof Date ? entry.date : new Date(entry.date)).toLocaleDateString('en-US', {
+                    — {new Date(entry.updatedAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',

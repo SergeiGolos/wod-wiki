@@ -1,14 +1,12 @@
 /**
  * Content Provider Types
  *
- * Defines the two content provider modes for the workbench:
- * - 'history': Production mode with browsable workout history
- * - 'static': Storybook/demo mode with injected content
- *
- * These types gate every downstream decision: strip mode, available views, landing view.
+ * Defines the IContentProvider interface and related types.
+ * Providers are injected, not imported — components receive IContentProvider from context.
+ * Swapping to a different provider (e.g., API-backed) = one-line change at the app root.
  */
 
-import type { HistoryEntry, HistoryFilters } from './history';
+import type { HistoryEntry, EntryQuery, ProviderCapabilities } from './history';
 
 /**
  * Content provider mode — the highest-level branching point in the system.
@@ -18,19 +16,20 @@ import type { HistoryEntry, HistoryFilters } from './history';
 export type ContentProviderMode = 'history' | 'static';
 
 /**
- * History store interface — persistence layer for workout entries.
- * Implementation may use localStorage, IndexedDB, or a remote API.
+ * IContentProvider — async interface consumed by the workbench.
+ * All methods return Promises so that components never know whether
+ * data is from memory, localStorage, or HTTP.
  */
-export interface IHistoryStore {
-  getEntries(filters?: Partial<HistoryFilters>): Promise<HistoryEntry[]>;
+export interface IContentProvider {
+  readonly mode: ContentProviderMode;
+  readonly capabilities: ProviderCapabilities;
+
+  // Read (always async)
+  getEntries(query?: EntryQuery): Promise<HistoryEntry[]>;
   getEntry(id: string): Promise<HistoryEntry | null>;
-  saveEntry(entry: HistoryEntry): Promise<void>;
+
+  // Write (throws if !capabilities.canWrite)
+  saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry>;
+  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title'>>): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
 }
-
-/**
- * Discriminated union for type-safe content provider configuration.
- */
-export type ContentProvider =
-  | { mode: 'history'; historyStore: IHistoryStore }
-  | { mode: 'static'; initialContent: string };
