@@ -3,15 +3,14 @@ import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
+import { BlockBuilder } from '../BlockBuilder';
 
-// Aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
     TimerInitBehavior,
-    TimerTickBehavior,
     PopOnNextBehavior,
     PopOnEventBehavior,
     DisplayInitBehavior,
@@ -40,12 +39,10 @@ export interface IdleBlockConfig {
 
 /**
  * IdleBlockStrategy - Composes behaviors for idle/transition blocks.
- * 
- * Uses aspect-based behaviors:
- * - Time: TimerInit (countup), TimerTick
- * - Completion: PopOnNext or PopOnEvent
- * - Display: DisplayInit
- * - Controls: ControlsInit
+ *
+ * Uses aspect composer methods (when applicable):
+ * - .asTimer() - Track idle duration (if trackTiming enabled)
+ * Plus specific behaviors for display, controls, and completion.
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     priority = 100; // Root is highest priority if it were ever matched
@@ -68,63 +65,63 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
      * Builds an idle block with the specified configuration.
      */
     build(runtime: IScriptRuntime, config: IdleBlockConfig): IRuntimeBlock {
-        const behaviors = this.buildBehaviors(config);
         const blockKey = new BlockKey(config.id);
         const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
 
-        return new RuntimeBlock(
-            runtime,
-            [], // No source IDs for idle block
-            behaviors,
-            context,
-            blockKey,
-            'Idle',
-            config.label
-        );
+        // Use BlockBuilder with aspect composers
+        const builder = new BlockBuilder(runtime);
+        builder
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType('Idle')
+            .setLabel(config.label)
+            .setSourceIds([]); // No source IDs for idle block
+
+        this.composeBehaviors(builder, config);
+
+        return builder.build();
     }
 
     /**
-     * Builds the behavior list for an idle block.
+     * Composes behaviors for an idle block using aspect composers.
      */
-    buildBehaviors(config: IdleBlockConfig): IRuntimeBehavior[] {
-        const behaviors: IRuntimeBehavior[] = [];
+    private composeBehaviors(builder: BlockBuilder, config: IdleBlockConfig): void {
+        // =====================================================================
+        // ASPECT COMPOSERS - High-level composition
+        // =====================================================================
 
-        // =====================================================================
-        // Time Aspect - Track idle duration
-        // =====================================================================
+        // Timer Aspect - Track idle duration (if enabled)
         if (config.trackTiming) {
-            behaviors.push(new TimerInitBehavior({
+            builder.asTimer({
                 direction: 'up',
                 label: config.label,
-                role: 'secondary'
-            }));
-            behaviors.push(new TimerTickBehavior());
+                role: 'secondary',
+                addCompletion: false  // No timer completion for idle blocks
+            });
         }
 
         // =====================================================================
-        // Completion Aspect
+        // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
+
+        // Completion Aspect
         if (config.popOnNext) {
-            behaviors.push(new PopOnNextBehavior());
+            builder.addBehavior(new PopOnNextBehavior());
         }
 
         if (config.popOnEvents && config.popOnEvents.length > 0) {
-            behaviors.push(new PopOnEventBehavior(config.popOnEvents));
+            builder.addBehavior(new PopOnEventBehavior(config.popOnEvents));
         }
 
-        // =====================================================================
         // Display Aspect
-        // =====================================================================
-        behaviors.push(new DisplayInitBehavior({
+        builder.addBehavior(new DisplayInitBehavior({
             mode: config.displayMode || 'clock',
             label: config.label
         }));
 
-        // =====================================================================
         // Controls Aspect
-        // =====================================================================
         if (config.button) {
-            behaviors.push(new ButtonBehavior({
+            builder.addBehavior(new ButtonBehavior({
                 buttons: [{
                     id: config.button.id,
                     label: config.button.label,
@@ -135,8 +132,14 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
                 }]
             }));
         }
+    }
 
-        return behaviors;
+    /**
+     * Builds the behavior list for an idle block (deprecated).
+     * @deprecated Use build() method which uses BlockBuilder with aspect composers
+     */
+    buildBehaviors(config: IdleBlockConfig): IRuntimeBehavior[] {
+        throw new Error('buildBehaviors is deprecated. Use build() method instead.');
     }
 }
 
