@@ -20,31 +20,16 @@ export interface DisplayInitConfig {
  * ## Aspect: Display
  *
  * Sets up UI-facing state for labels and display modes.
- *
- * ## Migration: Fragment-Based Memory
- *
- * This behavior now pushes text fragments to the new list-based memory API
- * while maintaining backward compatibility with the old Map-based API.
  */
 export class DisplayInitBehavior implements IRuntimeBehavior {
     constructor(private config: DisplayInitConfig = {}) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const mode = this.config.mode ?? 'clock';
         const label = this.config.label ?? ctx.block.label;
         const subtitle = this.config.subtitle;
         const actionDisplay = this.config.actionDisplay;
 
-        // Initialize display state in memory (OLD API - kept for backward compatibility)
-        ctx.setMemory('display', {
-            mode,
-            label,
-            subtitle,
-            roundDisplay: undefined,
-            actionDisplay
-        });
-
-        // Create text fragments for display (NEW API - fragment-based memory)
+        // Create text fragments for display
         const fragments: ICodeFragment[] = [];
 
         // Primary label as text fragment
@@ -86,7 +71,7 @@ export class DisplayInitBehavior implements IRuntimeBehavior {
             });
         }
 
-        // Push display fragments to new list-based memory
+        // Push display fragments to list-based memory
         if (fragments.length > 0) {
             ctx.pushMemory('display', fragments);
         }

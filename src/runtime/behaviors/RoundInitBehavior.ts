@@ -16,11 +16,6 @@ export interface RoundInitConfig {
  * ## Aspect: Iteration
  *
  * Sets up the initial round tracking state.
- *
- * ## Migration: Fragment-Based Memory
- *
- * This behavior now pushes round fragments to the new list-based memory API
- * while maintaining backward compatibility with the old Map-based API.
  */
 export class RoundInitBehavior implements IRuntimeBehavior {
     constructor(private config: RoundInitConfig = {}) { }
@@ -29,13 +24,7 @@ export class RoundInitBehavior implements IRuntimeBehavior {
         const current = this.config.startRound ?? 1;
         const total = this.config.totalRounds;
 
-        // Initialize round state in memory (OLD API - kept for backward compatibility)
-        ctx.setMemory('round', {
-            current,
-            total
-        });
-
-        // Create round fragment (NEW API - fragment-based memory)
+        // Create round fragment
         const roundFragment: ICodeFragment = {
             fragmentType: FragmentType.Rounds,
             type: 'rounds',
@@ -49,7 +38,7 @@ export class RoundInitBehavior implements IRuntimeBehavior {
             timestamp: ctx.clock.now,
         };
 
-        // Push round fragment to new list-based memory
+        // Push round fragment to list-based memory
         ctx.pushMemory('round', [roundFragment]);
 
         return [];

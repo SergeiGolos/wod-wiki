@@ -5,8 +5,6 @@ import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment } from "../../core/models/CodeFragment";
-import { FragmentMemory } from "../memory/FragmentMemory";
-import { DisplayFragmentMemory } from "../memory/DisplayFragmentMemory";
 import { MemoryLocation } from "../memory/MemoryLocation";
 
 export class BlockBuilder {
@@ -123,21 +121,9 @@ export class BlockBuilder {
             this.label
         );
 
-        // Allocate fragment memory preserving group structure from strategies
+        // Push fragment memory preserving group structure from strategies
         if (this.fragments && this.fragments.length > 0) {
-            const fragmentMemory = new FragmentMemory(this.fragments);
-            block.allocateMemory('fragment', fragmentMemory);
-
-            // Allocate display fragment memory — subscribes to FragmentMemory
-            // for reactive precedence resolution (IFragmentSource for UI binding)
-            const displayMemory = new DisplayFragmentMemory(
-                block.key.toString(),
-                fragmentMemory
-            );
-            block.allocateMemory('fragment:display', displayMemory);
-
-            // Also push each fragment group as a separate 'fragment:display' location (new API)
-            // This enables list-based memory consumption without migrating existing consumers yet
+            // Push each fragment group as a separate 'fragment:display' location
             for (const group of this.fragments) {
                 block.pushMemory(new MemoryLocation('fragment:display', group));
             }

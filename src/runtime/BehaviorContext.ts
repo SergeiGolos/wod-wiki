@@ -7,7 +7,6 @@ import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { ICodeFragment } from '../core/models/CodeFragment';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
-import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import {
     IBehaviorContext,
@@ -101,13 +100,19 @@ export class BehaviorContext implements IBehaviorContext {
         // Derive TimeSpan from block's timer memory for accurate duration tracking.
         // Without this, outputs always have 0 duration which breaks the history
         // and analytics panels.
-        const timerState = this.getMemory('timer') as import('./memory/MemoryTypes').TimerState | undefined;
+        const timerLocations = this.block.getMemoryByTag('timer');
         let startTime = now.getTime();
         const endTime = now.getTime();
 
-        if (timerState && timerState.spans.length > 0) {
-            // Use the earliest span start as the output start time
-            startTime = timerState.spans[0].started;
+        if (timerLocations.length > 0) {
+            const timerFragments = timerLocations[0].fragments;
+            if (timerFragments.length > 0) {
+                const timerValue = timerFragments[0].value as { spans?: TimeSpan[] } | undefined;
+                if (timerValue?.spans && timerValue.spans.length > 0) {
+                    // Use the earliest span start as the output start time
+                    startTime = timerValue.spans[0].started;
+                }
+            }
         }
 
         // If the caller provided no fragments, pull display fragments from the
@@ -115,9 +120,9 @@ export class BehaviorContext implements IBehaviorContext {
         // label, effort, rep, etc. fragments that the UI needs to render.
         let effectiveFragments = fragments;
         if (effectiveFragments.length === 0) {
-            const displayMem = this.getMemory('fragment:display') as import('./memory/MemoryTypes').FragmentDisplayState | undefined;
-            if (displayMem && displayMem.resolved.length > 0) {
-                effectiveFragments = [...displayMem.resolved];
+            const displayLocations = this.block.getMemoryByTag('fragment:display');
+            if (displayLocations.length > 0) {
+                effectiveFragments = [...displayLocations[0].fragments];
             }
         }
 
@@ -150,21 +155,7 @@ export class BehaviorContext implements IBehaviorContext {
     }
 
     // ============================================================================
-    // Memory Access
-    // ============================================================================
-
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
-        const entry = this.block.getMemory(type);
-        return entry?.value;
-    }
-
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        // Use the block's public setMemoryValue method
-        this.block.setMemoryValue(type, value);
-    }
-
-    // ============================================================================
-    // List-Based Memory (New API)
+    // List-Based Memory API
     // ============================================================================
 
     pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation {

@@ -4,7 +4,6 @@ import { IRuntimeBlock } from './IRuntimeBlock';
 import { IRuntimeClock } from './IRuntimeClock';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { OutputStatementType } from '../../core/models/OutputStatement';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 import { HandlerScope } from './events/IEventBus';
@@ -198,27 +197,8 @@ export interface IBehaviorContext {
     // Memory Access
     // ============================================================================
 
-    /**
-     * Get memory of the specified type from this block.
-     * 
-     * @param type The memory type to retrieve
-     * @returns The memory value, or undefined if not present
-     */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
-
-    /**
-     * Set memory of the specified type on this block.
-     *
-     * If memory of this type already exists, it is updated.
-     * If not, a new memory entry is created.
-     *
-     * @param type The memory type to set
-     * @param value The value to store
-     */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
-
     // ============================================================================
-    // List-Based Memory (New API)
+    // List-Based Memory API
     // ============================================================================
 
     /**
