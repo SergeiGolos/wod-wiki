@@ -8,6 +8,7 @@ import { ICodeFragment } from '../core/models/CodeFragment';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
+import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import {
     IBehaviorContext,
     BehaviorEventType,
@@ -160,6 +161,23 @@ export class BehaviorContext implements IBehaviorContext {
     setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
         // Use the block's public setMemoryValue method
         this.block.setMemoryValue(type, value);
+    }
+
+    // ============================================================================
+    // List-Based Memory (New API)
+    // ============================================================================
+
+    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation {
+        const location = new MemoryLocation(tag, fragments);
+        this.block.pushMemory(location);
+        return location;
+    }
+
+    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void {
+        const locations = this.block.getMemoryByTag(tag);
+        if (locations.length > 0) {
+            locations[0].update(fragments);
+        }
     }
 
     // ============================================================================

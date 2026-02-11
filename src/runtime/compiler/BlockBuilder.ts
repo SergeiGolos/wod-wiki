@@ -7,6 +7,7 @@ import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment } from "../../core/models/CodeFragment";
 import { FragmentMemory } from "../memory/FragmentMemory";
 import { DisplayFragmentMemory } from "../memory/DisplayFragmentMemory";
+import { MemoryLocation } from "../memory/MemoryLocation";
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -134,6 +135,12 @@ export class BlockBuilder {
                 fragmentMemory
             );
             block.allocateMemory('fragment:display', displayMemory);
+
+            // Also push each fragment group as a separate 'fragment:display' location (new API)
+            // This enables list-based memory consumption without migrating existing consumers yet
+            for (const group of this.fragments) {
+                block.pushMemory(new MemoryLocation('fragment:display', group));
+            }
         }
 
         return block;
