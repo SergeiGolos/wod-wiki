@@ -22,16 +22,16 @@ import { usePanelSize } from './panel-system/PanelSizeContext';
 export interface AnalyticsIndexPanelProps {
   /** Historical segments to display */
   segments: Segment[];
-  
+
   /** Available metric groups for display configuration */
   groups?: AnalyticsGroup[];
-  
+
   /** Currently selected segment IDs for filtering */
   selectedSegmentIds?: Set<number>;
-  
+
   /** Callback when segment is clicked */
   onSelectSegment?: (segmentId: number) => void;
-  
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -44,7 +44,7 @@ function formatElapsedTime(seconds: number): string {
   const hrs = Math.floor(totalSeconds / 3600);
   const mins = Math.floor((totalSeconds % 3600) / 60);
   const secs = totalSeconds % 60;
-  
+
   if (hrs > 0) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
@@ -77,7 +77,7 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
   }
 
   const fragments: ICodeFragment[] = [];
-  
+
   // Add type fragment
   fragments.push({
     type: segment.type,
@@ -85,7 +85,7 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
     value: segment.type,
     image: segment.type,
   });
-  
+
   // Add Start Time as timer fragment (startTime is in seconds from workout start)
   fragments.push({
     type: 'timer',
@@ -93,13 +93,13 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
     value: segment.startTime,
     image: formatElapsedTime(segment.startTime),
   });
-  
+
   // Add dynamic metrics based on groups or fallback to all available
   Object.entries(segment.metrics).forEach(([key, value]) => {
     if (value > 0) {
       let unit = '';
       let type = FragmentType.Text;
-      
+
       // Try to find config in groups first
       let config = null;
       for (const g of groups) {
@@ -109,9 +109,9 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
           break;
         }
       }
-      
+
       if (!config) {
-        switch(key) {
+        switch (key) {
           case 'power': unit = 'W'; type = FragmentType.Resistance; break;
           case 'resistance': unit = 'kg'; type = FragmentType.Resistance; break;
           case 'distance': unit = 'm'; type = FragmentType.Distance; break;
@@ -121,7 +121,7 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
           case 'speed': unit = 'km/h'; type = FragmentType.Text; break;
         }
       }
-      
+
       fragments.push({
         type: key,
         fragmentType: type,
@@ -130,7 +130,7 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
       });
     }
   });
-  
+
   return fragments;
 }
 
@@ -138,19 +138,19 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
  * Convert segment to FragmentSourceEntry for unified visualization.
  */
 function segmentToEntry(
-  segment: Segment, 
+  segment: Segment,
   allSegments: Map<number, Segment>,
   groups: AnalyticsGroup[]
 ): FragmentSourceEntry {
   const type = segment.type.toLowerCase();
-  
+
   // Use depth directly if available, otherwise calculate
   let depth = segment.depth || 0;
   if (depth === 0 && segment.parentId !== null) {
     let currentParentId: number | null | undefined = segment.parentId;
     const visited = new Set<number>();
     visited.add(segment.id);
-    
+
     while (currentParentId !== null && currentParentId !== undefined && !visited.has(currentParentId)) {
       visited.add(currentParentId);
       const parent = allSegments.get(currentParentId);
@@ -163,23 +163,23 @@ function segmentToEntry(
       if (depth > 20) break;
     }
   }
-  
+
   // Determine if this is a header/separator
   const isSeparator = ['round', 'interval', 'warmup', 'cooldown'].includes(type);
   const isRoot = type === 'root';
   const isHeader = isRoot || (isSeparator && depth < 2);
-  
+
   // Convert to fragments (skip for separators except root)
   const fragments = (isSeparator && !isRoot) ? [] : segmentToFragments(segment, groups);
-  
+
   return {
     source: new SimpleFragmentSource(segment.id, fragments),
     depth,
     isHeader,
     status: 'completed' as FragmentSourceStatus,
-    duration: segment.duration,
-    startTime: segment.startTime,
-    endTime: segment.endTime,
+    duration: segment.duration * 1000,
+    startTime: segment.startTime * 1000,
+    endTime: segment.endTime * 1000,
     label: segment.name,
   };
 }
@@ -200,11 +200,11 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
   const entries = useMemo(() => {
     const sorted = [...segments].sort((a, b) => a.startTime - b.startTime);
     const segmentMap = new Map(segments.map(s => [s.id, s]));
-    
-    const displayEntries = sorted.map(segment => 
+
+    const displayEntries = sorted.map(segment =>
       segmentToEntry(segment, segmentMap, groups)
     );
-    
+
     // Add end marker if we have data
     if (sorted.length > 0) {
       const lastSegment = sorted[sorted.length - 1];
@@ -226,15 +226,15 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
         depth: 0,
         isHeader: true,
         status: 'completed' as FragmentSourceStatus,
-        startTime: lastSegment.endTime,
+        startTime: lastSegment.endTime * 1000,
       });
     }
-    
+
     return displayEntries;
   }, [segments, groups]);
 
   // Convert selected IDs to string set
-  const selectedIds = useMemo(() => 
+  const selectedIds = useMemo(() =>
     new Set(Array.from(selectedSegmentIds).map(String)),
     [selectedSegmentIds]
   );
@@ -254,7 +254,7 @@ export const AnalyticsIndexPanel: React.FC<AnalyticsIndexPanelProps> = ({
           <h3 className="text-sm font-semibold">Analytics Index</h3>
         </div>
       )}
-      
+
       {/* Fragment Source List */}
       <FragmentSourceList
         entries={entries}

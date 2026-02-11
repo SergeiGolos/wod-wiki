@@ -27,7 +27,7 @@ import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../../markdown-editor/types';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { StartWorkoutAction } from '../actions/stack/StartWorkoutAction';
+import { StartSessionAction } from '../actions/stack/StartSessionAction';
 
 /**
  * Interface for runtime factory implementations
@@ -62,7 +62,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 1. Validates block has statements
    * 2. Creates WodScript from content + statements
    * 3. Instantiates ScriptRuntime with JIT compiler and options
-   * 4. Dispatches StartWorkoutAction to wrap script in root block and push it
+   * 4. Dispatches StartSessionAction to wrap script in session root block and push it
    * 
    * @param block - The WOD block to create runtime for
    * @param options - Optional runtime options (debug mode, logging, etc.)
@@ -90,9 +90,10 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create runtime with JIT compiler and optional debug options
     const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
 
-    // Start the workout by dispatching StartWorkoutAction
-    // This wraps the script in a root block and pushes it onto the stack
-    runtime.do(new StartWorkoutAction());
+    // Start the workout by dispatching StartSessionAction
+    // This wraps the script in a SessionRootBlock (with WaitingToStart gate)
+    // and pushes it onto the stack
+    runtime.do(new StartSessionAction());
 
     return runtime;
   }
