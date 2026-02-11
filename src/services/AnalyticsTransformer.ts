@@ -1,6 +1,6 @@
 
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
-import { hashCode } from '../lib/utils';
+
 import { ICodeFragment } from '../core/models/CodeFragment';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
@@ -74,8 +74,10 @@ export class AnalyticsTransformer {
     return outputs.map(output => {
       const duration = output.timeSpan.duration / 1000;
       const endTime = output.timeSpan.ended ?? Date.now();
-      const metrics = extractMetricsFromFragments([output.fragments]);
-      const fragments = output.fragments;
+
+      // Paranoid copy of fragments to ensure they persist
+      const fragments = output.fragments ? [...output.fragments] : [];
+      const metrics = extractMetricsFromFragments([fragments]);
 
       const nameFragment = fragments.find(f =>
         f.fragmentType === 'effort' ||

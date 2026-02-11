@@ -51,22 +51,15 @@ describe('EMOM — Output Statements', () => {
             startSession(ctx, { label: 'EMOM Test' });
             userNext(ctx); // Start
 
-            // Each round: advance exercise, advance to next round
+            // Each round: exercise is active, timer runs for 60s.
+            // When interval expires, TimerCompletionBehavior clears children
+            // (auto-pops exercise) and resets timer. RoundAdvanceBehavior advances
+            // the round, ChildLoopBehavior resets, ChildRunnerBehavior pushes next.
             for (let round = 0; round < 3; round++) {
-                userNext(ctx); // Exercise complete
-                // After exercise pops, EMOM loops (if rounds remain)
-                // Advance clock to simulate interval
-                advanceClock(ctx, 60000);
+                advanceClock(ctx, 60000); // Interval expires → auto-advance
             }
 
-            // After 3 rounds, EMOM completes → session ends
-            // Pop any remaining blocks
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
-            }
-
+            // After 3 rounds, RoundCompletionBehavior pops EMOM → session ends
             expect(ctx.runtime.stack.count).toBe(0);
         });
 
@@ -76,14 +69,7 @@ describe('EMOM — Output Statements', () => {
             userNext(ctx); // Start
 
             for (let round = 0; round < 3; round++) {
-                userNext(ctx);
-                advanceClock(ctx, 60000);
-            }
-
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
+                advanceClock(ctx, 60000); // Interval expires → auto-advance
             }
 
             const unpaired = ctx.tracer.assertPairedOutputs();

@@ -114,6 +114,16 @@ export class RestBlockBehavior implements IRuntimeBehavior {
             return []; // Not enough time for rest — proceed normally
         }
 
+        // Skip rest insertion when the timer was just reset by
+        // TimerCompletionBehavior (interval pattern). After a reset,
+        // remaining ≈ full duration because elapsed ≈ 0. Inserting
+        // rest for the full interval would be incorrect — only insert
+        // rest when exercises finish early within an interval.
+        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        if (timer?.durationMs && remainingMs >= timer.durationMs) {
+            return []; // Timer just reset — skip rest insertion
+        }
+
         // Push a rest block for the remaining time
         this._isRestPending = true;
         return [new PushRestBlockAction(remainingMs, this._label)];

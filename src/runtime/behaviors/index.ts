@@ -14,6 +14,7 @@ export { TimerInitBehavior } from './TimerInitBehavior';
 export type { TimerInitConfig } from './TimerInitBehavior';
 export { TimerTickBehavior } from './TimerTickBehavior';
 export { TimerCompletionBehavior } from './TimerCompletionBehavior';
+export type { TimerCompletionConfig } from './TimerCompletionBehavior';
 export { TimerPauseBehavior } from './TimerPauseBehavior';
 export { TimerOutputBehavior } from './TimerOutputBehavior';
 

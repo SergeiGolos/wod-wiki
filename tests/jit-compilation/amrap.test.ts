@@ -78,27 +78,13 @@ describe('AMRAP (Cindy) — Output Statements', () => {
             advanceClock(ctx, 180000); // 6 min total
             advanceOneRound();
 
-            // Now expire the timer (advance to 20+ minutes)
+            // Now expire the timer (advance to 20+ minutes).
+            // TimerCompletionBehavior detects expiry → ClearChildrenAction
+            // force-pops the active exercise → NextAction on AMRAP →
+            // CompletedBlockPopBehavior pops AMRAP → session ends.
             advanceClock(ctx, 840000); // 20 min total
 
-            // Timer should be marked complete. Try advancing through remaining exercises.
-            // The AMRAP should not loop again after timer expires.
-            advanceOneRound();
-
-            // After the last round completes with timer expired,
-            // the AMRAP loop should stop (ChildLoop won't reset).
-            // We may need one more userNext to pop the AMRAP itself.
-            // The exact behavior depends on whether AMRAP auto-pops.
-            // At minimum, the session should eventually end.
-
-            // Pop any remaining blocks
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
-            }
-
-            // Session should end eventually
+            // Session should auto-terminate — no manual next() calls needed
             expect(ctx.runtime.stack.count).toBe(0);
         });
 
@@ -107,15 +93,10 @@ describe('AMRAP (Cindy) — Output Statements', () => {
             startSession(ctx, { label: 'Cindy' });
             userNext(ctx); // Start
 
-            // Do one round, expire timer, finish
-            advanceClock(ctx, 1200000); // 20 min (timer expires)
+            // Do one round, expire timer
+            advanceClock(ctx, 60000); // 1 min
             advanceOneRound();
-
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
-            }
+            advanceClock(ctx, 1140000); // 20 min total — timer expires, auto-clears
 
             const unpaired = ctx.tracer.assertPairedOutputs();
             expect(unpaired).toEqual([]);

@@ -1,6 +1,7 @@
 export { NextAction } from './NextAction';
 export { PushBlockAction } from './PushBlockAction';
 export { PopBlockAction } from './PopBlockAction';
+export { ClearChildrenAction } from './ClearChildrenAction';
 export { StartWorkoutAction } from './StartWorkoutAction';
 export type { StartWorkoutOptions } from './StartWorkoutAction';
 export { StartSessionAction } from './StartSessionAction';
