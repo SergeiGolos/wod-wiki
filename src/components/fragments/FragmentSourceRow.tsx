@@ -54,8 +54,10 @@ export interface FragmentSourceEntry {
 }
 
 export interface FragmentSourceRowProps {
-    /** The fragment source to render */
-    source: IFragmentSource;
+    /** The fragment source to render (optional if fragments provided) */
+    source?: IFragmentSource;
+    /** Direct fragments array (takes precedence over source.getDisplayFragments()) */
+    fragments?: ICodeFragment[];
     /** Current execution status @default 'pending' */
     status?: FragmentSourceStatus;
     /** Nesting depth for indentation (0 = root level) @default 0 */
@@ -81,9 +83,9 @@ export interface FragmentSourceRowProps {
     /** Raw fragment groups for multi-line rendering within a single row */
     fragmentGroups?: readonly (readonly ICodeFragment[])[];
     /** Click handler */
-    onClick?: (source: IFragmentSource) => void;
+    onClick?: (source?: IFragmentSource) => void;
     /** Hover handler */
-    onHover?: (source: IFragmentSource | null) => void;
+    onHover?: (source?: IFragmentSource | null) => void;
     /** Additional CSS classes */
     className?: string;
 }
@@ -153,6 +155,7 @@ function StatusDot({ status, size }: { status: FragmentSourceStatus; size: Visua
 
 export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     source,
+    fragments: fragmentsProp,
     status = 'pending',
     depth = 0,
     size = 'normal',
@@ -191,18 +194,18 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     const currentConfig = config[size];
     const paddingLeft = depth * currentConfig.indent;
 
-    // Get display-ready fragments from the source
-    const fragments = source.getDisplayFragments(filter ? {
+    // Get display-ready fragments: prioritize direct fragments prop, fall back to source
+    const fragments = fragmentsProp ?? (source?.getDisplayFragments(filter ? {
         origins: filter.allowedOrigins,
         // Map VisualizerFilter to FragmentFilter where possible
-    } : undefined);
+    } : undefined) || []);
 
     const handleClick = () => { onClick?.(source); };
     const handleMouseEnter = () => { onHover?.(source); };
     const handleMouseLeave = () => { onHover?.(null); };
 
     // Derive label from source if not provided
-    const displayLabel = label ?? (fragments.length === 0 ? `Block ${source.id}` : undefined);
+    const displayLabel = label ?? (fragments.length === 0 ? (source ? `Block ${source.id}` : 'Block') : undefined);
 
     return (
         <div
