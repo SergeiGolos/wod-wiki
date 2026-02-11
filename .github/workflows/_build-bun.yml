@@ -54,21 +54,20 @@ jobs:
             !coverage/**/*.tmp
           retention-days: 30
 
-      - name: Replace GA tag in preview-head.html
+      - name: Replace GA tag in index.html
         if: ${{ vars.G_TAG != '' }}
         run: |
-          sed -i 's/G-PDXVPQZ4PV/${{ vars.G_TAG }}/g' .storybook/preview-head.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' index.html
 
-      - name: Build Storybook
-        run: bun run build-storybook
+      - name: Build App
+        run: bun run build:app
         env:
           # Configure API URL for production build
-          # Default to localhost for GitHub Pages, can be overridden with repository variable
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:6007/api' }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
 
-      - name: Upload Storybook 
+      - name: Upload Build Assets
         uses: actions/upload-artifact@v4
         if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
         with:
           name: page
-          path: storybook-static
+          path: dist

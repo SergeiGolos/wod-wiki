@@ -85,6 +85,10 @@ export const CommandPalette: React.FC = () => {
                         cmd.action();
                         setIsOpen(false);
                       }}
+                      onPointerDown={(e) => {
+                        // Prevent focus loss from input which can break selection in some dialog setups
+                        e.preventDefault();
+                      }}
                       className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none 
                                  aria-selected:bg-accent aria-selected:text-accent-foreground 
                                  data-[selected='true']:bg-accent data-[selected='true']:text-accent-foreground 
