@@ -2,6 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import type { ButtonConfig } from '../memory/MemoryTypes';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 // Re-export types for consumers
 export type { ButtonConfig };
@@ -13,25 +14,30 @@ export interface ControlsConfig {
 
 /**
  * ButtonBehavior initializes control button state in memory.
- * 
+ *
  * ## Aspect: Controls
- * 
+ *
  * Sets up the button configurations in memory that the UI observes.
  * When buttons are clicked, the UI emits the corresponding `eventName`
  * as an external event that behaviors can subscribe to.
- * 
+ *
  * ## Memory Contract
- * 
+ *
  * - **Writes**: `controls` memory on mount
  * - **Clears**: `controls` memory on unmount (sets empty buttons array)
- * 
+ *
  * ## UI Integration
- * 
+ *
  * The UI should:
  * 1. Subscribe to `controls` memory changes
  * 2. Render buttons based on `ButtonsState.buttons`
  * 3. Emit `button.eventName` when user clicks a button
- * 
+ *
+ * ## Migration: Fragment-Based Memory
+ *
+ * This behavior now pushes action fragments to the new list-based memory API
+ * while maintaining backward compatibility with the old Map-based API.
+ *
  * @example
  * ```typescript
  * new ButtonBehavior({
@@ -46,10 +52,33 @@ export class ButtonBehavior implements IRuntimeBehavior {
     constructor(private config: ControlsConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Initialize controls state in memory
+        // Initialize controls state in memory (OLD API - kept for backward compatibility)
         ctx.setMemory('controls', {
             buttons: this.config.buttons
         });
+
+        // Create action fragments for each button (NEW API - fragment-based memory)
+        const fragments: ICodeFragment[] = this.config.buttons.map(button => ({
+            fragmentType: FragmentType.Action,
+            type: 'action',
+            image: button.label,
+            origin: 'runtime',
+            value: {
+                id: button.id,
+                label: button.label,
+                variant: button.variant,
+                visible: button.visible,
+                enabled: button.enabled,
+                eventName: button.eventName
+            },
+            sourceBlockKey: ctx.block.key.toString(),
+            timestamp: ctx.clock.now,
+        }));
+
+        // Push action fragments to new list-based memory
+        if (fragments.length > 0) {
+            ctx.pushMemory('controls', fragments);
+        }
 
         return [];
     }
@@ -59,10 +88,13 @@ export class ButtonBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Clear controls memory (signals UI to remove buttons)
+        // Clear controls memory (signals UI to remove buttons) - OLD API
         ctx.setMemory('controls', {
             buttons: []
         });
+
+        // Clear controls memory (NEW API) - update to empty array
+        ctx.updateMemory('controls', []);
 
         return [];
     }

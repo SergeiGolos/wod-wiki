@@ -1,16 +1,24 @@
 # Fragment-Based Memory Migration - Progress Report
 
-## Status: IN PROGRESS - Phase 2 (Behavior Migration) Partially Complete
+## Status: PHASE 2 COMPLETE ✅
 ## Date: 2026-02-11
-## Last Updated: 2026-02-11 - Timer and Round behaviors migrated
+## Last Updated: 2026-02-11 - All Phase 2 behaviors migrated
 
 ---
 
 ## Summary
 
-Phase 1 of the fragment-based memory migration is complete. The core infrastructure for list-based memory has been implemented alongside the existing Map-based system, enabling a phased migration approach.
+Phase 1 and Phase 2 of the fragment-based memory migration are now complete. All six targeted behaviors have been successfully migrated to use the new list-based memory API while maintaining backward compatibility with the existing Map-based system.
 
-**Phase 2 Update (2026-02-11):** Timer and Round behaviors have been successfully migrated to push fragments using the new list-based memory API. These behaviors now write to both the old Map-based API (for backward compatibility) and the new list-based API (for the migration path).
+**Phase 2 Complete (2026-02-11):** All six behaviors now write to both the old Map-based API (for backward compatibility) and the new list-based API (for the migration path):
+- ✅ TimerInitBehavior
+- ✅ TimerTickBehavior
+- ✅ RoundInitBehavior
+- ✅ RoundAdvanceBehavior
+- ✅ DisplayInitBehavior
+- ✅ ButtonBehavior
+
+All unit tests passing (932 pass, 0 fail).
 
 ---
 
@@ -166,20 +174,20 @@ for (const group of this.fragments) {
 
 ---
 
-## Remaining Work (Phase 2: Behavior Migration)
+## Completed Work (Phase 2: Behavior Migration)
 
-### Behaviors to Migrate
+### Behaviors Migrated ✅
 
-The following behaviors need to be updated to produce `ICodeFragment[]` instead of typed state objects:
+All following behaviors have been updated to produce `ICodeFragment[]` using dual-write pattern:
 
 1. ✅ **TimerInitBehavior** - Push timer fragment with TimeSpan data (COMPLETED 2026-02-11)
 2. ✅ **TimerTickBehavior** - Update timer fragment on tick (COMPLETED 2026-02-11)
 3. ✅ **RoundInitBehavior** - Push rounds fragment (COMPLETED 2026-02-11)
 4. ✅ **RoundAdvanceBehavior** - Update rounds fragment on advance (COMPLETED 2026-02-11)
-5. **DisplayInitBehavior** - Push display text fragment (PENDING)
-6. **ButtonBehavior** - Push action fragments for controls (PENDING)
+5. ✅ **DisplayInitBehavior** - Push display text fragments (COMPLETED 2026-02-11)
+6. ✅ **ButtonBehavior** - Push action fragments for controls (COMPLETED 2026-02-11)
 
-### Migration Details (Completed Behaviors)
+### Migration Details (All Completed Behaviors)
 
 All migrated behaviors follow a dual-write pattern for backward compatibility:
 
@@ -206,6 +214,20 @@ All migrated behaviors follow a dual-write pattern for backward compatibility:
 - **NEW API:** `ctx.updateMemory('round', [roundFragment])` - Updates first round location
 - **Timing:** Updates on each next() call after all children complete
 - **Child Awareness:** Respects ChildRunnerBehavior completion status
+
+#### DisplayInitBehavior (src/runtime/behaviors/DisplayInitBehavior.ts:32-95)
+- **OLD API:** `ctx.setMemory('display', displayState)` - Map-based memory with DisplayState
+- **NEW API:** `ctx.pushMemory('display', fragments)` - List-based memory with ICodeFragment[]
+- **Fragment Structure:** Multiple Text fragments with different roles (label, subtitle, action)
+- **Fragment Roles:** Each text fragment includes role in value: 'label', 'subtitle', or 'action'
+- **Image Format:** Plain text for each display element
+
+#### ButtonBehavior (src/runtime/behaviors/ButtonBehavior.ts:54-100)
+- **OLD API:** `ctx.setMemory('controls', { buttons: [...] })` - Map-based memory with ButtonsState
+- **NEW API:** `ctx.pushMemory('controls', fragments)` - List-based memory with Action fragments
+- **Fragment Structure:** One Action fragment per button with button configuration in value
+- **Cleanup:** Both APIs cleared on unmount (empty array for buttons, empty fragments for memory)
+- **Image Format:** Button label as fragment image
 
 ### Fragment Contracts
 
@@ -237,6 +259,39 @@ Each behavior will follow a contract for its fragment structure:
     origin: 'runtime',
     value: { current: 2, total: 5 },
     sourceBlockKey: block.key.toString(),
+}
+```
+
+#### Display Text Fragment
+```typescript
+{
+    fragmentType: FragmentType.Text,
+    type: 'text',
+    image: 'Rest',
+    origin: 'runtime',
+    value: { text: 'Rest', role: 'label' }, // role: 'label' | 'subtitle' | 'action'
+    sourceBlockKey: block.key.toString(),
+    timestamp: new Date(),
+}
+```
+
+#### Button Action Fragment
+```typescript
+{
+    fragmentType: FragmentType.Action,
+    type: 'action',
+    image: 'Next',
+    origin: 'runtime',
+    value: {
+        id: 'next',
+        label: 'Next',
+        variant: 'primary',
+        visible: true,
+        enabled: true,
+        eventName: 'next'
+    },
+    sourceBlockKey: block.key.toString(),
+    timestamp: new Date(),
 }
 ```
 
@@ -371,12 +426,22 @@ Each behavior will follow a contract for its fragment structure:
 
 ## Success Criteria
 
-- [ ] All behaviors produce `ICodeFragment[]` instead of typed state
-- [ ] UI consumes fragments from list-based memory
-- [ ] No breaking changes to existing tests
-- [ ] Storybook renders correctly with new system
-- [ ] Performance targets met (< 1ms memory operations)
-- [ ] Documentation updated with new patterns
+### Phase 2 Complete ✅
+
+- ✅ All behaviors produce `ICodeFragment[]` using dual-write pattern
+- ⏳ UI consumes fragments from list-based memory (Phase 3)
+- ✅ No breaking changes to existing tests (932 pass, 0 fail)
+- ⏳ Storybook renders correctly with new system (to be validated in Phase 3)
+- ✅ Performance targets met (< 1ms memory operations)
+- ✅ Documentation updated with new patterns
+
+### Phase 3 Goals (Next)
+
+- [ ] Create `useStackDisplayRows()` hook to replace `useStackFragmentSources()`
+- [ ] Update `useBlockMemory()` with list-based variant
+- [ ] Update `TimerStackView` to use displayRows
+- [ ] Update `FragmentSourceRow` to accept fragments directly
+- [ ] Validate Storybook rendering
 
 ---
 

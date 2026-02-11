@@ -128,7 +128,10 @@ export function createIntegrationContext(
 
         setMemory<T extends MemoryType>(type: T, value: MemoryTypeMap[T]) {
             block.memory.set(type, value);
-        }
+        },
+
+        pushMemory: vi.fn(),
+        updateMemory: vi.fn()
     } as IBehaviorContext;
 }
 
