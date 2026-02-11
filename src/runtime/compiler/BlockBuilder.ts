@@ -6,6 +6,19 @@ import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
+import {
+    ReentryCounterBehavior,
+    CompletionTimestampBehavior,
+    TimerInitBehavior, TimerInitConfig,
+    TimerTickBehavior,
+    TimerCompletionBehavior, TimerCompletionConfig,
+    TimerPauseBehavior,
+    RoundInitBehavior, RoundInitConfig,
+    RoundAdvanceBehavior,
+    RoundCompletionBehavior,
+    ChildRunnerBehavior, ChildRunnerConfig,
+    ChildLoopBehavior, ChildLoopConfig
+} from "../behaviors";
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -107,9 +120,88 @@ export class BlockBuilder {
         return this;
     }
 
+    // ============================================================================
+    // Aspect Composer Methods - High-level composition helpers
+    // ============================================================================
+
+    /**
+     * Timer Aspect Composer - Adds all timer-related behaviors as a unit.
+     * Configures countdown/countup timer with tick, pause, and optional completion.
+     *
+     * @param config Timer configuration
+     * @returns This builder for chaining
+     */
+    asTimer(config: TimerInitConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
+        // Time Aspect behaviors
+        this.addBehavior(new TimerInitBehavior({
+            direction: config.direction,
+            durationMs: config.durationMs,
+            label: config.label,
+            role: config.role
+        }));
+        this.addBehavior(new TimerTickBehavior());
+        this.addBehavior(new TimerPauseBehavior());
+
+        // Optional completion behavior
+        if (config.addCompletion !== false) {
+            this.addBehavior(new TimerCompletionBehavior(config.completionConfig));
+        }
+
+        return this;
+    }
+
+    /**
+     * Repeater Aspect Composer - Adds all round/iteration-related behaviors as a unit.
+     * Configures round initialization, advancement, display, and optional completion.
+     *
+     * @param config Round configuration
+     * @returns This builder for chaining
+     */
+    asRepeater(config: RoundInitConfig & { addCompletion?: boolean }): BlockBuilder {
+        // Iteration Aspect behaviors
+        this.addBehavior(new RoundInitBehavior({
+            totalRounds: config.totalRounds,
+            startRound: config.startRound ?? 1
+        }));
+        this.addBehavior(new RoundAdvanceBehavior());
+
+        // Optional completion behavior - only add if totalRounds is bounded
+        if (config.addCompletion !== false && config.totalRounds !== undefined) {
+            this.addBehavior(new RoundCompletionBehavior());
+        }
+
+        return this;
+    }
+
+    /**
+     * Container Aspect Composer - Adds all child-management behaviors as a unit.
+     * Configures child runner and optional child looping.
+     *
+     * @param config Container configuration
+     * @returns This builder for chaining
+     */
+    asContainer(config: ChildRunnerConfig & { addLoop?: boolean; loopConfig?: ChildLoopConfig }): BlockBuilder {
+        // Children Aspect behaviors
+        this.addBehavior(new ChildRunnerBehavior({
+            childGroups: config.childGroups
+        }));
+
+        // Optional loop behavior
+        if (config.addLoop && config.loopConfig) {
+            this.addBehavior(new ChildLoopBehavior(config.loopConfig));
+        }
+
+        return this;
+    }
+
     build(): IRuntimeBlock {
         if (!this.context) throw new Error("BlockContext is required");
         if (!this.key) throw new Error("BlockKey is required");
+
+        // Add Universal Invariants - automatically added to ALL blocks
+        // These behaviors are added implicitly and don't require strategy opt-in
+        this.addBehaviorIfMissing(new ReentryCounterBehavior());
+        this.addBehaviorIfMissing(new CompletionTimestampBehavior());
 
         const block = new RuntimeBlock(
             this.runtime,

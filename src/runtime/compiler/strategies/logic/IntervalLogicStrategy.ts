@@ -9,19 +9,12 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerCompletionBehavior,
-    TimerPauseBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
-    RoundCompletionBehavior,
-    RoundDisplayBehavior,
-    RoundOutputBehavior,
     DisplayInitBehavior,
+    RoundDisplayBehavior,
     TimerOutputBehavior,
+    RoundOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
     SegmentOutputBehavior,
@@ -30,15 +23,14 @@ import {
 
 /**
  * IntervalLogicStrategy handles EMOM (Every Minute On the Minute) blocks.
- * 
+ *
  * Pattern: Repeating interval timer + Rounds
  * Each interval resets the timer.
- * 
- * Uses aspect-based behaviors:
- * - Time: TimerInit (countdown per interval), TimerTick, TimerCompletion
- * - Iteration: RoundInit, RoundAdvance, RoundCompletion
- * - Display: DisplayInit, RoundDisplay
- * - Output: TimerOutput, RoundOutput, HistoryRecord
+ *
+ * Uses aspect composer methods:
+ * - .asTimer() - Countdown per interval (completesBlock: false)
+ * - .asRepeater() - Fixed rounds with completion
+ * Plus specific behaviors for display, output, rest, and sound.
  */
 export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority
@@ -90,64 +82,52 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.setFragments(fragmentGroups);
 
         // =====================================================================
-        // Time Aspect - EMOM uses countdown timer per interval
+        // ASPECT COMPOSERS - High-level composition
         // =====================================================================
-        builder.addBehavior(new TimerInitBehavior({
+
+        // Timer Aspect - EMOM uses countdown timer per interval
+        // Timer expiry does NOT mark block complete - it's a per-round pacing signal
+        builder.asTimer({
             direction: 'down',
             durationMs: intervalMs,
             label: 'Interval',
-            role: 'primary'
-        }));
-        builder.addBehavior(new TimerTickBehavior());
-        builder.addBehavior(new TimerPauseBehavior());
+            role: 'primary',
+            addCompletion: true,
+            completionConfig: { completesBlock: false }  // Timer resets for next round
+        });
 
-        // Timer completion does NOT mark EMOM as complete — the interval timer
-        // is a per-round pacing signal. When it expires, children are auto-popped
-        // and the timer resets for the next round. Block completion is handled by
-        // RoundCompletionBehavior when all rounds are exhausted.
-        builder.addBehavior(new TimerCompletionBehavior({ completesBlock: false }));
-
-        // =====================================================================
-        // Iteration Aspect - EMOM has fixed rounds
-        // =====================================================================
-        builder.addBehavior(new RoundInitBehavior({
+        // Repeater Aspect - EMOM has fixed rounds, block completes when exhausted
+        builder.asRepeater({
             totalRounds,
-            startRound: 1
-        }));
-        builder.addBehavior(new RoundAdvanceBehavior());
-        builder.addBehavior(new RoundCompletionBehavior()); // Complete when all rounds done
+            startRound: 1,
+            addCompletion: true  // RoundCompletionBehavior marks block complete
+        });
 
         // =====================================================================
-        // Display Aspect
+        // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
+
+        // Display Aspect
         builder.addBehavior(new DisplayInitBehavior({
             mode: 'countdown',
             label
         }));
         builder.addBehavior(new RoundDisplayBehavior());
 
-        // =====================================================================
         // Output Aspect
-        // =====================================================================
         builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
 
-        // =====================================================================
         // Rest Insertion Aspect - Auto-generate rest blocks
-        // =====================================================================
         // RestBlockBehavior must be added BEFORE ChildLoopBehavior and
-        // ChildRunnerBehavior (which are added by ChildrenStrategy at
-        // priority 50). When exercises finish before the interval timer
-        // expires, a RestBlock fills the remaining interval time.
+        // ChildRunnerBehavior (which are added by ChildrenStrategy at priority 50)
         builder.addBehavior(new RestBlockBehavior({
             label: 'Rest'
         }));
 
-        // =====================================================================
         // Sound Cues
-        // =====================================================================
         builder.addBehavior(new SoundCueBehavior({
             cues: [
                 { sound: 'interval-start', trigger: 'mount' },
