@@ -5,6 +5,7 @@ import { IRuntimeClock } from './IRuntimeClock';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
+import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 import { HandlerScope } from './events/IEventBus';
 
@@ -207,14 +208,56 @@ export interface IBehaviorContext {
 
     /**
      * Set memory of the specified type on this block.
-     * 
+     *
      * If memory of this type already exists, it is updated.
      * If not, a new memory entry is created.
-     * 
+     *
      * @param type The memory type to set
      * @param value The value to store
      */
     setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
+
+    // ============================================================================
+    // List-Based Memory (New API)
+    // ============================================================================
+
+    /**
+     * Push a new memory location with fragment data onto the block's memory list.
+     *
+     * This creates a new MemoryLocation internally and returns it for potential updates.
+     * Multiple locations with the same tag can coexist on the same block.
+     *
+     * @param tag The memory tag (e.g., 'timer', 'fragment:display')
+     * @param fragments The fragment array to store at this location
+     * @returns The created memory location for optional further manipulation
+     *
+     * @example
+     * ```typescript
+     * // Push timer fragment
+     * ctx.pushMemory('timer', [timerFragment]);
+     *
+     * // Push display row (fragment:display)
+     * ctx.pushMemory('fragment:display', [timerFrag, actionFrag, effortFrag]);
+     * ```
+     */
+    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation;
+
+    /**
+     * Update the first matching memory location with new fragment data.
+     *
+     * Convenience method for updating existing memory without managing references.
+     * If no location with the given tag exists, this is a no-op.
+     *
+     * @param tag The memory tag to update
+     * @param fragments The new fragment array
+     *
+     * @example
+     * ```typescript
+     * // Update timer fragment with new elapsed time
+     * ctx.updateMemory('timer', [updatedTimerFragment]);
+     * ```
+     */
+    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void;
 
     // ============================================================================
     // Block Control

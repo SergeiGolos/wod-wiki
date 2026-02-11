@@ -10,6 +10,7 @@ import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
 import { SimpleMemoryEntry } from './memory/SimpleMemoryEntry';
 import { RuntimeLogger } from './RuntimeLogger';
+import { IMemoryLocation, MemoryTag } from './memory/MemoryLocation';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -33,8 +34,11 @@ export class RuntimeBlock implements IRuntimeBlock {
     public readonly context: IBlockContext;
     public readonly sourceIds: number[];
 
-    // Typed memory entries
+    // Typed memory entries (legacy Map-based API)
     private _memoryEntries: Map<MemoryType, IMemoryEntry<MemoryType, any>> = new Map();
+
+    // List-based memory storage (new API)
+    private _memory: IMemoryLocation[] = [];
 
     // Behavior context (created on mount)
     protected _behaviorContext?: BehaviorContext;
@@ -130,6 +134,34 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         // Log memory update
         RuntimeLogger.logMemoryUpdate(this.key.toString(), type, value);
+    }
+
+    // ============================================================================
+    // List-Based Memory (New API)
+    // ============================================================================
+
+    /**
+     * Push a new memory location onto the block's memory list.
+     * Multiple locations with the same tag can coexist.
+     */
+    pushMemory(location: IMemoryLocation): void {
+        this._memory.push(location);
+    }
+
+    /**
+     * Get all memory locations matching the given tag.
+     * Returns an empty array if no locations match.
+     */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+        return this._memory.filter(loc => loc.tag === tag);
+    }
+
+    /**
+     * Get all memory locations owned by this block.
+     * Returns the full memory list in insertion order.
+     */
+    getAllMemory(): IMemoryLocation[] {
+        return [...this._memory];
     }
 
     // ============================================================================
@@ -274,6 +306,12 @@ export class RuntimeBlock implements IRuntimeBlock {
             }
         }
         this._memoryEntries.clear();
+
+        // Dispose list-based memory locations
+        for (const location of this._memory) {
+            location.dispose();
+        }
+        this._memory = [];
 
         // Unregister event handlers
         for (const unsub of this._eventUnsubscribers) {

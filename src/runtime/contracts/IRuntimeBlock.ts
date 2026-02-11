@@ -6,6 +6,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { IMemoryEntry } from '../memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { IRuntimeClock } from './IRuntimeClock';
+import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
@@ -188,6 +189,35 @@ export interface IRuntimeBlock {
      * @param value The value to store
      */
     setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
+
+    // ============================================================================
+    // List-Based Memory (New API)
+    // ============================================================================
+
+    /**
+     * Push a new memory location onto the block's memory list.
+     * Multiple locations with the same tag can coexist.
+     *
+     * @param location The memory location to add
+     */
+    pushMemory(location: IMemoryLocation): void;
+
+    /**
+     * Get all memory locations matching the given tag.
+     * Returns an empty array if no locations match.
+     *
+     * @param tag The memory tag to filter by
+     * @returns Array of memory locations with the given tag
+     */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+
+    /**
+     * Get all memory locations owned by this block.
+     * Returns the full memory list in insertion order.
+     *
+     * @returns Array of all memory locations
+     */
+    getAllMemory(): IMemoryLocation[];
 
     /**
      * Indicates whether this block has completed execution.
