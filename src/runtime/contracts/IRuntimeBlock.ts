@@ -3,8 +3,6 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IBlockContext } from './IBlockContext';
 import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
-import { IMemoryEntry } from '../memory/IMemoryEntry';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
@@ -160,38 +158,7 @@ export interface IRuntimeBlock {
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
 
     // ============================================================================
-    // Block-Owned Memory
-    // ============================================================================
-
-    /**
-     * Check if this block owns memory of the specified type.
-     * @param type The memory type to check for
-     */
-    hasMemory<T extends MemoryType>(type: T): boolean;
-
-    /**
-     * Get memory entry of the specified type.
-     * Returns undefined if no memory of that type exists on this block.
-     * @param type The memory type to retrieve
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined;
-
-    /**
-     * Get all memory types owned by this block.
-     * Useful for UI to discover what data is available.
-     */
-    getMemoryTypes(): MemoryType[];
-
-    /**
-     * Set memory value directly. Creates or updates a memory entry.
-     * This is the public API for behaviors to store state.
-     * @param type The memory type to set
-     * @param value The value to store
-     */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
-
-    // ============================================================================
-    // List-Based Memory (New API)
+    // List-Based Memory API
     // ============================================================================
 
     /**

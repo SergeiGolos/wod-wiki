@@ -5,10 +5,7 @@ import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock'
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
-import { IMemoryEntry } from './memory/IMemoryEntry';
-import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
-import { SimpleMemoryEntry } from './memory/SimpleMemoryEntry';
 import { RuntimeLogger } from './RuntimeLogger';
 import { IMemoryLocation, MemoryTag } from './memory/MemoryLocation';
 
@@ -34,10 +31,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     public readonly context: IBlockContext;
     public readonly sourceIds: number[];
 
-    // Typed memory entries (legacy Map-based API)
-    private _memoryEntries: Map<MemoryType, IMemoryEntry<MemoryType, any>> = new Map();
-
-    // List-based memory storage (new API)
+    // List-based memory storage
     private _memory: IMemoryLocation[] = [];
 
     // Behavior context (created on mount)
@@ -84,60 +78,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     }
 
     // ============================================================================
-    // Memory Access
-    // ============================================================================
-
-    /**
-     * Get a typed memory entry.
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
-        return this._memoryEntries.get(type) as IMemoryEntry<T, MemoryValueOf<T>> | undefined;
-    }
-
-    /**
-     * Check if a memory entry exists.
-     */
-    hasMemory(type: MemoryType): boolean {
-        return this._memoryEntries.has(type);
-    }
-
-    /**
-     * Set a typed memory entry (protected - called by strategies/behaviors).
-     */
-    protected setMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
-        this._memoryEntries.set(type, entry);
-    }
-
-    /**
-     * Allocate a typed memory entry on this block.
-     * Unlike setMemoryValue (which wraps in SimpleMemoryEntry), this accepts
-     * a pre-constructed IMemoryEntry — use for specialized entries like
-     * FragmentMemory and DisplayFragmentMemory that need subscriptions.
-     */
-    allocateMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
-        this._memoryEntries.set(type, entry);
-    }
-
-    /**
-     * Set memory value directly. Creates a new SimpleMemoryEntry or updates existing.
-     * This is the public API for behaviors to store state.
-     */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        const existing = this._memoryEntries.get(type);
-        if (existing && typeof (existing as any).update === 'function') {
-            // Update existing entry
-            (existing as any).update(value);
-        } else {
-            // Create new SimpleMemoryEntry
-            this._memoryEntries.set(type, new SimpleMemoryEntry(type, value));
-        }
-
-        // Log memory update
-        RuntimeLogger.logMemoryUpdate(this.key.toString(), type, value);
-    }
-
-    // ============================================================================
-    // List-Based Memory (New API)
+    // List-Based Memory API
     // ============================================================================
 
     /**
@@ -299,14 +240,6 @@ export class RuntimeBlock implements IRuntimeBlock {
             actions.push(...unmountEventActions);
         }
 
-        // Dispose memory entries
-        for (const [_type, entry] of this._memoryEntries) {
-            if (typeof (entry as any).dispose === 'function') {
-                (entry as any).dispose();
-            }
-        }
-        this._memoryEntries.clear();
-
         // Dispose list-based memory locations
         for (const location of this._memory) {
             location.dispose();
@@ -371,17 +304,6 @@ export class RuntimeBlock implements IRuntimeBlock {
     markComplete(reason?: string): void {
         this._isComplete = true;
         this._completionReason = reason;
-    }
-
-    // ============================================================================
-    // Utilities
-    // ============================================================================
-
-    /**
-     * Get all memory types owned by this block.
-     */
-    getMemoryTypes(): MemoryType[] {
-        return Array.from(this._memoryEntries.keys());
     }
 
     // ============================================================================
