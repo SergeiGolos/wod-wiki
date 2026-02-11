@@ -4,8 +4,7 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { BlockContext } from "../../BlockContext";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "@/core/models/CodeFragment";
-import { FragmentMemory } from "../../memory/FragmentMemory";
-import { DisplayFragmentMemory } from "../../memory/DisplayFragmentMemory";
+import { IFragmentSource } from "@/core/contracts/IFragmentSource";
 
 describe("BlockBuilder Fragment Memory Allocation", () => {
     const runtime = {
@@ -155,15 +154,15 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(displayMem!.value.resolved).toHaveLength(2);
     });
 
-    it("should allocate FragmentMemory as a proper FragmentMemory instance (not SimpleMemoryEntry)", () => {
+    it("should allocate fragment memory with proper IMemoryEntry interface", () => {
         const block = buildWithFragments([[timerFragment]]);
 
         const fragmentMem = block.getMemory('fragment');
         expect(fragmentMem).toBeDefined();
-        // FragmentMemory has setGroups, addGroup, addFragment methods
-        expect(typeof (fragmentMem as any).setGroups).toBe('function');
-        expect(typeof (fragmentMem as any).addGroup).toBe('function');
-        expect(typeof (fragmentMem as any).addFragment).toBe('function');
+        // FragmentStateView returns groups via .value
+        expect(fragmentMem!.value.groups).toHaveLength(1);
+        // Has subscribe method (IMemoryEntry compliance)
+        expect(typeof fragmentMem!.subscribe).toBe('function');
     });
 
     it("should not allocate DisplayFragmentMemory when no fragments are set", () => {
@@ -188,19 +187,18 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(block.hasMemory('fragment:display')).toBe(false);
     });
 
-    it("should have DisplayFragmentMemory react to FragmentMemory updates", () => {
+    it("should have fragment:display react to fragment store updates via addFragment", () => {
         const block = buildWithFragments([[timerFragment]]);
 
-        const fragmentMem = block.getMemory('fragment') as unknown as FragmentMemory;
         const displayMem = block.getMemory('fragment:display');
 
         // Initial state: 1 fragment
         expect(displayMem!.value.fragments).toHaveLength(1);
 
-        // Add a fragment to the source FragmentMemory
-        fragmentMem.addFragment(actionFragment);
+        // Add a fragment through the display view's addFragment API
+        (displayMem as any).addFragment(actionFragment);
 
-        // DisplayFragmentMemory should auto-update
+        // Should now have 2 fragments
         expect(displayMem!.value.fragments).toHaveLength(2);
         expect(displayMem!.value.resolved).toHaveLength(2);
     });
@@ -251,10 +249,10 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(displayMem!.value.resolved).toHaveLength(3);
     });
 
-    it("should implement IFragmentSource on DisplayFragmentMemory", () => {
+    it("should implement IFragmentSource on fragment:display memory", () => {
         const block = buildWithFragments([[timerFragment, actionFragment, repFragment]]);
 
-        const displayMem = block.getMemory('fragment:display') as unknown as DisplayFragmentMemory;
+        const displayMem = block.getMemory('fragment:display') as unknown as IFragmentSource;
         expect(displayMem).toBeDefined();
 
         // IFragmentSource methods

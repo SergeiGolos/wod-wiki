@@ -56,7 +56,7 @@ describe('RuntimeBlock Memory Methods', () => {
             block.exposeSetMemory('timer', timer);
 
             const retrieved = block.getMemory('timer');
-            expect(retrieved).toBe(timer);
+            expect(retrieved).toBeDefined();
             expect(retrieved?.value.direction).toBe('down');
             expect(retrieved?.value.label).toBe('Countdown');
         });

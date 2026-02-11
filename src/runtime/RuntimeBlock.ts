@@ -8,7 +8,11 @@ import { BlockContext } from './BlockContext';
 import { IMemoryEntry } from './memory/IMemoryEntry';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { BehaviorContext } from './BehaviorContext';
-import { SimpleMemoryEntry } from './memory/SimpleMemoryEntry';
+import { FragmentGroupStore } from './memory/FragmentGroupStore';
+import { FragmentGroupEntry } from './memory/FragmentGroupEntry';
+import { FragmentDisplayView, FragmentStateView } from './memory/FragmentDisplayView';
+import { FragmentVisibility } from '../core/models/CodeFragment';
+import { ICodeFragment } from '../core/models/CodeFragment';
 import { RuntimeLogger } from './RuntimeLogger';
 
 /**
@@ -33,8 +37,15 @@ export class RuntimeBlock implements IRuntimeBlock {
     public readonly context: IBlockContext;
     public readonly sourceIds: number[];
 
-    // Typed memory entries
-    private _memoryEntries: Map<MemoryType, IMemoryEntry<MemoryType, any>> = new Map();
+    // Unified store for all block state
+    private readonly _store: FragmentGroupStore = new FragmentGroupStore();
+
+    // IDs of groups that hold ICodeFragment[] data (from parser/compiler)
+    private readonly _fragmentGroupIds: string[] = [];
+
+    // Cached virtual views (created on first access)
+    private _displayView?: FragmentDisplayView;
+    private _fragmentView?: FragmentStateView;
 
     // Behavior context (created on mount)
     protected _behaviorContext?: BehaviorContext;
@@ -59,7 +70,8 @@ export class RuntimeBlock implements IRuntimeBlock {
         contextOrBlockType?: IBlockContext | string,
         blockKey?: BlockKey,
         blockTypeParam?: string,
-        label?: string
+        label?: string,
+        initialFragments?: ICodeFragment[][]
     ) {
         this._runtime = runtime;
         this.sourceIds = sourceIds;
@@ -77,6 +89,15 @@ export class RuntimeBlock implements IRuntimeBlock {
             this.blockType = blockTypeParam;
             this.label = label || blockTypeParam || 'Block';
         }
+
+        // Seed the store with parser/compiler fragment groups
+        if (initialFragments && initialFragments.length > 0) {
+            for (let i = 0; i < initialFragments.length; i++) {
+                const gid = `frag-${i}`;
+                this._store.upsert(gid, initialFragments[i], 'public');
+                this._fragmentGroupIds.push(gid);
+            }
+        }
     }
 
     // ============================================================================
@@ -85,48 +106,60 @@ export class RuntimeBlock implements IRuntimeBlock {
 
     /**
      * Get a typed memory entry.
+     * Routes virtual queries ('fragment', 'fragment:display') to computed views;
+     * direct queries to the FragmentGroupStore via FragmentGroupEntry adapters.
      */
     getMemory<T extends MemoryType>(type: T): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
-        return this._memoryEntries.get(type) as IMemoryEntry<T, MemoryValueOf<T>> | undefined;
+        // Virtual queries (computed views over the store)
+        if (type === 'fragment:display') {
+            if (this._fragmentGroupIds.length === 0) return undefined;
+            return this.getDisplayView() as unknown as IMemoryEntry<T, MemoryValueOf<T>>;
+        }
+        if (type === 'fragment') {
+            if (this._fragmentGroupIds.length === 0) return undefined;
+            return this.getFragmentView() as unknown as IMemoryEntry<T, MemoryValueOf<T>>;
+        }
+
+        // Direct group lookup
+        if (!this._store.has(type)) return undefined;
+        return new FragmentGroupEntry<T, MemoryValueOf<T>>(type, this._store, type);
     }
 
     /**
      * Check if a memory entry exists.
      */
     hasMemory(type: MemoryType): boolean {
-        return this._memoryEntries.has(type);
+        if (type === 'fragment:display' || type === 'fragment') {
+            return this._fragmentGroupIds.length > 0;
+        }
+        return this._store.has(type);
     }
 
     /**
-     * Set a typed memory entry (protected - called by strategies/behaviors).
+     * Set a typed memory entry (protected - called by strategies/behaviors/tests).
+     * Transition shim: extracts the value and stores it in the FragmentGroupStore.
      */
     protected setMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
-        this._memoryEntries.set(type, entry);
+        const visibility = MEMORY_VISIBILITY[type] ?? 'private';
+        this._store.upsert(type, entry.value, visibility);
     }
 
     /**
      * Allocate a typed memory entry on this block.
-     * Unlike setMemoryValue (which wraps in SimpleMemoryEntry), this accepts
-     * a pre-constructed IMemoryEntry — use for specialized entries like
-     * FragmentMemory and DisplayFragmentMemory that need subscriptions.
+     * Transition shim: extracts the value and stores it in the FragmentGroupStore.
      */
     allocateMemory<T extends MemoryType>(type: T, entry: IMemoryEntry<T, MemoryValueOf<T>>): void {
-        this._memoryEntries.set(type, entry);
+        const visibility = MEMORY_VISIBILITY[type] ?? 'private';
+        this._store.upsert(type, entry.value, visibility);
     }
 
     /**
-     * Set memory value directly. Creates a new SimpleMemoryEntry or updates existing.
+     * Set memory value directly. Routes to the FragmentGroupStore.
      * This is the public API for behaviors to store state.
      */
     setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        const existing = this._memoryEntries.get(type);
-        if (existing && typeof (existing as any).update === 'function') {
-            // Update existing entry
-            (existing as any).update(value);
-        } else {
-            // Create new SimpleMemoryEntry
-            this._memoryEntries.set(type, new SimpleMemoryEntry(type, value));
-        }
+        const visibility = MEMORY_VISIBILITY[type] ?? 'private';
+        this._store.upsert(type, value, visibility);
 
         // Log memory update
         RuntimeLogger.logMemoryUpdate(this.key.toString(), type, value);
@@ -267,13 +300,11 @@ export class RuntimeBlock implements IRuntimeBlock {
             actions.push(...unmountEventActions);
         }
 
-        // Dispose memory entries
-        for (const [_type, entry] of this._memoryEntries) {
-            if (typeof (entry as any).dispose === 'function') {
-                (entry as any).dispose();
-            }
-        }
-        this._memoryEntries.clear();
+        // Dispose memory store and virtual views
+        this._displayView?.dispose();
+        this._displayView = undefined;
+        this._fragmentView = undefined;
+        this._store.dispose();
 
         // Unregister event handlers
         for (const unsub of this._eventUnsubscribers) {
@@ -343,7 +374,12 @@ export class RuntimeBlock implements IRuntimeBlock {
      * Get all memory types owned by this block.
      */
     getMemoryTypes(): MemoryType[] {
-        return Array.from(this._memoryEntries.keys());
+        const types = this._store.keys() as MemoryType[];
+        if (this._fragmentGroupIds.length > 0) {
+            if (!types.includes('fragment')) types.push('fragment');
+            if (!types.includes('fragment:display')) types.push('fragment:display');
+        }
+        return types;
     }
 
     // ============================================================================
@@ -356,4 +392,32 @@ export class RuntimeBlock implements IRuntimeBlock {
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
     }
+
+    // ── Private helpers ──
+
+    private getDisplayView(): FragmentDisplayView {
+        if (!this._displayView) {
+            this._displayView = new FragmentDisplayView(
+                this.key.toString(),
+                this._store,
+                this._fragmentGroupIds
+            );
+        }
+        return this._displayView;
+    }
+
+    private getFragmentView(): FragmentStateView {
+        if (!this._fragmentView) {
+            this._fragmentView = new FragmentStateView(this._store, this._fragmentGroupIds);
+        }
+        return this._fragmentView;
+    }
 }
+
+/** Default visibility by memory type */
+const MEMORY_VISIBILITY: Partial<Record<MemoryType, FragmentVisibility>> = {
+    timer: 'private',
+    round: 'private',
+    display: 'public',
+    controls: 'public',
+};

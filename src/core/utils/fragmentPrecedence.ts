@@ -79,6 +79,9 @@ export function resolveFragmentPrecedence(
         if (filter.excludeTypes) {
             filtered = filtered.filter(f => !filter.excludeTypes!.includes(f.fragmentType));
         }
+        if (filter.visibility) {
+            filtered = filtered.filter(f => (f.visibility ?? 'public') === filter.visibility);
+        }
     }
 
     // Step 2: Group by FragmentType

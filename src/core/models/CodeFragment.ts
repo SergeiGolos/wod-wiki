@@ -26,6 +26,15 @@ export type FragmentOrigin =
   | 'tracked'
   | 'analyzed';
 
+/**
+ * Visibility for memory propagation and query filtering.
+ *
+ * - `private`: Only behaviors on this block via getMemory
+ * - `public`:  UI + output + behaviors via getMemory
+ * - `cascade`: Compiler copies into children at build-time
+ */
+export type FragmentVisibility = 'private' | 'public' | 'cascade';
+
 export interface ICodeFragment {
   readonly image?: string;
   readonly value?: unknown;
@@ -40,6 +49,12 @@ export interface ICodeFragment {
    * Defaults to 'parser' for backwards compatibility.
    */
   readonly origin?: FragmentOrigin;
+
+  /**
+   * Visibility for memory propagation and query filtering.
+   * Defaults to 'public' for backwards compatibility.
+   */
+  readonly visibility?: FragmentVisibility;
 
   /**
    * Block key that created/owns this fragment.

@@ -1,4 +1,4 @@
-import { FragmentType, ICodeFragment, FragmentOrigin } from '../models/CodeFragment';
+import { FragmentType, ICodeFragment, FragmentOrigin, FragmentVisibility } from '../models/CodeFragment';
 
 /**
  * Filter configuration for fragment retrieval.
@@ -10,6 +10,8 @@ export interface FragmentFilter {
     types?: FragmentType[];
     /** Exclude these fragment types */
     excludeTypes?: FragmentType[];
+    /** Only include fragments with this visibility */
+    visibility?: FragmentVisibility;
 }
 
 /**

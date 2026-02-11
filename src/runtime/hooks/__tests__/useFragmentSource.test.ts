@@ -4,7 +4,6 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { BlockContext } from "../../BlockContext";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "@/core/models/CodeFragment";
-import { DisplayFragmentMemory } from "../../memory/DisplayFragmentMemory";
 import { IFragmentSource } from "@/core/contracts/IFragmentSource";
 
 /**
@@ -228,7 +227,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
     // ========================================================================
 
     describe("Reactive fragment updates", () => {
-        it("should update IFragmentSource when fragments are added to source memory", () => {
+        it("should update IFragmentSource when fragments are added via display view", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const block = buildBlock([[timerFrag]]);
             const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
@@ -236,13 +235,13 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             // Initially 1 fragment
             expect(source.getDisplayFragments()).toHaveLength(1);
 
-            // Add a fragment to the underlying FragmentMemory
-            const fragmentMem = block.getMemory('fragment');
-            (fragmentMem as any).addFragment(
+            // Add a fragment via the display view's addFragment API
+            const displayView = block.getMemory('fragment:display') as any;
+            displayView.addFragment(
                 createFragment('action', FragmentType.Action, 'Run')
             );
 
-            // DisplayFragmentMemory should auto-sync
+            // Should auto-sync
             expect(source.getDisplayFragments()).toHaveLength(2);
         });
 
@@ -250,18 +249,18 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
             const block = buildBlock([[parserTimer]]);
 
-            const displayMem = block.getMemory('fragment:display') as unknown as DisplayFragmentMemory;
+            const displayView = block.getMemory('fragment:display') as unknown as IFragmentSource;
 
             // Initially parser timer
-            expect(displayMem.getFragment(FragmentType.Timer)?.origin).toBe('parser');
+            expect(displayView.getFragment(FragmentType.Timer)?.origin).toBe('parser');
 
-            // Add runtime timer (higher precedence)
-            displayMem.addFragment(
+            // Add runtime timer (higher precedence) through addFragment
+            (displayView as any).addFragment(
                 createFragment('timer', FragmentType.Timer, 432000, 'runtime')
             );
 
             // Runtime should now win
-            const timer = displayMem.getFragment(FragmentType.Timer);
+            const timer = displayView.getFragment(FragmentType.Timer);
             expect(timer?.origin).toBe('runtime');
             expect(timer?.value).toBe(432000);
         });
@@ -278,9 +277,8 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
                 notifyCount++;
             });
 
-            // Add fragment to source memory
-            const fragmentMem = block.getMemory('fragment');
-            (fragmentMem as any).addFragment(
+            // Add fragment via display view's addFragment API
+            (displayEntry as any).addFragment(
                 createFragment('action', FragmentType.Action, 'Run')
             );
 
