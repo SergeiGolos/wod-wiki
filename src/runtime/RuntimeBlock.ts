@@ -11,8 +11,7 @@ import { BehaviorContext } from './BehaviorContext';
 import { FragmentGroupStore } from './memory/FragmentGroupStore';
 import { FragmentGroupEntry } from './memory/FragmentGroupEntry';
 import { FragmentDisplayView, FragmentStateView } from './memory/FragmentDisplayView';
-import { FragmentVisibility } from '../core/models/CodeFragment';
-import { ICodeFragment } from '../core/models/CodeFragment';
+import { FragmentVisibility, ICodeFragment } from '../core/models/CodeFragment';
 import { RuntimeLogger } from './RuntimeLogger';
 
 /**
