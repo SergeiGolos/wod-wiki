@@ -275,7 +275,7 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            // Get the DisplayFragmentMemory entry (implements IFragmentSource)
+            // Get the fragment:display memory entry (FragmentDisplayView implements IFragmentSource)
             const displayEntry = block.getMemory('fragment:display');
 
             // Create fallback source for blocks without fragment:display memory
@@ -293,6 +293,7 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                     rawFragments: [],
                 } as IFragmentSource;
             } else {
+                // FragmentDisplayView implements IFragmentSource
                 source = displayEntry as unknown as IFragmentSource;
             }
 

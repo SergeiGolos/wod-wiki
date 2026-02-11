@@ -246,7 +246,7 @@ export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayV
  * Hook for subscribing to the display fragment source from a block.
  *
  * Returns the `IFragmentSource` interface from the block's `'fragment:display'`
- * memory entry (`DisplayFragmentMemory`). The returned source provides
+ * memory entry (`FragmentDisplayView`). The returned source provides
  * precedence-resolved fragments that update reactively when the underlying
  * fragment memory or runtime state changes.
  *
@@ -271,12 +271,12 @@ export function useFragmentSource(block: IRuntimeBlock | undefined): IFragmentSo
     // Subscribe to the display state for reactivity (triggers re-render on changes)
     const displayState = useBlockMemory(block, 'fragment:display');
 
-    // Return the memory entry itself as IFragmentSource (it implements the interface)
+    // Return the memory entry itself as IFragmentSource (FragmentDisplayView implements it)
     return useMemo(() => {
         if (!block || !displayState) return undefined;
         const entry = block.getMemory('fragment:display');
         if (!entry) return undefined;
-        // DisplayFragmentMemory implements IFragmentSource
+        // FragmentDisplayView implements IFragmentSource
         return entry as unknown as IFragmentSource;
     }, [block, displayState]);
 }

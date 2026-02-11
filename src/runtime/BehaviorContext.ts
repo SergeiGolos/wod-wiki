@@ -114,9 +114,9 @@ export class BehaviorContext implements IBehaviorContext {
         // label, effort, rep, etc. fragments that the UI needs to render.
         let effectiveFragments = fragments;
         if (effectiveFragments.length === 0) {
-            const displayMem = this.getMemory('fragment:display') as import('./memory/MemoryTypes').FragmentDisplayState | undefined;
-            if (displayMem && displayMem.resolved.length > 0) {
-                effectiveFragments = [...displayMem.resolved];
+            const displayState = this.getMemory('fragment:display');
+            if (displayState && displayState.resolved.length > 0) {
+                effectiveFragments = [...displayState.resolved];
             }
         }
 
